@@ -5430,3 +5430,86 @@ button.comp-meta-state-pill:focus-visible {
     display: none;
   }
 }
+
+/* ── Quiet Studio activity log ─────────────────────────── */
+.comp-activity-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.comp-activity-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--espresso-line);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--ivory-paper) 82%, transparent);
+}
+
+.comp-activity-row > .material-symbols-outlined {
+  flex-shrink: 0;
+  font-size: 18px;
+  color: var(--teal-500);
+}
+
+.comp-activity-row[data-type="success"] > .material-symbols-outlined {
+  color: #10b981;
+}
+
+.comp-activity-row[data-type="warning"] > .material-symbols-outlined {
+  color: #f59e0b;
+}
+
+.comp-activity-row[data-type="error"] > .material-symbols-outlined {
+  color: #f43f5e;
+}
+
+.comp-activity-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.comp-activity-message {
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--espresso-text);
+  overflow-wrap: anywhere;
+}
+
+.comp-activity-time {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--text-dim, rgba(61, 53, 42, 0.6));
+}
+
+.comp-activity-empty {
+  margin: 8px 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-dim, rgba(61, 53, 42, 0.6));
+}
+
+.comp-activity-clear {
+  margin-top: 16px;
+  padding: 8px 12px;
+  border: 1px solid var(--espresso-line);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--espresso-text);
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.comp-activity-clear:disabled {
+  opacity: 0.45;
+  cursor: default;
+}

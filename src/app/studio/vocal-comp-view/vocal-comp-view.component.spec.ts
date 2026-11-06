@@ -242,7 +242,6 @@ describe("VocalCompViewComponent", () => {
 
   it("should return empty string if no comp group selected", () => {
     component.selectGroup("nonexistent");
-    const url = (component["_currentAudio"] = null);
     const result = component.assembleComp();
     expect(result).toBe("");
   });

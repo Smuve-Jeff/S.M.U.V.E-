@@ -221,7 +221,7 @@ export function buildMeasureXml(
       const chunk = Math.max(1, Math.min(note.duration, available));
       return noteXml(pitchParts(note.midi), chunk, { start: continues });
     });
-    let xml = chunks
+    const xml = chunks
       .map((chunk, index) =>
         index === 0 ? chunk : chunk.replace("<note>", "<note><chord/>"),
       )

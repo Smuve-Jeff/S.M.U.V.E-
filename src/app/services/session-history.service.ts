@@ -13,16 +13,7 @@ import {
   SessionRestore,
 } from '../types/session-history.types';
 import { RemoteSnapshot } from '../types/cloud-sync.types';
-import {
-  CherryPickResult,
-  ConflictMarker,
-  ConflictResolution,
-  MergeCheckpointPayload,
-  MergeResult,
-  MERGE_SENTINEL,
-  RebasePlan,
-  ResolveRequest,
-} from '../types/merge.types';
+import { CherryPickResult, ConflictMarker, MergeCheckpointPayload, MergeResult, MERGE_SENTINEL, RebasePlan, ResolveRequest } from '../types/merge.types';
 import { SessionGraph } from '../types/session-graph.types';
 import {
   StudioApproval,

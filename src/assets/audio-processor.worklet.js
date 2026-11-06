@@ -1,4 +1,3 @@
-/* global currentTime, sampleRate */
 
 /**
  * S.M.U.V.E. 2.0 — Professional AudioWorklet Processor
@@ -17,10 +16,10 @@
 function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
 
 /** Linear interpolation between a and b at t (0..1) */
-function lerp(a, b, t) { return a + t * (b - a); }
+function _lerp(a, b, t) { return a + t * (b - a); }
 
 /** Equal-power crossfade — constant power throughout transition */
-function equalPowerXFade(gainA, gainB, t) {
+function _equalPowerXFade(gainA, gainB, t) {
   return [Math.cos(t * Math.PI * 0.5), Math.sin(t * Math.PI * 0.5)];
 }
 
@@ -382,14 +381,10 @@ class SmuveAudioProcessor extends AudioWorkletProcessor {
     return bpm > 0 ? bpm : this.tempo;
   }
 
-  process(inputs, outputs, parameters) {
+  process(inputs, outputs, _parameters) {
     const output = outputs[0];
     const outL = output[0];
     const outR = output[1];
-    const input = inputs[0];
-    const inL = input[0];
-    const inR = input[1];
-
     // ── Scheduling ─────────────────────────────────────
     if (this.isPlaying) {
       while (this.nextNoteTime < currentTime + this.lookahead) {

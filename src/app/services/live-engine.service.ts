@@ -269,7 +269,7 @@ export class LiveEngineService {
   }
 
   generateSmartChord(rootNote: string): string[] {
-    const scale = this.currentScale();
+    const _scale = this.currentScale();
     const root = Tone.Frequency(rootNote).toMidi();
     const chord = [root, root + 4, root + 7].map((midi) =>
       this.midiToNote(midi)

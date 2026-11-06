@@ -199,7 +199,7 @@ export class AlgorithmicReverbModule implements WasmDspModule {
     // 4 FDN channels
     this.fdnLines = [];
     this.lpStates = [];
-    for (const d of this.fdnDelays) {
+    for (const _d of this.fdnDelays) {
       this.fdnLines.push(new Float32Array(maxDelay));
       this.lpStates.push(0);
     }
@@ -258,7 +258,7 @@ export class AlgorithmicReverbModule implements WasmDspModule {
     }
 
     const len = input.length;
-    const { mix, decay, preDelay, damping, width, modRate, modDepth } =
+    const { mix, decay: _decay, preDelay: _preDelay, damping, width, modRate, modDepth } =
       this.params;
 
     // Early reflections via cascaded all-pass diffusers
@@ -281,7 +281,7 @@ export class AlgorithmicReverbModule implements WasmDspModule {
     const fdnOutputs: Float32Array[] = [];
     for (let ch = 0; ch < 4; ch++) {
       const fdnOut = new Float32Array(len);
-      const result = fdnChannel(
+      const _result = fdnChannel(
         earlyReflections,
         fdnOut,
         this.fdnLines[ch],
@@ -309,7 +309,7 @@ export class AlgorithmicReverbModule implements WasmDspModule {
     // Stereo decorrelation
     const outL = new Float32Array(len);
     const outR = new Float32Array(len);
-    const decorrWp = stereoDecorrelation(
+    const _decorrWp = stereoDecorrelation(
       monoReverb,
       outL,
       outR,
@@ -355,8 +355,6 @@ export const wasmReadyReverbKernel: DspKernelFn = (
   const mix = params[0] ?? 0.4;
   const decay = params[1] ?? 2.5;
   const damping = params[2] ?? 0.3;
-  const width = params[3] ?? 0.8;
-
   // Simple Schroeder reverb for Wasm compilation:
   // 4 comb filters + 2 all-pass filters
   const combDelays = [1116, 1188, 1277, 1356];

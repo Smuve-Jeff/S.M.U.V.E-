@@ -51,7 +51,7 @@ export class LoginComponent implements OnInit {
   get passwordValidation() {
     try {
       return this.authService.validatePassword(this.credentials.password || '');
-    } catch (e) {
+    } catch {
       return { isValid: false, errors: ['Validation engine failure.'] };
     }
   }
@@ -427,7 +427,7 @@ export class LoginComponent implements OnInit {
       }
 
       await this.router.navigateByUrl('/hub');
-    } catch (e) {
+    } catch {
       await this.router.navigateByUrl('/hub');
     }
   }

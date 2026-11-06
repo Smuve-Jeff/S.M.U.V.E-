@@ -175,7 +175,7 @@ export class WavetableSynth extends Instrument {
     this.voiceManager.clear();
   }
 
-  private releaseVoice(voice: any, note: number): void {
+  private releaseVoice(voice: any, _note: number): void {
     const now = this.audioContext.currentTime;
     voice.env.gain.cancelScheduledValues(now);
     voice.env.gain.setValueAtTime(voice.env.gain.value, now);
@@ -188,7 +188,7 @@ export class WavetableSynth extends Instrument {
       () => {
         try {
           voice.osc.stop();
-        } catch (e) {}
+        } catch { /* ignore */ }
         this.oscPool.release(voice.osc);
         this.gainPool.release(voice.env);
         this.filterPool.release(voice.filter);

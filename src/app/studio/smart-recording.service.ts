@@ -874,7 +874,7 @@ export class SmartRecordingService {
   findZeroCrossing(
     buffer: Float32Array,
     targetIndex: number,
-    sampleRate: number,
+    _sampleRate: number,
   ): number {
     if (!this.zeroCrossingEnabled()) return targetIndex;
 

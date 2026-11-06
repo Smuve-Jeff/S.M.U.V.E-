@@ -25,17 +25,7 @@ import { isOfflineAiText } from '../../../ai-manager.contract';
 import { questionnaireReadLine } from '../../services/artist-profile-read';
 import { ArtistProfileRevisionService } from '../../services/artist-profile-revision.service';
 import { SMUVE_PERSONAS } from '../../types/persona.types';
-import {
-  EnhancedArtistQuestionnaireEngine,
-  PHASES,
-  GENRE_OPTIONS,
-  type QuestionnaireQuestion,
-  type QuestionnairePhase,
-  type PhaseInfo,
-  type PersonaSynthesis,
-  type ProfileStrengthBreakdown,
-  getGenreDeepDive,
-} from '../../services/enhanced-artist-questionnaire-engine';
+import { EnhancedArtistQuestionnaireEngine, PHASES, GENRE_OPTIONS, type QuestionnaireQuestion, type QuestionnairePhase, type PhaseInfo, type ProfileStrengthBreakdown, getGenreDeepDive } from '../../services/enhanced-artist-questionnaire-engine';
 
 @Component({
   selector: 'app-artist-questionnaire',
@@ -85,10 +75,12 @@ export class ArtistQuestionnaireComponent {
     effect(() => {
       // A long answer list must not leave the next question or results scrolled
       // to the bottom. Do not reset while the artist is editing an answer.
-      this.currentQuestion()?.id;
-      this.analysisResult();
+      const questionId = this.currentQuestion()?.id;
+      const hasAnalysis = !!this.analysisResult();
       const content = this.mainContent()?.nativeElement;
-      if (content) content.scrollTop = 0;
+      // Reading both signals above is what subscribes this effect to them; the
+      // guard keeps the scroll reset tied to a real surface change.
+      if (content && (questionId || hasAnalysis)) content.scrollTop = 0;
     });
   }
 

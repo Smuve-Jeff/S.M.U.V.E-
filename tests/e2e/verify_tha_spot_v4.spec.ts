@@ -8,5 +8,5 @@ test('Verify Tha Spot live intelligence experience', async ({ page }) => {
   await page.getByTestId('intel-toggle').click();
   await expect(page.getByText('STRATEGIC INTEL')).toBeVisible();
   await expect(page.getByText('OPERATIONAL DIRECTIVES')).toBeVisible();
-  await expect(page.getByText('NEURAL SYNC')).toBeVisible();
+  await expect(page.getByText('ARCADE CLEARED')).toBeVisible();
 });

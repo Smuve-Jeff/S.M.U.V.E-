@@ -35,7 +35,6 @@ export const storageConfigured = (): boolean => r2CredentialsConfigured();
  */
 const s3Client = async (): Promise<S3Client> => {
   // Lazy require so the API boots without @aws-sdk/client-s3 installed.
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { S3Client: Client } = await import("@aws-sdk/client-s3");
   return new Client({
     region: "auto",
@@ -61,7 +60,6 @@ export const uploadToStorage = async (
   }
 
   // Lazy require so the API boots without @aws-sdk/client-s3 installed.
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { PutObjectCommand } = await import("@aws-sdk/client-s3");
 
   const userId = req.user?.userId ?? "anon";
@@ -92,7 +90,6 @@ export const uploadToStorage = async (
 export const readJsonObject = async <T>(key: string): Promise<T | null> => {
   if (!r2CredentialsConfigured()) return null;
 
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { GetObjectCommand } = await import("@aws-sdk/client-s3");
 
   try {
@@ -121,7 +118,6 @@ export const writeJsonObject = async (
     throw new AppError(503, "Upload storage is not configured");
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { PutObjectCommand } = await import("@aws-sdk/client-s3");
 
   const client = await s3Client();
@@ -144,7 +140,6 @@ export const createCloudMultipartUpload = async (
   if (!r2CredentialsConfigured()) {
     throw new AppError(503, "Project storage is not configured");
   }
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { CreateMultipartUploadCommand } = await import("@aws-sdk/client-s3");
   const client = await s3Client();
   const result = await client.send(
@@ -170,7 +165,6 @@ export const uploadCloudPart = async (
   if (!r2CredentialsConfigured()) {
     throw new AppError(503, "Project storage is not configured");
   }
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { UploadPartCommand } = await import("@aws-sdk/client-s3");
   const client = await s3Client();
   const result = await client.send(
@@ -197,7 +191,6 @@ export const completeCloudMultipartUpload = async (
   if (!r2CredentialsConfigured()) {
     throw new AppError(503, "Project storage is not configured");
   }
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { CompleteMultipartUploadCommand } = await import("@aws-sdk/client-s3");
   const client = await s3Client();
   await client.send(
@@ -223,7 +216,6 @@ export const abortCloudMultipartUpload = async (
   uploadId: string,
 ): Promise<void> => {
   if (!r2CredentialsConfigured()) return;
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { AbortMultipartUploadCommand } = await import("@aws-sdk/client-s3");
   const client = await s3Client();
   await client.send(

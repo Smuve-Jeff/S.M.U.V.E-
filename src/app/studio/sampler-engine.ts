@@ -43,7 +43,7 @@ export class SamplerEngine {
     return () => {
       try {
         source.stop(this.context.currentTime + 0.1);
-      } catch (e) {}
+      } catch { /* ignore */ }
     };
   }
 }

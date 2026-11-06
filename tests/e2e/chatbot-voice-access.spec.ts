@@ -49,7 +49,7 @@ async function openAdvisor(page: Page) {
   return {
     mic: page.getByRole('button', { name: 'Start voice input', exact: true }),
     composer: page.getByLabel('Artist request'),
-    notice: page.locator('app-chatbot [role="status"]'),
+    notice: page.locator('app-chatbot p[role="status"]'),
   };
 }
 

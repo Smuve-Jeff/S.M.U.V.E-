@@ -68,7 +68,7 @@ jest.mock('tone', () => {
     setContext: jest.fn(),
     getContext: jest.fn().mockReturnValue({ rawContext: 'mock-ctx' }),
     getDestination: jest.fn().mockReturnValue({ connect: jest.fn() }),
-    Frequency: jest.fn().mockImplementation((note: string) => ({
+    Frequency: jest.fn().mockImplementation((_note: string) => ({
       toMidi: jest.fn().mockReturnValue(60),
     })),
   };

@@ -39,7 +39,7 @@
   <div
     class="flex flex-col md:flex-row justify-between items-center gap-4 bg-brand-surface/30 p-2 rounded-xl border border-white/10"
   >
-    <div class="flex gap-1">
+    <div class="flex w-full flex-wrap gap-1 md:w-auto">
       <button
         *ngFor="let f of ['all', 'demo', 'completed', 'released']"
         (click)="activeFilter.set(f)"

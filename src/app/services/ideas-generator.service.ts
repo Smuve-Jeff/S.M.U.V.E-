@@ -103,9 +103,7 @@ export class IdeasGeneratorService {
     const key = params.key || 'C';
     const scale = params.scale || 'minor';
     const genre = params.genre || 'pop';
-    const bars = params.barCount || 4;
-
-    // Select progression based on genre
+        // Select progression based on genre
     const progression = this.selectProgression(genre, scale);
 
     // Map roman numerals to MIDI root notes

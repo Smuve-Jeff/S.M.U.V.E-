@@ -85,7 +85,7 @@ export class PermissionService {
           const name = p.name as any;
           const status = await navigator.permissions.query({ name });
           return { ...p, status: status.state as PermissionStatus };
-        } catch (e) {
+        } catch {
           return { ...p, status: 'unsupported' as PermissionStatus };
         }
       })

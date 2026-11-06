@@ -340,7 +340,7 @@ export class BeginnerWizardComponent {
     try {
       const raw = localStorage.getItem(this.STORAGE_KEY);
       if (raw) return new Set(JSON.parse(raw));
-    } catch {}
+    } catch { /* ignore */ }
     return new Set();
   }
 

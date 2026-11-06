@@ -143,7 +143,7 @@ export class AiAssistantComponent implements OnInit, AfterViewInit, OnDestroy {
 
   // ---- Quick action menu (context-aware) ----
   quickActions = computed<QuickAction[]>(() => {
-    const t = this.musicManager.selectedTrack();
+    const _t = this.musicManager.selectedTrack();
     const view = this.activeViewContext();
 
     const actions: QuickAction[] = [];
@@ -567,7 +567,7 @@ export class AiAssistantComponent implements OnInit, AfterViewInit, OnDestroy {
       );
     }
     if (lower.includes("tempo") || lower.includes("bpm")) {
-      return `Tempo is ${this.audio.tempo()} BPM. Pick a real one: 80–100 hip-hop, 124–128 house, 140–160 trap. I\'ll wait while you choose the obvious one.`;
+      return `Tempo is ${this.audio.tempo()} BPM. Pick a real one: 80–100 hip-hop, 124–128 house, 140–160 trap. I'll wait while you choose the obvious one.`;
     }
     if (lower.includes("bass")) {
       return this.personaAwareOfflineReply(

@@ -1,11 +1,7 @@
-import { Injectable, inject, signal, computed } from '@angular/core';
+import { Injectable, inject, signal } from '@angular/core';
 import { UserProfileService } from './user-profile.service';
 import { ArtistPathwayService } from './artist-pathway.service';
-import {
-  ReleaseProject,
-  ProductionTrack,
-  ReleaseType,
-} from '../types/release.types';
+import { ReleaseProject } from '../types/release.types';
 
 // ── PRO Registry ──────────────────────────────────────────
 
@@ -287,7 +283,7 @@ export class ArtistDevelopmentService {
     this.dspAnalytics.set(null);
     try {
       localStorage.removeItem('smuve_dsp_analytics');
-    } catch {}
+    } catch { /* ignore */ }
   }
 
   // ── Social Link Hub ───────────────────────────────────
@@ -600,7 +596,7 @@ export class ArtistDevelopmentService {
       localStorage.setItem(key, JSON.stringify(data));
       if (this.storageError()) this.storageError.set(null);
       return true;
-    } catch (e) {
+    } catch {
       this.storageError.set(
         'This change could not be saved on this device. Export a backup before leaving.',
       );
@@ -612,7 +608,7 @@ export class ArtistDevelopmentService {
     try {
       const raw = localStorage.getItem(key);
       if (raw) return JSON.parse(raw) as T;
-    } catch {}
+    } catch { /* ignore */ }
     return null;
   }
 }

@@ -631,7 +631,7 @@ describe('GameService', () => {
       THA_SPOT_FALLBACK_FEED
     );
     const rpgs = await pending;
-    const ids = new Set(rpgs.map((game) => game.id));
+    const _ids = new Set(rpgs.map((game) => game.id));
 
     expect(rpgs.length).toBeGreaterThan(0);
     expect(rpgs.some((game) => game.tags?.includes('RPG'))).toBe(true);

@@ -116,7 +116,7 @@ export class WaveformRendererComponent
     }
   }
 
-  ngOnChanges(changes: SimpleChanges) {
+  ngOnChanges(_changes: SimpleChanges) {
     if (this.ctx) this.draw();
   }
 

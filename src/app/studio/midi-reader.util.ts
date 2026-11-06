@@ -148,8 +148,7 @@ export function parseMidiFile(data: ArrayBuffer | Uint8Array): ParsedMidiFile {
     const chunkId = ascii(4);
     const chunkLength = u32();
     ensure(chunkLength, `track ${index + 1} data`);
-    const chunkStart = pos;
-    const chunkEnd = pos + chunkLength;
+        const chunkEnd = pos + chunkLength;
 
     if (chunkId !== 'MTrk') {
       pos = chunkEnd; // Unknown chunk type — skip it.

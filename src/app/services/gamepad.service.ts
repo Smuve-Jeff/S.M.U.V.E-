@@ -72,11 +72,11 @@ export class GamepadService {
     }
   }
 
-  private onGamepadConnected(e: GamepadEvent) {
+  private onGamepadConnected(_e: GamepadEvent) {
     this.startPolling();
   }
 
-  private onGamepadDisconnected(e: GamepadEvent) {
+  private onGamepadDisconnected(_e: GamepadEvent) {
     this.connectedGamepad.set(null);
     if (this.rafId) cancelAnimationFrame(this.rafId);
   }

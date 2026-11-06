@@ -1,4 +1,4 @@
-import { Injectable, computed, inject, signal, Injector } from '@angular/core';
+import { Injectable, computed, inject, Injector } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { LoggingService } from './logging.service';
 import { TokenService } from './token.service';

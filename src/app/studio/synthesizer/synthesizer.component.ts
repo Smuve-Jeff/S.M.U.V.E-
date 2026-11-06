@@ -74,7 +74,7 @@ export class SynthesizerComponent implements OnInit, AfterViewInit, OnDestroy {
     this.isBeginner.update((v) => !v);
     try {
       localStorage.setItem("synth_beginner", String(this.isBeginner()));
-    } catch {}
+    } catch { /* ignore */ }
     this.haptic.light();
   }
 

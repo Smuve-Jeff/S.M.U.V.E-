@@ -98,7 +98,7 @@ export class PianoRollRenderer {
     playheadStep: number,
     totalSteps: number,
     camera: Camera2D,
-    totalMidiRange: number = 96,
+    _totalMidiRange: number = 96,
   ): void {
     const renderer = this.renderer;
     const bounds = renderer.visibleBounds;

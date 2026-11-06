@@ -1,7 +1,6 @@
 import eslint from '@eslint/js';
 import tseslint from 'typescript-eslint';
 import prettierConfig from 'eslint-config-prettier';
-import prettierPlugin from 'eslint-plugin-prettier';
 import globals from 'globals';
 
 export default tseslint.config(
@@ -21,11 +20,11 @@ export default tseslint.config(
         MediaRecorderOptions: 'readonly',
       },
     },
-    plugins: {
-      prettier: prettierPlugin,
-    },
     rules: {
-      'prettier/prettier': 'error',
+      // Formatting belongs to `npm run format` (Prettier). Enforcing it here as
+      // an error produced ~67k findings against code that is not fully
+      // Prettier-formatted, which buried the real correctness findings. ESLint
+      // now gates code quality; Prettier remains the formatter.
       '@typescript-eslint/no-explicit-any': 'off',
       '@typescript-eslint/no-unused-vars': [
         'warn',
@@ -39,6 +38,30 @@ export default tseslint.config(
       'no-case-declarations': 'off',
       'no-empty': 'warn',
       'no-useless-escape': 'warn',
+    },
+  },
+  {
+    // TypeScript already resolves identifiers and DOM lib types. `no-undef`
+    // only reports type-only names (AudioContextState, MediaSession, ...) that
+    // are not runtime globals; keep the rule for plain JavaScript.
+    files: ['**/*.ts'],
+    rules: {
+      'no-undef': 'off',
+    },
+  },
+  {
+    // AudioWorkletGlobalScope globals are supplied by `addModule()` at runtime,
+    // not by the browser/Jest globals object.
+    files: ['src/assets/**/*.js'],
+    languageOptions: {
+      globals: {
+        ...globals.worker,
+        AudioWorkletProcessor: 'readonly',
+        registerProcessor: 'readonly',
+        sampleRate: 'readonly',
+        currentTime: 'readonly',
+        port: 'readonly',
+      },
     },
   },
   prettierConfig,

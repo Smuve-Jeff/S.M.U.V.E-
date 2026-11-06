@@ -5,7 +5,7 @@ import { MusicManagerService } from "../services/music-manager.service";
 import { LoggingService } from "../services/logging.service";
 import { SnackbarService } from "../services/snackbar.service";
 import { AudioStretchService } from "./audio-stretch.service";
-import { SampleStreamer, type SampleStreamerOptions, createSampleStreamer } from "../services/sample-streamer.service";
+import { SampleStreamer, createSampleStreamer } from "../services/sample-streamer.service";
 
 export type EnhancePreset = "clean" | "vocal" | "broadcast" | "master";
 
@@ -992,7 +992,7 @@ export class AudioImportService {
   renderTrimRegion(
     canvas: HTMLCanvasElement,
     audio: ImportedAudio,
-    waveform: number[],
+    _waveform: number[],
   ) {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
@@ -1065,7 +1065,7 @@ export class AudioImportService {
             }
           : {}),
       });
-      this.snackbar.success(`Added \"${audio.name}\" as new track`);
+      this.snackbar.success(`Added "${audio.name}" as new track`);
     };
 
     const resolveFallbackBuffer = async (): Promise<AudioBuffer | null> => {
@@ -1136,7 +1136,7 @@ export class AudioImportService {
         })
         .catch(() => {
           this.logger.warn(
-            `Could not resolve a playable buffer for \"${audio.name}\" when adding to the arrangement`,
+            `Could not resolve a playable buffer for "${audio.name}" when adding to the arrangement`,
           );
         });
       return;
@@ -1207,7 +1207,7 @@ export class AudioImportService {
     // Streamed-only long imports cannot be reversed in place.
     if (current.sampleStreamer && !current.buffer && !current.enhancedBuffer) {
       this.logger.info(
-        `Skipping in-place reverse for streamed-only import \"${current.name}\"`,
+        `Skipping in-place reverse for streamed-only import "${current.name}"`,
       );
       return;
     }
@@ -1219,7 +1219,7 @@ export class AudioImportService {
 
     if (!source) {
       this.logger.warn(
-        `Cannot reverse \"${current.name}\" — no decodable buffer available`,
+        `Cannot reverse "${current.name}" — no decodable buffer available`,
       );
       return;
     }
@@ -1267,7 +1267,7 @@ export class AudioImportService {
       (canonical as any).importReversedFlag = true;
     }
 
-    this.snackbar.success(`Reversed \"${current.name}\"`);
+    this.snackbar.success(`Reversed "${current.name}"`);
   }
 
   /** Clear all imported audio */

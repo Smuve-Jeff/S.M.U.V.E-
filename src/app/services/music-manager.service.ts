@@ -32,13 +32,7 @@ import { OfflineBounceService } from '../studio/offline-bounce.service';
 import { AudioImportService } from '../studio/audio-import.service';
 import { buildFrozenTrack, restoreFrozenTrack } from '../studio/track-freeze.util';
 import { takePlacementFor } from '../studio/recorded-take-placement.util';
-import {
-  Project,
-  StudioTrack,
-  StudioClip,
-  StudioTake,
-  TrackType,
-} from '../types/studio.types';
+import { Project, StudioTrack, StudioClip, TrackType } from '../types/studio.types';
 
 export interface TrackNote {
   id: string;
@@ -3289,7 +3283,7 @@ export class MusicManagerService {
     const sortedAsc = [...t.notes].sort((a, b) => a.midi - b.midi);
     const targetIds = noteIds ?? sortedAsc.map((n) => n.id);
     const targets = sortedAsc.filter((n) => targetIds.includes(n.id));
-    const { step: _ignored, ...rest } = targets[0] ?? { step: 0 };
+    const { step: _ignored, ..._rest } = targets[0] ?? { step: 0 };
     const after = t.notes.map((n) => {
       if (!targetIds.includes(n.id)) return n;
       const idx = targets.indexOf(n);
@@ -3330,7 +3324,7 @@ export class MusicManagerService {
         });
       });
     });
-    const arpIds = new Set(arpNotes.map((n) => n.id));
+    const _arpIds = new Set(arpNotes.map((n) => n.id));
     const after = [...others, ...arpNotes];
     this.runCommand(
       'Arpeggiate · ' + t.name,
@@ -4059,7 +4053,7 @@ export class MusicManagerService {
    * WebView frozen mid-flush lost the performance while every caller reported
    * success. Guarded so the empty engine mocks in tests stay valid.
    */
-  async stopRecording(id: string): Promise<null> {
+  async stopRecording(_id: string): Promise<null> {
     if (typeof this.recordingEngine?.stopRecording === "function") {
       await this.recordingEngine.stopRecording();
     }
@@ -4588,7 +4582,7 @@ export class MusicManagerService {
       const trackId =
         'track_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
       const clipId = 'stem_' + Date.now() + '_' + key;
-      const barsAt124 = Math.ceil(buf.duration / (60 / 124 / 4));
+      const _barsAt124 = Math.ceil(buf.duration / (60 / 124 / 4));
       const track = this.buildRecipeTrack({
         name: labels[key] ?? key,
         instrumentId: 'sampler-elite',

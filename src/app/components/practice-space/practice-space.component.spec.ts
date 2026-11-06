@@ -12,11 +12,7 @@ describe('PracticeSpaceComponent', () => {
   let component: PracticeSpaceComponent;
   let fixture: ComponentFixture<PracticeSpaceComponent>;
 
-  const mockAiService = {
-    getUpgradeRecommendations: () => [],
-  };
-
-  const mockProfileService = {
+    const mockProfileService = {
     profile: signal({
       recommendationHistory: [],
     }),

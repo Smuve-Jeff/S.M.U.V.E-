@@ -435,7 +435,7 @@ export class StemSeparationService {
             }
           };
 
-          node.port.onmessageerror = (err) => {
+          node.port.onmessageerror = (_err) => {
             node.disconnect();
             ctx.close().catch(() => {});
             this.workletNode = null;

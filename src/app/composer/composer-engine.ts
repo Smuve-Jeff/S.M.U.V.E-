@@ -635,7 +635,7 @@ function planSections(
     component === 'full-song' ||
     component === 'arrangement'
   ) {
-    return arrangement.slots.map((slot, index) => ({
+    return arrangement.slots.map((slot, _index) => ({
       label: slot.label,
       role: slot.role,
       bars: slot.bars,
@@ -1629,7 +1629,7 @@ function buildRationale(input: {
   parts: ComposerPart[];
   arrangementName: string;
 }): string[] {
-  const { genre, key, normalized, progression, sections, parts, arrangementName } = input;
+  const { genre, key, normalized, progression, sections, parts, arrangementName: _arrangementName } = input;
   const hooks = sections.filter((section) => section.role === 'hook' || section.role === 'drop');
   const intro = sections[0];
   const bridge = sections.find((section) =>

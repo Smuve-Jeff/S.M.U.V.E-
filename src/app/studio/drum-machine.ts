@@ -61,7 +61,7 @@ export class DrumMachine extends Instrument {
     this.triggerPad(note, velocity / 127);
   }
 
-  stop(note: number): void {
+  stop(_note: number): void {
     // Drums usually don't stop, but we can implement choke groups here
   }
 
@@ -105,7 +105,7 @@ export class DrumMachine extends Instrument {
   /** Stop all voices and clear any running roll intervals (panic). */
   stopAll(): void {
     // Stop all drum roll intervals
-    this.rollIntervals.forEach((interval, pitch) => {
+    this.rollIntervals.forEach((interval, _pitch) => {
       clearInterval(interval);
     });
     this.rollIntervals.clear();

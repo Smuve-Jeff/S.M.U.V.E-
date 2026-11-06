@@ -43,7 +43,7 @@ class Compressor {
       } else {
         try {
           (this.compressor as any)[key] = options[key];
-        } catch (e) {
+        } catch {
           // Ignore read-only properties
         }
       }

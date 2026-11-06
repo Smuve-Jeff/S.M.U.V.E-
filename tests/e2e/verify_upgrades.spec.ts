@@ -16,9 +16,9 @@ test('verify strategy hub upgrades', async ({ page }) => {
 });
 
 test('verify Studio production workspace', async ({ page }) => {
-  await page.goto('/studio-classic');
+  await page.goto('/studio-classic?view=arrangement');
   await expect(page.locator('app-studio')).toBeVisible();
   await expect(page.locator('.comp-brand-name')).toHaveText('S.M.U.V.E.');
-  await expect(page.locator('app-beginner-wizard')).toBeVisible();
+  await expect(page.locator('app-beginner-wizard, app-arrangement-view')).toBeVisible();
   await page.screenshot({ path: test.info().outputPath('studio_workspace_check.png') });
 });

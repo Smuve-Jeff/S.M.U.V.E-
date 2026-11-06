@@ -1,8 +1,6 @@
-import { Injectable, computed, inject, signal } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { UserProfileService, UserProfile } from './user-profile.service';
 import { AiService } from './ai.service';
-import type { StrategicSignals, MusicalJourney } from '../types/profile.types';
-
 /* ── Phase & Question Types ──────────────────────────────────── */
 
 export type QuestionType =
@@ -2396,8 +2394,6 @@ export class EnhancedArtistQuestionnaireEngine {
     const journey = profile.musicalJourney || ({} as any);
     const genre = profile.primaryGenre || 'Electronic';
     const dive = getGenreDeepDive(genre);
-    const roles = profile.expertise?.roles ?? journey.roles ?? [];
-
     const archetype = this.detectArchetype(profile);
     const tone = this.detectSignatureTone(profile);
     const strategy = this.detectStrategy(profile);

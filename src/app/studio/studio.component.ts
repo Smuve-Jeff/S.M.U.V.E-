@@ -45,7 +45,7 @@ import { InteractionDialogService } from "../services/interaction-dialog.service
 import { ProjectTemplateService } from "../services/project-template.service";
 import { AuthService } from "../services/auth.service";
 import { CollaborationService } from "../services/collaboration.service";
-import { SnackbarService } from "../services/snackbar.service";
+import { SnackbarService, type ActionLogEntry } from "../services/snackbar.service";
 import { LoggingService } from "../services/logging.service";
 import {
   UserProfileService,
@@ -635,6 +635,8 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   private readonly dialog = inject(InteractionDialogService);
   private readonly workProtection = inject(WorkProtectionService);
   private readonly snackbarService = inject(SnackbarService);
+  /** Quiet action log surfaced only when the artist opens the Activity panel. */
+  public readonly actionLog = this.snackbarService.actionLog;
   private readonly logger = inject(LoggingService);
   private readonly ideasGenerator = inject(IdeasGeneratorService);
   private readonly history = inject(HistoryService);
@@ -705,6 +707,8 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   }
   showComponentRecording = signal(false);
   showStudioInsights = signal(false);
+  /** Closed by default: routine actions are not painted live over the Studio. */
+  showActivityLog = signal(false);
   showProjectMenu = signal(false);
   toggleProjectMenu() {
     this.showProjectMenu.update((v) => !v);
@@ -1638,6 +1642,11 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   private readonly destroyRef = inject(DestroyRef);
 
   constructor() {
+    // Routine action feedback is buffered in the Activity panel, not painted
+    // over the workspace. Errors and warnings still toast (SnackbarService).
+    this.snackbarService.setStudioQuiet(true);
+    this.destroyRef.onDestroy(() => this.snackbarService.setStudioQuiet(false));
+
     this.route.queryParamMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
       const view = params.get("view");
       const surface = view ? studioViewForParam(view) : null;
@@ -1662,6 +1671,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
         this.showSmartRecordingPanel(),
         this.showProjectMetadata(),
         this.showStudioInsights(),
+        this.showActivityLog(),
         this.showSetsBrowser(),
         this.showComponentRecording(),
         this.showImportPanel(),
@@ -2373,6 +2383,10 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
       this.toggleStudioInsights();
       return true;
     }
+    if (this.showActivityLog()) {
+      this.toggleActivityLog();
+      return true;
+    }
     if (this.showSetsBrowser()) {
       this.toggleSetsBrowser();
       return true;
@@ -2835,6 +2849,10 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
 
   toggleStudioInsights() {
     this.haptic.light();
+    if (!this.showStudioInsights() && this.showActivityLog()) {
+      this.showActivityLog.set(false);
+      this.syncPanelFocus(".comp-activity-panel", false);
+    }
     this.showStudioInsights.update((v) => !v);
     this.syncPanelFocus(".comp-insights-panel", this.showStudioInsights());
     if (this.showStudioInsights()) {
@@ -2855,6 +2873,39 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
         /* engine may be suspended / unavailable */
       }
     }
+  }
+
+  // ── Quiet Studio activity log ─────────────────────────
+
+  toggleActivityLog() {
+    this.haptic.light();
+    if (!this.showActivityLog() && this.showStudioInsights()) {
+      this.showStudioInsights.set(false);
+      this.syncPanelFocus(".comp-insights-panel", false);
+    }
+    this.showActivityLog.update((v) => !v);
+    this.syncPanelFocus(".comp-activity-panel", this.showActivityLog());
+  }
+
+  clearActivityLog() {
+    this.snackbarService.clearActionLog();
+  }
+
+  activityIcon(type: ActionLogEntry["type"]): string {
+    switch (type) {
+      case "error":
+        return "error";
+      case "warning":
+        return "warning";
+      case "success":
+        return "check_circle";
+      default:
+        return "info";
+    }
+  }
+
+  trackActivity(_index: number, entry: ActionLogEntry): number {
+    return entry.id;
   }
 
   /** Humanize camelCase gap categories for the insights panel. */

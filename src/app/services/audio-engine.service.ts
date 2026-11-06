@@ -1,14 +1,5 @@
 import { LoggingService } from './logging.service';
-import {
-  Injectable,
-  signal,
-  inject,
-  Injector,
-  untracked,
-  computed,
-  effect,
-} from '@angular/core';
-import { firstValueFrom } from 'rxjs';
+import { Injectable, signal, inject, Injector, computed, effect } from '@angular/core';
 import { StudioRecordingEngineService } from '../studio/studio-recording-engine.service';
 import { StemSeparationService, Stems } from './stem-separation.service';
 import { DynamicEffectsRack } from '../studio/effects/dynamic-effects-rack';
@@ -352,7 +343,6 @@ function createSilentAudioParam(initialValue = 0): AudioParam {
  * not a second audio implementation.
  */
 function createSilentAudioNode(): AudioNode {
-  let node: AudioNode;
   const params = new Map<string, AudioParam>();
   const port = {
     onmessage: null as ((event: MessageEvent) => void) | null,
@@ -370,7 +360,7 @@ function createSilentAudioNode(): AudioNode {
     getFloatFrequencyData: (array: Float32Array) => array.fill(0),
   };
 
-  node = new Proxy(target, {
+  const node = new Proxy(target, {
     get(target, property) {
       if (property in target) return target[property];
       if (typeof property !== 'string') return undefined;
@@ -1670,7 +1660,7 @@ export class AudioEngineService {
         this.midiAccess = await (navigator as any).requestMIDIAccess();
         this.updateMidiOutputs();
         this.midiAccess.onstatechange = () => this.updateMidiOutputs();
-      } catch (e) {}
+      } catch { /* ignore */ }
     }
   }
   private updateMidiOutputs() {
@@ -2433,7 +2423,7 @@ export class AudioEngineService {
       if (s) {
         try {
           s.stop();
-        } catch (e) {}
+        } catch { /* ignore */ }
       }
     });
     deck.sources = {};
@@ -2714,7 +2704,7 @@ export class AudioEngineService {
       if (!s) return;
       try {
         s.stop();
-      } catch (e) {}
+      } catch { /* ignore */ }
     });
     deck.sources = {};
   }
@@ -2812,7 +2802,7 @@ export class AudioEngineService {
     delete this.scratchTextures[id];
     try {
       voice.source.stop();
-    } catch (e) {}
+    } catch { /* ignore */ }
   }
 
   /**
@@ -4158,7 +4148,7 @@ export class AudioEngineService {
     fadeInSec: number = 0,
     fadeOutSec: number = 0,
     clipOriginSeconds: number = 0,
-    clipLengthSeconds: number = 0,
+    _clipLengthSeconds: number = 0,
     sampleRate: number = 48000,
     _channels: number = 2,
     stopWithTransport: boolean = false,
@@ -5294,7 +5284,7 @@ export class AudioEngineService {
     trackId: string,
     parameter: string,
     value: number,
-    duration: number = 0.01
+    _duration: number = 0.01
   ) {
     if (trackId === '0' && parameter === 'tempo') {
       this.tempo.set(value);

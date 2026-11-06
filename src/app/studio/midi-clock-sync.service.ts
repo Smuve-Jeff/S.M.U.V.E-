@@ -187,7 +187,7 @@ export class MidiClockSyncService {
     for (const input of this.inputs) {
       try {
         input.onmidimessage = null;
-      } catch {}
+      } catch { /* ignore */ }
     }
     this.inputs = [];
   }

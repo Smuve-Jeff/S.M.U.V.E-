@@ -191,8 +191,7 @@ class SynthProcessor extends AudioWorkletProcessor {
           break;
         }
         case 'NOTE_OFF': {
-          const noteId = payload.noteId;
-          // Release by frequency match (simplified — real impl would use noteId map)
+                    // Release by frequency match (simplified — real impl would use noteId map)
           for (const v of this.voices) {
             if (v.active && !v.released && Math.abs(v.freq - (payload.freq || 0)) < 0.1) {
               v.released = true;

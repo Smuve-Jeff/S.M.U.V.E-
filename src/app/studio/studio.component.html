@@ -586,6 +586,15 @@
             <strong>Insights</strong>
             <small>Metrics &amp; backlog</small>
           </button>
+          <button
+            type="button"
+            class="comp-tools-sheet-btn"
+            (click)="toggleActivityLog(); toggleMobileToolsSheet(false)"
+          >
+            <span class="material-symbols-outlined">history</span>
+            <strong>Activity</strong>
+            <small>Quiet action log</small>
+          </button>
         </div>
       </section>
 
@@ -845,6 +854,19 @@
     >
       <span class="material-symbols-outlined">monitoring</span>
       <span class="comp-tool-label">INSIGHTS</span>
+    </button>
+    <!-- Quiet activity log: actions stay hidden until this is opened. -->
+    <button
+      type="button"
+      class="comp-tool-btn"
+      (click)="toggleActivityLog()"
+      [class.comp-tool-active]="showActivityLog()"
+      title="Activity — review Studio actions without live toasts"
+      aria-label="Toggle Studio activity log"
+      [attr.aria-pressed]="showActivityLog()"
+    >
+      <span class="material-symbols-outlined">history</span>
+      <span class="comp-tool-label">ACTIVITY</span>
     </button>
     </div>
   </div>
@@ -2539,6 +2561,75 @@
           Export .smuve
         </button>
       </div>
+    </div>
+  </aside>
+
+  <!-- ========== STUDIO ACTIVITY LOG (right slide, closed by default) ========== -->
+  <aside
+    class="comp-panel comp-activity-panel"
+    [class.comp-panel-open]="showActivityLog()"
+    role="dialog"
+    aria-modal="true"
+    [attr.aria-hidden]="!showActivityLog()"
+    [attr.inert]="showActivityLog() ? null : ''"
+    aria-label="Studio activity log"
+  >
+    <header class="comp-panel-header">
+      <span class="comp-panel-title">
+        <span class="material-symbols-outlined">history</span>
+        ACTIVITY
+      </span>
+      <button
+        type="button"
+        class="comp-icon-btn"
+        (click)="toggleActivityLog()"
+        aria-label="Close Studio activity log"
+      >
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </header>
+    <div class="comp-panel-body">
+      <p class="comp-insights-lede">
+        A quiet record of what changed in this Studio session. Actions stay
+        hidden here instead of appearing live over the workspace.
+      </p>
+
+      <div
+        class="comp-activity-list"
+        *ngIf="actionLog().length > 0; else noActivity"
+        aria-live="polite"
+      >
+        <div
+          class="comp-activity-row"
+          *ngFor="let entry of actionLog(); trackBy: trackActivity"
+          [attr.data-type]="entry.type"
+        >
+          <span class="material-symbols-outlined" aria-hidden="true">{{
+            activityIcon(entry.type)
+          }}</span>
+          <div class="comp-activity-copy">
+            <span class="comp-activity-message">{{ entry.message }}</span>
+            <span class="comp-activity-time">{{
+              entry.at | date: "shortTime"
+            }}</span>
+          </div>
+        </div>
+      </div>
+      <ng-template #noActivity>
+        <p class="comp-activity-empty">
+          No actions recorded yet. Edits, saves and mix moves will collect here
+          quietly.
+        </p>
+      </ng-template>
+
+      <button
+        type="button"
+        class="comp-activity-clear"
+        (click)="clearActivityLog()"
+        [disabled]="actionLog().length === 0"
+      >
+        Clear log
+      </button>
     </div>
   </aside>
 

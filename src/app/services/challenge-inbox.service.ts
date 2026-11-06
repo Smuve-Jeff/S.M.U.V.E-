@@ -322,7 +322,7 @@ export class ChallengeInboxService {
         let settled = false;
         let acked = false;
         let sawChallengeError = false;
-        let timeout: ReturnType<typeof setTimeout>;
+        let timeout: ReturnType<typeof setTimeout> | undefined = undefined;
         let onChallengeError:
           | ((event: { message?: string }) => void)
           | undefined;

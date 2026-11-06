@@ -24,7 +24,7 @@ piano velocity layers use the public-domain Splendid Grand Piano via the
 
 ## Highlights
 
-- **22-view Studio** with WebGL piano roll, DJ decks, drum machine, mixer, channel rack,
+- **25-view Studio** with WebGL piano roll, DJ decks, drum machine, mixer, channel rack,
   effects rack, sampler, six synth engines, vocal suite, performance pads, mastering,
   smart recording, and deterministic offline export.
 - **Save integrity first** — every project write is durable before it reports success;
@@ -90,10 +90,10 @@ public routes.
 
 ### Inside the Studio
 
-`/studio?view=<view>` switches between 22 views: arrangement, session, piano-roll,
-drum-machine, channel-rack, mixer, effects-rack, vocal-suite, dj, performance, mastering,
-ai-produce, sound-browser, sound-pad, synthesizer, chord-editor, sampler, score,
-sample-library, plugins, audio-recorder, and performer.
+`/studio?view=<view>` switches between 25 views: quick-session, arrangement, session,
+piano-roll, drum-machine, channel-rack, mixer, effects-rack, vocal-suite, dj, performance,
+mastering, ai-produce, sound-browser, sound-pad, synthesizer, tuner, chord-editor, sampler,
+score, sample-library, plugins, audio-recorder, performer, and export.
 
 The shell layers a grouped, scrollable component rail, a fixed transport, a project
 status strip (save state/dirty flag), a **My Sets** shelf (open/delete saved sets), smart

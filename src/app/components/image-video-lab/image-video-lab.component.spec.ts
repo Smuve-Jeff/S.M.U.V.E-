@@ -20,8 +20,6 @@ import {
 import { CinemaProjectService } from '../../services/cinema-project.service';
 import { CinemaEngineService } from '../../services/cinema-engine.service';
 import { SpeechSynthesisService } from '../../services/speech-synthesis.service';
-import { createDefaultEffects } from '../../services/video-engine.service';
-
 describe('ImageVideoLabComponent', () => {
   /** Shared 2D context stub so render assertions can inspect the draw calls. */
   let ctxStub: Record<string, jest.Mock | string | number>;
@@ -3359,7 +3357,7 @@ describe('ImageVideoLabComponent', () => {
     });
 
     it('seeds the name field from the project that was actually saved', async () => {
-      const { component, cinemaProjects, projectList, activeProjectId } =
+      const { component, cinemaProjects: _cinemaProjects, projectList, activeProjectId } =
         await createComponent();
       projectList.set([{ id: 'p1', name: 'Feature Cut' }]);
       activeProjectId.set('p1');

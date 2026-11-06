@@ -245,7 +245,7 @@ export class DjMidiService {
         this.logger.info('DJ MIDI Access Granted');
         this.setupInputs();
         this.midiAccess.onstatechange = () => this.setupInputs();
-      } catch (e) {
+      } catch {
         this.logger.warn('DJ MIDI Access Denied');
       }
     }
@@ -425,7 +425,7 @@ export class DjMidiService {
         'smuve_performer_cc_mappings',
         JSON.stringify(this.performerCCMap())
       );
-    } catch {}
+    } catch { /* ignore */ }
   }
 
   private loadPerformerCCMappings() {
@@ -435,7 +435,7 @@ export class DjMidiService {
         const parsed = JSON.parse(raw);
         if (Array.isArray(parsed)) this.performerCCMap.set(parsed);
       }
-    } catch {}
+    } catch { /* ignore */ }
   }
   startLearn(action: string, deck: 'A' | 'B' | null = null) {
     this.learnState.set({
@@ -471,7 +471,7 @@ export class DjMidiService {
         'smuve_midi_mappings',
         JSON.stringify(this.mappings())
       );
-    } catch {}
+    } catch { /* ignore */ }
   }
 
   private loadCustomMappings() {
@@ -481,7 +481,7 @@ export class DjMidiService {
         const parsed = JSON.parse(raw);
         if (Array.isArray(parsed)) this.mappings.set(parsed);
       }
-    } catch {}
+    } catch { /* ignore */ }
   }
 
   /** Consolidate MIDI output devices list */
@@ -655,7 +655,7 @@ export class DjMidiService {
       if (data1 !== undefined) bytes.push(data1);
       if (data2 !== undefined) bytes.push(data2);
       this.midiOutputDeviceList[idx].send(bytes);
-    } catch {}
+    } catch { /* ignore */ }
   }
 
   /** Handle MIDI System Real-Time messages for Slave Sync */
@@ -760,7 +760,7 @@ export class DjMidiService {
     );
   }
 
-  private handleNoteOn(channel: number, note: number, velocity: number) {
+  private handleNoteOn(channel: number, note: number, _velocity: number) {
     const mapping = this.findMapping('note', channel, note);
     if (!mapping || !mapping.deck) return;
 
@@ -829,7 +829,7 @@ export class DjMidiService {
         break;
       case 'pitch': {
         const pitch = 0.9 + normalized * 0.2; // 0.9 to 1.1
-        const current =
+        const _current =
           deck === 'A' ? this.deckService.deckA() : this.deckService.deckB();
         if (deck === 'A')
           this.deckService.deckA.update((d) => ({ ...d, playbackRate: pitch }));

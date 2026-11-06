@@ -1,5 +1,3 @@
-import { AppDataSource } from "@/database/data-source";
-
 // Mock the TypeORM-decorated entity so babel-jest never parses decorators.
 jest.mock("@/entities/GameInvite", () => ({
   GameInvite: class GameInvite {},

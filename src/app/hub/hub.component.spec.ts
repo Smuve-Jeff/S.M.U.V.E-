@@ -3,6 +3,7 @@ import { HubComponent } from './hub.component';
 import { provideRouter, Router } from '@angular/router';
 import { WritableSignal, signal } from '@angular/core';
 import { API_KEY_TOKEN } from '../services/ai.service';
+import { CLOUD_SERVER } from '../services/cloud-server-client';
 import { OnboardingService } from '../services/onboarding.service';
 import { ArtistPathwayService } from '../services/artist-pathway.service';
 import { UserProfileService } from '../services/user-profile.service';
@@ -123,6 +124,19 @@ describe('HubComponent', () => {
         {
           provide: API_KEY_TOKEN,
           useValue: 'MOCK_API_KEY_LONG_ENOUGH_FOR_TESTING',
+        },
+        // CloudSyncService is root-provided but its transport token is only
+        // bound in app.config. Mounting the Hub without it fails DI before the
+        // first assertion, so the spec supplies the same no-op transport the
+        // cloud client spec uses.
+        {
+          provide: CLOUD_SERVER,
+          useValue: {
+            push: jest.fn(async () => ({ success: false, conflict: {} })),
+            pull: jest.fn(async () => null),
+            listProjects: jest.fn(async () => []),
+            listSnapshots: jest.fn(async () => []),
+          },
         },
         // A stub keeps the alert rail deterministic: the real service diffs
         // snapshots, which is covered by its own spec.

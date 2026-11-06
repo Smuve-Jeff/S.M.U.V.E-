@@ -96,6 +96,8 @@
   },
   "devDependencies": {
     "@angular/pwa": "21.2.26",
+    "@babel/plugin-proposal-decorators": "^7.29.7",
+    "@babel/plugin-transform-class-properties": "^7.29.7",
     "@babel/preset-typescript": "^7.28.5",
     "@capacitor/cli": "^8.5.0",
     "@playwright/test": "^1.59.1",

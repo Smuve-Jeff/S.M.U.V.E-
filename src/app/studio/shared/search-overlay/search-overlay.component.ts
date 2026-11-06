@@ -102,7 +102,7 @@ export class SearchOverlayComponent implements OnInit {
       if (stored) {
         try {
           this.recentSearches.set(JSON.parse(stored));
-        } catch {}
+        } catch { /* ignore */ }
       }
     }
   }

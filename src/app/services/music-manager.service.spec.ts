@@ -2026,7 +2026,7 @@ describe('MusicManagerService live plugin insert wiring', () => {
       ),
     } as any;
     (service as any).engine.reverseBuffer = jest.fn(
-      (source: AudioBuffer, channelFactory: (channelIndex: number, src: AudioBuffer) => Float32Array) =>
+      (_source: AudioBuffer, _channelFactory: (channelIndex: number, src: AudioBuffer) => Float32Array) =>
         mockReversedBuffer
     );
 

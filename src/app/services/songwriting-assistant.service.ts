@@ -568,7 +568,7 @@ export class SongwritingAssistantService {
   }
 
   /** Get melody techniques filtered by style */
-  getMelodyIdeas(style?: string): MelodyIdea[] {
+  getMelodyIdeas(_style?: string): MelodyIdea[] {
     return this.melodyTechniques;
   }
 
@@ -580,7 +580,7 @@ export class SongwritingAssistantService {
   ): MelodyNote[][] {
     const scaleNotes = this.getScaleNotes(key, scale);
     return lyrics.flatMap((section) =>
-      section.lines.map((line, li) => {
+      section.lines.map((line, _li) => {
         const words = line.text.split(' ');
         const syllables = this.estimateSyllables(line.text);
         const noteCount = Math.min(syllables, 16);
@@ -646,8 +646,7 @@ export class SongwritingAssistantService {
 
   /** Get the scale notes for a given key */
   private getScaleNotes(key: string, scale: string): number[] {
-    const chromaticScale = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
-    const keyIndex = [
+        const keyIndex = [
       'C',
       'Db',
       'D',
@@ -782,16 +781,16 @@ export class SongwritingAssistantService {
           },
         ];
 
-    return lines.map((t, i) => ({
+    return lines.map((t, _i) => ({
       ...t,
       rhymeClass: 'A',
     }));
   }
 
   private generateBridgeLines(
-    topic: string,
-    mood: string,
-    profile: StyleProfile | null
+    _topic: string,
+    _mood: string,
+    _profile: StyleProfile | null
   ): LyricLine[] {
     return [
       {
@@ -822,10 +821,7 @@ export class SongwritingAssistantService {
     topic: string
   ): LyricLine[] {
     // Generate artist-specific lyrical lines based on their style
-    const themes = profile.songwritingCharacteristics.lyricalThemes;
-    const vocab = profile.songwritingCharacteristics.vocabularyLevel;
-
-    switch (profile.artistName) {
+            switch (profile.artistName) {
       case 'Drake':
         return [
           {
@@ -1113,7 +1109,7 @@ export class SongwritingAssistantService {
     }
   }
 
-  private getGenericVerseTemplates(topic: string, mood: string): LyricLine[] {
+  private getGenericVerseTemplates(topic: string, _mood: string): LyricLine[] {
     return [
       {
         text: `I never thought I'd feel this way about ${topic}`,
@@ -1176,8 +1172,6 @@ export class SongwritingAssistantService {
     let pool = this.chordLibrary;
 
     if (profile) {
-      const preferredKeys =
-        profile.productionCharacteristics.keySignature || [];
       const preferredChords =
         profile.productionCharacteristics.chordVocabulary || [];
 
@@ -1202,7 +1196,7 @@ export class SongwritingAssistantService {
     return pool.slice(0, 4);
   }
 
-  private selectMelodyIdeas(profile: StyleProfile | null): MelodyIdea[] {
+  private selectMelodyIdeas(_profile: StyleProfile | null): MelodyIdea[] {
     return this.melodyTechniques.slice(0, 3);
   }
 

@@ -2,7 +2,7 @@ import { Component, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ReleasePipelineService } from '../../services/release-pipeline.service';
-import { ProductionTrack, ReleaseProject, ReleaseType } from '../../types/release.types';
+import { ProductionTrack, ReleaseType } from '../../types/release.types';
 import { CareerPipelineService } from '../../services/career-pipeline.service';
 import { NotificationService } from '../../services/notification.service';
 import { ArtistLifecycleService } from '../../services/artist-lifecycle.service';

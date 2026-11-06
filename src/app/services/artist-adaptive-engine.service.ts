@@ -2,7 +2,7 @@ import { Injectable, computed, inject } from '@angular/core';
 import { UserProfile, UserProfileService } from './user-profile.service';
 import { ArtistProfileFinetuneService, ArtistProfileKnowledge } from './artist-profile-finetune.service';
 import { initialProfile } from './user-profile.service';
-import { buildMusicalDnaContext, readMusicalDna } from '../types/musical-dna.types';
+import { buildMusicalDnaContext } from '../types/musical-dna.types';
 
 export interface GenreAdaptationProfile {
   id: string;
@@ -453,7 +453,7 @@ export class ArtistAdaptiveEngineService {
     return knowledge.pathway.nextStep || `Keep building: next release should prove ${knowledge.business.successMetric || "the artist's intent"}.`;
   }
 
-  private deriveWarningsAndProtections(profile: UserProfile | null | undefined, knowledge: ArtistProfileKnowledge, genre: GenreAdaptationProfile): string[] {
+  private deriveWarningsAndProtections(profile: UserProfile | null | undefined, knowledge: ArtistProfileKnowledge, _genre: GenreAdaptationProfile): string[] {
     const warnings: string[] = [];
     if ((profile?.catalog || []).some((item) => !item.credits)) {
       warnings.push('Rights evidence incomplete: verify contributors and any samples/interpolations. Missing credits do not prove sampling; genre never proves clearance.');

@@ -1311,7 +1311,7 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
       try {
         this.touchGestures.handlePinch(event);
         this.syncZoomFromGesture();
-      } catch {}
+      } catch { /* ignore */ }
     }
   }
 
@@ -1361,7 +1361,7 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
           this.haptic.preset("tick");
           this.lastPinchZoom = newZoom;
         }
-      } catch {}
+      } catch { /* ignore */ }
       return;
     }
     if (event.touches.length !== 1) return;

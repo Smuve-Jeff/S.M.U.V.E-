@@ -15,7 +15,6 @@
  * spectral mask applied in the frequency domain.
  */
 
-/* global sampleRate */
 
 // ── FFT Kernels (Wasm-migration-ready) ────────────────────
 
@@ -85,7 +84,7 @@ function hannWindow(data, n) {
 }
 
 /** Compute magnitude spectrum from FFT output */
-function magnitudeSpectrum(real, imag, n) {
+function _magnitudeSpectrum(real, imag, n) {
   const mag = new Float32Array(n / 2 + 1);
   for (let i = 0; i <= n / 2; i++) {
     mag[i] = Math.sqrt(real[i] * real[i] + imag[i] * imag[i]);
@@ -226,7 +225,7 @@ class StemSeparatorProcessor extends AudioWorkletProcessor {
     return { vocalMask, drumMask, bassMask };
   }
 
-  process(inputs, outputs, parameters) {
+  process(inputs, outputs, _parameters) {
     // Process queued separation requests
     if (this.processingQueue.length > 0 && !this.isProcessing) {
       const job = this.processingQueue.shift();
@@ -367,7 +366,7 @@ class StemSeparatorProcessor extends AudioWorkletProcessor {
     this.isProcessing = false;
   }
 
-  streamOutputs(outputs) {
+  streamOutputs(_outputs) {
     // Passthrough: this processor is used offline via message-passing
     // No real-time output streaming needed
   }

@@ -50,7 +50,7 @@ class RecordingProcessor extends AudioWorkletProcessor {
    * Called by the audio graph on every render quantum (128 frames).
    * Collects samples into 50ms chunks and sends them to the main thread.
    */
-  process(inputs, outputs, _parameters) {
+  process(inputs, _outputs, _parameters) {
     const input = inputs[0];
     if (!input || input.length === 0) return true;
 

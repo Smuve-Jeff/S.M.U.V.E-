@@ -138,13 +138,13 @@ let ioServer: Server | null = null;
 // real lobby room for a resolved match. Inside setupSocketIO the per-socket
 // handlers mutate the SAME map, so parties created by either path share one
 // source of truth for the lobby directory / game-state relay.
-let parties = new Map<string, Party>();
+const parties = new Map<string, Party>();
 /** challenge id -> partyId for lobbies provisioned on challenge accept. */
-let challengeLobbyByChallengeId = new Map<string, string>();
+const challengeLobbyByChallengeId = new Map<string, string>();
 /** partyId -> kind for lobbies provisioned by the queue matcher or the
  * challenge-accept path. These are 2-player resolved matches: the whole
  * lobby ends the moment either player leaves or disconnects. */
-let resolvedMatchLobbies = new Map<string, "challenge" | "matchmaking">();
+const resolvedMatchLobbies = new Map<string, "challenge" | "matchmaking">();
 /** Resolves an artist name outside the per-connection closure (HTTP-triggered
  * provisioning still shows real names in the lobby directory). */
 let resolvePresenceMeta: (userId: string) => {
@@ -2034,7 +2034,7 @@ export const setupSocketIO = (httpServer: HttpServer): Server => {
       },
     );
 
-    socket.on("live_stream_end", async (data: { streamId?: number } = {}) => {
+    socket.on("live_stream_end", async (_data: { streamId?: number } = {}) => {
       try {
         const result = await endLiveStream(userId, false);
         presence.set(userId, {

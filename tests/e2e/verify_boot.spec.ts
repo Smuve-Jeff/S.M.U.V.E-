@@ -99,6 +99,9 @@ test('login and music-manager flows work without anomalies', async ({ page }) =>
   await expect(page).toHaveURL(/\/hub/, { timeout: 30_000 });
   await page.getByRole('button', { name: 'Toggle S.M.U.V.E advisor' }).click();
   const chatInput = page.getByPlaceholder(/Command S\.M\.U\.V\.E/);
+  // A new profile starts advisory-only; grant control before a music mutation.
+  await page.getByTitle(/Full Control: off/).click();
+  await expect(page.getByTitle(/Full Control: ACTIVE/)).toBeVisible();
   await chatInput.fill('make a beat at 120 in C minor');
   await chatInput.press('Enter');
 

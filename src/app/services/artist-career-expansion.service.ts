@@ -2,7 +2,7 @@ import { Injectable, computed, inject } from '@angular/core';
 import { UserProfileService, UserProfile } from './user-profile.service';
 import { ArtistAdaptiveEngineService, ArtistAdaptationState } from './artist-adaptive-engine.service';
 import { MusicalDnaService } from './musical-dna.service';
-import { ArtistProfileFinetuneService, ArtistProfileKnowledge } from './artist-profile-finetune.service';
+import { ArtistProfileFinetuneService } from './artist-profile-finetune.service';
 
 export interface CareerStage {
   id: 'foundational' | 'emerging' | 'established' | 'elite';
@@ -113,8 +113,7 @@ export class ArtistCareerExpansionService {
   private detectCareerStage(profile: UserProfile | null | undefined, adaptation: ArtistAdaptationState): CareerStage {
     if (!profile) return CAREER_STAGES.foundational;
 
-    const catalogSize = profile.catalog?.length || 0;
-    // Declared pathway evidence, not invented audience metrics or label status.
+        // Declared pathway evidence, not invented audience metrics or label status.
     const stage = adaptation.knowledge.pathway.stage;
     if (stage === 'official') return CAREER_STAGES.established;
     if (stage === 'consolidating' || stage === 'building') return CAREER_STAGES.emerging;

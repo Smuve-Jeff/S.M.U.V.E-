@@ -214,7 +214,7 @@ export class GameRatingsService {
     this.allStats.set({});
     try {
       localStorage.removeItem(STORAGE_KEY);
-    } catch {}
+    } catch { /* ignore */ }
   }
 
   private load(): void {
@@ -229,7 +229,7 @@ export class GameRatingsService {
         parsed.ratingsByGame ? Object.values(parsed.ratingsByGame).flat() : []
       );
       this.allStats.set(parsed.statsByGame ?? {});
-    } catch {}
+    } catch { /* ignore */ }
   }
 
   private persist(): void {
@@ -243,6 +243,6 @@ export class GameRatingsService {
         statsByGame: this.allStats(),
       };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
-    } catch {}
+    } catch { /* ignore */ }
   }
 }

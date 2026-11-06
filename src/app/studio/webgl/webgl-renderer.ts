@@ -362,7 +362,7 @@ export class WebGLRenderer {
     height: number,
     color: GLColor,
     borderRadius = 0,
-    borderWidth = 0,
+    _borderWidth = 0,
   ): void {
     if (this.quadCount >= MAX_QUADS) this.flushAndRestart();
 

@@ -213,6 +213,6 @@ export class TempoMapService {
   private persist(): void {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(this.markers()));
-    } catch {}
+    } catch { /* ignore */ }
   }
 }

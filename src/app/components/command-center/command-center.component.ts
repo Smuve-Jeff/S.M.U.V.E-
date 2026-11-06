@@ -81,10 +81,11 @@ export class CommandCenterComponent implements OnInit, OnDestroy {
   constructor() {
     effect(() => {
       // Keep the newest directive in view: every append scrolls the HUD
-      // stream to the bottom, like a real terminal hum.
-      this.terminalLogs().length;
+      // stream to the bottom, like a real terminal hum. Reading the array
+      // length here is what subscribes the effect to new log entries.
+      const logCount = this.terminalLogs().length;
       const el = this.terminalOutput()?.nativeElement;
-      if (el) el.scrollTop = el.scrollHeight;
+      if (el && logCount > 0) el.scrollTop = el.scrollHeight;
     });
   }
 

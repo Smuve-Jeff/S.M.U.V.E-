@@ -850,7 +850,7 @@ export class TransportBarComponent {
       if (this.testSoundOsc) {
         try {
           this.testSoundOsc.stop();
-        } catch {}
+        } catch { /* ignore */ }
       }
       const osc = ctx.createOscillator();
       const env = ctx.createGain();

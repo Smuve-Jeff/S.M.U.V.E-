@@ -201,7 +201,21 @@ describe('midi-reader.util', () => {
   it('rejects malformed and unsupported files with clear errors', () => {
     expect(() => parseMidiFile(new Uint8Array([1, 2, 3]))).toThrow(MidiParseError);
     expect(() =>
-      parseMidiFile(toBytes([[...'XXXX'].map((c) => c.charCodeAt(0)), 0, 0, 0, 6, 0, 1, 0, 1, 1, 0x80]])),
+      parseMidiFile(
+        toBytes([
+          ...Array.from('XXXX', (c) => c.charCodeAt(0)),
+          0,
+          0,
+          0,
+          6,
+          0,
+          1,
+          0,
+          1,
+          1,
+          0x80,
+        ]),
+      ),
     ).toThrow(/MThd/);
     expect(() =>
       parseMidiFile(toBytes([header(0, 1, 0x8000)])),

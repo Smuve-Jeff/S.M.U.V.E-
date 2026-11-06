@@ -1,10 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import {
-  MusicManagerService,
-  TrackModel,
-  GlobalChord,
-  SongSection,
-} from '../music-manager.service';
+import { MusicManagerService } from '../music-manager.service';
 import { AudioEngineService } from '../audio-engine.service';
 import { InstrumentsService } from '../instruments.service';
 import { UserProfileService } from '../user-profile.service';

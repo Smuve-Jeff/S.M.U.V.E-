@@ -626,7 +626,6 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
   onGridPointerDown(e: PointerEvent): void {
     if (!this.isGlInitialized) return;
     const canvas = this.glCanvas.nativeElement;
-    const viewport = this.gridViewport.nativeElement;
     const rect = canvas.getBoundingClientRect();
 
     const world = this.glRenderer.screenToWorld(e.clientX, e.clientY, rect);
@@ -920,7 +919,7 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
   }
 
   // Legacy DOM lane handler (kept for backwards compat)
-  onLanePointerDown(e: PointerEvent, track: TrackModel) {
+  onLanePointerDown(e: PointerEvent, _track: TrackModel) {
     // Deprecated — canvas handles this now
     this.onGridPointerDown(e);
   }

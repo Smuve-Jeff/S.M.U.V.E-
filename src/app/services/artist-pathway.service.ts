@@ -1237,9 +1237,7 @@ export class ArtistPathwayService {
     const blueprint: any = journey.musicBlueprint || {};
     const legal: any = p.legalInfrastructure || {};
     const financials: any = p.financials || {};
-    const live: any = p.touringDetails || {};
-
-    const list = (value: any): any[] => (Array.isArray(value) ? value.filter(Boolean) : []);
+        const list = (value: any): any[] => (Array.isArray(value) ? value.filter(Boolean) : []);
     const str = (value: any): string =>
       typeof value === 'string' && value.trim() ? value.trim() : '';
 

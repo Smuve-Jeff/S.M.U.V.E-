@@ -10,8 +10,7 @@ describe("RecordingLimiterService", () => {
   let cafSpy: jest.SpyInstance;
 
   beforeEach(() => {
-    const connectCalls: string[] = [];
-    ctxMock = {
+        ctxMock = {
       createDynamicsCompressor: jest.fn(() => ({
         threshold: { value: 0 },
         ratio: { value: 1 },

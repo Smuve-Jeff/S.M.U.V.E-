@@ -17,7 +17,6 @@ import {
   ShareableInviteService,
   InviteMode,
 } from "../services/shareable-invite.service";
-import { Game } from "./game";
 import { APP_SECURITY_CONFIG } from "../app.security";
 
 // ── Matchmaking Types (same shape as server-side payloads) ──
@@ -1592,7 +1591,7 @@ export class MatchmakingService implements OnDestroy {
         },
       )
       .subscribe({
-        next: (record: any) => {
+        next: (_record: any) => {
           this.lastAcceptedChallengeId = challengeId;
           this.myChallenges.update((c) =>
             c.map((ch) =>

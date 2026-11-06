@@ -1622,7 +1622,7 @@ export class ChatMusicCommandEngineService {
   /** Simple offline render — a detuned triangle synth with a pluck envelope. */
   private async renderToBuffer(
     events: NoteEvent[],
-    bpm: number
+    _bpm: number
   ): Promise<AudioBuffer> {
     const Ctx = window.OfflineAudioContext;
     if (!Ctx) throw new Error('OfflineAudioContext unavailable');

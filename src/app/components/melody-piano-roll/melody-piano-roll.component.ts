@@ -1,15 +1,4 @@
-import {
-  Component,
-  input,
-  output,
-  signal,
-  computed,
-  effect,
-  ElementRef,
-  viewChild,
-  AfterViewInit,
-  OnDestroy,
-} from '@angular/core';
+import { Component, input, signal, computed, ElementRef, viewChild, AfterViewInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { PianoRollNote } from '../../services/cowrite.service';
 

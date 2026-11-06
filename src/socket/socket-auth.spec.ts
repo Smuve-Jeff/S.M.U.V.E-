@@ -551,7 +551,7 @@ describe("socket.io handshake + JWT auth", () => {
       });
     });
     let connected = 0;
-    clients.forEach((c, idx) => {
+    clients.forEach((c, _idx) => {
       c.on("connect", () => {
         connected++;
         if (connected === clients.length) {
@@ -643,7 +643,7 @@ describe("socket.io handshake + JWT auth", () => {
     const guest = mk(222);
     const third = mk(223);
     let settled = false;
-    let timer: ReturnType<typeof setTimeout>;
+    let timer: ReturnType<typeof setTimeout> | undefined = undefined;
     const finish = (err?: Error) => {
       if (settled) return;
       settled = true;
@@ -729,7 +729,7 @@ describe("socket.io handshake + JWT auth", () => {
       transports: ["websocket"],
     });
     let settled = false;
-    let timer: ReturnType<typeof setTimeout>;
+    let timer: ReturnType<typeof setTimeout> | undefined = undefined;
     const finish = (err?: Error) => {
       if (settled) return;
       settled = true;
@@ -1035,8 +1035,8 @@ describe("socket.io handshake + JWT auth", () => {
       transports: ["websocket", "polling"],
     });
     let settled = false;
-    let timer: ReturnType<typeof setTimeout>;
-    let poll: ReturnType<typeof setInterval>;
+    let timer: ReturnType<typeof setTimeout> | undefined = undefined;
+    let poll: ReturnType<typeof setInterval> | undefined = undefined;
     const finish = (err?: Error) => {
       if (settled) return;
       settled = true;

@@ -288,7 +288,7 @@ export class DailyMissionsService {
     this.streak.set(ns);
     try {
       localStorage.setItem(STREAK_KEY, JSON.stringify(ns));
-    } catch {}
+    } catch { /* ignore */ }
     this.notify.show(`🔥 ${newStreak}-day streak · keep it going!`, 'success');
   }
 
@@ -332,6 +332,6 @@ export class DailyMissionsService {
         totalCompletedToday: this.totalCompletedToday(),
       };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-    } catch {}
+    } catch { /* ignore */ }
   }
 }

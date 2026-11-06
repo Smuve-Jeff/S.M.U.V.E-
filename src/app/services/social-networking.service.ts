@@ -673,7 +673,7 @@ export class SocialNetworkingService {
     const top = window.screen.height / 2 - height / 2;
     const url = `${APP_SECURITY_CONFIG.api_url}/auth/${platform}`;
 
-    const popup = window.open(
+    const _popup = window.open(
       url,
       `${platform} Auth`,
       `width=${width},height=${height},left=${left},top=${top}`
@@ -1225,7 +1225,7 @@ export class SocialNetworkingService {
           }
         )
       );
-    } catch (e) {
+    } catch {
       return [];
     }
   }
@@ -1240,7 +1240,7 @@ export class SocialNetworkingService {
           { headers }
         )
       );
-    } catch (e) {
+    } catch {
       return [];
     }
   }

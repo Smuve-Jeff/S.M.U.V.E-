@@ -139,7 +139,7 @@ export class PerformanceModeComponent implements OnInit, OnDestroy {
   }
 
   /** Find the pad whose MIDI note matches the incoming note-on. */
-  private handleMidiNoteOn(note: number, velocity: number): void {
+  private handleMidiNoteOn(note: number, _velocity: number): void {
     // ── MIDI Learn: capture the first MIDI note and assign to selected pad ──
     if (this.isLearnMode()) {
       const learnPadId = this.selectedLearnPadId();
@@ -181,7 +181,7 @@ export class PerformanceModeComponent implements OnInit, OnDestroy {
   private longPressTimer: any = null;
   private readonly LONG_PRESS_MS = 500;
 
-  triggerPad(pad: PerformancePad, event?: MouseEvent | TouchEvent): void {
+  triggerPad(pad: PerformancePad, _event?: MouseEvent | TouchEvent): void {
     if (this.longPressPadId() === pad.id) return;
     this.haptic.medium();
     this.padClicked.emit(pad);
@@ -216,7 +216,7 @@ export class PerformanceModeComponent implements OnInit, OnDestroy {
     this.activePressure.set(Math.max(0, Math.min(1, pressure)));
   }
 
-  onPointerCancel(pad: PerformancePad): void {
+  onPointerCancel(_pad: PerformancePad): void {
     if (this.longPressTimer) {
       clearTimeout(this.longPressTimer);
       this.longPressTimer = null;

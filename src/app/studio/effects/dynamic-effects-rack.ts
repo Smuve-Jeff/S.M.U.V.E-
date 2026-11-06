@@ -88,7 +88,7 @@ export class DynamicEffectsRack {
   }
 
   /** Add an insert plugin at the end of the chain */
-  addInsert(pluginId: string, name?: string): PluginSlot | null {
+  addInsert(pluginId: string, _name?: string): PluginSlot | null {
     const plugin = PluginRegistry.create(pluginId, this.ctx);
     if (!plugin) return null;
 

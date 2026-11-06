@@ -168,7 +168,7 @@ export class FMSynth extends Instrument {
         () => {
           try {
             node.osc.stop();
-          } catch (e) {}
+          } catch { /* ignore */ }
           this.oscPool.release(node.osc);
           this.gainPool.release(node.modGain);
           this.gainPool.release(node.ampEnv);

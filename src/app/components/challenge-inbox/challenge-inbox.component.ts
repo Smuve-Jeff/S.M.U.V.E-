@@ -20,8 +20,6 @@ import { UserProfileService } from "../../services/user-profile.service";
 import { SnackbarService } from "../../services/snackbar.service";
 import { TokenService } from "../../services/token.service";
 import { GameService } from "../../hub/game.service";
-import { APP_SECURITY_CONFIG } from "../../app.security";
-
 type Tab = "pending" | "accepted" | "declined" | "all";
 
 @Component({

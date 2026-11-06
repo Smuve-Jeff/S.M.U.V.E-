@@ -32,32 +32,14 @@ import { UserProfileService } from "../../services/user-profile.service";
 import { UIService } from "../../services/ui.service";
 import { GamepadService } from "../../services/gamepad.service";
 import { SecurityService } from "../../services/security.service";
-import { APP_SECURITY_CONFIG } from "../../app.security";
-import {
-  SocialNetworkingService,
-  OnlineUser,
-  RoomMessage,
-  PrivateMessage,
-} from "../../services/social-networking.service";
+import { SocialNetworkingService, OnlineUser } from "../../services/social-networking.service";
 import { ChallengeInboxService } from "../../services/challenge-inbox.service";
 import { PeerNetworkingService } from "../../services/peer-networking.service";
 import { SnackbarService } from "../../services/snackbar.service";
-import {
-  MatchmakingService,
-  CoOpLobby,
-  SpectatorReaction,
-  LobbyChatMessage,
-} from "../../hub/matchmaking.service";
+import { MatchmakingService } from "../../hub/matchmaking.service";
 import { ActivatedRoute, Router } from "@angular/router";
-import {
-  DailyMissionsService,
-  DailyMission,
-} from "../../services/daily-missions.service";
-import {
-  GameRatingsService,
-  Rating,
-  PlayResult,
-} from "../../services/game-ratings.service";
+import { DailyMissionsService } from "../../services/daily-missions.service";
+import { GameRatingsService } from "../../services/game-ratings.service";
 import { StudioOrchestrationService } from "../../services/studio-orchestration.service";
 import {
   ShareableInviteService,
@@ -2184,7 +2166,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
         if (liveToken) {
           const lobbyId = params.get("lobby");
           const gameId = params.get("game") || params.get("gameId");
-          const fromUserId = params.get("from");
+          const _fromUserId = params.get("from");
           if (gameId) {
             this.pendingGameId = gameId;
             this.applyPendingGameSelection();
@@ -2879,13 +2861,13 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     if (iframe) {
       try {
         iframe.setAttribute("sandbox", this.getSandboxAttr(this.currentGame()));
-      } catch {}
+      } catch { /* ignore */ }
       try {
         iframe.setAttribute(
           "allow",
           this.getIframeAllowAttr(this.currentGame()),
         );
-      } catch {}
+      } catch { /* ignore */ }
     }
   }
 
@@ -3390,8 +3372,8 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   private matchesRecommendationAudience(
-    rail: RecommendationRail,
-    profile: any,
+    _rail: RecommendationRail,
+    _profile: any,
   ): boolean {
     return true;
   }

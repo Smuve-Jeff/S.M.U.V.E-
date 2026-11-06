@@ -105,7 +105,7 @@ describe('FxMacrosService (reset parity)', () => {
 
   it('reset() restores params for macros that do not touch filter/limiter', () => {
     service.setMacro('delay-trail'); // X = comp, Y = reverb
-    TestBed.inject(NotificationService).show; // no-op touch
+    expect(TestBed.inject(NotificationService)).toBeTruthy();
     service.setXY(1, 1);
     const compAfterDrag = calls.comp[calls.comp.length - 1];
     expect(compAfterDrag).toBe(12); // modulated

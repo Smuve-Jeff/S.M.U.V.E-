@@ -188,11 +188,10 @@ describe('StemSeparationService', () => {
 
     it('should report progress during separation', async () => {
       const ctx = new AudioContext();
-      const buffer = ctx.createBuffer(1, 4410, 44100);
+      const _buffer = ctx.createBuffer(1, 4410, 44100);
 
-      const progressStages: string[] = [];
-      // Subscribe to progress changes
-      const sub = (service as any).progress; // cannot subscribe directly in test,
+            // Subscribe to progress changes
+       // cannot subscribe directly in test,
       // but we can check final state
 
       // In JSDOM, worklet fails → falls back to offline. Progress may be 'idle' if

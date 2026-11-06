@@ -79,7 +79,7 @@ export class Sampler {
       await this.context.audioWorklet.addModule(
         "assets/worklets/sampler-processor.worklet.js",
       );
-    } catch (e) {
+    } catch {
       // May already be loaded by another Sampler instance
     }
 
@@ -220,7 +220,7 @@ export class Sampler {
   play(
     pitch: number,
     velocity: number,
-    when: number = this.context.currentTime,
+    _when: number = this.context.currentTime,
   ): void {
     const zone = this.zones.get(pitch);
     if (!zone || zone.sampleBuffers.length === 0) return;

@@ -2,16 +2,7 @@ import { Component, signal, inject, computed, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import {
-  ArtistDevelopmentService,
-  ArtistDevelopmentPanel,
-  ProRegistration,
-  WorkRegistration,
-  DspAnalytics,
-  SocialAccount,
-  DigitalFingerprint,
-  DSP_PLATFORMS,
-} from '../../services/artist-development.service';
+import { ArtistDevelopmentService, ArtistDevelopmentPanel, ProRegistration, WorkRegistration, DSP_PLATFORMS } from '../../services/artist-development.service';
 import { InteractionDialogService } from '../../services/interaction-dialog.service';
 import {
   ArtistPathwayService,
@@ -32,11 +23,7 @@ import {
   LIFECYCLE_PHASE_ORDER,
 } from '../../types/artist-lifecycle.types';
 import { ReadinessState } from '../../types/release-readiness.types';
-import {
-  ReleaseProject,
-  ProductionTrack,
-  ReleaseType,
-} from '../../types/release.types';
+import { ReleaseProject, ReleaseType } from '../../types/release.types';
 
 /** Every expandable card in this hub, owned by the service so they cannot drift. */
 type HubPanel = ArtistDevelopmentPanel;

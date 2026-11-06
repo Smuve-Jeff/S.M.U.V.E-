@@ -1,10 +1,5 @@
 import { Injectable, inject, signal, computed } from '@angular/core';
-import {
-  SongwritingAssistantService,
-  LyricSection,
-  LyricLine,
-  MelodyNote,
-} from './songwriting-assistant.service';
+import { SongwritingAssistantService, LyricSection, LyricLine } from './songwriting-assistant.service';
 import { SmuveStyleMimicService } from './smuve-style-mimic.service';
 import { AiService } from './ai.service';
 
@@ -218,11 +213,10 @@ export class CoWriteService {
   private buildMidiTrack(
     notes: PianoRollNote[],
     channel: number,
-    bpm: number
+    _bpm: number
   ): Uint8Array {
     const ticksPerQuarter = 480;
-    const tickRate = (bpm / 60) * ticksPerQuarter;
-    const events: { tick: number; data: number[] }[] = [];
+        const events: { tick: number; data: number[] }[] = [];
 
     // Track name event
     events.push({
@@ -419,7 +413,7 @@ export class CoWriteService {
     voicingConfigs: ChordVoicingConfig[] = [],
     key: string = 'C'
   ): { melody: PianoRollNote[]; harmony: PianoRollNote[] } {
-    const scaleNotes = this.getScaleNotes(key, 'major');
+    const _scaleNotes = this.getScaleNotes(key, 'major');
     const harmonyNotes: PianoRollNote[] = [];
 
     // Default configs if none provided
@@ -644,7 +638,7 @@ export class CoWriteService {
           const midiNote = scaleNotes[index] + 60;
           const noteName = this.midiToNoteName(midiNote);
           const duration = n % 2 === 0 ? '4' : '8';
-          const word =
+          const _word =
             words[Math.min(n, words.length - 1)]?.replace(/[^a-zA-Z']/g, '') ||
             '';
           lineNotes.push(`${noteName}${duration}`);
@@ -777,7 +771,7 @@ export class CoWriteService {
     const previousUserLines = session.turns
       .filter((t) => t.role === 'user' && t.sectionType === sectionType)
       .map((t) => t.text);
-    const previousSmuveLines = session.turns
+    const _previousSmuveLines = session.turns
       .filter((t) => t.role === 'smuve' && t.sectionType === sectionType)
       .map((t) => t.text);
     const context =
@@ -1004,7 +998,7 @@ export class CoWriteService {
         this.projectsSignal.set(projects);
         return projects;
       }
-    } catch {}
+    } catch { /* ignore */ }
     this.projectsSignal.set([]);
     return [];
   }
@@ -1039,7 +1033,7 @@ export class CoWriteService {
     if (existing.length > 50) existing.length = 50;
     try {
       localStorage.setItem(this.STORAGE_KEY, JSON.stringify(existing));
-    } catch (e) {
+    } catch {
       // Storage can refuse (quota, private mode). Do not pretend the project
       // is on disk, and do not add it to the in-memory saved list either.
       this.lastSaveError.set(
@@ -1064,7 +1058,7 @@ export class CoWriteService {
       mood: found.mood,
       artists: found.artists,
     });
-    for (const [section, lines] of Object.entries(found.lyrics)) {
+    for (const [_section, lines] of Object.entries(found.lyrics)) {
       for (const text of lines) {
         this.addUserContribution(text);
         const latest =
@@ -1205,8 +1199,8 @@ export class CoWriteService {
   }
   private generateLineSuggestion(
     context: string,
-    sectionType: string,
-    session: CoWriteSession | null
+    _sectionType: string,
+    _session: CoWriteSession | null
   ): string {
     return `Try contrasting "${context}" with an opposite image — if you said light, bring in shadow. If you said love, bring in loss.`;
   }
@@ -1227,7 +1221,7 @@ export class CoWriteService {
   private generateFeedback(
     line: string,
     sectionType: LyricSection['type'],
-    session: CoWriteSession
+    _session: CoWriteSession
   ): string {
     const syllableCount = this.countSyllables(line);
     const feedbacks = [
@@ -1244,7 +1238,7 @@ export class CoWriteService {
   }
   private generateTransitionFeedback(
     sectionType: LyricSection['type'],
-    session: CoWriteSession
+    _session: CoWriteSession
   ): string {
     const feedbacks: Record<string, string> = {
       verse:

@@ -1,4 +1,4 @@
-import { DynamicEffectsRack, PluginSlot } from "./dynamic-effects-rack";
+import { DynamicEffectsRack } from "./dynamic-effects-rack";
 import { PluginRegistry } from "./plugin-interface";
 import { bindFxSlotParams } from "./fx-param-specs";
 
@@ -43,7 +43,7 @@ describe("DynamicEffectsRack", () => {
     });
 
     it("should move insert slots", () => {
-      const eq = rack.addInsert("smuve.eq.v1");
+      const _eq = rack.addInsert("smuve.eq.v1");
       const comp = rack.addInsert("smuve.compressor.v1");
       expect(rack.inserts[0].plugin.id).toBe("smuve.eq.v1");
       rack.moveInsert(comp!.id, 0);

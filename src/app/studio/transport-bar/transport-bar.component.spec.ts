@@ -137,8 +137,8 @@ describe("TransportBarComponent", () => {
   };
 
   const mockTakeManager = {
-    isPunchIn: (id: string) => signal(false),
-    getTakes: (id: string) => signal([] as unknown[]),
+    isPunchIn: (_id: string) => signal(false),
+    getTakes: (_id: string) => signal([] as unknown[]),
     setPunchIn: jest.fn(),
     stampTake: jest.fn(() => ({ startStep: 0, endStep: 15 })),
   };

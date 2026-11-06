@@ -186,15 +186,7 @@ export class ShareableInviteService {
       inviteToken: args.inviteToken,
       lobbyId: args.lobbyId,
     });
-    const verboseMode: Record<InviteMode, string> = {
-      online: 'Online',
-      offline: 'Offline',
-      'co-op': 'Co-Op',
-      'split-screen': 'Split-Screen',
-      challenge: 'Challenge',
-      'quick-match': 'Quick-Match',
-    };
-    const title = `${args.gameName ?? args.gameId} on S.M.U.V.E.`;
+        const title = `${args.gameName ?? args.gameId} on S.M.U.V.E.`;
     const text = args.fromName
       ? `${args.fromName} wants you to ${this.ctaForMode(args.mode)} ${args.gameName ?? args.gameId} on S.M.U.V.E. ${url}`
       : `Wanna ${this.ctaForMode(args.mode)} ${args.gameName ?? args.gameId} on S.M.U.V.E.? ${url}`;

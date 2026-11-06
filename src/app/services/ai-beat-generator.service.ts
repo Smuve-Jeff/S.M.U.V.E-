@@ -133,7 +133,7 @@ export class AiBeatGeneratorService {
     genre: string,
     bpm: number,
     swing: number,
-    profile: StyleProfile | null
+    _profile: StyleProfile | null
   ): DrumPattern {
     const isTrap =
       genre.toLowerCase().includes('trap') ||
@@ -450,7 +450,7 @@ export class AiBeatGeneratorService {
     key: string,
     genre: string,
     profile: StyleProfile | null,
-    chords: ChordStab[]
+    _chords: ChordStab[]
   ): MelodyPhrase[] {
     const phrases: MelodyPhrase[] = [
       {
@@ -524,10 +524,10 @@ export class AiBeatGeneratorService {
   /** Generate arrangement structure */
   private generateArrangement(
     genre: string,
-    drums: DrumPattern,
-    bass: BassLine,
-    chords: ChordStab[],
-    melody: MelodyPhrase[]
+    _drums: DrumPattern,
+    _bass: BassLine,
+    _chords: ChordStab[],
+    _melody: MelodyPhrase[]
   ): ArrangementSection[] {
     const isTrap =
       genre.toLowerCase().includes('trap') ||
@@ -805,7 +805,7 @@ ${sections}
 PRODUCTION NOTES:
 ${beat.productionNotes.map((n) => `  • ${n}`).join('\n')}
 
-Use /beat [style] \"title\" to generate more beats.`;
+Use /beat [style] "title" to generate more beats.`;
   }
 
   /** Generate production notes */

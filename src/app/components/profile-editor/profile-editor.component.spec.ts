@@ -718,7 +718,7 @@ describe('ProfileEditorComponent', () => {
     });
 
     it('points an artist with no works at the pane that creates them', async () => {
-      const { component, text } = await createComponent();
+      const { component, text: _text } = await createComponent();
       await component.activeSection.set('music-history');
 
       expect(component.historyReleases()).toEqual([]);
@@ -847,7 +847,7 @@ describe('ProfileEditorComponent', () => {
     });
 
     it('keeps the roster from the store without dropping uncommitted edits', async () => {
-      const { fixture, component } = await createComponent();
+      const { fixture: _fixture, component } = await createComponent();
       const withMember = { ...profile(), team: [member()] };
       userProfileService.addTeamMember.mockResolvedValue(withMember);
       component.editableProfile.update((p) => ({

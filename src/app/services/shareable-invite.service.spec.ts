@@ -1,7 +1,7 @@
 import { of, throwError } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
 
-class FakeSignal<T> {
+class _FakeSignal<T> {
   private v: T;
   constructor(initial: T) {
     this.v = initial;
@@ -89,7 +89,7 @@ describe('ShareableInviteService', () => {
     httpResponses.length = 0;
     notifyMock.show.mockReset();
     hapticMock.light.mockReset();
-    clipboardWriteText = jest.fn(async (text: string) => undefined);
+    clipboardWriteText = jest.fn(async (_text: string) => undefined);
     // jsdom's window.location is non-configurable, so pin the share origin
     // through the service accessor instead of redefining window.location.
     originSpy = jest
@@ -173,7 +173,7 @@ describe('ShareableInviteService', () => {
         inviteToken: 'tok_x',
         fromUserId: '42',
       });
-      expect(url).toMatch(/^\https:\/\/smuvejeffpresents\.com\/tha-spot\?/);
+      expect(url).toMatch(/^https:\/\/smuvejeffpresents\.com\/tha-spot\?/);
       expect(url).toMatch(/game=halo/);
       expect(url).toMatch(/mode=split-screen/);
       expect(url).toMatch(/invite=tok_x/);

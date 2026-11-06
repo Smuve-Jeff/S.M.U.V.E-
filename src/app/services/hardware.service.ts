@@ -1,6 +1,6 @@
 import { Injectable, signal, computed, inject, NgZone } from '@angular/core';
 import { LoggingService } from './logging.service';
-import { AudioInputDevice, MicrophoneService } from './microphone.service';
+import { MicrophoneService } from './microphone.service';
 import { NativeMidiService } from './native-midi.service';
 
 export interface MidiInputDevice {

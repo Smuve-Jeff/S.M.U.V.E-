@@ -1,5 +1,3 @@
-import { AppDataSource } from "@/database/data-source";
-
 // Mock the TypeORM-decorated entity so babel-jest never parses decorators.
 jest.mock("@/entities/LiveStream", () => ({
   LiveStream: class LiveStream {},
@@ -77,18 +75,9 @@ jest.mock("@/database/data-source", () => ({
   },
 }));
 
-import {
-  startLiveStream,
-  getCurrentLiveStream,
-  endLiveStream,
-  resolveViewerJoin,
-  redeemViewerJoin,
-  generateShareToken,
-} from "./live-stream.service";
+import { startLiveStream, endLiveStream, resolveViewerJoin, redeemViewerJoin, generateShareToken } from "./live-stream.service";
 
 const tokenA = "tokA";
-const tokenB = "tokB";
-
 describe("live-stream service", () => {
   beforeEach(() => {
     mockStreamStore.length = 0;

@@ -180,6 +180,10 @@
       <div
         *ngFor="let module of availableModules"
         (click)="startModule(module.type)"
+        (keydown.enter)="startModule(module.type)"
+        (keydown.space)="$event.preventDefault(); startModule(module.type)"
+        role="button"
+        tabindex="0"
         class="glass-v42 rounded-2xl p-6 border border-border hover:border-secondary transition-all cursor-pointer flex flex-col items-center text-center group bg-surface/10"
       >
         <div
@@ -201,6 +205,8 @@
           {{ module.description }}
         </p>
         <button
+          type="button"
+          (click)="$event.stopPropagation(); startModule(module.type)"
           class="mt-6 btn-pro btn-pro-outline w-full text-[9px] font-black uppercase tracking-widest"
         >
           INITIALIZE

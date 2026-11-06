@@ -1,5 +1,5 @@
 import { TestBed } from "@angular/core/testing";
-import { VcaBusService, VcaAssignments } from "./vca-bus.service";
+import { VcaBusService } from "./vca-bus.service";
 
 describe("VcaBusService", () => {
   let svc: VcaBusService;

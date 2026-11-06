@@ -707,7 +707,7 @@ describe('VideoEngineService audio overlay', () => {
   });
 
   it('starts the bed with the picture and stops it with the transport', async () => {
-    const { engine, sources, masterGain } = createHarness();
+    const { engine, sources, masterGain: _masterGain } = createHarness();
     await engine.loadAudioOverlay(picked());
 
     engine.play();

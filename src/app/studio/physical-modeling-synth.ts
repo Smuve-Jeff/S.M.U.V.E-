@@ -184,7 +184,7 @@ export class PhysicalModelingSynth extends Instrument {
       () => {
         try {
           voice.exciter.stop();
-        } catch (e) {}
+        } catch { /* ignore */ }
         voice.delay.disconnect();
         voice.stringLp.disconnect();
         voice.feedback.disconnect();

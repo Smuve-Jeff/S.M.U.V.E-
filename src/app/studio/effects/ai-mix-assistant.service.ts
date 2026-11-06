@@ -1565,8 +1565,8 @@ export class AiMixAssistantService {
 
   private getSuggestedRole(
     instType: string,
-    index: number,
-    total: number,
+    _index: number,
+    _total: number,
   ): string {
     if (instType === "kick" || instType === "snare") return "rhythm";
     if (instType === "bass") return "foundation";

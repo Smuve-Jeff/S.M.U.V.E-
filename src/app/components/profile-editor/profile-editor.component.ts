@@ -849,7 +849,7 @@ export class ProfileEditorComponent implements OnInit {
       }
       const objectUrl = URL.createObjectURL(file);
       let settled = false;
-      let timer: ReturnType<typeof setTimeout> | undefined;
+      let timer: ReturnType<typeof setTimeout> | undefined = undefined;
       const finish = (value: HTMLImageElement | null) => {
         if (settled) return;
         settled = true;

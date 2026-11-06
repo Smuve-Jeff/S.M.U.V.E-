@@ -233,7 +233,9 @@ for (const viewport of [
       await editor.saveProfile();
     });
     const returnButton = page.getByRole('button', { name: 'RETURN_TO_COMMAND' });
-    await returnButton.scrollIntoViewIfNeeded();
+    await returnButton.evaluate((button) =>
+      button.scrollIntoView({ block: 'center' })
+    );
     await expectActionInViewport(returnButton);
     await returnButton.click();
     await expect(page.locator('app-uplink-console')).toHaveCount(0);

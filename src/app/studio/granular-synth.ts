@@ -137,7 +137,7 @@ export class GranularSynth extends Instrument {
       if (g.scheduledAt + 2 < now) {
         try {
           g.source.stop();
-        } catch (e) {}
+        } catch { /* ignore */ }
         g.source.disconnect();
         g.gain.disconnect();
         g.panner.disconnect();
@@ -169,7 +169,7 @@ export class GranularSynth extends Instrument {
       setTimeout(() => {
         try {
           grain.source.stop();
-        } catch (e) {}
+        } catch { /* ignore */ }
         grain.source.disconnect();
         grain.gain.disconnect();
         grain.panner.disconnect();

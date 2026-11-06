@@ -412,7 +412,7 @@ export class PerformanceRecordingService implements OnDestroy {
     );
   }
 
-  async exportTake(takeId: string, format: "wav" | "mp3" | "stems-metadata") {
+  async exportTake(takeId: string, _format: "wav" | "mp3" | "stems-metadata") {
     const take = this.takes().find((t) => t.id === takeId);
     if (!take) return;
     // best-effort download. Only WAV data exists in this build (no MP3

@@ -94,7 +94,7 @@ const limiterKernel: DspKernelFn = (
 
   let gainReduction = 1.0;
   const frameCount = input.length / 2;
-  const buf = new Float32Array(lookahead * 2);
+  const _buf = new Float32Array(lookahead * 2);
 
   for (let i = 0; i < frameCount; i++) {
     const idx = i * 2;

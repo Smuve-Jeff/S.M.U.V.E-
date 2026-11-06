@@ -581,7 +581,7 @@ export class CreativeBusinessBridgeService {
 
   private growth(
     profile: UserProfile | null | undefined,
-    release: ReleaseProject
+    _release: ReleaseProject
   ): CreativeConsequence {
     const links = ((profile as any)?.officialArtistProfiles ?? []) as Array<{
       label?: string;

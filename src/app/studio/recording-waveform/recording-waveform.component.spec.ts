@@ -1,7 +1,6 @@
 import { ComponentFixture, TestBed } from "@angular/core/testing";
 import { signal } from "@angular/core";
 import { RecordingWaveformComponent } from "./recording-waveform.component";
-import { WaveformRendererComponent } from "../waveform-renderer/waveform-renderer.component";
 import { StudioRecordingEngineService } from "../studio-recording-engine.service";
 import { RecordingLimiterService } from "../recording-limiter.service";
 

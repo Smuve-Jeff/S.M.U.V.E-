@@ -155,7 +155,7 @@ export class LiveStreamService {
    */
   private goLiveListenerCleanup: (() => void) | null = null;
 
-  private openOAuthPopup(platform: LiveStreamPlatform, shareUrl: string): void {
+  private openOAuthPopup(platform: LiveStreamPlatform, _shareUrl: string): void {
     const width = 500;
     const height = 640;
     const left =
@@ -290,7 +290,7 @@ export class LiveStreamService {
         )
       );
       this.currentStream.set(row ?? null);
-    } catch (e) {
+    } catch {
       // Soft-fail: leave whatever the user sees intact.
     }
   }

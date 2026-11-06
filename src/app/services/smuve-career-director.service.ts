@@ -874,7 +874,7 @@ export class SmuveCareerDirectorService {
   /** The genre family S.M.U.V.E. masters for this artist. */
   readonly genreFamily = computed<SmuveGenreFamily>(() => {
     if (!this.shared) return this.familyFor('');
-    const profile = this.profileService.profile();
+    const _profile = this.profileService.profile();
     const knowledge = this.finetune.knowledge();
     const haystack = [
       knowledge.genre,
