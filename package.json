@@ -113,6 +113,7 @@
     "eslint": "^9.39.4",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.4",
+    "fake-indexeddb": "^4.0.2",
     "jest": "^30.3.0",
     "jest-environment-jsdom": "^30.3.0",
     "jest-preset-angular": "^16.1.5",

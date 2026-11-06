@@ -2,7 +2,11 @@ import { ComponentFixture, TestBed } from "@angular/core/testing";
 import { ArrangementViewComponent } from "./arrangement-view.component";
 import { MusicManagerService } from "../../services/music-manager.service";
 import { StemSeparationService } from "../../services/stem-separation.service";
-import { StemCacheService } from "../stem-cache.service";
+import {
+  IndexedDbStemCacheStore,
+  StemCacheService,
+  StemCacheStore,
+} from "../stem-cache.service";
 import { AudioSessionService } from "../audio-session.service";
 import { AudioEngineService } from "../../services/audio-engine.service";
 import { signal } from "@angular/core";
@@ -149,6 +153,7 @@ describe("ArrangementViewComponent", () => {
       imports: [ArrangementViewComponent, CommonModule, FormsModule],
       providers: [
         StemCacheService,
+        { provide: StemCacheStore, useClass: IndexedDbStemCacheStore },
         { provide: AudioSessionService, useValue: mockAudioSession },
         { provide: TempoMapService, useValue: mockTempoMap },
         { provide: MeterMapService, useValue: mockMeterMap },
@@ -1337,6 +1342,37 @@ describe("ArrangementViewComponent", () => {
     component.closeStemSplit();
     component.openStemSplit();
     expect(component.stemFileName()).toBe("b.wav");
+  });
+
+
+
+  it("restores the last saved split when the splitter opens", async () => {
+    const make = () =>
+      new AudioBuffer({ length: 100, sampleRate: 44100, numberOfChannels: 1 });
+    const entry = {
+      key: "saved",
+      fileName: "saved.wav",
+      source: make(),
+      stems: {
+        vocals: make(),
+        drums: make(),
+        bass: make(),
+        instrumental: make(),
+        other: make(),
+      },
+      bytes: 1,
+    };
+    jest
+      .spyOn(TestBed.inject(StemCacheService), "loadMostRecent")
+      .mockResolvedValue(entry);
+
+    component.openStemSplit();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(component.stemStems()).toBe(entry.stems);
+    expect(component.stemFileName()).toBe("saved.wav");
+    expect(component.stemCached()).toBe(true);
+    expect(component.stemBusy()).toBe(false);
   });
 
 
