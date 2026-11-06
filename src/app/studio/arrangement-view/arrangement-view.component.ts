@@ -36,7 +36,10 @@ import {
 } from "../../services/stem-separation.service";
 import { SnackbarService } from "../../services/snackbar.service";
 import { StemCacheService } from "../stem-cache.service";
-import type { StemCacheEntry } from "../stem-cache.service";
+import type {
+  StemCacheEntry,
+  StemCacheSummary,
+} from "../stem-cache.service";
 import { InteractionDialogService } from "../../services/interaction-dialog.service";
 import { LoggingService } from "../../services/logging.service";
 import { TakeManagerService } from "../../services/take-manager.service";
@@ -204,10 +207,17 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
   stemAudition = signal<StemAuditionKey | null>(null);
   private auditionSource: AudioBufferSourceNode | null = null;
   stemCached = signal(false);
+  /** Saved splits on disk, newest first, for the cache controls. */
+  stemSaved = signal<StemCacheSummary[]>([]);
+  readonly stemSavedBytes = computed(() =>
+    this.stemSaved().reduce((total, saved) => total + saved.bytes, 0),
+  );
   /** Studio-scoped, so switching surfaces keeps the last split. */
   private readonly stemCache = inject(StemCacheService);
+  readonly stemSavedBudget = this.stemCache.storageBudgetBytes;
   private stemRestoreToken = 0;
   private stemFileToken = 0;
+  private stemActiveKey: string | null = null;
 
   readonly tracks = this.musicManager.tracks;
   /** The visible editing mode is explicit; the low-level renderer tool follows it. */
@@ -2271,6 +2281,8 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
     this.stemFileName.set(null);
     this.stemStage.set(null);
     this.stemCached.set(false);
+    this.stemActiveKey = null;
+    void this.refreshSavedSplits();
     const recent = this.stemCache.mostRecent;
     if (recent) {
       this.restoreCachedStems(recent);
@@ -2310,6 +2322,83 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
         }
       }
     }
+  }
+
+  private async refreshSavedSplits(): Promise<void> {
+    this.stemSaved.set(await this.stemCache.savedSplits());
+  }
+
+  stemSizeLabel(bytes: number): string {
+    if (bytes < 1024 * 1024) {
+      return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+    }
+    const megabytes = bytes / (1024 * 1024);
+    return `${megabytes.toFixed(megabytes < 10 ? 1 : 0)} MB`;
+  }
+
+  stemAgeLabel(lastUsed: number): string {
+    const minutes = Math.max(0, Math.round((Date.now() - lastUsed) / 60000));
+    if (minutes < 1) return "just now";
+    if (minutes < 60) return `${minutes} min ago`;
+    const hours = Math.round(minutes / 60);
+    if (hours < 24) return `${hours} h ago`;
+    return `${Math.round(hours / 24)} d ago`;
+  }
+
+  /** Load a saved split; `play` also starts its instrumental preview. */
+  async loadSavedSplit(
+    saved: StemCacheSummary,
+    play = false,
+  ): Promise<void> {
+    const token = ++this.stemRestoreToken;
+    this.stemBusy.set(true);
+    this.stemStage.set("Loading saved stems");
+    try {
+      const entry = await this.stemCache.load(saved.key);
+      if (token !== this.stemRestoreToken) return;
+      if (!entry) {
+        this.snackbar.show("🎚 Saved stems could not be opened");
+        await this.refreshSavedSplits();
+        return;
+      }
+      this.stopStemAudition();
+      this.restoreCachedStems(entry);
+      if (play) this.toggleStemAudition("instrumental");
+      this.snackbar.show(`🎚 ${saved.fileName} · saved stems loaded`);
+    } finally {
+      if (token === this.stemRestoreToken) this.stemBusy.set(false);
+    }
+  }
+
+  playSavedSplit(saved: StemCacheSummary): void {
+    void this.loadSavedSplit(saved, true);
+  }
+
+  async deleteSavedSplit(saved: StemCacheSummary): Promise<void> {
+    await this.stemCache.forget(saved.key);
+    if (this.stemActiveKey === saved.key) this.clearStemDisplay();
+    await this.refreshSavedSplits();
+    this.snackbar.show(`🎚 Removed saved stems for ${saved.fileName}`);
+  }
+
+  async clearSavedSplits(): Promise<void> {
+    await this.stemCache.clearSaved();
+    this.clearStemDisplay();
+    await this.refreshSavedSplits();
+    this.snackbar.show("🎚 Saved stems cleared");
+  }
+
+  private clearStemDisplay(): void {
+    ++this.stemRestoreToken;
+    this.stopStemAudition();
+    this.stemStems.set(null);
+    this.stemSourceBuffer.set(null);
+    this.stemFileName.set(null);
+    this.stemProgress.set(0);
+    this.stemStage.set(null);
+    this.stemCached.set(false);
+    this.stemBusy.set(false);
+    this.stemActiveKey = null;
   }
 
   async onStemFile(event: Event): Promise<void> {
@@ -2360,7 +2449,10 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
         this.stemProgress.set(10 + Math.round(update.progress * 0.85));
       });
       this.stemStems.set(stems);
-      void this.stemCache.remember(cacheKey, file.name, audioBuffer, stems);
+      this.stemActiveKey = cacheKey;
+      void this.stemCache
+        .remember(cacheKey, file.name, audioBuffer, stems)
+        .then(() => this.refreshSavedSplits());
       this.stemProgress.set(100);
       this.stemStage.set("Stems Ready");
       this.snackbar.show(
@@ -2435,6 +2527,7 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
     this.stemFileName.set(entry.fileName);
     this.stemSourceBuffer.set(entry.source);
     this.stemStems.set(entry.stems);
+    this.stemActiveKey = entry.key;
     this.stemProgress.set(100);
     this.stemStage.set("Cached · Stems Ready");
     this.stemCached.set(true);

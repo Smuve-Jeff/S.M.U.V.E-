@@ -1376,4 +1376,58 @@ describe("ArrangementViewComponent", () => {
   });
 
 
+
+  it("loads a saved split and starts its instrumental preview", async () => {
+    const make = () =>
+      new AudioBuffer({ length: 100, sampleRate: 44100, numberOfChannels: 1 });
+    const entry = {
+      key: "saved",
+      fileName: "saved.wav",
+      source: make(),
+      stems: {
+        vocals: make(),
+        drums: make(),
+        bass: make(),
+        instrumental: make(),
+        other: make(),
+      },
+      bytes: 1,
+    };
+    const cache = TestBed.inject(StemCacheService);
+    jest.spyOn(cache, "load").mockResolvedValue(entry);
+    jest.spyOn(cache, "savedSplits").mockResolvedValue([]);
+    const audition = jest
+      .spyOn(component, "toggleStemAudition")
+      .mockImplementation(() => undefined);
+
+    await component.loadSavedSplit(
+      { key: "saved", fileName: "saved.wav", bytes: 2048, lastUsed: 1 },
+      true,
+    );
+
+    expect(component.stemStems()).toBe(entry.stems);
+    expect(component.stemFileName()).toBe("saved.wav");
+    expect(audition).toHaveBeenCalledWith("instrumental");
+    expect(component.stemBusy()).toBe(false);
+  });
+
+  it("deletes a saved split and drops it from the panel", async () => {
+    const saved = {
+      key: "saved",
+      fileName: "saved.wav",
+      bytes: 2048,
+      lastUsed: 1,
+    };
+    const cache = TestBed.inject(StemCacheService);
+    const forget = jest.spyOn(cache, "forget").mockResolvedValue();
+    jest.spyOn(cache, "savedSplits").mockResolvedValue([]);
+    component.stemSaved.set([saved]);
+
+    await component.deleteSavedSplit(saved);
+
+    expect(forget).toHaveBeenCalledWith("saved");
+    expect(component.stemSaved()).toEqual([]);
+  });
+
+
 });

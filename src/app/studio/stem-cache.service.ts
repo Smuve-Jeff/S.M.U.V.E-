@@ -24,6 +24,14 @@ export interface StemCacheEntry {
  * What actually goes to IndexedDB: 16-bit WAV buffers, not live AudioBuffers.
  * Metadata lives in its own store so pruning never has to load the audio.
  */
+/** Metadata the splitter needs to list saved splits without loading audio. */
+export interface StemCacheSummary {
+  key: string;
+  fileName: string;
+  bytes: number;
+  lastUsed: number;
+}
+
 export interface StoredStemRecord {
   key: string;
   fileName: string;
@@ -54,6 +62,8 @@ export abstract class StemCacheStore {
   abstract mostRecent(): Promise<StoredStemRecord | undefined>;
   abstract touch(key: string, lastUsed: number): Promise<void>;
   abstract delete(key: string): Promise<void>;
+  abstract list(): Promise<StemCacheSummary[]>;
+  abstract clear(): Promise<void>;
   abstract prune(budgetBytes: number): Promise<void>;
 }
 
@@ -184,6 +194,35 @@ export class IndexedDbStemCacheStore extends StemCacheStore {
     });
   }
 
+  async list(): Promise<StemCacheSummary[]> {
+    const db = await this.open();
+    if (!db) return [];
+    const metas = (await this.request(db, META_STORE, "readonly", (store) =>
+      store.getAll(),
+    )) as StoredStemMeta[];
+    return metas
+      .sort((left, right) => right.lastUsed - left.lastUsed)
+      .map(({ key, fileName, bytes, lastUsed }) => ({
+        key,
+        fileName,
+        bytes,
+        lastUsed,
+      }));
+  }
+
+  async clear(): Promise<void> {
+    const db = await this.open();
+    if (!db) return;
+    await new Promise<void>((resolve) => {
+      const transaction = db.transaction([META_STORE, AUDIO_STORE], "readwrite");
+      transaction.objectStore(META_STORE).clear();
+      transaction.objectStore(AUDIO_STORE).clear();
+      transaction.oncomplete = () => resolve();
+      transaction.onerror = () => resolve();
+      transaction.onabort = () => resolve();
+    });
+  }
+
   private open(): Promise<IDBDatabase | null> {
     if (this.database) return this.database;
     this.database = new Promise((resolve) => {
@@ -257,7 +296,7 @@ export class StemCacheService {
   private readonly store = inject(StemCacheStore);
   private readonly entries: StemCacheEntry[] = [];
   private budgetBytes = 600 * 1024 * 1024;
-  private readonly storageBudgetBytes = 800 * 1024 * 1024;
+  readonly storageBudgetBytes = 800 * 1024 * 1024;
 
   get size(): number {
     return this.entries.length;
@@ -313,6 +352,37 @@ export class StemCacheService {
     if (this.entries[0]) return this.entries[0];
     const record = await this.readRecord(() => this.store.mostRecent());
     return record ? this.restore(record) : null;
+  }
+
+  async savedSplits(): Promise<StemCacheSummary[]> {
+    try {
+      return await this.store.list();
+    } catch {
+      return [];
+    }
+  }
+
+  async forget(key: string): Promise<void> {
+    this.forgetInMemory(key);
+    try {
+      await this.store.delete(key);
+    } catch {
+      // Best-effort: the record will go with the next successful prune.
+    }
+  }
+
+  async clearSaved(): Promise<void> {
+    this.entries.length = 0;
+    try {
+      await this.store.clear();
+    } catch {
+      // Best-effort: an unavailable database leaves nothing persisted anyway.
+    }
+  }
+
+  private forgetInMemory(key: string): void {
+    const index = this.entries.findIndex((entry) => entry.key === key);
+    if (index >= 0) this.entries.splice(index, 1);
   }
 
   private putInMemory(entry: StemCacheEntry): void {

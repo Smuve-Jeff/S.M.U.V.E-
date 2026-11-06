@@ -22,6 +22,21 @@ class MemoryStore extends StemCacheStore {
     )[0];
   }
 
+  async list() {
+    return [...this.records.values()]
+      .sort((left, right) => right.lastUsed - left.lastUsed)
+      .map(({ key, fileName, bytes, lastUsed }) => ({
+        key,
+        fileName,
+        bytes,
+        lastUsed,
+      }));
+  }
+
+  async clear(): Promise<void> {
+    this.records.clear();
+  }
+
   async touch(key: string, lastUsed: number): Promise<void> {
     const record = this.records.get(key);
     if (record) this.records.set(key, { ...record, lastUsed });
@@ -150,4 +165,26 @@ describe("StemCacheService persistence", () => {
     expect(await cache.load("broken")).toBeNull();
     expect(store.records.has("broken")).toBe(false);
   });
+
+  it("lists saved splits newest first, forgets one, and clears the rest", async () => {
+    const cache = service();
+    await cache.remember("a", "a.wav", makeBuffer([0]), makeStems());
+    await cache.remember("b", "b.wav", makeBuffer([0]), makeStems());
+
+    const saved = await cache.savedSplits();
+    expect(saved.map((entry) => entry.fileName)).toEqual(["b.wav", "a.wav"]);
+    expect(saved[0].bytes).toBeGreaterThan(0);
+
+    await cache.forget("b");
+    expect(
+      (await cache.savedSplits()).map((entry) => entry.fileName),
+    ).toEqual(["a.wav"]);
+    expect(cache.size).toBe(1);
+
+    await cache.clearSaved();
+    expect(await cache.savedSplits()).toEqual([]);
+    expect(cache.size).toBe(0);
+  });
+
+
 });

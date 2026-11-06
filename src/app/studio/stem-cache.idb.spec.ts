@@ -78,4 +78,21 @@ describe("IndexedDbStemCacheStore", () => {
 
     expect(await store.get("gone")).toBeUndefined();
   });
+
+  it("lists records newest first and clears both stores", async () => {
+    await store.put(record("old", 100, 10));
+    await store.put(record("new", 200, 10));
+
+    expect((await store.list()).map((entry) => entry.key)).toEqual([
+      "new",
+      "old",
+    ]);
+
+    await store.clear();
+
+    expect(await store.list()).toEqual([]);
+    expect(await store.get("new")).toBeUndefined();
+  });
+
+
 });

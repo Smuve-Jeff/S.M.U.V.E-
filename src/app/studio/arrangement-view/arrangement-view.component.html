@@ -936,6 +936,74 @@
         </span>
       </div>
 
+      <div class="stem-saved" *ngIf="stemSaved().length">
+        <div class="stem-saved-head">
+          <span class="stem-saved-title">
+            <span class="material-symbols-outlined" aria-hidden="true">
+              inventory_2
+            </span>
+            Saved stems
+          </span>
+          <span class="stem-saved-usage">
+            {{ stemSizeLabel(stemSavedBytes()) }} of
+            {{ stemSizeLabel(stemSavedBudget) }}
+          </span>
+        </div>
+        <div class="stem-saved-row" *ngFor="let saved of stemSaved()">
+          <div class="stem-saved-meta">
+            <span class="stem-saved-name" [title]="saved.fileName">
+              {{ saved.fileName }}
+            </span>
+            <span class="stem-saved-detail">
+              {{ stemSizeLabel(saved.bytes) }} ·
+              {{ stemAgeLabel(saved.lastUsed) }}
+            </span>
+          </div>
+          <div class="stem-saved-actions">
+            <button
+              type="button"
+              class="stem-saved-btn"
+              [attr.aria-label]="'Load ' + saved.fileName"
+              title="Load"
+              (click)="loadSavedSplit(saved)"
+            >
+              <span class="material-symbols-outlined" aria-hidden="true">
+                download
+              </span>
+            </button>
+            <button
+              type="button"
+              class="stem-saved-btn"
+              [attr.aria-label]="'Play ' + saved.fileName"
+              title="Play"
+              (click)="playSavedSplit(saved)"
+            >
+              <span class="material-symbols-outlined" aria-hidden="true">
+                play_arrow
+              </span>
+            </button>
+            <button
+              type="button"
+              class="stem-saved-btn danger"
+              [attr.aria-label]="'Delete ' + saved.fileName"
+              title="Delete"
+              (click)="deleteSavedSplit(saved)"
+            >
+              <span class="material-symbols-outlined" aria-hidden="true">
+                delete
+              </span>
+            </button>
+          </div>
+        </div>
+        <button
+          type="button"
+          class="stem-saved-clear"
+          (click)="clearSavedSplits()"
+        >
+          Clear saved stems
+        </button>
+      </div>
+
       <div class="stem-results" *ngIf="stemStems() as stems">
         <div class="stem-preview">
           <span class="stem-preview-label">Preview</span>
