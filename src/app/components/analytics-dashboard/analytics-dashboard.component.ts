@@ -2,15 +2,11 @@ import { Component, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { AnalyticsService } from '../../services/analytics.service';
+import {
+  AnalyticsService,
+  GrowthMetric,
+} from '../../services/analytics.service';
 import { UserProfileService } from '../../services/user-profile.service';
-
-interface Superfan {
-  name: string;
-  streams: number;
-  location: string;
-  status: string;
-}
 
 @Component({
   selector: 'app-analytics-dashboard',
@@ -32,29 +28,74 @@ export class AnalyticsDashboardComponent {
       }
   );
 
-  /**
-   * Fans the artist's own analytics identified.
-   *
-   * This was seeded with three invented listeners — names, cities and stream
-   * counts — under a "Top Superfans" heading, so every artist was shown a fan
-   * list that belonged to nobody. It stays empty until an analytics source fills
-   * it, and the view says so in the meantime.
-   */
-  superfans = signal<Superfan[]>([]);
+  /** Set only when a credential write explicitly reports failure. */
+  profileError = signal('');
 
   /** True once a real source reported at least one figure. */
   hasLiveData = computed(() => this.analytics.hasLiveData());
 
-  /** A metric value, or an em dash while no source reports it. */
-  metric(value: number): string {
-    return this.analytics.hasLiveData() ? value.toLocaleString() : '—';
-  }
+  /** How many metrics a connected source actually reports. */
+  reportedCount = computed(
+    () =>
+      this.analytics.metrics().filter((metric) => metric.source === 'connected')
+        .length
+  );
 
-  engagementTactics = [
-    "Run a 'Behind the Scenes' stream for your top 50 listeners.",
-    "Send a personalized ACKNOWLEDGEMENT RECORDED video to this month's top streamer.",
-    'Discord Exclusive: Early listen for the next single.',
-  ];
+  reportingLabel = computed(() =>
+    this.hasLiveData()
+      ? `${this.reportedCount()} of ${this.analytics.metrics().length} metrics reported`
+      : 'No source connected'
+  );
+
+  /**
+   * What this page can and cannot evidence.
+   *
+   * The old "Strategic Insights" card printed three tactics that assumed a
+   * named top-listener list and a monthly top streamer — audience facts
+   * S.M.U.V.E. has no source for. These statuses state the source position
+   * instead of turning missing data into advice.
+   */
+  evidenceStatus = computed(() => {
+    const pro = this.proData();
+    const total = this.analytics.metrics().length;
+    return [
+      {
+        id: 'platform',
+        label: 'Platform totals',
+        ready: this.hasLiveData(),
+        detail: this.hasLiveData()
+          ? `${this.reportedCount()} of ${total} metrics reported by a connected source.`
+          : 'No analytics source is connected, so no total is shown.',
+      },
+      {
+        id: 'listeners',
+        label: 'Listener-level records',
+        ready: false,
+        detail:
+          'No listener-level analytics integration is supported, so S.M.U.V.E. names no fans and shows no per-fan streams.',
+      },
+      {
+        id: 'pro',
+        label: 'PRO works',
+        ready: pro.workIds.length > 0,
+        detail: pro.workIds.length
+          ? `${pro.workIds.length} work${
+              pro.workIds.length === 1 ? '' : 's'
+            } on file as self-reported — not verified with a PRO.`
+          : 'No works recorded. Add an ISWC or PRO work ID once the registration exists.',
+      },
+    ];
+  });
+
+  /**
+   * A metric value, or an em dash while that metric has no source.
+   *
+   * This used to consult the page-wide `hasLiveData()`, so one connected metric
+   * made every other tile print its unavailable zero as a reported figure.
+   */
+  metricFor(metric: GrowthMetric): string {
+    return metric.source === 'connected' ? metric.value.toLocaleString() : '—';
+  }
 
   newWorkTitle = signal('');
   newWorkId = signal('');
@@ -63,13 +104,18 @@ export class AnalyticsDashboardComponent {
 
   async updateIpi(ipi: string) {
     const profile = this.profileService.profile();
-    await this.profileService.updateProfile({
+    const saved = await this.profileService.updateProfile({
       ...profile,
       proData: {
         ...(profile.proData || { workIds: [], affiliations: [] }),
-        ipiNumber: ipi,
+        ipiNumber: ipi.trim(),
       },
     });
+    this.profileError.set(
+      saved === false
+        ? 'The IPI number could not be saved. Check your connection and try again.'
+        : ''
+    );
   }
 
   /**

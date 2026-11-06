@@ -1,18 +1,19 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { signal } from '@angular/core';
+import { signal, WritableSignal } from '@angular/core';
 import { JourneyComponent } from './journey.component';
 import { UserProfileService } from '../../services/user-profile.service';
 import { AuthService } from '../../services/auth.service';
-import { initialProfile } from '../../types/profile.types';
+import { initialProfile, UserProfile } from '../../types/profile.types';
 
 describe('JourneyComponent', () => {
   let fixture: ComponentFixture<JourneyComponent>;
   let component: JourneyComponent;
   let updateProfile: jest.Mock;
+  let profileSig: WritableSignal<UserProfile>;
 
   beforeEach(async () => {
-    updateProfile = jest.fn().mockResolvedValue(undefined);
-    const profileSig = signal(JSON.parse(JSON.stringify(initialProfile)));
+    updateProfile = jest.fn().mockResolvedValue(true);
+    profileSig = signal(JSON.parse(JSON.stringify(initialProfile)));
 
     await TestBed.configureTestingModule({
       imports: [JourneyComponent],
@@ -109,16 +110,16 @@ describe('JourneyComponent', () => {
     expect(component.activeStep()).toBe(1);
   });
 
-  it('auto-saves the section whenever the artist advances or retreats', () => {
+  it('auto-saves the section whenever the artist advances or retreats', async () => {
     component.profile.update((p) => ({ ...p, artistName: 'Midnight Cassette' }));
     updateProfile.mockClear();
 
-    component.next();
+    await component.next();
     expect(updateProfile).toHaveBeenCalledTimes(1);
     expect(component.justSaved()).toBe(true);
 
     updateProfile.mockClear();
-    component.prev();
+    await component.prev();
     expect(updateProfile).toHaveBeenCalledTimes(1);
   });
 
@@ -162,14 +163,44 @@ describe('JourneyComponent', () => {
     expect(component.completedCount()).toBe(4);
   });
 
-  it('finalizes the dossier with a persisted profile and a confirmation', () => {
+  it('finalizes the dossier with a persisted profile and a confirmation', async () => {
     updateProfile.mockClear();
 
-    component.initializeJourney();
+    await component.initializeJourney();
 
     expect(updateProfile).toHaveBeenCalledTimes(1);
     expect(component.initialized()).toBe(true);
     expect(component.justSaved()).toBe(false);
+  });
+
+  it('edits a copy, not the profile held by the service', () => {
+    component.profile.update((p) => ({
+      ...p,
+      artistName: 'Midnight Cassette',
+      musicalJourney: { ...p.musicalJourney, originStory: 'community' },
+    }));
+
+    expect(profileSig().artistName).toBe('New Artist');
+    expect(profileSig().musicalJourney.originStory).toBeUndefined();
+  });
+
+  it('reports a failed save instead of claiming the draft was stored', async () => {
+    updateProfile.mockResolvedValueOnce(false);
+
+    await component.next();
+
+    expect(component.activeStep()).toBe(1);
+    expect(component.justSaved()).toBe(false);
+    expect(component.saveError()).toContain('not saved');
+  });
+
+  it('keeps the dossier in editing when the final save fails', async () => {
+    updateProfile.mockResolvedValueOnce(false);
+
+    await component.initializeJourney();
+
+    expect(component.initialized()).toBe(false);
+    expect(component.saveError()).toContain('not saved');
   });
 
   it('records the dossier fields the Official Pathway evaluates', () => {

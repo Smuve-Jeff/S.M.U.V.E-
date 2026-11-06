@@ -18,6 +18,7 @@ describe('AnalyticsDashboardComponent', () => {
     });
     const updateProfile = jest.fn(async (patch: any) => {
       profile.update((current) => ({ ...current, ...patch }));
+      return true;
     });
     await TestBed.configureTestingModule({
       imports: [AnalyticsDashboardComponent],
@@ -77,9 +78,9 @@ describe('AnalyticsDashboardComponent', () => {
       expect(text()).not.toContain('-2.1%');
     });
 
-    it('names no superfans it cannot evidence', async () => {
+    it('names no listeners it cannot evidence', async () => {
       const service = new AnalyticsService();
-      const { component, text } = await createComponent({
+      const { text } = await createComponent({
         hasLiveData: service.hasLiveData,
         metrics: service.metrics,
         streams: service.streams,
@@ -87,10 +88,11 @@ describe('AnalyticsDashboardComponent', () => {
         monthlyListeners: service.monthlyListeners,
       });
 
-      expect(component.superfans()).toEqual([]);
       expect(text()).not.toContain('Alex M.');
       expect(text()).not.toContain('Dmitri K.');
-      expect(text()).toContain('No listener records yet');
+      expect(text()).toContain(
+        'No listener-level analytics integration is supported'
+      );
     });
 
     it('reports the figures once a real source supplies them', async () => {
@@ -115,6 +117,32 @@ describe('AnalyticsDashboardComponent', () => {
       expect(text()).toContain('4,200');
       expect(text()).toContain('+6.5%');
       expect(text()).not.toContain('No analytics source connected');
+    });
+
+    it('reports each metric only from its own source', async () => {
+      const mixed = new AnalyticsService();
+      mixed.streams.set({
+        label: 'Total Streams',
+        value: 4200,
+        trend: 6.5,
+        history: [],
+        source: 'connected',
+      });
+
+      const { component, text } = await createComponent({
+        hasLiveData: mixed.hasLiveData,
+        metrics: mixed.metrics,
+        streams: mixed.streams,
+        revenue: mixed.revenue,
+        monthlyListeners: mixed.monthlyListeners,
+      });
+
+      expect(component.metricFor(mixed.streams())).toBe('4,200');
+      expect(component.metricFor(mixed.revenue())).toBe('—');
+      expect(component.metricFor(mixed.monthlyListeners())).toBe('—');
+      expect(text()).toContain('1 of 5 metrics reported');
+      expect(text()).toContain('not reported');
+      expect(text()).not.toContain('+0%');
     });
   });
 
@@ -175,6 +203,19 @@ describe('AnalyticsDashboardComponent', () => {
 
       expect(updateProfile).toHaveBeenCalledTimes(1);
       expect(component.workError()).toContain('already registered');
+    });
+
+    it('labels credentials as self-reported and surfaces a failed save', async () => {
+      const { component, updateProfile, profile, text } = await createComponent();
+
+      expect(text()).toContain('PRO Registration · Self-Reported');
+      expect(text()).toContain('does not verify');
+
+      updateProfile.mockResolvedValueOnce(false);
+      await component.updateIpi(' 00123456789 ');
+
+      expect(component.profileError()).toContain('could not be saved');
+      expect(profile().proData?.ipiNumber ?? '').toBe('');
     });
 
     it('removes a work while keeping the IPI number', async () => {

@@ -5,6 +5,7 @@ import {
   computed,
   effect,
   HostListener,
+  OnDestroy,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -23,7 +24,7 @@ import { ALL_GENRES } from '../../services/enhanced-artist-questionnaire-engine'
   templateUrl: './journey.component.html',
   styleUrls: ['./journey.component.css'],
 })
-export class JourneyComponent {
+export class JourneyComponent implements OnDestroy {
   private userProfileService = inject(UserProfileService);
   private authService = inject(AuthService);
 
@@ -48,6 +49,9 @@ export class JourneyComponent {
 
   /** Shows once the dossier is initialized, with hand-off actions. */
   initialized = signal(false);
+
+  /** Set when a profile write is explicitly reported as failed. */
+  saveError = signal('');
 
   /**
    * Per-step completeness, computed from the live profile so the header dots
@@ -195,37 +199,56 @@ export class JourneyComponent {
   constructor() {
     effect(() => {
       const p = this.userProfileService.profile();
-      this.profile.set({ ...p });
+      this.profile.set(this.cloneProfile(p));
       this.influencesText.set((p.musicalJourney?.musicalInfluences || []).join(', '));
       this.dawText.set((p.daw || []).join(', '));
     });
   }
 
-  next() {
+  ngOnDestroy() {
+    if (this.savedTimer) clearTimeout(this.savedTimer);
+  }
+
+  /**
+   * `ngModel` writes straight into the object it is bound to. Copy the nested
+   * objects the wizard edits, or typing would mutate the service's live
+   * profile before the artist ever saves the step.
+   */
+  private cloneProfile(p: UserProfile): UserProfile {
+    return {
+      ...p,
+      musicalJourney: {
+        ...p.musicalJourney,
+        musicalInfluences: [...(p.musicalJourney?.musicalInfluences || [])],
+      },
+      skills: [...(p.skills || [])],
+      productionStyles: [...(p.productionStyles || [])],
+      daw: [...(p.daw || [])],
+    };
+  }
+
+  async next() {
     if (this.activeStep() < this.steps.length - 1) {
-      // Auto-save each section as the artist moves on, so walking away can
-      // never lose what was typed on an earlier step.
-      this.updateProfile();
-      this.flashSaved();
+      // Save each section as the artist moves on, but only claim success after
+      // the profile service confirms the write.
       this.activeStep.update((s) => s + 1);
       this.maxStepReached.update((m) => Math.max(m, this.activeStep()));
+      if (await this.updateProfile()) this.flashSaved();
     }
   }
-  prev() {
+  async prev() {
     if (this.activeStep() > 0) {
-      this.updateProfile();
-      this.flashSaved();
       this.activeStep.update((s) => s - 1);
+      if (await this.updateProfile()) this.flashSaved();
     }
   }
 
   /** Jump to any step already reached; the dossier step stays forward-only. */
-  jumpTo(step: number) {
+  async jumpTo(step: number) {
     if (step < 0 || step > this.maxStepReached() || step === this.activeStep())
       return;
-    this.updateProfile();
-    this.flashSaved();
     this.activeStep.set(step);
+    if (await this.updateProfile()) this.flashSaved();
   }
 
   private flashSaved() {
@@ -246,12 +269,12 @@ export class JourneyComponent {
     if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
     if (event.key === 'ArrowRight') {
       if (this.activeStep() < this.steps.length - 1) {
-        this.next();
+        void this.next();
         event.preventDefault();
       }
     } else if (event.key === 'ArrowLeft') {
       if (this.activeStep() > 0) {
-        this.prev();
+        void this.prev();
         event.preventDefault();
       }
     }
@@ -269,7 +292,11 @@ export class JourneyComponent {
     );
   }
 
-  updateProfile() {
+  /**
+   * Persist the wizard's current answers. The profile service reports a failed
+   * or skipped write as `false`; the UI must not flash a saved state then.
+   */
+  async updateProfile(): Promise<boolean> {
     const p = this.profile();
     const next: UserProfile = {
       ...p,
@@ -279,7 +306,15 @@ export class JourneyComponent {
       },
       daw: this.toList(this.dawText()),
     };
-    this.userProfileService.updateProfile(next);
+    const saved = await this.userProfileService.updateProfile(next);
+    if (saved === false) {
+      this.saveError.set(
+        'Your changes were not saved. They stay in this session — check your connection and try again.'
+      );
+      return false;
+    }
+    this.saveError.set('');
+    return true;
   }
 
   toggleSkill(skill: string) {
@@ -337,11 +372,11 @@ export class JourneyComponent {
    * Finalize the dossier: persist everything and confirm the hand-off, then
    * surface the surfaces that consume what was just answered.
    */
-  initializeJourney() {
-    this.updateProfile();
+  async initializeJourney() {
+    const saved = await this.updateProfile();
     this.justSaved.set(false);
     if (this.savedTimer) clearTimeout(this.savedTimer);
     this.savedTimer = null;
-    this.initialized.set(true);
+    this.initialized.set(saved);
   }
 }

@@ -39,9 +39,14 @@
           class="text-[9px] font-black uppercase tracking-widest transition-opacity duration-300"
           [class.text-emerald-400]="justSaved()"
           [class.text-transparent]="!justSaved()"
-          >✓ Progress auto-saved</span
+          >✓ Progress saved</span
         >
       </div>
+      @if (saveError()) {
+        <p class="mb-3 text-[10px] font-bold text-red-400" role="alert">
+          {{ saveError() }}
+        </p>
+      }
       <h1
         class="text-2xl md:text-4xl font-black tracking-tighter text-text-main uppercase italic leading-none mb-2"
       >
@@ -75,7 +80,7 @@
         <div class="space-y-2">
           <label
             class="text-[10px] font-black text-text-dim uppercase tracking-widest"
-            >The Origin Story</label
+            >Artist Bio</label
           >
           <textarea
             [(ngModel)]="profile().bio"
@@ -455,17 +460,17 @@
           >
             <span
               class="material-symbols-outlined text-emerald-400 text-3xl"
-              >verified</span
+              >task_alt</span
             >
             <h3
               class="text-[10px] font-black text-emerald-400 uppercase tracking-[0.3em]"
             >
-              Neural Link Established
+              Dossier Saved — Self-Reported
             </h3>
             <p class="text-[10px] text-text-dim leading-relaxed">
-              Your Artist Journey dossier is saved to your profile. Every answer
-              now drives the Official Pathway, the Command Center strategy and
-              the Development Hub.
+              These answers are saved to your profile as your own account of
+              your career, not a verification. They drive the Official Pathway,
+              the Command Center strategy and the Development Hub.
             </p>
             <div class="flex flex-wrap justify-center gap-2 pt-1">
               <a
@@ -489,11 +494,18 @@
             </div>
           </div>
         } @else if (!initialized()) {
+          @if (completedCount() < 4) {
+            <p class="text-[10px] text-amber-300 leading-relaxed">
+              {{ completedCount() }}/4 key sections answered. You can save the
+              dossier now and finish the rest later — unanswered sections are
+              recorded as blank, not inferred.
+            </p>
+          }
           <button
             (click)="initializeJourney()"
             class="w-full btn-pro btn-pro-primary py-4 text-xs font-black tracking-[0.2em]"
           >
-            INITIALIZE NEURAL LINK
+            SAVE DOSSIER TO PROFILE
           </button>
         }
       </div>

@@ -231,7 +231,7 @@ export class UserProfileService {
     }
   }
 
-  async updateProfile(p: Partial<UserProfile>) {
+  async updateProfile(p: Partial<UserProfile>): Promise<boolean> {
     const current = this.profile();
     const currentSettings = current.settings ?? initialProfile.settings;
     const incomingSettings = p.settings as Partial<AppSettings> | undefined;
@@ -334,13 +334,15 @@ export class UserProfileService {
         this.logger.warn(
           'Profile write skipped: the loaded profile belongs to a different account than the active session.'
         );
-        return;
+        return false;
       }
       // Save under the real user id so the local backup and the cloud sync
       // (which enforces ownership on the backend) use the same key.
       await this.db.saveUserProfile(next, targetId);
+      return true;
     } catch (e) {
       this.logger.error('Profile save failed', e);
+      return false;
     }
   }
 
