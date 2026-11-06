@@ -5367,3 +5367,13 @@ button.comp-meta-state-pill:focus-visible {
     display: none;
   }
 }
+
+/* The topbar AI action is always present, including the compact phone and
+   touch layouts. The floating duplicate sat over Drum Machine steps, Effects
+   Rack cards, Piano Roll notes and Channel Rack controls; on touch surfaces
+   the topbar action is the single assistant entry point. */
+@media (max-width: 932px), (pointer: coarse) {
+  .comp-fab {
+    display: none;
+  }
+}
