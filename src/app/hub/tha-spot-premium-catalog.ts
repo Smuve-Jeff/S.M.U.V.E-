@@ -11,9 +11,45 @@ import { MODERN_BROWSER_GAMES } from './tha-spot-curated-games';
 import { GENRE_REFRESH_GAMES } from './tha-spot-genre-refresh-catalog';
 import {
   LEGENDARY_BROWSER_GAMES,
-  LEGENDARY_FREE_VAULT_GAMES,
   LEGENDARY_GAMES,
 } from './tha-spot-legendary-catalog';
+
+/**
+ * Existing archive rows that already carry official publisher destinations.
+ * They are surfaced in a dedicated rail rather than duplicated as new records.
+ */
+const HOUSEHOLD_NAME_GAME_IDS = [
+  'fortnite',
+  'gta-online',
+  'among-us',
+  'apex-legends',
+  'minecraft',
+  'rocket-league',
+  'league-of-legends',
+  'valorant',
+  'dota2',
+  'cs2',
+  'sea-of-thieves',
+  'destiny-2',
+  'fifa-24',
+  'chess-com-online',
+  'wave4-tetris',
+  'icon-2048',
+  'slither-io-multiplayer',
+  'agar-io-multiplayer',
+  'krunker-io-web-elite',
+  'shell-shockers-web-elite',
+  'diep-io-multiplayer',
+  'zombsroyale-io-multiplayer',
+  'skribbl-io-multiplayer',
+  'gartic-phone-multiplayer',
+  'icon-subway-surfers',
+  'modern-crossy-road',
+  'fruit-ninja-web-elite',
+  'poki-retro-bowl',
+  'poki-temple-run-2',
+  'minecraft-classic',
+] as const;
 
 export const PREMIUM_ACTIVE_GAME_IDS = [
   ...MODERN_BROWSER_GAMES.map((game) => game.id),
@@ -126,6 +162,14 @@ export const PREMIUM_ACTIVE_GAME_IDS = [
 
 export const PREMIUM_RECOMMENDATION_RAILS = [
   {
+    id: 'premium-household-names',
+    title: 'Household names',
+    subtitle:
+      'The games everyone already knows — official publisher pages, external launch where required, and browser icons that start instantly.',
+    gameIds: [...HOUSEHOLD_NAME_GAME_IDS],
+    maxItems: HOUSEHOLD_NAME_GAME_IDS.length,
+  },
+  {
     id: 'premium-modern-browser',
     title: 'Modern browser spotlight',
     subtitle: '3D arenas, racing, sandbox worlds, and precision platforming — opens on the publisher site.',
@@ -136,17 +180,9 @@ export const PREMIUM_RECOMMENDATION_RAILS = [
     id: 'premium-iconic-browser',
     title: 'Iconic browser play',
     subtitle:
-      'Household-name browser games that start on the publisher page — word puzzles, geography, physics classics, and live card tables.',
+      'Daily word puzzles, global geography, physics classics, and card-table staples — free to start on the publisher page.',
     gameIds: LEGENDARY_BROWSER_GAMES.map((game) => game.id),
     maxItems: LEGENDARY_BROWSER_GAMES.length,
-  },
-  {
-    id: 'premium-free-browser-vault',
-    title: 'Free browser vault',
-    subtitle:
-      'Flash-era classics and .io icons — every pick is free to play and starts on the publisher page.',
-    gameIds: LEGENDARY_FREE_VAULT_GAMES.map((game) => game.id),
-    maxItems: LEGENDARY_FREE_VAULT_GAMES.length,
   },
   {
     id: 'premium-vintage-icons',

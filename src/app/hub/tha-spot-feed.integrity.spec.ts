@@ -255,7 +255,7 @@ describe('Tha Spot feed integrity', () => {
       ['modern-retro-bowl', 'modern-crossy-road'].includes(game.id)
     );
 
-    expect(mergedGames).toHaveLength(1154);
+    expect(mergedGames).toHaveLength(1120);
     expect(knownIds.size).toBe(mergedGames.length);
     expect(modernIcons.map((game) => game.id)).toEqual([
       'modern-retro-bowl',
