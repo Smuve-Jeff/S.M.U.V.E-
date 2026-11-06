@@ -14,9 +14,13 @@ import { StemSeparationService, Stems } from './stem-separation.service';
 import { DynamicEffectsRack } from '../studio/effects/dynamic-effects-rack';
 import { SampleStreamer } from './sample-streamer.service';
 import {
+  CLICK_DIVISIONS_PER_BEAT,
   TRANSPORT_PREFS_KEY,
   parseTransportPrefs,
   serializeTransportPrefs,
+  type ClickOutput,
+  type ClickSound,
+  type ClickSubdivision,
 } from './transport-prefs';
 import {
   LoudnessMeter,
@@ -781,6 +785,18 @@ export class AudioEngineService {
   public scaleLock = signal(false);
   public metronomeEnabled = signal(false);
   public metronomeVolume = signal(0.5);
+  /** Clicks inside one notated beat: none / 1/8 / 1/8T / 1/16. */
+  public clickSubdivision = signal<ClickSubdivision>('none');
+  /** Timbre of the click itself. */
+  public clickSound = signal<ClickSound>('beep');
+  /** Count-in level is absolute, independent of the click volume. */
+  public countInLevel = signal(0.8);
+  /** `mix` follows the master chain; `direct` gets its own edge. */
+  public clickOutput = signal<ClickOutput>('mix');
+  /** The click's own gain stage, so `direct` can bypass masterGain. */
+  private clickBus: GainNode | null = null;
+  /** Subdivision clicks sit under the beat instead of competing with it. */
+  private static readonly CLICK_SUBDIVISION_LEVEL = 0.55;
 
   public loopLengthSteps = signal(64);
   /** Transport A/B loop, end-exclusive in sixteenth-note steps. */
@@ -1656,7 +1672,14 @@ export class AudioEngineService {
     if (this.isCountIn()) {
       this.applyMeterAtStep(step);
       if (this.isMeterBeatDownbeat(step)) {
-        this.playMetronomeClick(time, this.isMeterBarDownbeat(step), true);
+        // The count stays straight: subdivisions here would make the first
+        // downbeat ambiguous.
+        this.playMetronomeClick(
+          time,
+          this.isMeterBarDownbeat(step),
+          true,
+          this.countInLevel()
+        );
       }
       this.countInRemainingSteps--;
       if (this.countInRemainingSteps <= 0) {
@@ -1718,7 +1741,7 @@ export class AudioEngineService {
 
     this.applyMeterAtStep(loopedStep);
     if (this.metronomeEnabled() && this.isMeterBeatDownbeat(loopedStep)) {
-      this.playMetronomeClick(time, this.isMeterBarDownbeat(loopedStep));
+      this.scheduleBeatClicks(loopedStep, time, stepDuration);
     }
 
     const visualDelay = (time - this.ctx.currentTime) * 1000;
@@ -1760,10 +1783,58 @@ export class AudioEngineService {
     }
   }
 
+  /**
+   * Click voice per timbre. `bar`, `beat` and `sub` are the three accents;
+   * the decay is short enough that fast subdivisions never smear together.
+   */
+  private static readonly CLICK_VOICES = {
+    beep: { wave: 'sine', bar: 1000, beat: 600, sub: 480, decay: 0.06 },
+    wood: { wave: 'square', bar: 1500, beat: 1120, sub: 900, decay: 0.03 },
+    tick: { wave: 'sine', bar: 2400, beat: 1900, sub: 1600, decay: 0.018 },
+  } as const;
+
+  /**
+   * One notated beat's worth of clicks: the beat itself plus every subdivision
+   * inside it. Subdivisions are placed from the beat's own start time rather
+   * than by counting sixteenth steps, so triplets land on an exact third of the
+   * beat instead of being rounded onto the 16th grid.
+   */
+  private scheduleBeatClicks(
+    step: number,
+    time: number,
+    stepDuration: number
+  ): void {
+    const beatDuration = Math.max(
+      0.001,
+      stepDuration * this.stepsPerNotatedBeatAt(step)
+    );
+    const division = CLICK_DIVISIONS_PER_BEAT[this.clickSubdivision()] ?? 1;
+    const level = this.metronomeVolume();
+    const isBarDownbeat = this.isMeterBarDownbeat(step);
+    this.playMetronomeClick(
+      time,
+      isBarDownbeat,
+      false,
+      level,
+      isBarDownbeat ? 'bar' : 'beat'
+    );
+    for (let index = 1; index < division; index++) {
+      this.playMetronomeClick(
+        time + (beatDuration * index) / division,
+        false,
+        false,
+        level * AudioEngineService.CLICK_SUBDIVISION_LEVEL,
+        'sub'
+      );
+    }
+  }
+
   private playMetronomeClick(
     time: number,
     isDownbeat: boolean,
-    force: boolean = false
+    force: boolean = false,
+    levelOverride?: number,
+    accent: 'bar' | 'beat' | 'sub' = isDownbeat ? 'bar' : 'beat'
   ) {
     if (!this.metronomeEnabled() && !force) return;
     this.resume();
@@ -1773,18 +1844,53 @@ export class AudioEngineService {
     // double-click. Drop a fully stale beat and clamp the rest to now.
     if (time < this.ctx.currentTime - 0.05) return;
     const when = Math.max(time, this.ctx.currentTime);
-    const level = Math.max(0.0001, Math.min(1, this.metronomeVolume()));
+    const level = Math.max(
+      0.0001,
+      Math.min(1, levelOverride ?? this.metronomeVolume())
+    );
+    const voice =
+      AudioEngineService.CLICK_VOICES[this.clickSound()] ??
+      AudioEngineService.CLICK_VOICES.beep;
     const osc = this.ctx.createOscillator();
     const env = this.ctx.createGain();
-    osc.frequency.setValueAtTime(isDownbeat ? 1000 : 600, when);
-    // 2 ms attack, 60 ms decay: a clean click instead of a DC step at onset.
+    osc.type = voice.wave;
+    osc.frequency.setValueAtTime(voice[accent], when);
+    // 2 ms attack: a clean click instead of a DC step at onset.
     env.gain.setValueAtTime(0, when);
     env.gain.setTargetAtTime(level, when + 0.002, 0.001);
-    env.gain.exponentialRampToValueAtTime(0.0001, when + 0.06);
+    env.gain.exponentialRampToValueAtTime(0.0001, when + voice.decay);
     osc.connect(env);
-    env.connect(this.masterGain);
+    env.connect(this.ensureClickBus());
     osc.start(when);
-    osc.stop(when + 0.08);
+    osc.stop(when + voice.decay + 0.02);
+  }
+
+  private ensureClickBus(): GainNode {
+    if (!this.clickBus) {
+      this.clickBus = this.ctx.createGain();
+      this.clickBus.gain.value = 1;
+      this.routeClickBus();
+    }
+    return this.clickBus;
+  }
+
+  /**
+   * `mix` sends the click into the master chain like any other source.
+   * `direct` gives it its own edge to the output, so the master fader, the
+   * limiter and the mono check cannot change the click. It is not a second
+   * headphone output — a browser exposes one context destination — which is
+   * why the control says "Direct" rather than "Cue".
+   */
+  private routeClickBus(): void {
+    if (!this.clickBus) return;
+    try {
+      this.clickBus.disconnect();
+    } catch {
+      /* never connected */
+    }
+    this.clickBus.connect(
+      this.clickOutput() === 'direct' ? this.ctx.destination : this.masterGain
+    );
   }
 
   /**
@@ -5372,6 +5478,18 @@ export class AudioEngineService {
       // Only the preference is restored here: the monitor graph is built later
       // in the constructor, so the actual splice happens once it exists.
       if (prefs.mono !== undefined) this.monoMonitoring.set(prefs.mono);
+      if (prefs.clickSubdivision !== undefined) {
+        this.clickSubdivision.set(prefs.clickSubdivision);
+      }
+      if (prefs.clickSound !== undefined) {
+        this.clickSound.set(prefs.clickSound);
+      }
+      if (prefs.countInLevel !== undefined) {
+        this.countInLevel.set(prefs.countInLevel);
+      }
+      if (prefs.clickOutput !== undefined) {
+        this.clickOutput.set(prefs.clickOutput);
+      }
     } catch {
       // Private mode / locked storage: the defaults are the safe state.
     }
@@ -5387,6 +5505,10 @@ export class AudioEngineService {
           loopStart: this.playbackLoopStart(),
           loopEnd: this.playbackLoopEnd(),
           mono: this.monoMonitoring(),
+          clickSubdivision: this.clickSubdivision(),
+          clickSound: this.clickSound(),
+          countInLevel: this.countInLevel(),
+          clickOutput: this.clickOutput(),
         })
       );
     } catch {
@@ -5395,6 +5517,34 @@ export class AudioEngineService {
   }
   setMetronomeVolume(val: number) {
     this.metronomeVolume.set(Math.max(0, Math.min(1, val)));
+  }
+
+  setClickSubdivision(value: ClickSubdivision): ClickSubdivision {
+    if (!CLICK_DIVISIONS_PER_BEAT[value]) return this.clickSubdivision();
+    this.clickSubdivision.set(value);
+    this.persistTransportPrefs();
+    return value;
+  }
+
+  setClickSound(value: ClickSound): ClickSound {
+    if (!(value in AudioEngineService.CLICK_VOICES)) return this.clickSound();
+    this.clickSound.set(value);
+    this.persistTransportPrefs();
+    return value;
+  }
+
+  /** Count-in level is absolute, not a multiplier of the click volume. */
+  setCountInLevel(val: number): number {
+    const safe = Number.isFinite(val) ? val : this.countInLevel();
+    this.countInLevel.set(Math.max(0, Math.min(1, safe)));
+    return this.countInLevel();
+  }
+
+  setClickOutput(value: ClickOutput): ClickOutput {
+    this.clickOutput.set(value === 'direct' ? 'direct' : 'mix');
+    this.routeClickBus();
+    this.persistTransportPrefs();
+    return this.clickOutput();
   }
   setSoftClip(amount: number) {
     const k = amount * 100,

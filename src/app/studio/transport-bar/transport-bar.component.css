@@ -297,9 +297,15 @@
      landscape sheet inside the viewport and let its own rows wrap instead of
      spilling under the right edge. */
   .ctb-secondary-panel {
+    /* Anchor above the strip and cap the sheet against the viewport: a
+       top-anchored panel on a 390px-tall phone put the last Click rows below
+       the screen, where no amount of inner scrolling could reach them. */
+    top: auto;
+    bottom: calc(70px + env(safe-area-inset-bottom, 0px));
     right: max(8px, env(safe-area-inset-right, 0px));
     width: calc(100vw - 16px);
     max-width: calc(100vw - 16px);
+    max-height: calc(100vh - 84px);
     box-sizing: border-box;
   }
 
@@ -2093,6 +2099,45 @@ select.ctb-timesig option {
   min-height: 34px;
 }
 
+.ctb-click-row {
+  display: flex;
+  grid-column: 1 / -1;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+}
+
+.ctb-click-row-label {
+  flex: 0 0 auto;
+  min-width: 58px;
+  color: var(--espresso-muted);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.ctb-click-chip {
+  min-width: 38px;
+  min-height: 34px;
+  padding: 0 8px;
+  border: 1px solid var(--espresso-line);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--espresso-text);
+  font: 800 9px/1 var(--font-mono);
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.ctb-click-chip-on {
+  border-color: var(--teal-500);
+  background: var(--teal-500);
+  color: #fff;
+}
+
 .ctb-click-note {
   grid-column: 1 / -1;
   margin: 0;
@@ -2119,8 +2164,13 @@ select.ctb-timesig option {
   .ctb-click-power,
   .ctb-click-test,
   .ctb-click-volume,
-  .ctb-click-settings .ctb-countin {
+  .ctb-click-settings .ctb-countin,
+  .ctb-click-chip {
     min-height: 44px;
+  }
+
+  .ctb-click-chip {
+    min-width: 44px;
   }
 
   /* styles.css hides the legacy inline count-in on phones; inside the Click

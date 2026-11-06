@@ -25,6 +25,17 @@ import { HapticService } from "../../services/haptic.service";
 import { HistoryService } from "../../services/history.service";
 import { STEPS_PER_BAR, TempoMapService } from "../tempo-map.service";
 import { MidiClockSyncService } from "../midi-clock-sync.service";
+import {
+  CLICK_OUTPUTS,
+  CLICK_OUTPUT_LABELS,
+  CLICK_SOUNDS,
+  CLICK_SOUND_LABELS,
+  CLICK_SUBDIVISIONS,
+  CLICK_SUBDIVISION_LABELS,
+  type ClickOutput,
+  type ClickSound,
+  type ClickSubdivision,
+} from "../../services/transport-prefs";
 import { GamepadService } from "../../services/gamepad.service";
 import { HardwareConnectionsComponent } from "../hardware-connections/hardware-connections.component";
 import { StudioMidiLearnService } from "../studio-midi-learn.service";
@@ -82,6 +93,44 @@ export class TransportBarComponent {
   metronomeVolumePercent = computed(() =>
     Math.round(this.metronomeVolume() * 100),
   );
+  clickSubdivision = this.audioEngine.clickSubdivision;
+  clickSound = this.audioEngine.clickSound;
+  clickOutput = this.audioEngine.clickOutput;
+  countInLevel = this.audioEngine.countInLevel;
+  countInLevelPercent = computed(() => Math.round(this.countInLevel() * 100));
+
+  readonly clickSubdivisionOptions = CLICK_SUBDIVISIONS.map((value) => ({
+    value,
+    label: CLICK_SUBDIVISION_LABELS[value],
+    title:
+      value === "none"
+        ? "One click per beat"
+        : value === "eighths"
+          ? "Two clicks per beat"
+          : value === "triplets"
+            ? "Three clicks per beat · triplet feel"
+            : "Four clicks per beat",
+  }));
+
+  readonly clickSoundOptions = CLICK_SOUNDS.map((value) => ({
+    value,
+    label: CLICK_SOUND_LABELS[value],
+    title:
+      value === "beep"
+        ? "Sine beep · the default"
+        : value === "wood"
+          ? "Woodblock · cuts through a dense kit"
+          : "Sharp tick · quietest under cymbals",
+  }));
+
+  readonly clickOutputOptions = CLICK_OUTPUTS.map((value) => ({
+    value,
+    label: CLICK_OUTPUT_LABELS[value],
+    title:
+      value === "mix"
+        ? "Click follows the master fader and mono check"
+        : "Click bypasses the master fader, limiter and mono check",
+  }));
   loopEnabled = this.audioEngine.playbackLoopEnabled;
   /** A/B loop region (steps 0..loopLength) */
   loopStartStep = this.audioEngine.playbackLoopStart;
@@ -345,9 +394,10 @@ export class TransportBarComponent {
   /** Shared wording for the click toggle and the Click settings panel. */
   metronomeSummary = computed(() => {
     const countIn = this.countInBars();
+    const subdivision = CLICK_SUBDIVISION_LABELS[this.clickSubdivision()];
     return `Click ${this.metronomeEnabled() ? 'on' : 'off'} · volume ${this.metronomeVolumePercent()}% · ${
-      countIn === 0 ? 'count-in off' : `${countIn}-bar count-in`
-    }`;
+      subdivision === 'Off' ? 'beats' : subdivision
+    } · ${countIn === 0 ? 'count-in off' : `${countIn}-bar count-in`}`;
   });
 
   // ── Pro: History — undo/redo (backed by HistoryService) ──
@@ -1031,6 +1081,27 @@ export class TransportBarComponent {
   updateMetronomeVolume(event: Event): void {
     const val = (event.target as HTMLInputElement).valueAsNumber / 100;
     this.audioEngine.setMetronomeVolume(val);
+  }
+
+  updateCountInLevel(event: Event): void {
+    const val = (event.target as HTMLInputElement).valueAsNumber / 100;
+    this.audioEngine.setCountInLevel(val);
+  }
+
+  setClickSubdivision(value: ClickSubdivision): void {
+    this.audioEngine.setClickSubdivision(value);
+    this.haptic.light();
+  }
+
+  setClickSound(value: ClickSound): void {
+    this.audioEngine.setClickSound(value);
+    this.audioEngine.auditionMetronome();
+    this.haptic.light();
+  }
+
+  setClickOutput(value: ClickOutput): void {
+    this.audioEngine.setClickOutput(value);
+    this.haptic.light();
   }
 
   // ── Global transport keyboard shortcuts ───────────────────────────

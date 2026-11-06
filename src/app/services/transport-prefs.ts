@@ -21,13 +21,78 @@ export interface TransportPrefs {
    * still be in mono after a reload, not silently back in stereo.
    */
   mono: boolean;
+  /**
+   * Click habits. All optional: sets stored before the click panel existed
+   * simply fall back to the engine defaults instead of failing to restore.
+   */
+  clickSubdivision?: ClickSubdivision;
+  clickSound?: ClickSound;
+  /** Count-in click level, 0-1, independent of the click volume. */
+  countInLevel?: number;
+  /** Where the click is monitored: through the master chain, or direct. */
+  clickOutput?: ClickOutput;
 }
+
+/** How many clicks the metronome puts inside one notated beat. */
+export const CLICK_SUBDIVISIONS = [
+  "none",
+  "eighths",
+  "triplets",
+  "sixteenths",
+] as const;
+export type ClickSubdivision = (typeof CLICK_SUBDIVISIONS)[number];
+
+/** Clicks per notated beat for each subdivision setting. */
+export const CLICK_DIVISIONS_PER_BEAT: Record<ClickSubdivision, number> = {
+  none: 1,
+  eighths: 2,
+  triplets: 3,
+  sixteenths: 4,
+};
+
+/** Human labels. Short enough for a phone chip row. */
+export const CLICK_SUBDIVISION_LABELS: Record<ClickSubdivision, string> = {
+  none: "Off",
+  eighths: "1/8",
+  triplets: "1/8T",
+  sixteenths: "1/16",
+};
+
+/** The timbre of the click itself. */
+export const CLICK_SOUNDS = ["beep", "wood", "tick"] as const;
+export type ClickSound = (typeof CLICK_SOUNDS)[number];
+
+export const CLICK_SOUND_LABELS: Record<ClickSound, string> = {
+  beep: "Beep",
+  wood: "Wood",
+  tick: "Tick",
+};
+
+/**
+ * `mix` follows the master fader, limiter and mono fold-down. `direct` keeps
+ * the click on its own bus so pulling the master down or checking the mix in
+ * mono does not change the click. A truly separate headphone cue needs a second
+ * output device, which the browser does not expose.
+ */
+export const CLICK_OUTPUTS = ["mix", "direct"] as const;
+export type ClickOutput = (typeof CLICK_OUTPUTS)[number];
+
+export const CLICK_OUTPUT_LABELS: Record<ClickOutput, string> = {
+  mix: "Mix",
+  direct: "Direct",
+};
 
 export const TRANSPORT_PREFS_KEY = "smuve_studio_transport_prefs";
 
 const isBoolean = (value: unknown): value is boolean => typeof value === "boolean";
 const isStep = (value: unknown): value is number =>
   typeof value === "number" && Number.isFinite(value) && value >= 0;
+const isLevel = (value: unknown): value is number =>
+  typeof value === "number" && Number.isFinite(value) && value >= 0 && value <= 1;
+const isOneOf = <T extends string>(
+  value: unknown,
+  allowed: readonly T[],
+): value is T => typeof value === "string" && allowed.includes(value as T);
 
 /**
  * Read a stored record. Returns only the fields that survived validation —
@@ -58,6 +123,17 @@ export function parseTransportPrefs(
   if (isBoolean(record["metronome"])) prefs.metronome = record["metronome"];
   if (isBoolean(record["mono"])) prefs.mono = record["mono"];
 
+  if (isOneOf(record["clickSubdivision"], CLICK_SUBDIVISIONS)) {
+    prefs.clickSubdivision = record["clickSubdivision"];
+  }
+  if (isOneOf(record["clickSound"], CLICK_SOUNDS)) {
+    prefs.clickSound = record["clickSound"];
+  }
+  if (isLevel(record["countInLevel"])) prefs.countInLevel = record["countInLevel"];
+  if (isOneOf(record["clickOutput"], CLICK_OUTPUTS)) {
+    prefs.clickOutput = record["clickOutput"];
+  }
+
   const start = record["loopStart"];
   const end = record["loopEnd"];
   if (isStep(start) && isStep(end) && end > start) {
@@ -77,5 +153,9 @@ export function serializeTransportPrefs(prefs: TransportPrefs): string {
     loopStart: prefs.loopStart,
     loopEnd: prefs.loopEnd,
     mono: prefs.mono,
+    clickSubdivision: prefs.clickSubdivision,
+    clickSound: prefs.clickSound,
+    countInLevel: prefs.countInLevel,
+    clickOutput: prefs.clickOutput,
   });
 }

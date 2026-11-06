@@ -363,6 +363,100 @@ describe('AudioEngineService', () => {
     expect(mockAudioContext.createGain).toHaveBeenCalled();
   });
 
+  it('adds subdivision clicks inside the beat without moving the beat itself', () => {
+    service.metronomeEnabled.set(true);
+    service.metronomeVolume.set(0.5);
+    service.clickSubdivision.set('eighths');
+    service.isPlaying.set(true);
+    mockAudioContext.currentTime = 0;
+    mockAudioContext.createOscillator.mockClear();
+
+    // 240 BPM: a sixteenth is 0.0625 s, so a beat is 0.25 s.
+    (service as any).handleTick(0, 0.01, 0.0625);
+
+    const oscillators = mockAudioContext.createOscillator.mock.results.map(
+      (result: any) => result.value,
+    );
+    expect(oscillators).toHaveLength(2);
+    // The beat keeps its bar accent at the beat's own time...
+    expect(oscillators[0].frequency.setValueAtTime).toHaveBeenCalledWith(
+      1000,
+      0.01,
+    );
+    // ...and the off-beat lands halfway through it, lower and quieter.
+    expect(oscillators[1].frequency.setValueAtTime).toHaveBeenCalledWith(
+      480,
+      0.135,
+    );
+  });
+
+  it('places triplet clicks on exact thirds of the beat', () => {
+    service.metronomeEnabled.set(true);
+    service.clickSubdivision.set('triplets');
+    service.isPlaying.set(true);
+    mockAudioContext.currentTime = 0;
+    mockAudioContext.createOscillator.mockClear();
+
+    (service as any).handleTick(0, 0.01, 0.0625);
+
+    const oscillators = mockAudioContext.createOscillator.mock.results.map(
+      (result: any) => result.value,
+    );
+    expect(oscillators).toHaveLength(3);
+    expect(oscillators[1].frequency.setValueAtTime).toHaveBeenCalledWith(
+      480,
+      0.01 + 0.25 / 3,
+    );
+    expect(oscillators[2].frequency.setValueAtTime).toHaveBeenCalledWith(
+      480,
+      0.01 + (0.25 * 2) / 3,
+    );
+  });
+
+  it('uses the count-in level instead of the click volume', () => {
+    service.metronomeEnabled.set(false);
+    service.countInLevel.set(0.9);
+    mockAudioContext.createGain.mockClear();
+
+    service.playMetronomeClick(0.5, true, true, service.countInLevel());
+
+    const gains = mockAudioContext.createGain.mock.results.map(
+      (result: any) => result.value,
+    );
+    const envelope = gains.find((gain: any) =>
+      gain.gain.setTargetAtTime.mock.calls.some((call: any[]) => call[0] === 0.9),
+    );
+    expect(envelope).toBeTruthy();
+    expect(envelope.gain.setTargetAtTime).toHaveBeenCalledWith(0.9, 0.502, 0.001);
+  });
+
+  it('changes the click voice with the timbre setting', () => {
+    service.metronomeEnabled.set(true);
+    service.setClickSound('wood');
+    mockAudioContext.createOscillator.mockClear();
+
+    service.playMetronomeClick(0.1, true);
+
+    const osc =
+      mockAudioContext.createOscillator.mock.results.at(-1)!.value;
+    expect(osc.type).toBe('square');
+    expect(osc.frequency.setValueAtTime).toHaveBeenCalledWith(1500, 0.1);
+  });
+
+  it('moves the click bus off the master chain when its output is direct', () => {
+    service.metronomeEnabled.set(true);
+    service.playMetronomeClick(0.1, true);
+    const bus = (service as any).clickBus;
+    expect(bus.connect).toHaveBeenCalledWith(service.masterGain);
+
+    expect(service.setClickOutput('direct')).toBe('direct');
+    expect(bus.disconnect).toHaveBeenCalled();
+    expect(bus.connect).toHaveBeenLastCalledWith(mockAudioContext.destination);
+
+    expect(service.setClickOutput('mix')).toBe('mix');
+    expect(bus.connect).toHaveBeenLastCalledWith(service.masterGain);
+  });
+
   it('should shape synth notes and capture midi when recording', () => {
     service.isRecording.set(true);
     service.antialiasEnabled.set(false);

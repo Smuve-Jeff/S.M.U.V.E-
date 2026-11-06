@@ -593,7 +593,72 @@
         {{ n === 0 ? 'OFF' : n + 'B' }}
       </button>
     </div>
-    <p class="ctb-click-note">Count-in uses the same click volume.</p>
+    <div class="ctb-click-row" role="group" aria-label="Click subdivision">
+      <span class="ctb-click-row-label">Subdivision</span>
+      <button
+        *ngFor="let option of clickSubdivisionOptions"
+        type="button"
+        class="ctb-click-chip"
+        [class.ctb-click-chip-on]="clickSubdivision() === option.value"
+        (click)="setClickSubdivision(option.value)"
+        [attr.aria-pressed]="clickSubdivision() === option.value"
+        [attr.aria-label]="'Click subdivision ' + option.label"
+        [attr.title]="option.title"
+      >
+        {{ option.label }}
+      </button>
+    </div>
+
+    <div class="ctb-click-row" role="group" aria-label="Click sound">
+      <span class="ctb-click-row-label">Sound</span>
+      <button
+        *ngFor="let option of clickSoundOptions"
+        type="button"
+        class="ctb-click-chip"
+        [class.ctb-click-chip-on]="clickSound() === option.value"
+        (click)="setClickSound(option.value)"
+        [attr.aria-pressed]="clickSound() === option.value"
+        [attr.aria-label]="'Click sound ' + option.label"
+        [attr.title]="option.title"
+      >
+        {{ option.label }}
+      </button>
+    </div>
+
+    <label class="ctb-click-volume">
+      <span>Count-in</span>
+      <input
+        type="range"
+        min="0"
+        max="100"
+        step="1"
+        [ngModel]="countInLevelPercent()"
+        (input)="updateCountInLevel($event)"
+        class="ctb-volume-slider ctb-countin-level-slider"
+        aria-label="Count-in click level"
+      />
+      <strong>{{ countInLevelPercent() }}%</strong>
+    </label>
+
+    <div class="ctb-click-row" role="group" aria-label="Click output">
+      <span class="ctb-click-row-label">Click out</span>
+      <button
+        *ngFor="let option of clickOutputOptions"
+        type="button"
+        class="ctb-click-chip"
+        [class.ctb-click-chip-on]="clickOutput() === option.value"
+        (click)="setClickOutput(option.value)"
+        [attr.aria-pressed]="clickOutput() === option.value"
+        [attr.aria-label]="'Click output ' + option.label"
+        [attr.title]="option.title"
+      >
+        {{ option.label }}
+      </button>
+    </div>
+    <p class="ctb-click-note">
+      Direct keeps the click off the master fader, limiter and mono check.
+      Count-in has its own level.
+    </p>
   </div>
 
   <!-- Pro: A/B Loop Region -->

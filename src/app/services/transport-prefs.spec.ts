@@ -69,6 +69,43 @@ describe("transport prefs", () => {
     expect(parseTransportPrefs(JSON.stringify({ loopEnd: 8 }))).toEqual({});
   });
 
+  it("keeps the click habits and rejects impossible ones", () => {
+    expect(
+      parseTransportPrefs(
+        serializeTransportPrefs({
+          loop: false,
+          metronome: true,
+          loopStart: null,
+          loopEnd: null,
+          mono: false,
+          clickSubdivision: "triplets",
+          clickSound: "wood",
+          countInLevel: 0.35,
+          clickOutput: "direct",
+        }),
+      ),
+    ).toEqual({
+      loop: false,
+      metronome: true,
+      mono: false,
+      clickSubdivision: "triplets",
+      clickSound: "wood",
+      countInLevel: 0.35,
+      clickOutput: "direct",
+    });
+
+    expect(
+      parseTransportPrefs(
+        JSON.stringify({
+          clickSubdivision: "sixteenths?",
+          clickSound: "cowbell",
+          countInLevel: 4,
+          clickOutput: "cue",
+        }),
+      ),
+    ).toEqual({});
+  });
+
   it("normalises a fractional region to whole steps", () => {
     expect(
       parseTransportPrefs(JSON.stringify({ loopStart: 3.7, loopEnd: 9.2 })),

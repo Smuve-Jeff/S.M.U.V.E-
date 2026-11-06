@@ -67,6 +67,12 @@ describe("TransportBarComponent", () => {
     }),
     metronomeEnabled: signal(false),
     metronomeVolume: signal(0.5),
+    clickSubdivision: signal<'none' | 'eighths' | 'triplets' | 'sixteenths'>(
+      "none",
+    ),
+    clickSound: signal<'beep' | 'wood' | 'tick'>("beep"),
+    countInLevel: signal(0.8),
+    clickOutput: signal<'mix' | 'direct'>("mix"),
     isPlaying: jest.fn(() => true),
     isCountIn: jest.fn(() => false),
     // Mirrors the engine's clamp + tenth-of-a-BPM precision.
@@ -94,6 +100,10 @@ describe("TransportBarComponent", () => {
     toggleMetronome: jest.fn(),
     auditionMetronome: jest.fn(),
     setMetronomeVolume: jest.fn(),
+    setClickSubdivision: jest.fn(),
+    setClickSound: jest.fn(),
+    setCountInLevel: jest.fn(),
+    setClickOutput: jest.fn(),
     getContext: jest.fn(() => null),
     masterGain: {},
   };
@@ -354,6 +364,44 @@ describe("TransportBarComponent", () => {
       component.testMetronome();
       expect(mockAudioEngine.resume).toHaveBeenCalled();
       expect(mockAudioEngine.auditionMetronome).toHaveBeenCalled();
+    });
+
+    it("offers subdivision, sound, count-in level and click output", () => {
+      const details = fixture.nativeElement.querySelector(
+        ".ctb-secondary",
+      ) as HTMLDetailsElement;
+      if (!details.open) {
+        details
+          .querySelector("summary")
+          ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+        fixture.detectChanges();
+      }
+
+      const chip = (label: string) =>
+        details.querySelector(
+          `.ctb-click-chip[aria-label="${label}"]`,
+        ) as HTMLButtonElement;
+
+      expect(details.querySelectorAll(".ctb-click-chip").length).toBe(9);
+
+      chip("Click subdivision 1/8").click();
+      expect(mockAudioEngine.setClickSubdivision).toHaveBeenCalledWith(
+        "eighths",
+      );
+
+      chip("Click sound Wood").click();
+      expect(mockAudioEngine.setClickSound).toHaveBeenCalledWith("wood");
+      expect(mockAudioEngine.auditionMetronome).toHaveBeenCalled();
+
+      chip("Click output Direct").click();
+      expect(mockAudioEngine.setClickOutput).toHaveBeenCalledWith("direct");
+
+      const slider = details.querySelector(
+        ".ctb-countin-level-slider",
+      ) as HTMLInputElement;
+      slider.value = "60";
+      slider.dispatchEvent(new Event("input"));
+      expect(mockAudioEngine.setCountInLevel).toHaveBeenCalledWith(0.6);
     });
   });
 
