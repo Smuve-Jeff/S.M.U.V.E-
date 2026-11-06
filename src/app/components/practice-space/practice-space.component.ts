@@ -6,6 +6,10 @@ import { AiService } from '../../services/ai.service';
 import { UIService } from '../../services/ui.service';
 import { AudioEngineService } from '../../services/audio-engine.service';
 import { UpgradeRecommendation } from '../../types/ai.types';
+import {
+  CLICK_SOUND_LABELS,
+  CLICK_SUBDIVISION_LABELS,
+} from '../../services/transport-prefs';
 
 @Component({
   selector: 'app-practice-space',
@@ -20,12 +24,36 @@ export class PracticeSpaceComponent implements OnDestroy {
   public uiService = inject(UIService);
   private audioEngine = inject(AudioEngineService);
 
-  currentTick = signal(0);
-  metronomeActive = signal(false);
-  metronomeBpm = signal(120);
-  metronomeAudioEnabled = signal(true);
-  private metronomeInterval: any;
-  private audioContext: AudioContext | null = null;
+  /**
+   * The drill metronome *is* the Studio click. It used to be a private
+   * `setInterval` + oscillator pair that hard-coded a four-beat bar, so a
+   * practice drill and the click you record to were two different tempos.
+   */
+  readonly metronomeActive = signal(false);
+  readonly metronomeBpm = this.audioEngine.tempo;
+  readonly metronomeAudioEnabled = this.audioEngine.metronomeEnabled;
+  /** Beat index inside the current bar, straight from the engine clock. */
+  readonly currentTick = computed(() => {
+    const beats = Math.max(1, this.audioEngine.timeSignature().beats);
+    const beatSteps = Math.max(1, this.audioEngine.stepsPerNotatedBeat());
+    return Math.floor(this.audioEngine.visualStep() / beatSteps) % beats;
+  });
+  readonly meterBeats = computed(() =>
+    Array.from(
+      { length: Math.max(1, this.audioEngine.timeSignature().beats) },
+      (_, index) => index,
+    ),
+  );
+  /** What the click will actually do, in the engine's own settings. */
+  readonly clickSummary = computed(() => {
+    const meter = this.audioEngine.timeSignature();
+    const subdivision =
+      CLICK_SUBDIVISION_LABELS[this.audioEngine.clickSubdivision()];
+    const sound = CLICK_SOUND_LABELS[this.audioEngine.clickSound()];
+    return `${meter.beats}/${meter.unit} \u00b7 ${
+      subdivision === 'Off' ? 'beats' : subdivision
+    } \u00b7 ${sound}`;
+  });
 
   recommendedUpgrades = computed(() =>
     this.aiService
@@ -85,79 +113,51 @@ export class PracticeSpaceComponent implements OnDestroy {
    */
   beginSession(protocol: any) {
     if (this.activeProtocolId() === protocol.id) {
-      if (this.metronomeActive()) this.toggleMetronome();
+      this.stopMetronome();
       this.activeProtocolId.set(null);
       return;
     }
-    if (this.metronomeActive()) this.toggleMetronome();
-    this.metronomeBpm.set(protocol.bpm ?? this.metronomeBpm());
-    this.currentTick.set(0);
+    if (this.metronomeActive()) this.stopMetronome();
+    this.audioEngine.setTempo(
+      this.clampBpm(protocol.bpm ?? this.metronomeBpm()),
+    );
     this.activeProtocolId.set(protocol.id);
-    this.toggleMetronome();
+    this.startMetronome();
   }
 
-  toggleMetronome() {
-    this.metronomeActive.update((v) => !v);
+  toggleMetronome(): void {
     if (this.metronomeActive()) {
-      const bpm = Math.max(40, Math.min(240, this.metronomeBpm()));
-      const intervalMs = 60000 / bpm;
-      let beatCount = 0;
-      this.metronomeInterval = setInterval(() => {
-        this.currentTick.update((t) => (t + 1) % 4);
-        if (this.metronomeAudioEnabled()) {
-          this.playMetronomeClick(beatCount % 4 === 0);
-        }
-        beatCount++;
-      }, intervalMs);
-    } else {
-      clearInterval(this.metronomeInterval);
-      this.currentTick.set(0);
+      this.stopMetronome();
+      return;
     }
+    this.startMetronome();
   }
 
-  private playMetronomeClick(isDownbeat: boolean) {
-    if (!this.audioContext) {
-      this.audioContext = new (
-        window.AudioContext || (window as any).webkitAudioContext
-      )();
-    }
-
-    const ctx = this.audioContext;
-    if (ctx.state === 'suspended') {
-      ctx.resume();
-    }
-
-    const osc = ctx.createOscillator();
-    const vca = ctx.createGain();
-
-    // Higher pitch for downbeat
-    osc.frequency.value = isDownbeat ? 1200 : 800;
-    osc.type = 'sine';
-
-    const now = ctx.currentTime;
-    vca.gain.setValueAtTime(0, now);
-    vca.gain.linearRampToValueAtTime(0.5, now + 0.002);
-    vca.gain.exponentialRampToValueAtTime(0.001, now + 0.03);
-
-    osc.connect(vca).connect(ctx.destination);
-    osc.start(now);
-    osc.stop(now + 0.04);
+  private startMetronome(): void {
+    this.audioEngine.setTempo(this.clampBpm(this.metronomeBpm()));
+    this.audioEngine.startClickOnly();
+    this.metronomeActive.set(true);
   }
 
-  updateBpm(event: Event) {
+  private stopMetronome(): void {
+    this.audioEngine.stopClickOnly();
+    this.metronomeActive.set(false);
+  }
+
+  private clampBpm(bpm: number): number {
+    return Math.max(40, Math.min(240, Math.round(bpm)));
+  }
+
+  updateBpm(event: Event): void {
     const val = parseInt((event.target as HTMLInputElement).value, 10);
-    if (!isNaN(val) && val >= 40 && val <= 240) {
-      this.metronomeBpm.set(val);
-      // Restart metronome if active to apply new BPM
-      if (this.metronomeActive()) {
-        this.toggleMetronome();
-        this.toggleMetronome();
-      }
-    }
+    if (!Number.isFinite(val) || val < 40 || val > 240) return;
+    // The engine re-times its running clock, so an active drill follows now.
+    this.audioEngine.setTempo(val);
   }
 
-  toggleMetronomeAudio() {
-    this.metronomeAudioEnabled.update((v) => !v);
+  /** Mute the click without stopping the drill clock (the pulse keeps running). */
+  toggleMetronomeAudio(): void {
+    this.audioEngine.toggleMetronome();
   }
 
   acquireUpgrade(upgrade: UpgradeRecommendation) {
@@ -191,9 +191,6 @@ export class PracticeSpaceComponent implements OnDestroy {
   }
 
   ngOnDestroy() {
-    if (this.metronomeInterval) clearInterval(this.metronomeInterval);
-    if (this.audioContext) {
-      this.audioContext.close();
-    }
+    if (this.metronomeActive()) this.stopMetronome();
   }
 }

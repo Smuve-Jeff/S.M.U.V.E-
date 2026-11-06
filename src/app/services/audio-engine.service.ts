@@ -795,6 +795,8 @@ export class AudioEngineService {
   public clickOutput = signal<ClickOutput>('mix');
   /** The click's own gain stage, so `direct` can bypass masterGain. */
   private clickBus: GainNode | null = null;
+  /** Practice Space runs the click on its own clock, without the song. */
+  private clickOnly = false;
   /** Subdivision clicks sit under the beat instead of competing with it. */
   private static readonly CLICK_SUBDIVISION_LEVEL = 0.55;
 
@@ -1668,6 +1670,16 @@ export class AudioEngineService {
     // The worklet may emit one or two trailing TICKs after STOP is queued;
     // we drop them so they cannot re-schedule audio past the boundary.
     if (this.songEnded() || !this.isPlaying()) return;
+
+    // Click-only: the Practice Space drill clock. Same click engine, but
+    // the arrangement is never scheduled, so a drill cannot start the song.
+    if (this.clickOnly) {
+      this.applyMeterAtStep(step);
+      if (this.isMeterBeatDownbeat(step)) {
+        this.scheduleBeatClicks(step, time, stepDuration);
+      }
+      return;
+    }
 
     if (this.isCountIn()) {
       this.applyMeterAtStep(step);
@@ -5545,6 +5557,23 @@ export class AudioEngineService {
     this.routeClickBus();
     this.persistTransportPrefs();
     return this.clickOutput();
+  }
+
+  /**
+   * Run only the click: the Practice Space metronome. The engine's own clock
+   * drives it, so a drill inherits the Studio tempo, meter, subdivision and
+   * timbre instead of keeping a second, drifting timer of its own.
+   */
+  startClickOnly(): void {
+    this.clickOnly = true;
+    this.metronomeEnabled.set(true);
+    this.playMode.set('pattern');
+    this.start();
+  }
+
+  stopClickOnly(): void {
+    this.clickOnly = false;
+    this.stop();
   }
   setSoftClip(amount: number) {
     const k = amount * 100,

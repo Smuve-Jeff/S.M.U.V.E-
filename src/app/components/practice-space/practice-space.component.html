@@ -38,6 +38,9 @@
             class="w-16 bg-black/40 border border-white/10 rounded-lg px-2 py-1 text-center text-sm font-black text-brand-primary focus:border-brand-primary outline-none"
           />
         </div>
+        <span class="text-[8px] font-mono text-silver-dim mt-1">{{
+          clickSummary()
+        }}</span>
       </div>
 
       <!-- Audio Toggle -->
@@ -67,17 +70,16 @@
         <span
           class="text-[8px] font-black text-silver-dim uppercase tracking-widest mb-1"
           >Visual Metronome</span
-        >
-        <div class="flex gap-2">
-          @for (i of [1, 2, 3, 4]; track i) {
-            <div
-              class="w-8 h-2 rounded-full transition-all duration-200"
-              [class.bg-brand-primary]="(currentTick() % 4) + 1 === i"
-              [class.shadow-[0_0_10px_#10b981]]="(currentTick() % 4) + 1 === i"
-              [class.bg-white/5]="(currentTick() % 4) + 1 !== i"
-            ></div>
-          }
-        </div>
+        >            <div class="flex gap-2">
+              @for (i of meterBeats(); track i) {
+                <div
+                  class="w-8 h-2 rounded-full transition-all duration-200"
+                  [class.bg-brand-primary]="currentTick() === i"
+                  [class.shadow-[0_0_10px_#10b981]]="currentTick() === i"
+                  [class.bg-white/5]="currentTick() !== i"
+                ></div>
+              }
+            </div>
       </div>
       <button
         (click)="toggleMetronome()"

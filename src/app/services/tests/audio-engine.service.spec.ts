@@ -443,6 +443,28 @@ describe('AudioEngineService', () => {
     expect(osc.frequency.setValueAtTime).toHaveBeenCalledWith(1500, 0.1);
   });
 
+  it('runs the click clock in click-only mode without scheduling the song', () => {
+    service.metronomeEnabled.set(false);
+    service.startClickOnly();
+
+    expect(service.metronomeEnabled()).toBe(true);
+    expect(service.playMode()).toBe('pattern');
+
+    const scheduled = jest.fn();
+    service.onScheduleStep = scheduled;
+    service.clickSubdivision.set('none');
+    mockAudioContext.currentTime = 0;
+    mockAudioContext.createOscillator.mockClear();
+
+    (service as any).handleTick(0, 0.01, 0.0625);
+
+    expect(scheduled).not.toHaveBeenCalled();
+    expect(mockAudioContext.createOscillator).toHaveBeenCalledTimes(1);
+
+    service.stopClickOnly();
+    expect(service.isPlaying()).toBe(false);
+  });
+
   it('moves the click bus off the master chain when its output is direct', () => {
     service.metronomeEnabled.set(true);
     service.playMetronomeClick(0.1, true);

@@ -29,15 +29,43 @@ describe('PracticeSpaceComponent', () => {
   };
 
   const mockAudioEngine = {
-    // Minimal surface — the component does not exercise the engine here.
     start: jest.fn(),
     stop: jest.fn(),
     // Sprint A4 — MusicManagerService.structureSongLengthEffect calls this
     // during construction; stub it so the practice-space spec compiles.
     setSongLengthSteps: jest.fn(),
+    // The drill metronome runs on the Studio click, so it reads the engine's
+    // own settings instead of keeping a private timer.
+    tempo: signal(120),
+    visualStep: signal(0),
+    timeSignature: signal({ beats: 4, unit: 4 }),
+    stepsPerNotatedBeat: () => 4,
+    metronomeEnabled: signal(true),
+    clickSubdivision: signal<'none' | 'eighths' | 'triplets' | 'sixteenths'>(
+      'eighths',
+    ),
+    clickSound: signal<'beep' | 'wood' | 'tick'>('wood'),
+    setTempo: jest.fn((bpm: number) => {
+      mockAudioEngine.tempo.set(bpm);
+      return bpm;
+    }),
+    toggleMetronome: jest.fn(() => {
+      mockAudioEngine.metronomeEnabled.update((value) => !value);
+      return mockAudioEngine.metronomeEnabled();
+    }),
+    startClickOnly: jest.fn(),
+    stopClickOnly: jest.fn(),
   };
 
   beforeEach(async () => {
+    // The drill metronome reads shared engine signals, so each spec starts
+    // from the engine's defaults instead of inheriting the previous case.
+    jest.clearAllMocks();
+    mockAudioEngine.tempo.set(120);
+    mockAudioEngine.metronomeEnabled.set(true);
+    mockAudioEngine.visualStep.set(0);
+    mockAudioEngine.timeSignature.set({ beats: 4, unit: 4 });
+
     const mockNode = {
       connect: jest.fn().mockReturnThis(),
       disconnect: jest.fn(),
@@ -162,8 +190,33 @@ describe('PracticeSpaceComponent', () => {
     expect(component.metronomeActive()).toBe(false);
     component.toggleMetronome();
     expect(component.metronomeActive()).toBe(true);
+    expect(mockAudioEngine.startClickOnly).toHaveBeenCalled();
     component.toggleMetronome();
     expect(component.metronomeActive()).toBe(false);
+    expect(mockAudioEngine.stopClickOnly).toHaveBeenCalled();
+  });
+
+  it('runs drills on the Studio click instead of a private timer', () => {
+    component.toggleMetronome();
+
+    // No interval of its own: the engine clock drives the pulse and the sound.
+    expect((component as any).metronomeInterval).toBeUndefined();
+    expect((component as any).audioContext).toBeUndefined();
+    expect(mockAudioEngine.startClickOnly).toHaveBeenCalledTimes(1);
+  });
+
+  it('reads the beat pulse and meter from the engine', () => {
+    mockAudioEngine.timeSignature.set({ beats: 3, unit: 4 });
+    mockAudioEngine.visualStep.set(8);
+    fixture.detectChanges();
+
+    expect(component.meterBeats()).toEqual([0, 1, 2]);
+    expect(component.currentTick()).toBe(2);
+    expect(component.clickSummary()).toContain('3/4');
+    expect(component.clickSummary()).toContain('1/8');
+
+    mockAudioEngine.timeSignature.set({ beats: 4, unit: 4 });
+    mockAudioEngine.visualStep.set(0);
   });
 
   it('should toggle metronome audio', () => {
@@ -178,18 +231,21 @@ describe('PracticeSpaceComponent', () => {
     const event = { target: { value: '140' } } as any;
     component.updateBpm(event);
     expect(component.metronomeBpm()).toBe(140);
+    expect(mockAudioEngine.setTempo).toHaveBeenCalledWith(140);
   });
 
   it('should clamp BPM to valid range', () => {
+    const current = component.metronomeBpm();
+
     // Test lower bound
     const lowEvent = { target: { value: '30' } } as any;
     component.updateBpm(lowEvent);
-    expect(component.metronomeBpm()).toBe(120); // Should remain unchanged (30 is below 40)
+    expect(component.metronomeBpm()).toBe(current); // Unchanged: 30 is below 40
 
     // Test upper bound
     const highEvent = { target: { value: '250' } } as any;
     component.updateBpm(highEvent);
-    expect(component.metronomeBpm()).toBe(120); // Should remain unchanged (250 is above 240)
+    expect(component.metronomeBpm()).toBe(current); // Unchanged: 250 is above 240
   });
 
   it('starts the metronome for the chosen protocol and stops it on a second press', () => {
@@ -199,6 +255,7 @@ describe('PracticeSpaceComponent', () => {
       expect(component.activeProtocolId()).toBe('1');
       expect(component.metronomeActive()).toBe(true);
       expect(component.metronomeBpm()).toBe(90);
+      expect(mockAudioEngine.startClickOnly).toHaveBeenCalled();
 
       component.beginSession(component.protocols()[0]);
       expect(component.activeProtocolId()).toBeNull();
