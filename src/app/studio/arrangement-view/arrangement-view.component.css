@@ -2012,3 +2012,30 @@
     border-radius: 999px;
   }
 }
+
+/* Phone track headers: four 36px controls could not fit in the old 112–125px
+   column, so duplicate/delete were clipped. Widen the column to the minimum
+   that fits four 32px controls and use the lane height for a 44px tap box. */
+@media (max-width: 932px) {
+  .track-headers {
+    width: 150px;
+  }
+
+  .track-top {
+    min-height: 32px;
+    padding: 2px 6px;
+  }
+
+  .track-controls {
+    min-height: 44px;
+    padding: 0 7px 4px;
+  }
+
+  .track-controls .mini-btn {
+    width: 32px;
+    min-width: 32px;
+    height: 44px;
+    min-height: 44px;
+    padding: 0;
+  }
+}

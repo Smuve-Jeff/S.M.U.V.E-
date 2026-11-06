@@ -5209,6 +5209,30 @@ button.comp-meta-state-pill:focus-visible {
   }
 }
 
+/* Landscape phones need the timeline height, not a second explanatory row.
+   Keep the Guided Start action at the 44px touch floor and drop the copy. */
+@media (max-width: 932px) and (orientation: landscape) {
+  .comp-gate-return {
+    margin: 4px 8px 0;
+    padding: 0;
+    max-width: calc(100% - 16px);
+    min-height: 0;
+  }
+
+  .comp-view.comp-arrangement-stage .comp-gate-return {
+    min-height: 0;
+  }
+
+  .comp-gate-return-btn {
+    min-height: 44px;
+    padding: 0 14px;
+  }
+
+  .comp-gate-return-copy {
+    display: none;
+  }
+}
+
 /* ── Current-project strip in the Sets browser ───────────────────────────
    The browser can create and open sets; this strip makes it able to finish the
    job on the project that is already open. */
