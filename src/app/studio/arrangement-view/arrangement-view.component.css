@@ -1986,3 +1986,29 @@
   opacity: 0.45;
   cursor: default;
 }
+
+/* Landscape phone Arrangement header: the controls are wider than the phone,
+   but hiding the scrollbar made the edit modes and snap controls look absent.
+   Keep the compact one-row rail and expose a thin scrollbar as the cue. */
+@media (max-width: 932px) and (orientation: landscape) {
+  .playlist-header {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(19, 123, 115, 0.65) transparent;
+    overscroll-behavior-x: contain;
+    padding-bottom: 8px;
+  }
+
+  .playlist-header::-webkit-scrollbar {
+    display: block;
+    height: 6px;
+  }
+
+  .playlist-header::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .playlist-header::-webkit-scrollbar-thumb {
+    background: rgba(19, 123, 115, 0.55);
+    border-radius: 999px;
+  }
+}
