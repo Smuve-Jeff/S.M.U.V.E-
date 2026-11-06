@@ -1,0 +1,55 @@
+name: S.M.U.V.E TV Feed Health
+
+# Fails when a channel in SMUVE_TV_LIVE_FEEDS stops serving a playable HLS
+# master, variant, or first media segment. The check reads the real TypeScript
+# catalogue, so adding or editing a feed automatically puts it under test.
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'src/app/services/smuve-tv-feeds.service.ts'
+      - 'src/app/services/smuve-tv-entertainment-catalog.ts'
+      - 'src/app/services/smuve-tv.service.ts'
+      - 'scripts/check-smuve-tv-feeds.mjs'
+      - '.github/workflows/smuve-tv-feeds.yml'
+      - 'package.json'
+  push:
+    branches: [main]
+    paths:
+      - 'src/app/services/smuve-tv-feeds.service.ts'
+      - 'src/app/services/smuve-tv-entertainment-catalog.ts'
+      - 'src/app/services/smuve-tv.service.ts'
+      - 'scripts/check-smuve-tv-feeds.mjs'
+      - '.github/workflows/smuve-tv-feeds.yml'
+      - 'package.json'
+  schedule:
+    - cron: '37 5 * * 1' # 05:37 UTC every Monday
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: smuve-tv-feeds-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  feeds:
+    name: Every TV feed serves playable HLS
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Use project Node version
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Probe every feed (master, variant, first media segment)
+        run: npm run check:tv-feeds

@@ -686,14 +686,6 @@ export const SMUVE_TV_LIVE_FEEDS: readonly SmuveTvLiveFeed[] = [
     source: 'Free ad-supported (FAST)',
   },
   {
-    id: 'its-anime',
-    name: "IT'S ANIME",
-    url: 'https://d1isoijd9dbbf7.cloudfront.net/playlist.m3u8',
-    genre: 'cartoons',
-    operator: "It's Anime",
-    source: 'Free ad-supported (FAST)',
-  },
-  {
     id: 'lego-channel',
     name: 'THE LEGO CHANNEL',
     url: 'https://dh18i7whff86v.cloudfront.net/index.m3u8',
@@ -772,14 +764,6 @@ export const SMUVE_TV_LIVE_FEEDS: readonly SmuveTvLiveFeed[] = [
     url: 'https://d31z96rdrmwfsp.cloudfront.net/master.m3u8',
     genre: 'vintage',
     operator: 'Unsolved Mysteries',
-    source: 'Free ad-supported (FAST)',
-  },
-  {
-    id: 'degrassi',
-    name: 'DEGRASSI',
-    url: 'https://d3537vnymvfque.cloudfront.net/playlist.m3u8',
-    genre: 'vintage',
-    operator: 'Degrassi',
     source: 'Free ad-supported (FAST)',
   },
   {
@@ -1228,10 +1212,10 @@ export const SMUVE_TV_LIVE_FEEDS: readonly SmuveTvLiveFeed[] = [
   {
     id: 'movies-weigel',
     name: 'MOVIES!',
-    url: 'https://bozztv.com/dvrfl03/hdirect/hdirect-ovair1-movies!/index.m3u8',
+    url: 'https://2-fss-2.streamhoster.com/pl_120/206858-4412962-1/playlist.m3u8',
     genre: 'movies',
     operator: 'Weigel Broadcasting',
-    source: 'Free ad-supported (FAST)',
+    source: 'Free over-the-air simulcast (KPVM-LD)',
   },
   {
     id: 'mbc-drama-usa',
@@ -1314,7 +1298,8 @@ const STATION_FEEDS: Readonly<Record<string, string>> = {
   'feelgood-movies': 'lifetime-love-and-drama',
   'movie-marathon': 'gravitas-movies',
   'classic-drama': 'mbc-drama-usa',
-  'teen-drama': 'degrassi',
+  // Degrassi's FAST feed went dark; use the working young-adult drama feed.
+  'teen-drama': '21-jump-street',
   'crime-series': 'law-and-crime',
   // A whole reality network rather than a single reality show.
   'reality-roundup': 'absolute-reality',
@@ -1345,7 +1330,7 @@ const STATION_FEEDS: Readonly<Record<string, string>> = {
   // ── Sci-Fi, Sitcoms, and Cartoons ───────────────────────
   'stunt-arena': 'wipeout-xtra',
   'kitchen-battle': 'hells-kitchen',
-  // Weigel's broadcast movie network: real films on the matinee desk.
+  // Weigel's broadcast movie network via its free KPVM-LD simulcast.
   'movie-matinee': 'movies-weigel',
   'premiere-drama': 'bbc-drama',
   // A real sci-fi channel, rather than horror films standing in for science.

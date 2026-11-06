@@ -25,7 +25,9 @@ services:
     rootDir: .
     # install:legacy = npm install --legacy-peer-deps (more tolerant of
     # peer-dep/lockfile drift than strict npm ci for this monorepo).
-    buildCommand: npm run install:legacy && npm run build && npm run build:server
+    # Probe every TV feed before building, so a dead channel cannot reach
+    # production through a Render deploy.
+    buildCommand: npm run install:legacy && npm run check:tv-feeds && npm run build && npm run build:server
     # Migrations run during startup after the new build is available. Keeping
     # them out of preDeploy prevents a failed/slow DB migration from blocking
     # the service build and leaves the previous healthy revision serving.
