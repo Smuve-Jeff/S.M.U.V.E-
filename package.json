@@ -6,7 +6,7 @@
   "workspaces": [],
   "scripts": {
     "install:legacy": "npm install --legacy-peer-deps --include=dev",
-    "dev": "ng serve --host 0.0.0.0 --port ${PORT:-4200} --configuration development",
+    "dev": "node scripts/dev-server.mjs",
     "build": "ng build",
     "install:engine": "npm --prefix cinema-engine ci --include=dev",
     "build:engine": "npm --prefix cinema-engine run build",
@@ -18,6 +18,7 @@
     "start": "serve -s Build/browser -l tcp://0.0.0.0:${PORT:-4200}",
     "preview": "npm run build && npm run start -- -l 4200",
     "test": "NODE_OPTIONS=--max-old-space-size=2048 jest",
+    "test:e2e:samples": "playwright test tests/e2e/factory-samples.spec.ts",
     "audit:tha-spot-artwork": "node scripts/audit-tha-spot-artwork.cjs",
     "lint": "eslint src setup-jest.ts",
     "format": "prettier --write .",

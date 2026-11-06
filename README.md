@@ -231,6 +231,19 @@ npm install --legacy-peer-deps     # or: npm run install:legacy
 npm run dev                        # http://localhost:4200
 ```
 
+### Preview hosts
+
+`npm run dev` leaves Angular's host check enabled. When serving through a
+preview hostname, allow that host for the current process:
+
+```sh
+PREVIEW_HOST=your-preview.style.dev PORT=3000 npm run dev
+```
+
+`PREVIEW_HOST` accepts a comma-separated list. The wrapper merges those hosts
+with the production hosts already allowed in `angular.json`; `localhost` and
+`127.0.0.1` always work. Unlisted hostnames still receive `403`.
+
 ### Environment
 
 Copy `.env.example` → `.env` for the API base keys (`NODE_ENV`, `PORT`, `DATABASE_URL`, `JWT_SECRET`, `FRONTEND_URL`); email keys are added in deployment settings or `.env`:
@@ -251,12 +264,13 @@ Never commit real secrets; `.env*` is gitignored except `.env.example`.
 
 | Command | What it does |
 | --- | --- |
-| `npm run dev` | Angular dev server on `0.0.0.0:4200` |
+| `npm run dev` | Angular dev server on `0.0.0.0:4200` (`PREVIEW_HOST=…` allows a preview hostname) |
 | `npm run build` | Production Angular build → `Build/browser` |
 | `npm run build:server` | Compile the Express API → `Build/api` |
 | `npm run start` | Serve the built Angular bundle |
 | `npm run start:unified` | Run the unified Angular + API server (`Build/api/server.js`) |
 | `npm test` | Jest (Angular + server projects) |
+| `npm run test:e2e:samples` | Playwright: Studio loads factory samples and starts playback |
 | `npm run lint` / `npm run format` | ESLint / Prettier |
 | `npx playwright test` | E2E suites in `tests/e2e` |
 | `npm run build:wasm` | Build the WASM DSP modules (emscripten pipeline) |
@@ -269,6 +283,7 @@ Never commit real secrets; `.env*` is gitignored except `.env.example`.
 npx tsc -p tsconfig.json --noEmit          # frontend typecheck
 npx tsc -p tsconfig.server.json --noEmit   # server typecheck
 npm test -- --runInBand --runTestsByPath <spec paths>
+npm run test:e2e:samples                   # factory samples load and play (starts its own dev server)
 npx playwright test tests/e2e/<spec>       # against a running dev server/preview
 ```
 
