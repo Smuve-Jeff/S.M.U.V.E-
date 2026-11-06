@@ -2382,10 +2382,30 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
   }
 
   async clearSavedSplits(): Promise<void> {
-    await this.stemCache.clearSaved();
+    const saved = this.stemSaved();
+    if (!saved.length) return;
+    const approved = await this.dialog.confirm({
+      title: "Clear saved stems",
+      message:
+        `Delete ${saved.length} saved split${saved.length === 1 ? "" : "s"}? ` +
+        "You can undo for a few seconds.",
+      confirmLabel: "Clear",
+      tone: "danger",
+    });
+    if (!approved) return;
+    this.stemCache.scheduleClearSaved(6000);
     this.clearStemDisplay();
-    await this.refreshSavedSplits();
-    this.snackbar.show("🎚 Saved stems cleared");
+    this.stemSaved.set([]);
+    this.snackbar.show({
+      message: "🎚 Saved stems cleared",
+      action: "Undo",
+      duration: 6000,
+      onAction: () => {
+        if (!this.stemCache.cancelScheduledClearSaved()) return;
+        this.stemSaved.set(saved);
+        void this.refreshSavedSplits();
+      },
+    });
   }
 
   private clearStemDisplay(): void {

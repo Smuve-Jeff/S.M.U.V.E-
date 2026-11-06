@@ -297,6 +297,7 @@ export class StemCacheService {
   private readonly entries: StemCacheEntry[] = [];
   private budgetBytes = 600 * 1024 * 1024;
   readonly storageBudgetBytes = 800 * 1024 * 1024;
+  private clearTimer: ReturnType<typeof setTimeout> | null = null;
 
   get size(): number {
     return this.entries.length;
@@ -371,7 +372,28 @@ export class StemCacheService {
     }
   }
 
+  /**
+   * Hide the saved splits now but keep the records until the window closes,
+   * so an undo is a cancellation rather than a re-encode.
+   */
+  scheduleClearSaved(delayMs = 6000): void {
+    this.cancelScheduledClearSaved();
+    this.entries.length = 0;
+    this.clearTimer = setTimeout(() => {
+      this.clearTimer = null;
+      void this.clearSaved();
+    }, delayMs);
+  }
+
+  cancelScheduledClearSaved(): boolean {
+    if (!this.clearTimer) return false;
+    clearTimeout(this.clearTimer);
+    this.clearTimer = null;
+    return true;
+  }
+
   async clearSaved(): Promise<void> {
+    this.cancelScheduledClearSaved();
     this.entries.length = 0;
     try {
       await this.store.clear();

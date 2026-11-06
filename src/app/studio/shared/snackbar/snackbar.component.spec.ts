@@ -51,4 +51,25 @@ describe("SnackbarComponent", () => {
 
     expect(fixture.nativeElement.style.top).toBe("80px");
   });
+
+  it("runs the action callback when the action button is pressed", () => {
+    const action = jest.fn();
+    fixture.componentInstance.show({
+      message: "Saved stems cleared",
+      action: "Undo",
+      onAction: action,
+      duration: 60_000,
+    });
+    fixture.detectChanges();
+
+    (
+      fixture.nativeElement.querySelector(
+        ".snackbar-action",
+      ) as HTMLButtonElement
+    ).click();
+
+    expect(action).toHaveBeenCalledTimes(1);
+  });
+
+
 });

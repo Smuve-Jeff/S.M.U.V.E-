@@ -187,4 +187,40 @@ describe("StemCacheService persistence", () => {
   });
 
 
+
+  it("cancels a scheduled clear before anything is deleted", async () => {
+    const cache = service();
+    await cache.remember("a", "a.wav", makeBuffer([0]), makeStems());
+
+    jest.useFakeTimers();
+    try {
+      cache.scheduleClearSaved(1000);
+      expect(cache.cancelScheduledClearSaved()).toBe(true);
+      jest.advanceTimersByTime(1000);
+      await Promise.resolve();
+
+      expect(await cache.savedSplits()).toHaveLength(1);
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it("deletes saved splits once the undo window passes", async () => {
+    const cache = service();
+    await cache.remember("a", "a.wav", makeBuffer([0]), makeStems());
+
+    jest.useFakeTimers();
+    try {
+      cache.scheduleClearSaved(1000);
+      await jest.advanceTimersByTimeAsync(1000);
+      await Promise.resolve();
+
+      expect(await cache.savedSplits()).toEqual([]);
+      expect(cache.size).toBe(0);
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+
 });

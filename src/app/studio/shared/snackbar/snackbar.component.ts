@@ -4,6 +4,8 @@ import { CommonModule } from "@angular/common";
 export type SnackbarConfig = {
   message: string;
   action?: string;
+  /** Runs when the action button is pressed, before the toast dismisses. */
+  onAction?: () => void;
   duration?: number;
   type?: "info" | "success" | "error" | "warning";
 };
@@ -26,6 +28,7 @@ export class SnackbarComponent implements OnDestroy {
   action = signal<string | undefined>(undefined);
   type = signal<"info" | "success" | "error" | "warning">("info");
   private timeoutId?: number;
+  private actionHandler?: () => void;
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
 
   constructor() {
@@ -67,6 +70,7 @@ export class SnackbarComponent implements OnDestroy {
     this.anchorBelowStudioChrome();
     this.message.set(config.message);
     this.action.set(config.action);
+    this.actionHandler = config.onAction;
     this.type.set(config.type || "info");
     this.visible.set(true);
 
@@ -88,6 +92,9 @@ export class SnackbarComponent implements OnDestroy {
   }
 
   onAction() {
+    const handler = this.actionHandler;
+    this.actionHandler = undefined;
     this.hide();
+    handler?.();
   }
 }

@@ -1430,4 +1430,40 @@ describe("ArrangementViewComponent", () => {
   });
 
 
+
+  it("confirms before clearing saved stems and can undo the clear", async () => {
+    const saved = {
+      key: "saved",
+      fileName: "saved.wav",
+      bytes: 2048,
+      lastUsed: 1,
+    };
+    component.stemSaved.set([saved]);
+    const cache = TestBed.inject(StemCacheService);
+    const schedule = jest
+      .spyOn(cache, "scheduleClearSaved")
+      .mockImplementation(() => undefined);
+    const cancel = jest
+      .spyOn(cache, "cancelScheduledClearSaved")
+      .mockReturnValue(true);
+    jest.spyOn(cache, "savedSplits").mockResolvedValue([saved]);
+
+    mockDialog.confirm.mockResolvedValueOnce(false);
+    await component.clearSavedSplits();
+    expect(schedule).not.toHaveBeenCalled();
+    expect(component.stemSaved()).toEqual([saved]);
+
+    mockDialog.confirm.mockResolvedValueOnce(true);
+    await component.clearSavedSplits();
+    expect(schedule).toHaveBeenCalledWith(6000);
+    expect(component.stemSaved()).toEqual([]);
+
+    const toast = mockSnackbar.show.mock.calls.at(-1)?.[0] as any;
+    expect(toast.action).toBe("Undo");
+    toast.onAction();
+    expect(cancel).toHaveBeenCalled();
+    expect(component.stemSaved()).toEqual([saved]);
+  });
+
+
 });
