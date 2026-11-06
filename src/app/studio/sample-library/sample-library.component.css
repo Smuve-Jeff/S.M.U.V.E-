@@ -1056,3 +1056,14 @@
   .sl-pack-blurb { flex-wrap: wrap; }
   .sl-fav-filter { margin-left: 0; }
 }
+
+/* Factory-pack chips and the favourites filter are primary phone filters.
+   Their intrinsic heights (18px / 33px) sat well below the 44px touch floor;
+   the rail can absorb the extra height without changing the desktop density. */
+@media (pointer: coarse) {
+  .sl-pack,
+  .sl-fav-filter {
+    min-height: 44px;
+    padding-block: 6px;
+  }
+}
