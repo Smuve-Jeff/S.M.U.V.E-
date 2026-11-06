@@ -51,6 +51,9 @@ async function ensureOrtLoaded(): Promise<any> {
     payload: { progress: 5, stage: 'loading-model', message: 'Loading ONNX runtime (~700 KB)…' },
   } satisfies WorkerOut);
   ortRef = await import('onnxruntime-web');
+  // Single-threaded wasm: the multi-thread build wants SharedArrayBuffer and
+  // therefore COOP/COEP isolation, which this app does not ship.
+  ortRef.env.wasm.numThreads = 1;
   return ortRef;
 }
 

@@ -4,12 +4,14 @@ import { NotificationService } from './notification.service';
 
 describe('StemSeparationService', () => {
   let service: StemSeparationService;
+  let notify: jest.Mock;
 
   beforeEach(() => {
+    notify = jest.fn();
     TestBed.configureTestingModule({
       providers: [
         StemSeparationService,
-        { provide: NotificationService, useValue: { show: jest.fn() } },
+        { provide: NotificationService, useValue: { show: notify } },
       ],
     });
 
@@ -18,6 +20,22 @@ describe('StemSeparationService', () => {
 
   it('should be created', () => {
     expect(service).toBeTruthy();
+  });
+
+  it('keeps neural separation opt-in so no model is fetched unbidden', () => {
+    expect(service.useMlStems()).toBe(false);
+    expect((service as any).mlWorker).toBeNull();
+  });
+
+  it('labels DSP output as DSP instead of claiming neural inference', async () => {
+    const ctx = new AudioContext();
+    const buffer = ctx.createBuffer(1, 4410, 44100);
+
+    await service.separate(buffer);
+
+    const messages = notify.mock.calls.map((call) => String(call[0]));
+    expect(messages.some((message) => /neural/i.test(message))).toBe(false);
+    expect(messages.some((message) => /DSP|spectral/i.test(message))).toBe(true);
   });
 
   it('should start in idle state', () => {

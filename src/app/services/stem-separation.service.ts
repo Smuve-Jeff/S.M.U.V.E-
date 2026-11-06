@@ -53,18 +53,23 @@ export class StemSeparationService {
   readonly isSeparating = signal(false);
 
   /**
-   * Opt-in flag for real neural stem separation via Web Worker + ONNX runtime.
-   * Default FALSE — the existing worklet + biquad-pipeline path remains in charge
-   * until a user explicitly enables ML inference (e.g., behind a Pro-tier flag).
-   * This protects first-run UX from a 13MB ONNX model download on a slow network.
+   * Opt-in switch for neural stem separation via Web Worker + ONNX runtime.
+   *
+   * Default OFF: turning it on makes the first separation download a ~13 MB
+   * model, and the worklet/biquad path below is what the shipped Stem Splitter
+   * actually calls. Nothing may fetch that model unless a caller opts in
+   * through `setUseMlStems(true)`.
    */
-  readonly useMlStems = signal(true);
-  /** Whether the runtime can host the ML stem worker (Web Worker + cross-origin isolation). */
+  readonly useMlStems = signal(false);
+  /**
+   * Whether the runtime can host the ML stem worker. onnxruntime-web runs its
+   * single-threaded wasm backend without cross-origin isolation, so a Worker
+   * plus WebAssembly is enough — SharedArrayBuffer is not required.
+   */
   readonly mlStemsAvailable = signal(
     typeof window !== 'undefined' &&
     typeof Worker !== 'undefined' &&
-    typeof URL !== 'undefined' &&
-    typeof (globalThis as { SharedArrayBuffer?: unknown }).SharedArrayBuffer !== 'undefined'
+    typeof WebAssembly !== 'undefined'
   );
 
   /** AudioWorklet node for on-device processing */
@@ -95,7 +100,7 @@ export class StemSeparationService {
     this.progress.set({
       progress: 0,
       stage: 'loading',
-      message: 'Initializing neural stem processor…',
+      message: 'Initializing stem processor…',
     });
 
     // ── Sprint 2 opt-in: ML worker route (Web Worker + onnxruntime-web) ──
@@ -121,6 +126,10 @@ export class StemSeparationService {
         console.warn(
           'StemSeparation: ML worker route failed, falling back to legacy worklet.',
           err?.message
+        );
+        this.notificationService.show(
+          'Neural stem model unavailable — using DSP separation instead.',
+          'warning'
         );
         // Fall through to legacy worklet path below.
       }
@@ -154,7 +163,7 @@ export class StemSeparationService {
       });
 
       this.notificationService.show(
-        'Neural Stem Isolation Complete: 4 stems extracted on-device.',
+        'Stem separation complete: 4 stems extracted on-device (DSP).',
         'success'
       );
 
@@ -207,7 +216,7 @@ export class StemSeparationService {
    */
   async separate(buffer: AudioBuffer): Promise<Stems> {
     this.notificationService.show(
-      'Neural Stem Splitter: Initializing Spectral Decomposition…',
+      'Stem Splitter: initializing spectral decomposition…',
       'info'
     );
 
@@ -266,7 +275,7 @@ export class StemSeparationService {
     }
 
     this.notificationService.show(
-      'Neural Stem Isolation Complete: Spectral Components Decoupled.',
+      'Stem separation complete: spectral components decoupled (DSP).',
       'success'
     );
 
@@ -302,7 +311,7 @@ export class StemSeparationService {
   setUseMlStems(enabled: boolean): void {
     if (enabled && !this.mlStemsAvailable()) {
       this.notificationService.show(
-        'Web Worker / SharedArrayBuffer unavailable in this runtime — ML stem split disabled.',
+        'Web Worker / WebAssembly unavailable in this runtime — ML stem split disabled.',
         'warning'
       );
       return;
