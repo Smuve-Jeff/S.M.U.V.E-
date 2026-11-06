@@ -270,7 +270,7 @@ Never commit real secrets; `.env*` is gitignored except `.env.example`.
 | `npm run start` | Serve the built Angular bundle |
 | `npm run start:unified` | Run the unified Angular + API server (`Build/api/server.js`) |
 | `npm test` | Jest (Angular + server projects) |
-| `npm run test:e2e:samples` | Playwright: Studio loads factory samples and starts playback |
+| `npm run test:e2e:samples` | Playwright: factory samples load, decode, and produce non-silent master output |
 | `npm run lint` / `npm run format` | ESLint / Prettier |
 | `npx playwright test` | E2E suites in `tests/e2e` |
 | `npm run build:wasm` | Build the WASM DSP modules (emscripten pipeline) |
@@ -283,7 +283,7 @@ Never commit real secrets; `.env*` is gitignored except `.env.example`.
 npx tsc -p tsconfig.json --noEmit          # frontend typecheck
 npx tsc -p tsconfig.server.json --noEmit   # server typecheck
 npm test -- --runInBand --runTestsByPath <spec paths>
-npm run test:e2e:samples                   # factory samples load and play (starts its own dev server)
+npm run test:e2e:samples                   # samples load, decode, and reach the master bus (own dev server)
 npx playwright test tests/e2e/<spec>       # against a running dev server/preview
 ```
 

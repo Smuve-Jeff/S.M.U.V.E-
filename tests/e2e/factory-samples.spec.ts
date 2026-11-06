@@ -144,3 +144,91 @@ test('factory presets load and decode from the bundled sample bank when playback
   ).toBeGreaterThan(0);
   expect(errors).toEqual([]);
 });
+
+test('factory kick pad produces non-silent master output', async ({ page }) => {
+  test.setTimeout(120_000);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.route('**/api/**', (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: '{}',
+    }),
+  );
+
+  const errors: string[] = [];
+  page.on('pageerror', (error) => errors.push(error.message));
+
+  await openGuestStudio(page);
+  await page.getByRole('button', { name: /switch to sound pads view/i }).click();
+  await expect(page.locator('app-sound-pad-grid')).toBeVisible({
+    timeout: 30_000,
+  });
+
+  const samples: SampleResponse[] = [];
+  page.on('response', (response) => {
+    if (!response.url().includes('/assets/samples/factory/')) return;
+    samples.push({ url: response.url(), status: response.status() });
+  });
+
+  // `masterOutput` is the single bus everything the artist hears passes
+  // through. The analyser alone is a dead end, so a zero-gain sink pulls it
+  // without changing the audible mix.
+  const audible = await page.evaluate(async () => {
+    const ng = (window as any).ng;
+    const studio = ng.getComponent(document.querySelector('app-studio'));
+    const grid = ng.getComponent(document.querySelector('app-sound-pad-grid'));
+    const engine = studio.audioEngine as {
+      ctx: AudioContext;
+      masterOutput: AudioNode;
+    };
+    const context = engine.ctx;
+    const analyser = context.createAnalyser();
+    analyser.fftSize = 2048;
+    const sink = context.createGain();
+    sink.gain.value = 0;
+    engine.masterOutput.connect(analyser);
+    analyser.connect(sink);
+    sink.connect(context.destination);
+
+    const data = new Float32Array(analyser.fftSize);
+    const readPeak = (): number => {
+      analyser.getFloatTimeDomainData(data);
+      let peak = 0;
+      for (let i = 0; i < data.length; i += 1) {
+        const magnitude = Math.abs(data[i]);
+        if (magnitude > peak) peak = magnitude;
+      }
+      return peak;
+    };
+
+    const baseline = readPeak();
+    const kickIndex = grid
+      .pads()
+      .findIndex((pad: { label: string }) => pad.label === 'KICK');
+    if (kickIndex < 0) throw new Error('KICK pad not found');
+    // Call the grid's real pad handler: KICK → trap-kit-elite → the bundled
+    // Sample Pi kick one-shot. Pointer activation is covered by pad specs.
+    grid.triggerPad(kickIndex);
+    let peak = baseline;
+    const started = performance.now();
+    while (performance.now() - started < 4_000) {
+      peak = Math.max(peak, readPeak());
+      await new Promise((resolve) => setTimeout(resolve, 20));
+    }
+    return { baseline, peak, contextState: context.state };
+  });
+
+  expect(audible.contextState).toBe('running');
+  expect(audible.baseline).toBeLessThan(0.001);
+  expect(audible.peak).toBeGreaterThan(0.01);
+
+  expect(
+    samples.map((sample) => sample.url.split('/').pop()),
+    `factory samples requested: ${samples.map((sample) => sample.url).join(', ')}`,
+  ).toContain('samples-sample-pi-drums-one-shots-kick-bd-808.m4a');
+  for (const sample of samples) {
+    expect(sample.status, sample.url).toBe(200);
+  }
+  expect(errors).toEqual([]);
+});
