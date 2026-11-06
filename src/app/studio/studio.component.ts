@@ -94,6 +94,7 @@ import { SmartProductionFoundationsService } from "./smart-production-foundation
 import type { SmartProductionCapability } from "./smart-production-foundations.service";
 import { ComponentRecordingService } from "./component-recording.service";
 import type { DeliveryTargetRequest } from "./shared/delivery-targets";
+import { ExportReviewService } from "./export-surface/export-review.service";
 import { SoundBrowserComponent } from "./sound-browser/sound-browser.component";
 import { SynthesizerComponent } from "./synthesizer/synthesizer.component";
 import { SoundPadGridComponent } from "./sound-pad-grid/sound-pad-grid.component";
@@ -683,6 +684,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   /** One-shot slot/plugin focus for the Effects Rack. */
   readonly effectsRackFocus = signal<{ slot?: number; pluginId?: string } | null>(null);
   private readonly studioFocus = inject(StudioFocusService);
+  private readonly exportReview = inject(ExportReviewService);
   showSmartCreationSheet = signal(false);
   /** One-tap "how does this machine make music?" sheet, opened from the rail. */
   showArchitectureMap = signal(false);
@@ -2467,6 +2469,17 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     // knows which edge the incoming panel should enter from. Only a real change
     // counts — re-selecting the current tab must not replay the animation.
     const previous = this.activeView();
+    // A reviewed render is only kept for the Mastering round trip: visiting
+    // anywhere else ends that review, so a large buffer cannot sit in memory
+    // for the rest of the session.
+    if (previous === "export" && view !== "export") {
+      if (view === "mastering") {
+        this.exportReview.markNeedsRefresh();
+      } else {
+        this.exportReview.clear();
+      }
+    }
+
     if (previous !== view) {
       this.viewDirection.set(
         this.viewRailIndex(view) >= this.viewRailIndex(previous)

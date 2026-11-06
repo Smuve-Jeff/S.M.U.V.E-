@@ -4,6 +4,7 @@ import { signal } from "@angular/core";
 import { StudioExportSurfaceComponent } from "./studio-export-surface.component";
 import { ExportService } from "../../services/export.service";
 import { ProjectWorkspaceService } from "../project-workspace.service";
+import { ExportReviewService } from "./export-review.service";
 
 describe("StudioExportSurfaceComponent", () => {
   let fixture: ComponentFixture<StudioExportSurfaceComponent>;
@@ -19,6 +20,7 @@ describe("StudioExportSurfaceComponent", () => {
 
   const exportService = {
     renderProjectOffline: jest.fn(),
+    masterRetainedMix: jest.fn(),
     applySmuvePolish: jest.fn(),
     exportToFormat: jest.fn(),
     downloadBlob: jest.fn(),
@@ -31,7 +33,9 @@ describe("StudioExportSurfaceComponent", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     localStorage.clear();
+    metadata.set({ name: "Demo Set" });
     exportService.renderProjectOffline.mockResolvedValue({});
+    exportService.masterRetainedMix.mockResolvedValue({});
     exportService.applySmuvePolish.mockResolvedValue({});
     exportService.exportToFormat.mockResolvedValue(wavBlob());
     exportService.exportProjectMidi.mockReturnValue(wavBlob());
@@ -50,6 +54,7 @@ describe("StudioExportSurfaceComponent", () => {
       providers: [
         { provide: ExportService, useValue: exportService },
         { provide: ProjectWorkspaceService, useValue: projectWorkspace },
+        ExportReviewService,
       ],
     });
 
@@ -197,9 +202,11 @@ describe("StudioExportSurfaceComponent", () => {
       expect(exportService.renderProjectOffline).toHaveBeenCalledWith(
         expect.objectContaining({
           sampleRate: 48000,
+          preMaster: true,
           onProgress: expect.any(Function),
         }),
       );
+      expect(exportService.masterRetainedMix).toHaveBeenCalledTimes(1);
       expect(exportService.applySmuvePolish).toHaveBeenCalled();
       expect(exportService.analyzeBuffer).toHaveBeenCalled();
       // Nothing left the browser yet.
@@ -213,19 +220,22 @@ describe("StudioExportSurfaceComponent", () => {
       expect(component.feedback()).toBeNull();
     });
 
-    it("encodes and downloads the reviewed buffer only after confirmation", async () => {
+    it("masters and encodes the retained mix only after confirmation", async () => {
       await component.exportMixdown();
       const measured = component.analysis();
 
       await component.confirmExport();
 
       expect(exportService.exportToFormat).toHaveBeenCalledWith({}, "wav24");
+      // One master pass to review, a second against the chain at delivery.
+      expect(exportService.masterRetainedMix).toHaveBeenCalledTimes(2);
       expect(exportService.downloadBlob).toHaveBeenCalledWith(
         expect.any(Blob),
         expect.stringMatching(/^Demo_Set_\d+\.wav$/),
       );
       expect(component.pendingExport()).toBeNull();
-      expect(component.analysis()).toBe(measured);
+      // Re-mastered at delivery, so the numbers are equal, not the same object.
+      expect(component.analysis()).toEqual(measured);
       expect(component.feedback()?.tone).toBe("ok");
     });
 
@@ -237,7 +247,7 @@ describe("StudioExportSurfaceComponent", () => {
       expect(exportService.renderProjectOffline).toHaveBeenCalledTimes(1);
     });
 
-    it("opens Mastering instead of downloading and clears the review", async () => {
+    it("opens Mastering without downloading or discarding the review", async () => {
       await component.exportMixdown();
       component.deliveryTargetId.set("cd");
       const emit = jest.spyOn(component.openMastering, "emit");
@@ -245,9 +255,76 @@ describe("StudioExportSurfaceComponent", () => {
       component.openMasteringFromReview();
 
       expect(emit).toHaveBeenCalledWith("cd");
-      expect(component.pendingExport()).toBeNull();
-      expect(component.analysis()).toBeNull();
+      expect(component.pendingExport()).not.toBeNull();
+      expect(component.analysis()).not.toBeNull();
+      expect(component.reviewNeedsRefresh()).toBe(true);
       expect(exportService.downloadBlob).not.toHaveBeenCalled();
+    });
+
+    it("restores the measured render when the Export view is recreated", async () => {
+      await component.exportMixdown();
+      const measured = component.analysis();
+      const format = component.format();
+
+      const revived = TestBed.createComponent(
+        StudioExportSurfaceComponent,
+      ).componentInstance;
+
+      expect(revived.pendingExport()).not.toBeNull();
+      expect(revived.analysis()).toEqual(measured);
+      expect(revived.format()).toBe(format);
+      expect(revived.status()).toContain("Master measured");
+      // Restoring must not turn the measured master into a download.
+      expect(exportService.downloadBlob).not.toHaveBeenCalled();
+    });
+
+    it("does not restore a render made for a different project", async () => {
+      await component.exportMixdown();
+      metadata.set({ name: "Another Set" });
+
+      const revived = TestBed.createComponent(
+        StudioExportSurfaceComponent,
+      ).componentInstance;
+
+      expect(revived.pendingExport()).toBeNull();
+      expect(revived.analysis()).toBeNull();
+    });
+
+    it("refreshes a stale review by re-mastering the retained mix", async () => {
+      await component.exportMixdown();
+      component.openMasteringFromReview();
+
+      await component.refreshPendingExport();
+
+      // The arrangement is rendered once; only the master pass repeats.
+      expect(exportService.renderProjectOffline).toHaveBeenCalledTimes(1);
+      expect(exportService.masterRetainedMix).toHaveBeenCalledTimes(2);
+      expect(component.pendingExport()).not.toBeNull();
+      expect(component.reviewNeedsRefresh()).toBe(false);
+      expect(exportService.analyzeBuffer).toHaveBeenCalledTimes(2);
+    });
+
+    it("applies the current master at download without re-rendering", async () => {
+      await component.exportMixdown();
+      component.openMasteringFromReview();
+
+      await component.confirmExport();
+
+      expect(exportService.renderProjectOffline).toHaveBeenCalledTimes(1);
+      expect(exportService.masterRetainedMix).toHaveBeenCalledTimes(2);
+      expect(exportService.exportToFormat).toHaveBeenCalledWith({}, "wav24");
+      expect(exportService.downloadBlob).toHaveBeenCalled();
+    });
+
+    it("clears the stored review when it is discarded", async () => {
+      await component.exportMixdown();
+
+      component.discardPendingExport();
+      const revived = TestBed.createComponent(
+        StudioExportSurfaceComponent,
+      ).componentInstance;
+
+      expect(revived.pendingExport()).toBeNull();
     });
 
     it("discards the pending render without exporting", async () => {

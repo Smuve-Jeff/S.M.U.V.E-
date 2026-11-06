@@ -22,18 +22,12 @@ import {
   describeExportAnalysis,
   type ExportAnalysisVerdict,
 } from "./export-analysis.util";
+import {
+  ExportReviewService,
+  type PendingMixdown,
+} from "./export-review.service";
 
 type ExportFeedback = { tone: "ok" | "error"; text: string };
-
-/** A rendered, measured mixdown waiting for the artist's delivery decision. */
-interface PendingMixdown {
-  buffer: AudioBuffer;
-  format: string;
-  bitrate: number;
-  supportsBitrate: boolean;
-  formatLabel: string;
-  sampleRate: number;
-}
 
 /** A saved delivery setup: the same options a finished release needs twice. */
 export interface ExportPreset {
@@ -105,6 +99,21 @@ export class StudioExportSurfaceComponent {
 
   private readonly exportService = inject(ExportService);
   private readonly projectWorkspace = inject(ProjectWorkspaceService);
+  private readonly exportReview = inject(ExportReviewService);
+
+  constructor() {
+    // The Export view is recreated after a visit to Mastering. Pick the review
+    // back up instead of asking the artist to render the project again.
+    const review = this.exportReview.restore(this.projectBase());
+    if (!review) return;
+    this.format.set(review.pending.format);
+    this.bitrate.set(review.pending.bitrate);
+    this.sampleRate.set(review.pending.sampleRate);
+    this.analysis.set(review.analysis);
+    this.pendingExport.set(review.pending);
+    this.reviewNeedsRefresh.set(review.needsRefresh);
+    this.status.set("Master measured — choose Export Anyway or Open Mastering.");
+  }
 
   readonly formats = EXPORT_FORMATS;
   readonly sampleRates = ExportService.SAMPLE_RATES;
@@ -143,6 +152,8 @@ export class StudioExportSurfaceComponent {
   readonly analysis = signal<ExportAnalysisVerdict | null>(null);
   /** Holds the rendered master between the measurement and the download. */
   readonly pendingExport = signal<PendingMixdown | null>(null);
+  /** Set when Mastering was opened after this render, so the master may differ. */
+  readonly reviewNeedsRefresh = signal(false);
 
   /** The destination this master is judged against; remembered across sessions. */
   readonly deliveryTargets = DELIVERY_TARGETS;
@@ -279,8 +290,11 @@ export class StudioExportSurfaceComponent {
 
     this.begin("Rendering mixdown…", true);
     try {
-      const buffer = await this.exportService.renderProjectOffline({
+      // Render the arrangement without the master chain. The mix is retained,
+      // so a later Mastering change costs one master pass, not a full bounce.
+      const preMaster = await this.exportService.renderProjectOffline({
         sampleRate: this.sampleRate(),
+        preMaster: true,
         signal: this.exportController?.signal,
         onProgress: (percent) => {
           this.progress.set(percent);
@@ -290,8 +304,11 @@ export class StudioExportSurfaceComponent {
       });
 
       this.progress.set(94);
+      this.status.set("Applying master chain…");
+      const mastered = await this.exportService.masterRetainedMix(preMaster);
+      this.progress.set(97);
       this.status.set("Applying master polish…");
-      const polished = await this.exportService.applySmuvePolish(buffer);
+      const polished = await this.exportService.applySmuvePolish(mastered);
       // Measure the exact audio that will be encoded, not a re-render or an
       // estimate from fader positions.
       const analysis = this.measureExport(polished);
@@ -303,15 +320,18 @@ export class StudioExportSurfaceComponent {
       this.progress.set(null);
       this.eta.set(null);
       this.exportStartedAt = 0;
-      this.analysis.set(analysis);
-      this.pendingExport.set({
-        buffer: polished,
+      const pending: PendingMixdown = {
+        preMaster,
         format: this.format(),
         bitrate: this.bitrate(),
         supportsBitrate: this.supportsBitrate(),
         formatLabel: this.formatLabel(),
         sampleRate: this.sampleRate(),
-      });
+      };
+      this.analysis.set(analysis);
+      this.pendingExport.set(pending);
+      this.exportReview.keep(pending, analysis, this.projectBase());
+      this.reviewNeedsRefresh.set(false);
       this.status.set("Master measured — choose Export Anyway or Open Mastering.");
     } catch (error) {
       if (this.isAbortError(error)) {
@@ -327,21 +347,39 @@ export class StudioExportSurfaceComponent {
     if (this.busy()) return;
     const pending = this.pendingExport();
     if (!pending) return;
-    const analysis = this.analysis();
+
+    // Mastering is applied to the retained mix at delivery time, so a download
+    // never ships a master the artist has already moved past.
+    this.busy.set(true);
+    this.status.set("Applying the current master…");
+    let bufferToEncode: AudioBuffer;
+    let analysis: ExportAnalysisVerdict | null;
+    try {
+      const current = await this.masterPending(pending);
+      bufferToEncode = current.buffer;
+      analysis = current.analysis;
+      this.analysis.set(analysis);
+      this.reviewNeedsRefresh.set(false);
+    } catch (error) {
+      this.fail("Master refresh failed", error);
+      return;
+    }
 
     this.pendingExport.set(null);
+    this.exportReview.clear();
+    this.reviewNeedsRefresh.set(false);
     this.begin(`Encoding ${pending.formatLabel}…`);
     this.analysis.set(analysis);
     this.progress.set(20);
     try {
       const blob = pending.supportsBitrate
         ? await this.exportService.exportToFormat(
-            pending.buffer,
+            bufferToEncode,
             pending.format,
             pending.bitrate,
           )
         : await this.exportService.exportToFormat(
-            pending.buffer,
+            bufferToEncode,
             pending.format,
           );
 
@@ -360,17 +398,64 @@ export class StudioExportSurfaceComponent {
     }
   }
 
-  /** Leave the review without downloading, or navigate to the master chain. */
+  /** Leave the review without downloading. */
   discardPendingExport(): void {
     this.pendingExport.set(null);
     this.analysis.set(null);
+    this.reviewNeedsRefresh.set(false);
+    this.exportReview.clear();
     this.status.set("");
   }
 
+  /**
+   * Go fix the master without throwing the reviewed render away. The retained
+   * mix is re-mastered when the artist returns, so no arrangement render is
+   * needed to hear or download the corrected file.
+   */
   openMasteringFromReview(): void {
     const targetId = this.deliveryTargetId();
-    this.discardPendingExport();
+    this.exportReview.markNeedsRefresh();
+    this.reviewNeedsRefresh.set(true);
     this.openMastering.emit(targetId);
+  }
+
+  /**
+   * Reapply the master chain to the retained mix and re-measure it. The
+   * arrangement is not rendered again.
+   */
+  async refreshPendingExport(): Promise<void> {
+    const pending = this.pendingExport();
+    if (this.busy() || !pending) return;
+
+    this.busy.set(true);
+    this.feedback.set(null);
+    this.status.set("Applying the current master…");
+    try {
+      const refreshed = await this.masterPending(pending);
+      this.analysis.set(refreshed.analysis);
+      this.exportReview.keep(pending, refreshed.analysis, this.projectBase());
+      this.reviewNeedsRefresh.set(false);
+      this.busy.set(false);
+      this.status.set("Master refreshed — choose Export Anyway or Open Mastering.");
+      this.feedback.set({
+        tone: "ok",
+        text: "Master reapplied from the retained mix · arrangement not re-rendered",
+      });
+    } catch (error) {
+      this.fail("Master refresh failed", error);
+    }
+  }
+
+  /** Master the retained mix with the chain as it stands now, then measure it. */
+  private async masterPending(pending: PendingMixdown): Promise<{
+    buffer: AudioBuffer;
+    analysis: ExportAnalysisVerdict | null;
+  }> {
+    const mastered = await this.exportService.masterRetainedMix(
+      pending.preMaster,
+    );
+    const polished = await this.exportService.applySmuvePolish(mastered);
+    return { buffer: polished, analysis: this.measureExport(polished) };
   }
 
   /** A measurement must never fail an otherwise valid export. */

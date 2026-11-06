@@ -259,6 +259,16 @@
     >
       {{ warning }}
     </p>
+    <div class="export-analysis-stale" *ngIf="pendingExport() && reviewNeedsRefresh()">
+      <p>
+        These numbers are from before you opened Mastering. Export Anyway
+        applies the current master to the retained mix; Refresh updates the
+        numbers first. Neither renders the arrangement again.
+      </p>
+      <button type="button" (click)="refreshPendingExport()" [disabled]="busy()">
+        Refresh master
+      </button>
+    </div>
     <div class="export-analysis-actions" *ngIf="pendingExport()">
       <button type="button" class="primary" (click)="confirmExport()">
         Export Anyway

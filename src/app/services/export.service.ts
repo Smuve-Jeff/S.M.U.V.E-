@@ -5,7 +5,10 @@ import {
   type VoiceControlPoint,
 } from './audio-engine.service';
 import { InstrumentsService, scheduleOfflinePresetSample } from './instruments.service';
-import { connectOfflineMasterChain } from './offline-master-chain';
+import {
+  connectOfflineMasterChain,
+  type OfflineMasterChain,
+} from './offline-master-chain';
 import {
   FX_TYPE_TO_PLUGIN_ID,
   drumRatchetCount,
@@ -441,6 +444,11 @@ export class ExportService {
     options: {
       /** Render only these track ids (stems). Length still follows the song. */
       onlyTrackIds?: ReadonlySet<string>;
+      /**
+       * Stop at the mix bus: render the full arrangement without the master
+       * chain, so it can be mastered again later without re-rendering.
+       */
+      preMaster?: boolean;
       /** Ignore the project's solo state — a stem set must contain every track. */
       ignoreSolo?: boolean;
       /** Delivery sample rate (default 44.1 kHz). */
@@ -510,19 +518,6 @@ export class ExportService {
     const offline = new OfflineAudioContext(2, Math.ceil(totalSeconds * sampleRate), sampleRate);
     const master = offline.createGain();
     master.gain.value = this.engine.masterGain.gain.value;
-    // A stem is pre-master material. Running each stem through the five-band
-    // bus would make a stem set that no longer sums to the mix.
-    const hasBandLanes = (this.automation?.lanes?.() ?? []).some(
-      (lane) =>
-        lane.enabled &&
-        lane.target.trackId === 'master' &&
-        /^band[1-5](Threshold|Ratio|Attack|Release|Knee)$/.test(lane.target.parameter),
-    );
-    const masterChain = options.onlyTrackIds
-      ? null
-      : connectOfflineMasterChain(offline, master, this.engine, hasBandLanes);
-    if (options.onlyTrackIds) master.connect(offline.destination);
-    reportProgress(10);
 
     // ── Automation ──────────────────────────────────────────────────────
     // Each enabled lane is sampled on a grid finer than the shortest musical
@@ -554,82 +549,14 @@ export class ExportService {
       }
     }
 
-    if (masterChain) {
-      const scheduleMaster = (
-        parameter: string,
-        params: AudioParam[],
-        scale: (value: number) => number,
-      ): void => {
-        const lane = laneFor('master', parameter);
-        if (!lane) return;
-        for (const param of params) {
-          this.scheduleLaneCurve(
-            param,
-            lane,
-            totalSeconds,
-            timing.minStepSeconds,
-            scale,
-          );
-        }
-      };
-      scheduleMaster('makeup', [masterChain.makeup.gain], (value) =>
-        Math.pow(10, Math.max(-12, Math.min(12, value)) / 20),
-      );
-      scheduleMaster(
-        'compressorThreshold',
-        masterChain.compressors.map((comp) => comp.threshold),
-        (value) => Math.max(-60, Math.min(0, value)),
-      );
-      scheduleMaster(
-        'compressorRatio',
-        masterChain.compressors.map((comp) => comp.ratio),
-        (value) => Math.max(1, Math.min(20, value)),
-      );
-      scheduleMaster('limiterThreshold', [masterChain.limiter.threshold], (value) =>
-        Math.max(-6, Math.min(-0.01, value)),
-      );
-      scheduleMaster('filterHz', [masterChain.filter.frequency], (value) =>
-        Math.max(20, Math.min(20000, value)),
-      );
-      scheduleMaster('lowShelf', [masterChain.lowShelf.gain], (value) =>
-        Math.max(-18, Math.min(18, value)),
-      );
-      scheduleMaster('lowMid', [masterChain.lowMid.gain], (value) =>
-        Math.max(-18, Math.min(18, value)),
-      );
-      scheduleMaster('highShelf', [masterChain.highShelf.gain], (value) =>
-        Math.max(-18, Math.min(18, value)),
-      );
-      for (let band = 1; band <= 5; band += 1) {
-        const comp = masterChain.compressors[band - 1];
-        if (!comp) continue;
-        scheduleMaster(
-          `band${band}Threshold`,
-          [comp.threshold],
-          (value) => Math.max(-60, Math.min(0, value)),
-        );
-        scheduleMaster(
-          `band${band}Ratio`,
-          [comp.ratio],
-          (value) => Math.max(1, Math.min(20, value)),
-        );
-        scheduleMaster(
-          `band${band}Attack`,
-          [comp.attack],
-          (value) => Math.max(0.001, Math.min(1, value)),
-        );
-        scheduleMaster(
-          `band${band}Release`,
-          [comp.release],
-          (value) => Math.max(0.005, Math.min(3, value)),
-        );
-        scheduleMaster(
-          `band${band}Knee`,
-          [comp.knee],
-          (value) => Math.max(0, Math.min(40, value)),
-        );
-      }
+    // Stems and retained mixes stop at the mix bus; the master chain is either
+    // deliberately omitted or applied later to the retained buffer.
+    if (options.onlyTrackIds || options.preMaster) {
+      master.connect(offline.destination);
+    } else {
+      this.connectMasterChain(offline, master, totalSeconds, timing, lanes);
     }
+    reportProgress(10);
 
     // ── Aux returns ─────────────────────────────────────────────────────
     // Send A is the reverb convolver, Send B the tempo-synced echo, both fed
@@ -1023,6 +950,138 @@ export class ExportService {
     const rendered = await offline.startRendering();
     reportProgress(92);
     return rendered;
+  }
+
+  /**
+   * Build and schedule the master bus onto an offline context.
+   *
+   * Shared by the full bounce and by re-mastering a retained mix, so a file
+   * downloaded after a Mastering change runs the same chain, automation and
+   * ceilings as the original render rather than an approximation.
+   */
+  private connectMasterChain(
+    offline: OfflineAudioContext,
+    input: AudioNode,
+    totalSeconds: number,
+    timing: TempoTimeline,
+    lanes: AutomationLane[],
+  ): OfflineMasterChain | null {
+    const hasBandLanes = lanes.some(
+      (lane) =>
+        lane.enabled &&
+        lane.target.trackId === 'master' &&
+        /^band[1-5](Threshold|Ratio|Attack|Release|Knee)$/.test(lane.target.parameter),
+    );
+    const chain = connectOfflineMasterChain(offline, input, this.engine, hasBandLanes);
+    if (!chain) return null;
+    const laneFor = (trackId: string, ...params: string[]) =>
+      lanes.find(
+        (lane) =>
+          lane.enabled &&
+          lane.target.trackId === trackId &&
+          params.includes(lane.target.parameter),
+      );
+    const scheduleMaster = (
+      parameter: string,
+      params: AudioParam[],
+      scale: (value: number) => number,
+    ): void => {
+      const lane = laneFor('master', parameter);
+      if (!lane) return;
+      for (const param of params) {
+        this.scheduleLaneCurve(
+          param,
+          lane,
+          totalSeconds,
+          timing.minStepSeconds,
+          scale,
+        );
+      }
+    };
+    scheduleMaster('makeup', [chain.makeup.gain], (value) =>
+      Math.pow(10, Math.max(-12, Math.min(12, value)) / 20),
+    );
+    scheduleMaster(
+      'compressorThreshold',
+      chain.compressors.map((comp) => comp.threshold),
+      (value) => Math.max(-60, Math.min(0, value)),
+    );
+    scheduleMaster(
+      'compressorRatio',
+      chain.compressors.map((comp) => comp.ratio),
+      (value) => Math.max(1, Math.min(20, value)),
+    );
+    scheduleMaster('limiterThreshold', [chain.limiter.threshold], (value) =>
+      Math.max(-6, Math.min(-0.01, value)),
+    );
+    scheduleMaster('filterHz', [chain.filter.frequency], (value) =>
+      Math.max(20, Math.min(20000, value)),
+    );
+    scheduleMaster('lowShelf', [chain.lowShelf.gain], (value) =>
+      Math.max(-18, Math.min(18, value)),
+    );
+    scheduleMaster('lowMid', [chain.lowMid.gain], (value) =>
+      Math.max(-18, Math.min(18, value)),
+    );
+    scheduleMaster('highShelf', [chain.highShelf.gain], (value) =>
+      Math.max(-18, Math.min(18, value)),
+    );
+    for (let band = 1; band <= 5; band += 1) {
+      const comp = chain.compressors[band - 1];
+      if (!comp) continue;
+      scheduleMaster(
+        `band${band}Threshold`,
+        [comp.threshold],
+        (value) => Math.max(-60, Math.min(0, value)),
+      );
+      scheduleMaster(
+        `band${band}Ratio`,
+        [comp.ratio],
+        (value) => Math.max(1, Math.min(20, value)),
+      );
+      scheduleMaster(
+        `band${band}Attack`,
+        [comp.attack],
+        (value) => Math.max(0.001, Math.min(1, value)),
+      );
+      scheduleMaster(
+        `band${band}Release`,
+        [comp.release],
+        (value) => Math.max(0.005, Math.min(3, value)),
+      );
+      scheduleMaster(
+        `band${band}Knee`,
+        [comp.knee],
+        (value) => Math.max(0, Math.min(40, value)),
+      );
+    }
+    return chain;
+  }
+
+  /**
+   * Apply the current master chain to a mix rendered without it.
+   *
+   * Only the master bus runs again over the retained stereo mix; the
+   * arrangement is not re-synthesised. A delivery-target, ceiling or makeup
+   * change therefore costs one short pass instead of a full project bounce.
+   */
+  async masterRetainedMix(preMaster: AudioBuffer): Promise<AudioBuffer> {
+    const timing = this.buildTempoTimeline();
+    const lanes = this.automation?.lanes?.() ?? [];
+    const offline = new OfflineAudioContext(
+      2,
+      Math.max(1, preMaster.length),
+      preMaster.sampleRate,
+    );
+    const source = offline.createBufferSource();
+    source.buffer = preMaster;
+    const input = offline.createGain();
+    source.connect(input);
+    // connectOfflineMasterChain wires its own fallback path when the host
+    // cannot build the full graph; the real chain terminates at destination.
+    this.connectMasterChain(offline, input, preMaster.duration, timing, lanes);
+    source.start(0);
+    return offline.startRendering();
   }
 
   private stepAtBar(bar: number): number {
