@@ -50,6 +50,33 @@ const VENUE_STATUS_FLOW: VenueBookingStatus[] = [
   'Confirmed',
 ];
 
+type PitchFilter = CareerPitchStatus | 'all' | 'due';
+
+const OPEN_PITCH_STATUSES: CareerPitchStatus[] = ['Pending', 'Reviewing'];
+
+const isOpenPitch = (pitch: CareerPitch): boolean =>
+  OPEN_PITCH_STATUSES.includes(pitch.status);
+
+/** Local calendar day, so a date input and the due queue agree. */
+const localIsoDate = (date = new Date()): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+/** Validate a real yyyy-mm-dd day, not just the shape. */
+const isIsoDay = (value?: string): value is string => {
+  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const [year, month, day] = value.split('-').map(Number);
+  const parsed = new Date(year, month - 1, day);
+  return (
+    parsed.getFullYear() === year &&
+    parsed.getMonth() === month - 1 &&
+    parsed.getDate() === day
+  );
+};
+
 @Component({
   selector: 'app-career-hub',
   standalone: true,
@@ -77,37 +104,75 @@ export class CareerHubComponent {
   venues = computed<CareerVenue[]>(() => this.profile().careerVenues ?? []);
 
   readonly pitchStatuses = PITCH_STATUSES;
-  readonly pitchFilters: { key: CareerPitchStatus | 'all'; label: string }[] = [
+  readonly pitchFilters: { key: PitchFilter; label: string }[] = [
     { key: 'all', label: 'All' },
+    { key: 'due', label: 'Due' },
     { key: 'Pending', label: 'Pending' },
     { key: 'Reviewing', label: 'Reviewing' },
     { key: 'Signed', label: 'Signed' },
     { key: 'Passed', label: 'Passed' },
   ];
 
-  pitchFilter = signal<CareerPitchStatus | 'all'>('all');
+  pitchFilter = signal<PitchFilter>('all');
 
-  pitchCounts = computed<Record<CareerPitchStatus | 'all', number>>(() => {
+  pitchCounts = computed<Record<PitchFilter, number>>(() => {
     const all = this.pitches();
+    const today = localIsoDate();
     const counts = {
       all: all.length,
+      due: 0,
       Pending: 0,
       Reviewing: 0,
       Signed: 0,
       Passed: 0,
-    } as Record<CareerPitchStatus | 'all', number>;
-    for (const pitch of all) counts[pitch.status] += 1;
+    } as Record<PitchFilter, number>;
+    for (const pitch of all) {
+      counts[pitch.status] += 1;
+      if (
+        isOpenPitch(pitch) &&
+        isIsoDay(pitch.followUpOn) &&
+        pitch.followUpOn <= today
+      ) {
+        counts.due += 1;
+      }
+    }
     return counts;
   });
 
+  /** Open pitches whose scheduled touchpoint is today or already overdue. */
+  followUpsDue = computed<CareerPitch[]>(() => {
+    const today = localIsoDate();
+    return this.pitches()
+      .filter(
+        (pitch) =>
+          isOpenPitch(pitch) &&
+          isIsoDay(pitch.followUpOn) &&
+          pitch.followUpOn <= today
+      )
+      .sort(
+        (a, b) =>
+          String(a.followUpOn).localeCompare(String(b.followUpOn)) ||
+          (a.updatedAt ?? 0) - (b.updatedAt ?? 0)
+      );
+  });
+
+  /** Open pitches that have no next touchpoint recorded. */
+  unscheduledOpenPitches = computed<CareerPitch[]>(() =>
+    this.pitches().filter(
+      (pitch) => isOpenPitch(pitch) && !isIsoDay(pitch.followUpOn)
+    )
+  );
+
   filteredPitches = computed<CareerPitch[]>(() => {
     const filter = this.pitchFilter();
+    if (filter === 'due') return this.followUpsDue();
     const all = this.pitches();
     return filter === 'all' ? all : all.filter((p) => p.status === filter);
   });
 
   newLabel = signal('');
   newDemo = signal('');
+  newFollowUp = signal('');
   pitchError = signal('');
   isSavingPitch = signal(false);
 
@@ -249,7 +314,7 @@ export class CareerHubComponent {
       .slice(0, 5);
   });
 
-  setPitchFilter(filter: CareerPitchStatus | 'all') {
+  setPitchFilter(filter: PitchFilter) {
     this.pitchFilter.set(filter);
   }
 
@@ -257,6 +322,7 @@ export class CareerHubComponent {
     if (this.isSavingPitch()) return;
     const labelName = this.newLabel().trim();
     const demoUrl = this.normalizeUrl(this.newDemo());
+    const followUpOn = this.newFollowUp().trim();
 
     if (!labelName) {
       this.pitchError.set('Add the label or curator name before submitting.');
@@ -266,6 +332,10 @@ export class CareerHubComponent {
       this.pitchError.set(
         'Add a demo link starting with http:// or https:// so the recipient can open it.'
       );
+      return;
+    }
+    if (followUpOn && !isIsoDay(followUpOn)) {
+      this.pitchError.set('Choose a valid follow-up date.');
       return;
     }
     const duplicate = this.pitches().some(
@@ -287,6 +357,7 @@ export class CareerHubComponent {
       demoUrl,
       date: new Date(now).toISOString().slice(0, 10),
       status: 'Pending',
+      followUpOn: followUpOn || undefined,
       updatedAt: now,
     };
 
@@ -296,6 +367,7 @@ export class CareerHubComponent {
       await this.persistPitches([pitch, ...this.pitches()]);
       this.newLabel.set('');
       this.newDemo.set('');
+      this.newFollowUp.set('');
     } finally {
       this.isSavingPitch.set(false);
     }
@@ -306,6 +378,30 @@ export class CareerHubComponent {
     const next = this.pitches().map((pitch) =>
       pitch.id === id ? { ...pitch, status, updatedAt: Date.now() } : pitch
     );
+    await this.persistPitches(next);
+  }
+
+  /** Schedule or clear the next touchpoint without changing pitch stage. */
+  async setPitchFollowUp(id: string, value: string) {
+    const followUpOn = String(value || '').trim();
+    if (followUpOn && !isIsoDay(followUpOn)) {
+      this.pitchError.set('Choose a valid follow-up date.');
+      return;
+    }
+    const current = this.pitches().find((pitch) => pitch.id === id);
+    if (!current) return;
+    if ((current.followUpOn || '') === followUpOn) return;
+
+    const next = this.pitches().map((pitch) =>
+      pitch.id === id
+        ? {
+            ...pitch,
+            followUpOn: followUpOn || undefined,
+            updatedAt: Date.now(),
+          }
+        : pitch
+    );
+    this.pitchError.set('');
     await this.persistPitches(next);
   }
 
@@ -516,6 +612,54 @@ export class CareerHubComponent {
       currency: 'USD',
       maximumFractionDigits: 0,
     }).format(Number.isFinite(value) ? value : 0);
+  }
+
+  followUpState(
+    pitch: CareerPitch
+  ): 'closed' | 'none' | 'overdue' | 'today' | 'scheduled' {
+    if (!isOpenPitch(pitch)) return 'closed';
+    if (!isIsoDay(pitch.followUpOn)) return 'none';
+    const today = localIsoDate();
+    if (pitch.followUpOn < today) return 'overdue';
+    if (pitch.followUpOn === today) return 'today';
+    return 'scheduled';
+  }
+
+  formatFollowUpDate(value?: string): string {
+    if (!isIsoDay(value)) return 'No date';
+    const [year, month, day] = value.split('-').map(Number);
+    return new Date(year, month - 1, day).toLocaleDateString(undefined, {
+      month: 'short',
+      day: 'numeric',
+    });
+  }
+
+  followUpLabel(pitch: CareerPitch): string {
+    switch (this.followUpState(pitch)) {
+      case 'closed':
+        return 'Closed';
+      case 'overdue':
+        return `Overdue · ${this.formatFollowUpDate(pitch.followUpOn)}`;
+      case 'today':
+        return 'Due today';
+      case 'scheduled':
+        return `Follow up ${this.formatFollowUpDate(pitch.followUpOn)}`;
+      default:
+        return 'Set a follow-up date';
+    }
+  }
+
+  followUpClass(pitch: CareerPitch): string {
+    switch (this.followUpState(pitch)) {
+      case 'overdue':
+        return 'text-rose-400';
+      case 'today':
+        return 'text-amber-300';
+      case 'scheduled':
+        return 'text-slate-400';
+      default:
+        return 'text-slate-600';
+    }
   }
 
   pitchStatusClass(status: CareerPitchStatus): string {

@@ -64,7 +64,9 @@ export interface CareerPitch {
   /** ISO date (yyyy-mm-dd) the pitch went out. */
   date: string;
   status: CareerPitchStatus;
-  /** Bumped whenever the status changes, for ordering the activity feed. */
+  /** ISO day for the next touchpoint, when the artist has scheduled one. */
+  followUpOn?: string;
+  /** Bumped whenever the status or follow-up date changes. */
   updatedAt: number;
 }
 

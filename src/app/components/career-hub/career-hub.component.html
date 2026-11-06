@@ -236,6 +236,20 @@
               >
             </div>
 
+            @if (pitchCounts().all) {
+              <p
+                class="text-[8px] font-bold uppercase tracking-widest mb-3"
+                [class.text-amber-300]="followUpsDue().length > 0"
+                [class.text-slate-500]="followUpsDue().length === 0"
+              >
+                {{ followUpsDue().length }} follow-up{{
+                  followUpsDue().length === 1 ? '' : 's'
+                }} due · {{ unscheduledOpenPitches().length }} open pitch{{
+                  unscheduledOpenPitches().length === 1 ? '' : 'es'
+                }} without a date
+              </p>
+            }
+
             <div class="flex flex-wrap gap-2 mb-4" role="group" aria-label="Pitch status filter">
               @for (filter of pitchFilters; track filter.key) {
                 <button
@@ -275,9 +289,25 @@
                     class="text-[10px] text-slate-500 mb-3 truncate block hover:text-brand-primary"
                     [href]="sub.demoUrl"
                     target="_blank"
-                    rel="noopener noreferrer"
-                    >{{ sub.demoUrl }}</a
+                    rel="noopener noreferrer"                    >{{ sub.demoUrl }}</a
                   >
+
+                  <div class="flex flex-wrap items-center gap-2 mb-3">
+                    <input
+                      type="date"
+                      [ngModel]="sub.followUpOn || ''"
+                      (ngModelChange)="setPitchFollowUp(sub.id, $event)"
+                      [attr.aria-label]="'Follow-up date for ' + sub.labelName"
+                      class="bg-black/40 border border-white/10 rounded-lg px-2 py-1 text-[9px] font-mono text-slate-300 outline-none focus:border-brand-primary"
+                    />
+                    <span
+                      class="text-[8px] font-black uppercase tracking-widest"
+                      [ngClass]="followUpClass(sub)"
+                    >
+                      {{ followUpLabel(sub) }}
+                    </span>
+                  </div>
+
                   <div class="flex items-center justify-between gap-2">
                     <span
                       class="text-[9px] font-mono tracking-tight text-slate-500"
@@ -339,6 +369,21 @@
                 aria-label="Demo link"
                 class="w-full bg-black/40 border glass-v42 shadow-v42-xl border-white/10 rounded-xl px-4 py-2 text-xs focus:border-brand-primary transition-all text-white outline-none"
               />
+              <div>
+                <label
+                  for="new-pitch-follow-up"
+                  class="block text-[8px] font-bold uppercase tracking-widest text-slate-500 mb-1"
+                  >Next follow-up (optional)</label
+                >
+                <input
+                  id="new-pitch-follow-up"
+                  type="date"
+                  [ngModel]="newFollowUp()"
+                  (ngModelChange)="newFollowUp.set($event)"
+                  aria-label="Next follow-up date"
+                  class="w-full bg-black/40 border glass-v42 shadow-v42-xl border-white/10 rounded-xl px-4 py-2 text-xs focus:border-brand-primary transition-all text-white outline-none"
+                />
+              </div>
               @if (pitchError()) {
                 <p class="text-[10px] text-red-400 leading-relaxed">
                   {{ pitchError() }}

@@ -204,6 +204,103 @@ describe('CareerHubComponent', () => {
       expect(component.pitchCounts().Reviewing).toBe(1);
     });
 
+    it('queues overdue open pitches and exposes open pitches without a date', async () => {
+      patchProfile({
+        careerPitches: [
+          {
+            id: 'due',
+            labelName: 'Alpha',
+            demoUrl: 'https://example.com/a',
+            date: '2026-01-01',
+            status: 'Pending',
+            followUpOn: '2000-01-01',
+            updatedAt: 1,
+          },
+          {
+            id: 'later',
+            labelName: 'Beta',
+            demoUrl: 'https://example.com/b',
+            date: '2026-01-02',
+            status: 'Reviewing',
+            followUpOn: '2999-01-01',
+            updatedAt: 2,
+          },
+          {
+            id: 'closed',
+            labelName: 'Gamma',
+            demoUrl: 'https://example.com/c',
+            date: '2026-01-03',
+            status: 'Signed',
+            followUpOn: '2000-01-01',
+            updatedAt: 3,
+          },
+          {
+            id: 'none',
+            labelName: 'Delta',
+            demoUrl: 'https://example.com/d',
+            date: '2026-01-04',
+            status: 'Pending',
+            updatedAt: 4,
+          },
+        ],
+      });
+      fixture.detectChanges();
+
+      expect(component.followUpsDue().map((pitch) => pitch.id)).toEqual([
+        'due',
+      ]);
+      expect(component.unscheduledOpenPitches().map((pitch) => pitch.id)).toEqual([
+        'none',
+      ]);
+      expect(component.pitchCounts().due).toBe(1);
+
+      component.setPitchFilter('due');
+      fixture.detectChanges();
+      expect(component.filteredPitches().map((pitch) => pitch.id)).toEqual([
+        'due',
+      ]);
+      expect(text()).toContain('1 follow-up due');
+      expect(text()).toContain('Overdue');
+    });
+
+    it('sets and clears a follow-up date on an existing pitch', async () => {
+      patchProfile({
+        careerPitches: [
+          {
+            id: 'p1',
+            labelName: 'Alpha',
+            demoUrl: 'https://example.com/a',
+            date: '2026-01-01',
+            status: 'Pending',
+            updatedAt: 1,
+          },
+        ],
+      });
+      fixture.detectChanges();
+
+      await component.setPitchFollowUp('p1', '2999-01-01');
+      expect(component.pitches()[0].followUpOn).toBe('2999-01-01');
+
+      await component.setPitchFollowUp('p1', '');
+      expect(component.pitches()[0].followUpOn).toBeUndefined();
+
+      await component.setPitchFollowUp('p1', 'not-a-day');
+      expect(component.pitches()[0].followUpOn).toBeUndefined();
+      expect(component.pitchError()).toContain('valid follow-up date');
+    });
+
+    it('stores a follow-up date with a new pitch and clears the field', async () => {
+      component.newLabel.set('Test Label');
+      component.newDemo.set('https://test.com/demo');
+      component.newFollowUp.set('2999-01-01');
+
+      await component.submitToLabel();
+
+      const saved = profileSig().careerPitches ?? [];
+      expect(saved[0].followUpOn).toBe('2999-01-01');
+      expect(component.newFollowUp()).toBe('');
+    });
+
     it('recalls a pitch only after confirmation', async () => {
       patchProfile({
         careerPitches: [
