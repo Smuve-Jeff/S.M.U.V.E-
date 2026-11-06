@@ -1972,3 +1972,14 @@
   letter-spacing: 0.08em;
   cursor: pointer;
 }
+
+/* Phone touch floor for the trim, clip and monitor actions. The Reset button
+   rendered 45x17, the clip LED 28px tall and MUTE NOW 30px — all primary
+   recovery/monitoring controls that should be safe to hit with a thumb. */
+@media (pointer: coarse) {
+  .arv-trim-reset,
+  .arv-clip-led,
+  .arv-monitor-mute {
+    min-height: 44px;
+  }
+}
