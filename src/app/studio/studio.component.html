@@ -47,6 +47,18 @@
       <span class="material-symbols-outlined" aria-hidden="true">hearing</span>
       MONO
     </button>
+    <button
+      type="button"
+      *ngIf="projectWorkspace.storageDurability() === 'denied'"
+      class="studio-durability-status"
+      (click)="exportProject()"
+      title="This browser has not promised to keep local data, so it can clear saved sets when storage runs low. Download a .smuve backup now."
+      aria-label="Storage is not protected by this browser. Export a project backup now."
+    >
+      <span class="material-symbols-outlined" aria-hidden="true">shield</span>
+      <span>Not protected</span>
+      <span class="studio-durability-action" aria-hidden="true">Back up</span>
+    </button>
   </div>
 
   <!-- Stage 2.0 ambient aurora field (pure decoration).

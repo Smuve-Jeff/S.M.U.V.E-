@@ -17,6 +17,66 @@
   <app-command-palette *ngIf="!isAuthRoute()"></app-command-palette>
   <app-interaction-dialog></app-interaction-dialog>
 
+  <!-- A waiting build is announced, never forced. Reloading on the worker's
+       schedule used to cut recording passes and offline bounces short. -->
+  <div
+    *ngIf="pendingUpdate()"
+    class="app-update-banner"
+    role="status"
+    aria-live="polite"
+  >
+    <span class="material-symbols-outlined" aria-hidden="true"
+      >system_update</span
+    >
+    <div class="app-update-copy">
+      <strong>Update ready</strong>
+      <span
+        *ngIf="reloadBlockedReason() as blockedReason; else updateReadyCopy"
+        id="app-update-block-reason"
+        class="app-update-blocked"
+      >
+        {{ blockedReason }}
+      </span>
+      <ng-template #updateReadyCopy>
+        <span>Reload when you are between takes. Nothing changes until you do.</span>
+      </ng-template>
+    </div>
+    <button
+      *ngIf="canSaveAndReload(); else reloadAction"
+      type="button"
+      class="app-update-action app-update-save"
+      (click)="saveAndReload()"
+      [disabled]="isSavingForUpdate()"
+      title="Save this set, then apply the update and reload."
+    >
+      {{ isSavingForUpdate() ? 'Saving…' : 'Save & reload' }}
+    </button>
+    <ng-template #reloadAction>
+      <button
+        type="button"
+        class="app-update-action"
+        (click)="applyPendingUpdate()"
+        [disabled]="isApplyingUpdate() || reloadBlockedReason() !== null"
+        [attr.aria-describedby]="
+          reloadBlockedReason() ? 'app-update-block-reason' : null
+        "
+        [title]="
+          reloadBlockedReason() ?? 'Apply the update and reload S.M.U.V.E.'
+        "
+      >
+        {{ isApplyingUpdate() ? 'Reloading…' : 'Reload' }}
+      </button>
+    </ng-template>
+    <button
+      type="button"
+      class="app-update-dismiss"
+      (click)="dismissPendingUpdate()"
+      aria-label="Dismiss update notice"
+    >
+      <span class="material-symbols-outlined" aria-hidden="true">close</span>
+    </button>
+  </div>
+
   <!-- Full-screen workspaces intentionally hide the shell, not the way home. -->
   <a
     *ngIf="showUniversalHomeLink()"
@@ -570,7 +630,7 @@
         <button
           type="button"
           *ngIf="authService.isAuthenticated()"
-          (click)="authService.logout()"
+          (click)="signOut()"
           class="shell-icon-button w-10 h-10 rounded-lg border border-red-500/20 flex items-center justify-center text-red-500 hover:bg-red-500/10 transition-all"
           aria-label="Log out"
         >

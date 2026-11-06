@@ -5,6 +5,8 @@ interface DialogBase {
   message: string;
   confirmLabel?: string;
   cancelLabel?: string;
+  /** Optional third action for a confirm dialog, shown before the confirm. */
+  alternateLabel?: string;
   tone?: 'default' | 'danger';
 }
 
@@ -29,7 +31,7 @@ export type InteractionDialogRequest =
 
 type ConfirmActiveDialog = ConfirmDialogRequest & {
   id: number;
-  resolve: (value: boolean) => void;
+  resolve: (value: boolean | 'alternate') => void;
 };
 
 type PromptActiveDialog = PromptDialogRequest & {
@@ -60,7 +62,32 @@ export class InteractionDialogService {
         ...request,
         type: 'confirm',
         id: ++this.nextId,
-        resolve: (value) => resolve(Boolean(value)),
+        resolve: (value) => resolve(value === true),
+      });
+    });
+  }
+
+  /**
+   * Confirm dialog with two outcomes plus cancel. Used where discarding is a
+   * real choice the artist must be able to make explicitly (save and leave vs
+   * leave without saving), not something to infer from a boolean.
+   */
+  confirmWithAlternate(
+    request: Omit<ConfirmDialogRequest, 'type'>,
+  ): Promise<'confirm' | 'alternate' | 'cancel'> {
+    return new Promise((resolve) => {
+      this.activeDialog.set({
+        ...request,
+        type: 'confirm',
+        id: ++this.nextId,
+        resolve: (value) =>
+          resolve(
+            value === true
+              ? 'confirm'
+              : value === 'alternate'
+                ? 'alternate'
+                : 'cancel',
+          ),
       });
     });
   }
@@ -95,7 +122,9 @@ export class InteractionDialogService {
 
     this.activeDialog.set(null);
     if (dialog.type === 'confirm') {
-      dialog.resolve(Boolean(result));
+      // `alternate` is its own outcome; everything else keeps the legacy
+      // boolean mapping so existing confirm() callers are unchanged.
+      dialog.resolve(result === 'alternate' ? 'alternate' : Boolean(result));
       return;
     }
 

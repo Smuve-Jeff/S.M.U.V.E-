@@ -1,6 +1,14 @@
-import { Injectable, inject, signal, computed, OnDestroy } from "@angular/core";
+import {
+  Injectable,
+  inject,
+  signal,
+  computed,
+  effect,
+  OnDestroy,
+} from "@angular/core";
 import { AudioEngineService } from "../services/audio-engine.service";
 import { LoggingService } from "../services/logging.service";
+import { SessionSafetyService } from "../services/session-safety.service";
 
 /**
  * What a recorder is actually sampling. The Studio has two real capture
@@ -72,6 +80,7 @@ export interface ActiveRecording {
 export class RecordingStatusService implements OnDestroy {
   private readonly audioEngine = inject(AudioEngineService);
   private readonly logger = inject(LoggingService);
+  private readonly sessionSafety = inject(SessionSafetyService);
 
   // ── Real master meters (dBFS, L/R) ──────────────────────────
   /** Left channel peak in dBFS (-60 to 0) */
@@ -392,6 +401,12 @@ export class RecordingStatusService implements OnDestroy {
 
   constructor() {
     this.startRealMeterLoop();
+    // Mirror capture/arm state into the shell-safe store so the update banner
+    // can refuse to reload over a live take without loading the audio graph.
+    effect(() => {
+      this.sessionSafety.isRecording.set(this.isRecording());
+      this.sessionSafety.armedTakeCount.set(this.armedTrackIds().size);
+    });
   }
 
   /**
@@ -504,5 +519,8 @@ export class RecordingStatusService implements OnDestroy {
     this._splitter?.disconnect();
     this.analyserL?.disconnect();
     this.analyserR?.disconnect();
+    // Never leave a closed meter loop pinning the shell's reload guard.
+    this.sessionSafety.isRecording.set(false);
+    this.sessionSafety.armedTakeCount.set(0);
   }
 }

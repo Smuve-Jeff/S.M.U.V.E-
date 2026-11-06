@@ -767,3 +767,119 @@ footer {
   font-size: 0.85rem;
   text-align: center;
 }
+
+/* Downloaded-build banner. Bottom-centred so it never covers the transport
+   bar at the top of the Studio; lifted above the mobile nav on phones. */
+.app-update-banner {
+  position: fixed;
+  left: 50%;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 1rem);
+  transform: translateX(-50%);
+  z-index: 6500;
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  width: max-content;
+  max-width: min(92vw, 34rem);
+  padding: 0.55rem 0.6rem 0.55rem 0.9rem;
+  border: 1px solid #2dd4bf66;
+  border-radius: 14px;
+  background: #071b1e;
+  color: #ecfdf5;
+  box-shadow: 0 10px 30px #000a;
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+.app-update-banner > .material-symbols-outlined {
+  flex: 0 0 auto;
+  color: #5eead4;
+}
+.app-update-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+.app-update-copy strong {
+  font-size: 0.8rem;
+  letter-spacing: 0.02em;
+}
+.app-update-copy span {
+  color: #b8d8d4;
+}
+/* A refused reload is the artist's work being protected, not an error. */
+.app-update-copy .app-update-blocked {
+  color: #fcd34d;
+  font-weight: 600;
+}
+.app-update-action {
+  flex: 0 0 auto;
+  min-height: 40px;
+  white-space: nowrap;
+  padding: 0 0.9rem;
+  border: 1px solid #2dd4bf;
+  border-radius: 10px;
+  background: #2dd4bf;
+  color: #04211f;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+.app-update-action:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.app-update-dismiss {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: #9ec7c3;
+  cursor: pointer;
+}
+.app-update-dismiss:hover,
+.app-update-dismiss:focus-visible {
+  background: #ffffff14;
+  color: #ecfdf5;
+}
+.app-update-action:focus-visible,
+.app-update-dismiss:focus-visible {
+  outline: 2px solid #99f6e4;
+  outline-offset: 2px;
+}
+@media (max-width: 767px) {
+  .app-update-banner {
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 4.75rem);
+    max-width: calc(100vw - 1.5rem);
+  }
+}
+/* A two-row banner keeps the longer save explanation readable on a phone
+   instead of squeezing it beside two 40px actions. */
+@media (max-width: 480px) {
+  .app-update-banner {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    grid-template-areas:
+      "icon copy copy"
+      ". action dismiss";
+    row-gap: 0.5rem;
+  }
+  .app-update-banner > .material-symbols-outlined {
+    grid-area: icon;
+  }
+  .app-update-copy {
+    grid-area: copy;
+  }
+  .app-update-action {
+    grid-area: action;
+    justify-self: end;
+  }
+  .app-update-dismiss {
+    grid-area: dismiss;
+  }
+}
