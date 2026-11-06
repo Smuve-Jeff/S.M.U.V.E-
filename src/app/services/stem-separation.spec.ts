@@ -76,6 +76,74 @@ describe('StemSeparationService', () => {
       expect(stems.vocals.numberOfChannels).toBeGreaterThanOrEqual(1);
     });
 
+    it('reports stage progress and finishes complete', async () => {
+      const buffer = new AudioBuffer({
+        length: 4800,
+        sampleRate: 48000,
+        numberOfChannels: 1,
+      });
+      const labels: string[] = [];
+
+      const stems = await service.separate(buffer, (update) =>
+        labels.push(update.label)
+      );
+
+      expect(stems.vocals.length).toBe(4800);
+      expect(labels.length).toBeGreaterThan(0);
+      expect(labels[0]).toContain('Centre band');
+      expect(service.progress().stage).toBe('complete');
+      expect(service.progress().progress).toBe(100);
+    });
+
+    it('hands the channels to the worker and adopts its stems', async () => {
+      const buffer = new AudioBuffer({
+        length: 4800,
+        sampleRate: 48000,
+        numberOfChannels: 2,
+      });
+      const fakeWorker = {
+        postMessage: jest.fn(),
+        terminate: jest.fn(),
+        onmessage: null as any,
+        onerror: null as any,
+      };
+      (service as any).createWorker = () => fakeWorker;
+
+      const labels: string[] = [];
+      const pending = service.separate(buffer, (update) =>
+        labels.push(update.label)
+      );
+
+      const [message, transfer] = fakeWorker.postMessage.mock.calls[0];
+      expect(message.payload.sampleRate).toBe(48000);
+      expect(transfer).toHaveLength(2);
+
+      fakeWorker.onmessage({
+        data: {
+          type: 'PROGRESS',
+          payload: { stage: 'bass', channel: 1, progress: 40 },
+        },
+      });
+      const stem = () => [new Float32Array(4800), new Float32Array(4800)];
+      fakeWorker.onmessage({
+        data: {
+          type: 'COMPLETE',
+          payload: {
+            vocals: stem(),
+            drums: stem(),
+            bass: stem(),
+            instrumental: stem(),
+            other: stem(),
+          },
+        },
+      });
+
+      const stems = await pending;
+      expect(stems.vocals.length).toBe(4800);
+      expect(fakeWorker.terminate).toHaveBeenCalled();
+      expect(labels[0]).toContain('Bass · R');
+    });
+
     it('returns stems that reconstruct the selected mix', async () => {
       const ctx = new AudioContext();
       const buffer = ctx.createBuffer(2, 4096, 44100);

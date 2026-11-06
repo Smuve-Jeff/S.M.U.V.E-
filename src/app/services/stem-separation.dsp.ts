@@ -37,6 +37,13 @@ export interface StemChannels {
   other: Float32Array[];
 }
 
+export interface StemSeparationProgress {
+  stage: "centre" | "bass" | "drums";
+  channel: number;
+  /** 0–100 across every pass, not per band. */
+  progress: number;
+}
+
 /** In-place iterative radix-2 FFT. */
 function fft(re: Float64Array, im: Float64Array, inverse: boolean): void {
   const n = re.length;
@@ -118,7 +125,8 @@ async function stftBand(
   input: Float32Array,
   sampleRate: number,
   low: number,
-  high: number
+  high: number,
+  onFrame?: () => void
 ): Promise<Float32Array> {
   const length = input.length;
   if (length === 0) {
@@ -170,7 +178,9 @@ async function stftBand(
       weights[index] += window[i] * window[i];
     }
 
-    // Separation runs on the main thread, so hand the event loop a slice back:
+    onFrame?.();
+
+    // Separation can run on the main thread (fallback), so hand the event loop a slice back:
     // a four-minute track is ~20k frames and must not freeze the studio.
     frame += 1;
     if (frame % FRAMES_PER_YIELD === 0) {
@@ -188,7 +198,8 @@ async function stftBand(
 
 export async function separateIntoStems(
   channels: Float32Array[],
-  sampleRate: number
+  sampleRate: number,
+  onProgress?: (update: StemSeparationProgress) => void
 ): Promise<StemChannels> {
   const channelCount = Math.max(1, channels.length);
   const length = channels[0]?.length ?? 0;
@@ -196,12 +207,28 @@ export async function separateIntoStems(
   const left = source[0];
   const right = source[1] ?? left;
 
+  const framesPerPass = Math.max(1, Math.floor((length + FFT_SIZE) / HOP) + 1);
+  const totalFrames = framesPerPass * (1 + 2 * channelCount);
+  let framesDone = 0;
+  let lastReported = -1;
+  const tick = (stage: StemSeparationProgress["stage"], channel: number) => {
+    framesDone += 1;
+    if (!onProgress) return;
+    const progress = Math.min(100, (framesDone / totalFrames) * 100);
+    const rounded = Math.floor(progress);
+    if (rounded === lastReported && framesDone !== totalFrames) return;
+    lastReported = rounded;
+    onProgress({ stage, channel, progress });
+  };
+
   const mid = new Float32Array(length);
   for (let i = 0; i < length; i++) {
     mid[i] = (left[i] + right[i]) * 0.5;
   }
 
-  const vocalMono = await stftBand(mid, sampleRate, VOCAL_LOW_HZ, VOCAL_HIGH_HZ);
+  const vocalMono = await stftBand(mid, sampleRate, VOCAL_LOW_HZ, VOCAL_HIGH_HZ, () =>
+    tick("centre", 0)
+  );
 
   const vocals: Float32Array[] = [];
   const drums: Float32Array[] = [];
@@ -211,8 +238,16 @@ export async function separateIntoStems(
 
   for (let c = 0; c < channelCount; c++) {
     const mix = source[c] ?? source[0] ?? new Float32Array(length);
-    const bassChannel = await stftBand(mix, sampleRate, 0, BASS_HIGH_HZ);
-    const drumChannel = await stftBand(mix, sampleRate, DRUM_LOW_HZ, sampleRate / 2);
+    const bassChannel = await stftBand(mix, sampleRate, 0, BASS_HIGH_HZ, () =>
+      tick("bass", c)
+    );
+    const drumChannel = await stftBand(
+      mix,
+      sampleRate,
+      DRUM_LOW_HZ,
+      sampleRate / 2,
+      () => tick("drums", c)
+    );
 
     const vocalChannel = new Float32Array(length);
     const instrumentalChannel = new Float32Array(length);

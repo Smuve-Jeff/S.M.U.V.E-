@@ -180,6 +180,8 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
 
   // ── Stem-Splitter UI state ───────────────────────────────
   stemOpen = signal(false);
+  /** Stage label from the separator, e.g. "Bass · L". */
+  stemStage = signal<string | null>(null);
   stemProgress = signal(0);
   stemStems = signal<Stems | null>(null);
   stemFileName = signal<string | null>(null);
@@ -2242,6 +2244,7 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
     this.stemProgress.set(0);
     this.stemStems.set(null);
     this.stemFileName.set(null);
+    this.stemStage.set(null);
   }
 
   closeStemSplit(): void {
@@ -2262,9 +2265,13 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
       const audioBuffer = await ctx.decodeAudioData(arrayBuffer);
       this.stemProgress.set(45);
       this.snackbar.show("🎚 Stem Split · spectral decomposition");
-      const stems = await this.stemSvc.separate(audioBuffer);
+      const stems = await this.stemSvc.separate(audioBuffer, (update) => {
+        this.stemStage.set(update.label);
+        this.stemProgress.set(10 + Math.round(update.progress * 0.85));
+      });
       this.stemStems.set(stems);
       this.stemProgress.set(100);
+      this.stemStage.set("Stems Ready");
       this.snackbar.show("🎚 Stem Split · 4 stems ready");
     } catch (err: any) {
       console.error("Stem split failed", err);

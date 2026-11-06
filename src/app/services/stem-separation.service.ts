@@ -2,6 +2,11 @@ import { Injectable, inject, signal } from '@angular/core';
 import { NotificationService } from './notification.service';
 import { AuxAudioContextService } from './aux-audio-context.service';
 import { separateIntoStems } from './stem-separation.dsp';
+import type {
+  StemChannels,
+  StemSeparationProgress,
+} from './stem-separation.dsp';
+import { createStemWorker } from './stem-worker-factory';
 
 export interface Stems {
   vocals: AudioBuffer;
@@ -33,6 +38,11 @@ export interface StemProgress {
 export interface StemResult {
   stems: Stems;
   metadata: StemMetadata;
+}
+
+export interface StemProgressUpdate extends StemSeparationProgress {
+  /** Human label for the stage, e.g. "Bass · L". */
+  label: string;
 }
 
 @Injectable({
@@ -158,23 +168,64 @@ export class StemSeparationService {
   /**
    * On-device separation with a spectral mask.
    *
-   * Vocals are the centre channel's 300–4000 Hz band, so side-only material
-   * cannot leak into them; bass and drums are spectral bands of the full mix.
-   * Instrumental is the mix minus vocals and other is the residual, which makes
-   * the stems add back up to the input instead of being unrelated renders.
+   * The DSP runs in a Web Worker so a long track never blocks the studio;
+   * when a Worker cannot be created the same function runs on the main thread,
+   * yielding between frame batches. Either way the caller gets stage progress.
    */
-  async separate(buffer: AudioBuffer): Promise<Stems> {
+  async separate(
+    buffer: AudioBuffer,
+    onProgress?: (update: StemProgressUpdate) => void
+  ): Promise<Stems> {
     this.notificationService.show(
       'Stem Splitter: initializing spectral decomposition…',
       'info'
     );
+    this.progress.set({
+      progress: 0,
+      stage: 'loading',
+      message: 'Analyzing spectrum…',
+    });
 
-    const channels: Float32Array[] = [];
-    for (let c = 0; c < buffer.numberOfChannels; c++) {
-      channels.push(new Float32Array(buffer.getChannelData(c)));
+    const channels = this.extractChannels(buffer);
+    const forward = (update: StemSeparationProgress) => {
+      const suffix =
+        channels.length > 1 ? ` · ${update.channel === 0 ? 'L' : 'R'}` : '';
+      const label =
+        update.stage === 'centre'
+          ? 'Centre band'
+          : update.stage === 'bass'
+            ? `Bass${suffix}`
+            : `Drums${suffix}`;
+      this.progress.set({
+        progress: Math.round(update.progress * 0.9),
+        stage: 'processing',
+        message: `${label} · ${Math.round(update.progress)}%`,
+      });
+      onProgress?.({ ...update, label });
+    };
+
+    let parts: StemChannels;
+    try {
+      parts = await this.separateInWorker(channels, buffer.sampleRate, forward);
+    } catch (error) {
+      console.warn(
+        'StemSeparation: worker unavailable, separating on the main thread.',
+        (error as Error)?.message
+      );
+      // The transfer list detaches `channels`, so rebuild from the AudioBuffer.
+      parts = await separateIntoStems(
+        this.extractChannels(buffer),
+        buffer.sampleRate,
+        forward
+      );
     }
 
-    const parts = await separateIntoStems(channels, buffer.sampleRate);
+    this.progress.set({
+      progress: 100,
+      stage: 'complete',
+      message: 'Separation complete',
+    });
+
     const toBuffer = (data: Float32Array[]): AudioBuffer => {
       const stem = new AudioBuffer({
         length: buffer.length,
@@ -199,6 +250,67 @@ export class StemSeparationService {
       instrumental: toBuffer(parts.instrumental),
       other: toBuffer(parts.other),
     };
+  }
+
+  private extractChannels(buffer: AudioBuffer): Float32Array[] {
+    const channels: Float32Array[] = [];
+    for (let c = 0; c < buffer.numberOfChannels; c++) {
+      channels.push(new Float32Array(buffer.getChannelData(c)));
+    }
+    return channels;
+  }
+
+  /** Factory seam: tests replace this to drive the worker message protocol. */
+  private createWorker = createStemWorker;
+
+  private separateInWorker(
+    channels: Float32Array[],
+    sampleRate: number,
+    onProgress: (update: StemSeparationProgress) => void
+  ): Promise<StemChannels> {
+    return new Promise((resolve, reject) => {
+      let worker: Worker;
+      try {
+        worker = this.createWorker();
+      } catch (error) {
+        reject(error);
+        return;
+      }
+
+      const finish = () => {
+        worker.onmessage = null;
+        worker.onerror = null;
+        worker.terminate();
+      };
+
+      worker.onmessage = (event: MessageEvent<any>) => {
+        const { type, payload } = event.data ?? {};
+        if (type === 'PROGRESS') {
+          onProgress(payload as StemSeparationProgress);
+          return;
+        }
+        if (type === 'COMPLETE') {
+          finish();
+          resolve(payload as StemChannels);
+          return;
+        }
+        if (type === 'ERROR') {
+          finish();
+          reject(new Error(payload?.message ?? 'Stem worker failed'));
+        }
+      };
+
+      worker.onerror = (event) => {
+        finish();
+        reject(new Error(event?.message || 'Stem worker crashed'));
+      };
+
+      // Copies, so transferring them cannot detach the AudioBuffer's memory.
+      worker.postMessage(
+        { type: 'SEPARATE', payload: { channels, sampleRate } },
+        channels.map((channel) => channel.buffer)
+      );
+    });
   }
 
   /** Cancel an in-progress on-device separation */

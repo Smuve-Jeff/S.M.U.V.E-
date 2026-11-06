@@ -924,11 +924,12 @@
         <div class="stem-progress-bar" [style.width.%]="stemProgress()"></div>
         <span class="stem-progress-text">
           {{
-            stemProgress() < 50
-              ? 'Decoding ·'
-              : stemProgress() < 100
-                ? 'Spectral Decomposition ·'
-                : 'Stems Ready'
+            stemStage() ||
+              (stemProgress() < 50
+                ? 'Decoding ·'
+                : stemProgress() < 100
+                  ? 'Spectral Decomposition ·'
+                  : 'Stems Ready')
           }}
           {{ stemProgress() }}%
         </span>

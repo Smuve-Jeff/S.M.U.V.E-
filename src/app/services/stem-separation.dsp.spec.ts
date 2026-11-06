@@ -78,6 +78,22 @@ describe("separateIntoStems", () => {
     expect(ratio(stems.instrumental[0], left)).toBeGreaterThan(0.9);
   });
 
+  it("reports monotonic progress that finishes at 100", async () => {
+    const updates: { stage: string; progress: number }[] = [];
+    await separateIntoStems([tone(1000, 0.3)], SAMPLE_RATE, (update) => {
+      updates.push({ stage: update.stage, progress: update.progress });
+    });
+
+    expect(updates.length).toBeGreaterThan(2);
+    expect(updates.at(-1)!.progress).toBe(100);
+    for (let i = 1; i < updates.length; i++) {
+      expect(updates[i].progress).toBeGreaterThanOrEqual(updates[i - 1].progress);
+    }
+    expect(updates.some((update) => update.stage === "centre")).toBe(true);
+    expect(updates.some((update) => update.stage === "bass")).toBe(true);
+    expect(updates.some((update) => update.stage === "drums")).toBe(true);
+  });
+
   it("handles mono input without inventing a second channel", async () => {
     const mono = tone(1000);
     const stems = await separateIntoStems([mono], SAMPLE_RATE);
