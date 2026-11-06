@@ -3145,6 +3145,10 @@ button.comp-meta-state-pill:focus-visible {
 }
 /* Sits beside a label and a value, so it must never be squeezed into a
    vertical stack of letters by the row's flex layout. */
+.comp-import-slider-row .comp-import-octave-btn {
+  min-width: 34px;
+  padding: 0 6px;
+}
 .comp-import-slider-row .comp-import-detected-btn {
   flex: 0 0 auto;
   min-width: 46px;

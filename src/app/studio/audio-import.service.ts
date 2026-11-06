@@ -323,11 +323,18 @@ export class AudioImportService {
    * Entries are mutated in place because the SampleStreamer keeps a reference
    * to them, so the signal is woken with a fresh array rather than a new object.
    */
+  /** The usable estimate for a buffer, or null when it is not trustworthy. */
+  private estimateTempo(buffer: AudioBuffer | null): number | null {
+    const detection = detectTempoFromBuffer(buffer, { windowSeconds: 20 });
+    if (!detection || detection.confidence < TEMPO_CONFIDENCE_FLOOR) return null;
+    return detection.bpm;
+  }
+
   private detectTempoFor(audio: ImportedAudio, buffer: AudioBuffer | null): void {
     if (!buffer || audio.detectedBpm != null) return;
-    const detection = detectTempoFromBuffer(buffer, { windowSeconds: 20 });
-    if (!detection || detection.confidence < TEMPO_CONFIDENCE_FLOOR) return;
-    audio.detectedBpm = detection.bpm;
+    const bpm = this.estimateTempo(buffer);
+    if (bpm == null) return;
+    audio.detectedBpm = bpm;
     this.importedAudio.set([...this.importedAudio()]);
   }
 
@@ -404,6 +411,9 @@ export class AudioImportService {
                   sampleRate: probe.sampleRate,
                   channels: probe.numberOfChannels,
                   duration: nextDuration,
+                  // Compressed imports only get audio here, after the probe
+                  // decodes, so this is their one chance to be analysed.
+                  detectedBpm: this.estimateTempo(nextBuffer) ?? item.detectedBpm ?? null,
                 }
               : item,
           ),

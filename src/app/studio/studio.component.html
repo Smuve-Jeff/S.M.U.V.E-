@@ -507,6 +507,15 @@
             <strong>Record</strong>
             <small>{{ smartRecording.recordingMode() | uppercase }} mode</small>
           </button>
+          <button
+            type="button"
+            class="comp-tools-sheet-btn"
+            (click)="openComponentRecording(); toggleMobileToolsSheet(false)"
+          >
+            <span class="material-symbols-outlined">settings_voice</span>
+            <strong>Source</strong>
+            <small>What record captures</small>
+          </button>
         </div>
       </section>
 
@@ -802,6 +811,16 @@
     >
       <span class="material-symbols-outlined">upload_file</span>
       <span class="comp-tool-label">IMPORT</span>
+    </button>
+    <button
+      type="button"
+      class="comp-tool-btn"
+      (click)="openComponentRecording()"
+      title="Choose which component the record button captures"
+      aria-label="Recording source"
+    >
+      <span class="material-symbols-outlined">settings_voice</span>
+      <span class="comp-tool-label">SOURCE</span>
     </button>
     <!-- MIDI Export -->
     <button
@@ -3105,6 +3124,22 @@
         <div class="comp-import-slider-row" *ngIf="importDetectedBpm() as found">
           <label class="comp-import-slider-label">Detected</label>
           <span class="comp-import-slider-val">~{{ found.toFixed(0) }} BPM</span>
+          <button
+            type="button"
+            class="comp-meta-action-btn comp-import-match-btn comp-import-detected-btn comp-import-octave-btn"
+            (click)="adjustDetectedTempo(0.5)"
+            aria-label="Halve the detected tempo"
+          >
+            ½×
+          </button>
+          <button
+            type="button"
+            class="comp-meta-action-btn comp-import-match-btn comp-import-detected-btn comp-import-octave-btn"
+            (click)="adjustDetectedTempo(2)"
+            aria-label="Double the detected tempo"
+          >
+            2×
+          </button>
           <button
             type="button"
             class="comp-meta-action-btn comp-import-match-btn comp-import-detected-btn"

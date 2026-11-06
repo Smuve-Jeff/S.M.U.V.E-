@@ -854,6 +854,15 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     );
   }
 
+  /** Correct a half/double reading before adopting the detected tempo. */
+  adjustDetectedTempo(factor: number): void {
+    const detected = this.importDetectedBpm();
+    if (!detected) return;
+    const adjusted = Math.max(20, Math.min(300, Math.round(detected * factor)));
+    this.importSourceBpm.set(adjusted);
+    this.matchImportTempo();
+  }
+
   /** Adopt the tempo detected at import, then stretch to the project tempo. */
   useDetectedTempo(): void {
     const detected = this.importDetectedBpm();
@@ -3053,6 +3062,18 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     this.haptic.light();
     this.showImportPanel.update((v) => !v);
     this.syncPanelFocus(".comp-import-panel", this.showImportPanel());
+  }
+
+  /**
+   * Open the recording-source panel.
+   *
+   * `toggleComponentRecording` was only ever called from its own panel, so the
+   * source picker had no way in at any width.
+   */
+  openComponentRecording(): void {
+    this.haptic.light();
+    this.showComponentRecording.set(true);
+    this.syncPanelFocus(".comp-rec-src-panel", true);
   }
 
   toggleComponentRecording() {
