@@ -487,8 +487,8 @@ export class UserProfileService {
       financials: { ...this.profile().financials, ...u },
     });
   }
-  async recordAudit(l: ProfileAuditLog) {
-    await this.updateProfile({
+  async recordAudit(l: ProfileAuditLog): Promise<boolean> {
+    return this.updateProfile({
       strategicHealthScore: l.score,
       criticalDeficits: l.deficits,
       auditHistory: [l, ...(this.profile().auditHistory || [])].slice(0, 20),

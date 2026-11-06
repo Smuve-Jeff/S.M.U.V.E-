@@ -27,6 +27,7 @@ describe('CareerHubComponent', () => {
     );
     updateProfile = jest.fn(async (patch: Partial<UserProfile>) => {
       profileSig.update((profile) => ({ ...profile, ...patch }));
+      return true;
     });
     recordAudit = jest.fn(async (log: ProfileAuditLog) => {
       profileSig.update((profile) => ({
@@ -35,6 +36,7 @@ describe('CareerHubComponent', () => {
         criticalDeficits: log.deficits,
         auditHistory: [log, ...(profile.auditHistory ?? [])].slice(0, 20),
       }));
+      return true;
     });
 
     await TestBed.configureTestingModule({
@@ -78,7 +80,7 @@ describe('CareerHubComponent', () => {
     expect(matrix).toBeTruthy();
 
     expect(text()).toContain('EXECUTIVEHUB');
-    expect(text()).toContain('Strategic Audit');
+    expect(text()).toContain('Career Record Audit');
     expect(text()).toContain('Active Pitches');
   });
 
@@ -119,6 +121,33 @@ describe('CareerHubComponent', () => {
       expect(text()).toContain('$500 PENDING');
       expect(component.hasRevenue()).toBe(true);
       expect(component.revenueScenarios().length).toBeGreaterThan(0);
+      expect(component.formatCurrency(4500)).toBe('$4.5K');
+      expect(component.formatCurrency(500)).toBe('$500');
+    });
+
+    it('scores the audit from completed records, not a fixed baseline', () => {
+      const audit = component.strategicAudit();
+
+      expect(audit.score).toBe(0);
+      expect(audit.deficits.join(' ')).toContain('No catalog works recorded');
+      expect(audit.deficits.join(' ')).not.toContain('INVISIBLE');
+      expect(audit.recommendations.join(' ')).not.toContain('IMMEDIATELY');
+    });
+
+    it('replaces the fake system footer with local record counts', () => {
+      expect(text()).toContain('PITCHES: 0 TRACKED');
+      expect(text()).toContain('ROOMS: 0 TRACKED');
+      expect(text()).toContain('AUDITS: 0 LOGGED');
+      expect(text()).toContain('EXTERNAL SYNC: NOT CONNECTED');
+      expect(text()).not.toContain('100% OPERATIONAL');
+      expect(text()).not.toContain('NEURAL LINK');
+      expect(text()).not.toContain('MARKET VOLATILITY');
+    });
+
+    it('states that pitch, booking and split records are self-reported', () => {
+      expect(text()).toContain('does not send, retract or verify');
+      expect(text()).toContain('not a venue confirmation');
+      expect(text()).toContain('not legal advice');
     });
   });
 
@@ -139,6 +168,18 @@ describe('CareerHubComponent', () => {
       expect(component.newLabel()).toBe('');
       expect(component.newDemo()).toBe('');
       expect(text()).toContain('Test Label');
+    });
+
+    it('keeps the pitch in the form when the profile write fails', async () => {
+      component.newLabel.set('Test Label');
+      component.newDemo.set('https://test.com/demo');
+      updateProfile.mockResolvedValueOnce(false);
+
+      await component.submitToLabel();
+
+      expect(component.pitches()).toEqual([]);
+      expect(component.newLabel()).toBe('Test Label');
+      expect(component.pitchError()).toContain('could not be saved');
     });
 
     it('rejects a non-http demo link', async () => {
@@ -355,6 +396,19 @@ describe('CareerHubComponent', () => {
       await component.cycleVenueStatus(component.venues()[0]);
       expect(component.venues()[0].bookingStatus).toBe('Confirmed');
     });
+
+    it('keeps a venue out of the circuit when the write fails', async () => {
+      component.newVenueName.set('The Circuit');
+      component.newVenueLocation.set('Los Angeles');
+      component.newVenueCapacity.set(500);
+      updateProfile.mockResolvedValueOnce(false);
+
+      await component.addVenue();
+
+      expect(component.venues()).toEqual([]);
+      expect(component.newVenueName()).toBe('The Circuit');
+      expect(component.venueError()).toContain('could not be saved');
+    });
   });
 
   describe('audits and split sheets', () => {
@@ -366,6 +420,14 @@ describe('CareerHubComponent', () => {
       expect(profileSig().auditHistory[0].score).toBe(
         component.strategicAudit().score
       );
+    });
+
+    it('surfaces a failed audit write', async () => {
+      recordAudit.mockResolvedValueOnce(false);
+
+      await component.recordAudit();
+
+      expect(component.auditError()).toContain('could not be saved');
     });
 
     it('plots a trajectory only from recorded audits', () => {

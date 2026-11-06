@@ -5,7 +5,7 @@
 
 /* ── Mobile: collapse grids that overflow at 360px ── */
 @media (max-width: 768px) {
-  /* Revenue forecast: 3-col → stack vertically */
+  /* Revenue scenarios: 3-col → stack vertically */
   .grid.grid-cols-3 {
     grid-template-columns: 1fr;
     gap: 0.5rem;

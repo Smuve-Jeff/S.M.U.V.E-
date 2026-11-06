@@ -11,7 +11,7 @@ import {
   CareerVenue,
   VenueBookingStatus,
 } from '../../types/career.types';
-import { ProfessionalFinancials } from '../../types/profile.types';
+import { ProfessionalFinancials, UserProfile } from '../../types/profile.types';
 
 interface ActivityEntry {
   id: string;
@@ -278,7 +278,7 @@ export class CareerHubComponent {
       entries.push({
         id: `pitch-${pitch.id}`,
         icon: 'outbox',
-        title: `Pitch to ${pitch.labelName}`,
+        title: `Pitch recorded: ${pitch.labelName}`,
         detail: `${pitch.status} • ${pitch.date}`,
         at: pitch.updatedAt ?? 0,
       });
@@ -364,7 +364,8 @@ export class CareerHubComponent {
     this.pitchError.set('');
     this.isSavingPitch.set(true);
     try {
-      await this.persistPitches([pitch, ...this.pitches()]);
+      const saved = await this.persistPitches([pitch, ...this.pitches()]);
+      if (!saved) return;
       this.newLabel.set('');
       this.newDemo.set('');
       this.newFollowUp.set('');
@@ -409,7 +410,7 @@ export class CareerHubComponent {
     if (
       typeof window !== 'undefined' &&
       !window.confirm(
-        `Recall the pitch to “${pitch.labelName}”? It will be removed from the pipeline.`
+        `Remove the pitch record for “${pitch.labelName}”? This does not retract a pitch you already sent.`
       )
     ) {
       return;
@@ -455,32 +456,31 @@ export class CareerHubComponent {
       bookingStatus: 'Available',
     };
 
-    this.venueError.set('');
-    try {
-      await this.userProfileService.updateProfile({
-        careerVenues: [...this.venues(), venue],
-      });
-      this.newVenueName.set('');
-      this.newVenueLocation.set('');
-      this.newVenueCapacity.set(null);
-    } catch {
+    const saved = await this.saveProfile({
+      careerVenues: [...this.venues(), venue],
+    });
+    if (!saved) {
       this.venueError.set('Venue could not be saved. Try again.');
+      return;
     }
+    this.venueError.set('');
+    this.newVenueName.set('');
+    this.newVenueLocation.set('');
+    this.newVenueCapacity.set(null);
   }
 
   async cycleVenueStatus(venue: CareerVenue) {
     const index = VENUE_STATUS_FLOW.indexOf(venue.bookingStatus);
     const bookingStatus =
       VENUE_STATUS_FLOW[(index + 1) % VENUE_STATUS_FLOW.length];
-    try {
-      await this.userProfileService.updateProfile({
-        careerVenues: this.venues().map((entry) =>
-          entry.id === venue.id ? { ...entry, bookingStatus } : entry
-        ),
-      });
-    } catch {
-      this.venueError.set('Booking status could not be updated. Try again.');
-    }
+    const saved = await this.saveProfile({
+      careerVenues: this.venues().map((entry) =>
+        entry.id === venue.id ? { ...entry, bookingStatus } : entry
+      ),
+    });
+    this.venueError.set(
+      saved ? '' : 'Booking status could not be updated. Try again.'
+    );
   }
 
   async removeVenue(venue: CareerVenue) {
@@ -490,13 +490,12 @@ export class CareerHubComponent {
     ) {
       return;
     }
-    try {
-      await this.userProfileService.updateProfile({
-        careerVenues: this.venues().filter((entry) => entry.id !== venue.id),
-      });
-    } catch {
-      this.venueError.set('Venue could not be removed. Try again.');
-    }
+    const saved = await this.saveProfile({
+      careerVenues: this.venues().filter((entry) => entry.id !== venue.id),
+    });
+    this.venueError.set(
+      saved ? '' : 'Venue could not be removed. Try again.'
+    );
   }
 
   async generateSplitSheet() {
@@ -539,21 +538,21 @@ export class CareerHubComponent {
       updatedAt: now,
     };
 
-    this.splitError.set('');
-    try {
-      await this.userProfileService.updateProfile({
-        financials: {
-          ...this.financials(),
-          splitSheets: [newSplit, ...(this.financials().splitSheets ?? [])],
-        },
-      });
-      this.splitTitle.set('');
-      this.splitCollaborator.set('');
-      this.splitPercent.set(50);
-      this.expandedSplitId.set(newSplit.id);
-    } catch {
+    const saved = await this.saveProfile({
+      financials: {
+        ...this.financials(),
+        splitSheets: [newSplit, ...(this.financials().splitSheets ?? [])],
+      },
+    });
+    if (!saved) {
       this.splitError.set('Split sheet could not be saved. Try again.');
+      return;
     }
+    this.splitError.set('');
+    this.splitTitle.set('');
+    this.splitCollaborator.set('');
+    this.splitPercent.set(50);
+    this.expandedSplitId.set(newSplit.id);
   }
 
   toggleSplitDetails(id: string) {
@@ -569,7 +568,12 @@ export class CareerHubComponent {
     this.auditError.set('');
     this.isRecordingAudit.set(true);
     try {
-      await this.userProfileService.recordAudit({ ...this.strategicAudit() });
+      const saved = await this.userProfileService.recordAudit({
+        ...this.strategicAudit(),
+      });
+      if (saved === false) {
+        this.auditError.set('Audit could not be saved. Try again.');
+      }
     } catch {
       this.auditError.set('Audit could not be saved. Try again.');
     } finally {
@@ -577,11 +581,21 @@ export class CareerHubComponent {
     }
   }
 
-  private async persistPitches(pitches: CareerPitch[]) {
+  private async persistPitches(pitches: CareerPitch[]): Promise<boolean> {
+    const saved = await this.saveProfile({ careerPitches: pitches });
+    this.pitchError.set(
+      saved ? '' : 'Pitch pipeline could not be saved. Try again.'
+    );
+    return saved;
+  }
+
+  /** Persist a profile patch; false means nothing was stored. */
+  private async saveProfile(patch: Partial<UserProfile>): Promise<boolean> {
     try {
-      await this.userProfileService.updateProfile({ careerPitches: pitches });
+      const saved = await this.userProfileService.updateProfile(patch);
+      return saved !== false;
     } catch {
-      this.pitchError.set('Pitch pipeline could not be saved. Try again.');
+      return false;
     }
   }
 
@@ -600,10 +614,11 @@ export class CareerHubComponent {
   }
 
   formatCurrency(value: number): string {
-    if (value >= 1000) {
-      return (value / 1000).toFixed(1) + 'K';
+    const amount = Number.isFinite(value) ? Math.max(0, value) : 0;
+    if (amount >= 1000) {
+      return '$' + (amount / 1000).toFixed(1) + 'K';
     }
-    return value.toString();
+    return '$' + Math.round(amount).toString();
   }
 
   formatMoney(value: number): string {

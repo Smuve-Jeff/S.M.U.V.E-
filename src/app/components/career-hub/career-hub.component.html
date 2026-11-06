@@ -32,11 +32,18 @@
             class="col-span-12 lg:col-span-8 glass-v42 shadow-v42-xl rounded-2xl md:rounded-3xl p-6 md:p-8 border glass-v42 shadow-v42-xl border-white/10"
           >
             <div class="flex items-center justify-between mb-8">
-              <h2
-                class="text-sm md:text-base font-bold text-white uppercase tracking-tight"
-              >
-                Market Positioning Matrix
-              </h2>
+              <div>
+                <h2
+                  class="text-sm md:text-base font-bold text-white uppercase tracking-tight"
+                >
+                  Audit Readiness Trajectory
+                </h2>
+                <p
+                  class="text-[9px] text-slate-500 uppercase tracking-widest mt-1"
+                >
+                  Recorded audit scores, oldest first
+                </p>
+              </div>
               <div class="flex gap-2">
                 <span class="size-2 rounded-full bg-brand-primary"></span>
                 <span class="size-2 rounded-full bg-accent-magenta"></span>
@@ -103,8 +110,8 @@
                     >show_chart</span
                   >
                   <p class="text-xs text-slate-500 max-w-sm leading-relaxed">
-                    Log two strategic audits and this matrix plots your real
-                    readiness curve over time. Nothing is drawn until there is
+                    Log two record audits and this trajectory plots your real
+                    audit scores over time. Nothing is drawn until there is
                     history to draw.
                   </p>
                 </div>
@@ -121,10 +128,10 @@
             </h3>
             @if (hasRevenue()) {
               <p class="text-[10px] text-slate-500 mb-4">
-                Not a forecast: no market data is used. These apply fixed growth
-                steps to the net of the
+                Arithmetic only: no market data is used. Each column applies a
+                fixed +10%, +50% or +120% step to the net of the
                 {{ formatMoney(trackedRevenue()) }} already recorded, after a
-                20% tax reserve. They are scenarios, not reported payouts.
+                20% tax reserve. These are not predictions or reported payouts.
               </p>
               <div class="grid grid-cols-3 gap-4">
                 <div
@@ -155,7 +162,7 @@
           >
             <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
               <h3 class="text-sm font-bold text-white uppercase">
-                Strategic Audit
+                Career Record Audit
               </h3>
               <div class="flex items-center gap-4">
                 <span class="text-2xl font-black text-brand-primary italic"
@@ -174,12 +181,16 @@
             @if (auditError()) {
               <p class="text-[10px] text-red-400 mb-4">{{ auditError() }}</p>
             }
+            <p class="text-[10px] text-slate-500 leading-relaxed mb-6">
+              The score counts completed record checks in this profile. It is
+              not a market, streaming, or revenue assessment.
+            </p>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div>
                 <h4
                   class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4"
                 >
-                  Critical Deficits
+                  Missing Records
                 </h4>
                 <ul class="space-y-2">
                   <li
@@ -203,7 +214,7 @@
                 <h4
                   class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4"
                 >
-                  AI Recommendations
+                  Suggested Next Steps
                 </h4>
                 <ul class="space-y-2">
                   <li
@@ -235,6 +246,11 @@
                 >{{ pitchCounts().all }} TRACKED</span
               >
             </div>
+
+            <p class="text-[9px] text-slate-500 leading-relaxed mb-4">
+              Your own record of pitches. S.M.U.V.E. does not send, retract or
+              verify anything with a label.
+            </p>
 
             @if (pitchCounts().all) {
               <p
@@ -330,7 +346,7 @@
                         aria-label="Recall pitch"
                         class="text-[9px] font-black text-brand-primary uppercase hover:underline"
                       >
-                        Recall
+                        Remove
                       </button>
                     </div>
                   </div>
@@ -353,6 +369,10 @@
             <div
               class="mt-8 pt-6 border-t glass-v42 shadow-v42-xl border-white/10 space-y-4"
             >
+              <p class="text-[9px] text-slate-500 leading-relaxed">
+                Record a pitch you sent yourself. Nothing is transmitted from
+                this screen.
+              </p>
               <input
                 type="text"
                 [ngModel]="newLabel()"
@@ -394,7 +414,7 @@
                 [disabled]="isSavingPitch()"
                 class="w-full btn-elegant btn-elegant-primary text-[9px] md:text-[10px] font-black uppercase tracking-widest py-3 h-auto disabled:opacity-50"
               >
-                {{ isSavingPitch() ? 'Submitting…' : 'Submit Proposal' }}
+                {{ isSavingPitch() ? 'Saving…' : '+ Add Pitch Record' }}
               </button>
             </div>
           </div>
@@ -403,12 +423,15 @@
           <div
             class="col-span-12 lg:col-span-6 glass-v42 shadow-v42-xl rounded-2xl md:rounded-3xl p-6 border glass-v42 shadow-v42-xl border-white/10"
           >
-            <div class="flex items-center gap-3 mb-6 text-brand-secondary">
+            <div class="flex items-center gap-3 mb-4 text-brand-secondary">
               <span class="material-symbols-outlined">map</span>
               <h3 class="text-sm font-bold text-white uppercase">
                 Live Circuit
               </h3>
             </div>
+            <p class="text-[9px] text-slate-500 leading-relaxed mb-4">
+              Booking status is your own record, not a venue confirmation.
+            </p>
             <div class="space-y-3">
               @for (v of venues(); track v.id) {
                 <div
@@ -504,7 +527,7 @@
               <div class="flex items-center gap-3 text-brand-primary">
                 <span class="material-symbols-outlined">analytics</span>
                 <h3 class="text-sm font-bold text-white uppercase">
-                  Strategic Signals
+                  Declared Profile Signals
                 </h3>
               </div>
               <div
@@ -513,10 +536,15 @@
                 <span
                   class="text-[10px] font-black text-brand-primary uppercase tracking-widest"
                 >
-                  READINESS: {{ profile().strategicSignals.marketReadiness }}%
+                  DECLARED: {{ profile().strategicSignals.marketReadiness }}%
                 </span>
               </div>
             </div>
+
+            <p class="text-[9px] text-slate-500 leading-relaxed mb-6">
+              Computed from your questionnaire answers. These are declared
+              profile signals, not measured market data.
+            </p>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
               <div class="h-64 flex items-center justify-center">
@@ -577,12 +605,15 @@
           <div
             class="col-span-12 lg:col-span-6 glass-v42 shadow-v42-xl rounded-2xl md:rounded-3xl p-6 border glass-v42 shadow-v42-xl border-white/10"
           >
-            <div class="flex items-center gap-3 mb-6 text-accent-magenta">
+            <div class="flex items-center gap-3 mb-4 text-accent-magenta">
               <span class="material-symbols-outlined">gavel</span>
               <h3 class="text-sm font-bold text-white uppercase">
                 Legal & Rights
               </h3>
             </div>
+            <p class="text-[9px] text-slate-500 leading-relaxed mb-4">
+              Draft split sheets for discussion; this is not legal advice.
+            </p>
             <div class="space-y-3">
               @for (split of financials().splitSheets ?? []; track split.id) {
                 <div class="rounded-xl bg-white/5 border border-white/5">
@@ -779,28 +810,31 @@
   </div>
 </div>
 
-<!-- Scrolling Activity Feed Marquee - Hidden on small mobile to save vertical space -->
+<!-- Local record summary — no invented system status. -->
 <footer
   class="h-8 obsidian-bg border-t border-slate-800 hidden sm:flex items-center overflow-hidden whitespace-nowrap shrink-0"
 >
   <div class="flex animate-marquee items-center gap-10">
     <span class="text-[10px] font-black text-slate-500 flex items-center gap-2">
-      <span class="size-1.5 bg-green-500 rounded-full animate-ping"></span>
-      SYSTEM CORE: 100% OPERATIONAL
+      <span class="size-1.5 bg-brand-primary rounded-full"></span>
+      PITCHES: {{ pitchCounts().all }} TRACKED
     </span>
     <span class="text-[10px] font-black text-slate-500 flex items-center gap-2">
-      <span class="size-1.5 bg-accent-magenta rounded-full"></span> NEURAL LINK:
-      v4_EXTREME_SYNC_ESTABLISHED
+      <span class="size-1.5 bg-brand-primary rounded-full"></span> ROOMS:
+      {{ venues().length }} TRACKED
     </span>
     <span class="text-[10px] font-black text-slate-500 flex items-center gap-2">
-      <span class="size-1.5 bg-brand-primary rounded-full"></span> MARKET
-      VOLATILITY: NEGLIGIBLE
+      <span class="size-1.5 bg-brand-primary rounded-full"></span> AUDITS:
+      {{ profile().auditHistory?.length || 0 }} LOGGED
+    </span>
+    <span class="text-[10px] font-black text-slate-500 flex items-center gap-2">
+      <span class="size-1.5 bg-brand-primary rounded-full"></span> REVENUE
+      RECORDED: {{ formatMoney(trackedRevenue()) }}
     </span>
     <span
       class="text-[10px] font-black text-slate-400 flex items-center gap-2 uppercase"
     >
-      PROTOCOL EXTREME: ACTIVATED • ENCRYPTED UPLINK SECURE • BYPASSING
-      TRADITIONAL SYNAPSE LIMITS
+      EXTERNAL SYNC: NOT CONNECTED
     </span>
   </div>
 </footer>
