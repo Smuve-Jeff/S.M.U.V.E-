@@ -91,6 +91,7 @@ import { SmartSoundService } from "./smart-sound.service";
 import { AudioRepairComponent } from "./audio-repair/audio-repair.component";
 import { AudioImportService } from "./audio-import.service";
 import { SmartProductionFoundationsService } from "./smart-production-foundations.service";
+import type { SmartProductionCapability } from "./smart-production-foundations.service";
 import { ComponentRecordingService } from "./component-recording.service";
 import { SoundBrowserComponent } from "./sound-browser/sound-browser.component";
 import { SynthesizerComponent } from "./synthesizer/synthesizer.component";
@@ -684,6 +685,15 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   importDetectedBpm = computed<number | null>(
     () => this.audioImport.selectedAudio()?.detectedBpm ?? null,
   );
+
+  /** Text for a Smart Production badge; BPM shows the value measured on import. */
+  smartProductionDetail(cap: SmartProductionCapability): string {
+    if (cap.feature === "bpmDetection") {
+      const detected = this.importDetectedBpm();
+      if (detected) return `~${Math.round(detected)} BPM`;
+    }
+    return "Ready";
+  }
   showComponentRecording = signal(false);
   showStudioInsights = signal(false);
   showProjectMenu = signal(false);

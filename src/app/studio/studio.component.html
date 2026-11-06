@@ -3251,7 +3251,7 @@
               *ngIf="cap.status === 'ready'"
               class="comp-import-smart-ready"
               [title]="cap.reason"
-              >Ready</span
+              >{{ smartProductionDetail(cap) }}</span
             >
             <span *ngIf="cap.status !== 'ready'" class="comp-import-smart-disabled" [title]="cap.reason">
               {{ cap.reason }}

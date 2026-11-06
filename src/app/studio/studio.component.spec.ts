@@ -2120,6 +2120,18 @@ describe("StudioComponent", () => {
         "No tempo was detected in this file",
       );
     });
+
+    it("shows the measured tempo where the badge used to just say Ready", () => {
+      const cap = (feature: string) =>
+        component.smartProduction.capabilities().find((c) => c.feature === feature)!;
+
+      expect(component.smartProductionDetail(cap("bpmDetection"))).toBe("Ready");
+
+      selected.set({ detectedBpm: 96.4 });
+      expect(component.smartProductionDetail(cap("bpmDetection"))).toBe("~96 BPM");
+
+      expect(component.smartProductionDetail(cap("stemSeparation"))).toBe("Ready");
+    });
   });
 
   describe("recording source panel", () => {
