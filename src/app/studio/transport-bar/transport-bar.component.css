@@ -294,6 +294,16 @@
   }
 }
 
+@media (max-width: 480px) {
+  /* The idle target chip costs ~123px. On a 390px phone that pushes the loop
+     and metronome toggles past the right edge of the initial transport row.
+     The record button's own label/title still names the armed target, so drop
+     the duplicate chip here and keep the primary toggles visible. */
+  .ctb-primary-row .ctb-rec-target {
+    display: none;
+  }
+}
+
 @media (max-width: 380px) {
   .ctb-primary-row {
     gap: 4px;

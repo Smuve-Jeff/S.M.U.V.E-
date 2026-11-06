@@ -72,6 +72,26 @@
       <span class="dm-context-label">BAR</span>
       <strong>{{ currentBar() + 1 }}</strong>
     </div>
+    <button
+      type="button"
+      class="dm-metronome-toggle"
+      [class.is-on]="metronomeEnabled()"
+      (click)="toggleMetronome()"
+      [attr.aria-pressed]="metronomeEnabled()"
+      [attr.aria-label]="
+        (metronomeEnabled() ? 'Turn OFF metronome' : 'Turn ON metronome') +
+        ' — currently ' +
+        (metronomeEnabled() ? 'on' : 'off')
+      "
+      [attr.title]="
+        metronomeEnabled()
+          ? 'Metronome is ON · click to mute'
+          : 'Metronome is OFF · click to enable'
+      "
+    >
+      <span class="material-symbols-outlined" aria-hidden="true">timer</span>
+      <span class="dm-metronome-label">Click</span>
+    </button>
     <div class="dm-pattern-actions" role="group" aria-label="Pattern actions">
       <button type="button" class="dm-context-btn" (click)="copyPattern()">Copy</button>
       <button type="button" class="dm-context-btn" (click)="pastePattern()">Paste</button>

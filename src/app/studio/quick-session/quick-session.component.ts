@@ -506,6 +506,10 @@ export class QuickSessionComponent {
   }
 
   toggleMetronome(): void {
+    // Arm the AudioContext inside the tap, matching the global, Piano Roll and
+    // Drum Machine toggles. Enabling the click while stopped must not wait for
+    // a later Play gesture to make the engine usable.
+    this.audioEngine.resume();
     this.audioEngine.toggleMetronome();
     this.haptic.light();
   }

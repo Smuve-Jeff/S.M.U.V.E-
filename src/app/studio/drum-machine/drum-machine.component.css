@@ -1128,6 +1128,37 @@
   margin-left: auto;
 }
 
+/* The compact pattern context is the drum view's transport strip. Keep the
+   click toggle here so the metronome is not only reachable in the global
+   topbar, and match the state/label contract used by the other studio
+   transports. */
+.dm-metronome-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--ivory-line);
+  border-radius: 8px;
+  background: var(--ivory-paper);
+  color: var(--espresso-muted);
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.dm-metronome-toggle .material-symbols-outlined {
+  font-size: 16px;
+}
+
+.dm-metronome-toggle.is-on {
+  border-color: var(--teal-500);
+  background: var(--teal-100);
+  color: var(--teal-700);
+}
+
 .dm-context-btn {
   min-height: 36px;
   padding: 0 10px;
@@ -1273,6 +1304,12 @@
   .dm-context-btn {
     flex: 1 1 0;
     min-height: 44px;
+  }
+
+  .dm-pattern-context .dm-metronome-toggle {
+    min-width: 44px;
+    min-height: 44px;
+    justify-content: center;
   }
 
   .dm-body {
@@ -2036,6 +2073,11 @@ which pushed the sequencer 426px below the fold on a 390px phone. They are a
     padding: 0 9px;
   }
 
+  .dm-metronome-toggle {
+    min-height: 38px;
+    padding: 0 9px;
+  }
+
   /* Shorter pad tiles keep the sequencer within the first screen (the pads
      stay 4-across and tappable). */
   .dm-pads {
@@ -2077,6 +2119,32 @@ which pushed the sequencer 426px below the fold on a 390px phone. They are a
   .dm-phone-tools {
     flex: 1 1 0;
     justify-content: center;
+  }
+
+  /* The label is redundant with the tick glyph and the accessible name; at
+     this width the four-digit context row needs the 40px it frees. */
+  .dm-metronome-label {
+    display: none;
+  }
+
+  /* The channel, BPM, bar and click controls fit on one line at this width;
+     the three pattern actions do not. Wrapping them keeps every action inside
+     the viewport instead of letting Copy/Paste/Randomize run off the right
+     edge of a 390px phone. */
+  .dm-pattern-context {
+    flex-wrap: wrap;
+    row-gap: 6px;
+  }
+  .dm-pattern-actions {
+    width: 100%;
+    margin-left: 0;
+  }
+}
+
+@media (pointer: coarse) {
+  .dm-metronome-toggle {
+    min-width: 44px;
+    min-height: 44px;
   }
 }
 

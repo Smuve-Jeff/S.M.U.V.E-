@@ -299,6 +299,26 @@ describe("DrumMachineComponent", () => {
     expect(mockAudioEngine.toggleMetronome).toHaveBeenCalled();
   });
 
+  it("renders an accessible metronome toggle in the compact transport", () => {
+    mockAudioEngine.metronomeEnabled.set(false);
+    mockAudioEngine.resume.mockClear();
+    mockAudioEngine.toggleMetronome.mockClear();
+    fixture.detectChanges();
+
+    const toggle: HTMLButtonElement =
+      fixture.nativeElement.querySelector(".dm-metronome-toggle");
+    expect(toggle).toBeTruthy();
+    expect(toggle.getAttribute("aria-pressed")).toBe("false");
+    expect(toggle.getAttribute("aria-label")).toContain("Turn ON metronome");
+
+    toggle.click();
+    fixture.detectChanges();
+
+    expect(mockAudioEngine.resume).toHaveBeenCalled();
+    expect(mockAudioEngine.toggleMetronome).toHaveBeenCalled();
+    expect(toggle.getAttribute("aria-pressed")).toBe("true");
+  });
+
   it("generateEuclidean creates patterns", () => {
     const padId = component.pads()[0].id;
     component.generateEuclidean(4, 16);

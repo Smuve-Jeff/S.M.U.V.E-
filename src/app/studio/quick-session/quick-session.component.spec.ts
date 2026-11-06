@@ -21,6 +21,7 @@ describe("QuickSessionComponent", () => {
   const tempo = signal(120);
   const metronomeEnabled = signal(false);
   const playbackLoopEnabled = signal(false);
+  const resume = jest.fn();
   const togglePlay = jest.fn();
   const toggleRecord = jest.fn(async () => undefined);
   const updateMasterVolume = jest.fn();
@@ -226,6 +227,7 @@ describe("QuickSessionComponent", () => {
             tempo,
             metronomeEnabled,
             playbackLoopEnabled,
+            resume,
             toggleMetronome: jest.fn(() => metronomeEnabled.update((v) => !v)),
             togglePlaybackLoop: jest.fn(() =>
               playbackLoopEnabled.update((v) => !v),
@@ -361,6 +363,7 @@ describe("QuickSessionComponent", () => {
     expect(updateMasterVolume).toHaveBeenCalledWith(42);
     component.toggleMetronome();
     expect(metronomeEnabled()).toBe(true);
+    expect(resume).toHaveBeenCalled();
     component.toggleLoop();
     expect(playbackLoopEnabled()).toBe(true);
   });

@@ -476,6 +476,12 @@
             [class.is-on]="metronomeOn()"
             (click)="toggleMetronome()"
             [attr.aria-pressed]="metronomeOn()"
+            aria-label="Metronome"
+            [attr.title]="
+              metronomeOn()
+                ? 'Metronome is ON · click to mute'
+                : 'Metronome is OFF · click to enable'
+            "
           >
             <span class="material-symbols-outlined" aria-hidden="true">timer</span>
             Metronome
