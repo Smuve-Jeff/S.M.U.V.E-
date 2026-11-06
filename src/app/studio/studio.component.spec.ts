@@ -2058,4 +2058,78 @@ describe("StudioComponent", () => {
     );
     musicManager.tracks.set(previous);
   });
+
+  describe("import tempo controls", () => {
+    const selected = signal<any>(null);
+    const matchSelectedToProjectTempo = jest.fn(() => 1.04);
+
+    beforeEach(() => {
+      jest.clearAllMocks();
+      selected.set(null);
+      Object.assign(component.audioImport as any, {
+        selectedAudio: selected,
+        matchSelectedToProjectTempo,
+      });
+    });
+
+    it("reports the tempo detected when the file was imported", () => {
+      expect(component.importDetectedBpm()).toBeNull();
+
+      selected.set({ detectedBpm: 96 });
+
+      expect(component.importDetectedBpm()).toBe(96);
+      selected.set({ detectedBpm: null });
+      expect(component.importDetectedBpm()).toBeNull();
+    });
+
+    it("adopts the detected tempo as the source tempo and matches", () => {
+      selected.set({ detectedBpm: 96.4 });
+
+      component.useDetectedTempo();
+
+      expect(component.importSourceBpm()).toBe(96);
+      expect(matchSelectedToProjectTempo).toHaveBeenCalledWith(96);
+      expect(mockHaptic.light).toHaveBeenCalled();
+    });
+
+    it("halves and doubles a detected tempo before matching", () => {
+      selected.set({ detectedBpm: 96 });
+
+      component.adjustDetectedTempo(0.5);
+      expect(component.importSourceBpm()).toBe(48);
+      expect(matchSelectedToProjectTempo).toHaveBeenLastCalledWith(48);
+
+      component.adjustDetectedTempo(2);
+      expect(component.importSourceBpm()).toBe(192);
+      expect(matchSelectedToProjectTempo).toHaveBeenLastCalledWith(192);
+    });
+
+    it("keeps a correction inside the tempo range the engine accepts", () => {
+      selected.set({ detectedBpm: 190 });
+
+      component.adjustDetectedTempo(2);
+
+      expect(component.importSourceBpm()).toBe(300);
+    });
+
+    it("says nothing was detected instead of matching a made-up tempo", () => {
+      component.useDetectedTempo();
+
+      expect(matchSelectedToProjectTempo).not.toHaveBeenCalled();
+      expect(mockSnackbar.info).toHaveBeenCalledWith(
+        "No tempo was detected in this file",
+      );
+    });
+  });
+
+  describe("recording source panel", () => {
+    it("opens the source picker that had no entry point", () => {
+      expect(component.showComponentRecording()).toBe(false);
+
+      component.openComponentRecording();
+
+      expect(component.showComponentRecording()).toBe(true);
+      expect(mockHaptic.light).toHaveBeenCalled();
+    });
+  });
 });
