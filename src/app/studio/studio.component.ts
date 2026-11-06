@@ -672,7 +672,6 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   showArchitectureMap = signal(false);
   mobilePanel = signal<MobileStudioPanel | null>(null);
   showAiAssistant = signal(false);
-  showNeuralFoundry = signal(false);
   showAiMixAssistant = signal(false);
   showProjectMetadata = signal(false);
   showSmartRecordingPanel = signal(false);
@@ -2792,11 +2791,6 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
         true,
       );
     }
-  }
-
-  toggleNeuralFoundry() {
-    this.haptic.light();
-    this.showNeuralFoundry.update((v) => !v);
   }
 
   // ── AI Mix Assistant ─────────────────────────────────
