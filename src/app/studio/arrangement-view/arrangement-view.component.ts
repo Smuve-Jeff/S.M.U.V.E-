@@ -35,6 +35,8 @@ import {
   Stems,
 } from "../../services/stem-separation.service";
 import { SnackbarService } from "../../services/snackbar.service";
+import { StemCacheService } from "../stem-cache.service";
+import type { StemCacheEntry } from "../stem-cache.service";
 import { InteractionDialogService } from "../../services/interaction-dialog.service";
 import { LoggingService } from "../../services/logging.service";
 import { TakeManagerService } from "../../services/take-manager.service";
@@ -83,14 +85,6 @@ export type StemAuditionKey =
   | "instrumental"
   | "other";
 
-/** One file's separated stems, kept so re-opening the splitter is instant. */
-interface StemCacheEntry {
-  key: string;
-  fileName: string;
-  source: AudioBuffer;
-  stems: Stems;
-  bytes: number;
-}
 
 @Component({
   selector: "app-arrangement-view",
@@ -210,14 +204,8 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
   stemAudition = signal<StemAuditionKey | null>(null);
   private auditionSource: AudioBufferSourceNode | null = null;
   stemCached = signal(false);
-  /**
-   * Separated stems cost seconds of DSP and about 85 MB per stereo stem-minute,
-   * so keep only the newest results under a byte budget. Re-opening the
-   * splitter (or dropping the same file again) reuses them instead of
-   * re-running the separator, while a few very long files cannot pile up.
-   */
-  private readonly stemCache: StemCacheEntry[] = [];
-  private readonly stemCacheBudgetBytes = 600 * 1024 * 1024;
+  /** Studio-scoped, so switching surfaces keeps the last split. */
+  private readonly stemCache = inject(StemCacheService);
 
   readonly tracks = this.musicManager.tracks;
   /** The visible editing mode is explicit; the low-level renderer tool follows it. */
@@ -2281,7 +2269,7 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
     this.stemFileName.set(null);
     this.stemStage.set(null);
     this.stemCached.set(false);
-    const recent = this.stemCache[0];
+    const recent = this.stemCache.mostRecent;
     if (recent) this.restoreCachedStems(recent);
   }
 
@@ -2294,8 +2282,8 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
     if (!file) return;
-    const cacheKey = this.stemCacheKeyFor(file);
-    const cached = this.takeCachedStems(cacheKey);
+    const cacheKey = this.stemCache.keyFor(file);
+    const cached = this.stemCache.take(cacheKey);
     if (cached) {
       this.stopStemAudition();
       this.restoreCachedStems(cached);
@@ -2325,7 +2313,7 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
         this.stemProgress.set(10 + Math.round(update.progress * 0.85));
       });
       this.stemStems.set(stems);
-      this.rememberStems(cacheKey, file.name, audioBuffer, stems);
+      this.stemCache.remember(cacheKey, file.name, audioBuffer, stems);
       this.stemProgress.set(100);
       this.stemStage.set("Stems Ready");
       this.snackbar.show(
@@ -2394,46 +2382,6 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
     if (key === "instrumental") return stems.instrumental;
     if (key === "other") return stems.other;
     return null;
-  }
-
-  private stemCacheKeyFor(file: File): string {
-    return `${file.type}:${file.name}:${file.size}:${file.lastModified}`;
-  }
-
-  /** Oldest-first recency: a hit jumps to the front, so re-use is cheap. */
-  private takeCachedStems(key: string): StemCacheEntry | null {
-    const index = this.stemCache.findIndex((entry) => entry.key === key);
-    if (index < 0) return null;
-    const [entry] = this.stemCache.splice(index, 1);
-    this.stemCache.unshift(entry);
-    return entry;
-  }
-
-  private rememberStems(
-    key: string,
-    fileName: string,
-    source: AudioBuffer,
-    stems: Stems,
-  ): void {
-    const existing = this.stemCache.findIndex((entry) => entry.key === key);
-    if (existing >= 0) this.stemCache.splice(existing, 1);
-    const bytes =
-      this.audioBufferBytes(source) +
-      Object.values(stems).reduce(
-        (total, stem) => total + this.audioBufferBytes(stem),
-        0,
-      );
-    this.stemCache.unshift({ key, fileName, source, stems, bytes });
-    let total = this.stemCache.reduce((sum, entry) => sum + entry.bytes, 0);
-    while (total > this.stemCacheBudgetBytes && this.stemCache.length > 1) {
-      const evicted = this.stemCache.pop();
-      if (!evicted) break;
-      total -= evicted.bytes;
-    }
-  }
-
-  private audioBufferBytes(buffer: AudioBuffer): number {
-    return buffer.numberOfChannels * buffer.length * 4;
   }
 
   private restoreCachedStems(entry: StemCacheEntry): void {

@@ -2,6 +2,7 @@ import { ComponentFixture, TestBed } from "@angular/core/testing";
 import { ArrangementViewComponent } from "./arrangement-view.component";
 import { MusicManagerService } from "../../services/music-manager.service";
 import { StemSeparationService } from "../../services/stem-separation.service";
+import { StemCacheService } from "../stem-cache.service";
 import { AudioSessionService } from "../audio-session.service";
 import { AudioEngineService } from "../../services/audio-engine.service";
 import { signal } from "@angular/core";
@@ -147,6 +148,7 @@ describe("ArrangementViewComponent", () => {
     await TestBed.configureTestingModule({
       imports: [ArrangementViewComponent, CommonModule, FormsModule],
       providers: [
+        StemCacheService,
         { provide: AudioSessionService, useValue: mockAudioSession },
         { provide: TempoMapService, useValue: mockTempoMap },
         { provide: MeterMapService, useValue: mockMeterMap },
@@ -1316,7 +1318,7 @@ describe("ArrangementViewComponent", () => {
     jest
       .spyOn(TestBed.inject(StemSeparationService), "separate")
       .mockResolvedValue(stems as any);
-    (component as any).stemCacheBudgetBytes = 1;
+    (TestBed.inject(StemCacheService) as any).budgetBytes = 1;
     const file = (name: string) => {
       ctx.decodeAudioData.mockResolvedValue(make());
       return {
@@ -1330,7 +1332,7 @@ describe("ArrangementViewComponent", () => {
 
     await component.onStemFile({ target: { files: [file("a.wav")], value: "" } } as any);
     await component.onStemFile({ target: { files: [file("b.wav")], value: "" } } as any);
-    expect((component as any).stemCache).toHaveLength(1);
+    expect(TestBed.inject(StemCacheService).size).toBe(1);
 
     component.closeStemSplit();
     component.openStemSplit();

@@ -238,6 +238,7 @@ const THEME_LABEL: Record<AppTheme, string> = {
 };
 
 import { StudioFocusService } from "./shared/studio-focus.service";
+import { StemCacheService } from "./stem-cache.service";
 /**
  * Views that render their own screen. Everything else falls through the
  * `*ngSwitchDefault` body of the view switch, which is the arrangement — so the
@@ -318,6 +319,7 @@ const SELF_HOSTING_VIEWS = new Set<string>([
     AudioRepairComponent,
     ArchitectureMapComponent,
   ],
+  providers: [StemCacheService],
   templateUrl: "./studio.component.html",
   styleUrls: [
     "./studio.component.css",
