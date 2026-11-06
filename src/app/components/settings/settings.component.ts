@@ -62,6 +62,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
   private http = inject(HttpClient);
   private tokenService = inject(TokenService);
   showHowTo = signal(false);
+  outputDeviceError = signal('');
   latencyCalibrationRunning = signal(false);
   twoFactorSetup = signal<{ secret: string; qrCodeUri: string } | null>(null);
   twoFactorCode = signal('');
@@ -776,10 +777,16 @@ export class SettingsComponent implements OnInit, OnDestroy {
     await this.audioEngine.refreshOutputDevices();
   }
 
-  /** Route studio audio to a specific output sink via setSinkId
-   *  (gracefully no-ops on browsers that lack the API). */
+  /** Route studio audio to a specific output sink via setSinkId. */
   async selectOutputDevice(deviceId: string) {
-    await this.audioEngine.setOutputDevice(deviceId || '');
+    const ok = await this.audioEngine.setOutputDevice(deviceId || '');
+    this.outputDeviceError.set(
+      ok
+        ? ''
+        : this.audioEngine.supportsSinkId()
+          ? 'Could not switch audio output. The system default is still selected.'
+          : 'This browser cannot switch audio outputs; use the system default.',
+    );
   }
 
   /** Push the microphone input gain slider value into the live gain node. */

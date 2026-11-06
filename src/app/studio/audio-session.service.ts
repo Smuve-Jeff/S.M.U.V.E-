@@ -148,6 +148,8 @@ export class AudioSessionService {
   });
 
   masterVolume = signal(80);
+  /** Shared monitor mute. The engine owns the actual mute gain. */
+  readonly masterMuted = signal(false);
   micChannels = signal<MicChannel[]>([
     {
       id: "mic-1",
@@ -170,6 +172,22 @@ export class AudioSessionService {
   availableDevices = this.micService.availableDevices;
 
   constructor() {
+    // Keep the mixer fader honest when a project, profile change or AI mix
+    // moves the engine's master gain. The fader and the saved project value
+    // used to drift apart, leaving a restored 0% master invisible behind an
+    // 80% fader.
+    effect(() => {
+      const liveGain = (this.engine as any).masterGainValue?.();
+      if (typeof liveGain === 'number' && Number.isFinite(liveGain)) {
+        const percent = Math.round(liveGain * 100);
+        if (this.masterVolume() !== percent) this.masterVolume.set(percent);
+      }
+      const liveMute = (this.engine as any).masterMuted?.();
+      if (typeof liveMute === 'boolean' && this.masterMuted() !== liveMute) {
+        this.masterMuted.set(liveMute);
+      }
+    });
+
     // AudioEngineService already owns the instrument/master bus routing.
     // Connecting the master gain directly to destination here would bypass
     // the compressor, limiter, metering, and worklet chain.
@@ -562,6 +580,12 @@ export class AudioSessionService {
    */
   whenTakeSaved(): Promise<unknown> {
     return this.takeSaveInFlight ?? Promise.resolve(null);
+  }
+
+  setMasterMuted(muted: boolean): void {
+    const next = muted === true;
+    this.masterMuted.set(next);
+    this.engine.setMasterMuted(next);
   }
 
   updateMasterVolume(newVolume: number): void {

@@ -2097,7 +2097,7 @@ describe('createAudioContext', () => {
     (window as any).AudioContext = original;
   });
 
-  it('asks for interactive latency at the sample rate it opens', () => {
+  it('asks for interactive latency and lets the device choose its rate', () => {
     const constructed: any[] = [];
     (window as any).AudioContext = class {
       constructor(options: any) {
@@ -2108,20 +2108,19 @@ describe('createAudioContext', () => {
     const result = createAudioContext();
 
     expect(result.available).toBe(true);
-    // 96 kHz is the first preference; the monitoring buffer intent must travel
-    // with it instead of being left to the host default.
-    expect(constructed[0]).toEqual({
-      latencyHint: 'interactive',
-      sampleRate: 96000,
-    });
+    // The monitoring buffer intent must travel with the constructor, but the
+    // sample rate belongs to the output hardware. Forcing 96 kHz here halved
+    // the available audio-thread headroom without improving the 44.1/48 kHz
+    // exports.
+    expect(constructed[0]).toEqual({ latencyHint: 'interactive' });
   });
 
-  it('keeps the interactive hint when it falls back to default sample rate', () => {
+  it('falls back to 48 kHz when the native-rate constructor is rejected', () => {
     const constructed: any[] = [];
     (window as any).AudioContext = class {
       constructor(options?: any) {
-        if (options && options.sampleRate) {
-          throw new Error('unsupported sample rate');
+        if (!options || options.sampleRate !== 48000) {
+          throw new Error('native rate unsupported');
         }
         constructed.push(options);
       }
@@ -2130,7 +2129,9 @@ describe('createAudioContext', () => {
     const result = createAudioContext();
 
     expect(result.available).toBe(true);
-    expect(constructed).toEqual([{ latencyHint: 'interactive' }]);
+    expect(constructed).toEqual([
+      { latencyHint: 'interactive', sampleRate: 48000 },
+    ]);
   });
 });
 

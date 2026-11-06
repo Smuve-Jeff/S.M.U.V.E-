@@ -14,11 +14,7 @@ export class SettingsIntegrationService {
     effect(() => {
       const audioSettings = this.profileService.profile().settings.audio;
       if (this.audioEngine.masterGain) {
-        this.audioEngine.masterGain.gain.setTargetAtTime(
-          audioSettings.masterVolume,
-          this.audioEngine.ctx.currentTime,
-          0.1
-        );
+        this.audioEngine.setMasterOutputLevel(audioSettings.masterVolume);
       }
     });
 

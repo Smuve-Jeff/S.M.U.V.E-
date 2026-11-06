@@ -25,10 +25,13 @@ describe("MixerComponent", () => {
 
   const mockPanLaw = signal<0 | -3 | -4.5>(-3);
 
+  const masterMutedSignal = signal(false);
   const mockAudioSession = {
     isPlaying: signal(false),
     isRecording: signal(false),
     masterVolume: signal(100),
+    masterMuted: masterMutedSignal,
+    setMasterMuted: jest.fn((muted: boolean) => masterMutedSignal.set(muted)),
     togglePlay: jest.fn(),
     updateMasterVolume: jest.fn(),
     engine: {
@@ -668,13 +671,15 @@ describe("MixerComponent", () => {
     window.dispatchEvent(new Event('pointerup'));
   });
 
-  it('restores the pre-mute master level when unmuting', () => {
+  it('mutes after the fader without overwriting the saved master level', () => {
     mockAudioSession.masterVolume.set(63);
     component.toggleMasterMute();
-    expect(mockAudioSession.updateMasterVolume).toHaveBeenLastCalledWith(0);
+    expect(mockAudioSession.setMasterMuted).toHaveBeenLastCalledWith(true);
+    expect(mockAudioSession.masterVolume()).toBe(63);
     expect(component.masterMuted()).toBe(true);
     component.toggleMasterMute();
-    expect(mockAudioSession.updateMasterVolume).toHaveBeenLastCalledWith(63);
+    expect(mockAudioSession.setMasterMuted).toHaveBeenLastCalledWith(false);
+    expect(mockAudioSession.masterVolume()).toBe(63);
     expect(component.masterMuted()).toBe(false);
   });
 

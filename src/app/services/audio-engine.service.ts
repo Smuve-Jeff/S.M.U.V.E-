@@ -475,18 +475,25 @@ export function createAudioContext(): { context: AudioContext; available: boolea
   }
 
   const Ctor = AudioContextCtor as AudioContextConstructor;
-  for (const sampleRate of [96000, 48000]) {
-    try {
-      return {
-        context: new Ctor({ latencyHint: 'interactive', sampleRate }),
-        available: true,
-      };
-    } catch {
-      // Try the next rate, then the browser's default below.
-    }
+  // Use the device's native rate. A forced 96 kHz context doubled every
+  // per-sample DSP stage (the master chain is ~200 nodes) without changing the
+  // 44.1/48 kHz exports, and left only ~7% audio-thread headroom at idle on a
+  // desktop. Respecting the hardware rate also avoids resampling on Bluetooth
+  // and tablet outputs. Fall back to an explicit 48 kHz context if the default
+  // constructor is rejected.
+  try {
+    return {
+      context: new Ctor({ latencyHint: 'interactive' }),
+      available: true,
+    };
+  } catch {
+    // Try a standard monitoring rate before giving up on Web Audio.
   }
   try {
-    return { context: new Ctor({ latencyHint: 'interactive' }), available: true };
+    return {
+      context: new Ctor({ latencyHint: 'interactive', sampleRate: 48000 }),
+      available: true,
+    };
   } catch {
     return { context: createSilentAudioContext(), available: false };
   }
@@ -555,6 +562,19 @@ export class AudioEngineService {
   }
 
   public masterGain = this.ctx.createGain();
+  /**
+   * Live master-fader value, mirrored into a signal so a project restore
+   * updates the mixer fader instead of leaving it showing 80% while the engine
+   * is at a different gain.
+   */
+  public readonly masterGainValue = signal(0.8);
+  /**
+   * Monitor-only mute after the fader. The mixer mute must not write zero into
+   * `masterGain`: project autosave captures that value, which turned a
+   * temporary mute into a silent, hidden master on the next open.
+   */
+  public readonly masterMuteGain = this.ctx.createGain();
+  public readonly masterMuted = signal(false);
   public compressor = this.ctx.createDynamicsCompressor();
   public saturationNode = this.ctx.createWaveShaper();
   public limiter = this.ctx.createDynamicsCompressor();
@@ -970,6 +990,8 @@ export class AudioEngineService {
     // 100 Hz and lifted +4 dB above 1.5 kHz while the bounced file was not —
     // the mix being judged was not the mix being exported. K-weighting now
     // lives inside the shared meter, where it cannot touch the audio path.
+    this.masterGain.gain.value = this.masterGainValue();
+    this.masterMuteGain.gain.value = 1;
     this.abMatchGain.gain.value = 1;
     this.masterOutput.connect(this.abMatchGain);
     this.abMatchGain.connect(this.ctx.destination);
@@ -3214,13 +3236,22 @@ export class AudioEngineService {
     // through the splitter/merger), but defensively drop any prior edge so
     // double-init during HMR doesn't throw `InvalidAccessError`.
     try { this.masterGain.disconnect(this._preMasterGain); } catch { /* not connected */ }
-    this.masterGain.connect(this.masterWidthSplitter);
+    // Keep the mute off the saved fader: masterGain -> monitor mute -> width.
+    try { this.masterGain.disconnect(this.masterWidthSplitter); } catch { /* old direct route */ }
+    try { this.masterGain.disconnect(this.masterMuteGain); } catch { /* not connected */ }
+    this.masterGain.connect(this.masterMuteGain);
+    try { this.masterMuteGain.disconnect(this.masterWidthSplitter); } catch { /* not connected */ }
+    this.masterMuteGain.connect(this.masterWidthSplitter);
     this.masterWidthSplitter.connect(this.masterWidthMid, 0);
     this.masterWidthSplitter.connect(this.masterWidthMid, 1);
     this.masterWidthSplitter.connect(this.masterWidthSidePos, 0);
     this.masterWidthSplitter.connect(this.masterWidthSideNeg, 1);
     this.masterWidthSidePos.connect(this.masterWidthSide);
     this.masterWidthSideNeg.connect(this.masterWidthSide);
+    // The side bus previously stopped here, so the width macro and the side
+    // half of the mix were discarded. Feed both polarity trims.
+    this.masterWidthSide.connect(this.masterWidthSideL);
+    this.masterWidthSide.connect(this.masterWidthSideR);
     // L' = mid + side·width, R' = mid − side·width
     this.masterWidthMid.connect(this.masterWidthMerger, 0, 0);
     this.masterWidthSideL.connect(this.masterWidthMerger, 0, 0);
@@ -5376,7 +5407,25 @@ export class AudioEngineService {
   }
 
   setMasterOutputLevel(val: number) {
-    this.masterGain.gain.setTargetAtTime(val, this.ctx.currentTime, 0.05);
+    const safe = Number.isFinite(val) ? Math.max(0, Math.min(1, val)) : 0.8;
+    this.masterGainValue.set(safe);
+    this.masterGain.gain.setTargetAtTime(safe, this.ctx.currentTime, 0.05);
+  }
+
+  /** Monitor-only master mute. Never writes the project's saved fader gain. */
+  setMasterMuted(muted: boolean): void {
+    const next = muted === true;
+    this.masterMuted.set(next);
+    const param = this.masterMuteGain?.gain;
+    if (!param) return;
+    const now = this.ctx.currentTime;
+    try {
+      param.cancelScheduledValues(now);
+      param.setValueAtTime(param.value, now);
+      param.linearRampToValueAtTime(next ? 0 : 1, now + 0.015);
+    } catch {
+      param.value = next ? 0 : 1;
+    }
   }
 
   // ============================================================
@@ -6152,7 +6201,9 @@ export class AudioEngineService {
 
     const body = document.body;
     const onGesture = () => {
-      this.resume();
+      void this.resume().then(() => {
+        if (!this.selectedOutputDeviceId()) void this.refreshOutputDevices();
+      });
       this.userGestureSeen.set(true);
       // Clean up peer listeners safely
       ['click', 'touchstart', 'keydown'].forEach((e) =>
@@ -6173,37 +6224,86 @@ export class AudioEngineService {
   );
 
   supportsSinkId(): boolean {
+    // The route is applied to the AudioContext, so that is the API that must
+    // exist. Checking HTMLAudioElement reported support in browsers where the
+    // context itself could not switch (and the reverse), which made the output
+    // picker silently lie.
     return (
-      typeof HTMLAudioElement !== 'undefined' &&
-      'setSinkId' in HTMLAudioElement.prototype
+      this.audioAvailable &&
+      typeof (this.ctx as any)?.setSinkId === 'function'
     );
   }
 
   async setOutputDevice(deviceId: string): Promise<boolean> {
     if (!this.supportsSinkId()) return false;
+    const sinkId = deviceId || '';
     try {
-      if ('setSinkId' in this.ctx) {
-        await (this.ctx as any).setSinkId(deviceId);
-      } else {
-        return false;
+      // setSinkId on a suspended context can be rejected; this is a user
+      // gesture in every caller, so give the context a chance to start first.
+      if (this.ctx.state === 'suspended' && typeof this.ctx.resume === 'function') {
+        try {
+          await this.ctx.resume();
+        } catch {
+          /* Autoplay policy will be retried by the arm-on-gesture path. */
+        }
       }
-      this.selectedOutputDeviceId.set(deviceId);
+      await (this.ctx as any).setSinkId(sinkId);
+      const applied = (this.ctx as any).sinkId;
+      if (sinkId && applied && applied !== sinkId) {
+        throw new Error(`AudioContext did not adopt sink ${sinkId}`);
+      }
 
-      // Update friendly name
+      this.selectedOutputDeviceId.set(sinkId);
+      this.outputDeviceName.set(sinkId ? 'External Output' : 'System Default');
       if (typeof navigator !== 'undefined' && navigator.mediaDevices) {
         const devices = await navigator.mediaDevices.enumerateDevices();
         const target = devices.find(
-          (d) => d.kind === 'audiooutput' && d.deviceId === deviceId
+          (d) => d.kind === 'audiooutput' && d.deviceId === sinkId
         );
         this.outputDeviceName.set(
-          deviceId === ''
-            ? 'System Default'
-            : target?.label || 'External Output'
+          sinkId === '' ? 'System Default' : target?.label || 'External Output'
         );
       }
+      this.persistOutputDevice(sinkId);
       return true;
-    } catch {
+    } catch (error) {
+      this.logger.warn('AudioEngine: could not switch output device.', error);
+      if (sinkId) {
+        // Do not leave the UI on a dead sink. A failed non-default choice
+        // returns the context to the system default and clears the selection.
+        try {
+          await (this.ctx as any).setSinkId('');
+        } catch {
+          /* keep the failure visible through the return value */
+        }
+        this.selectedOutputDeviceId.set('');
+        this.outputDeviceName.set('System Default');
+        this.persistOutputDevice('');
+      }
       return false;
+    }
+  }
+
+  private persistOutputDevice(deviceId: string): void {
+    try {
+      if (typeof localStorage === 'undefined') return;
+      if (deviceId) {
+        localStorage.setItem('smuve_output_device_v1', deviceId);
+      } else {
+        localStorage.removeItem('smuve_output_device_v1');
+      }
+    } catch {
+      /* private mode / storage disabled */
+    }
+  }
+
+  private storedOutputDeviceId(): string {
+    try {
+      return typeof localStorage === 'undefined'
+        ? ''
+        : localStorage.getItem('smuve_output_device_v1') || '';
+    } catch {
+      return '';
     }
   }
 
@@ -6244,6 +6344,7 @@ export class AudioEngineService {
     }
     this.selectedOutputDeviceId.set('');
     this.outputDeviceName.set('System Default');
+    this.persistOutputDevice('');
   }
 
   async refreshOutputDevices(): Promise<void> {
@@ -6262,6 +6363,23 @@ export class AudioEngineService {
       ) {
         await this.releaseMissingOutputDevice();
         return;
+      }
+
+      // A sink chosen in a previous session is only useful once the context
+      // is running; applying it after the first gesture avoids a silent
+      // startup on a machine whose system default is the wrong device.
+      const stored = selected === '' ? this.storedOutputDeviceId() : '';
+      if (
+        stored &&
+        this.ctx.state === 'running' &&
+        this.supportsSinkId() &&
+        audioOutputs.some((d) => d.deviceId === stored)
+      ) {
+        await this.setOutputDevice(stored);
+        return;
+      }
+      if (stored && !audioOutputs.some((d) => d.deviceId === stored)) {
+        this.persistOutputDevice('');
       }
 
       const match = audioOutputs.find((d) => d.deviceId === selected);

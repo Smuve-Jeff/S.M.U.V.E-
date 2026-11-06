@@ -1316,7 +1316,10 @@ export class ProjectWorkspaceService {
         pluginIds: [],
         params: {},
       };
-    const gain = engine?.masterGain?.gain?.value;
+    const gain =
+      typeof engine?.masterGainValue === 'function'
+        ? engine.masterGainValue()
+        : engine?.masterGain?.gain?.value;
     return {
       gain: Number.isFinite(gain) ? Math.max(0, Math.min(1, gain)) : 0.8,
       monitorMono: engine?.monoMonitoring?.() ?? false,
@@ -1396,9 +1399,14 @@ export class ProjectWorkspaceService {
   /** Apply master gain, monitoring, tone, width, loudness targets and inserts. */
   private applyMasterState(master: ProjectMasterState): void {
     const engine = this.musicManager.engine as any;
-    if (engine?.masterGain?.gain) {
-      engine.masterGain.gain.value = Math.max(0, Math.min(1, master.gain));
+    const gain = Math.max(0, Math.min(1, master.gain));
+    if (typeof engine?.setMasterOutputLevel === 'function') {
+      engine.setMasterOutputLevel(gain);
+    } else if (engine?.masterGain?.gain) {
+      engine.masterGain.gain.value = gain;
     }
+    // A saved mute is not part of the mix; opening a project starts unmuted.
+    engine?.setMasterMuted?.(false);
     engine?.setMonoMonitoring?.(master.monitorMono === true);
     engine?.setMasterToneEq?.(master.toneEq);
     engine?.setMasterWidth?.(master.width);

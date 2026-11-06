@@ -87,7 +87,7 @@ export class MixerComponent implements OnInit, OnDestroy {
   isPlaying = this.audioSession.isPlaying;
   isRecording = this.audioSession.isRecording;
   masterVolume = this.audioSession.masterVolume;
-  masterMuted = signal(false);
+  masterMuted = this.audioSession.masterMuted;
   selectedTrackId = this.musicManager.selectedTrackId;
   tracks = this.musicManager.tracks;
 
@@ -1193,26 +1193,13 @@ export class MixerComponent implements OnInit, OnDestroy {
     );
   }
 
-  /** Master level captured when mute engaged, so unmute restores it exactly. */
-  private masterVolumeBeforeMute: number | null = null;
-
   toggleMasterMute(): void {
-    if (!this.masterMuted()) {
-      this.masterVolumeBeforeMute = this.masterVolume();
-      this.masterMuted.set(true);
-      this.audioSession.updateMasterVolume(0);
-      return;
-    }
-    // Restore the pre-mute level — `masterVolume() || 80` always unmuted at
-    // 80% because muting had just zeroed the stored value.
-    const restore = this.masterVolumeBeforeMute ?? 80;
-    this.masterVolumeBeforeMute = null;
-    this.masterMuted.set(false);
-    this.audioSession.updateMasterVolume(restore);
+    // Mute after the fader. Writing 0 into masterVolume made autosave persist
+    // a temporary mute as the project's master gain.
+    this.audioSession.setMasterMuted(!this.masterMuted());
   }
   resetMaster(): void {
-    this.masterMuted.set(false);
-    this.masterVolumeBeforeMute = null;
+    this.audioSession.setMasterMuted(false);
     this.audioSession.updateMasterVolume(80);
     this.haptic.medium();
     this.snack.info("Master reset to 80%");

@@ -357,10 +357,12 @@ export class TransportBarComponent {
     this.showOutputDeviceDropdown.set(false);
     if (deviceId) {
       this.haptic.light();
-      this.snack[ok ? "success" : "info"](
+      this.snack[ok ? "success" : "error"](
         ok
           ? "Audio routed to: " + this.audioEngine.outputDeviceName()
-          : "Audio device saved (browser lacks setSinkId support)",
+          : this.audioEngine.supportsSinkId()
+            ? "Could not switch audio output — using System Default."
+            : "This browser cannot switch audio outputs.",
       );
     }
   }

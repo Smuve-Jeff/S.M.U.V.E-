@@ -430,6 +430,9 @@
             ⚠ This browser cannot switch output sinks live — selection is
             informational only.
           </p>
+          <p class="setting-help" *ngIf="outputDeviceError()">
+            ⚠ {{ outputDeviceError() }}
+          </p>
           <p
             class="setting-help"
             *ngIf="audioEngine.outputDevices().length === 0"
