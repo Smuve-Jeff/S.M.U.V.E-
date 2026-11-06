@@ -1268,3 +1268,11 @@
     animation: none;
   }
 }
+
+@media (pointer: coarse) {
+  .qs-channel-name {
+    display: flex;
+    align-items: center;
+    min-height: 44px;
+  }
+}

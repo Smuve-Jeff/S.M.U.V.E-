@@ -218,18 +218,18 @@
                   : synthParams[stage.key] / 2) * 100
               "
             ></div>
+            <input
+              type="range"
+              orient="vertical"
+              class="synth-slider synth-slider-v"
+              [min]="0"
+              [max]="stage.key === 'sustain' ? 1 : 2"
+              step="0.01"
+              [ngModel]="synthParams[stage.key]"
+              (ngModelChange)="updateSynthParam(stage.key, $event)"
+              [attr.aria-label]="stage.label"
+            />
           </div>
-          <input
-            type="range"
-            orient="vertical"
-            class="synth-slider synth-slider-v"
-            [min]="0"
-            [max]="stage.key === 'sustain' ? 1 : 2"
-            step="0.01"
-            [ngModel]="synthParams[stage.key]"
-            (ngModelChange)="updateSynthParam(stage.key, $event)"
-            [attr.aria-label]="stage.label"
-          />
           <span class="adsr-val">
             {{
               stage.key === 'sustain'

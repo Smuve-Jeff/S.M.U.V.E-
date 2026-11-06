@@ -2814,13 +2814,14 @@ the workspace. */
 /* Per-strip insert count, A/B compare and quick-open into the Effects Rack. */
 .mix-insert-actions {
   display: flex;
+  flex-wrap: wrap;
   align-items: stretch;
   gap: 4px;
   margin: 0 6px 6px;
 }
 .mix-inserts {
   display: flex;
-  flex: 1 1 auto;
+  flex: 1 1 100%;
   align-items: center;
   justify-content: center;
   gap: 4px;
@@ -3187,5 +3188,28 @@ the workspace. */
     flex: 1 1 18px;
     width: auto;
     min-width: 0;
+  }
+}
+
+/* Tablet landscape: the three insert controls cannot share an 84px strip.
+   Wrapping keeps FX from collapsing to the 2px sliver it became at 1024. */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .mix-insert-actions {
+    flex-wrap: wrap;
+  }
+
+  .mix-inserts {
+    flex: 1 1 100%;
+    min-height: 44px;
+  }
+
+  .mix-insert-ab {
+    flex: 1 1 auto;
+    min-height: 44px;
+  }
+
+  .mix-insert-match {
+    flex: 0 0 30px;
+    min-height: 44px;
   }
 }

@@ -3935,9 +3935,13 @@ button.comp-meta-state-pill:focus-visible {
   background: transparent;
   color: var(--espresso-muted);
   cursor: pointer;
+  min-width: 44px;
+  min-height: 44px;
   padding: 0;
   line-height: 1;
   display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border-radius: 6px;
 }
 

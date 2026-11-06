@@ -754,6 +754,13 @@
   user-select: none;
 }
 
+/* The visible switch is 38x22; the whole label is the touch target. */
+@media (pointer: coarse) {
+  .toggle {
+    min-height: 44px;
+  }
+}
+
 .toggle input[type="checkbox"] {
   appearance: none;
   width: 38px;
