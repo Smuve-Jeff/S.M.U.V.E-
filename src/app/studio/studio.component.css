@@ -3143,6 +3143,17 @@ button.comp-meta-state-pill:focus-visible {
   font-size: 10px;
   white-space: nowrap;
 }
+/* Sits beside a label and a value, so it must never be squeezed into a
+   vertical stack of letters by the row's flex layout. */
+.comp-import-slider-row .comp-import-detected-btn {
+  flex: 0 0 auto;
+  min-width: 46px;
+  padding: 0 10px;
+  white-space: nowrap;
+  overflow-wrap: normal;
+  word-break: keep-all;
+  writing-mode: horizontal-tb;
+}
 .comp-import-slider-row {
   display: flex;
   align-items: center;
