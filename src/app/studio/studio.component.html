@@ -1105,6 +1105,7 @@
           </div>
           <div class="comp-arrangement-main">
             <app-arrangement-view
+              [class.gate-active]="isBeginnerMode()"
               (requestViewChange)="onWizardNavigate($event)"
               (openBezierEditor)="toggleBezierEditor($event)"
             ></app-arrangement-view>

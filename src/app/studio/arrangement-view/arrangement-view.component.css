@@ -1990,7 +1990,7 @@
 /* Landscape phone Arrangement header: the controls are wider than the phone,
    but hiding the scrollbar made the edit modes and snap controls look absent.
    Keep the compact one-row rail and expose a thin scrollbar as the cue. */
-@media (max-width: 932px) and (orientation: landscape) {
+@media (max-width: 932px) {
   .playlist-header {
     scrollbar-width: thin;
     scrollbar-color: rgba(19, 123, 115, 0.65) transparent;
@@ -2037,5 +2037,14 @@
     height: 44px;
     min-height: 44px;
     padding: 0;
+  }
+}
+
+/* The beginner gate already says the timeline is in guided mode. Its mode
+   strip duplicates that and costs the last lane row 28px on a landscape
+   phone, where the gate must also have a row. */
+@media (max-width: 932px) and (orientation: landscape) {
+  :host(.gate-active) .arrangement-mode-status {
+    display: none;
   }
 }

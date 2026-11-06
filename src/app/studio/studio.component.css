@@ -5213,7 +5213,7 @@ button.comp-meta-state-pill:focus-visible {
    Keep the Guided Start action at the 44px touch floor and drop the copy. */
 @media (max-width: 932px) and (orientation: landscape) {
   .comp-gate-return {
-    margin: 4px 8px 0;
+    margin: 0 8px 0;
     padding: 0;
     max-width: calc(100% - 16px);
     min-height: 0;

@@ -11,6 +11,7 @@ probes=(
   dj-carousel-check
   overhang-check
   beginner-strip-check
+  arrangement-phone-check
 )
 
 failed=0

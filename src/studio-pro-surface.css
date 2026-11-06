@@ -742,13 +742,22 @@ body .comp-shell .playlist-container .playlist-header .mini-btn {
     gap: 6px;
     overflow-x: auto;
     overflow-y: hidden;
-    padding: 6px 8px;
-    scrollbar-width: none;
+    padding: 6px 8px 8px;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(19, 123, 115, 0.65) transparent;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior-x: contain;
   }
   body .comp-shell .playlist-header::-webkit-scrollbar {
-    display: none;
+    display: block;
+    height: 6px;
+  }
+  body .comp-shell .playlist-header::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  body .comp-shell .playlist-header::-webkit-scrollbar-thumb {
+    background: rgba(19, 123, 115, 0.55);
+    border-radius: 999px;
   }
   body .comp-shell .playlist-header > * {
     flex: 0 0 auto;
