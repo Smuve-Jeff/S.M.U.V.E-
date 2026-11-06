@@ -1,6 +1,7 @@
 import { ComponentFixture, TestBed } from "@angular/core/testing";
 import { ArrangementViewComponent } from "./arrangement-view.component";
 import { MusicManagerService } from "../../services/music-manager.service";
+import { StemSeparationService } from "../../services/stem-separation.service";
 import { AudioSessionService } from "../audio-session.service";
 import { AudioEngineService } from "../../services/audio-engine.service";
 import { signal } from "@angular/core";
@@ -1251,6 +1252,89 @@ describe("ArrangementViewComponent", () => {
     expect(source.stop).toHaveBeenCalled();
     expect(source.disconnect).toHaveBeenCalled();
     expect(component.stemAudition()).toBeNull();
+  });
+
+
+
+  it("reuses a file's cached stems instead of separating it twice", async () => {
+    const make = () =>
+      new AudioBuffer({ length: 100, sampleRate: 44100, numberOfChannels: 1 });
+    const source = make();
+    const stems = {
+      vocals: make(),
+      drums: make(),
+      bass: make(),
+      instrumental: make(),
+      other: make(),
+    };
+    const ctx = {
+      state: "running",
+      decodeAudioData: jest.fn().mockResolvedValue(source),
+    };
+    (TestBed.inject(MusicManagerService) as any).engine.ctx = ctx;
+    const separate = jest
+      .spyOn(TestBed.inject(StemSeparationService), "separate")
+      .mockResolvedValue(stems as any);
+    const file: any = {
+      name: "cached.wav",
+      size: 4096,
+      lastModified: 1234,
+      type: "audio/wav",
+      arrayBuffer: jest.fn().mockResolvedValue(new ArrayBuffer(16)),
+    };
+
+    await component.onStemFile({ target: { files: [file], value: "" } } as any);
+    expect(separate).toHaveBeenCalledTimes(1);
+    expect(component.stemStems()).toBe(stems);
+
+    component.closeStemSplit();
+    component.openStemSplit();
+    expect(component.stemStems()).toBe(stems);
+    expect(component.stemCached()).toBe(true);
+
+    await component.onStemFile({ target: { files: [file], value: "" } } as any);
+    expect(separate).toHaveBeenCalledTimes(1);
+    expect(ctx.decodeAudioData).toHaveBeenCalledTimes(1);
+    expect(component.stemStems()).toBe(stems);
+    expect(mockSnackbar.show).toHaveBeenCalledWith(
+      expect.stringContaining("restored from cache"),
+    );
+  });
+
+  it("evicts old cached stems when the budget no longer fits", async () => {
+    const make = () =>
+      new AudioBuffer({ length: 100, sampleRate: 44100, numberOfChannels: 1 });
+    const stems = {
+      vocals: make(),
+      drums: make(),
+      bass: make(),
+      instrumental: make(),
+      other: make(),
+    };
+    const ctx = { state: "running", decodeAudioData: jest.fn() };
+    (TestBed.inject(MusicManagerService) as any).engine.ctx = ctx;
+    jest
+      .spyOn(TestBed.inject(StemSeparationService), "separate")
+      .mockResolvedValue(stems as any);
+    (component as any).stemCacheBudgetBytes = 1;
+    const file = (name: string) => {
+      ctx.decodeAudioData.mockResolvedValue(make());
+      return {
+        name,
+        size: 4096,
+        lastModified: 1,
+        type: "audio/wav",
+        arrayBuffer: jest.fn().mockResolvedValue(new ArrayBuffer(16)),
+      } as any;
+    };
+
+    await component.onStemFile({ target: { files: [file("a.wav")], value: "" } } as any);
+    await component.onStemFile({ target: { files: [file("b.wav")], value: "" } } as any);
+    expect((component as any).stemCache).toHaveLength(1);
+
+    component.closeStemSplit();
+    component.openStemSplit();
+    expect(component.stemFileName()).toBe("b.wav");
   });
 
 

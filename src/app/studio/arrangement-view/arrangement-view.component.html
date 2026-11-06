@@ -911,6 +911,7 @@
         <span class="material-symbols-outlined">upload</span>
         <span class="stem-drop-label">
           {{ stemFileName() ? stemFileName() : 'Drop or browse audio file' }}
+          <span class="stem-cached-badge" *ngIf="stemCached()">cached</span>
         </span>
         <input
           type="file"

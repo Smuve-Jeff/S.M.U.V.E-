@@ -2777,6 +2777,19 @@ input[type='range'] {
   font-family: var(--font-mono, monospace);
   font-size: 12px;
 }
+.stem-cached-badge {
+  margin-left: 8px;
+  padding: 2px 7px;
+  border: 1px solid rgba(0, 229, 255, 0.4);
+  border-radius: 999px;
+  background: rgba(0, 229, 255, 0.14);
+  color: var(--teal-500, #00e5ff);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  vertical-align: middle;
+}
 .stem-progress {
   width: 100%;
   height: 14px;

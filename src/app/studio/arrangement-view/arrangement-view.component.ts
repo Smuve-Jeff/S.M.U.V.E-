@@ -83,6 +83,15 @@ export type StemAuditionKey =
   | "instrumental"
   | "other";
 
+/** One file's separated stems, kept so re-opening the splitter is instant. */
+interface StemCacheEntry {
+  key: string;
+  fileName: string;
+  source: AudioBuffer;
+  stems: Stems;
+  bytes: number;
+}
+
 @Component({
   selector: "app-arrangement-view",
   standalone: true,
@@ -200,6 +209,15 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
   /** Which source is sounding right now: the upload or one stem. */
   stemAudition = signal<StemAuditionKey | null>(null);
   private auditionSource: AudioBufferSourceNode | null = null;
+  stemCached = signal(false);
+  /**
+   * Separated stems cost seconds of DSP and about 85 MB per stereo stem-minute,
+   * so keep only the newest results under a byte budget. Re-opening the
+   * splitter (or dropping the same file again) reuses them instead of
+   * re-running the separator, while a few very long files cannot pile up.
+   */
+  private readonly stemCache: StemCacheEntry[] = [];
+  private readonly stemCacheBudgetBytes = 600 * 1024 * 1024;
 
   readonly tracks = this.musicManager.tracks;
   /** The visible editing mode is explicit; the low-level renderer tool follows it. */
@@ -2262,6 +2280,9 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
     this.stemSourceBuffer.set(null);
     this.stemFileName.set(null);
     this.stemStage.set(null);
+    this.stemCached.set(false);
+    const recent = this.stemCache[0];
+    if (recent) this.restoreCachedStems(recent);
   }
 
   closeStemSplit(): void {
@@ -2273,9 +2294,21 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
     if (!file) return;
+    const cacheKey = this.stemCacheKeyFor(file);
+    const cached = this.takeCachedStems(cacheKey);
+    if (cached) {
+      this.stopStemAudition();
+      this.restoreCachedStems(cached);
+      this.snackbar.show(
+        "🎚 Stem Split · " + file.name + " restored from cache",
+      );
+      input.value = "";
+      return;
+    }
     this.stopStemAudition();
     this.stemStems.set(null);
     this.stemSourceBuffer.set(null);
+    this.stemCached.set(false);
     this.stemBusy.set(true);
     this.stemFileName.set(file.name);
     this.stemProgress.set(15);
@@ -2292,9 +2325,12 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
         this.stemProgress.set(10 + Math.round(update.progress * 0.85));
       });
       this.stemStems.set(stems);
+      this.rememberStems(cacheKey, file.name, audioBuffer, stems);
       this.stemProgress.set(100);
       this.stemStage.set("Stems Ready");
-      this.snackbar.show("🎚 Stem Split · 4 stems ready");
+      this.snackbar.show(
+        `🎚 Stem Split · ${Object.keys(stems).length} stems ready`,
+      );
     } catch (err: any) {
       console.error("Stem split failed", err);
       this.snackbar.show(
@@ -2360,12 +2396,63 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
     return null;
   }
 
+  private stemCacheKeyFor(file: File): string {
+    return `${file.type}:${file.name}:${file.size}:${file.lastModified}`;
+  }
+
+  /** Oldest-first recency: a hit jumps to the front, so re-use is cheap. */
+  private takeCachedStems(key: string): StemCacheEntry | null {
+    const index = this.stemCache.findIndex((entry) => entry.key === key);
+    if (index < 0) return null;
+    const [entry] = this.stemCache.splice(index, 1);
+    this.stemCache.unshift(entry);
+    return entry;
+  }
+
+  private rememberStems(
+    key: string,
+    fileName: string,
+    source: AudioBuffer,
+    stems: Stems,
+  ): void {
+    const existing = this.stemCache.findIndex((entry) => entry.key === key);
+    if (existing >= 0) this.stemCache.splice(existing, 1);
+    const bytes =
+      this.audioBufferBytes(source) +
+      Object.values(stems).reduce(
+        (total, stem) => total + this.audioBufferBytes(stem),
+        0,
+      );
+    this.stemCache.unshift({ key, fileName, source, stems, bytes });
+    let total = this.stemCache.reduce((sum, entry) => sum + entry.bytes, 0);
+    while (total > this.stemCacheBudgetBytes && this.stemCache.length > 1) {
+      const evicted = this.stemCache.pop();
+      if (!evicted) break;
+      total -= evicted.bytes;
+    }
+  }
+
+  private audioBufferBytes(buffer: AudioBuffer): number {
+    return buffer.numberOfChannels * buffer.length * 4;
+  }
+
+  private restoreCachedStems(entry: StemCacheEntry): void {
+    this.stemFileName.set(entry.fileName);
+    this.stemSourceBuffer.set(entry.source);
+    this.stemStems.set(entry.stems);
+    this.stemProgress.set(100);
+    this.stemStage.set("Cached · Stems Ready");
+    this.stemCached.set(true);
+  }
+
   applyStems(): void {
     const stems = this.stemStems();
     if (!stems) return;
     this.stopStemAudition();
     this.musicManager.addStemsAsAudioTracks(stems as any);
-    this.snackbar.show("🎚 4 Stem Tracks added");
+    this.snackbar.show(
+      `🎚 ${Object.keys(stems).length} Stem Tracks added`,
+    );
     this.closeStemSplit();
   }
 
