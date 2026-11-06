@@ -1,0 +1,286 @@
+{
+  "generatedAt": "2026-11-06T09:27:16.119Z",
+  "note": "Bundled factory samples. Regenerate with node scripts/fetch-factory-samples.mjs.",
+  "files": [
+    {
+      "source": "https://tonejs.github.io/audio/salamander/C4.mp3",
+      "local": "assets/samples/factory/audio-salamander-c4.mp3",
+      "bytes": 78718,
+      "sha256": "689eaa4c2fd7f29a2cc0e386eec462156d523a87d701269e5e2458e66056f4f6",
+      "attribution": "Salamander Grand Piano by Alexander Holm (CC BY 3.0), Tone.js audio examples."
+    },
+    {
+      "source": "https://danigb.github.io/samples/splendid-grand-piano/PP-C4.m4a",
+      "local": "assets/samples/factory/samples-splendid-grand-piano-pp-c4.m4a",
+      "bytes": 68158,
+      "sha256": "6da3db3c033fc404036bd83241a8626b81fcc73159c48b36a64b7fcadbd52d76",
+      "attribution": "Splendid Grand Piano (public domain), danigb/samples mirror."
+    },
+    {
+      "source": "https://danigb.github.io/samples/splendid-grand-piano/FF-C4.m4a",
+      "local": "assets/samples/factory/samples-splendid-grand-piano-ff-c4.m4a",
+      "bytes": 62255,
+      "sha256": "d6782379e18768eb51780e9b07e6e17302fc501ecaafb7d1e4230f1b76dfb7a2",
+      "attribution": "Splendid Grand Piano (public domain), danigb/samples mirror."
+    },
+    {
+      "source": "https://tonejs.github.io/audio/drum-samples/CR78/kick.mp3",
+      "local": "assets/samples/factory/audio-drum-samples-cr78-kick.mp3",
+      "bytes": 3338,
+      "sha256": "7300633f1deb5dde0b78fe60b99ba371f1ccf037773395e0ade56ec30d4f97db",
+      "attribution": "Tone.js audio example sample; see the Tone.js repository for provenance."
+    },
+    {
+      "source": "https://tonejs.github.io/audio/drum-samples/CR78/snare.mp3",
+      "local": "assets/samples/factory/audio-drum-samples-cr78-snare.mp3",
+      "bytes": 2556,
+      "sha256": "88756886b3c243efeb53245c0ebf801c3a70ea6076daa8ce94fcc75b3dde6e9f",
+      "attribution": "Tone.js audio example sample; see the Tone.js repository for provenance."
+    },
+    {
+      "source": "https://tonejs.github.io/audio/drum-samples/CR78/hihat.mp3",
+      "local": "assets/samples/factory/audio-drum-samples-cr78-hihat.mp3",
+      "bytes": 3339,
+      "sha256": "d58dc127a61721d11bba8854347ddc4001b2869674ca2309752fdf7cfb0cc08d",
+      "attribution": "Tone.js audio example sample; see the Tone.js repository for provenance."
+    },
+    {
+      "source": "https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/electric_guitar_clean-mp3/G3.mp3",
+      "local": "assets/samples/factory/midi-js-soundfonts-fluidr3-gm-electric-guitar-clean-mp3-g3.mp3",
+      "bytes": 20125,
+      "sha256": "43be108484110d97b825e742a6df81f8f9f7c70d05b7da0acd6321d7ecf05a98",
+      "attribution": "FluidR3 GM soundfont by Frank Wen, rendered by MIDI.js Soundfonts (CC BY 3.0)."
+    },
+    {
+      "source": "https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/string_ensemble_1-mp3/C4.mp3",
+      "local": "assets/samples/factory/midi-js-soundfonts-fluidr3-gm-string-ensemble-1-mp3-c4.mp3",
+      "bytes": 25585,
+      "sha256": "e2ca8e8308c6ab163508f351617af213923fc59d3d380148f1d0df756db109e3",
+      "attribution": "FluidR3 GM soundfont by Frank Wen, rendered by MIDI.js Soundfonts (CC BY 3.0)."
+    },
+    {
+      "source": "https://tonejs.github.io/audio/casio/A1.mp3",
+      "local": "assets/samples/factory/audio-casio-a1.mp3",
+      "bytes": 11110,
+      "sha256": "842cb406067de5e30d89cd6cbdfb29e473b275d3b0dc2a82c1cc8379c3cc876b",
+      "attribution": "Tone.js audio example sample; see the Tone.js repository for provenance."
+    },
+    {
+      "source": "https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/violin-mp3/C4.mp3",
+      "local": "assets/samples/factory/midi-js-soundfonts-fluidr3-gm-violin-mp3-c4.mp3",
+      "bytes": 25585,
+      "sha256": "65b06ce5993748a3666704f4fee56661989ef225dc5394d0198be8bfa6f1d9f5",
+      "attribution": "FluidR3 GM soundfont by Frank Wen, rendered by MIDI.js Soundfonts (CC BY 3.0)."
+    },
+    {
+      "source": "https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/trumpet-mp3/C4.mp3",
+      "local": "assets/samples/factory/midi-js-soundfonts-fluidr3-gm-trumpet-mp3-c4.mp3",
+      "bytes": 25351,
+      "sha256": "d8741f42a2d514dbbf80aff2550dac4d1282901c4b215dcc18c020c64ca4d6d5",
+      "attribution": "FluidR3 GM soundfont by Frank Wen, rendered by MIDI.js Soundfonts (CC BY 3.0)."
+    },
+    {
+      "source": "https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/trombone-mp3/C3.mp3",
+      "local": "assets/samples/factory/midi-js-soundfonts-fluidr3-gm-trombone-mp3-c3.mp3",
+      "bytes": 22725,
+      "sha256": "dc8a0630b54398bada7c75c19b757101b67d74ce5abd3edb984841c7ee866ec4",
+      "attribution": "FluidR3 GM soundfont by Frank Wen, rendered by MIDI.js Soundfonts (CC BY 3.0)."
+    },
+    {
+      "source": "https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/french_horn-mp3/C3.mp3",
+      "local": "assets/samples/factory/midi-js-soundfonts-fluidr3-gm-french-horn-mp3-c3.mp3",
+      "bytes": 25585,
+      "sha256": "575331bb867bffd2171da869eedb8ebec7adda4de3e85bd80bc95a97c0ba01df",
+      "attribution": "FluidR3 GM soundfont by Frank Wen, rendered by MIDI.js Soundfonts (CC BY 3.0)."
+    },
+    {
+      "source": "https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/flute-mp3/C4.mp3",
+      "local": "assets/samples/factory/midi-js-soundfonts-fluidr3-gm-flute-mp3-c4.mp3",
+      "bytes": 25585,
+      "sha256": "5cd80bb51e7b11a5bba2a496af78e982dc3f1f216eb13a0c36366142190e35c9",
+      "attribution": "FluidR3 GM soundfont by Frank Wen, rendered by MIDI.js Soundfonts (CC BY 3.0)."
+    },
+    {
+      "source": "https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/clarinet-mp3/C4.mp3",
+      "local": "assets/samples/factory/midi-js-soundfonts-fluidr3-gm-clarinet-mp3-c4.mp3",
+      "bytes": 25585,
+      "sha256": "2e74581b76e55cdda38fe0ec03c8d8a96c05c127ef9e3c24ed0973324a2490fd",
+      "attribution": "FluidR3 GM soundfont by Frank Wen, rendered by MIDI.js Soundfonts (CC BY 3.0)."
+    },
+    {
+      "source": "https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/alto_sax-mp3/C4.mp3",
+      "local": "assets/samples/factory/midi-js-soundfonts-fluidr3-gm-alto-sax-mp3-c4.mp3",
+      "bytes": 25585,
+      "sha256": "4d3e59d0f84d21720ceee43eccda720370a7a891dfb336258cc8b2fd95c06dac",
+      "attribution": "FluidR3 GM soundfont by Frank Wen, rendered by MIDI.js Soundfonts (CC BY 3.0)."
+    },
+    {
+      "source": "https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/choir_aahs-mp3/C4.mp3",
+      "local": "assets/samples/factory/midi-js-soundfonts-fluidr3-gm-choir-aahs-mp3-c4.mp3",
+      "bytes": 25585,
+      "sha256": "9be9ef6a4f78f4de50fa08ec73a63869823a4db80e3b7b28d9b7ebad926e15a4",
+      "attribution": "FluidR3 GM soundfont by Frank Wen, rendered by MIDI.js Soundfonts (CC BY 3.0)."
+    },
+    {
+      "source": "https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/choir_aahs-mp3/C5.mp3",
+      "local": "assets/samples/factory/midi-js-soundfonts-fluidr3-gm-choir-aahs-mp3-c5.mp3",
+      "bytes": 25585,
+      "sha256": "0cfcbd1818d9e7777d772d6fdf7fe5f7e3e26eebef76f6ca4e1c0bffd70b0e52",
+      "attribution": "FluidR3 GM soundfont by Frank Wen, rendered by MIDI.js Soundfonts (CC BY 3.0)."
+    },
+    {
+      "source": "https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/church_organ-mp3/C4.mp3",
+      "local": "assets/samples/factory/midi-js-soundfonts-fluidr3-gm-church-organ-mp3-c4.mp3",
+      "bytes": 25585,
+      "sha256": "eef411f1b74cfd97ee49ec52b26c3b9cf1ada46bbd8f7399498c2e6d36ce39b7",
+      "attribution": "FluidR3 GM soundfont by Frank Wen, rendered by MIDI.js Soundfonts (CC BY 3.0)."
+    },
+    {
+      "source": "https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/sitar-mp3/C4.mp3",
+      "local": "assets/samples/factory/midi-js-soundfonts-fluidr3-gm-sitar-mp3-c4.mp3",
+      "bytes": 25585,
+      "sha256": "ad22a7b9ff8b47139c2dc7f812e0fcd51f741c3f1e23c327f0a0dd3309bb0426",
+      "attribution": "FluidR3 GM soundfont by Frank Wen, rendered by MIDI.js Soundfonts (CC BY 3.0)."
+    },
+    {
+      "source": "https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/koto-mp3/C4.mp3",
+      "local": "assets/samples/factory/midi-js-soundfonts-fluidr3-gm-koto-mp3-c4.mp3",
+      "bytes": 17031,
+      "sha256": "d03a5ed14dac4ffe035c990a9cf9a3e6d5a246c659be2a4438ffdcd492a25cb0",
+      "attribution": "FluidR3 GM soundfont by Frank Wen, rendered by MIDI.js Soundfonts (CC BY 3.0)."
+    },
+    {
+      "source": "https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/steel_drums-mp3/C4.mp3",
+      "local": "assets/samples/factory/midi-js-soundfonts-fluidr3-gm-steel-drums-mp3-c4.mp3",
+      "bytes": 15393,
+      "sha256": "4a50a6d12f67c1030f38f7f8e67e928bb48d41fe827b56c48d143b62d4c29572",
+      "attribution": "FluidR3 GM soundfont by Frank Wen, rendered by MIDI.js Soundfonts (CC BY 3.0)."
+    },
+    {
+      "source": "https://danigb.github.io/samples/sample-pi/drums/one-shots/kick/bd_808.m4a",
+      "local": "assets/samples/factory/samples-sample-pi-drums-one-shots-kick-bd-808.m4a",
+      "bytes": 9372,
+      "sha256": "c92a3ea175e107156ee84ef8b31fa0037879c0878f15ba1eb079fb8b660742d6",
+      "attribution": "Sample Pi one-shots (CC0)."
+    },
+    {
+      "source": "https://danigb.github.io/samples/sample-pi/drums/one-shots/snare/elec_snare.m4a",
+      "local": "assets/samples/factory/samples-sample-pi-drums-one-shots-snare-elec-snare.m4a",
+      "bytes": 7029,
+      "sha256": "c3001a6f304bfec28096094721428ecccdefada053a293073e29d21f9e5f356e",
+      "attribution": "Sample Pi one-shots (CC0)."
+    },
+    {
+      "source": "https://danigb.github.io/samples/sample-pi/drums/one-shots/cymbal/drum_cymbal_closed.m4a",
+      "local": "assets/samples/factory/samples-sample-pi-drums-one-shots-cymbal-drum-cymbal-closed.m4a",
+      "bytes": 4293,
+      "sha256": "7329d1fad3ad565fab58821c6057398b53d7fc441bef62715a2e4db904ed555b",
+      "attribution": "Sample Pi one-shots (CC0)."
+    },
+    {
+      "source": "https://danigb.github.io/samples/sample-pi/drums/one-shots/cymbal/drum_cymbal_open.m4a",
+      "local": "assets/samples/factory/samples-sample-pi-drums-one-shots-cymbal-drum-cymbal-open.m4a",
+      "bytes": 29533,
+      "sha256": "96c6c74032e2faaba39b689c1ccbbf5b41acfa641a6e3f14c517ed8400cb14f0",
+      "attribution": "Sample Pi one-shots (CC0)."
+    },
+    {
+      "source": "https://danigb.github.io/samples/sample-pi/drums/one-shots/kick/drum_bass_soft.m4a",
+      "local": "assets/samples/factory/samples-sample-pi-drums-one-shots-kick-drum-bass-soft.m4a",
+      "bytes": 9319,
+      "sha256": "1cea8e90901912e3850c8e27e6ed6bb56c51b4a036c1ec07deff435bb9f9f7da",
+      "attribution": "Sample Pi one-shots (CC0)."
+    },
+    {
+      "source": "https://danigb.github.io/samples/sample-pi/drums/one-shots/snare/drum_snare_soft.m4a",
+      "local": "assets/samples/factory/samples-sample-pi-drums-one-shots-snare-drum-snare-soft.m4a",
+      "bytes": 5888,
+      "sha256": "76fd9a1d893aa34f1e78f4b5acb120605d78f736ba1208b8f0ecdac343858193",
+      "attribution": "Sample Pi one-shots (CC0)."
+    },
+    {
+      "source": "https://danigb.github.io/samples/sample-pi/drums/one-shots/cymbal/drum_cymbal_pedal.m4a",
+      "local": "assets/samples/factory/samples-sample-pi-drums-one-shots-cymbal-drum-cymbal-pedal.m4a",
+      "bytes": 5287,
+      "sha256": "15bb0c44f4a6934fd1c0e13e52cedacb249091eedfb21985aeca080420ebfb92",
+      "attribution": "Sample Pi one-shots (CC0)."
+    },
+    {
+      "source": "https://tonejs.github.io/audio/drum-samples/acoustic-kit/kick.mp3",
+      "local": "assets/samples/factory/audio-drum-samples-acoustic-kit-kick.mp3",
+      "bytes": 6720,
+      "sha256": "80e19b98ccccb9abf9279ea183c97de2cb7078456b40ca51211552c21b4d0ac6",
+      "attribution": "Tone.js audio example sample; see the Tone.js repository for provenance."
+    },
+    {
+      "source": "https://tonejs.github.io/audio/drum-samples/acoustic-kit/snare.mp3",
+      "local": "assets/samples/factory/audio-drum-samples-acoustic-kit-snare.mp3",
+      "bytes": 6379,
+      "sha256": "77c64a0735d1affa29c649d95eeef82710616d2a0b933a100cfa0b92cf496028",
+      "attribution": "Tone.js audio example sample; see the Tone.js repository for provenance."
+    },
+    {
+      "source": "https://tonejs.github.io/audio/drum-samples/acoustic-kit/hihat.mp3",
+      "local": "assets/samples/factory/audio-drum-samples-acoustic-kit-hihat.mp3",
+      "bytes": 5030,
+      "sha256": "e060632c97f0e272fe5c0805d76adbaf30f90d57dc661a2f5e2062533c77a15e",
+      "attribution": "Tone.js audio example sample; see the Tone.js repository for provenance."
+    },
+    {
+      "source": "https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/acoustic_guitar_nylon-mp3/C4.mp3",
+      "local": "assets/samples/factory/midi-js-soundfonts-fluidr3-gm-acoustic-guitar-nylon-mp3-c4.mp3",
+      "bytes": 15809,
+      "sha256": "55c2808ac0fd3f722645f6bffe0f90313e1f3a1b325d56507639f1430b4e010a",
+      "attribution": "FluidR3 GM soundfont by Frank Wen, rendered by MIDI.js Soundfonts (CC BY 3.0)."
+    },
+    {
+      "source": "https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/acoustic_bass-mp3/C3.mp3",
+      "local": "assets/samples/factory/midi-js-soundfonts-fluidr3-gm-acoustic-bass-mp3-c3.mp3",
+      "bytes": 16485,
+      "sha256": "decea7714f2c8831cf9b3fc16f4779b63413c64317921d901c7fb52e097b88b4",
+      "attribution": "FluidR3 GM soundfont by Frank Wen, rendered by MIDI.js Soundfonts (CC BY 3.0)."
+    },
+    {
+      "source": "https://danigb.github.io/samples/vcsl/Struck%20Membranophones/Conga/Quinto_HitN_v2_rr1_Sum.m4a",
+      "local": "assets/samples/factory/samples-vcsl-struck-membranophones-conga-quinto-hitn-v2-rr1-sum.m4a",
+      "bytes": 13126,
+      "sha256": "51ef5030b747e6c28db5ac64cc3372d4a8137da992dc354195f65d101764f0fd",
+      "attribution": "Versilian Community Sample Library (CC0)."
+    },
+    {
+      "source": "https://danigb.github.io/samples/vcsl/Struck%20Membranophones/Conga/Conga_HitN_v2_rr1_Sum.m4a",
+      "local": "assets/samples/factory/samples-vcsl-struck-membranophones-conga-conga-hitn-v2-rr1-sum.m4a",
+      "bytes": 13374,
+      "sha256": "8289045499e1be2d3eed9c02d40e66d3113f4ef88f077d178a59c39a42fab4c8",
+      "attribution": "Versilian Community Sample Library (CC0)."
+    },
+    {
+      "source": "https://danigb.github.io/samples/vcsl/Struck%20Membranophones/Conga/Tumba_HitN_v2_rr1_Sum.m4a",
+      "local": "assets/samples/factory/samples-vcsl-struck-membranophones-conga-tumba-hitn-v2-rr1-sum.m4a",
+      "bytes": 14157,
+      "sha256": "9cbf2df4045eb98ee3b3771dc5a5d82856c77b82fa75c6d322f24d5e1232d290",
+      "attribution": "Versilian Community Sample Library (CC0)."
+    },
+    {
+      "source": "https://tonejs.github.io/audio/salamander/A1.mp3",
+      "local": "assets/samples/factory/audio-salamander-a1.mp3",
+      "bytes": 115061,
+      "sha256": "17fa1e363f9fad67c3357be54a6defc4fca5a5c2aada21de84b30254f9cb2f5b",
+      "attribution": "Salamander Grand Piano by Alexander Holm (CC BY 3.0), Tone.js audio examples."
+    },
+    {
+      "source": "https://tonejs.github.io/audio/salamander/A2.mp3",
+      "local": "assets/samples/factory/audio-salamander-a2.mp3",
+      "bytes": 81678,
+      "sha256": "20601d890f44a3c22499c7b61f52e571795df1fe5a01fac553dded7b6379e1d4",
+      "attribution": "Salamander Grand Piano by Alexander Holm (CC BY 3.0), Tone.js audio examples."
+    },
+    {
+      "source": "https://tonejs.github.io/audio/salamander/A3.mp3",
+      "local": "assets/samples/factory/audio-salamander-a3.mp3",
+      "bytes": 74526,
+      "sha256": "8e108fe228e34e32f6b4e61efff732eec53058a9e6f05a8d8e719598b132c4f9",
+      "attribution": "Salamander Grand Piano by Alexander Holm (CC BY 3.0), Tone.js audio examples."
+    }
+  ]
+}

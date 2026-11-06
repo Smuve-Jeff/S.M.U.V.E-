@@ -62,6 +62,13 @@ describe("AudioRecorderViewComponent", () => {
     importAudio: jest.fn(),
   };
 
+  const latencyCompensation = signal(0);
+  const mockLatency = {
+    trimAudioBuffer: jest.fn((buffer: AudioBuffer) => buffer),
+    appliedCompensationMs: latencyCompensation.asReadonly(),
+    calibrateAndApply: jest.fn(),
+  };
+
   const mockRecordingStatus = {
     beginRecording: jest.fn(),
     endRecording: jest.fn(),
@@ -78,6 +85,7 @@ describe("AudioRecorderViewComponent", () => {
 
   beforeEach(async () => {
     jest.clearAllMocks();
+    latencyCompensation.set(0);
     await TestBed.configureTestingModule({
       imports: [AudioRecorderViewComponent],
       providers: [
@@ -86,12 +94,7 @@ describe("AudioRecorderViewComponent", () => {
         { provide: SnackbarService, useValue: mockSnackbar },
         { provide: LoggingService, useValue: mockLogger },
         { provide: AudioEngineService, useValue: mockAudioEngine },
-        {
-          provide: AudioEngineLatencyService,
-          useValue: {
-            trimAudioBuffer: jest.fn((buffer: AudioBuffer) => buffer),
-          },
-        },
+        { provide: AudioEngineLatencyService, useValue: mockLatency },
         { provide: MusicManagerService, useValue: mockMusicManager },
         { provide: InteractionDialogService, useValue: mockDialog },
         { provide: SmartRecordingService, useValue: mockSmartRecording },
@@ -107,6 +110,12 @@ describe("AudioRecorderViewComponent", () => {
 
   it("should create", () => {
     expect(component).toBeTruthy();
+  });
+
+  it("surfaces latency calibration next to the record control", () => {
+    expect(component.latencyLabel()).toContain("not calibrated");
+    latencyCompensation.set(18);
+    expect(component.latencyLabel()).toContain("18 ms");
   });
 
   it("maps dBFS input levels to a 0-100 percentage", () => {

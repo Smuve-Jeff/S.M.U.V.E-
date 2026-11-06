@@ -603,6 +603,17 @@ describe("StudioComponent", () => {
     expect(component.mobileDrawerOpen()).toBe(false);
   });
 
+  it("opens the phone drawer on six primary surfaces with the full map behind a toggle", () => {
+    expect(component.primarySurfaces().length).toBe(6);
+    expect(component.showAllDrawerTools()).toBe(false);
+
+    component.showAllDrawerTools.set(true);
+    component.selectDrawerSurface("tuner");
+
+    expect(component.activeView()).toBe("tuner");
+    expect(component.showAllDrawerTools()).toBe(false);
+  });
+
   it("exposes Stage FX ambience enabled by default", () => {
     expect(component.stageFxEnabled()).toBe(true);
   });

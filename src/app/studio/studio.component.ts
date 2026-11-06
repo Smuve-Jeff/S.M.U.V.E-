@@ -1069,6 +1069,22 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   }
   footerCollapsed = signal(false);
   mobileDrawerOpen = signal(false);
+
+  /**
+   * Phone-first progressive disclosure: the drawer opens on the six surfaces a
+   * session actually starts in, and the remaining tools stay one tap away.
+   * The desktop rail still shows every workflow stage.
+   */
+  readonly primarySurfaces = computed(() =>
+    STUDIO_SURFACES.filter((surface) => surface.primary),
+  );
+  showAllDrawerTools = signal(false);
+
+  /** Choose a surface from the phone drawer and collapse the full map again. */
+  readonly selectDrawerSurface = (id: StudioView): void => {
+    this.showAllDrawerTools.set(false);
+    this.setActiveView(id);
+  };
   /**
    * Compact-mobile tools sheet. The topbar's MORE button opens every
    * secondary command (create, mix, record, save/export, appearance, share,

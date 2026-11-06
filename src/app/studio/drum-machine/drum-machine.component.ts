@@ -51,6 +51,23 @@ interface DrumStyle {
   velocity: number;
 }
 
+/**
+ * Kit voices are authored against the eight core pads. Extra percussion lanes
+ * inherit the closest core voice of the same family, so applying a kit still
+ * re-tunes all sixteen lanes instead of leaving the new pads on defaults.
+ */
+const KIT_TYPE_PROXY: Record<string, number> = {
+  kick: 36,
+  snare: 38,
+  perc: 39,
+  hihat: 42,
+  tom: 41,
+  rim: 36,
+  ride: 49,
+  shaker: 39,
+  clave: 39,
+};
+
 @Component({
   selector: "app-drum-machine",
   standalone: true,
@@ -329,6 +346,15 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
     { name: "TOM LO", midi: 41, color: "#aa66cc", type: "tom" },
     { name: "TOM HI", midi: 43, color: "#aa66cc", type: "tom" },
     { name: "CRASH", midi: 49, color: "#ffbb33", type: "perc" },
+    // Percussion bank: the GM notes a producer reaches for after the core kit.
+    { name: "RIM", midi: 37, color: "#ff8844", type: "rim" },
+    { name: "HAT PD", midi: 44, color: "#33b5e5", type: "hihat" },
+    { name: "RIDE", midi: 51, color: "#ffbb33", type: "ride" },
+    { name: "TAMB", midi: 54, color: "#ffbb33", type: "perc" },
+    { name: "COWBELL", midi: 56, color: "#aa66cc", type: "perc" },
+    { name: "BONGO", midi: 60, color: "#aa66cc", type: "perc" },
+    { name: "MARACAS", midi: 70, color: "#44ff44", type: "shaker" },
+    { name: "CLAVE", midi: 75, color: "#44ff44", type: "clave" },
   ];
 
   // ── Pro: Drum Kit Swap ─────────────────────────────────────────
@@ -1250,9 +1276,22 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
     if (!kit) return;
     this.haptic.heavy();
     this.selectedKitId.set(kitId);
+    const kitParams = kit.params as Record<
+      number,
+      {
+        decay: number;
+        cutoff: number;
+        resonance: number;
+        saturation: number;
+        compression: number;
+      }
+    >;
     this.pads.update((ps) =>
       ps.map((p) => {
-        const k = kit.params[p.midi];
+        const proxy = KIT_TYPE_PROXY[p.type];
+        const k =
+          kitParams[p.midi] ??
+          (proxy === undefined ? undefined : kitParams[proxy]);
         if (!k) return p;
         return {
           ...p,

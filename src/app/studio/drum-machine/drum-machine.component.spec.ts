@@ -107,8 +107,22 @@ describe("DrumMachineComponent", () => {
     expect(component).toBeTruthy();
   });
 
-  it("initializes with 8 pads", () => {
-    expect(component.pads().length).toBe(8);
+  it("initializes with sixteen pads", () => {
+    expect(component.pads().length).toBe(16);
+    expect(component.pads().map((pad) => pad.midi)).toEqual(
+      expect.arrayContaining([36, 38, 39, 42, 46, 41, 43, 49, 37, 44, 51, 54, 56, 60, 70, 75]),
+    );
+  });
+
+  it("re-tunes the percussion lanes from the core voice of the same family", () => {
+    const pads = component.pads();
+    const kick = pads.find((pad) => pad.midi === 36)!;
+    const rim = pads.find((pad) => pad.midi === 37)!;
+    const ride = pads.find((pad) => pad.midi === 51)!;
+    const crash = pads.find((pad) => pad.midi === 49)!;
+
+    expect(rim.params.decay).toBe(kick.params.decay);
+    expect(ride.params.decay).toBe(crash.params.decay);
   });
 
   it("selects a pad", () => {

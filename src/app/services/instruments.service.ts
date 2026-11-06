@@ -246,15 +246,15 @@ export class InstrumentsService {
       zones: [
         {
           midiRange: [21, 108],
-          url: 'https://tonejs.github.io/audio/salamander/C4.mp3',
+          url: 'assets/samples/factory/audio-salamander-c4.mp3',
           velLayers: [
             {
               threshold: 64,
-              url: 'https://danigb.github.io/samples/splendid-grand-piano/PP-C4.m4a',
+              url: 'assets/samples/factory/samples-splendid-grand-piano-pp-c4.m4a',
             },
             {
               threshold: 127,
-              url: 'https://danigb.github.io/samples/splendid-grand-piano/FF-C4.m4a',
+              url: 'assets/samples/factory/samples-splendid-grand-piano-ff-c4.m4a',
             },
           ],
         },
@@ -270,15 +270,15 @@ export class InstrumentsService {
       zones: [
         {
           midiRange: [36, 36],
-          url: 'https://tonejs.github.io/audio/drum-samples/CR78/kick.mp3',
+          url: 'assets/samples/factory/audio-drum-samples-cr78-kick.mp3',
         },
         {
           midiRange: [38, 38],
-          url: 'https://tonejs.github.io/audio/drum-samples/CR78/snare.mp3',
+          url: 'assets/samples/factory/audio-drum-samples-cr78-snare.mp3',
         },
         {
           midiRange: [42, 42],
-          url: 'https://tonejs.github.io/audio/drum-samples/CR78/hihat.mp3',
+          url: 'assets/samples/factory/audio-drum-samples-cr78-hihat.mp3',
         },
       ],
     },
@@ -292,7 +292,7 @@ export class InstrumentsService {
       zones: [
         {
           midiRange: [40, 88],
-          url: 'https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/electric_guitar_clean-mp3/G3.mp3',
+          url: 'assets/samples/factory/midi-js-soundfonts-fluidr3-gm-electric-guitar-clean-mp3-g3.mp3',
         },
       ],
     },
@@ -306,7 +306,7 @@ export class InstrumentsService {
       zones: [
         {
           midiRange: [36, 96],
-          url: 'https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/string_ensemble_1-mp3/C4.mp3',
+          url: 'assets/samples/factory/midi-js-soundfonts-fluidr3-gm-string-ensemble-1-mp3-c4.mp3',
         },
       ],
     },
@@ -320,7 +320,7 @@ export class InstrumentsService {
       zones: [
         {
           midiRange: [28, 64],
-          url: 'https://tonejs.github.io/audio/casio/A1.mp3',
+          url: 'assets/samples/factory/audio-casio-a1.mp3',
         },
       ],
     },
@@ -334,7 +334,7 @@ export class InstrumentsService {
       zones: [
         {
           midiRange: [55, 103],
-          url: 'https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/violin-mp3/C4.mp3',
+          url: 'assets/samples/factory/midi-js-soundfonts-fluidr3-gm-violin-mp3-c4.mp3',
         },
       ],
     },
@@ -465,7 +465,7 @@ export class InstrumentsService {
       zones: [
         {
           midiRange: [55, 84],
-          url: 'https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/trumpet-mp3/C4.mp3',
+          url: 'assets/samples/factory/midi-js-soundfonts-fluidr3-gm-trumpet-mp3-c4.mp3',
         },
       ],
       articulation: { attack: 0.08, release: 0.3, tone: 0.7, character: 0.6 },
@@ -480,7 +480,7 @@ export class InstrumentsService {
       zones: [
         {
           midiRange: [36, 72],
-          url: 'https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/trombone-mp3/C3.mp3',
+          url: 'assets/samples/factory/midi-js-soundfonts-fluidr3-gm-trombone-mp3-c3.mp3',
         },
       ],
     },
@@ -494,7 +494,7 @@ export class InstrumentsService {
       zones: [
         {
           midiRange: [34, 72],
-          url: 'https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/french_horn-mp3/C3.mp3',
+          url: 'assets/samples/factory/midi-js-soundfonts-fluidr3-gm-french-horn-mp3-c3.mp3',
         },
       ],
     },
@@ -527,7 +527,7 @@ export class InstrumentsService {
       zones: [
         {
           midiRange: [60, 96],
-          url: 'https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/flute-mp3/C4.mp3',
+          url: 'assets/samples/factory/midi-js-soundfonts-fluidr3-gm-flute-mp3-c4.mp3',
         },
       ],
       articulation: { attack: 0.12, release: 0.4, tone: 0.8, character: 0.3 },
@@ -542,7 +542,7 @@ export class InstrumentsService {
       zones: [
         {
           midiRange: [50, 86],
-          url: 'https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/clarinet-mp3/C4.mp3',
+          url: 'assets/samples/factory/midi-js-soundfonts-fluidr3-gm-clarinet-mp3-c4.mp3',
         },
       ],
     },
@@ -556,7 +556,7 @@ export class InstrumentsService {
       zones: [
         {
           midiRange: [49, 81],
-          url: 'https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/alto_sax-mp3/C4.mp3',
+          url: 'assets/samples/factory/midi-js-soundfonts-fluidr3-gm-alto-sax-mp3-c4.mp3',
         },
       ],
       articulation: { attack: 0.1, release: 0.35, tone: 0.75, character: 0.7 },
@@ -572,7 +572,7 @@ export class InstrumentsService {
       zones: [
         {
           midiRange: [48, 84],
-          url: 'https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/choir_aahs-mp3/C4.mp3',
+          url: 'assets/samples/factory/midi-js-soundfonts-fluidr3-gm-choir-aahs-mp3-c4.mp3',
         },
       ],
     },
@@ -605,7 +605,7 @@ export class InstrumentsService {
       zones: [
         {
           midiRange: [55, 84],
-          url: 'https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/choir_aahs-mp3/C5.mp3',
+          url: 'assets/samples/factory/midi-js-soundfonts-fluidr3-gm-choir-aahs-mp3-c5.mp3',
         },
       ],
       synth: {
@@ -648,7 +648,7 @@ export class InstrumentsService {
       zones: [
         {
           midiRange: [36, 96],
-          url: 'https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/church_organ-mp3/C4.mp3',
+          url: 'assets/samples/factory/midi-js-soundfonts-fluidr3-gm-church-organ-mp3-c4.mp3',
         },
       ],
     },
@@ -663,7 +663,7 @@ export class InstrumentsService {
       zones: [
         {
           midiRange: [48, 84],
-          url: 'https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/sitar-mp3/C4.mp3',
+          url: 'assets/samples/factory/midi-js-soundfonts-fluidr3-gm-sitar-mp3-c4.mp3',
         },
       ],
     },
@@ -677,7 +677,7 @@ export class InstrumentsService {
       zones: [
         {
           midiRange: [55, 90],
-          url: 'https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/koto-mp3/C4.mp3',
+          url: 'assets/samples/factory/midi-js-soundfonts-fluidr3-gm-koto-mp3-c4.mp3',
         },
       ],
     },
@@ -691,7 +691,7 @@ export class InstrumentsService {
       zones: [
         {
           midiRange: [55, 84],
-          url: 'https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/steel_drums-mp3/C4.mp3',
+          url: 'assets/samples/factory/midi-js-soundfonts-fluidr3-gm-steel-drums-mp3-c4.mp3',
         },
       ],
     },
@@ -706,19 +706,19 @@ export class InstrumentsService {
       zones: [
         {
           midiRange: [36, 36],
-          url: 'https://danigb.github.io/samples/sample-pi/drums/one-shots/kick/bd_808.m4a',
+          url: 'assets/samples/factory/samples-sample-pi-drums-one-shots-kick-bd-808.m4a',
         },
         {
           midiRange: [38, 38],
-          url: 'https://danigb.github.io/samples/sample-pi/drums/one-shots/snare/elec_snare.m4a',
+          url: 'assets/samples/factory/samples-sample-pi-drums-one-shots-snare-elec-snare.m4a',
         },
         {
           midiRange: [42, 42],
-          url: 'https://danigb.github.io/samples/sample-pi/drums/one-shots/cymbal/drum_cymbal_closed.m4a',
+          url: 'assets/samples/factory/samples-sample-pi-drums-one-shots-cymbal-drum-cymbal-closed.m4a',
         },
         {
           midiRange: [46, 46],
-          url: 'https://danigb.github.io/samples/sample-pi/drums/one-shots/cymbal/drum_cymbal_open.m4a',
+          url: 'assets/samples/factory/samples-sample-pi-drums-one-shots-cymbal-drum-cymbal-open.m4a',
         },
       ],
     },
@@ -732,15 +732,15 @@ export class InstrumentsService {
       zones: [
         {
           midiRange: [36, 36],
-          url: 'https://danigb.github.io/samples/sample-pi/drums/one-shots/kick/drum_bass_soft.m4a',
+          url: 'assets/samples/factory/samples-sample-pi-drums-one-shots-kick-drum-bass-soft.m4a',
         },
         {
           midiRange: [38, 38],
-          url: 'https://danigb.github.io/samples/sample-pi/drums/one-shots/snare/drum_snare_soft.m4a',
+          url: 'assets/samples/factory/samples-sample-pi-drums-one-shots-snare-drum-snare-soft.m4a',
         },
         {
           midiRange: [42, 42],
-          url: 'https://danigb.github.io/samples/sample-pi/drums/one-shots/cymbal/drum_cymbal_pedal.m4a',
+          url: 'assets/samples/factory/samples-sample-pi-drums-one-shots-cymbal-drum-cymbal-pedal.m4a',
         },
       ],
     },
@@ -754,15 +754,15 @@ export class InstrumentsService {
       zones: [
         {
           midiRange: [36, 36],
-          url: 'https://tonejs.github.io/audio/drum-samples/acoustic-kit/kick.mp3',
+          url: 'assets/samples/factory/audio-drum-samples-acoustic-kit-kick.mp3',
         },
         {
           midiRange: [38, 38],
-          url: 'https://tonejs.github.io/audio/drum-samples/acoustic-kit/snare.mp3',
+          url: 'assets/samples/factory/audio-drum-samples-acoustic-kit-snare.mp3',
         },
         {
           midiRange: [42, 42],
-          url: 'https://tonejs.github.io/audio/drum-samples/acoustic-kit/hihat.mp3',
+          url: 'assets/samples/factory/audio-drum-samples-acoustic-kit-hihat.mp3',
         },
       ],
     },
@@ -777,7 +777,7 @@ export class InstrumentsService {
       zones: [
         {
           midiRange: [40, 80],
-          url: 'https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/acoustic_guitar_nylon-mp3/C4.mp3',
+          url: 'assets/samples/factory/midi-js-soundfonts-fluidr3-gm-acoustic-guitar-nylon-mp3-c4.mp3',
         },
       ],
       articulation: { attack: 0.15, release: 0.6, tone: 0.65, character: 0.4 },
@@ -876,7 +876,7 @@ export class InstrumentsService {
       zones: [
         {
           midiRange: [28, 55],
-          url: 'https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/acoustic_bass-mp3/C3.mp3',
+          url: 'assets/samples/factory/midi-js-soundfonts-fluidr3-gm-acoustic-bass-mp3-c3.mp3',
         },
       ],
       articulation: { attack: 0.2, release: 0.5, tone: 0.5, character: 0.6 },
@@ -892,15 +892,15 @@ export class InstrumentsService {
       zones: [
         {
           midiRange: [60, 60],
-          url: 'https://danigb.github.io/samples/vcsl/Struck%20Membranophones/Conga/Quinto_HitN_v2_rr1_Sum.m4a',
+          url: 'assets/samples/factory/samples-vcsl-struck-membranophones-conga-quinto-hitn-v2-rr1-sum.m4a',
         },
         {
           midiRange: [62, 62],
-          url: 'https://danigb.github.io/samples/vcsl/Struck%20Membranophones/Conga/Conga_HitN_v2_rr1_Sum.m4a',
+          url: 'assets/samples/factory/samples-vcsl-struck-membranophones-conga-conga-hitn-v2-rr1-sum.m4a',
         },
         {
           midiRange: [64, 64],
-          url: 'https://danigb.github.io/samples/vcsl/Struck%20Membranophones/Conga/Tumba_HitN_v2_rr1_Sum.m4a',
+          url: 'assets/samples/factory/samples-vcsl-struck-membranophones-conga-tumba-hitn-v2-rr1-sum.m4a',
         },
       ],
     },
@@ -1030,7 +1030,7 @@ export class InstrumentsService {
       zones: [
         {
           midiRange: [48, 84],
-          url: 'https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/string_ensemble_1-mp3/C4.mp3',
+          url: 'assets/samples/factory/midi-js-soundfonts-fluidr3-gm-string-ensemble-1-mp3-c4.mp3',
         },
       ],
       synth: {
@@ -1055,7 +1055,7 @@ export class InstrumentsService {
       zones: [
         {
           midiRange: [48, 84],
-          url: 'https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/choir_aahs-mp3/C4.mp3',
+          url: 'assets/samples/factory/midi-js-soundfonts-fluidr3-gm-choir-aahs-mp3-c4.mp3',
         },
       ],
       articulation: { attack: 0.5, release: 1.2, tone: 0.6, character: 0.9 },
@@ -1070,7 +1070,7 @@ export class InstrumentsService {
       zones: [
         {
           midiRange: [55, 91],
-          url: 'https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/flute-mp3/C4.mp3',
+          url: 'assets/samples/factory/midi-js-soundfonts-fluidr3-gm-flute-mp3-c4.mp3',
         },
       ],
       articulation: { attack: 0.15, release: 0.5, tone: 0.7, character: 0.5 },
@@ -1288,7 +1288,7 @@ export class InstrumentsService {
       zones: [
         {
           midiRange: [36, 96],
-          url: 'https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/violin-mp3/C4.mp3',
+          url: 'assets/samples/factory/midi-js-soundfonts-fluidr3-gm-violin-mp3-c4.mp3',
         },
       ],
       synth: {
@@ -1314,11 +1314,11 @@ export class InstrumentsService {
       zones: [
         {
           midiRange: [21, 108],
-          url: 'https://tonejs.github.io/audio/salamander/A1.mp3',
+          url: 'assets/samples/factory/audio-salamander-a1.mp3',
         },
         {
           midiRange: [21, 108],
-          url: 'https://tonejs.github.io/audio/salamander/C4.mp3',
+          url: 'assets/samples/factory/audio-salamander-c4.mp3',
         },
       ],
       articulation: { attack: 0.04, release: 0.7, tone: 0.85, character: 0.6 },
@@ -1333,7 +1333,7 @@ export class InstrumentsService {
       zones: [
         {
           midiRange: [27, 108],
-          url: 'https://tonejs.github.io/audio/salamander/C4.mp3',
+          url: 'assets/samples/factory/audio-salamander-c4.mp3',
         },
       ],
       articulation: { attack: 0.05, release: 0.8, tone: 0.8, character: 0.5 },
@@ -1348,7 +1348,7 @@ export class InstrumentsService {
       zones: [
         {
           midiRange: [21, 108],
-          url: 'https://tonejs.github.io/audio/salamander/A2.mp3',
+          url: 'assets/samples/factory/audio-salamander-a2.mp3',
         },
       ],
     },
@@ -1362,7 +1362,7 @@ export class InstrumentsService {
       zones: [
         {
           midiRange: [33, 96],
-          url: 'https://tonejs.github.io/audio/salamander/A3.mp3',
+          url: 'assets/samples/factory/audio-salamander-a3.mp3',
         },
       ],
     },
@@ -1465,7 +1465,7 @@ export class InstrumentsService {
       zones: [
         {
           midiRange: [28, 64],
-          url: 'https://tonejs.github.io/audio/casio/A1.mp3',
+          url: 'assets/samples/factory/audio-casio-a1.mp3',
         },
       ],
     },

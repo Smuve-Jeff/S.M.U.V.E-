@@ -925,6 +925,76 @@
   padding: 12px;
   gap: 4px;
   flex: 1 1 auto;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Phone-first start grid: six primary surfaces before the full tool map. */
+.comp-drawer-start {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.comp-drawer-section-title {
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.18em;
+  color: var(--espresso-muted);
+  text-transform: uppercase;
+  padding: 0 4px;
+}
+.comp-drawer-primary-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.comp-drawer-primary-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 56px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--espresso-line);
+  background: var(--ivory-deep);
+  color: var(--espresso-text);
+  font-weight: 800;
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.comp-drawer-primary-btn .material-symbols-outlined {
+  font-size: 22px;
+  color: var(--teal-600);
+}
+.comp-drawer-primary-label {
+  font-size: 11px;
+  line-height: 1.2;
+  letter-spacing: 0.02em;
+}
+.comp-drawer-primary-btn:focus-visible,
+.comp-drawer-all-toggle:focus-visible {
+  outline: 2px solid var(--teal-500);
+  outline-offset: 2px;
+}
+.comp-drawer-all-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  border-radius: 12px;
+  border: 1px dashed var(--espresso-line);
+  background: transparent;
+  color: var(--teal-700);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+}
+.comp-drawer-all-toggle .material-symbols-outlined {
+  font-size: 18px;
 }
 
 .comp-drawer-item {

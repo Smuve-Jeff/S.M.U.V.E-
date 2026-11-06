@@ -1662,8 +1662,35 @@
            bottom bar's center CREATE pill is always one thumb-tap away, and
            a second identical card only added scroll length. -->
 
+      <!-- Phone-first: six primary surfaces, then the full map on demand. -->
+      <section class="comp-drawer-start" aria-label="Start here">
+        <div class="comp-drawer-section-title">START HERE</div>
+        <div class="comp-drawer-primary-grid">
+          <button
+            *ngFor="let view of primarySurfaces()"
+            type="button"
+            class="comp-drawer-primary-btn"
+            [class.comp-drawer-active]="activeView() === view.id"
+            [title]="view.description"
+            (click)="selectDrawerSurface(view.id)"
+          >
+            <span class="material-symbols-outlined">{{ view.icon }}</span>
+            <span class="comp-drawer-primary-label">{{ view.label }}</span>
+          </button>
+        </div>
+        <button
+          type="button"
+          class="comp-drawer-all-toggle"
+          [attr.aria-expanded]="showAllDrawerTools()"
+          (click)="showAllDrawerTools.set(!showAllDrawerTools())"
+        >
+          <span class="material-symbols-outlined">{{ showAllDrawerTools() ? 'expand_less' : 'grid_view' }}</span>
+          {{ showAllDrawerTools() ? 'Hide the full tool map' : 'Browse all ' + allStudioViews().length + ' tools' }}
+        </button>
+      </section>
+
       <!-- 4 Intuitive Workflow Stages (Google Play Blueprint) -->
-      <div class="comp-drawer-categories">
+      <div class="comp-drawer-categories" *ngIf="showAllDrawerTools()">
         <div
           *ngFor="let cat of studioWorkflowCategories()"
           class="comp-drawer-category-group"
@@ -1675,7 +1702,7 @@
           <div class="comp-drawer-category-grid">
             <button
               *ngFor="let view of cat.views"
-              (click)="setActiveView(view.id)"
+              (click)="selectDrawerSurface(view.id)"
               [class.comp-drawer-active]="activeView() === view.id"
               class="comp-drawer-grid-btn"
               [title]="view.description"

@@ -93,6 +93,46 @@ export class AudioRecorderViewComponent
   waveformCanvasRef!: ElementRef<HTMLCanvasElement>;
 
   recordings = signal<RecordingListEntry[]>([]);
+
+  /**
+   * Latency is the one setting that decides whether a take lands on the beat.
+   * Surface it at the record control instead of burying it in Transport.
+   */
+  readonly latencyCompensationMs = this.engineLatency.appliedCompensationMs;
+  readonly latencyLabel = computed(() =>
+    this.latencyCompensationMs() > 0
+      ? `Latency compensation ${Math.round(this.latencyCompensationMs())} ms`
+      : "Latency not calibrated",
+  );
+  readonly latencyDetail = computed(() =>
+    this.latencyCompensationMs() > 0
+      ? "Takes are placed with this offset."
+      : "Measure once so takes land on the beat. For a cable loopback, use Transport → External Connections.",
+  );
+  calibrating = signal(false);
+  readonly calibrateLatency = async (): Promise<void> => {
+    if (this.calibrating()) return;
+    this.calibrating.set(true);
+    try {
+      const result = await this.engineLatency.calibrateAndApply(1);
+      const applied = this.latencyCompensationMs();
+      if (applied > 0) {
+        this.snackbar.success(
+          `Latency measured · ${Math.round(applied)} ms compensation active`,
+        );
+      } else {
+        this.snackbar.info(
+          `Measured ${Math.round(result.recommendedCompensationMs)} ms — open Transport → External Connections to save a cable-loopback calibration.`,
+        );
+      }
+    } catch (error) {
+      this.snackbar.error(
+        error instanceof Error ? error.message : "Latency measurement failed",
+      );
+    } finally {
+      this.calibrating.set(false);
+    }
+  };
   permissionsDenied = signal(false);
   recheckingPermission = signal(false);
   /**

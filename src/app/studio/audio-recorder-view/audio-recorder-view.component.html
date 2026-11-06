@@ -216,6 +216,24 @@
     </p>
   </div>
 
+  <!-- Latency at the point of recording. A take that lands late is not a
+       performance mistake; it is an uncompensated input path. -->
+  <div class="arv-latency" role="status" aria-live="polite">
+    <span class="material-symbols-outlined" aria-hidden="true">timer</span>
+    <div class="arv-latency-copy">
+      <strong>{{ latencyLabel() }}</strong>
+      <small>{{ latencyDetail() }}</small>
+    </div>
+    <button
+      type="button"
+      class="arv-latency-action"
+      (click)="calibrateLatency()"
+      [disabled]="calibrating()"
+    >
+      {{ calibrating() ? "MEASURING…" : "MEASURE" }}
+    </button>
+  </div>
+
   <!-- WAVEFORM VISUALIZER (during recording) -->
   @if (captureState() === 'recording' || isRecording()) {
     <div class="arv-waveform" aria-hidden="true">

@@ -1983,3 +1983,56 @@
     min-height: 44px;
   }
 }
+
+/* ---------- LATENCY CALIBRATION AT THE RECORD BUTTON ---------- */
+.arv-latency {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  margin: 8px 12px;
+  border: 1px solid var(--ivory-line);
+  border-radius: 10px;
+  background: var(--ivory-paper);
+  color: var(--espresso-text);
+}
+.arv-latency > .material-symbols-outlined {
+  color: var(--teal-600);
+  font-size: 20px;
+}
+.arv-latency-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+.arv-latency-copy strong {
+  font-size: 11px;
+  letter-spacing: 0.04em;
+}
+.arv-latency-copy small {
+  font-size: 10px;
+  line-height: 1.35;
+  color: var(--espresso-muted);
+}
+.arv-latency-action {
+  min-height: 36px;
+  padding: 0 12px;
+  border-radius: 8px;
+  border: 1px solid var(--teal-500);
+  background: var(--teal-500);
+  color: var(--ivory-deep);
+  font: 800 9px/1 var(--font-mono);
+  letter-spacing: 0.08em;
+  cursor: pointer;
+}
+.arv-latency-action:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+@media (pointer: coarse) {
+  .arv-latency-action {
+    min-height: 44px;
+  }
+}
