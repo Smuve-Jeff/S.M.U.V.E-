@@ -1,4 +1,9 @@
-import { SmuveTvService, smuveTvClock } from './smuve-tv.service';
+import {
+  SMUVE_TV_CHANNELS,
+  SmuveTvService,
+  smuveTvClock,
+} from './smuve-tv.service';
+import { SMUVE_TV_ENTERTAINMENT_CHANNELS } from './smuve-tv-entertainment-catalog';
 
 describe('SmuveTvService', () => {
   let service: SmuveTvService;
@@ -40,6 +45,59 @@ describe('SmuveTvService', () => {
       // Always in channel order, because the rail is a channel guide.
       expect([...stations].sort((a, b) => a.number - b.number)).toEqual(stations);
     }
+  });
+
+  describe('iconic free-TV entertainment wave', () => {
+    it('adds 36 free movie, sitcom, comedy and classic-TV stations, with no music', () => {
+      expect(SMUVE_TV_ENTERTAINMENT_CHANNELS).toHaveLength(36);
+      expect(
+        SMUVE_TV_ENTERTAINMENT_CHANNELS.some(
+          (channel) => channel.category === 'music'
+        )
+      ).toBe(false);
+      expect(
+        new Set(
+          SMUVE_TV_ENTERTAINMENT_CHANNELS.map((channel) => channel.category)
+        )
+      ).toEqual(
+        new Set([
+          'movies',
+          'cinema',
+          'comedy',
+          'entertainment',
+          'vintage',
+          'crime',
+          'cartoons',
+        ])
+      );
+    });
+
+    it('numbers the wave in its own contiguous block and fully schedules every station', () => {
+      const numbers = SMUVE_TV_ENTERTAINMENT_CHANNELS.map(
+        (channel) => channel.number
+      );
+      expect(numbers).toEqual(Array.from({ length: 36 }, (_, index) => 174 + index));
+      expect(new Set(numbers).size).toBe(numbers.length);
+      expect(
+        new Set(SMUVE_TV_ENTERTAINMENT_CHANNELS.map((channel) => channel.id))
+          .size
+      ).toBe(36);
+
+      for (const channel of SMUVE_TV_ENTERTAINMENT_CHANNELS) {
+        expect(channel.shows).toHaveLength(4);
+        expect(channel.shows.every((entry) => entry.durationMin > 0)).toBe(true);
+        expect(
+          channel.shows.every((entry) => entry.id.startsWith(`${channel.id}-`))
+        ).toBe(true);
+      }
+    });
+
+    it('puts every wave station on the live line-up', () => {
+      for (const channel of SMUVE_TV_ENTERTAINMENT_CHANNELS) {
+        expect(SMUVE_TV_CHANNELS).toContainEqual(channel);
+        expect(service.channels).toContainEqual(channel);
+      }
+    });
   });
 
   describe('linear schedule', () => {

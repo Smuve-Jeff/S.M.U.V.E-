@@ -89,3 +89,20 @@ New premium rails: **Online co-op squad**, **Fight night**, and **Next-wave spot
 Catalog arithmetic: 815 JSON archive rows + 9 modern browser titles + 8 Poki cabinets + 52 CrazyGames cabinets + 115 next-wave titles = **999 unique runtime titles**. The compiled fallback mirror is regenerated from the JSON with `node scripts/sync-tha-spot-feed.cjs`.
 
 Verified: `npx tsc --noEmit -p tsconfig.json`; `npx jest src/app/hub --runInBand` (99 tests, 5 suites); `npm run build`; and a direct module audit confirming 115 next-wave rows, 115 unique IDs, zero retired genres, and 999 unique IDs across all five sources. `npx eslint` still reports the repository's pre-existing Prettier quote-style failures on untouched files as well as changed ones, so lint is not a clean gate in this checkout.
+
+## Legendary free-play wave (2026-11-06)
+
+Added 56 household-name titles across two premium rails. Every destination was checked over HTTP on 2026-11-06 and answered `200`. All 56 are browser-playable and free to play: no purchase, install, or subscription is required to start a game.
+
+| Rail | Titles | Launch contract |
+| --- | --- | --- |
+| Iconic browser play | 21 | Free-to-play publisher browser pages, external-only |
+| Free browser vault | 35 | Free-to-play classic and .io browser pages, external-only |
+
+**Iconic browser play (21):** Wordle, GeoGuessr, Minesweeper Online, Sudoku.com, Cookie Clicker, Happy Wheels, Hill Climb Racing, Cut the Rope, Papa's Freezeria, Angry Birds, Bad Piggies, UNO Online, Monopoly, Slope, Mahjongg Solitaire, 8 Ball Pool, Line Rider, Pokémon Showdown, TETR.IO, Surviv.io, and RuneScape.
+
+**Free browser vault (35):** Bloons TD Battles, Bloons TD 5, Papa's Pizzeria, Papa's Burgeria, Papa's Cupcakeria, Papa's Sushiria, House of Hazards, Bloxorz, Learn to Fly 2, Motherload, Interactive Buddy, Territory War, Riddle School, Jacksmith, Epic Battle Fantasy 4, Sonny, Boxhead 2Play Rooms, The Last Stand: Union City, Rebuild 2, Cursed Treasure 2, GemCraft, Desktop Tower Defense, Bubble Tanks 2, Achievement Unlocked, This is the Only Level, Portal: The Flash Version, Mope.io, Splix.io, Wormate.io, Poptropica, Habbo, AdventureQuest Worlds, DragonFable, Kingdom of Loathing, and Bubble Shooter.
+
+The paid store-only franchise rows from the first draft were removed. Both rails now use the same truthful contract: verified external destinations, no iframe claim for pages not tested for framing, and no invented live-player counts. Free-to-play means a game can be started without paying; optional cosmetics, memberships, or account upgrades on a publisher site are not required to play.
+
+Catalog arithmetic: **1,098 + 56 = 1,154** unique runtime titles. The premium allowlist and both recommendation rails are generated from `tha-spot-legendary-catalog.ts` and `tha-spot-free-vault-catalog.ts`, so the shelf, search, and room filters pick the wave up without a second data source.

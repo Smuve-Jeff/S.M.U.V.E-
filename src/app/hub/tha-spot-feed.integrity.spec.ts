@@ -5,6 +5,7 @@ import { THA_SPOT_FALLBACK_FEED } from './tha-spot-feed.fallback';
 import { CURATED_CRAZYGAMES_GAMES } from './tha-spot-crazygames-catalog';
 import { CURATED_POKI_GAMES, MODERN_BROWSER_GAMES } from './tha-spot-curated-games';
 import { GENRE_REFRESH_GAMES } from './tha-spot-genre-refresh-catalog';
+import { LEGENDARY_GAMES } from './tha-spot-legendary-catalog';
 
 const MINIMUM_EXPECTED_GAMES = 4;
 
@@ -242,6 +243,7 @@ describe('Tha Spot feed integrity', () => {
       ...CURATED_POKI_GAMES,
       ...CURATED_CRAZYGAMES_GAMES,
       ...GENRE_REFRESH_GAMES,
+      ...LEGENDARY_GAMES,
     ];
     const knownIds = new Set<string>();
     const mergedGames = [...games, ...curatedGames].filter((game) => {
@@ -253,7 +255,7 @@ describe('Tha Spot feed integrity', () => {
       ['modern-retro-bowl', 'modern-crossy-road'].includes(game.id)
     );
 
-    expect(mergedGames).toHaveLength(1098);
+    expect(mergedGames).toHaveLength(1154);
     expect(knownIds.size).toBe(mergedGames.length);
     expect(modernIcons.map((game) => game.id)).toEqual([
       'modern-retro-bowl',

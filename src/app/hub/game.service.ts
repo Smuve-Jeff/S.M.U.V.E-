@@ -18,6 +18,7 @@ import { gameArtFallback, resolveGameArt } from './game-art';
 import { REVIEWED_GAME_COVERS } from './tha-spot-game-covers';
 import { CURATED_CRAZYGAMES_GAMES } from './tha-spot-crazygames-catalog';
 import { GENRE_REFRESH_GAMES } from './tha-spot-genre-refresh-catalog';
+import { LEGENDARY_GAMES } from './tha-spot-legendary-catalog';
 import {
   PREMIUM_ACTIVE_GAME_IDS,
   PREMIUM_RECOMMENDATION_RAILS,
@@ -930,6 +931,7 @@ function mergeCuratedGames(feed: ThaSpotFeed): ThaSpotFeed {
     ...CURATED_POKI_GAMES,
     ...CURATED_CRAZYGAMES_GAMES,
     ...GENRE_REFRESH_GAMES,
+    ...LEGENDARY_GAMES,
   ].filter(
     (game) => {
       if (existingIds.has(game.id)) return false;

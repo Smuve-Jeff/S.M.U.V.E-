@@ -1,4 +1,5 @@
 import { Injectable } from '@angular/core';
+import { SMUVE_TV_ENTERTAINMENT_CHANNELS } from './smuve-tv-entertainment-catalog';
 
 /**
  * S.M.U.V.E. TV — the in-app linear broadcast network.
@@ -1430,6 +1431,14 @@ export const SMUVE_TV_CHANNELS: readonly SmuveTvChannel[] = [
       show('kw-4', 'THE WIND-DOWN', 'Gentle shapes for the end of the day', 45, 'episode'),
     ],
   },
+
+  /*
+   * The iconic free-TV entertainment wave: real operator-published FAST
+   * channels for movies, sitcoms, comedy, classic television, crime, and
+   * cartoons. It is a separate module so the original line-up stays readable
+   * and the wave can be audited as one curated shelf.
+   */
+  ...SMUVE_TV_ENTERTAINMENT_CHANNELS,
 ];
 
 /** Total minutes in one rotation of a station's schedule. */

@@ -9,9 +9,15 @@
  */
 import { MODERN_BROWSER_GAMES } from './tha-spot-curated-games';
 import { GENRE_REFRESH_GAMES } from './tha-spot-genre-refresh-catalog';
+import {
+  LEGENDARY_BROWSER_GAMES,
+  LEGENDARY_FREE_VAULT_GAMES,
+  LEGENDARY_GAMES,
+} from './tha-spot-legendary-catalog';
 
 export const PREMIUM_ACTIVE_GAME_IDS = [
   ...MODERN_BROWSER_GAMES.map((game) => game.id),
+  ...LEGENDARY_GAMES.map((game) => game.id),
   // Owned S.M.U.V.E. cabinets
   'battlefield',
   'remix-arena',
@@ -125,6 +131,22 @@ export const PREMIUM_RECOMMENDATION_RAILS = [
     subtitle: '3D arenas, racing, sandbox worlds, and precision platforming — opens on the publisher site.',
     gameIds: MODERN_BROWSER_GAMES.map((game) => game.id),
     maxItems: 9,
+  },
+  {
+    id: 'premium-iconic-browser',
+    title: 'Iconic browser play',
+    subtitle:
+      'Household-name browser games that start on the publisher page — word puzzles, geography, physics classics, and live card tables.',
+    gameIds: LEGENDARY_BROWSER_GAMES.map((game) => game.id),
+    maxItems: LEGENDARY_BROWSER_GAMES.length,
+  },
+  {
+    id: 'premium-free-browser-vault',
+    title: 'Free browser vault',
+    subtitle:
+      'Flash-era classics and .io icons — every pick is free to play and starts on the publisher page.',
+    gameIds: LEGENDARY_FREE_VAULT_GAMES.map((game) => game.id),
+    maxItems: LEGENDARY_FREE_VAULT_GAMES.length,
   },
   {
     id: 'premium-vintage-icons',
