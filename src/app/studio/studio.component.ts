@@ -3038,6 +3038,17 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     this.syncPanelFocus(".comp-rec-panel", this.showSmartRecordingPanel());
   }
 
+  /**
+   * Open the import editor and ask for files in one step.
+   *
+   * The panel only ever had a close button, so importing from the toolbar left
+   * the artist with a file in the library and no way to open its editor.
+   */
+  openImportPicker(): void {
+    this.showImportPanel.set(true);
+    void this.audioImport.importFiles();
+  }
+
   toggleImportPanel() {
     this.haptic.light();
     this.showImportPanel.update((v) => !v);

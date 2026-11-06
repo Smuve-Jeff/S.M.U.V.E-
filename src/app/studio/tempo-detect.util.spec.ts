@@ -27,6 +27,47 @@ function noisy(samples: Float32Array, amount: number): Float32Array {
   return out;
 }
 
+/** A kick/snare/hat pattern, not a metronome: real loops overlap their hits. */
+function drumLoop(bpm: number, bars = 5, sampleRate = SAMPLE_RATE): Float32Array {
+  const step = 60 / bpm / 4;
+  const data = new Float32Array(Math.floor(bars * 16 * step * sampleRate));
+  let seed = 987654321;
+  const noise = () => {
+    seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+    return (seed / 0x7fffffff) * 2 - 1;
+  };
+  const place = (stepIndex: number, seconds: number, shape: (i: number) => number) => {
+    const start = Math.floor(stepIndex * step * sampleRate);
+    const count = Math.floor(seconds * sampleRate);
+    for (let i = 0; i < count; i++) {
+      const index = start + i;
+      if (index < 0 || index >= data.length) break;
+      data[index] += shape(i);
+    }
+  };
+  for (let bar = 0; bar < bars; bar++) {
+    const base = bar * 16;
+    for (const offset of [0, 6, 10]) {
+      place(base + offset, 0.16, (i) =>
+        0.9 * Math.exp(-i / (0.07 * sampleRate)) * Math.sin((2 * Math.PI * 58 * i) / sampleRate),
+      );
+    }
+    for (const offset of [4, 12]) {
+      place(base + offset, 0.11, (i) =>
+        (0.4 * noise() + 0.35 * Math.sin((2 * Math.PI * 190 * i) / sampleRate)) *
+        Math.exp(-i / (0.045 * sampleRate)),
+      );
+    }
+    for (let offset = 0; offset < 16; offset += 2) {
+      const accent = offset % 4 === 0 ? 0.3 : 0.18;
+      place(base + offset, 0.035, (i) =>
+        accent * noise() * Math.exp(-i / (0.008 * sampleRate)),
+      );
+    }
+  }
+  return data;
+}
+
 function bufferOf(samples: Float32Array, sampleRate = SAMPLE_RATE): AudioBuffer {
   return {
     length: samples.length,
@@ -84,6 +125,21 @@ describe("detectTempo", () => {
     expect(result).not.toBeNull();
     expect(result!.bpm).toBeGreaterThanOrEqual(60);
     expect(result!.bpm).toBeLessThanOrEqual(80);
+  });
+
+  it("finds the tempo of a kick-snare pattern with eighth-note hats", () => {
+    const result = detectTempo(drumLoop(96), SAMPLE_RATE);
+    expect(result).not.toBeNull();
+    // Eighth-note hats make 96 and 192 literally the same grid, so either
+    // reading is honest; anything else means the pattern did not register.
+    expect([96, 192].some((bpm) => Math.abs(result!.bpm - bpm) <= 1)).toBe(true);
+    expect(result!.confidence).toBeGreaterThan(0.5);
+  });
+
+  it("keeps a busy pattern at its own tempo", () => {
+    const result = detectTempo(drumLoop(140), SAMPLE_RATE);
+    expect(result).not.toBeNull();
+    expect(Math.abs(result!.bpm - 140)).toBeLessThanOrEqual(1);
   });
 
   it("analyses a buffer through its first channel", () => {

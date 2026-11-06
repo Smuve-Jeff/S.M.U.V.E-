@@ -544,7 +544,7 @@
           <button
             type="button"
             class="comp-tools-sheet-btn"
-            (click)="audioImport.importFiles(); toggleMobileToolsSheet(false)"
+            (click)="openImportPicker(); toggleMobileToolsSheet(false)"
           >
             <span class="material-symbols-outlined">upload_file</span>
             <strong>Import audio</strong>
@@ -796,7 +796,7 @@
     <button
       type="button"
       class="comp-tool-btn"
-      (click)="audioImport.importFiles()"
+      (click)="openImportPicker()"
       title="Import audio files (.mp3, .wav)"
       aria-label="Import audio files"
     >

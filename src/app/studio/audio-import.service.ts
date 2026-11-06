@@ -157,6 +157,9 @@ import { detectTempoFromBuffer } from './tempo-detect.util';
 /** A phrase, not a whole song: keeps the pitch search responsive on a phone. */
 const MAX_TRANSCRIBE_SECONDS = 30;
 
+/** Below this the tempo estimate is a guess, so the editor shows nothing. */
+const TEMPO_CONFIDENCE_FLOOR = 0.35;
+
 @Injectable({ providedIn: "root" })
 export class AudioImportService {
   private fileLoader = inject(FileLoaderService);
@@ -231,6 +234,9 @@ export class AudioImportService {
                 last.duration = duration ?? 0;
                 last.sampleRate = ss?.getResidentBuffer()?.sampleRate ?? last.sampleRate;
                 last.channels = ss?.getResidentBuffer()?.numberOfChannels ?? last.channels;
+                // A long import has no buffer when the entry is built; the
+                // resident window is the first audio that can be analysed.
+                if (buffer) this.detectTempoFor(last, buffer);
               },
             });
 
@@ -289,9 +295,7 @@ export class AudioImportService {
           };
 
           // The match button needs a source tempo; estimate it instead of asking.
-          const detection = detectTempoFromBuffer(buffer, { windowSeconds: 20 });
-          imported.detectedBpm =
-            detection && detection.confidence >= 0.35 ? detection.bpm : null;
+          this.detectTempoFor(imported, buffer);
           results.push(imported);
           this.appliedEditState.set(imported.id, this.snapshot(imported));
         } catch (e) {
@@ -311,6 +315,20 @@ export class AudioImportService {
     } finally {
       this.isLoading.set(false);
     }
+  }
+
+  /**
+   * Store a tempo estimate on an entry once decodable audio exists.
+   *
+   * Entries are mutated in place because the SampleStreamer keeps a reference
+   * to them, so the signal is woken with a fresh array rather than a new object.
+   */
+  private detectTempoFor(audio: ImportedAudio, buffer: AudioBuffer | null): void {
+    if (!buffer || audio.detectedBpm != null) return;
+    const detection = detectTempoFromBuffer(buffer, { windowSeconds: 20 });
+    if (!detection || detection.confidence < TEMPO_CONFIDENCE_FLOOR) return;
+    audio.detectedBpm = detection.bpm;
+    this.importedAudio.set([...this.importedAudio()]);
   }
 
   /**

@@ -37,6 +37,10 @@ const BPM_STEP = 0.5;
 const DEFAULT_MIN_BPM = 50;
 const DEFAULT_MAX_BPM = 200;
 const DEFAULT_WINDOW_SECONDS = 12;
+/** Ties go to the tempo nearest this one: 8th hats must not read as 2x. */
+const TEMPO_ANCHOR_BPM = 110;
+/** How close a competing grid has to be before the anchor decides. */
+const TEMPO_TIE = 0.97;
 
 function bounded(value: number | undefined, fallback: number, min: number, max: number) {
   return Number.isFinite(value) ? Math.max(min, Math.min(max, value as number)) : fallback;
@@ -95,6 +99,7 @@ export function detectTempo(
 
   let bestBpm = 0;
   let bestScore = 0;
+  const candidates: { bpm: number; score: number }[] = [];
 
   for (let bpm = minBpm; bpm <= maxBpm + 1e-9; bpm += BPM_STEP) {
     const period = (60 * framesPerSecond) / bpm;
@@ -133,6 +138,7 @@ export function detectTempo(
     const coverage = Math.min(1, bestCovered / total);
     const fill = bestFilled / bestSlots;
     const score = coverage * fill;
+    if (score > 0) candidates.push({ bpm, score });
     if (score > bestScore) {
       bestScore = score;
       bestBpm = bpm;
@@ -141,8 +147,21 @@ export function detectTempo(
 
   if (bestBpm === 0 || bestScore <= 0) return null;
 
+  // A grid at twice the tempo explains the same hits when every subdivision is
+  // played, so exact ties prefer the tempo closer to where music usually sits.
+  let chosen = bestBpm;
+  let chosenDistance = Number.POSITIVE_INFINITY;
+  for (const candidate of candidates) {
+    if (candidate.score < bestScore * TEMPO_TIE) continue;
+    const distance = Math.abs(Math.log2(candidate.bpm / TEMPO_ANCHOR_BPM));
+    if (distance < chosenDistance - 1e-9) {
+      chosen = candidate.bpm;
+      chosenDistance = distance;
+    }
+  }
+
   return {
-    bpm: Math.round(bestBpm * 10) / 10,
+    bpm: Math.round(chosen * 10) / 10,
     confidence: Math.max(0, Math.min(1, bestScore)),
   };
 }
