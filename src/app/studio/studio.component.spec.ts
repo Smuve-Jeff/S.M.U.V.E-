@@ -107,6 +107,7 @@ describe("StudioComponent", () => {
     updateMetadata: jest.fn(),
     isDirty: signal(false),
     isSaving: signal(false),
+    storageDurability: signal('unknown'),
     persistenceError: signal(''),
     audioIntegrity: signal(null),
     canRepairAudio: signal(false),

@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
 import { NavigationEnd, Router } from '@angular/router';
+import { SwUpdate } from '@angular/service-worker';
 import { Subject } from 'rxjs';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -9,6 +10,7 @@ import { AppComponent } from './app.component';
 import { AuthService } from './services/auth.service';
 import { UIService } from './services/ui.service';
 import { NotificationService } from './services/notification.service';
+import { SessionSafetyService } from './services/session-safety.service';
 import { AiService } from './services/ai.service';
 import { SettingsIntegrationService } from './services/settings-integration.service';
 import { DatabaseService } from './services/database.service';
@@ -20,7 +22,7 @@ import { OfflineSyncService } from './services/offline-sync.service';
 import { InteractionDialogService } from './services/interaction-dialog.service';
 
 describe('AppComponent', () => {
-  const createComponent = async (routerUrl = '/hub') => {
+  const createComponent = async (routerUrl = '/hub', swUpdate?: unknown) => {
     const routerEvents$ = new Subject<any>();
     const uiService = {
       mainViewMode: signal<'hub' | 'strategy'>('hub'),
@@ -90,6 +92,16 @@ describe('AppComponent', () => {
       events: routerEvents$.asObservable(),
       navigateByUrl: jest.fn(),
     };
+    const notificationService = { show: jest.fn() };
+    const authService = {
+      isAuthenticated: jest.fn().mockReturnValue(false),
+      isGuest: jest.fn().mockReturnValue(false),
+      logout: jest.fn(),
+    };
+    const dialog = {
+      confirm: jest.fn().mockResolvedValue(false),
+      confirmWithAlternate: jest.fn().mockResolvedValue('cancel'),
+    };
     const commandPalette = {
       handleGlobalKey: jest.fn(),
       togglePalette: jest.fn(),
@@ -116,15 +128,10 @@ describe('AppComponent', () => {
     await TestBed.configureTestingModule({
       imports: [AppComponent],
       providers: [
-        {
-          provide: AuthService,
-          useValue: {
-            isAuthenticated: jest.fn().mockReturnValue(false),
-            isGuest: jest.fn().mockReturnValue(false),
-          },
-        },
+        ...(swUpdate ? [{ provide: SwUpdate, useValue: swUpdate }] : []),
+        { provide: AuthService, useValue: authService },
         { provide: UIService, useValue: uiService },
-        { provide: NotificationService, useValue: { show: jest.fn() } },
+        { provide: NotificationService, useValue: notificationService },
         {
           provide: AiService,
           useValue: {
@@ -160,10 +167,7 @@ describe('AppComponent', () => {
             networkStatus: signal<'online' | 'offline'>('online'),
           },
         },
-        {
-          provide: InteractionDialogService,
-          useValue: { confirm: jest.fn().mockResolvedValue(false) },
-        },
+        { provide: InteractionDialogService, useValue: dialog },
         { provide: Router, useValue: router },
       ],
     })
@@ -174,7 +178,16 @@ describe('AppComponent', () => {
     const component = fixture.componentInstance;
     fixture.detectChanges();
 
-    return { component, uiService, commandPalette, routerEvents$, router };
+    return {
+      component,
+      uiService,
+      commandPalette,
+      routerEvents$,
+      router,
+      notificationService,
+      authService,
+      dialog,
+    };
   };
 
   it('should create the app', async () => {
@@ -728,6 +741,319 @@ describe('AppComponent', () => {
 
       component.toggleSidebar();
       expect(component.isSidebarOpen()).toBe(true);
+    });
+  });
+
+  describe('downloaded build', () => {
+    const versionReady = { type: 'VERSION_READY' };
+
+    it('announces a waiting build instead of reloading over a live session', async () => {
+      const versionUpdates$ = new Subject<any>();
+      const swUpdate = {
+        isEnabled: true,
+        versionUpdates: versionUpdates$.asObservable(),
+        activateUpdate: jest.fn().mockResolvedValue(undefined),
+      };
+      const { component } = await createComponent('/studio', swUpdate);
+
+      versionUpdates$.next(versionReady);
+
+      // A DAW must not be restarted under the artist by a deployment: the
+      // take, bounce or unsaved edit in flight would be gone.
+      expect(component.pendingUpdate()).toBe(true);
+      expect(swUpdate.activateUpdate).not.toHaveBeenCalled();
+
+      const reload = jest
+        .spyOn(component as any, 'reloadForUpdate')
+        .mockImplementation(() => undefined);
+      await component.applyPendingUpdate();
+
+      expect(swUpdate.activateUpdate).toHaveBeenCalledTimes(1);
+      expect(reload).toHaveBeenCalledTimes(1);
+    });
+
+    it('lets the artist postpone the reload', async () => {
+      const versionUpdates$ = new Subject<any>();
+      const swUpdate = {
+        isEnabled: true,
+        versionUpdates: versionUpdates$.asObservable(),
+        activateUpdate: jest.fn().mockResolvedValue(undefined),
+      };
+      const { component } = await createComponent('/studio', swUpdate);
+
+      versionUpdates$.next(versionReady);
+      component.dismissPendingUpdate();
+
+      expect(component.pendingUpdate()).toBe(false);
+      expect(swUpdate.activateUpdate).not.toHaveBeenCalled();
+    });
+
+    it('refuses to reload over a live take and explains why', async () => {
+      const versionUpdates$ = new Subject<any>();
+      const swUpdate = {
+        isEnabled: true,
+        versionUpdates: versionUpdates$.asObservable(),
+        activateUpdate: jest.fn().mockResolvedValue(undefined),
+      };
+      const { component, notificationService } = await createComponent(
+        '/studio',
+        swUpdate,
+      );
+      TestBed.inject(SessionSafetyService).isRecording.set(true);
+      versionUpdates$.next(versionReady);
+
+      expect(component.reloadBlockedReason()).toContain('recording');
+
+      await component.applyPendingUpdate();
+
+      expect(swUpdate.activateUpdate).not.toHaveBeenCalled();
+      expect(component.pendingUpdate()).toBe(true);
+      expect(notificationService.show).toHaveBeenCalledWith(
+        expect.stringContaining('recording'),
+        'warning',
+      );
+    });
+
+    it('refuses while the set has unsaved changes and allows it after saving', async () => {
+      const versionUpdates$ = new Subject<any>();
+      const swUpdate = {
+        isEnabled: true,
+        versionUpdates: versionUpdates$.asObservable(),
+        activateUpdate: jest.fn().mockResolvedValue(undefined),
+      };
+      const { component } = await createComponent('/studio', swUpdate);
+      const safety = TestBed.inject(SessionSafetyService);
+      safety.hasUnsavedChanges.set(true);
+      versionUpdates$.next(versionReady);
+
+      expect(component.reloadBlockedReason()).toContain('unsaved');
+      await component.applyPendingUpdate();
+      expect(swUpdate.activateUpdate).not.toHaveBeenCalled();
+
+      // A save must clear the block; otherwise the update could never land.
+      safety.hasUnsavedChanges.set(false);
+      expect(component.reloadBlockedReason()).toBeNull();
+
+      jest
+        .spyOn(component as any, 'reloadForUpdate')
+        .mockImplementation(() => undefined);
+      await component.applyPendingUpdate();
+      expect(swUpdate.activateUpdate).toHaveBeenCalledTimes(1);
+    });
+
+    it('refuses while a save is finishing or a take is armed', async () => {
+      const versionUpdates$ = new Subject<any>();
+      const swUpdate = {
+        isEnabled: true,
+        versionUpdates: versionUpdates$.asObservable(),
+        activateUpdate: jest.fn().mockResolvedValue(undefined),
+      };
+      const { component } = await createComponent('/studio', swUpdate);
+      const safety = TestBed.inject(SessionSafetyService);
+
+      safety.isProjectSaving.set(true);
+      expect(component.reloadBlockedReason()).toContain('save is finishing');
+
+      safety.isProjectSaving.set(false);
+      safety.armedTakeCount.set(2);
+      expect(component.reloadBlockedReason()).toContain('armed');
+
+      await component.applyPendingUpdate();
+      expect(swUpdate.activateUpdate).not.toHaveBeenCalled();
+    });
+
+    it('saves first and applies the update only after the save succeeds', async () => {
+      const versionUpdates$ = new Subject<any>();
+      const swUpdate = {
+        isEnabled: true,
+        versionUpdates: versionUpdates$.asObservable(),
+        activateUpdate: jest.fn().mockResolvedValue(undefined),
+      };
+      const { component } = await createComponent('/studio', swUpdate);
+      const safety = TestBed.inject(SessionSafetyService);
+      safety.hasUnsavedChanges.set(true);
+      const save = jest.fn(async () => {
+        safety.hasUnsavedChanges.set(false);
+        return { ok: true };
+      });
+      safety.registerSaveHandler(save);
+      versionUpdates$.next(versionReady);
+      const reload = jest
+        .spyOn(component as any, 'reloadForUpdate')
+        .mockImplementation(() => undefined);
+
+      expect(component.canSaveAndReload()).toBe(true);
+      await component.saveAndReload();
+
+      expect(save).toHaveBeenCalledTimes(1);
+      expect(swUpdate.activateUpdate).toHaveBeenCalledTimes(1);
+      expect(reload).toHaveBeenCalledTimes(1);
+    });
+
+    it('keeps the update waiting when the save is refused', async () => {
+      const versionUpdates$ = new Subject<any>();
+      const swUpdate = {
+        isEnabled: true,
+        versionUpdates: versionUpdates$.asObservable(),
+        activateUpdate: jest.fn().mockResolvedValue(undefined),
+      };
+      const { component, notificationService } = await createComponent(
+        '/studio',
+        swUpdate,
+      );
+      const safety = TestBed.inject(SessionSafetyService);
+      safety.hasUnsavedChanges.set(true);
+      safety.registerSaveHandler(
+        jest.fn(async () => ({
+          ok: false,
+          message: 'Guest sessions are not saved.',
+        })),
+      );
+      versionUpdates$.next(versionReady);
+
+      await component.saveAndReload();
+
+      expect(swUpdate.activateUpdate).not.toHaveBeenCalled();
+      expect(component.pendingUpdate()).toBe(true);
+      expect(notificationService.show).toHaveBeenCalledWith(
+        'Guest sessions are not saved.',
+        'error',
+      );
+    });
+
+    it('does not reload if a take starts while the save is writing', async () => {
+      const versionUpdates$ = new Subject<any>();
+      const swUpdate = {
+        isEnabled: true,
+        versionUpdates: versionUpdates$.asObservable(),
+        activateUpdate: jest.fn().mockResolvedValue(undefined),
+      };
+      const { component, notificationService } = await createComponent(
+        '/studio',
+        swUpdate,
+      );
+      const safety = TestBed.inject(SessionSafetyService);
+      safety.hasUnsavedChanges.set(true);
+      safety.registerSaveHandler(
+        jest.fn(async () => {
+          safety.isRecording.set(true);
+          safety.hasUnsavedChanges.set(false);
+          return { ok: true };
+        }),
+      );
+      versionUpdates$.next(versionReady);
+
+      await component.saveAndReload();
+
+      expect(swUpdate.activateUpdate).not.toHaveBeenCalled();
+      expect(notificationService.show).toHaveBeenCalledWith(
+        expect.stringContaining('recording'),
+        'warning',
+      );
+    });
+  });
+
+  describe('sign out', () => {
+    it('signs out immediately when nothing is at risk', async () => {
+      const { component, authService, dialog } = await createComponent();
+
+      await component.signOut();
+
+      expect(dialog.confirm).not.toHaveBeenCalled();
+      expect(dialog.confirmWithAlternate).not.toHaveBeenCalled();
+      expect(authService.logout).toHaveBeenCalledTimes(1);
+    });
+
+    it('offers save-and-sign-out for unsaved work', async () => {
+      const { component, authService, dialog, notificationService } =
+        await createComponent();
+      const safety = TestBed.inject(SessionSafetyService);
+      safety.hasUnsavedChanges.set(true);
+      const save = jest.fn(async () => {
+        safety.hasUnsavedChanges.set(false);
+        return { ok: true };
+      });
+      safety.registerSaveHandler(save);
+      dialog.confirmWithAlternate.mockResolvedValueOnce('confirm');
+
+      await component.signOut();
+
+      expect(dialog.confirm).not.toHaveBeenCalled();
+      expect(dialog.confirmWithAlternate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          confirmLabel: 'Save & sign out',
+          alternateLabel: 'Sign out without saving',
+          tone: 'danger',
+          message: expect.stringContaining('unsaved changes'),
+        }),
+      );
+      expect(save).toHaveBeenCalledTimes(1);
+      expect(authService.logout).toHaveBeenCalledTimes(1);
+      expect(notificationService.show).not.toHaveBeenCalled();
+    });
+
+    it('signs out without saving when the artist chooses to discard', async () => {
+      const { component, authService, dialog } = await createComponent();
+      const safety = TestBed.inject(SessionSafetyService);
+      safety.hasUnsavedChanges.set(true);
+      const save = jest.fn(async () => ({ ok: true }));
+      safety.registerSaveHandler(save);
+      dialog.confirmWithAlternate.mockResolvedValueOnce('alternate');
+
+      await component.signOut();
+
+      expect(save).not.toHaveBeenCalled();
+      expect(authService.logout).toHaveBeenCalledTimes(1);
+    });
+
+    it('stays signed in and explains when the save fails', async () => {
+      const { component, authService, dialog, notificationService } =
+        await createComponent();
+      const safety = TestBed.inject(SessionSafetyService);
+      safety.hasUnsavedChanges.set(true);
+      safety.registerSaveHandler(
+        jest.fn(async () => ({
+          ok: false,
+          message: 'Guest sessions are not saved.',
+        })),
+      );
+      dialog.confirmWithAlternate.mockResolvedValueOnce('confirm');
+
+      await component.signOut();
+
+      expect(authService.logout).not.toHaveBeenCalled();
+      expect(notificationService.show).toHaveBeenCalledWith(
+        'Guest sessions are not saved.',
+        'error',
+      );
+    });
+
+    it('honours a cancelled exit', async () => {
+      const { component, authService, dialog } = await createComponent();
+      TestBed.inject(SessionSafetyService).hasUnsavedChanges.set(true);
+      dialog.confirmWithAlternate.mockResolvedValueOnce('cancel');
+
+      await component.signOut();
+
+      expect(authService.logout).not.toHaveBeenCalled();
+    });
+
+    it('uses the two-way warning for a live take, without offering a save', async () => {
+      const { component, authService, dialog } = await createComponent();
+      const safety = TestBed.inject(SessionSafetyService);
+      safety.hasUnsavedChanges.set(true);
+      safety.isRecording.set(true);
+      dialog.confirm.mockResolvedValueOnce(false);
+
+      await component.signOut();
+
+      expect(dialog.confirmWithAlternate).not.toHaveBeenCalled();
+      expect(dialog.confirm).toHaveBeenCalledWith(
+        expect.objectContaining({
+          message: expect.stringContaining('take is recording'),
+        }),
+      );
+      expect(authService.logout).not.toHaveBeenCalled();
     });
   });
 });

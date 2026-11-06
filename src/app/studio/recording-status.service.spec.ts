@@ -2,6 +2,7 @@ import { TestBed } from "@angular/core/testing";
 import { RecordingStatusService } from "./recording-status.service";
 import { AudioEngineService } from "../services/audio-engine.service";
 import { LoggingService } from "../services/logging.service";
+import { SessionSafetyService } from "../services/session-safety.service";
 
 describe("RecordingStatusService", () => {
   let service: RecordingStatusService;
@@ -171,5 +172,26 @@ describe("RecordingStatusService", () => {
 
     service.toggleArmTrack("track-1");
     expect(service.isTrackArmed("track-1")).toBe(false);
+  });
+
+  it("mirrors capture and arm state for the shell's update gate", () => {
+    const safety = TestBed.inject(SessionSafetyService);
+
+    service.beginRecording("transport", {
+      type: "transport",
+      trackName: "Lead Vocal",
+    });
+    service.armTrack("track-1");
+    TestBed.tick();
+
+    expect(safety.isRecording()).toBe(true);
+    expect(safety.armedTakeCount()).toBe(1);
+
+    service.clearRecordingSource();
+    service.disarmTrack("track-1");
+    TestBed.tick();
+
+    expect(safety.isRecording()).toBe(false);
+    expect(safety.armedTakeCount()).toBe(0);
   });
 });

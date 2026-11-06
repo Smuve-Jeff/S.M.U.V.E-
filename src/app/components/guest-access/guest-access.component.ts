@@ -3,6 +3,9 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { AuthService } from '../../services/auth.service';
+import { InteractionDialogService } from '../../services/interaction-dialog.service';
+import { NotificationService } from '../../services/notification.service';
+import { SessionSafetyService } from '../../services/session-safety.service';
 import { UIService } from '../../services/ui.service';
 import { MainViewMode } from '../../services/user-context.service';
 import { WorkspaceConfig } from '../../services/workspace-registry';
@@ -30,6 +33,9 @@ import {
 export class GuestAccessComponent {
   private authService = inject(AuthService);
   private uiService = inject(UIService);
+  private dialog = inject(InteractionDialogService);
+  private notificationService = inject(NotificationService);
+  private sessionSafety = inject(SessionSafetyService);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
   private destroyRef = inject(DestroyRef);
@@ -154,7 +160,48 @@ export class GuestAccessComponent {
     void this.router.navigateByUrl('/hub');
   }
 
-  exitGuestSession(): void {
+  async exitGuestSession(): Promise<void> {
+    const risk = this.sessionSafety.exitRisk();
+    if (risk) {
+      // Guests cannot save at all, so a downloaded .smuve bundle is their only
+      // way to keep the set. A half-written live take is not exportable.
+      const canExport =
+        this.sessionSafety.hasUnsavedChanges() &&
+        !this.sessionSafety.isRecording() &&
+        !this.sessionSafety.isProjectSaving();
+
+      if (!canExport) {
+        const proceed = await this.dialog.confirm({
+          title: 'Exit guest session?',
+          message: `${risk} Guest sets are never saved to an account — export a backup before leaving.`,
+          confirmLabel: 'Exit anyway',
+          cancelLabel: 'Keep working',
+          tone: 'danger',
+        });
+        if (!proceed) return;
+      } else {
+        const choice = await this.dialog.confirmWithAlternate({
+          title: 'Exit guest session?',
+          message: `${risk} Export a backup before leaving? Guest sets are never saved to an account.`,
+          confirmLabel: 'Export backup & exit',
+          alternateLabel: 'Exit without export',
+          cancelLabel: 'Keep working',
+          tone: 'danger',
+        });
+        if (choice === 'cancel') return;
+        if (choice === 'confirm') {
+          const result = this.sessionSafety.exportBackup();
+          if (!result.ok) {
+            this.notificationService.show(
+              result.message ??
+                'This set could not be exported. You are still in the guest session.',
+              'error',
+            );
+            return;
+          }
+        }
+      }
+    }
     this.authService.logout();
     void this.router.navigate(['/login']);
   }

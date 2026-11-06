@@ -18,6 +18,7 @@ import { NotificationToastComponent } from './components/notification-toast/noti
 import { SmuveAdvisorComponent } from './components/smuve-advisor/smuve-advisor.component';
 import { SmuveTvPersistentPlayerComponent } from './components/smuve-tv-persistent-player/smuve-tv-persistent-player.component';
 import { NotificationService } from './services/notification.service';
+import { SessionSafetyService } from './services/session-safety.service';
 import { MainViewMode } from './services/user-context.service';
 import { DatabaseService } from './services/database.service';
 import { AutoSaveStatusService } from './services/auto-save-status.service';
@@ -101,6 +102,7 @@ export class AppComponent {
   authService = inject(AuthService);
   uiService = inject(UIService);
   notificationService = inject(NotificationService);
+  private readonly sessionSafety = inject(SessionSafetyService);
   databaseService = inject(DatabaseService);
   autoSaveStatus = inject(AutoSaveStatusService);
   commandPalette = inject(CommandPaletteService);
@@ -128,6 +130,51 @@ export class AppComponent {
   isSyncCenterOpen = signal(false);
   isMobileWorkspaceTrayOpen = signal(false);
   installPrompt = signal<BeforeInstallPromptEvent | null>(null);
+  /**
+   * A downloaded build waiting to be activated. It is never applied on its
+   * own: activation reloads the page, which would end a live take, a bounce,
+   * or an edit autosave has not committed yet. The artist reloads between
+   * takes; the shell only announces that a build is ready.
+   */
+  pendingUpdate = signal(false);
+  isApplyingUpdate = signal(false);
+  /** True while the banner is persisting the set before reloading. */
+  isSavingForUpdate = signal(false);
+
+  /**
+   * Unsaved work is the one blocker the banner can resolve itself: a real
+   * save clears it. Recording, an armed take or a write already in flight
+   * still need the artist's hands on the transport.
+   */
+  canSaveAndReload = computed(() => {
+    const session = this.sessionSafety;
+    if (!this.pendingUpdate() || this.isApplyingUpdate()) return false;
+    if (session.isRecording() || session.armedTakeCount() > 0) return false;
+    if (this.isSavingForUpdate()) return true;
+    return session.hasUnsavedChanges() && !session.isProjectSaving();
+  });
+
+  /**
+   * Why a reload would cost the artist work, in their terms. The Studio
+   * mirrors its live state into SessionSafetyService, so this computed never
+   * loads the audio engine or the project graph into the shell.
+   */
+  reloadBlockedReason = computed<string | null>(() => {
+    const session = this.sessionSafety;
+    if (session.isRecording()) {
+      return 'A take is recording. Stop the take before reloading.';
+    }
+    if (session.isProjectSaving()) {
+      return 'A save is finishing. Reload when it completes.';
+    }
+    if (session.hasUnsavedChanges()) {
+      return 'This set has unsaved changes. Save or export it before reloading.';
+    }
+    if (session.armedTakeCount() > 0) {
+      return 'A track is armed for recording. Disarm it before reloading.';
+    }
+    return null;
+  });
 
   navigationGroups = computed(() => this.buildNavigationGroups());
   activeViewConfig = computed(
@@ -504,24 +551,149 @@ export class AppComponent {
         takeUntilDestroyed(this.destroyRef)
       )
       .subscribe(() => {
-        // Activate the new service worker immediately and reload.
-        // No dialog — returning users always get the latest build.
-        this.swUpdate!.activateUpdate().then(
-          () => window.location.reload(),
-          (error) => {
-            // Activation can fail offline or on a stale hash. Keep the current
-            // build and record why, rather than an unhandled rejection.
-            console.warn(
-              'S.M.U.V.E.: service worker update could not be activated',
-              error,
-            );
-            this.notificationService.show(
-              'The update could not be activated. Reload to try again.',
-              'warning',
-            );
-          },
-        );
+        // Announce, never auto-apply. The previous behaviour activated the
+        // waiting worker and reloaded on the spot, which in a DAW means a
+        // recording pass, an offline bounce, or an unsaved edit can be cut
+        // off mid-flight by a deployment. A production tool updates on the
+        // artist's terms.
+        this.pendingUpdate.set(true);
       });
+  }
+
+  /**
+   * End the account session. Signing out ends the workspace, so a live take,
+   * unsaved edits or an armed track deserve a warning the artist can cancel —
+   * unlike the update banner, this is never refused outright: an artist must
+   * always be able to leave a shared device.
+   */
+  async signOut(): Promise<void> {
+    const risk = this.sessionSafety.exitRisk();
+    if (risk) {
+      // A live take would be saved half-written, and a save already in flight
+      // cannot be joined, so those sessions get the two-way warning only.
+      const canSaveFirst =
+        this.sessionSafety.hasUnsavedChanges() &&
+        !this.sessionSafety.isRecording() &&
+        !this.sessionSafety.isProjectSaving();
+
+      if (!canSaveFirst) {
+        const proceed = await this.dialog.confirm({
+          title: 'Sign out with work at risk?',
+          message: `${risk} Signing out ends this session — save or export anything you need first.`,
+          confirmLabel: 'Sign out anyway',
+          cancelLabel: 'Stay signed in',
+          tone: 'danger',
+        });
+        if (!proceed) return;
+      } else {
+        const choice = await this.dialog.confirmWithAlternate({
+          title: 'Sign out with work at risk?',
+          message: `${risk} Save this set before the session ends?`,
+          confirmLabel: 'Save & sign out',
+          alternateLabel: 'Sign out without saving',
+          cancelLabel: 'Stay signed in',
+          tone: 'danger',
+        });
+        if (choice === 'cancel') return;
+        if (choice === 'confirm') {
+          const result = await this.sessionSafety.saveForUpdate();
+          if (!result.ok) {
+            // Never sign out silently after a failed save: stay in the session
+            // and show the store's own explanation.
+            this.notificationService.show(
+              result.message ??
+                'This set could not be saved. You are still signed in.',
+              'error',
+            );
+            return;
+          }
+        }
+      }
+    }
+    this.authService.logout();
+  }
+
+  /**
+   * Save the open set, then apply the waiting build — but only if the save
+   * genuinely succeeded and no take started while it was writing.
+   */
+  async saveAndReload(): Promise<void> {
+    if (this.isSavingForUpdate() || this.isApplyingUpdate()) return;
+    if (!this.canSaveAndReload()) {
+      const blocked = this.reloadBlockedReason();
+      if (blocked) this.notificationService.show(blocked, 'warning');
+      return;
+    }
+    this.isSavingForUpdate.set(true);
+    try {
+      const result = await this.sessionSafety.saveForUpdate();
+      if (!result.ok) {
+        this.notificationService.show(
+          result.message ??
+            'This set could not be saved. The update is still waiting.',
+          'error',
+        );
+        return;
+      }
+      // The save is durable, so the artist's work is safe either way. A take
+      // may have started during the write, though, and that still blocks the
+      // reload.
+      const blockedAfterSave = this.reloadBlockedReason();
+      if (blockedAfterSave) {
+        this.notificationService.show(
+          `${blockedAfterSave} The update is still waiting.`,
+          'warning',
+        );
+        return;
+      }
+      await this.applyPendingUpdate();
+    } finally {
+      this.isSavingForUpdate.set(false);
+    }
+  }
+
+  /**
+   * Apply the waiting build and reload. Only ever runs from the artist's
+   * explicit action in the update banner.
+   */
+  async applyPendingUpdate(): Promise<void> {
+    if (!this.pendingUpdate() || this.isApplyingUpdate()) return;
+    // The banner disables this action while it is unsafe, but the method
+    // re-checks: a disabled attribute is presentation, not enforcement.
+    const blocked = this.reloadBlockedReason();
+    if (blocked) {
+      this.notificationService.show(blocked, 'warning');
+      return;
+    }
+    const swUpdate = this.swUpdate;
+    if (!swUpdate) return;
+    this.isApplyingUpdate.set(true);
+    try {
+      await swUpdate.activateUpdate();
+      this.reloadForUpdate();
+    } catch (error) {
+      this.isApplyingUpdate.set(false);
+      // Activation can fail offline or on a stale hash. Keep the current
+      // build and record why, rather than an unhandled rejection.
+      console.warn(
+        'S.M.U.V.E.: service worker update could not be activated',
+        error,
+      );
+      this.notificationService.show(
+        'The update could not be activated. Check your connection and try again.',
+        'warning',
+      );
+    }
+  }
+
+  /** Keep the banner out of the way; the build stays waiting on the worker. */
+  dismissPendingUpdate(): void {
+    this.pendingUpdate.set(false);
+  }
+
+  /** Isolated so tests can observe the reload intent without navigating. */
+  protected reloadForUpdate(): void {
+    window.location.reload();
   }
 
   private breakIframeLoop() {

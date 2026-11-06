@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, signal } from '@angular/core';
 
 export interface CacheMetadata {
   key: string;
@@ -18,6 +18,19 @@ export interface CacheMetadata {
  */
 export type PersistenceState = 'ready' | 'unsupported' | 'blocked' | 'failed';
 
+/**
+ * What the browser has promised about keeping this origin's data.
+ *
+ * IndexedDB is best-effort storage: under disk pressure the browser may evict
+ * a whole origin's databases. A production tool whose saved sets can vanish
+ * has to ask for durable storage and report the answer instead of assuming it.
+ */
+export type StorageDurability =
+  | 'unknown'
+  | 'granted'
+  | 'denied'
+  | 'unsupported';
+
 @Injectable({
   providedIn: 'root',
 })
@@ -33,11 +46,24 @@ export class LocalStorageService {
   private readonly MAX_CACHE_SIZE_MB = 100;
   private readonly CACHE_CLEANUP_THRESHOLD = 0.9;
 
+  /** What the browser promised about eviction; read by the Studio status strip. */
+  readonly durability = signal<StorageDurability>('unknown');
+  private durabilityRequest: Promise<StorageDurability> | null = null;
+
   constructor() {
     this.dbReady = new Promise((resolve) => {
       this.resolveDbReady = resolve;
     });
     this.initDB();
+    // Installing is the clearest signal of intent a browser has, and it is
+    // when Chromium starts granting durable storage. Re-ask once so an early
+    // refusal does not leave a permanent warning on a now-protected install.
+    if (typeof window !== 'undefined') {
+      window.addEventListener('appinstalled', () => {
+        this.durabilityRequest = null;
+        void this.requestDurableStorage();
+      });
+    }
   }
 
   private initDB() {
@@ -139,6 +165,9 @@ export class LocalStorageService {
       };
       this.resolveDbReady();
       void this.runCacheCleanup();
+      // Ask once, after the database is genuinely open, so the answer
+      // describes the store this session is about to write into.
+      void this.requestDurableStorage();
     };
 
     request.onerror = (event: any) => {
@@ -166,6 +195,40 @@ export class LocalStorageService {
     await this.dbReady;
     if (this.db !== null) return 'ready';
     return this.unavailableReason ?? 'failed';
+  }
+
+  /**
+   * Ask the browser to protect this origin's data from eviction.
+   *
+   * Idempotent: the first call performs the request and every later caller
+   * shares its promise. Browsers decide on their own heuristics (installed
+   * apps and frequently-used sites are granted automatically), so a refusal is
+   * reported to the artist, never retried in a loop.
+   */
+  requestDurableStorage(): Promise<StorageDurability> {
+    if (this.durabilityRequest) return this.durabilityRequest;
+    this.durabilityRequest = (async (): Promise<StorageDurability> => {
+      const storage =
+        typeof navigator !== 'undefined' ? navigator.storage : undefined;
+      if (!storage?.persisted || !storage.persist) {
+        this.durability.set('unsupported');
+        return 'unsupported';
+      }
+      try {
+        if (await storage.persisted()) {
+          this.durability.set('granted');
+          return 'granted';
+        }
+        const granted = await storage.persist();
+        const state: StorageDurability = granted ? 'granted' : 'denied';
+        this.durability.set(state);
+        return state;
+      } catch {
+        this.durability.set('denied');
+        return 'denied';
+      }
+    })();
+    return this.durabilityRequest;
   }
 
   async saveItem(

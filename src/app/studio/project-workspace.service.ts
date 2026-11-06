@@ -6,7 +6,11 @@ import { MusicManagerService, type SongSection } from "../services/music-manager
 import { TakeManagerService, type TakeStateBundle } from "../services/take-manager.service";
 import { HistoryService } from "../services/history.service";
 import { ProjectService } from "../services/project.service";
-import { LocalStorageService } from "../services/local-storage.service";
+import {
+  LocalStorageService,
+  type StorageDurability,
+} from "../services/local-storage.service";
+import { SessionSafetyService } from "../services/session-safety.service";
 import { OfflineSyncService } from "../services/offline-sync.service";
 import { LoggingService } from "../services/logging.service";
 import { APP_SECURITY_CONFIG } from "../app.security";
@@ -265,6 +269,7 @@ export class ProjectWorkspaceService {
   private readonly musicManager = inject(MusicManagerService);
   private readonly projectService = inject(ProjectService);
   private readonly storage = inject(LocalStorageService);
+  private readonly sessionSafety = inject(SessionSafetyService);
   private readonly offlineSync = inject(OfflineSyncService);
   private readonly logger = inject(LoggingService);
   private readonly automationService = inject(AutomationService);
@@ -277,6 +282,14 @@ export class ProjectWorkspaceService {
   private readonly vcaBuses = inject(VcaBusService);
   private readonly sidechainRouting = inject(SidechainRoutingService);
   readonly isSaving = signal(false);
+  /**
+   * Whether this browser promised to keep saved sets instead of evicting them
+   * under storage pressure. Read defensively: older test doubles of
+   * LocalStorageService predate the signal, and the shell must still render.
+   */
+  readonly storageDurability = computed<StorageDurability>(
+    () => this.storage.durability?.() ?? 'unknown'
+  );
   readonly persistenceError = signal('');
   readonly projectNotes = signal('');
   /** Last import/export/restore audio-reference check. */
@@ -394,7 +407,60 @@ export class ProjectWorkspaceService {
     this.startAutoSave();
     this.watchTransportEdits();
     this.installLifecyclePersistence();
-    this.destroyRef.onDestroy(() => this.stopAutoSave());
+    // The shell's update gate reads dirty/saving state from a store it can
+    // import without this service's project graph. Mirror it live.
+    effect(() => {
+      this.sessionSafety.hasUnsavedChanges.set(this.isDirty());
+      this.sessionSafety.isProjectSaving.set(this.isSaving());
+    });
+    // The shell may save before applying an update. Route it through the real
+    // manual-save path so guest refusal, audio integrity and quota rules apply
+    // exactly as they do from the Studio.
+    this.sessionSafety.registerSaveHandler(async () => {
+      try {
+        await this.manualSave();
+        return { ok: true };
+      } catch (error) {
+        return {
+          ok: false,
+          message:
+            error instanceof Error && error.message
+              ? error.message
+              : 'This set could not be saved.',
+        };
+      } finally {
+        // Effects flush on the next change detection; publish the settled
+        // state now so the shell's immediate re-check sees this save.
+        this.sessionSafety.hasUnsavedChanges.set(this.isDirty());
+        this.sessionSafety.isProjectSaving.set(this.isSaving());
+      }
+    });
+    // Guests cannot save, so their only protection is a downloaded backup.
+    // Expose the Studio's real export path to the shell and guest-exit flows.
+    this.sessionSafety.registerExportHandler(() => {
+      if (!this.metadata()) {
+        return { ok: false, message: 'No set is open to export.' };
+      }
+      try {
+        this.downloadProjectBundle();
+        return { ok: true };
+      } catch (error) {
+        return {
+          ok: false,
+          message:
+            error instanceof Error && error.message
+              ? error.message
+              : 'This set could not be exported.',
+        };
+      }
+    });
+    this.destroyRef.onDestroy(() => {
+      this.stopAutoSave();
+      this.sessionSafety.registerSaveHandler(null);
+      this.sessionSafety.registerExportHandler(null);
+      this.sessionSafety.hasUnsavedChanges.set(false);
+      this.sessionSafety.isProjectSaving.set(false);
+    });
     this.projectService.projectDeleted$
       .pipe(takeUntilDestroyed(inject(DestroyRef)))
       .subscribe((id) => {

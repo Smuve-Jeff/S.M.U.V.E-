@@ -97,6 +97,14 @@ import { InteractionDialogService } from '../../services/interaction-dialog.serv
             {{ active.cancelLabel || 'Cancel' }}
           </button>
           <button
+            *ngIf="active.type === 'confirm' && active.alternateLabel"
+            type="button"
+            class="px-4 py-3 rounded-2xl border border-red-500/30 text-[11px] font-bold uppercase tracking-[0.2em] text-red-400 hover:border-red-400 hover:bg-red-500/10 transition-all"
+            (click)="dialog.settle('alternate')"
+          >
+            {{ active.alternateLabel }}
+          </button>
+          <button
             type="button"
             class="px-4 py-3 rounded-2xl text-[11px] font-bold uppercase tracking-[0.2em] transition-all"
             [class.bg-red-500]="active.tone === 'danger'"
