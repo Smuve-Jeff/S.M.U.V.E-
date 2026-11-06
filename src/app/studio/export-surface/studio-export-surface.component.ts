@@ -446,6 +446,44 @@ export class StudioExportSurfaceComponent {
     }
   }
 
+  /** Encode and share the retained mix at the review's captured settings. */
+  private async shareReviewedMaster(pending: PendingMixdown): Promise<void> {
+    this.begin(`Preparing ${pending.formatLabel} for sharing…`);
+    try {
+      const current = await this.masterPending(pending);
+      const blob = pending.supportsBitrate
+        ? await this.exportService.exportToFormat(
+            current.buffer,
+            pending.format,
+            pending.bitrate,
+          )
+        : await this.exportService.exportToFormat(
+            current.buffer,
+            pending.format,
+          );
+
+      // Codec fallback returns PCM WAV, so the extension must follow the bytes.
+      const extension =
+        blob.type === "audio/wav" ? "wav" : this.formatInfo(pending.format).ext;
+      const filename = `${this.projectBase()}_${Date.now()}.${extension}`;
+      const shared = await this.exportService.shareBlob(blob, filename);
+
+      // Keep the review: a dismissed share sheet is indistinguishable from a
+      // download fallback here, so the artist can still download or share again.
+      this.analysis.set(current.analysis);
+      this.reviewNeedsRefresh.set(false);
+      this.exportReview.keep(pending, current.analysis, this.projectBase());
+      this.finish(
+        "ok",
+        shared
+          ? "Share sheet opened with the reviewed master"
+          : "Reviewed master share finished",
+      );
+    } catch (error) {
+      this.fail("Share export failed", error);
+    }
+  }
+
   /** Master the retained mix with the chain as it stands now, then measure it. */
   private async masterPending(pending: PendingMixdown): Promise<{
     buffer: AudioBuffer;
@@ -571,9 +609,18 @@ export class StudioExportSurfaceComponent {
     }
   }
 
-  /** Render at the chosen format, then open the share sheet (download fallback). */
+  /**
+   * Share the master the artist already reviewed, or render a fresh mixdown
+   * when no review exists. A reviewed master is re-mastered from the retained
+   * mix, so sharing never bounces the arrangement again.
+   */
   async shareExport() {
     if (this.busy()) return;
+    const pending = this.pendingExport();
+    if (pending) {
+      await this.shareReviewedMaster(pending);
+      return;
+    }
 
     this.begin(`Rendering ${this.formatLabel()} for sharing…`);
     try {

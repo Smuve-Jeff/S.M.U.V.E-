@@ -27,6 +27,7 @@ describe("StudioExportSurfaceComponent", () => {
     exportProjectMidi: jest.fn(),
     exportStems: jest.fn(),
     exportAndShare: jest.fn(),
+    shareBlob: jest.fn(),
     analyzeBuffer: jest.fn(),
   };
 
@@ -41,6 +42,7 @@ describe("StudioExportSurfaceComponent", () => {
     exportService.exportProjectMidi.mockReturnValue(wavBlob());
     exportService.exportStems.mockResolvedValue(wavBlob());
     exportService.exportAndShare.mockResolvedValue(true);
+    exportService.shareBlob.mockResolvedValue(true);
     exportService.analyzeBuffer.mockReturnValue({
       peakDb: -1.4,
       truePeakDb: -1.2,
@@ -325,6 +327,40 @@ describe("StudioExportSurfaceComponent", () => {
       ).componentInstance;
 
       expect(revived.pendingExport()).toBeNull();
+    });
+
+    it("keeps Share Mixdown available while a review is pending", async () => {
+      await component.exportMixdown();
+      fixture.detectChanges();
+
+      const share = Array.from(
+        fixture.nativeElement.querySelectorAll("button"),
+      ).find((button: HTMLButtonElement) =>
+        button.textContent?.includes("Share Mixdown"),
+      ) as HTMLButtonElement;
+
+      expect(share).toBeTruthy();
+      expect(share.disabled).toBe(false);
+    });
+
+    it("shares the reviewed master without rendering the arrangement again", async () => {
+      await component.exportMixdown();
+      const renders = exportService.renderProjectOffline.mock.calls.length;
+
+      await component.shareExport();
+
+      expect(exportService.renderProjectOffline).toHaveBeenCalledTimes(renders);
+      expect(exportService.masterRetainedMix).toHaveBeenCalledTimes(2);
+      expect(exportService.exportToFormat).toHaveBeenCalledWith({}, "wav24");
+      expect(exportService.shareBlob).toHaveBeenCalledWith(
+        expect.any(Blob),
+        expect.stringMatching(/^Demo_Set_\d+\.wav$/),
+      );
+      expect(exportService.exportAndShare).not.toHaveBeenCalled();
+      // The review survives an ambiguous share result, so it can be retried.
+      expect(component.pendingExport()).not.toBeNull();
+      expect(component.analysis()).not.toBeNull();
+      expect(component.feedback()?.tone).toBe("ok");
     });
 
     it("discards the pending render without exporting", async () => {
