@@ -3,7 +3,6 @@ import {
   CareerCharter,
   DistributionMetadata,
   OutreachPacket,
-  RevenueForecast,
 } from '../types/career.types';
 import { ReleaseProject } from '../types/release.types';
 import { MarketingService } from './marketing.service';
@@ -14,9 +13,12 @@ import { NotificationService } from './notification.service';
  * Sprint B4 — Career Pipeline in-DAW.
  *
  * Orchestrates the post-master deliverables for a release: draft DSP-ready
- * distribution metadata, build a 3-tier revenue forecast from genre
- * momentum, and produce an outreach packet (subject + body + CTA) ready to
- * paste to label curators and playlist owners.
+ * distribution metadata and an outreach packet (subject + body + CTA) ready
+ * to paste to curators.
+ *
+ * It deliberately produces no revenue or audience forecast. S.M.U.V.E. has no
+ * distributor, DSP, or analytics feed, and a flat listener baseline plus a
+ * genre table would be an invented number the artist could spend against.
  *
  * Charter drafts live in service signals — nothing writes to the user
  * profile until the user explicitly commits. This is by design: the user
@@ -40,9 +42,9 @@ export class CareerPipelineService {
   // ── Public API ───────────────────────────────────────────────────
 
   /**
-   * Build a full CareerCharter for a release. Deterministic given the
-   * release + genre inputs — safe to re-run after edits and diff against
-   * the previous draft.
+   * Build a full CareerCharter for a release. Draft content is deterministic
+   * given the release + genre inputs — safe to re-run after edits and diff
+   * against the previous draft.
    */
   async buildCharter(
     release: ReleaseProject,
@@ -54,7 +56,6 @@ export class CareerPipelineService {
     this.lastError.set(null);
     try {
       const metadataDraft = this.prepareDistributionMetadata(release, genre);
-      const forecast = this.estimateRevenueForecast(release, genre);
       const outreach = this.draftOutreachPacket(release, genre, mood, artistName);
       const charter: CareerCharter = {
         id: `chr-${release.id}-${Date.now()}`,
@@ -62,7 +63,6 @@ export class CareerPipelineService {
         createdAt: Date.now(),
         status: 'draft',
         metadataDraft,
-        forecast,
         outreach,
         genreTags: [genre, mood].filter(Boolean),
       };
@@ -73,7 +73,7 @@ export class CareerPipelineService {
       this.latestCharter.set(charter);
       this.logger.info(
         'Sprint B4: Career charter generated — ' +
-          `release ${release.id} · ${genre} · tier ${forecast.marketTier}`
+          `release ${release.id} · ${genre}`
       );
       return charter;
     } catch (e: any) {
@@ -90,6 +90,9 @@ export class CareerPipelineService {
    * Stage 1 (B4 internal) — DSP-ready DistributionMetadata. Defers UPC +
    * ISRC to the user since those come from distributor accounts in real
    * life; we still prep the slots so the UI can prompt for them.
+   *
+   * The release date is left blank: a project row's created-at timestamp is
+   * when the workspace entry was made, not a release date.
    */
   prepareDistributionMetadata(
     release: ReleaseProject,
@@ -101,9 +104,7 @@ export class CareerPipelineService {
       artistName:
         release.credits?.artistName || (release as any).artistName || 'Artist',
       primaryGenre: genre,
-      releaseDate: new Date(
-        (release as any).createdAt || Date.now()
-      ).toISOString(),
+      releaseDate: '',
       language: 'en',
       explicit: false,
       copyright: `© ${new Date().getFullYear()} ${
@@ -121,51 +122,9 @@ export class CareerPipelineService {
   }
 
   /**
-   * Stage 2 (B4 internal) — 3-tier revenue forecast. The numbers are
-   * deterministic heuristics keyed off genre momentum and a base audience
-   * size (sourced from the release's current marketing footprint, if any,
-   * else a flat indie baseline). It's a credible first-pass estimate, not
-   * a financial guarantee — copy on the UI makes that clear.
-   */
-  estimateRevenueForecast(
-    release: ReleaseProject,
-    genre: string
-  ): RevenueForecast {
-    const tier = this.genreMomentumTier(genre);
-    const baseline = this.audienceBaseline(release);
-    const mid = Math.round(baseline * tier.streamsMultiplier);
-    const low = Math.round(mid * 0.4);
-    const high = Math.round(mid * 1.6);
-
-    // Per-stream payout is genre-relative: electronic/lo-fi pays more per
-    // stream than trap, which has volume working for it.
-    const payoutPerStream = tier.payoutPerStreamUsd;
-    const yearlyMid =
-      Math.round(((mid * 12) / 1000) * payoutPerStream * 1000) / 1000;
-
-    return {
-      monthlyStreamsLow: low,
-      monthlyStreamsMid: mid,
-      monthlyStreamsHigh: high,
-      yearlyRevenueLow: Math.round(low * 12 * payoutPerStream),
-      yearlyRevenueMid: yearlyMid,
-      yearlyRevenueHigh: Math.round(high * 12 * payoutPerStream),
-      genreMomentumScore: tier.momentum,
-      marketTier: tier.tier,
-      notes: [
-        `Genre momentum score ${tier.momentum.toFixed(2)} for ${genre}`,
-        `Per-stream payout assumed at $${payoutPerStream.toFixed(
-          4
-        )} (industry blend)`,
-        'Numbers exclude sync, samples, and label advance recovery.',
-      ],
-    };
-  }
-
-  /**
    * Stage 3 (B4 internal) — Outreach packet. Renders a paragraph-rich
    * markdown body the user can copy with one tap. Subject + CTA short, body
-   * substantive. The target list size is a heuristic on genre tier.
+   * substantive. No target count is claimed: S.M.U.V.E. has no curator list.
    */
   draftOutreachPacket(
     release: ReleaseProject,
@@ -191,13 +150,12 @@ export class CareerPipelineService {
       `Thanks for the time,`,
       artistName,
     ].join('\n');
-    const tier = this.genreMomentumTier(genre);
+
     return {
       subject,
       body,
       callToAction,
       generatedAt: Date.now(),
-      targetListSize: tier.tier === 'mainstream' ? 60 : tier.tier === 'mid' ? 30 : 15,
       renderAsMarkdown: true,
     };
   }
@@ -234,13 +192,13 @@ export class CareerPipelineService {
       (allowedPlatforms as Set<string>).has(p)
     ) as Array<'Spotify' | 'Instagram' | 'TikTok' | 'Facebook' | 'YouTube'>;
     // A draft campaign seeded only from the committed charter. No budget, end
-    // date, or goal is written: the charter does not contain any of them, and a
-    // plausible $250 spend would be a figure the artist never agreed to.
+    // date, goal, or audience tier is written: the charter contains none of
+    // them, and a plausible figure would be a claim the artist never made.
     await this.marketing.createCampaign({
       name: `Charter Push: ${committed.metadataDraft.title}`,
       status: 'Draft',
       startDate: new Date().toISOString(),
-      targetAudience: this.tierToAudienceLabel(committed.forecast.marketTier),
+      targetAudience: 'Audience not yet evidenced — define from reported listeners',
       goals: [],
       platforms: platforms.length
         ? platforms
@@ -270,57 +228,6 @@ export class CareerPipelineService {
 
   // ── Internals ─────────────────────────────────────────────────────
 
-  /**
-   * Genre → momentum + per-stream payout + audience tier lookup. Source:
-   * distilled from current Spotify/Apple Music payout blends (mid-2026
-   * values) and a heuristic momentum score per genre.
-   */
-  private genreMomentumTier(genre: string): {
-    momentum: number;
-    streamsMultiplier: number;
-    payoutPerStreamUsd: number;
-    tier: 'indie' | 'mid' | 'mainstream';
-  } {
-    const g = (genre || '').toLowerCase();
-    if (g.includes('trap') || g.includes('drill')) {
-      return { momentum: 0.78, streamsMultiplier: 4.5, payoutPerStreamUsd: 0.0042, tier: 'mainstream' };
-    }
-    if (g.includes('house') || g.includes('electronic')) {
-      return { momentum: 0.62, streamsMultiplier: 2.6, payoutPerStreamUsd: 0.0058, tier: 'mid' };
-    }
-    if (g.includes('lo-fi') || g.includes('lofi')) {
-      return { momentum: 0.45, streamsMultiplier: 1.6, payoutPerStreamUsd: 0.0063, tier: 'mid' };
-    }
-    if (g.includes('r&b') || g.includes('soul')) {
-      return { momentum: 0.66, streamsMultiplier: 3.4, payoutPerStreamUsd: 0.0050, tier: 'mid' };
-    }
-    if (g.includes('jazz')) {
-      return { momentum: 0.35, streamsMultiplier: 1.2, payoutPerStreamUsd: 0.0068, tier: 'indie' };
-    }
-    if (g.includes('rock')) {
-      return { momentum: 0.4, streamsMultiplier: 1.8, payoutPerStreamUsd: 0.0052, tier: 'indie' };
-    }
-    if (g.includes('reggaeton')) {
-      return { momentum: 0.7, streamsMultiplier: 3.8, payoutPerStreamUsd: 0.0048, tier: 'mid' };
-    }
-    if (g.includes('dubstep')) {
-      return { momentum: 0.55, streamsMultiplier: 2.2, payoutPerStreamUsd: 0.0054, tier: 'mid' };
-    }
-    // Default pop bucket — moderate momentum, mainstream tier.
-    return { momentum: 0.6, streamsMultiplier: 2.8, payoutPerStreamUsd: 0.0052, tier: 'mid' };
-  }
-
-  /**
-   * Baseline audience size for the revenue calculation. We default an indie
-   *   baseline around 500 monthly listeners for a fresh release; releases
-   *   already in 'Released' status get a +25% lift since they have prior
-   *   data flowing. C2 will replace this with real DSP analytics.
-   */
-  private audienceBaseline(release: ReleaseProject): number {
-    const isLive = (release as any).status === 'Released';
-    return isLive ? 625 : 500;
-  }
-
   private outreachHookFor(genre: string, mood: string): string {
     const g = (genre || '').toLowerCase();
     const m = (mood || '').toLowerCase();
@@ -343,13 +250,5 @@ export class CareerPipelineService {
     if (g.includes('rock')) return 'rock + indie flagship features';
     if (g.includes('reggaeton')) return 'Latin flagship programming';
     return `${genre} flagship programming`;
-  }
-
-  private tierToAudienceLabel(
-    tier: 'indie' | 'mid' | 'mainstream'
-  ): string {
-    if (tier === 'mainstream') return 'Mainstream DSP Audience';
-    if (tier === 'mid') return 'Mid-Tier Curated Audience';
-    return 'Indie / Grassroots';
   }
 }

@@ -362,3 +362,75 @@
   font-style: italic;
   text-align: center;
 }
+
+/* ─── Production stage matrix ─────────────────────────── */
+
+.stage-matrix {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.stage-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 76px;
+}
+
+.stage-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.15rem;
+  padding: 0.5rem 0.6rem;
+  border-radius: 0.55rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.4);
+  color: #94a3b8;
+  font-size: 0.55rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+  transition: background 140ms ease, border-color 140ms ease;
+}
+
+.stage-chip:hover {
+  border-color: rgba(255, 62, 62, 0.5);
+}
+
+.stage-chip[data-status="Completed"] {
+  background: #10b981;
+  border-color: #10b981;
+  color: #021;
+}
+
+.stage-chip[data-status="In Progress"] {
+  background: rgba(245, 158, 11, 0.14);
+  border-color: rgba(245, 158, 11, 0.5);
+  color: #fbbf24;
+}
+
+.stage-status {
+  font-size: 0.48rem;
+  opacity: 0.75;
+  letter-spacing: 0.14em;
+}
+
+.stage-open {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #64748b;
+  font-size: 0.5rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  text-align: left;
+  cursor: pointer;
+}
+
+.stage-open:hover {
+  color: #e2e8f0;
+}

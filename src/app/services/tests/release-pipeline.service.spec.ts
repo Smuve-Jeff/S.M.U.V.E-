@@ -774,6 +774,16 @@ describe('ReleasePipelineService', () => {
     );
   });
 
+  it('refuses an impossible planned date instead of rolling it into the next month', async () => {
+    await service.initializeRelease('Test Album', 'Album');
+    const writesBefore = profileServiceSpy.updateProfile.mock.calls.length;
+
+    await service.setPlannedReleaseDate('2026-02-31');
+
+    expect(service.activeRelease()?.plannedReleaseDate).toBeUndefined();
+    expect(profileServiceSpy.updateProfile.mock.calls.length).toBe(writesBefore);
+  });
+
   it('attaches an existing campaign instead of creating one', async () => {
     await service.initializeRelease('Test Album', 'Album');
 

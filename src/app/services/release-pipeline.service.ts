@@ -11,6 +11,7 @@ import {
   normalizeReleaseTitle,
   withAdoptedSplit,
 } from './release-split.util';
+import { isCalendarDay } from './release-window.util';
 import { CatalogItem } from '../types/profile.types';
 
 export const PLANNED_DATE_RECONCILIATION_STORAGE_KEY =
@@ -198,6 +199,7 @@ export class ReleasePipelineService {
     if (!current) return;
 
     const plannedReleaseDate = (date || '').trim();
+    if (plannedReleaseDate && !isCalendarDay(plannedReleaseDate)) return;
     const updated: ReleaseProject = { ...current, updatedAt: Date.now() };
     if (plannedReleaseDate) updated.plannedReleaseDate = plannedReleaseDate;
     else delete updated.plannedReleaseDate;
@@ -218,7 +220,7 @@ export class ReleasePipelineService {
   } | null> {
     const current = this.activeRelease();
     const planned = (current?.plannedReleaseDate || '').trim();
-    if (!current || !planned || !Number.isFinite(Date.parse(planned))) {
+    if (!current || !planned || !isCalendarDay(planned)) {
       return null;
     }
 

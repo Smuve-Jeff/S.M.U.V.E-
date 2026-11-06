@@ -57,7 +57,7 @@ describe('CareerPipelineService · Sprint B4', () => {
     jest.clearAllMocks();
   });
 
-  it('buildCharter returns a fresh draft with three artifacts', async () => {
+  it('buildCharter returns the artifacts it can evidence', async () => {
     const charter = await sut.buildCharter(
       TEST_RELEASE,
       'Trap',
@@ -68,7 +68,9 @@ describe('CareerPipelineService · Sprint B4', () => {
     expect(charter.releaseId).toBe('rel-1');
     expect(charter.metadataDraft.title).toBe('Night Code');
     expect(charter.metadataDraft.primaryGenre).toBe('Trap');
-    expect(charter.forecast.monthlyStreamsMid).toBeGreaterThan(0);
+    // A created-at timestamp is not a release date, so the date stays blank.
+    expect(charter.metadataDraft.releaseDate).toBe('');
+    expect('forecast' in charter).toBe(false);
     expect(charter.outreach.body.length).toBeGreaterThan(80);
     expect(charter.outreach.subject).toContain('Smuve Jeff');
   });
@@ -80,7 +82,7 @@ describe('CareerPipelineService · Sprint B4', () => {
     await new Promise((resolve) => setTimeout(resolve, 5));
     const b = await sut.buildCharter(TEST_RELEASE, 'Pop', 'pop', 'Smuve Jeff');
     expect(a.id).not.toBe(b.id);
-    expect(a.forecast.marketTier).toBe(b.forecast.marketTier);
+    expect(a.metadataDraft).toEqual(b.metadataDraft);
     expect(a.outreach.subject).toBe(b.outreach.subject);
     expect(a.outreach.body).toBe(b.outreach.body);
   });
@@ -103,13 +105,11 @@ describe('CareerPipelineService · Sprint B4', () => {
     expect(md.copyright).toMatch(/Smuve Jeff/);
   });
 
-  it('estimateRevenueForecast tiers trap higher than indie jazz', () => {
-    const trap = sut.estimateRevenueForecast(TEST_RELEASE, 'Trap');
-    const jazz = sut.estimateRevenueForecast(TEST_RELEASE, 'Jazz');
-    expect(trap.monthlyStreamsMid).toBeGreaterThan(jazz.monthlyStreamsMid);
-    expect(trap.marketTier === 'mainstream' || trap.marketTier === 'mid').toBe(true);
-    expect(jazz.marketTier).toBe('indie');
-    expect(trap.notes.length).toBeGreaterThan(0);
+  it('does not manufacture a revenue or audience forecast', async () => {
+    const charter = await sut.buildCharter(TEST_RELEASE, 'Trap', 'dark', 'Smuve Jeff');
+
+    expect('forecast' in charter).toBe(false);
+    expect((sut as any).estimateRevenueForecast).toBeUndefined();
   });
 
   it('draftOutreachPacket CTA targets genre-appropriate programming', () => {
@@ -117,7 +117,8 @@ describe('CareerPipelineService · Sprint B4', () => {
     const lofi = sut.draftOutreachPacket(TEST_RELEASE, 'Lo-Fi', 'chill', 'Smuve Jeff');
     expect(trap.callToAction.toLowerCase()).toContain('hip-hop');
     expect(lofi.callToAction.toLowerCase()).toMatch(/lo-fi|study/);
-    expect(trap.targetListSize).toBeGreaterThan(lofi.targetListSize);
+    // No curator list exists, so no target count is claimed.
+    expect('targetListSize' in trap).toBe(false);
     expect(trap.body).toContain('Smuve Jeff');
   });
 
@@ -133,6 +134,7 @@ describe('CareerPipelineService · Sprint B4', () => {
       platforms: expect.any(Array),
       goals: [],
     });
+    expect(draft.targetAudience).toContain('not yet evidenced');
     // The charter contains no budget or end date, so the draft must not carry
     // one — a plausible figure here would be a spend the artist never agreed to.
     expect(draft.budget).toBeUndefined();

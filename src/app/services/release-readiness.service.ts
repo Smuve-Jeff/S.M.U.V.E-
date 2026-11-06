@@ -9,6 +9,7 @@ import {
 import { findCatalogWork } from './release-split.util';
 import {
   findReleaseDateMismatch,
+  parseReleaseDay,
   releaseDateMismatchMessage,
 } from './release-window.util';
 
@@ -315,8 +316,8 @@ export class ReleaseReadinessService {
       };
     }
 
-    const parsed = Date.parse(date);
-    if (!Number.isFinite(parsed)) {
+    const parsed = parseReleaseDay(date);
+    if (parsed === null) {
       return {
         id: 'timing',
         label: 'Market timing',

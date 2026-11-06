@@ -295,6 +295,22 @@ describe('ReleaseReadinessService', () => {
     expect(readiness.blockingGaps).toEqual([]);
   });
 
+  it('treats an impossible calendar date as unreadable', () => {
+    const timing = service
+      .assess(
+        profile(),
+        release({ plannedReleaseDate: '2026-02-31' }),
+        new Date('2026-01-01T00:00:00.000Z')
+      )
+      .checks.find((c) => c.id === 'timing')!;
+
+    expect(timing.score).toBe(0);
+    expect(timing.state).toBe('not-ready');
+    expect(timing.evidence.join(' ')).toContain(
+      'cannot be read as a calendar date'
+    );
+  });
+
   it('leaves timing unscored when no date is recorded at all', () => {
     const timing = service
       .assess(

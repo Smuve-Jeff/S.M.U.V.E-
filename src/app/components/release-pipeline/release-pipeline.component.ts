@@ -11,7 +11,10 @@ import { ReadinessState } from '../../types/release-readiness.types';
 import { LIFECYCLE_PHASE_LABEL } from '../../types/artist-lifecycle.types';
 import { CreativeSeverity } from '../../types/creative-business.types';
 import { findCatalogWork } from '../../services/release-split.util';
-import { findReleaseDateMismatch } from '../../services/release-window.util';
+import {
+  findReleaseDateMismatch,
+  isCalendarDay,
+} from '../../services/release-window.util';
 import { Router } from '@angular/router';
 import { RouterModule } from '@angular/router';
 
@@ -339,9 +342,9 @@ export class ReleasePipelineComponent {
    */
   async savePlannedReleaseDate(): Promise<void> {
     const date = this.plannedDateText().trim();
-    if (date && !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    if (date && !isCalendarDay(date)) {
       this.notify.show(
-        'Enter a calendar date in YYYY-MM-DD form, or clear the field to remove the planned window.',
+        'Enter a real calendar date in YYYY-MM-DD form (for example 2026-03-14), or clear the field to remove the planned window.',
         'warning'
       );
       return;
@@ -591,7 +594,15 @@ export class ReleasePipelineComponent {
   });
 
   startNewRelease(name: string, type: ReleaseType) {
-    this.releaseService.initializeRelease(name, type);
+    const title = (name || '').trim();
+    if (!title) {
+      this.notify.show(
+        'Give the release a title before initializing the pipeline.',
+        'warning'
+      );
+      return;
+    }
+    void this.releaseService.initializeRelease(title, type);
     this.showNewReleaseModal.set(false);
   }
 
@@ -608,8 +619,29 @@ export class ReleasePipelineComponent {
     }
   }
 
-  completeStage(trackId: string, stage: any) {
-    this.releaseService.updateTrackStage(trackId, stage, 'Completed');
+  /**
+   * Advances a stage through the artist's own status vocabulary. Nothing here
+   * verifies the work: production readiness reads these flags as artist-stated
+   * and reports them that way.
+   */
+  async cycleStage(track: ProductionTrack, stage: string): Promise<void> {
+    const key = stage as keyof ProductionTrack['stages'];
+    const statuses: ProductionTrack['status'][] = [
+      'Pending',
+      'In Progress',
+      'Completed',
+    ];
+    const current = track.stages[key] ?? 'Pending';
+    const index = Math.max(0, statuses.indexOf(current));
+    const next = statuses[(index + 1) % statuses.length];
+
+    await this.releaseService.updateTrackStage(track.id, key, next);
+    this.notify.show(
+      next === 'Completed'
+        ? `${stage} marked complete for "${track.title}" — your own confirmation, not a verified export.`
+        : `${stage} set to ${next} for "${track.title}".`,
+      'info'
+    );
   }
 
   /**

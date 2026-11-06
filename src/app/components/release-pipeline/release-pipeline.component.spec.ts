@@ -1025,4 +1025,90 @@ describe('ReleasePipelineComponent', () => {
       'warning'
     );
   });
+
+  it('refuses an impossible calendar date instead of rolling it forward', async () => {
+    const { component } = await setup(readyRelease());
+
+    component.plannedDateDraft.set('2026-02-31');
+    await component.savePlannedReleaseDate();
+
+    expect(releaseService.setPlannedReleaseDate).not.toHaveBeenCalled();
+    expect(notify.show).toHaveBeenCalledWith(
+      expect.stringContaining('real calendar date'),
+      'warning'
+    );
+  });
+
+  it('cycles a stage through the artist-set statuses and back', async () => {
+    const pendingTrack = {
+      ...track('Window Light'),
+      stages: {
+        instrumental: 'Pending' as const,
+        lyrics: 'Pending' as const,
+        vocals: 'Pending' as const,
+        mixing: 'Pending' as const,
+        mastering: 'Pending' as const,
+      },
+    };
+    const { component } = await setup({
+      ...readyRelease(),
+      tracks: [pendingTrack],
+    });
+
+    await component.cycleStage(pendingTrack, 'instrumental');
+    expect(releaseService.updateTrackStage).toHaveBeenCalledWith(
+      pendingTrack.id,
+      'instrumental',
+      'In Progress'
+    );
+
+    const inProgress = {
+      ...pendingTrack,
+      stages: { ...pendingTrack.stages, instrumental: 'In Progress' as const },
+    };
+    await component.cycleStage(inProgress, 'instrumental');
+    expect(releaseService.updateTrackStage).toHaveBeenLastCalledWith(
+      pendingTrack.id,
+      'instrumental',
+      'Completed'
+    );
+    expect(notify.show).toHaveBeenLastCalledWith(
+      expect.stringContaining('your own confirmation'),
+      'info'
+    );
+
+    const completed = {
+      ...pendingTrack,
+      stages: { ...pendingTrack.stages, instrumental: 'Completed' as const },
+    };
+    await component.cycleStage(completed, 'instrumental');
+    expect(releaseService.updateTrackStage).toHaveBeenLastCalledWith(
+      pendingTrack.id,
+      'instrumental',
+      'Pending'
+    );
+  });
+
+  it('refuses to initialize a release without a title', async () => {
+    const { component } = await setup(readyRelease());
+
+    component.startNewRelease('   ', 'Album');
+
+    expect(releaseService.initializeRelease).not.toHaveBeenCalled();
+    expect(notify.show).toHaveBeenCalledWith(
+      expect.stringContaining('title'),
+      'warning'
+    );
+  });
+
+  it('trims a release title before initializing it', async () => {
+    const { component } = await setup(readyRelease());
+
+    component.startNewRelease('  Window Light  ', 'Single');
+
+    expect(releaseService.initializeRelease).toHaveBeenCalledWith(
+      'Window Light',
+      'Single'
+    );
+  });
 });
