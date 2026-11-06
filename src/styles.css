@@ -2840,6 +2840,83 @@ input[type='range'] {
   font-size: 10px;
   color: var(--teal-500, #00e5ff);
 }
+.stem-card.playing {
+  border-color: var(--neon-pink, #ff1a8c);
+  background: rgba(255, 26, 140, 0.12);
+  box-shadow: 0 0 18px rgba(255, 26, 140, 0.25);
+}
+.stem-preview {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+}
+.stem-preview-label {
+  font-family: var(--font-mono, monospace);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--espresso-muted, #b8c2d9);
+}
+.stem-preview-actions {
+  display: flex;
+  gap: 8px;
+}
+.stem-preview-btn,
+.stem-audition-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: var(--espresso-text, #f1f5ff);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    background 0.12s,
+    border-color 0.12s;
+}
+.stem-preview-btn {
+  padding: 8px 12px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.stem-preview-btn .material-symbols-outlined {
+  font-size: 18px;
+}
+.stem-audition-btn {
+  width: 30px;
+  height: 30px;
+  margin-top: 4px;
+  padding: 0;
+  border-radius: 50%;
+}
+.stem-audition-btn .material-symbols-outlined {
+  font-size: 18px;
+}
+.stem-preview-btn:hover,
+.stem-audition-btn:hover {
+  border-color: var(--neon-pink, #ff1a8c);
+  background: rgba(255, 26, 140, 0.14);
+}
+.stem-preview-btn.playing,
+.stem-audition-btn[aria-pressed="true"] {
+  border-color: var(--neon-pink, #ff1a8c);
+  background: rgba(255, 26, 140, 0.22);
+  color: #fff;
+  box-shadow: 0 0 14px rgba(255, 26, 140, 0.35);
+}
 .stem-apply-btn {
   margin-top: 10px;
   width: 100%;

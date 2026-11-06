@@ -74,6 +74,15 @@ export type ArrangementTool =
   | "glue"
   | "crossfade";
 
+/** Sources the splitter can audition: the upload or one separated stem. */
+export type StemAuditionKey =
+  | "original"
+  | "vocals"
+  | "drums"
+  | "bass"
+  | "instrumental"
+  | "other";
+
 @Component({
   selector: "app-arrangement-view",
   standalone: true,
@@ -186,6 +195,11 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
   stemStems = signal<Stems | null>(null);
   stemFileName = signal<string | null>(null);
   stemBusy = signal(false);
+  /** Decoded upload, kept so the preview can A/B it against a stem. */
+  stemSourceBuffer = signal<AudioBuffer | null>(null);
+  /** Which source is sounding right now: the upload or one stem. */
+  stemAudition = signal<StemAuditionKey | null>(null);
+  private auditionSource: AudioBufferSourceNode | null = null;
 
   readonly tracks = this.musicManager.tracks;
   /** The visible editing mode is explicit; the low-level renderer tool follows it. */
@@ -386,6 +400,7 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.stopStemAudition();
     this.stopVisualTask?.();
     this.stopVisualTask = null;
     this.glRenderer?.destroy();
@@ -2240,14 +2255,17 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
   // ── Stem Splitter ────────────────────────────────────────
 
   openStemSplit(): void {
+    this.stopStemAudition();
     this.stemOpen.set(true);
     this.stemProgress.set(0);
     this.stemStems.set(null);
+    this.stemSourceBuffer.set(null);
     this.stemFileName.set(null);
     this.stemStage.set(null);
   }
 
   closeStemSplit(): void {
+    this.stopStemAudition();
     this.stemOpen.set(false);
   }
 
@@ -2255,6 +2273,9 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
     if (!file) return;
+    this.stopStemAudition();
+    this.stemStems.set(null);
+    this.stemSourceBuffer.set(null);
     this.stemBusy.set(true);
     this.stemFileName.set(file.name);
     this.stemProgress.set(15);
@@ -2263,6 +2284,7 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
       const arrayBuffer = await file.arrayBuffer();
       const ctx = this.musicManager.engine.ctx;
       const audioBuffer = await ctx.decodeAudioData(arrayBuffer);
+      this.stemSourceBuffer.set(audioBuffer);
       this.stemProgress.set(45);
       this.snackbar.show("🎚 Stem Split · spectral decomposition");
       const stems = await this.stemSvc.separate(audioBuffer, (update) => {
@@ -2284,9 +2306,64 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
     }
   }
 
+  /** A/B the upload against a single stem without touching the track list. */
+  toggleStemAudition(key: string): void {
+    if (this.stemAudition() === key) {
+      this.stopStemAudition();
+      return;
+    }
+    this.stopStemAudition();
+    const ctx = this.musicManager.engine?.ctx;
+    const buffer = this.stemAuditionBuffer(key);
+    if (!ctx?.createBufferSource || !buffer) {
+      this.snackbar.show("🎚 Preview unavailable — audio engine is not ready");
+      return;
+    }
+    const source = ctx.createBufferSource();
+    source.buffer = buffer;
+    source.connect(ctx.destination);
+    source.onended = () => {
+      if (this.auditionSource !== source) return;
+      this.auditionSource = null;
+      this.stemAudition.set(null);
+    };
+    this.auditionSource = source;
+    this.stemAudition.set(key as StemAuditionKey);
+    if (ctx.state === "suspended") void ctx.resume();
+    source.start();
+    this.haptic.light();
+  }
+
+  stopStemAudition(): void {
+    const source = this.auditionSource;
+    this.auditionSource = null;
+    this.stemAudition.set(null);
+    if (!source) return;
+    source.onended = null;
+    try {
+      source.stop();
+    } catch {
+      // Already ended — nothing left to release.
+    }
+    source.disconnect();
+  }
+
+  private stemAuditionBuffer(key: string): AudioBuffer | null {
+    if (key === "original") return this.stemSourceBuffer();
+    const stems = this.stemStems();
+    if (!stems) return null;
+    if (key === "vocals") return stems.vocals;
+    if (key === "drums") return stems.drums;
+    if (key === "bass") return stems.bass;
+    if (key === "instrumental") return stems.instrumental;
+    if (key === "other") return stems.other;
+    return null;
+  }
+
   applyStems(): void {
     const stems = this.stemStems();
     if (!stems) return;
+    this.stopStemAudition();
     this.musicManager.addStemsAsAudioTracks(stems as any);
     this.snackbar.show("🎚 4 Stem Tracks added");
     this.closeStemSplit();

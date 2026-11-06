@@ -936,8 +936,38 @@
       </div>
 
       <div class="stem-results" *ngIf="stemStems() as stems">
+        <div class="stem-preview">
+          <span class="stem-preview-label">Preview</span>
+          <div class="stem-preview-actions">
+            <button
+              type="button"
+              class="stem-preview-btn"
+              [class.playing]="stemAudition() === 'original'"
+              [attr.aria-pressed]="stemAudition() === 'original'"
+              (click)="toggleStemAudition('original')"
+            >
+              <span class="material-symbols-outlined" aria-hidden="true">{{
+                stemAudition() === 'original' ? 'stop' : 'play_arrow'
+              }}</span>
+              Original
+            </button>
+            <button
+              type="button"
+              class="stem-preview-btn"
+              [class.playing]="stemAudition() === 'instrumental'"
+              [attr.aria-pressed]="stemAudition() === 'instrumental'"
+              (click)="toggleStemAudition('instrumental')"
+            >
+              <span class="material-symbols-outlined" aria-hidden="true">{{
+                stemAudition() === 'instrumental' ? 'stop' : 'play_arrow'
+              }}</span>
+              Vocals out
+            </button>
+          </div>
+        </div>
         <div
           class="stem-card"
+          [class.playing]="stemAudition() === s.key"
           *ngFor="
             let s of [
               { key: 'vocals', label: '🎤 Vocals' },
@@ -953,6 +983,20 @@
           <div class="stem-card-meta">
             {{ stems[s.key]?.duration ?? 0 | number: '1.1-1' }}s
           </div>
+          <button
+            type="button"
+            class="stem-audition-btn"
+            [attr.aria-label]="
+              (stemAudition() === s.key ? 'Stop ' : 'Audition ') +
+              s.label.split(' ')[1]
+            "
+            [attr.aria-pressed]="stemAudition() === s.key"
+            (click)="toggleStemAudition(s.key)"
+          >
+            <span class="material-symbols-outlined" aria-hidden="true">{{
+              stemAudition() === s.key ? 'stop' : 'play_arrow'
+            }}</span>
+          </button>
         </div>
         <button
           class="stem-apply-btn"

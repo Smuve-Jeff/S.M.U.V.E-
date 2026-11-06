@@ -1191,4 +1191,67 @@ describe("ArrangementViewComponent", () => {
     focus.noteActivity("arrangement");
   });
 
+
+  it("auditions the upload and each stem in place, stopping the previous source", () => {
+    const sources: any[] = [];
+    const ctx = {
+      state: "running",
+      destination: {},
+      resume: jest.fn().mockResolvedValue(undefined),
+      createBufferSource: jest.fn(() => {
+        const source: any = {
+          buffer: null,
+          onended: null,
+          connect: jest.fn(),
+          disconnect: jest.fn(),
+          start: jest.fn(),
+          stop: jest.fn(),
+        };
+        sources.push(source);
+        return source;
+      }),
+    };
+    (TestBed.inject(MusicManagerService) as any).engine.ctx = ctx;
+    const make = () =>
+      new AudioBuffer({ length: 100, sampleRate: 44100, numberOfChannels: 1 });
+    const original = make();
+    const vocals = make();
+    component.stemSourceBuffer.set(original);
+    component.stemStems.set({
+      vocals,
+      drums: make(),
+      bass: make(),
+      instrumental: make(),
+      other: make(),
+    } as any);
+
+    component.toggleStemAudition("original");
+    expect(sources[0].buffer).toBe(original);
+    expect(sources[0].start).toHaveBeenCalled();
+    expect(component.stemAudition()).toBe("original");
+
+    component.toggleStemAudition("vocals");
+    expect(sources[0].stop).toHaveBeenCalled();
+    expect(sources[1].buffer).toBe(vocals);
+    expect(component.stemAudition()).toBe("vocals");
+
+    // Clicking the sounding stem again stops it instead of restarting.
+    component.toggleStemAudition("vocals");
+    expect(sources[1].stop).toHaveBeenCalled();
+    expect(component.stemAudition()).toBeNull();
+  });
+
+  it("stops stem audition and releases its source when the splitter closes", () => {
+    const source = { stop: jest.fn(), disconnect: jest.fn(), onended: jest.fn() };
+    (component as any).auditionSource = source;
+    component.stemAudition.set("instrumental");
+
+    component.closeStemSplit();
+
+    expect(source.stop).toHaveBeenCalled();
+    expect(source.disconnect).toHaveBeenCalled();
+    expect(component.stemAudition()).toBeNull();
+  });
+
+
 });
