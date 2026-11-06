@@ -967,6 +967,15 @@ describe("StudioComponent", () => {
   });
 
   // ── Music Map (architecture sheet) wiring ──
+  describe("export review handoff", () => {
+    it("carries the judged target into Mastering", () => {
+      component.openMasteringWithTarget("cd");
+
+      expect(component.activeView()).toBe("mastering");
+      expect(component.masteringTargetRequest()).toMatchObject({ targetId: "cd" });
+    });
+  });
+
   describe("music map", () => {
     it("opens from the rail with haptic + telemetry and closes again", () => {
       expect(component.showArchitectureMap()).toBe(false);

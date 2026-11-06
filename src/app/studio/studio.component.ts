@@ -93,6 +93,7 @@ import { AudioImportService } from "./audio-import.service";
 import { SmartProductionFoundationsService } from "./smart-production-foundations.service";
 import type { SmartProductionCapability } from "./smart-production-foundations.service";
 import { ComponentRecordingService } from "./component-recording.service";
+import type { DeliveryTargetRequest } from "./shared/delivery-targets";
 import { SoundBrowserComponent } from "./sound-browser/sound-browser.component";
 import { SynthesizerComponent } from "./synthesizer/synthesizer.component";
 import { SoundPadGridComponent } from "./sound-pad-grid/sound-pad-grid.component";
@@ -676,6 +677,9 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
    * explicit `?view=`) overrides this in ngOnInit.
    */
   activeView = signal<StudioView>("quick-session");
+
+  /** Target carried from the export review into Mastering. */
+  readonly masteringTargetRequest = signal<DeliveryTargetRequest | null>(null);
   /** One-shot slot/plugin focus for the Effects Rack. */
   readonly effectsRackFocus = signal<{ slot?: number; pluginId?: string } | null>(null);
   private readonly studioFocus = inject(StudioFocusService);
@@ -2433,6 +2437,15 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
       return true;
     }
     return false;
+  }
+
+  /**
+   * Open Mastering and conform it to the target the artist just judged the
+   * export against, so the two surfaces cannot describe different masters.
+   */
+  openMasteringWithTarget(targetId: string): void {
+    this.masteringTargetRequest.set({ targetId, at: Date.now() });
+    this.setActiveView("mastering");
   }
 
   setActiveView(view: StudioView) {

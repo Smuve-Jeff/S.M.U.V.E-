@@ -1,5 +1,12 @@
 import { CommonModule } from "@angular/common";
-import { Component, computed, inject, signal } from "@angular/core";
+import {
+  Component,
+  EventEmitter,
+  Output,
+  computed,
+  inject,
+  signal,
+} from "@angular/core";
 
 import { ProjectWorkspaceService } from "../project-workspace.service";
 import {
@@ -9,8 +16,24 @@ import {
   defaultExportBitrate,
   exportSupportsBitrate,
 } from "../../services/export.service";
+import {
+  DELIVERY_TARGETS,
+  compareToDeliveryTarget,
+  describeExportAnalysis,
+  type ExportAnalysisVerdict,
+} from "./export-analysis.util";
 
 type ExportFeedback = { tone: "ok" | "error"; text: string };
+
+/** A rendered, measured mixdown waiting for the artist's delivery decision. */
+interface PendingMixdown {
+  buffer: AudioBuffer;
+  format: string;
+  bitrate: number;
+  supportsBitrate: boolean;
+  formatLabel: string;
+  sampleRate: number;
+}
 
 /** A saved delivery setup: the same options a finished release needs twice. */
 export interface ExportPreset {
@@ -24,6 +47,19 @@ export interface ExportPreset {
 }
 
 const EXPORT_PRESETS_KEY = "smuve_export_presets_v1";
+const EXPORT_TARGET_KEY = "smuve_export_target_v1";
+
+function loadDeliveryTargetId(): string {
+  try {
+    const stored = localStorage.getItem(EXPORT_TARGET_KEY);
+    if (stored && DELIVERY_TARGETS.some((target) => target.id === stored)) {
+      return stored;
+    }
+  } catch {
+    // Storage may be blocked; fall back to the streaming target.
+  }
+  return DELIVERY_TARGETS[0].id;
+}
 
 function loadExportPresets(): ExportPreset[] {
   try {
@@ -64,6 +100,9 @@ function loadExportPresets(): ExportPreset[] {
   ],
 })
 export class StudioExportSurfaceComponent {
+  /** The shell owns navigation; the chosen target rides with the request. */
+  @Output() openMastering = new EventEmitter<string>();
+
   private readonly exportService = inject(ExportService);
   private readonly projectWorkspace = inject(ProjectWorkspaceService);
 
@@ -96,6 +135,30 @@ export class StudioExportSurfaceComponent {
   private exportStartedAt = 0;
   private exportController: AbortController | null = null;
   readonly feedback = signal<ExportFeedback | null>(null);
+  /**
+   * Measurements of the audio that was actually encoded. Null until a mixdown
+   * completes; a rendered file should never be delivered without telling the
+   * artist what it measures.
+   */
+  readonly analysis = signal<ExportAnalysisVerdict | null>(null);
+  /** Holds the rendered master between the measurement and the download. */
+  readonly pendingExport = signal<PendingMixdown | null>(null);
+
+  /** The destination this master is judged against; remembered across sessions. */
+  readonly deliveryTargets = DELIVERY_TARGETS;
+  readonly deliveryTargetId = signal(loadDeliveryTargetId());
+  readonly deliveryTarget = computed(
+    () =>
+      this.deliveryTargets.find(
+        (target) => target.id === this.deliveryTargetId(),
+      ) ?? this.deliveryTargets[0],
+  );
+  readonly deliveryComparison = computed(() => {
+    const analysis = this.analysis();
+    return analysis
+      ? compareToDeliveryTarget(analysis, this.deliveryTarget())
+      : null;
+  });
 
   readonly formatLabel = computed(() => {
     const info =
@@ -191,6 +254,17 @@ export class StudioExportSurfaceComponent {
     }
   }
 
+  setDeliveryTarget(event: Event): void {
+    const id = (event.target as HTMLSelectElement).value;
+    if (!this.deliveryTargets.some((target) => target.id === id)) return;
+    this.deliveryTargetId.set(id);
+    try {
+      localStorage.setItem(EXPORT_TARGET_KEY, id);
+    } catch {
+      // Remembering the choice is a convenience; the check still applies.
+    }
+  }
+
   rateLabel(rate: number): string {
     return rate === 48000 ? "48 kHz" : "44.1 kHz";
   }
@@ -201,7 +275,7 @@ export class StudioExportSurfaceComponent {
 
   /** Render → master polish → encode → download, at the chosen format/rate. */
   async exportMixdown() {
-    if (this.busy()) return;
+    if (this.busy() || this.pendingExport()) return;
 
     this.begin("Rendering mixdown…", true);
     try {
@@ -218,31 +292,93 @@ export class StudioExportSurfaceComponent {
       this.progress.set(94);
       this.status.set("Applying master polish…");
       const polished = await this.exportService.applySmuvePolish(buffer);
+      // Measure the exact audio that will be encoded, not a re-render or an
+      // estimate from fader positions.
+      const analysis = this.measureExport(polished);
 
-      this.progress.set(98);
-      this.status.set(`Encoding ${this.formatLabel()}…`);
-      const blob = this.supportsBitrate()
-        ? await this.exportService.exportToFormat(
-            polished,
-            this.format(),
-            this.bitrate(),
-          )
-        : await this.exportService.exportToFormat(polished, this.format());
-
-      // Codec fallback returns PCM WAV, so the extension must follow the bytes.
-      const extension =
-        blob.type === "audio/wav" ? "wav" : this.formatInfo().ext;
-      const filename = `${this.projectBase()}_${Date.now()}.${extension}`;
-      this.exportService.downloadBlob(blob, filename);
-      this.progress.set(100);
-
-      this.finish("ok", `Downloaded ${filename}`);
+      // Stop before encoding. The artist sees the measured master first and
+      // decides whether it is ready to leave the browser.
+      this.busy.set(false);
+      this.canCancel.set(false);
+      this.progress.set(null);
+      this.eta.set(null);
+      this.exportStartedAt = 0;
+      this.analysis.set(analysis);
+      this.pendingExport.set({
+        buffer: polished,
+        format: this.format(),
+        bitrate: this.bitrate(),
+        supportsBitrate: this.supportsBitrate(),
+        formatLabel: this.formatLabel(),
+        sampleRate: this.sampleRate(),
+      });
+      this.status.set("Master measured — choose Export Anyway or Open Mastering.");
     } catch (error) {
       if (this.isAbortError(error)) {
         this.finish("ok", "Export cancelled");
       } else {
         this.fail("Mixdown export failed", error);
       }
+    }
+  }
+
+  /** Encode and download the mixdown the artist just reviewed. */
+  async confirmExport(): Promise<void> {
+    if (this.busy()) return;
+    const pending = this.pendingExport();
+    if (!pending) return;
+    const analysis = this.analysis();
+
+    this.pendingExport.set(null);
+    this.begin(`Encoding ${pending.formatLabel}…`);
+    this.analysis.set(analysis);
+    this.progress.set(20);
+    try {
+      const blob = pending.supportsBitrate
+        ? await this.exportService.exportToFormat(
+            pending.buffer,
+            pending.format,
+            pending.bitrate,
+          )
+        : await this.exportService.exportToFormat(
+            pending.buffer,
+            pending.format,
+          );
+
+      // Codec fallback returns PCM WAV, so the extension must follow the bytes.
+      const extension =
+        blob.type === "audio/wav" ? "wav" : this.formatInfo(pending.format).ext;
+      const filename = `${this.projectBase()}_${Date.now()}.${extension}`;
+      this.exportService.downloadBlob(blob, filename);
+      this.progress.set(100);
+      this.finish("ok", `Downloaded ${filename}`);
+    } catch (error) {
+      // The reviewed file was never delivered; its measurements no longer
+      // describe anything the artist has.
+      this.analysis.set(null);
+      this.fail("Mixdown export failed", error);
+    }
+  }
+
+  /** Leave the review without downloading, or navigate to the master chain. */
+  discardPendingExport(): void {
+    this.pendingExport.set(null);
+    this.analysis.set(null);
+    this.status.set("");
+  }
+
+  openMasteringFromReview(): void {
+    const targetId = this.deliveryTargetId();
+    this.discardPendingExport();
+    this.openMastering.emit(targetId);
+  }
+
+  /** A measurement must never fail an otherwise valid export. */
+  private measureExport(buffer: AudioBuffer): ExportAnalysisVerdict | null {
+    try {
+      return describeExportAnalysis(this.exportService.analyzeBuffer(buffer));
+    } catch {
+      return null;
     }
   }
 
@@ -377,6 +513,9 @@ export class StudioExportSurfaceComponent {
     this.eta.set(null);
     this.canCancel.set(cancellable);
     this.feedback.set(null);
+    // Any prior measurement described a different render/format; never leave
+    // stale numbers sitting under a new export.
+    this.analysis.set(null);
     this.status.set(status);
     this.exportStartedAt = Date.now();
     this.exportController = new AbortController();
@@ -398,11 +537,8 @@ export class StudioExportSurfaceComponent {
     this.finish("error", `${prefix} · ${detail}`);
   }
 
-  private formatInfo() {
-    return (
-      this.formats.find((entry) => entry.id === this.format()) ??
-      this.formats[0]
-    );
+  private formatInfo(format: string = this.format()) {
+    return this.formats.find((entry) => entry.id === format) ?? this.formats[0];
   }
 
   private projectBase(): string {

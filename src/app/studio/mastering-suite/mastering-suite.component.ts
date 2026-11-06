@@ -1,5 +1,6 @@
 import {
   Component,
+  Input,
   inject,
   signal,
   AfterViewInit,
@@ -16,6 +17,10 @@ import { HapticService } from "../../services/haptic.service";
 import { SnackbarService } from "../../services/snackbar.service";
 import { AiMixAssistantService } from "../effects/ai-mix-assistant.service";
 import { ExportService } from "../../services/export.service";
+import {
+  DELIVERY_TARGETS,
+  type DeliveryTargetRequest,
+} from "../shared/delivery-targets";
 import { PluginStoreService } from "../../services/plugin-store.service";
 import { MusicManagerService } from "../../services/music-manager.service";
 import { ABSOLUTE_GATE_LUFS } from "../../services/loudness-meter";
@@ -53,18 +58,6 @@ interface MasteringPreset {
   ratio: number;
   threshold: number;
   roastNote: string;
-}
-
-/** A measurable delivery destination (platform mastering guides). */
-interface DeliveryTarget {
-  id: string;
-  platform: string;
-  /** Integrated loudness the platform bills the master against, LUFS. */
-  targetLufs: number;
-  /** True-peak ceiling (dBTP) the delivery spec asks to stay under. */
-  ceilingDbtp: number;
-  /** One line of honest context for the artist. */
-  note: string;
 }
 
 @Component({
@@ -299,47 +292,20 @@ export class MasteringSuiteComponent implements AfterViewInit, OnDestroy {
   activeDeliveryTargetId = signal<string | null>(null);
 
   /**
-   * Delivery specs from the platforms' published mastering guides. Values are
-   * the numbers whose absence previously forced an artist to type targets by
-   * hand; if a platform revises its spec, this is the one place to update.
+   * The shared delivery catalogue. The export review compares the rendered
+   * file against these exact entries, so a master cannot pass one surface and
+   * miss the other.
    */
-  readonly deliveryTargets: DeliveryTarget[] = [
-    {
-      id: "spotify",
-      platform: "Spotify",
-      targetLufs: -14,
-      ceilingDbtp: -1,
-      note: "Streamed loud masters are quietly turned down, not turned up",
-    },
-    {
-      id: "apple",
-      platform: "Apple Music",
-      targetLufs: -16,
-      ceilingDbtp: -1,
-      note: "Tightest headroom on the big streamers — protects the Sound Check gain match",
-    },
-    {
-      id: "youtube",
-      platform: "YouTube",
-      targetLufs: -14,
-      ceilingDbtp: -1,
-      note: "Same integrated target as Spotify, mono-fallback monitoring on phones",
-    },
-    {
-      id: "podcast",
-      platform: "Podcast / spoken",
-      targetLufs: -16,
-      ceilingDbtp: -1.5,
-      note: "Speech-first spec; leave room for phone speaker intelligibility",
-    },
-    {
-      id: "club",
-      platform: "Club / loud",
-      targetLufs: -9,
-      ceilingDbtp: -0.3,
-      note: "Deliberately hot: play systems, not streamers, hear this one",
-    },
-  ];
+  readonly deliveryTargets = DELIVERY_TARGETS;
+
+  /**
+   * Conform to a target chosen in the export review. Each request is a fresh
+   * object, so tapping the same target twice still re-conforms instead of
+   * being dropped as an unchanged input.
+   */
+  @Input() set deliveryTargetRequest(request: DeliveryTargetRequest | null) {
+    if (request?.targetId) this.applyDeliveryTarget(request.targetId);
+  }
 
   /**
    * Conform the master to a platform's delivery spec.

@@ -174,7 +174,25 @@ describe("MasteringSuite reference A/B", () => {
         ["youtube", -14, -1],
         ["podcast", -16, -1.5],
         ["club", -9, -0.3],
+        ["cd", -9, -0.1],
       ]);
+    });
+
+    it("conforms a target carried in from the export review", () => {
+      const fixture = TestBed.createComponent(MasteringSuiteComponent);
+
+      fixture.componentRef.setInput("deliveryTargetRequest", {
+        targetId: "cd",
+        at: 1,
+      });
+
+      expect(fixture.componentInstance.activeDeliveryTargetId()).toBe("cd");
+      expect(fixture.componentInstance.targetLufs()).toBe(-9);
+      expect(fixture.componentInstance.safeCeiling()).toBe(-0.1);
+      expect(engineMock.setMasteringTargets).toHaveBeenCalledWith({
+        lufs: -9,
+        truePeak: -0.1,
+      });
     });
 
     it("conforms the target, the ceiling, and highlights the chip", () => {

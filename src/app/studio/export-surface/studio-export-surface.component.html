@@ -108,28 +108,44 @@
       type="button"
       class="primary"
       (click)="exportMixdown()"
-      [disabled]="busy()"
+      [disabled]="busy() || pendingExport()"
     >
       Export Mixdown ({{ formatLabel() }})
     </button>
-    <button type="button" (click)="exportStems()" [disabled]="busy()">
+    <button
+      type="button"
+      (click)="exportStems()"
+      [disabled]="busy() || pendingExport()"
+    >
       Export Stems
     </button>
-    <button type="button" (click)="exportProject()" [disabled]="busy()">
+    <button
+      type="button"
+      (click)="exportProject()"
+      [disabled]="busy() || pendingExport()"
+    >
       Export Project
     </button>
-    <button type="button" (click)="exportMidi()" [disabled]="busy()">
+    <button
+      type="button"
+      (click)="exportMidi()"
+      [disabled]="busy() || pendingExport()"
+    >
       Export MIDI
     </button>
     <button
       type="button"
       (click)="exportDawproject()"
-      [disabled]="busy()"
+      [disabled]="busy() || pendingExport()"
       title="Open exchange project for Bitwig, Studio One and Cubasis 3.7+"
     >
       Export DAWproject
     </button>
-    <button type="button" (click)="shareExport()" [disabled]="busy()">
+    <button
+      type="button"
+      (click)="shareExport()"
+      [disabled]="busy() || pendingExport()"
+    >
       Share Mixdown
     </button>
   </div>
@@ -167,4 +183,104 @@
   >
     {{ result.text }}
   </p>
+
+  <!-- Measured from the bytes that were encoded, so "bounced" also means
+       "checked". Warnings name the number that triggered them. -->
+  <div
+    class="export-analysis"
+    *ngIf="analysis() as measured"
+    role="status"
+    aria-live="polite"
+  >
+    <p class="export-analysis-title">
+      {{
+        pendingExport()
+          ? 'Measured master — not downloaded yet'
+          : 'Measured from the exported audio'
+      }}
+    </p>
+    <p class="export-analysis-target" *ngIf="pendingExport() as pending">
+      {{ pending.formatLabel }} · {{ rateLabel(pending.sampleRate) }}
+    </p>
+    <ul class="export-analysis-metrics">
+      <li><strong>{{ measured.lufs }}</strong> LUFS</li>
+      <li><strong>{{ measured.truePeakDb }}</strong> dBTP</li>
+      <li><strong>{{ measured.lra }}</strong> LU range</li>
+      <li><strong>{{ measured.correlation }}</strong> phase</li>
+    </ul>
+
+    <div class="export-delivery">
+      <label class="export-delivery-field">
+        <span>Delivery target</span>
+        <select
+          [value]="deliveryTargetId()"
+          (change)="setDeliveryTarget($event)"
+        >
+          <option
+            *ngFor="let target of deliveryTargets"
+            [value]="target.id"
+            [selected]="target.id === deliveryTargetId()"
+          >
+            {{ target.label }}
+          </option>
+        </select>
+      </label>
+      <p class="export-delivery-note">{{ deliveryTarget().note }}</p>
+      <ul class="export-delivery-checks" *ngIf="deliveryComparison() as comparison">
+        <li
+          *ngFor="let check of comparison.checks"
+          [class.miss]="!check.pass"
+        >
+          <span class="export-check-state">
+            {{ check.pass ? 'PASS' : 'MISS' }}
+          </span>
+          <span class="export-check-label">{{ check.label }}</span>
+          <span class="export-check-values">
+            {{ check.measured }}
+            <small>target {{ check.target }}</small>
+          </span>
+        </li>
+      </ul>
+      <p
+        class="export-delivery-verdict"
+        [class.miss]="!comparison.allPass"
+        *ngIf="deliveryComparison() as comparison"
+      >
+        {{
+          comparison.allPass
+            ? 'All checks match ' + comparison.targetLabel + '.'
+            : 'This master misses ' + comparison.targetLabel + '.'
+        }}
+      </p>
+    </div>
+    <p
+      class="export-analysis-warning"
+      *ngFor="let warning of measured.warnings"
+    >
+      {{ warning }}
+    </p>
+    <div class="export-analysis-actions" *ngIf="pendingExport()">
+      <button type="button" class="primary" (click)="confirmExport()">
+        Export Anyway
+      </button>
+      <button type="button" (click)="openMasteringFromReview()">
+        Open Mastering
+      </button>
+      <button
+        type="button"
+        class="discard"
+        (click)="discardPendingExport()"
+      >
+        Discard
+      </button>
+    </div>
+    <button
+      *ngIf="!pendingExport() && measured.warnings.length"
+      type="button"
+      class="export-analysis-fix"
+      (click)="openMastering.emit(deliveryTargetId())"
+    >
+      Open Mastering
+    </button>
+  </div>
 </div>

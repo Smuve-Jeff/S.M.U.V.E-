@@ -25,6 +25,7 @@ describe("StudioExportSurfaceComponent", () => {
     exportProjectMidi: jest.fn(),
     exportStems: jest.fn(),
     exportAndShare: jest.fn(),
+    analyzeBuffer: jest.fn(),
   };
 
   beforeEach(() => {
@@ -36,6 +37,13 @@ describe("StudioExportSurfaceComponent", () => {
     exportService.exportProjectMidi.mockReturnValue(wavBlob());
     exportService.exportStems.mockResolvedValue(wavBlob());
     exportService.exportAndShare.mockResolvedValue(true);
+    exportService.analyzeBuffer.mockReturnValue({
+      peakDb: -1.4,
+      truePeakDb: -1.2,
+      lufs: -11.5,
+      lra: 7.8,
+      correlation: 0.62,
+    });
 
     TestBed.configureTestingModule({
       imports: [StudioExportSurfaceComponent],
@@ -156,6 +164,7 @@ describe("StudioExportSurfaceComponent", () => {
       expect(component.formatLabel()).toBe("MP3 320k");
 
       await component.exportMixdown();
+      await component.confirmExport();
       expect(exportService.exportToFormat).toHaveBeenCalledWith(
         {},
         "mp3",
@@ -178,7 +187,7 @@ describe("StudioExportSurfaceComponent", () => {
   });
 
   describe("exportMixdown", () => {
-    it("renders, polishes, encodes and downloads at the chosen rate", async () => {
+    it("renders and measures the chosen rate before asking for a decision", async () => {
       component.setSampleRate({
         target: { value: "48000" },
       } as unknown as Event);
@@ -192,13 +201,97 @@ describe("StudioExportSurfaceComponent", () => {
         }),
       );
       expect(exportService.applySmuvePolish).toHaveBeenCalled();
+      expect(exportService.analyzeBuffer).toHaveBeenCalled();
+      // Nothing left the browser yet.
+      expect(exportService.exportToFormat).not.toHaveBeenCalled();
+      expect(exportService.downloadBlob).not.toHaveBeenCalled();
+      expect(component.pendingExport()).toMatchObject({
+        format: "wav24",
+        sampleRate: 48000,
+      });
+      expect(component.busy()).toBe(false);
+      expect(component.feedback()).toBeNull();
+    });
+
+    it("encodes and downloads the reviewed buffer only after confirmation", async () => {
+      await component.exportMixdown();
+      const measured = component.analysis();
+
+      await component.confirmExport();
+
       expect(exportService.exportToFormat).toHaveBeenCalledWith({}, "wav24");
       expect(exportService.downloadBlob).toHaveBeenCalledWith(
         expect.any(Blob),
         expect.stringMatching(/^Demo_Set_\d+\.wav$/),
       );
-      expect(component.busy()).toBe(false);
+      expect(component.pendingExport()).toBeNull();
+      expect(component.analysis()).toBe(measured);
       expect(component.feedback()?.tone).toBe("ok");
+    });
+
+    it("does not start a second render while a decision is pending", async () => {
+      await component.exportMixdown();
+
+      await component.exportMixdown();
+
+      expect(exportService.renderProjectOffline).toHaveBeenCalledTimes(1);
+    });
+
+    it("opens Mastering instead of downloading and clears the review", async () => {
+      await component.exportMixdown();
+      component.deliveryTargetId.set("cd");
+      const emit = jest.spyOn(component.openMastering, "emit");
+
+      component.openMasteringFromReview();
+
+      expect(emit).toHaveBeenCalledWith("cd");
+      expect(component.pendingExport()).toBeNull();
+      expect(component.analysis()).toBeNull();
+      expect(exportService.downloadBlob).not.toHaveBeenCalled();
+    });
+
+    it("discards the pending render without exporting", async () => {
+      await component.exportMixdown();
+
+      component.discardPendingExport();
+
+      expect(component.pendingExport()).toBeNull();
+      expect(component.analysis()).toBeNull();
+      expect(exportService.exportToFormat).not.toHaveBeenCalled();
+      expect(exportService.downloadBlob).not.toHaveBeenCalled();
+    });
+
+    it("reports the measured stats of the encoded mix", async () => {
+      exportService.analyzeBuffer.mockReturnValue({
+        peakDb: 0.1,
+        truePeakDb: 0.4,
+        lufs: -7.2,
+        lra: 5.1,
+        correlation: 0.2,
+      });
+
+      await component.exportMixdown();
+
+      const measured = component.analysis();
+      expect(exportService.analyzeBuffer).toHaveBeenCalled();
+      expect(measured).toMatchObject({ lufs: -7.2, truePeakDb: 0.4 });
+      expect(measured?.warnings).toHaveLength(2);
+      expect(measured?.warnings.join(' ')).toContain('dBTP');
+    });
+
+    it("keeps the export valid when analysis itself fails", async () => {
+      exportService.analyzeBuffer.mockImplementation(() => {
+        throw new Error("unreadable buffer");
+      });
+
+      await component.exportMixdown();
+      expect(component.analysis()).toBeNull();
+      expect(component.pendingExport()).not.toBeNull();
+
+      await component.confirmExport();
+
+      expect(component.feedback()?.tone).toBe("ok");
+      expect(exportService.downloadBlob).toHaveBeenCalled();
     });
 
     it("feeds real render progress into the export meter", async () => {
@@ -249,6 +342,7 @@ describe("StudioExportSurfaceComponent", () => {
       component.setFormat({ target: { value: "mp3" } } as unknown as Event);
 
       await component.exportMixdown();
+      await component.confirmExport();
 
       expect(exportService.downloadBlob).toHaveBeenCalledWith(
         expect.any(Blob),
@@ -268,6 +362,45 @@ describe("StudioExportSurfaceComponent", () => {
         tone: "error",
         text: "Mixdown export failed · Offline export supports up to 10 minutes",
       });
+    });
+  });
+
+  describe("delivery target", () => {
+    it("defaults to streaming and has no comparison before a render", () => {
+      expect(component.deliveryTargetId()).toBe("spotify");
+      expect(component.deliveryComparison()).toBeNull();
+    });
+
+    it("compares the measured master and remembers the chosen target", async () => {
+      exportService.analyzeBuffer.mockReturnValue({
+        peakDb: -1.8,
+        truePeakDb: -1.4,
+        lufs: -14.2,
+        lra: 6.4,
+        correlation: 0.3,
+      });
+
+      await component.exportMixdown();
+
+      expect(component.deliveryComparison()?.allPass).toBe(true);
+      expect(component.deliveryComparison()?.checks).toHaveLength(3);
+
+      component.setDeliveryTarget({
+        target: { value: "cd" },
+      } as unknown as Event);
+
+      expect(component.deliveryTargetId()).toBe("cd");
+      expect(component.deliveryComparison()?.targetId).toBe("cd");
+      expect(component.deliveryComparison()?.allPass).toBe(false);
+      expect(localStorage.getItem("smuve_export_target_v1")).toBe("cd");
+    });
+
+    it("ignores an unknown target id", () => {
+      component.setDeliveryTarget({
+        target: { value: "not-a-target" },
+      } as unknown as Event);
+
+      expect(component.deliveryTargetId()).toBe("spotify");
     });
   });
 
