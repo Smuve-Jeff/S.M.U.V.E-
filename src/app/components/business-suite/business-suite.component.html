@@ -99,7 +99,7 @@
 
   <!-- Active Pipelines Section -->
   <section
-    *ngIf="bizService.activePipelines().length > 0"
+    *ngIf="activePipelines().length > 0 || archivedPipelines().length > 0"
     class="mb-12 md:mb-16"
   >
     <h2
@@ -107,9 +107,12 @@
     >
       Active Infrastructure
     </h2>
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div
+      *ngIf="activePipelines().length > 0"
+      class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
+    >
       <div
-        *ngFor="let pipeline of bizService.activePipelines()"
+        *ngFor="let pipeline of activePipelines()"
         (click)="navigateToPipeline(pipeline.id)"
         class="material-depth p-6 md:p-8 border border-border hover:border-brand-primary transition-all cursor-pointer group relative overflow-hidden flex flex-col h-full bg-surface/30"
       >
@@ -146,23 +149,76 @@
             class="flex justify-between text-[8px] font-black uppercase text-text-dim"
           >
             <span>Progression</span>
-            <span
-              >{{
-                ((pipeline.currentStageIndex + 1) / pipeline.stages.length) *
-                  100 | number: '1.0-0'
-              }}%</span
-            >
+            <span>{{ progress(pipeline) | number: '1.0-0' }}%</span>
           </div>
           <div class="h-1 bg-border rounded-full overflow-hidden">
             <div
               class="h-full bg-brand-primary transition-all duration-500"
-              [style.width.%]="
-                ((pipeline.currentStageIndex + 1) / pipeline.stages.length) *
-                100
-              "
+              [style.width.%]="progress(pipeline)"
             ></div>
           </div>
+          <div
+            *ngIf="pipeline.status === 'Completed'"
+            class="mt-4 flex items-center gap-4"
+          >
+            <button
+              type="button"
+              (click)="archivePipeline(pipeline, $event)"
+              class="text-[9px] font-black uppercase tracking-widest text-brand-primary hover:text-brand-primary/80 transition-colors"
+            >
+              Archive pathway
+            </button>
+            <button
+              type="button"
+              (click)="removePipeline(pipeline, $event)"
+              class="text-[9px] font-black uppercase tracking-widest text-red-400/80 hover:text-red-400 transition-colors"
+            >
+              Remove pathway
+            </button>
+          </div>
         </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Archived pathways: evidence kept, working grid untouched -->
+  <section *ngIf="archivedPipelines().length > 0" class="mb-12 md:mb-16">
+    <button
+      type="button"
+      (click)="showArchived.set(!showArchived())"
+      class="text-[9px] font-black uppercase tracking-widest text-text-dim hover:text-brand-primary transition-colors"
+    >
+      Archived ({{ archivedPipelines().length }}) ·
+      {{ showArchived() ? 'Hide' : 'Show' }}
+    </button>
+
+    <div
+      *ngIf="showArchived()"
+      class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-4"
+    >
+      <div
+        *ngFor="let pipeline of archivedPipelines()"
+        class="p-5 border border-border rounded-xl bg-surface/20 flex items-center justify-between gap-4"
+      >
+        <div class="min-w-0">
+          <div
+            class="text-sm font-black text-text-main uppercase tracking-tight italic truncate"
+          >
+            {{ pipeline.name }}
+          </div>
+          <div
+            class="text-[9px] font-bold text-text-dim uppercase tracking-widest"
+          >
+            {{ pipeline.type }} · Archived
+          </div>
+        </div>
+        <button
+          type="button"
+          (click)="restorePipeline(pipeline, $event)"
+          class="text-[9px] font-black uppercase tracking-widest text-brand-primary hover:text-brand-primary/80 transition-colors shrink-0"
+        >
+          Restore
+        </button>
       </div>
     </div>
   </section>
@@ -209,7 +265,7 @@
           (click)="$event.stopPropagation(); startModule(module.type)"
           class="mt-6 btn-pro btn-pro-outline w-full text-[9px] font-black uppercase tracking-widest"
         >
-          INITIALIZE
+          {{ activePipelineFor(module.type) ? 'RESUME' : 'INITIALIZE' }}
         </button>
       </div>
     </div>

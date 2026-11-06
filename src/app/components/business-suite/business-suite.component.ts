@@ -1,18 +1,20 @@
-import { Component, computed, inject, OnInit } from '@angular/core';
+import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
-import { BusinessPipelineService } from '../../services/business-pipeline.service';
-import { BusinessPipelineType } from '../../types/business.types';
+import {
+  BusinessPipelineService,
+  pipelineProgress,
+} from '../../services/business-pipeline.service';
+import {
+  BUSINESS_SPINE_PHASES,
+  BusinessPipeline,
+  BusinessPipelineType,
+} from '../../types/business.types';
 import { UserContextService } from '../../services/user-context.service';
 import { ArtistLifecycleService } from '../../services/artist-lifecycle.service';
 import { UserProfileService } from '../../services/user-profile.service';
-import {
-  ArtistLifecyclePhase,
-  LifecyclePhaseId,
-} from '../../types/artist-lifecycle.types';
-
-/** The phases that this workspace is accountable for. */
-const SPINE_PHASES: LifecyclePhaseId[] = ['rights', 'business', 'money'];
+import { InteractionDialogService } from '../../services/interaction-dialog.service';
+import { ArtistLifecyclePhase } from '../../types/artist-lifecycle.types';
 
 @Component({
   selector: 'app-business-suite',
@@ -27,6 +29,7 @@ export class BusinessSuiteComponent implements OnInit {
   userContext = inject(UserContextService);
   private lifecycleService = inject(ArtistLifecycleService);
   private profileService = inject(UserProfileService);
+  private dialog = inject(InteractionDialogService);
 
   /**
    * The same snapshot the Hub and the pathway read, so this workspace can never
@@ -41,7 +44,9 @@ export class BusinessSuiteComponent implements OnInit {
   });
 
   spinePhases = computed(() =>
-    this.lifecycle().phases.filter((phase) => SPINE_PHASES.includes(phase.id))
+    this.lifecycle().phases.filter((phase) =>
+      BUSINESS_SPINE_PHASES.includes(phase.id)
+    )
   );
 
   spineCompleted = computed(() =>
@@ -55,7 +60,7 @@ export class BusinessSuiteComponent implements OnInit {
   /** The first business-spine step that can actually be started now. */
   spineNext = computed(() => {
     const tasks = this.lifecycle().tasks.filter((task) =>
-      SPINE_PHASES.includes(task.phase)
+      BUSINESS_SPINE_PHASES.includes(task.phase)
     );
     return (
       tasks.find(
@@ -74,7 +79,7 @@ export class BusinessSuiteComponent implements OnInit {
   /** The career-wide move when it sits outside this workspace, so it is not hidden. */
   careerNextMove = computed(() => {
     const move = this.lifecycle().nextBestMove;
-    return move && !SPINE_PHASES.includes(move.phase) ? move : null;
+    return move && !BUSINESS_SPINE_PHASES.includes(move.phase) ? move : null;
   });
 
   spineBlockers = computed(() => [
@@ -88,6 +93,21 @@ export class BusinessSuiteComponent implements OnInit {
   phaseScoreLabel(phase: ArtistLifecyclePhase): string {
     return phase.provenance === 'missing' ? 'No evidence' : `${phase.score}%`;
   }
+
+  /** Pipelines on the working grid: archived work is kept but not shown. */
+  activePipelines = computed(() =>
+    this.bizService
+      .activePipelines()
+      .filter((pipeline) => pipeline.status !== 'Archived')
+  );
+
+  archivedPipelines = computed(() =>
+    this.bizService
+      .activePipelines()
+      .filter((pipeline) => pipeline.status === 'Archived')
+  );
+
+  showArchived = signal(false);
 
   openPathway(): void {
     this.router.navigate(['/artist-development']);
@@ -139,6 +159,72 @@ export class BusinessSuiteComponent implements OnInit {
     const name = `Official ${type} Pathway`;
     const id = await this.bizService.initializeModule(type, name);
     this.router.navigate(['/business-pipeline', id]);
+  }
+
+  /** Keeps a finished pathway's evidence without leaving it on the grid. */
+  async archivePipeline(pipeline: BusinessPipeline, event?: Event) {
+    event?.stopPropagation();
+    if (!(await this.bizService.archivePipeline(pipeline.id))) {
+      await this.dialog.alert({
+        title: 'Pathway not archived',
+        message: 'Only a completed pathway can be archived.',
+        confirmLabel: 'Got it',
+      });
+    }
+  }
+
+  async restorePipeline(pipeline: BusinessPipeline, event?: Event) {
+    event?.stopPropagation();
+    if (!(await this.bizService.restorePipeline(pipeline.id))) {
+      await this.dialog.alert({
+        title: 'Pathway not restored',
+        message: 'That pathway is no longer archived.',
+        confirmLabel: 'Got it',
+      });
+    }
+  }
+
+  /** Removes a finished pathway from the profile after explicit consent. */
+  async removePipeline(pipeline: BusinessPipeline, event?: Event) {
+    event?.stopPropagation();
+    const confirmed = await this.dialog.confirm({
+      title: `Remove ${pipeline.name}?`,
+      message:
+        'This deletes the completed pathway and its recorded step history from your profile. It cannot be undone.',
+      confirmLabel: 'Remove pathway',
+      cancelLabel: 'Keep it',
+      tone: 'danger',
+    });
+    if (!confirmed) return;
+
+    if (!(await this.bizService.removePipeline(pipeline.id))) {
+      await this.dialog.alert({
+        title: 'Pathway not removed',
+        message:
+          'Only a completed pathway can be removed. Finish it first, then remove it.',
+        confirmLabel: 'Got it',
+      });
+    }
+  }
+
+  /**
+   * The card and the pipeline detail must agree on what progress means:
+   * stages actually completed, not the stage that happens to be open.
+   */
+  progress(pipeline: BusinessPipeline): number {
+    return pipelineProgress(pipeline);
+  }
+
+  /** The open pipeline for a module, so a card can offer to resume it. */
+  activePipelineFor(type: BusinessPipelineType): BusinessPipeline | null {
+    return (
+      this.bizService
+        .activePipelines()
+        .find(
+          (pipeline) =>
+            pipeline.type === type && pipeline.status !== 'Completed'
+        ) ?? null
+    );
   }
 
   navigateToPipeline(id: string) {

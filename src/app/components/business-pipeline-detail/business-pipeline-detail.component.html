@@ -50,27 +50,36 @@
         >
           <div class="flex flex-col items-center">
             <div
-              class="w-10 h-10 rounded-full border-2 flex items-center justify-center text-xs font-black"
+              class="w-10 h-10 rounded-full border-2 flex items-center justify-center text-xs font-black transition-all"
               [ngClass]="{
                 'border-brand-primary bg-brand-primary text-black shadow-[0_0_20px_rgba(16,185,129,0.3)]':
-                  i <= p.currentStageIndex,
+                  stageState(stage) === 'complete',
+                'border-brand-primary text-brand-primary bg-transparent':
+                  stageState(stage) === 'current',
                 'border-white/10 text-slate-500 bg-transparent':
-                  i > p.currentStageIndex,
+                  stageState(stage) === 'upcoming',
               }"
             >
-              {{ i + 1 }}
+              <i
+                *ngIf="stageState(stage) === 'complete'"
+                class="fas fa-check"
+              ></i>
+              <span *ngIf="stageState(stage) !== 'complete'">{{ i + 1 }}</span>
             </div>
             <span
               class="text-[8px] font-black uppercase tracking-widest mt-2 whitespace-nowrap"
-              [class.text-brand-primary]="i <= p.currentStageIndex"
-              [class.text-slate-500]="i > p.currentStageIndex"
+              [class.text-brand-primary]="stageState(stage) !== 'upcoming'"
+              [class.text-slate-500]="stageState(stage) === 'upcoming'"
             >
               {{ stage.name }}
             </span>
           </div>
           <div
             *ngIf="i < p.stages.length - 1"
-            class="h-[1px] bg-white/5 flex-grow mb-4 min-w-[40px]"
+            class="h-[1px] flex-grow mb-4 min-w-[40px]"
+            [ngClass]="
+              stage.status === 'Completed' ? 'bg-brand-primary' : 'bg-white/5'
+            "
           ></div>
         </div>
       </div>
@@ -84,8 +93,9 @@
             Phase {{ p.currentStageIndex + 1 }}: {{ stage.name }}
           </h2>
           <span
-            class="text-[10px] font-black text-brand-primary uppercase tracking-[0.2em] animate-pulse"
-            >In Progress</span
+            class="text-[10px] font-black text-brand-primary uppercase tracking-[0.2em]"
+            [class.animate-pulse]="p.status !== 'Completed'"
+            >{{ p.status === 'Completed' ? 'Complete' : 'In Progress' }}</span
           >
         </div>
 
@@ -229,7 +239,7 @@
           </div>
         </div>
 
-        <!-- Career Impact Stats -->
+        <!-- Evidence impact: counted, never estimated -->
         <div
           class="bg-brand-surface/30 rounded-3xl p-8 border border-white/10 relative overflow-hidden"
         >
@@ -237,29 +247,56 @@
             class="absolute -top-12 -right-12 w-24 h-24 bg-brand-primary/5 blur-3xl"
           ></div>
           <h3
-            class="text-xs font-black text-slate-500 uppercase tracking-widest mb-6"
+            class="text-xs font-black text-slate-500 uppercase tracking-widest mb-2"
           >
-            Module Impact Metrics
+            Evidence Impact
           </h3>
+          <p
+            class="text-[9px] font-bold text-slate-500 uppercase leading-relaxed mb-6"
+          >
+            Counted from this pipeline and the steps recorded on your profile.
+            No projected or benchmark figures.
+          </p>
           <div class="space-y-6">
-            <div class="flex justify-between items-end">
-              <span class="text-[10px] font-black text-white uppercase"
-                >Authority Level</span
-              >
-              <span class="text-brand-primary font-black italic">+12.4%</span>
-            </div>
-            <div class="h-1 bg-white/5 rounded-full overflow-hidden">
-              <div class="h-full bg-brand-primary w-[45%]"></div>
+            <div class="space-y-2">
+              <div class="flex justify-between items-end">
+                <span class="text-[10px] font-black text-white uppercase"
+                  >Pipeline Progress</span
+                >
+                <span class="text-brand-primary font-black italic"
+                  >{{ pipelinePercent() }}%</span
+                >
+              </div>
+              <div class="h-1 bg-white/5 rounded-full overflow-hidden">
+                <div
+                  class="h-full bg-brand-primary transition-all duration-500"
+                  [style.width.%]="pipelinePercent()"
+                ></div>
+              </div>
+              <p class="text-[9px] font-bold text-slate-500 uppercase">
+                {{ completedStageCount() }}/{{ p.stages.length }} stages
+                complete
+              </p>
             </div>
 
-            <div class="flex justify-between items-end">
-              <span class="text-[10px] font-black text-white uppercase"
-                >Legal Protection</span
-              >
-              <span class="text-brand-primary font-black italic">+8.0%</span>
-            </div>
-            <div class="h-1 bg-white/5 rounded-full overflow-hidden">
-              <div class="h-full bg-brand-primary w-[32%]"></div>
+            <div *ngFor="let phase of spinePhases()" class="space-y-2">
+              <div class="flex justify-between items-end">
+                <span class="text-[10px] font-black text-white uppercase">{{
+                  phase.label
+                }}</span>
+                <span class="text-brand-primary font-black italic">{{
+                  phaseScoreLabel(phase)
+                }}</span>
+              </div>
+              <div class="h-1 bg-white/5 rounded-full overflow-hidden">
+                <div
+                  class="h-full bg-brand-primary transition-all duration-500"
+                  [style.width.%]="phasePercent(phase)"
+                ></div>
+              </div>
+              <p class="text-[9px] font-bold text-slate-500 uppercase">
+                {{ phase.completed }}/{{ phase.total }} steps evidenced
+              </p>
             </div>
           </div>
         </div>

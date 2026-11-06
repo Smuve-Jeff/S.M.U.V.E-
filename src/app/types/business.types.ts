@@ -1,3 +1,16 @@
+import type { LifecyclePhaseId } from './artist-lifecycle.types';
+
+/**
+ * The lifecycle phases the Business Suite and every business pipeline report
+ * on. Shared so the hub and a pipeline detail can never quote different
+ * business evidence for the same record.
+ */
+export const BUSINESS_SPINE_PHASES: LifecyclePhaseId[] = [
+  'rights',
+  'business',
+  'money',
+];
+
 export type BusinessPipelineType =
   | 'Merch'
   | 'Record Label'
@@ -32,7 +45,7 @@ export interface BusinessPipeline {
   id: string;
   type: BusinessPipelineType;
   name: string;
-  status: 'Draft' | 'Active' | 'Completed';
+  status: 'Draft' | 'Active' | 'Completed' | 'Archived';
   currentStageIndex: number;
   stages: BusinessStage[];
   createdAt: number;

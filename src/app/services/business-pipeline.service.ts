@@ -7,6 +7,20 @@ import {
   BusinessStage,
 } from '../types/business.types';
 
+/**
+ * Progress from stages that are actually complete, not from the stage that is
+ * currently open. `currentStageIndex` points at the stage in progress, so a
+ * brand new three-stage pipeline used to render 33% before a single step was
+ * done — and a finished one could never reach 100% honestly.
+ */
+export function pipelineProgress(pipeline: BusinessPipeline): number {
+  const stages = pipeline?.stages ?? [];
+  if (!stages.length) return 0;
+  const completed = stages.filter((stage) => stage.status === 'Completed')
+    .length;
+  return Math.round((completed / stages.length) * 100);
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -31,6 +45,21 @@ export class BusinessPipelineService {
     type: BusinessPipelineType,
     name: string
   ): Promise<string> {
+    // Clicking a module again used to stack a second pipeline of the same type,
+    // and every further click added another. Reuse the open one instead; a new
+    // pipeline is only created once the previous one is completed or archived.
+    const open = this.activePipelines().find(
+      (pipeline) =>
+        pipeline.type === type &&
+        (pipeline.status === 'Draft' || pipeline.status === 'Active')
+    );
+    if (open) {
+      this.logger.info(
+        `BusinessPipeline: Reusing open ${type} module: ${open.name}`
+      );
+      return open.id;
+    }
+
     const newPipeline: BusinessPipeline = {
       id: `biz-${Date.now()}`,
       type,
@@ -47,6 +76,64 @@ export class BusinessPipelineService {
     await this.saveToProfile(updated);
     this.logger.info(`BusinessPipeline: Initialized ${type} module: ${name}`);
     return newPipeline.id;
+  }
+
+  /**
+   * Removes a completed pipeline from the profile. Open work is refused:
+   * deleting it would throw away steps the artist can still finish.
+   */
+  async removePipeline(pipelineId: string): Promise<boolean> {
+    const pipelines = this.activePipelines();
+    const target = pipelines.find((pipeline) => pipeline.id === pipelineId);
+    if (!target || target.status !== 'Completed') {
+      this.logger.warn(
+        `BusinessPipeline: Refused to remove ${pipelineId}; only completed pathways can be removed`
+      );
+      return false;
+    }
+
+    const updated = pipelines.filter((pipeline) => pipeline.id !== pipelineId);
+    this.activePipelines.set(updated);
+    await this.saveToProfile(updated);
+    this.logger.info(
+      `BusinessPipeline: Removed completed ${target.type} module: ${target.name}`
+    );
+    return true;
+  }
+
+  /** Hides a completed pipeline from the hub without losing its evidence. */
+  async archivePipeline(pipelineId: string): Promise<boolean> {
+    return this.setFinishedStatus(pipelineId, 'Completed', 'Archived');
+  }
+
+  /** Returns an archived pathway to the hub's completed list. */
+  async restorePipeline(pipelineId: string): Promise<boolean> {
+    return this.setFinishedStatus(pipelineId, 'Archived', 'Completed');
+  }
+
+  private async setFinishedStatus(
+    pipelineId: string,
+    from: BusinessPipeline['status'],
+    to: BusinessPipeline['status']
+  ): Promise<boolean> {
+    const pipelines = this.activePipelines();
+    const target = pipelines.find((pipeline) => pipeline.id === pipelineId);
+    if (!target || target.status !== from) {
+      this.logger.warn(
+        `BusinessPipeline: Refused to move ${pipelineId} from ${from} to ${to}`
+      );
+      return false;
+    }
+
+    const updated = pipelines.map((pipeline) =>
+      pipeline.id === pipelineId
+        ? { ...pipeline, status: to, updatedAt: Date.now() }
+        : pipeline
+    );
+    this.activePipelines.set(updated);
+    await this.saveToProfile(updated);
+    this.logger.info(`BusinessPipeline: ${from} → ${to}: ${target.name}`);
+    return true;
   }
 
   async updateStep(
@@ -82,7 +169,12 @@ export class BusinessPipelineService {
         newIndex < updatedStages.length - 1
       ) {
         newIndex++;
-        updatedStages[newIndex].status = 'In Progress';
+        // Replace the stage instead of mutating it: the previous pipeline
+        // snapshot still holds this object.
+        updatedStages[newIndex] = {
+          ...updatedStages[newIndex],
+          status: 'In Progress',
+        };
       }
 
       return {
