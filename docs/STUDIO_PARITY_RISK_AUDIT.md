@@ -276,7 +276,7 @@ content pipeline before they can be sold.
 
 There is **no `LICENSE` and no `NOTICE`/`THIRD_PARTY_NOTICES` file at the
 repository root**, yet the app bundles third-party audio code
-(`@mediagrid/capacitor-native-audio`, `onnxruntime-web`, `tone`) and ships an
+(`@mediagrid/capacitor-native-audio`, `tone`) and ships an
 `AndroidManifest.xml` with `com.google.android.gms.permission.AD_ID`
 (advertising ID) in a paid DAW. **Fix:** an in-repo attribution file generated
 from `package.json` licenses, a decision recorded on the AD_ID permission

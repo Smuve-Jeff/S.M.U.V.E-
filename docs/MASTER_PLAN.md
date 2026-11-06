@@ -27,7 +27,7 @@ S.M.U.V.E. 2.0 Studio today (verified against `src/app/studio`, 205 files,
 | Audio Recorder | ✅ | Mic/line capture, component recording, smart recording |
 | Performance Mode / Performer | ✅ | MIDI pad grid, velocity layers, pressure-sensitive pads, MIDI mapping |
 | Mastering Suite | ✅ | Spectrum analyzer, soft-clip, limiting, AI Mix Master w/ genre presets |
-| Stem Separation | ✅ | DSP/worklet splitter (4 stems + residual); ONNX Demucs path opt-in & experimental |
+| Stem Separation | ✅ | DSP/worklet spectral splitter (4 stems + residual) |
 | Vocal Suite | ✅ | Pitch correction, comp view |
 | DJ Deck | ✅ | Deck A/B matrix, MIDI slave sync, BLE-ready |
 | MIDI | ✅ | WebMIDI in/out, CC out selector, learn, pitch bend, sustain |

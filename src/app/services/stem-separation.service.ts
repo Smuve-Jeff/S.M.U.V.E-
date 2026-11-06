@@ -1,7 +1,6 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { NotificationService } from './notification.service';
 import { AuxAudioContextService } from './aux-audio-context.service';
-import { createMlWorker } from './ml-worker-factory';
 
 export interface Stems {
   vocals: AudioBuffer;
@@ -52,31 +51,8 @@ export class StemSeparationService {
   /** Whether separation is in progress */
   readonly isSeparating = signal(false);
 
-  /**
-   * Opt-in switch for neural stem separation via Web Worker + ONNX runtime.
-   *
-   * Default OFF: turning it on makes the first separation download a ~13 MB
-   * model, and the worklet/biquad path below is what the shipped Stem Splitter
-   * actually calls. Nothing may fetch that model unless a caller opts in
-   * through `setUseMlStems(true)`.
-   */
-  readonly useMlStems = signal(false);
-  /**
-   * Whether the runtime can host the ML stem worker. onnxruntime-web runs its
-   * single-threaded wasm backend without cross-origin isolation, so a Worker
-   * plus WebAssembly is enough — SharedArrayBuffer is not required.
-   */
-  readonly mlStemsAvailable = signal(
-    typeof window !== 'undefined' &&
-    typeof Worker !== 'undefined' &&
-    typeof WebAssembly !== 'undefined'
-  );
-
   /** AudioWorklet node for on-device processing */
   private workletNode: AudioWorkletNode | null = null;
-
-  /** Web Worker for real ONNX stem inference (Sprint 2 scaffold) */
-  private mlWorker: Worker | null = null;
 
   /**
    * Separate stems on-device using the stem-separator AudioWorklet.
@@ -102,38 +78,6 @@ export class StemSeparationService {
       stage: 'loading',
       message: 'Initializing stem processor…',
     });
-
-    // ── Sprint 2 opt-in: ML worker route (Web Worker + onnxruntime-web) ──
-    // Disabled by default; explicit `setUseMlStems(true)` switches the path.
-    if (this.useMlStems() && this.mlStemsAvailable()) {
-      try {
-        const result = await this.separateWithMlModel(buffer);
-        this.isSeparating.set(false);
-        this.notificationService.show(
-          'Neural Stem Isolation Complete: real ONNX inference (4 sources).',
-          'success'
-        );
-        return {
-          stems: result.stems,
-          metadata: {
-            duration: buffer.duration,
-            sampleRate: buffer.sampleRate,
-            onDevice: true,
-            processingTimeMs: Math.round(result.processingTimeMs),
-          },
-        };
-      } catch (err: any) {
-        console.warn(
-          'StemSeparation: ML worker route failed, falling back to legacy worklet.',
-          err?.message
-        );
-        this.notificationService.show(
-          'Neural stem model unavailable — using DSP separation instead.',
-          'warning'
-        );
-        // Fall through to legacy worklet path below.
-      }
-    }
 
     try {
       // Load the worklet module if not already loaded
@@ -287,125 +231,11 @@ export class StemSeparationService {
     if (this.workletNode) {
       this.workletNode.port.postMessage({ type: 'CLEAR' });
     }
-    if (this.mlWorker) {
-      this.mlWorker.postMessage({ type: 'CANCEL' });
-      // Terminate: the in-flight worker can no longer fulfill the pending
-      // inference promise, so leaving it alive would hang `separateOnDevice()`
-      // forever (progress stuck on 'processing'). A fresh worker is lazily
-      // created on the next `separateWithMlModel()` call.
-      this.disposeMlWorker();
-    }
     this.isSeparating.set(false);
     this.progress.set({
       progress: 0,
       stage: 'idle',
       message: 'Cancelled',
-    });
-  }
-
-  /**
-   * Toggle ML stem separation. When enabled, `separateOnDevice()` will route
-   * through the ONNX Web Worker instead of the legacy worklet/biquad path.
-   * Front-end callers must confirm `mlStemsAvailable()` first to avoid 404s.
-   */
-  setUseMlStems(enabled: boolean): void {
-    if (enabled && !this.mlStemsAvailable()) {
-      this.notificationService.show(
-        'Web Worker / WebAssembly unavailable in this runtime — ML stem split disabled.',
-        'warning'
-      );
-      return;
-    }
-    this.useMlStems.set(enabled);
-  }
-
-  /** Lazily construct the ML worker. Terminated on first `disposeMlWorker()` call. */
-  private ensureMlWorker(): Worker {
-    if (!this.mlWorker) {
-      this.mlWorker = createMlWorker() as Worker;
-    }
-    return this.mlWorker;
-  }
-
-  private disposeMlWorker(): void {
-    this.mlWorker?.terminate();
-    this.mlWorker = null;
-  }
-
-  /**
-   * Real neural stem separation via Web Worker + onnxruntime-web.
-   * Returns AudioBuffers reconstructed from the worker's Float32Array payloads.
-   */
-  private separateWithMlModel(
-    buffer: AudioBuffer
-  ): Promise<{ stems: Stems; processingTimeMs: number }> {
-    return new Promise((resolve, reject) => {
-      const worker = this.ensureMlWorker();
-      // Copies, not views: `getChannelData` may return a view over the
-      // context-owned buffer, and postMessage *transfers* the underlying
-      // ArrayBuffer. Using the original arrays detached them mid-handshake —
-      // the COMPLETE handler then read `.length === 0` and emitted silent
-      // zero-length stems on every successful inference.
-      const left = new Float32Array(buffer.getChannelData(0));
-      const right = new Float32Array(
-        buffer.numberOfChannels > 1 ? buffer.getChannelData(1) : buffer.getChannelData(0)
-      );
-      // Pre-transfer length snapshot — the only safe place to capture it,
-      // because the transfer list detaches these buffers immediately.
-      const stemLength = left.length;
-
-      const cleanup = () => {
-        worker.onmessage = null;
-        worker.onerror = null;
-        // Keep the worker alive for next inference — `disposeMlWorker()` will terminate.
-      };
-
-      worker.onmessage = (event: MessageEvent<any>) => {
-        const { type, payload } = event.data;
-        switch (type) {
-          case 'PROGRESS':
-            this.progress.set({
-              progress: Math.min(100, payload.progress),
-              stage: 'processing',
-              message: payload.message,
-            });
-            break;
-          case 'COMPLETE':
-            cleanup();
-            const sampleRate = payload.sampleRate;
-            // Use the pre-transfer length snapshot — `left` is detached here.
-            const length = stemLength;
-            const stems: any = {};
-            (['vocals', 'drums', 'bass', 'other', 'instrumental'] as const).forEach(
-              (name) => {
-                const arr = payload.stems[name];
-                const ab = new AudioBuffer({ length, sampleRate, numberOfChannels: 1 });
-                ab.getChannelData(0).set(new Float32Array(arr).subarray(0, length));
-                stems[name] = ab;
-              }
-            );
-            resolve({ stems: stems as Stems, processingTimeMs: payload.durationMs });
-            break;
-          case 'ERROR':
-            cleanup();
-            reject(new Error(payload?.message ?? 'Worker stem separation failed'));
-            break;
-        }
-      };
-
-      worker.onerror = (err) => {
-        cleanup();
-        reject(err instanceof Error ? err : new Error(String(err)));
-      };
-
-      // Transfer channel buffers for zero-copy handoff to the worker
-      worker.postMessage(
-        {
-          type: 'SEPARATE',
-          payload: { left, right, sampleRate: buffer.sampleRate },
-        },
-        [left.buffer, right.buffer]
-      );
     });
   }
 

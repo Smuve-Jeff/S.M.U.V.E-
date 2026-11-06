@@ -120,9 +120,7 @@ becomes a one-tap quick-start lane.
   advanced), a sampler with velocity layers/round-robin, and drum synthesis.
 - Smart recording: punch-in/out, comping with crossfades, silence detection, and
   take management.
-- Stem separation ships as an on-device DSP/worklet splitter; the ONNX
-  Runtime Web path (Demucs-class model) exists behind an opt-in flag and is
-  still experimental.
+- Stem separation runs on-device through an AudioWorklet spectral splitter.
 
 ---
 

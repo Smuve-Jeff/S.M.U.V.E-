@@ -1,5 +1,5 @@
 /**
- * S.M.U.V.E. 2.0 — Neural Stem Separator AudioWorklet
+ * S.M.U.V.E. 2.0 — Spectral Stem Separator AudioWorklet
  * 
  * Phase 4 Enhancement: On-device spectral decomposition using
  * FFT-based frequency-domain processing in a dedicated audio thread.

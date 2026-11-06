@@ -37,7 +37,6 @@ sdkmanager "platform-tools" "platforms;android-36" \
 npm install --legacy-peer-deps \
   @capacitor/core@^8 \
   @capacitor/android@^8 \
-  onnxruntime-web@^1.19 \
   --save
 npm install --save-dev @capacitor/cli@^8
 ```
@@ -48,7 +47,6 @@ npm install --save-dev @capacitor/cli@^8
 | ----- | ----- |
 | `dependencies."@capacitor/core"` | `^8.0.0` |
 | `dependencies."@capacitor/android"` | `^8.0.0` |
-| `dependencies."onnxruntime-web"` | `^1.19.0` |
 | `devDependencies."@capacitor/cli"` | `^8.0.0` |
 
 `scripts`:
