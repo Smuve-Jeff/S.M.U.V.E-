@@ -129,6 +129,11 @@ export interface ImportedAudio {
   enhancedPreset: EnhancePreset | null;
   /** SampleStreamer instance for sliced playback (long imports only). */
   sampleStreamer: SampleStreamer | null;
+  /**
+   * Tempo estimated from the audio at import time (null when the file was too
+   * short, silent or unreadable). The artist can override it before matching.
+   */
+  detectedBpm?: number | null;
 }
 
 type EditSnapshot = Pick<
@@ -147,6 +152,7 @@ type EditSnapshot = Pick<
 
 import { resampleToRate } from './audio-resample.util';
 import { transcribeMonophonic } from './audio-to-midi.util';
+import { detectTempoFromBuffer } from './tempo-detect.util';
 
 /** A phrase, not a whole song: keeps the pitch search responsive on a phone. */
 const MAX_TRANSCRIBE_SECONDS = 30;
@@ -281,6 +287,11 @@ export class AudioImportService {
             enhancedPreset: null,
             sampleStreamer: ss,
           };
+
+          // The match button needs a source tempo; estimate it instead of asking.
+          const detection = detectTempoFromBuffer(buffer, { windowSeconds: 20 });
+          imported.detectedBpm =
+            detection && detection.confidence >= 0.35 ? detection.bpm : null;
           results.push(imported);
           this.appliedEditState.set(imported.id, this.snapshot(imported));
         } catch (e) {

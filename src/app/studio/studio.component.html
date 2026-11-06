@@ -3102,6 +3102,18 @@
             → {{ audioEngine.tempo() }} BPM
           </button>
         </div>
+        <div class="comp-import-slider-row" *ngIf="importDetectedBpm() as found">
+          <label class="comp-import-slider-label">Detected</label>
+          <span class="comp-import-slider-val">~{{ found.toFixed(0) }} BPM</span>
+          <button
+            type="button"
+            class="comp-meta-action-btn comp-import-match-btn"
+            (click)="useDetectedTempo()"
+            aria-label="Use the detected tempo as the source tempo"
+          >
+            Use
+          </button>
+        </div>
         <div class="comp-import-slider-row">
           <label class="comp-import-slider-label">Pitch</label>
           <input

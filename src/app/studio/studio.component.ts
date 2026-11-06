@@ -681,6 +681,10 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   importWaveformZoom = signal(1);
   /** Tempo the selected import was recorded at (for Match BPM). */
   importSourceBpm = signal(120);
+  /** Tempo estimated when this file was imported, when the estimate was usable. */
+  importDetectedBpm = computed<number | null>(
+    () => this.audioImport.selectedAudio()?.detectedBpm ?? null,
+  );
   showComponentRecording = signal(false);
   showStudioInsights = signal(false);
   showProjectMenu = signal(false);
@@ -848,6 +852,17 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     this.snackbarService.info(
       `Stretch set to ${ratio.toFixed(2)}× to match ${this.audioEngine.tempo()} BPM`,
     );
+  }
+
+  /** Adopt the tempo detected at import, then stretch to the project tempo. */
+  useDetectedTempo(): void {
+    const detected = this.importDetectedBpm();
+    if (!detected) {
+      this.snackbarService.info("No tempo was detected in this file");
+      return;
+    }
+    this.importSourceBpm.set(Math.max(20, Math.min(300, Math.round(detected))));
+    this.matchImportTempo();
   }
 
   /** The buffer the import preview draws, enhanced render included. */
