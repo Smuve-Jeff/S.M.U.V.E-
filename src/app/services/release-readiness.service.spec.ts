@@ -98,14 +98,19 @@ describe('ReleaseReadinessService', () => {
   });
 
   it('scores a fully documented release as ready', () => {
-    const readiness = service.assess(profile(), release());
+    // A month of runway from the catalogue date: timing is scored, not unknown.
+    const readiness = service.assess(
+      profile(),
+      release(),
+      new Date('2025-01-01T00:00:00.000Z')
+    );
 
     expect(readiness.status).toBe('assessed');
     expect(readiness.state).toBe('ready');
     expect(readiness.overallScore).toBe(100);
     expect(readiness.blockingGaps).toEqual([]);
     expect(readiness.verdict).toContain('deliverable');
-    expect(readiness.verdict).toContain('Market timing could not be assessed');
+    expect(readiness.verdict).not.toContain('Market timing could not be assessed');
   });
 
   it('names the blocking gap instead of saying "not ready"', () => {
@@ -222,23 +227,127 @@ describe('ReleaseReadinessService', () => {
   it('calls a deliverable release "almost" when the campaign is missing', () => {
     const readiness = service.assess(
       profile(),
-      release({ marketingCampaignId: undefined })
+      release({ marketingCampaignId: undefined }),
+      new Date('2025-01-01T00:00:00.000Z')
     );
 
     expect(readiness.state).toBe('almost');
-    expect(readiness.overallScore).toBe(75);
+    expect(readiness.overallScore).toBe(80);
     expect(readiness.verdict).toContain('campaign behind it is not in place');
   });
 
-  it('never scores market timing', () => {
-    const readiness = service.assess(profile(), release());
+  it('scores the planned release date as delivery runway', () => {
+    const readiness = service.assess(
+      profile(),
+      release({ plannedReleaseDate: '2025-02-01' }),
+      new Date('2025-01-01T00:00:00.000Z')
+    );
     const timing = readiness.checks.find((c) => c.id === 'timing')!;
+
+    expect(timing.score).toBe(100);
+    expect(timing.state).toBe('ready');
+    expect(timing.blocking).toBe(false);
+    expect(timing.evidence.join(' ')).toContain('Planned date 2025-02-01');
+    expect(timing.evidence.join(' ')).toContain('delivery runway');
+  });
+
+  it('falls back to the catalogue date when no planned date is recorded', () => {
+    const timing = service
+      .assess(
+        profile(),
+        release({ plannedReleaseDate: undefined }),
+        new Date('2025-01-01T00:00:00.000Z')
+      )
+      .checks.find((c) => c.id === 'timing')!;
+
+    expect(timing.score).toBe(100);
+    expect(timing.evidence.join(' ')).toContain('Catalogue date 2025-02-01');
+  });
+
+  it('scores a short runway down without blocking delivery', () => {
+    const timing = service
+      .assess(
+        profile(),
+        release({ plannedReleaseDate: '2025-01-08' }),
+        new Date('2025-01-01T00:00:00.000Z')
+      )
+      .checks.find((c) => c.id === 'timing')!;
+
+    expect(timing.score).toBe(50);
+    expect(timing.state).toBe('almost');
+    expect(timing.blocking).toBe(false);
+    expect(timing.gaps.join(' ')).toContain('Only 7 days remain');
+  });
+
+  it('flags a planned date that has already passed', () => {
+    const readiness = service.assess(
+      profile(),
+      release({ plannedReleaseDate: '2024-12-01' }),
+      new Date('2025-01-01T00:00:00.000Z')
+    );
+    const timing = readiness.checks.find((c) => c.id === 'timing')!;
+
+    expect(timing.score).toBe(0);
+    expect(timing.state).toBe('not-ready');
+    expect(timing.blocking).toBe(false);
+    expect(timing.gaps.join(' ')).toContain('has passed');
+    // Timing is advisory: it lowers the score without locking delivery.
+    expect(readiness.blockingGaps).toEqual([]);
+  });
+
+  it('leaves timing unscored when no date is recorded at all', () => {
+    const timing = service
+      .assess(
+        profile({ catalog: [] }),
+        release({ plannedReleaseDate: undefined, name: 'Untitled Demo' })
+      )
+      .checks.find((c) => c.id === 'timing')!;
 
     expect(timing.score).toBeNull();
     expect(timing.state).toBe('insufficient-data');
-    expect(timing.blocking).toBe(false);
-    // The documented date is surfaced as evidence, not as a timing verdict.
-    expect(timing.evidence.join(' ')).toContain('2025-02-01');
+    expect(timing.gaps.join(' ')).toContain('Set a planned release date');
+  });
+
+  it('warns when the planned date disagrees with the catalogue date', () => {
+    const base = profile();
+    const readiness = service.assess(
+      {
+        ...base,
+        catalog: (base.catalog ?? []).map((work) => ({
+          ...work,
+          releaseDate: '2025-03-01',
+        })),
+      } as UserProfile,
+      release({ plannedReleaseDate: '2025-02-01' }),
+      new Date('2025-01-01T00:00:00.000Z')
+    );
+    const timing = readiness.checks.find((c) => c.id === 'timing')!;
+
+    expect(timing.score).toBe(100);
+    expect(timing.gaps.join(' ')).toContain('differs from the catalogue date');
+    // The mismatch surfaces even when the timing score is otherwise full.
+    expect(readiness.verdict).toContain('differs from the catalogue date');
+  });
+
+  it('does not warn when both records describe the same day', () => {
+    const base = profile();
+    const timing = service
+      .assess(
+        {
+          ...base,
+          catalog: (base.catalog ?? []).map((work) => ({
+            ...work,
+            releaseDate: '2025-02-01T00:00:00.000Z',
+          })),
+        } as UserProfile,
+        release({ plannedReleaseDate: '2025-02-01' }),
+        new Date('2025-01-01T00:00:00.000Z')
+      )
+      .checks.find((c) => c.id === 'timing')!;
+
+    expect(timing.gaps.join(' ')).not.toContain(
+      'differs from the catalogue date'
+    );
   });
 
   it('never claims a sampled platform signal', () => {

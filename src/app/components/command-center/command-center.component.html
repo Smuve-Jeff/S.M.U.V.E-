@@ -1,7 +1,9 @@
-<div class="h-full bg-black/90 p-6 flex flex-col gap-6 animate-enter">
+<div
+  class="min-h-full bg-black/90 p-4 md:p-6 flex flex-col gap-4 xl:gap-6 animate-enter"
+>
   <!-- TOP BAR: SYSTEM STATUS -->
   <header
-    class="flex flex-wrap items-center justify-between gap-6 pb-6 border-b border-white/5"
+    class="flex flex-wrap items-center justify-between gap-4 xl:gap-6 pb-4 xl:pb-6 border-b border-white/5"
   >
     <div class="flex items-center gap-4">
       <div
@@ -24,7 +26,9 @@
           ></div>
           <span
             class="text-[8px] font-black uppercase tracking-[0.3em]"
-            [class.text-brand-primary]="aiService.connectionState?.() !== 'offline'"
+            [class.text-brand-primary]="
+              aiService.connectionState?.() !== 'offline'
+            "
             [class.text-yellow-500]="aiService.connectionState?.() === 'offline'"
             >{{ aiService.aiStatusLabel?.() ?? 'AI ready' }}</span
           >
@@ -32,31 +36,37 @@
       </div>
     </div>
 
-    <!-- MARKET TICKER (NEW) -->
-    <div class="flex-grow max-w-2xl px-8 overflow-hidden">
-      @if (aiService.marketAlerts().length > 0) {
+    <!-- MARKET TICKER -->
+    <div class="flex-grow max-w-2xl px-0 xl:px-8 overflow-hidden min-w-0">
+      @if (tickerItems().length) {
         <div
-          class="flex items-center gap-4 animate-slide-left whitespace-nowrap"
+          class="flex items-center gap-4 overflow-x-auto no-scrollbar whitespace-nowrap"
+          aria-label="Live market and intelligence ticker"
         >
-          @for (alert of aiService.marketAlerts(); track alert.id) {
-            <div class="flex items-center gap-2">
+          @for (item of tickerItems(); track item.id) {
+            <div class="flex items-center gap-2 shrink-0">
               <span class="text-[8px] font-black text-brand-accent uppercase"
-                >[MARKET_ALERT]</span
+                >[{{ item.tag }}]</span
               >
               <span class="text-[9px] font-bold text-white uppercase"
-                >{{ alert.title }}:</span
+                >{{ item.title }}:</span
               >
-              <span class="text-[9px] text-silver-dim uppercase">{{
-                alert.message
+              <span class="text-[9px] text-silver-dim uppercase line-clamp-1 max-w-[28rem]">{{
+                item.message
               }}</span>
-              <span class="text-white/90 mx-4">|</span>
+              <span class="text-white/90 mx-2">|</span>
             </div>
           }
         </div>
+      } @else {
+        <span
+          class="text-[8px] font-bold uppercase tracking-[0.3em] text-slate-700"
+          >Telemetry idle — run an executive audit to populate intel</span
+        >
       }
     </div>
 
-    <div class="flex gap-4 items-center">
+    <div class="flex gap-4 items-center flex-wrap">
       <!-- RELEASE PIPELINE BUTTON (PROMINENT) -->
       <button
         (click)="uiService.navigateToView('release-pipeline')"
@@ -65,18 +75,17 @@
         Initialize Release Pipeline
       </button>
 
-      <div class="flex gap-8 ml-4">
-        @for (
-          metric of ['cpuLoad', 'neuralSync', 'memoryUsage', 'latency'];
-          track metric
-        ) {
+      <div class="hidden md:flex gap-6 xl:gap-8 ml-0 xl:ml-4">
+        @for (metric of metrics; track metric.key) {
           <div class="flex flex-col items-end">
             <span
               class="text-[8px] font-black text-silver-dim uppercase tracking-widest mb-1"
-              >{{ metric }}</span
+              >{{ metric.label }}</span
             >
-            <span class="digital-readout text-xs font-bold text-brand-primary"
-              >{{ formatMetric(metric) }}</span
+            <span
+              class="digital-readout text-xs font-bold text-brand-primary"
+              [attr.data-testid]="'command-metric-' + metric.key"
+              >{{ formatMetric(metric.key) }}</span
             >
           </div>
         }
@@ -85,28 +94,35 @@
   </header>
 
   <!-- DECREE BANNER -->
-  <div
-    class="bg-brand-primary/10 border-y border-brand-primary/20 py-3 overflow-hidden"
-  >
-    <div class="flex gap-12 animate-slide-left whitespace-nowrap">
-      @for (decree of aiService.strategicDecrees(); track decree) {
-        <span
-          class="text-[10px] font-black text-brand-primary italic tracking-[0.1em] uppercase"
-          >{{ decree }}</span
-        >
-      }
+  @if (headlineDecrees().length) {
+    <div
+      class="bg-brand-primary/10 border-y border-brand-primary/20 py-3 overflow-hidden"
+    >
+      <div
+        class="flex gap-6 overflow-x-auto no-scrollbar whitespace-nowrap"
+        aria-label="Strategic decrees"
+      >
+        @for (decree of headlineDecrees(); track $index) {
+          <span
+            class="text-[10px] font-black text-brand-primary italic tracking-[0.1em] uppercase"
+            >{{ decree }}</span
+          >
+          <span class="text-brand-primary/30" aria-hidden="true">//</span>
+        }
+      </div>
     </div>
-  </div>
+  }
 
-  <div class="flex-grow grid grid-cols-12 gap-6 overflow-hidden">
+  <div class="flex-grow grid grid-cols-12 gap-4 xl:gap-6">
     <!-- LEFT PANEL: TERMINAL & RECS -->
-    <div class="col-span-12 lg:col-span-8 flex flex-col gap-6 overflow-hidden">
+    <div class="col-span-12 lg:col-span-8 flex flex-col gap-4 xl:gap-6 min-w-0">
       <!-- HUD TERMINAL -->
       <div
-        class="flex-grow bg-brand-surface/30 rounded-2xl p-6 border border-white/10 flex flex-col gap-4 overflow-hidden relative group"
+        class="flex flex-col gap-4 min-h-[22rem] max-h-[65vh] bg-brand-surface/30 rounded-2xl p-4 md:p-6 border border-white/10 overflow-hidden relative group"
       >
         <div
-          class="absolute top-0 right-0 p-4 opacity-20 group-hover:opacity-100 transition-opacity"
+          class="absolute top-0 right-0 p-4 opacity-20 group-hover:opacity-100 transition-opacity pointer-events-none"
+          aria-hidden="true"
         >
           <span class="text-[8px] font-mono text-brand-primary"
             >ROOT@SMUVE_v2.0:~$</span
@@ -115,6 +131,9 @@
 
         <div
           #terminalOutput
+          role="log"
+          aria-live="polite"
+          aria-label="Command terminal output"
           class="flex-grow overflow-y-auto font-mono text-[10px] space-y-2 no-scrollbar pr-4"
         >
           @if (terminalLogs().length === 0) {
@@ -124,21 +143,25 @@
           }
           @for (log of terminalLogs(); track log.id) {
             <div class="flex gap-4 animate-enter">
-              <span class="text-slate-600"
+              <span class="text-slate-600 shrink-0"
                 >[{{ log.timestamp | date: 'HH:mm:ss' }}]</span
               >
               <span
+                class="whitespace-pre-line break-words"
                 [ngClass]="{
                   'text-brand-primary font-bold': log.type === 'command',
                   'text-silver-dim': log.type === 'system',
                   'text-brand-accent': log.type === 'response',
+                  'text-red-400': log.type === 'error',
                 }"
                 >{{
                   log.type === 'command'
                     ? '>'
                     : log.type === 'response'
                       ? 'AI:'
-                      : 'SYS:'
+                      : log.type === 'error'
+                        ? 'ERR:'
+                        : 'SYS:'
                 }}
                 {{ log.message }}</span
               >
@@ -150,14 +173,17 @@
         <div class="flex flex-wrap gap-2">
           @for (quick of quickCommands; track quick.command) {
             <button
+              type="button"
               (click)="handleCommand(quick.command)"
-              class="px-3 py-1.5 rounded-lg border border-white/10 bg-black/20 text-[8px] font-black uppercase tracking-widest text-silver-dim hover:text-brand-primary hover:border-brand-primary/40 transition-all"
+              [disabled]="commandPending()"
+              class="px-3 py-1.5 rounded-lg border border-white/10 bg-black/20 text-[8px] font-black uppercase tracking-widest text-silver-dim hover:text-brand-primary hover:border-brand-primary/40 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
               [attr.data-testid]="'command-quick-' + quick.label"
             >
               {{ quick.label }}
             </button>
           }
           <button
+            type="button"
             (click)="clearTerminal()"
             class="ml-auto px-3 py-1.5 rounded-lg border border-white/5 text-[8px] font-black uppercase tracking-widest text-slate-700 hover:text-red-400 hover:border-red-400/30 transition-all"
             data-testid="command-clear-terminal"
@@ -172,33 +198,46 @@
             (keyup.enter)="handleCommand(cmdInput.value); cmdInput.value = ''"
             (keydown)="recallHistory($event)"
             type="text"
-            placeholder="Execute Strategic Command..."
-            class="w-full bg-black/40 border border-white/10 rounded-xl px-6 py-4 text-xs font-mono text-brand-primary placeholder:text-slate-700 focus:border-brand-primary/50 outline-none transition-all"
+            maxlength="500"
+            aria-label="Execute a strategic command"
+            [disabled]="commandPending()"
+            [attr.aria-busy]="commandPending()"
+            placeholder="Execute strategic command — type help for the command list"
+            class="w-full bg-black/40 border border-white/10 rounded-xl px-6 pr-48 py-4 text-xs font-mono text-brand-primary placeholder:text-slate-700 focus:border-brand-primary/50 outline-none transition-all disabled:opacity-60"
           />
           <div
             class="absolute right-4 top-1/2 -translate-y-1/2 text-[8px] font-black text-slate-700 uppercase tracking-widest pointer-events-none"
           >
-            ↑/↓ Recall · Enter to Commit
+            @if (commandPending()) {
+              Processing…
+            } @else {
+              ↑/↓ Recall · Enter to Commit
+            }
           </div>
         </div>
       </div>
 
       <!-- STRATEGIC RECOMMENDATIONS (BENTO) -->
-      <div class="grid grid-cols-2 gap-4 h-64">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         @for (rec of strategicRecs(); track rec.id) {
           <div
-            class="bg-brand-surface/20 rounded-2xl p-6 border border-white/5 hover:border-brand-primary/30 transition-all cursor-pointer group flex flex-col justify-between"
+            role="button"
+            tabindex="0"
+            class="bg-brand-surface/20 rounded-2xl p-6 border border-white/5 hover:border-brand-primary/30 transition-all cursor-pointer group flex flex-col justify-between gap-4 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/40"
             (click)="initializeOperation(rec)"
+            (keydown.enter)="initializeOperation(rec)"
+            (keydown.space)="$event.preventDefault(); initializeOperation(rec)"
+            [attr.aria-label]="'Initialize operation ' + rec.action"
           >
             <div>
-              <div class="flex justify-between items-start mb-2">
+              <div class="flex justify-between items-start gap-3 mb-2">
                 <span
                   class="text-[8px] font-black text-slate-500 uppercase tracking-widest"
                   >Operation</span
                 >
                 <span
-                  class="text-[8px] font-black text-brand-primary uppercase tracking-widest"
-                  >Operation: Ready</span
+                  class="text-[8px] font-black text-brand-primary uppercase tracking-widest text-right"
+                  >{{ rec.difficulty }}</span
                 >
               </div>
               <h3
@@ -207,8 +246,8 @@
                 {{ rec.action }}
               </h3>
               <p class="text-[9px] text-slate-500 line-clamp-2 leading-relaxed">
-                Strategic maneuver detected by neural array. Initialize to gain
-                market advantage.
+                Strategic maneuver detected by the neural array. Initialize to
+                load the destination and gain market advantage.
               </p>
             </div>
             <div class="flex justify-between items-center">
@@ -219,20 +258,64 @@
               >
               <span
                 class="material-symbols-outlined text-sm text-brand-primary group-hover:translate-x-1 transition-transform"
+                aria-hidden="true"
                 >arrow_forward</span
               >
             </div>
+          </div>
+        } @empty {
+          <div
+            class="sm:col-span-2 rounded-2xl border border-dashed border-white/10 bg-black/20 p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
+          >
+            <p
+              class="text-[9px] font-bold uppercase tracking-widest text-slate-500 leading-relaxed"
+            >
+              No operations queued. The executive audit detects maneuvers from
+              your live session and catalogue.
+            </p>
+            <button
+              type="button"
+              (click)="runAudit()"
+              [disabled]="auditRunning()"
+              class="shrink-0 px-4 py-2 rounded-xl border border-brand-primary/30 text-brand-primary text-[8px] font-black uppercase tracking-widest disabled:opacity-40"
+            >
+              Run Audit
+            </button>
           </div>
         }
       </div>
 
       <div class="space-y-3">
-        <h3
-          class="digital-readout text-[10px] font-black uppercase tracking-[0.3em] px-2"
-        >
-          Upgrade Directives
-        </h3>
-        <div class="grid grid-cols-2 gap-4">
+        <div class="flex items-center justify-between gap-3 px-2">
+          <h3
+            class="digital-readout text-[10px] font-black uppercase tracking-[0.3em]"
+          >
+            Upgrade Directives
+          </h3>
+          <button
+            type="button"
+            (click)="uiService.navigateToView('strategy')"
+            class="text-[8px] font-black uppercase tracking-widest text-silver-dim hover:text-brand-primary transition-colors"
+            data-testid="command-all-directives"
+          >
+            @if (hiddenDirectiveCount() > 0) {
+              All {{ activeDirectives().length }} directives
+            } @else {
+              Open Intel Lab
+            }
+          </button>
+        </div>
+
+        @if (actionError()) {
+          <div
+            role="alert"
+            class="rounded-xl border border-red-400/30 bg-red-400/10 px-4 py-3 text-[9px] font-bold uppercase tracking-widest text-red-300"
+          >
+            {{ actionError() }}
+          </div>
+        }
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           @for (rec of recommendations(); track rec.id) {
             <div
               class="bg-black/30 rounded-2xl border border-white/10 p-5 flex flex-col gap-3"
@@ -242,7 +325,7 @@
                 <div>
                   <span
                     class="text-[8px] font-black text-brand-primary uppercase tracking-widest"
-                    >{{ rec.priority }}</span
+                    >{{ rec.priority || rec.impact }}</span
                   >
                   <h4 class="text-[11px] font-black text-white uppercase mt-2">
                     {{ rec.title }}
@@ -253,27 +336,33 @@
                 }}</span>
               </div>
               <p class="text-[9px] text-silver-dim leading-relaxed">
-                {{ rec.rationale }}
+                {{ rec.rationale || rec.description }}
               </p>
               <div class="grid grid-cols-1 gap-2 text-[8px]">
-                <div class="rounded-xl border border-white/10 bg-black/20 p-3">
-                  <span class="block text-silver-dim uppercase mb-1"
-                    >Why now</span
-                  >
-                  <span class="text-white/80">{{ rec.whyNow }}</span>
-                </div>
-                <div class="rounded-xl border border-white/10 bg-black/20 p-3">
-                  <span class="block text-silver-dim uppercase mb-1"
-                    >Next step</span
-                  >
-                  <span class="text-white/80">{{ rec.nextStep }}</span>
-                </div>
-                <div class="rounded-xl border border-white/10 bg-black/20 p-3">
-                  <span class="block text-silver-dim uppercase mb-1"
-                    >Benefit</span
-                  >
-                  <span class="text-white/80">{{ rec.expectedBenefit }}</span>
-                </div>
+                @if (rec.whyNow) {
+                  <div class="rounded-xl border border-white/10 bg-black/20 p-3">
+                    <span class="block text-silver-dim uppercase mb-1"
+                      >Why now</span
+                    >
+                    <span class="text-white/80">{{ rec.whyNow }}</span>
+                  </div>
+                }
+                @if (rec.nextStep) {
+                  <div class="rounded-xl border border-white/10 bg-black/20 p-3">
+                    <span class="block text-silver-dim uppercase mb-1"
+                      >Next step</span
+                    >
+                    <span class="text-white/80">{{ rec.nextStep }}</span>
+                  </div>
+                }
+                @if (rec.expectedBenefit) {
+                  <div class="rounded-xl border border-white/10 bg-black/20 p-3">
+                    <span class="block text-silver-dim uppercase mb-1"
+                      >Benefit</span
+                    >
+                    <span class="text-white/80">{{ rec.expectedBenefit }}</span>
+                  </div>
+                }
               </div>
               @if (rec.outcomeMetric) {
                 <span class="text-[8px] font-black uppercase text-brand-accent"
@@ -316,39 +405,50 @@
               }
               <div class="flex flex-wrap gap-2 pt-1">
                 <button
-                  class="text-[8px] font-black uppercase tracking-widest px-3 py-2 rounded-xl bg-brand-primary text-black"
+                  type="button"
+                  class="text-[8px] font-black uppercase tracking-widest px-3 py-2 rounded-xl bg-brand-primary text-black disabled:opacity-40 disabled:cursor-not-allowed"
                   (click)="focusRecommendation(rec)"
+                  [disabled]="isDirectivePending(rec.id)"
                   [attr.data-testid]="'command-focus-' + rec.id"
                 >
-                  {{ rec.actionLabel }}
+                  {{ rec.actionLabel || 'Open Directive' }}
                 </button>
                 @if (rec.state !== 'completed') {
                   <button
-                    class="text-[8px] font-black uppercase tracking-widest px-3 py-2 rounded-xl border border-brand-primary/20 text-brand-primary"
+                    type="button"
+                    class="text-[8px] font-black uppercase tracking-widest px-3 py-2 rounded-xl border border-brand-primary/20 text-brand-primary disabled:opacity-40 disabled:cursor-not-allowed"
                     (click)="acquireUpgrade(rec)"
+                    [disabled]="isDirectivePending(rec.id)"
+                    [attr.aria-busy]="isDirectivePending(rec.id)"
                     [attr.data-testid]="'command-acquire-' + rec.id"
                   >
                     Acquire
                   </button>
                 }
                 <button
-                  class="text-[8px] font-black uppercase tracking-widest px-3 py-2 rounded-xl border border-white/10 text-white/80"
+                  type="button"
+                  class="text-[8px] font-black uppercase tracking-widest px-3 py-2 rounded-xl border border-white/10 text-white/80 disabled:opacity-40 disabled:cursor-not-allowed"
                   (click)="saveRecommendation(rec)"
+                  [disabled]="isDirectivePending(rec.id)"
                   [attr.data-testid]="'command-save-' + rec.id"
                 >
                   Save
                 </button>
                 <button
-                  class="text-[8px] font-black uppercase tracking-widest px-3 py-2 rounded-xl border border-white/10 text-silver-dim"
+                  type="button"
+                  class="text-[8px] font-black uppercase tracking-widest px-3 py-2 rounded-xl border border-white/10 text-silver-dim disabled:opacity-40 disabled:cursor-not-allowed"
                   (click)="dismissRecommendation(rec)"
+                  [disabled]="isDirectivePending(rec.id)"
                   [attr.data-testid]="'command-dismiss-' + rec.id"
                 >
                   Dismiss
                 </button>
                 @if (rec.state === 'acquired') {
                   <button
-                    class="text-[8px] font-black uppercase tracking-widest px-3 py-2 rounded-xl border border-blue-400/20 text-blue-400"
+                    type="button"
+                    class="text-[8px] font-black uppercase tracking-widest px-3 py-2 rounded-xl border border-blue-400/20 text-blue-400 disabled:opacity-40 disabled:cursor-not-allowed"
                     (click)="completeRecommendation(rec)"
+                    [disabled]="isDirectivePending(rec.id)"
                     [attr.data-testid]="'command-complete-' + rec.id"
                   >
                     Complete
@@ -356,29 +456,59 @@
                 }
               </div>
             </div>
+          } @empty {
+            <div
+              class="md:col-span-2 rounded-2xl border border-dashed border-white/10 bg-black/20 p-6"
+            >
+              <p
+                class="text-[9px] font-bold uppercase tracking-widest text-slate-500 leading-relaxed"
+              >
+                No upgrade directives pending. Saved, completed and dismissed
+                decisions stay in the ledger below; the full catalogue lives in
+                the Intel Lab.
+              </p>
+            </div>
           }
         </div>
       </div>
+
       @if (recommendationHistory().length) {
         <div class="space-y-3">
-          <h3
-            class="digital-readout text-[10px] font-black uppercase tracking-[0.3em] px-2"
-          >
-            Directive History
-          </h3>
+          <div class="flex items-center justify-between gap-3 px-2">
+            <h3
+              class="digital-readout text-[10px] font-black uppercase tracking-[0.3em]"
+            >
+              Directive History
+            </h3>
+            <span
+              class="text-[8px] font-black uppercase tracking-widest text-slate-500"
+              >{{ directiveStats().decisions }} logged ·
+              {{ directiveStats().completed }} completed</span
+            >
+          </div>
           <div class="space-y-2">
-            @for (entry of recommendationHistory(); track entry.updatedAt) {
+            @for (
+              entry of recommendationHistory();
+              track entry.recommendationId + '-' + entry.updatedAt
+            ) {
               <div
                 class="rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-[8px]"
                 data-testid="command-history-entry"
               >
-                <div class="flex items-center justify-between gap-2">
-                  <span class="text-white font-black uppercase">{{
-                    entry.title
-                  }}</span>
-                  <span class="text-silver-dim uppercase">{{
-                    entry.state
-                  }}</span>
+                <div class="flex items-center justify-between gap-3">
+                  <div class="min-w-0">
+                    <span class="block text-white font-black uppercase truncate">{{
+                      entry.title || entry.recommendationId
+                    }}</span>
+                    <span class="block text-slate-500 mt-1">{{
+                      entry.updatedAt | date: 'MMM d, HH:mm'
+                    }}</span>
+                  </div>
+                  <span
+                    class="shrink-0 rounded-full border px-2 py-1 uppercase tracking-widest"
+                    [ngClass]="getStateClass(entry.state)"
+                    >{{ entry.state }}</span
+                  >
                 </div>
               </div>
             }
@@ -388,28 +518,40 @@
     </div>
 
     <!-- RIGHT PANEL: AUDIT & ALERTS -->
-    <div class="col-span-12 lg:col-span-4 flex flex-col gap-6 overflow-hidden">
+    <div class="col-span-12 lg:col-span-4 flex flex-col gap-4 xl:gap-6 min-w-0">
       <!-- EXECUTIVE AUDIT SUMMARY -->
       <div
         class="bg-brand-surface/30 rounded-2xl p-6 border border-white/10 flex flex-col gap-4"
       >
-        <div class="flex justify-between items-center mb-2">
+        <div class="flex justify-between items-center gap-3 mb-2">
           <h3
             class="digital-readout text-[10px] font-black uppercase tracking-[0.3em]"
           >
             Executive_Audit
           </h3>
-          <span
-            class="text-[8px] font-black text-brand-primary uppercase tracking-widest"
-            >LIVE_DATA</span
-          >
+          @if (aiService.executiveAudit()) {
+            <button
+              type="button"
+              (click)="runAudit()"
+              [disabled]="auditRunning()"
+              class="text-[8px] font-black text-brand-primary uppercase tracking-widest disabled:opacity-40"
+              data-testid="command-rerun-audit"
+            >
+              {{ auditRunning() ? 'Running…' : 'Rerun' }}
+            </button>
+          } @else {
+            <span
+              class="text-[8px] font-black text-brand-primary uppercase tracking-widest"
+              >LIVE_DATA</span
+            >
+          }
         </div>
 
         @if (aiService.executiveAudit(); as audit) {
           <div class="space-y-4">
             <div class="flex items-center gap-6">
-              <div class="relative size-20">
-                <svg viewBox="0 0 36 36" class="size-full -rotate-90">
+              <div class="relative size-20 shrink-0">
+                <svg viewBox="0 0 36 36" class="size-full -rotate-90" aria-hidden="true">
                   <path
                     d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
                     fill="none"
@@ -419,7 +561,7 @@
                   <path
                     d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
                     fill="none"
-                    stroke="#ec5b13"
+                    stroke="#D97706"
                     [attr.stroke-dasharray]="audit.overallScore + ', 100'"
                     stroke-width="3"
                     stroke-linecap="round"
@@ -436,7 +578,7 @@
               <div class="flex flex-col gap-1">
                 <span
                   class="text-[10px] font-black text-white uppercase italic tracking-tighter"
-                  >Current Readiness</span
+                  >{{ audit.overallScore >= 75 ? 'Audit Passed' : 'Deficiencies Found' }}</span
                 >
                 <span class="text-[8px] font-bold text-slate-500 uppercase"
                   >{{ audit.criticalDeficits.length }} Critical Deficits</span
@@ -482,10 +624,43 @@
                 </div>
               </div>
             </div>
+
+            @if (audit.criticalDeficits.length) {
+              <div class="space-y-2">
+                <span
+                  class="block text-[8px] font-black uppercase tracking-widest text-slate-500"
+                  >Critical Deficits</span
+                >
+                @for (
+                  deficit of audit.criticalDeficits.slice(0, 2);
+                  track $index
+                ) {
+                  <p
+                    class="text-[8px] text-silver-dim leading-relaxed border-l border-red-400/40 pl-2"
+                  >
+                    {{ deficit }}
+                  </p>
+                }
+              </div>
+            }
+
+            @if (audit.technicalRecommendations.length) {
+              <div class="space-y-1">
+                <span
+                  class="block text-[8px] font-black uppercase tracking-widest text-slate-500"
+                  >Next Move</span
+                >
+                <p class="text-[8px] text-white/80 leading-relaxed">
+                  {{ audit.technicalRecommendations[0] }}
+                </p>
+              </div>
+            }
           </div>
-        } @else if (aiService.isScanning()) {
+        } @else if (auditRunning() || aiService.isScanning()) {
           <div
-            class="flex flex-col items-center justify-center py-12 text-center"
+            class="flex flex-col items-center justify-center py-10 text-center"
+            role="status"
+            aria-live="polite"
           >
             <div class="relative size-16 mb-4">
               <div
@@ -498,27 +673,26 @@
             <p
               class="text-[10px] font-black text-brand-primary uppercase tracking-[0.2em] animate-pulse"
             >
-              {{ aiService.currentProcessStep() }}
+              {{ auditStep() || 'SCANNING SESSION STATE' }}
             </p>
-            <div class="w-32 h-1 bg-white/5 rounded-full mt-4 overflow-hidden">
+            <div
+              class="w-32 h-1 bg-white/5 rounded-full mt-4 overflow-hidden"
+              role="progressbar"
+              [attr.aria-valuenow]="auditProgress()"
+              aria-valuemin="0"
+              aria-valuemax="100"
+            >
               <div
                 class="h-full bg-brand-primary transition-all duration-300"
-                [style.width.%]="aiService.scanningProgress()"
+                [style.width.%]="auditProgress()"
               ></div>
             </div>
           </div>
         } @else {
-          <div
-            class="flex flex-col items-center justify-center py-12 text-center group cursor-pointer"
-            (click)="aiService.performExecutiveAudit()"
-            (keydown.enter)="aiService.performExecutiveAudit()"
-            (keydown.space)=
-              "$event.preventDefault(); aiService.performExecutiveAudit()"
-            role="button"
-            tabindex="0"
-          >
+          <div class="flex flex-col items-center justify-center py-10 text-center">
             <i
-              class="fas fa-microscope text-brand-primary/40 text-3xl mb-4 group-hover:scale-110 group-hover:text-brand-primary transition-all"
+              class="fas fa-microscope text-brand-primary/40 text-3xl mb-4"
+              aria-hidden="true"
             ></i>
             <p
               class="text-[10px] font-black text-silver-dim uppercase tracking-widest"
@@ -527,9 +701,10 @@
             </p>
             <button
               type="button"
-              (click)=
-                "$event.stopPropagation(); aiService.performExecutiveAudit()"
-              class="mt-4 digital-readout text-[9px] border border-brand-primary/20 px-4 py-2 rounded uppercase hover:bg-brand-primary/10 transition-all"
+              (click)="runAudit()"
+              [disabled]="auditRunning()"
+              class="mt-4 digital-readout text-[9px] border border-brand-primary/20 px-4 py-2 rounded uppercase hover:bg-brand-primary/10 transition-all disabled:opacity-40"
+              data-testid="command-run-audit"
             >
               Run Profile Audit
             </button>
@@ -539,27 +714,35 @@
 
       <!-- STRATEGIC OPERATIONS (LATEST INTEL) -->
       <div class="space-y-4">
-        <h3
-          class="digital-readout text-[10px] font-black uppercase tracking-[0.3em] px-2"
-        >
-          High-Priority Intel
-        </h3>
+        <div class="flex items-center justify-between gap-3 px-2">
+          <h3
+            class="digital-readout text-[10px] font-black uppercase tracking-[0.3em]"
+          >
+            High-Priority Intel
+          </h3>
+          @if (aiService.intelligenceBriefs().length) {
+            <span
+              class="text-[8px] font-black uppercase tracking-widest text-slate-500"
+              >{{ aiService.intelligenceBriefs().length }} briefs</span
+            >
+          }
+        </div>
         <div class="space-y-3">
           @for (
-            brief of aiService.intelligenceBriefs().slice(0, 2);
+            brief of aiService.intelligenceBriefs().slice(0, 3);
             track brief.id
           ) {
             <div
-              class="hud-border p-5 bg-black/40 hover:bg-black/60 transition-all group border-white/5 hover:border-brand-brand-accent/30"
+              class="hud-border p-5 bg-black/40 hover:bg-black/60 transition-all group border-white/5 hover:border-brand-accent/30"
             >
-              <div class="flex justify-between items-start mb-3">
+              <div class="flex justify-between items-start gap-3 mb-3">
                 <h4
                   class="text-[11px] font-black text-white uppercase tracking-tight"
                 >
                   {{ brief.title }}
                 </h4>
                 <span
-                  class="text-[7px] font-black px-1.5 py-0.5 rounded bg-brand-brand-accent/10 text-brand-accent uppercase border border-brand-brand-accent/20"
+                  class="shrink-0 text-[7px] font-black px-1.5 py-0.5 rounded bg-brand-accent/10 text-brand-accent uppercase border border-brand-accent/20"
                   >{{ brief.impact }}</span
                 >
               </div>
@@ -569,10 +752,29 @@
                 {{ brief.content }}
               </p>
               <button
-                (click)="handleCommand('/intel')"
-                class="w-full digital-readout text-[8px] border border-white/10 hover:border-brand-accent hover:bg-brand-brand-accent/5 py-2 transition-all uppercase tracking-widest"
+                type="button"
+                (click)="handleCommand('intel')"
+                [disabled]="commandPending()"
+                class="w-full digital-readout text-[8px] border border-white/10 hover:border-brand-accent hover:bg-brand-accent/5 py-2 transition-all uppercase tracking-widest disabled:opacity-40"
               >
                 View Briefing
+              </button>
+            </div>
+          } @empty {
+            <div class="hud-border p-5 bg-black/40 border-white/5">
+              <p
+                class="text-[9px] text-silver-dim leading-relaxed mb-3 uppercase font-bold tracking-widest"
+              >
+                No briefs yet. The executive audit derives intel from your
+                session evidence.
+              </p>
+              <button
+                type="button"
+                (click)="runAudit()"
+                [disabled]="auditRunning()"
+                class="w-full digital-readout text-[8px] border border-white/10 hover:border-brand-accent hover:bg-brand-accent/5 py-2 transition-all uppercase tracking-widest disabled:opacity-40"
+              >
+                Generate Intel
               </button>
             </div>
           }
@@ -585,6 +787,8 @@
   @if (isPoweringUp()) {
     <div
       class="fixed inset-0 z-[100] flex items-center justify-center pointer-events-none"
+      role="status"
+      aria-live="assertive"
     >
       <div class="power-up-flash absolute inset-0"></div>
       <div class="relative flex flex-col items-center animate-enter scale-150">

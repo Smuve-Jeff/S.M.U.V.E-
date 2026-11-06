@@ -11,6 +11,7 @@ import { ReadinessState } from '../../types/release-readiness.types';
 import { LIFECYCLE_PHASE_LABEL } from '../../types/artist-lifecycle.types';
 import { CreativeSeverity } from '../../types/creative-business.types';
 import { findCatalogWork } from '../../services/release-split.util';
+import { findReleaseDateMismatch } from '../../services/release-window.util';
 import { Router } from '@angular/router';
 import { RouterModule } from '@angular/router';
 
@@ -56,6 +57,11 @@ export class ReleasePipelineComponent {
   );
   readiness = computed(() => this.lifecycle().releaseReadiness);
 
+  /** The timing reading, surfaced beside the planned-date control. */
+  timingCheck = computed(
+    () => this.readiness().checks.find((check) => check.id === 'timing') ?? null
+  );
+
   /**
    * What shipping this release commits the artist to in rights, schedule,
    * audience, legal, monetization and growth. It comes from the same snapshot
@@ -70,6 +76,9 @@ export class ReleasePipelineComponent {
   campaignDraft = signal('');
   collaboratorsDraft = signal<string | null>(null);
   catalogWorkDraft = signal('');
+  plannedDateDraft = signal<string | null>(null);
+  showDateReconciliation = signal(false);
+  showHistoryClearConfirmation = signal(false);
 
   /** Catalogue works the artist can link this release to. */
   catalogOptions = computed(
@@ -178,6 +187,38 @@ export class ReleasePipelineComponent {
       this.releaseService.activeRelease()?.credits?.collaborators ?? []
     ).join(', ');
   });
+
+  /** The planned-date field shows its draft while edited, else the record. */
+  plannedDateText = computed(() => {
+    const draft = this.plannedDateDraft();
+    if (draft !== null) return draft;
+    return this.releaseService.activeRelease()?.plannedReleaseDate ?? '';
+  });
+
+  /** The recorded dates only, never an unsaved draft. */
+  plannedDateMismatch = computed(() =>
+    findReleaseDateMismatch(
+      this.releaseService.activeRelease()?.plannedReleaseDate,
+      this.catalogWork()?.releaseDate
+    )
+  );
+
+  /** This release's reconciliation entries, newest first. */
+  reconciliationHistory = computed(() => {
+    const release = this.releaseService.activeRelease();
+    if (!release) return [];
+    return this.releaseService
+      .reconciliationHistory()
+      .filter((entry) => entry.releaseId === release.id);
+  });
+
+  /** The newest reconciliation that has not been restored or invalidated. */
+  dateReconciliationUndo = computed(
+    () =>
+      this.reconciliationHistory().find(
+        (entry) => !entry.restoredAt && !entry.unavailableReason
+      ) ?? null
+  );
 
   /** Campaigns the artist has already built; only these can be attached. */
   campaignOptions = computed(
@@ -289,6 +330,162 @@ export class ReleasePipelineComponent {
         : 'Collaborator list cleared. This release now reads as a solo credit.',
       'info'
     );
+  }
+
+  /**
+   * Records the artist's intended date. It feeds the timing score and the
+   * market ticker; it is not the distributor-facing date on the catalogue work.
+   * Clearing the field removes the planned window rather than storing a blank.
+   */
+  async savePlannedReleaseDate(): Promise<void> {
+    const date = this.plannedDateText().trim();
+    if (date && !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      this.notify.show(
+        'Enter a calendar date in YYYY-MM-DD form, or clear the field to remove the planned window.',
+        'warning'
+      );
+      return;
+    }
+
+    await this.releaseService.setPlannedReleaseDate(date);
+    this.plannedDateDraft.set(null);
+    this.showDateReconciliation.set(false);
+    this.notify.show(
+      date
+        ? 'Planned date recorded. Timing is scored from the runway to this date; it is not a distributor-confirmed date.'
+        : 'Planned date cleared. Timing falls back to the catalogue date when one is recorded.',
+      'info'
+    );
+  }
+
+  /** Opens the confirmation; this click never writes to the catalogue. */
+  requestDateReconciliation(): void {
+    if (!this.plannedDateMismatch()) return;
+    this.showDateReconciliation.set(true);
+  }
+
+  cancelDateReconciliation(): void {
+    this.showDateReconciliation.set(false);
+  }
+
+  /**
+   * The confirmed write. It copies only the recorded planned date onto the
+   * catalogue work, leaving the planned date and every other field untouched.
+   */
+  async confirmDateReconciliation(): Promise<void> {
+    const result = await this.releaseService.copyPlannedDateToCatalogue();
+    this.showDateReconciliation.set(false);
+    if (!result) {
+      this.notify.show(
+        'Nothing was changed — a planned date and a catalogue work are both required.',
+        'warning'
+      );
+      return;
+    }
+
+    this.notify.show(
+      `Catalogue date updated to ${result.date}. The planned date is unchanged; an undo is available below.`,
+      'info'
+    );
+  }
+
+  /** Restores the date the newest confirmed reconciliation overwrote. */
+  async undoDateReconciliation(): Promise<void> {
+    const undo = this.dateReconciliationUndo();
+    if (!undo) {
+      this.notify.show(
+        'There is no recent catalogue date change to undo.',
+        'warning'
+      );
+      return;
+    }
+    await this.restoreHistoryEntry(undo.id);
+  }
+
+  /** Restores one history entry after the service re-checks its safety. */
+  async restoreHistoryEntry(id: string): Promise<void> {
+    const entry = this.reconciliationHistory().find((item) => item.id === id);
+    const result = await this.releaseService.restoreReconciliation(id);
+
+    if (result === 'restored') {
+      this.notify.show(
+        entry?.previousCatalogueDate
+          ? `Catalogue date restored to ${entry.previousCatalogueDate}.`
+          : 'Catalogue date removed; it was unrecorded before that reconciliation.',
+        'info'
+      );
+      return;
+    }
+    if (result === 'date-changed') {
+      this.notify.show(
+        'The catalogue date has changed since that reconciliation, so it was not overwritten.',
+        'warning'
+      );
+      return;
+    }
+    if (result === 'work-missing') {
+      this.notify.show(
+        'The catalogue work is no longer in the profile, so there was nothing to restore.',
+        'warning'
+      );
+      return;
+    }
+    this.notify.show(
+      'That date change is no longer available to restore.',
+      'warning'
+    );
+  }
+
+  /** Opens the history clear confirmation; this click deletes nothing. */
+  requestHistoryClear(): void {
+    if (!this.reconciliationHistory().length) return;
+    this.showHistoryClearConfirmation.set(true);
+  }
+
+  cancelHistoryClear(): void {
+    this.showHistoryClearConfirmation.set(false);
+  }
+
+  /** Clears this release's local history without touching any date. */
+  confirmHistoryClear(): void {
+    const cleared = this.releaseService.clearPlannedDateReconciliationHistory();
+    this.showHistoryClearConfirmation.set(false);
+
+    if (!cleared) {
+      this.notify.show(
+        'There was no reconciliation history for this release to clear.',
+        'warning'
+      );
+      return;
+    }
+
+    this.notify.show(
+      `Reconciliation history for this release cleared (${cleared} ${
+        cleared === 1 ? 'entry' : 'entries'
+      }). Catalogue dates and the planned date were not changed.`,
+      'info'
+    );
+  }
+
+  /** Timestamps are shown as recorded; older migrated records have none. */
+  formatReconciliationTimestamp(value?: string): string {
+    if (!value) return 'Time not recorded';
+    const parsed = new Date(value);
+    return Number.isFinite(parsed.getTime())
+      ? parsed.toLocaleString()
+      : 'Time not recorded';
+  }
+
+  reconciliationUnavailableLabel(
+    reason?: 'work-missing' | 'date-changed'
+  ): string {
+    if (reason === 'work-missing') {
+      return 'Not restored: the catalogue work is no longer in the profile.';
+    }
+    if (reason === 'date-changed') {
+      return 'Not restored: the catalogue date changed again after this entry.';
+    }
+    return '';
   }
 
   /**

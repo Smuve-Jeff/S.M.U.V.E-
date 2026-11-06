@@ -47,6 +47,7 @@ import {
 import { SmuveMemoryService } from './smuve-memory.service';
 import { UserStoreService } from './user-store.service';
 import { GUEST_AI_LOCK_NOTICE, mayUseAi } from './guest-access';
+import { buildMarketAlerts } from './market-alerts.util';
 
 export interface UpgradeRecommendation {
   id: string;
@@ -92,7 +93,22 @@ export class AiService {
 
   strategicDecrees = signal<string[]>(STRATEGIC_DECREES);
   unlockedUpgrades = signal<string[]>([]);
-  marketAlerts = signal<MarketAlert[]>([]);
+  /**
+   * Release-window and lifecycle alerts, derived from the profile's own
+   * evidence. This used to be a writable signal that no producer ever wrote,
+   * so the Command Center ticker and the Strategy Hub's market panel shipped
+   * empty. A computed keeps both surfaces on the same evidence and can never
+   * go stale behind a profile edit.
+   */
+  readonly marketAlerts = computed<MarketAlert[]>(() => {
+    // The placeholder profile is not the artist's state; an alert about it
+    // would be about nobody.
+    if (this.userProfileService.hydrated?.() === false) return [];
+    return buildMarketAlerts(
+      this.userProfileService.profile(),
+      this.lifecycleSnapshot()
+    );
+  });
   /**
    * Runtime-safe system telemetry contract used by Command Center. Browser
    * apps cannot read CPU utilization directly, so unsupported values remain

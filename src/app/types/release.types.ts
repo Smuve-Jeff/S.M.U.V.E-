@@ -56,6 +56,12 @@ export interface ReleaseProject {
    */
   splitSheetFor?: string[];
   marketingCampaignId?: string;
+  /**
+   * The artist's intended release date (YYYY-MM-DD), used to score delivery
+   * runway and the market window. It is not the distributor-facing date on the
+   * catalogue work: that one is recorded separately once the artist has it.
+   */
+  plannedReleaseDate?: string;
   createdAt: number;
   updatedAt: number;
 }

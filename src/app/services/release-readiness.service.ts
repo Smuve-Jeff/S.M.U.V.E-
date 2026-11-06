@@ -7,6 +7,10 @@ import {
   ReleaseReadiness,
 } from '../types/release-readiness.types';
 import { findCatalogWork } from './release-split.util';
+import {
+  findReleaseDateMismatch,
+  releaseDateMismatchMessage,
+} from './release-window.util';
 
 /** The catalogue fields readiness can actually check against. */
 interface CatalogWork {
@@ -41,9 +45,10 @@ const present = (value: unknown): boolean => {
 export class ReleaseReadinessService {
   assess(
     profile: UserProfile | null | undefined,
-    release: ReleaseProject | null | undefined
+    release: ReleaseProject | null | undefined,
+    now: Date = new Date()
   ): ReleaseReadiness {
-    const generatedAt = new Date().toISOString();
+    const generatedAt = now.toISOString();
 
     if (!release) {
       return {
@@ -69,7 +74,7 @@ export class ReleaseReadinessService {
       this.metadataCheck(release, work),
       this.rightsCheck(profile, release, work),
       this.campaignCheck(profile, release),
-      this.timingCheck(work),
+      this.timingCheck(release, work, now),
     ];
 
     const blockingGaps = checks
@@ -279,23 +284,127 @@ export class ReleaseReadinessService {
   }
 
   /**
-   * Always unscored. The release project has no planned date field, and there is
-   * no audience, catalogue-momentum, or DSP feed to judge timing against, so any
-   * number here would be invented.
+   * Scores the artist's planned release date as delivery runway. The score is a
+   * policy over the time remaining — four weeks or more, two weeks, one week,
+   * this week — not a prediction about audience or market conditions, and the
+   * evidence says so. The catalogue date is the fallback when no planned date
+   * is recorded, and no date at all stays unscored rather than guessed.
    */
-  private timingCheck(work: CatalogWork | null): ReadinessCheck {
+  private timingCheck(
+    release: ReleaseProject,
+    work: CatalogWork | null,
+    now: Date
+  ): ReadinessCheck {
+    const planned = (release.plannedReleaseDate || '').trim();
+    const catalogue = (work?.releaseDate || '').trim();
+    const date = planned || catalogue;
+    const source = planned ? 'planned release date' : 'catalogue release date';
+
+    if (!date) {
+      return {
+        id: 'timing',
+        label: 'Market timing',
+        blocking: false,
+        state: 'insufficient-data',
+        score: null,
+        provenance: 'missing',
+        evidence: [],
+        gaps: [
+          'Set a planned release date on the release. Until a date is recorded, timing cannot be scored.',
+        ],
+      };
+    }
+
+    const parsed = Date.parse(date);
+    if (!Number.isFinite(parsed)) {
+      return {
+        id: 'timing',
+        label: 'Market timing',
+        blocking: false,
+        state: 'not-ready',
+        score: 0,
+        provenance: 'inferred',
+        evidence: [
+          `The ${source} "${date}" cannot be read as a calendar date.`,
+        ],
+        gaps: [
+          `Replace "${date}" with a calendar date (YYYY-MM-DD) so timing can be scored.`,
+        ],
+      };
+    }
+
+    const dateLabel = planned
+      ? `Planned date ${date}`
+      : `Catalogue date ${date}`;
+    const mismatch = findReleaseDateMismatch(planned, catalogue);
+    const mismatchGap = mismatch
+      ? releaseDateMismatchMessage(mismatch)
+      : null;
+    const mismatchEvidence = mismatch
+      ? `The planned date ${mismatch.planned} and catalogue date ${mismatch.catalogue} are different days.`
+      : null;
+
+    if (release.status === 'Released') {
+      return {
+        id: 'timing',
+        label: 'Market timing',
+        blocking: false,
+        state: 'ready',
+        score: 100,
+        provenance: 'inferred',
+        evidence: [
+          `${dateLabel} is recorded and the release is marked Released; there is no forward window left to score.`,
+          ...(mismatchEvidence ? [mismatchEvidence] : []),
+        ],
+        gaps: mismatchGap ? [mismatchGap] : [],
+      };
+    }
+
+    const days = Math.ceil((parsed - now.getTime()) / 86_400_000);
+
+    if (days < 0) {
+      return {
+        id: 'timing',
+        label: 'Market timing',
+        blocking: false,
+        state: 'not-ready',
+        score: 0,
+        provenance: 'inferred',
+        evidence: [
+          `${dateLabel} passed ${Math.abs(days)} day${Math.abs(days) === 1 ? '' : 's'} ago.`,
+          ...(mismatchEvidence ? [mismatchEvidence] : []),
+        ],
+        gaps: [
+          ...(mismatchGap ? [mismatchGap] : []),
+          `The ${source} ${date} has passed while the release is still ${release.status}. Set a new date or mark the release released.`,
+        ],
+      };
+    }
+
+    // Delivery-runway bands, stated once here rather than inferred per call.
+    const score = days >= 28 ? 100 : days >= 14 ? 75 : days >= 7 ? 50 : 25;
+    const runway =
+      days === 0 ? 'today' : `${days} day${days === 1 ? '' : 's'} away`;
+
     return {
       id: 'timing',
       label: 'Market timing',
       blocking: false,
-      state: 'insufficient-data',
-      score: null,
-      provenance: 'missing',
-      evidence: work?.releaseDate
-        ? [`The catalogue records ${work.releaseDate} as this release's date.`]
-        : [],
+      state: this.stateFor(score),
+      score,
+      provenance: 'inferred',
+      evidence: [
+        `${dateLabel} is ${runway}.`,
+        ...(mismatchEvidence ? [mismatchEvidence] : []),
+        'Scored on delivery runway only; no audience, DSP, or catalogue-momentum feed is connected.',
+      ],
       gaps: [
-        'Timing is not scored: the release project has no planned date, and no audience or catalogue-momentum signal exists to compare it with.',
+        ...(mismatchGap ? [mismatchGap] : []),
+        ...(score === 100
+          ? []
+          : [
+              `Only ${days} day${days === 1 ? '' : 's'} remain${days === 1 ? 's' : ''} before the ${source}. Move the date or confirm the remaining work is finished.`,
+            ]),
       ],
     };
   }
@@ -330,9 +439,13 @@ export class ReleaseReadinessService {
     }
     if (state === 'ready') {
       const timing = checks.find((check) => check.id === 'timing');
-      return `This release is deliverable and has a campaign behind it.${
-        timing?.score === null ? ' Market timing could not be assessed.' : ''
-      }`;
+      const timingNote =
+        timing?.score === null
+          ? ' Market timing could not be assessed.'
+          : timing?.gaps?.[0]
+            ? ` ${timing.gaps[0]}`
+            : '';
+      return `This release is deliverable and has a campaign behind it.${timingNote}`;
     }
     return 'This release can be delivered, but the campaign behind it is not in place yet.';
   }

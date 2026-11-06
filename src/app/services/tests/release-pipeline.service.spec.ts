@@ -1,5 +1,10 @@
 import { TestBed } from '@angular/core/testing';
-import { ReleasePipelineService } from '../release-pipeline.service';
+import {
+  LEGACY_PLANNED_DATE_RECONCILIATION_STORAGE_KEY,
+  PLANNED_DATE_RECONCILIATION_HISTORY_LIMIT,
+  PLANNED_DATE_RECONCILIATION_STORAGE_KEY,
+  ReleasePipelineService,
+} from '../release-pipeline.service';
 import { UserProfileService } from '../user-profile.service';
 import { MarketingService } from '../marketing.service';
 import { LoggingService } from '../logging.service';
@@ -11,6 +16,8 @@ describe('ReleasePipelineService', () => {
   let marketingServiceSpy: any;
 
   beforeEach(() => {
+    localStorage.removeItem(PLANNED_DATE_RECONCILIATION_STORAGE_KEY);
+    localStorage.removeItem(LEGACY_PLANNED_DATE_RECONCILIATION_STORAGE_KEY);
     profileServiceSpy = {
       profile: signal({
         artistName: 'Test Artist',
@@ -71,6 +78,179 @@ describe('ReleasePipelineService', () => {
     );
   });
 
+  it('records a planned release date and persists it', async () => {
+    await service.initializeRelease('Test Album', 'Album');
+
+    await service.setPlannedReleaseDate(' 2026-12-01 ');
+
+    expect(service.activeRelease()?.plannedReleaseDate).toBe('2026-12-01');
+    expect(profileServiceSpy.updateProfile).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        knowledgeBase: expect.objectContaining({
+          currentRelease: expect.objectContaining({
+            plannedReleaseDate: '2026-12-01',
+          }),
+        }),
+      })
+    );
+  });
+
+  it('clears a planned release date without touching the catalogue date', async () => {
+    profileServiceSpy.profile.set({
+      artistName: 'Test Artist',
+      knowledgeBase: {},
+      catalog: [{ id: 'w1', title: 'Test Album', releaseDate: '2026-12-01' }],
+    });
+    await service.initializeRelease('Test Album', 'Album');
+    await service.setPlannedReleaseDate('2026-11-15');
+
+    await service.setPlannedReleaseDate('   ');
+
+    expect(service.activeRelease()?.plannedReleaseDate).toBeUndefined();
+    const saved = profileServiceSpy.updateProfile.mock.calls.at(-1)![0];
+    expect(saved.catalog[0].releaseDate).toBe('2026-12-01');
+  });
+
+  it('copies the planned date onto the matching catalogue work', async () => {
+    profileServiceSpy.profile.set({
+      artistName: 'Test Artist',
+      knowledgeBase: {},
+      catalog: [
+        { id: 'w1', title: 'Test Album', isrc: 'US-AAA-25-00001' },
+        { id: 'w2', title: 'Other Work' },
+      ],
+    });
+    await service.initializeRelease('Test Album', 'Album');
+    await service.setPlannedReleaseDate('2026-12-01');
+
+    const result = await service.copyPlannedDateToCatalogue();
+
+    expect(result).toEqual({ workId: 'w1', date: '2026-12-01' });
+    expect(service.lastPlannedDateReconciliation()).toMatchObject({
+      releaseId: service.activeRelease()!.id,
+      workId: 'w1',
+      workTitle: 'Test Album',
+      plannedDate: '2026-12-01',
+      previousCatalogueDate: undefined,
+    });
+    expect(
+      localStorage.getItem(PLANNED_DATE_RECONCILIATION_STORAGE_KEY)
+    ).toContain('"plannedDate":"2026-12-01"');
+    const saved = profileServiceSpy.updateProfile.mock.calls.at(-1)![0];
+    expect(saved.catalog.find((work: any) => work.id === 'w1')).toMatchObject({
+      releaseDate: '2026-12-01',
+      isrc: 'US-AAA-25-00001',
+    });
+    expect(saved.catalog.find((work: any) => work.id === 'w2')).toEqual({
+      id: 'w2',
+      title: 'Other Work',
+    });
+  });
+
+  it('writes nothing when there is no planned date to copy', async () => {
+    profileServiceSpy.profile.set({
+      artistName: 'Test Artist',
+      knowledgeBase: {},
+      catalog: [{ id: 'w1', title: 'Test Album' }],
+    });
+    await service.initializeRelease('Test Album', 'Album');
+    const writes = profileServiceSpy.updateProfile.mock.calls.length;
+
+    expect(await service.copyPlannedDateToCatalogue()).toBeNull();
+    expect(profileServiceSpy.updateProfile.mock.calls.length).toBe(writes);
+  });
+
+  it('writes nothing when no catalogue work matches', async () => {
+    profileServiceSpy.profile.set({
+      artistName: 'Test Artist',
+      knowledgeBase: {},
+      catalog: [{ id: 'w1', title: 'Other Work' }],
+    });
+    await service.initializeRelease('Test Album', 'Album');
+    await service.setPlannedReleaseDate('2026-12-01');
+    const writes = profileServiceSpy.updateProfile.mock.calls.length;
+
+    expect(await service.copyPlannedDateToCatalogue()).toBeNull();
+    expect(profileServiceSpy.updateProfile.mock.calls.length).toBe(writes);
+  });
+
+  const reconciledWith = async (catalogueDate?: string) => {
+    profileServiceSpy.profile.set({
+      artistName: 'Test Artist',
+      knowledgeBase: {},
+      catalog: [
+        {
+          id: 'w1',
+          title: 'Test Album',
+          ...(catalogueDate ? { releaseDate: catalogueDate } : {}),
+        },
+      ],
+    });
+    await service.initializeRelease('Test Album', 'Album');
+    await service.setPlannedReleaseDate('2026-12-01');
+    await service.copyPlannedDateToCatalogue();
+    // The real profile service updates its signal; mirror that for the undo.
+    const saved = profileServiceSpy.updateProfile.mock.calls.at(-1)![0];
+    profileServiceSpy.profile.set({
+      ...saved,
+      knowledgeBase: {
+        ...saved.knowledgeBase,
+        currentRelease: service.activeRelease(),
+      },
+    });
+  };
+
+  it('restores the catalogue date the last reconciliation overwrote', async () => {
+    await reconciledWith('2025-01-01');
+
+    expect(await service.undoPlannedDateReconciliation()).toBe('restored');
+
+    const saved = profileServiceSpy.updateProfile.mock.calls.at(-1)![0];
+    expect(saved.catalog.find((work: any) => work.id === 'w1')).toMatchObject({
+      id: 'w1',
+      title: 'Test Album',
+      releaseDate: '2025-01-01',
+    });
+    expect(service.lastPlannedDateReconciliation()).toBeNull();
+    const history = JSON.parse(
+      localStorage.getItem(PLANNED_DATE_RECONCILIATION_STORAGE_KEY)!
+    );
+    expect(history).toHaveLength(1);
+    expect(history[0].restoredAt).toBeTruthy();
+  });
+
+  it('removes the catalogue date when it was unrecorded before reconciling', async () => {
+    await reconciledWith();
+
+    expect(await service.undoPlannedDateReconciliation()).toBe('restored');
+
+    const saved = profileServiceSpy.updateProfile.mock.calls.at(-1)![0];
+    const work = saved.catalog.find((entry: any) => entry.id === 'w1');
+    expect('releaseDate' in work).toBe(false);
+  });
+
+  it('refuses to undo after the catalogue date changed again', async () => {
+    await reconciledWith('2025-01-01');
+    const current = profileServiceSpy.profile();
+    profileServiceSpy.profile.set({
+      ...current,
+      catalog: current.catalog.map((work: any) =>
+        work.id === 'w1' ? { ...work, releaseDate: '2027-01-01' } : work
+      ),
+    });
+    const writes = profileServiceSpy.updateProfile.mock.calls.length;
+
+    expect(await service.undoPlannedDateReconciliation()).toBe('date-changed');
+    expect(profileServiceSpy.updateProfile.mock.calls.length).toBe(writes);
+    expect(service.lastPlannedDateReconciliation()).toBeNull();
+  });
+
+  it('has nothing to undo when no reconciliation was recorded', async () => {
+    expect(await service.undoPlannedDateReconciliation()).toBe(
+      'no-reconciliation'
+    );
+  });
+
   /** A freshly injected instance, so a test can seed the profile before load. */
   const rebootingWith = (profile: Record<string, unknown>) => {
     profileServiceSpy.profile.set(profile);
@@ -85,6 +265,167 @@ describe('ReleasePipelineService', () => {
     });
     return TestBed.inject(ReleasePipelineService);
   };
+
+  it('restores the last reconciliation after a service reload', async () => {
+    await reconciledWith('2025-01-01');
+    expect(
+      localStorage.getItem(PLANNED_DATE_RECONCILIATION_STORAGE_KEY)
+    ).toContain('"plannedDate":"2026-12-01"');
+
+    const fresh = rebootingWith(profileServiceSpy.profile());
+
+    expect(fresh.lastPlannedDateReconciliation()).toMatchObject({
+      releaseId: service.activeRelease()!.id,
+      workId: 'w1',
+      plannedDate: '2026-12-01',
+      previousCatalogueDate: '2025-01-01',
+    });
+    expect(await fresh.undoPlannedDateReconciliation()).toBe('restored');
+    expect(fresh.lastPlannedDateReconciliation()).toBeNull();
+  });
+
+  it('keeps timestamped entries and restores them in sequence', async () => {
+    await reconciledWith('2025-01-01');
+    const first = service.reconciliationHistory()[0];
+    expect(first.appliedAt).toBeTruthy();
+
+    await service.setPlannedReleaseDate('2027-02-01');
+    await service.copyPlannedDateToCatalogue();
+    const secondSaved = profileServiceSpy.updateProfile.mock.calls.at(-1)![0];
+    profileServiceSpy.profile.set({
+      ...secondSaved,
+      knowledgeBase: {
+        ...secondSaved.knowledgeBase,
+        currentRelease: service.activeRelease(),
+      },
+    });
+
+    const [latest, earliest] = service.reconciliationHistory();
+    expect(latest).toMatchObject({
+      plannedDate: '2027-02-01',
+      previousCatalogueDate: '2026-12-01',
+    });
+    expect(earliest).toMatchObject({
+      id: first.id,
+      plannedDate: '2026-12-01',
+      previousCatalogueDate: '2025-01-01',
+    });
+    expect(Date.parse(latest.appliedAt!)).toBeGreaterThanOrEqual(
+      Date.parse(earliest.appliedAt!)
+    );
+
+    expect(await service.restoreReconciliation(latest.id)).toBe('restored');
+    const restoredSaved = profileServiceSpy.updateProfile.mock.calls.at(-1)![0];
+    profileServiceSpy.profile.set({
+      ...restoredSaved,
+      knowledgeBase: {
+        ...restoredSaved.knowledgeBase,
+        currentRelease: service.activeRelease(),
+      },
+    });
+    expect(service.reconciliationHistory()[0].restoredAt).toBeTruthy();
+    expect(service.lastPlannedDateReconciliation()?.id).toBe(earliest.id);
+
+    expect(await service.restoreReconciliation(earliest.id)).toBe('restored');
+    expect(service.lastPlannedDateReconciliation()).toBeNull();
+    expect(
+      JSON.parse(localStorage.getItem(PLANNED_DATE_RECONCILIATION_STORAGE_KEY)!)
+    ).toHaveLength(2);
+  });
+
+  it('clears only the active release history without writing catalogue data', async () => {
+    await reconciledWith('2025-01-01');
+    service.reconciliationHistory.update((history) => [
+      ...history,
+      {
+        id: 'other-release',
+        releaseId: 'rel-other',
+        workId: 'w2',
+        workTitle: 'Other Work',
+        plannedDate: '2027-03-01',
+        appliedAt: '2026-11-06T10:00:00.000Z',
+      },
+    ]);
+    const writes = profileServiceSpy.updateProfile.mock.calls.length;
+    const profileBefore = profileServiceSpy.profile();
+
+    expect(service.clearPlannedDateReconciliationHistory()).toBe(1);
+
+    expect(profileServiceSpy.updateProfile.mock.calls.length).toBe(writes);
+    expect(profileServiceSpy.profile()).toBe(profileBefore);
+    expect(service.reconciliationHistory()).toHaveLength(1);
+    expect(service.reconciliationHistory()[0].id).toBe('other-release');
+    expect(
+      JSON.parse(localStorage.getItem(PLANNED_DATE_RECONCILIATION_STORAGE_KEY)!)
+    ).toHaveLength(1);
+    expect(service.clearPlannedDateReconciliationHistory()).toBe(0);
+  });
+
+  it('removes the browser history key when the active release was the only history', async () => {
+    await reconciledWith('2025-01-01');
+
+    expect(service.clearPlannedDateReconciliationHistory()).toBe(1);
+
+    expect(service.reconciliationHistory()).toEqual([]);
+    expect(
+      localStorage.getItem(PLANNED_DATE_RECONCILIATION_STORAGE_KEY)
+    ).toBeNull();
+  });
+
+  it('migrates the old single reconciliation without inventing a timestamp', () => {
+    localStorage.setItem(
+      LEGACY_PLANNED_DATE_RECONCILIATION_STORAGE_KEY,
+      JSON.stringify({
+        releaseId: 'rel-1',
+        workId: 'w1',
+        workTitle: 'Test Album',
+        plannedDate: '2026-12-01',
+        previousCatalogueDate: '2025-01-01',
+      })
+    );
+
+    const fresh = rebootingWith(profileServiceSpy.profile());
+
+    expect(fresh.reconciliationHistory()).toHaveLength(1);
+    expect(fresh.reconciliationHistory()[0]).toMatchObject({
+      id: expect.stringContaining('legacy-'),
+      releaseId: 'rel-1',
+      plannedDate: '2026-12-01',
+      previousCatalogueDate: '2025-01-01',
+    });
+    expect(fresh.reconciliationHistory()[0].appliedAt).toBeUndefined();
+    expect(
+      localStorage.getItem(LEGACY_PLANNED_DATE_RECONCILIATION_STORAGE_KEY)
+    ).toBeNull();
+    expect(
+      JSON.parse(localStorage.getItem(PLANNED_DATE_RECONCILIATION_STORAGE_KEY)!)
+    ).toHaveLength(1);
+  });
+
+  it('keeps only the most recent entries in the browser history', () => {
+    const seeded = Array.from(
+      { length: PLANNED_DATE_RECONCILIATION_HISTORY_LIMIT + 2 },
+      (_, index) => ({
+        id: `seed-${index}`,
+        releaseId: 'rel-1',
+        workId: 'w1',
+        workTitle: 'Test Album',
+        plannedDate: '2026-12-01',
+        appliedAt: new Date(2026, 0, index + 1).toISOString(),
+      })
+    );
+    localStorage.setItem(
+      PLANNED_DATE_RECONCILIATION_STORAGE_KEY,
+      JSON.stringify(seeded)
+    );
+
+    const fresh = rebootingWith(profileServiceSpy.profile());
+
+    expect(fresh.reconciliationHistory()).toHaveLength(
+      PLANNED_DATE_RECONCILIATION_HISTORY_LIMIT
+    );
+    expect(fresh.reconciliationHistory()[0].id).toBe('seed-0');
+  });
 
   it('adopts a catalogue split when the release has none', () => {
     const fresh = rebootingWith({

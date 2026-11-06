@@ -117,6 +117,234 @@
         {{ readiness().verdict }}
       </p>
 
+      <!-- The artist's planned date: drives timing and the market ticker. -->
+      <div
+        class="rounded-2xl border border-white/10 bg-black/20 px-4 py-3"
+        data-testid="planned-window"
+      >
+        <div class="flex flex-wrap items-end justify-between gap-3">
+          <label class="flex-1 min-w-[180px] space-y-1">
+            <span class="block text-[9px] font-black uppercase tracking-widest text-slate-500">
+              Planned release date
+            </span>
+            <input
+              type="date"
+              data-testid="planned-release-date"
+              [ngModel]="plannedDateText()"
+              (ngModelChange)="plannedDateDraft.set($event)"
+              class="w-full bg-black/40 border border-white/10 rounded-lg px-2 py-1.5 text-[11px] text-slate-200"
+            />
+          </label>
+          <button
+            type="button"
+            data-testid="planned-date-save"
+            (click)="savePlannedReleaseDate()"
+            class="px-3 py-1.5 rounded-lg bg-brand-primary/20 border border-brand-primary/40 text-[10px] font-black uppercase tracking-widest text-brand-primary"
+          >
+            Save window
+          </button>
+        </div>
+        <p class="text-[9px] text-slate-500 leading-relaxed mt-2">
+          Your intended date. Timing is scored from the delivery runway, not from audience or DSP data, and this is not a distributor-confirmed date.
+        </p>
+        @if (timingCheck(); as timing) {
+          @if (timing.evidence[0]) {
+            <p class="text-[9px] text-slate-400 leading-relaxed mt-1">
+              {{ timing.evidence[0] }}
+            </p>
+          }
+          @if (timing.gaps[0]) {
+            <p class="text-[9px] text-amber-300 leading-relaxed mt-1">
+              {{ timing.gaps[0] }}
+            </p>
+          }
+        }
+
+        @if (dateReconciliationUndo(); as undo) {
+          <div
+            class="mt-3 rounded-xl border border-white/10 bg-black/30 px-3 py-2"
+            data-testid="date-reconcile-undo"
+          >
+            <p class="text-[9px] text-slate-300 leading-relaxed">
+              Last reconciliation (saved in this browser):
+              {{ undo.previousCatalogueDate || 'unrecorded' }} → {{ undo.plannedDate }} on "{{ undo.workTitle }}".
+            </p>
+            <button
+              type="button"
+              data-testid="undo-date-reconcile"
+              (click)="undoDateReconciliation()"
+              class="mt-2 px-3 py-1.5 rounded-lg border border-white/15 text-[10px] font-black uppercase tracking-widest text-slate-300 hover:text-white hover:border-white/30"
+            >
+              Undo date change
+            </button>
+          </div>
+        }
+
+        @if (reconciliationHistory().length) {
+          <details
+            class="mt-3 rounded-xl border border-white/10 bg-black/25 px-3 py-2"
+            data-testid="reconciliation-history"
+          >
+            <summary
+              class="cursor-pointer text-[9px] font-black uppercase tracking-widest text-slate-400"
+            >
+              Date reconciliation history ({{ reconciliationHistory().length }})
+            </summary>
+            <div class="mt-2 flex flex-wrap items-start justify-between gap-2">
+              <p class="text-[9px] text-slate-500 leading-relaxed">
+                Saved in this browser. Restore is only offered while the catalogue
+                still holds the date that entry wrote.
+              </p>
+              @if (!showHistoryClearConfirmation()) {
+                <button
+                  type="button"
+                  data-testid="clear-reconciliation-history"
+                  (click)="requestHistoryClear()"
+                  class="shrink-0 px-2.5 py-1 rounded-lg border border-rose-400/30 text-[9px] font-black uppercase tracking-widest text-rose-200 hover:border-rose-300/60"
+                >
+                  Clear history
+                </button>
+              }
+            </div>
+            @if (showHistoryClearConfirmation()) {
+              <div
+                class="mt-2 rounded-lg border border-rose-400/40 bg-rose-500/10 px-2.5 py-2 space-y-2"
+                role="alert"
+                data-testid="clear-reconciliation-confirm"
+              >
+                <p class="text-[9px] text-rose-100 leading-relaxed">
+                  Clear this release's {{ reconciliationHistory().length }} local
+                  {{ reconciliationHistory().length === 1 ? 'entry' : 'entries' }}?
+                  Catalogue dates and the planned date stay unchanged.
+                </p>
+                <div class="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    data-testid="clear-reconciliation-confirm-button"
+                    (click)="confirmHistoryClear()"
+                    class="px-2.5 py-1 rounded-lg bg-rose-400/20 border border-rose-400/50 text-[9px] font-black uppercase tracking-widest text-rose-100"
+                  >
+                    Clear history
+                  </button>
+                  <button
+                    type="button"
+                    data-testid="clear-reconciliation-cancel"
+                    (click)="cancelHistoryClear()"
+                    class="px-2.5 py-1 rounded-lg border border-white/10 text-[9px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-200"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            }
+            <ol class="mt-2 space-y-2">
+              @for (entry of reconciliationHistory(); track entry.id) {
+                <li
+                  class="rounded-lg border border-white/10 bg-black/20 px-2.5 py-2"
+                  data-testid="reconciliation-history-entry"
+                >
+                  <div class="flex flex-wrap items-start justify-between gap-2">
+                    <div class="min-w-0">
+                      <p class="text-[10px] text-slate-200 leading-relaxed">
+                        {{ entry.previousCatalogueDate || 'unrecorded' }} →
+                        {{ entry.plannedDate }}
+                        <span class="text-slate-500">on "{{ entry.workTitle }}"</span>
+                      </p>
+                      <p class="text-[9px] text-slate-500 mt-0.5">
+                        {{ formatReconciliationTimestamp(entry.appliedAt) }}
+                      </p>
+                    </div>
+                    @if (!entry.restoredAt && !entry.unavailableReason) {
+                      <button
+                        type="button"
+                        data-testid="restore-reconciliation"
+                        (click)="restoreHistoryEntry(entry.id)"
+                        class="px-2.5 py-1 rounded-lg border border-white/15 text-[9px] font-black uppercase tracking-widest text-slate-300 hover:text-white hover:border-white/30"
+                      >
+                        Restore
+                      </button>
+                    }
+                  </div>
+                  @if (entry.restoredAt) {
+                    <p
+                      class="text-[9px] text-emerald-300 mt-1"
+                      data-testid="reconciliation-status"
+                    >
+                      Restored {{ formatReconciliationTimestamp(entry.restoredAt) }}
+                    </p>
+                  } @else if (entry.unavailableReason) {
+                    <p
+                      class="text-[9px] text-amber-300 mt-1"
+                      data-testid="reconciliation-status"
+                    >
+                      {{ reconciliationUnavailableLabel(entry.unavailableReason) }}
+                    </p>
+                  }
+                </li>
+              }
+            </ol>
+          </details>
+        }
+
+        @if (plannedDateMismatch(); as mismatch) {
+          @if (!showDateReconciliation()) {
+            <div
+              class="mt-3 rounded-xl border border-amber-500/30 bg-amber-500/5 px-3 py-2"
+              data-testid="date-mismatch-action"
+            >
+              <p class="text-[9px] text-amber-100/90 leading-relaxed">
+                Planned {{ mismatch.planned }} · Catalogue {{ mismatch.catalogue }}
+              </p>
+              <button
+                type="button"
+                data-testid="reconcile-date"
+                (click)="requestDateReconciliation()"
+                class="mt-2 px-3 py-1.5 rounded-lg bg-amber-400/15 border border-amber-400/40 text-[10px] font-black uppercase tracking-widest text-amber-200"
+              >
+                Use planned date
+              </button>
+            </div>
+          } @else {
+            <div
+              class="mt-3 rounded-xl border border-amber-400/40 bg-amber-500/10 px-3 py-2 space-y-2"
+              role="alert"
+              data-testid="date-mismatch-confirm"
+            >
+              <p class="text-[9px] font-black uppercase tracking-widest text-amber-200">
+                Confirm catalogue date change
+              </p>
+              <p class="text-[10px] text-amber-50 leading-relaxed">
+                Replace the date on "{{ catalogWork()?.title || 'the catalogue work' }}":
+                <span class="font-mono">{{ mismatch.catalogue }}</span>
+                →
+                <span class="font-mono">{{ mismatch.planned }}</span>
+              </p>
+              <p class="text-[9px] text-amber-100/70 leading-relaxed">
+                This changes the distributor-facing date. The planned date stays unchanged.
+              </p>
+              <div class="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  data-testid="reconcile-date-confirm"
+                  (click)="confirmDateReconciliation()"
+                  class="px-3 py-1.5 rounded-lg bg-amber-400/20 border border-amber-400/50 text-[10px] font-black uppercase tracking-widest text-amber-100"
+                >
+                  Confirm date change
+                </button>
+                <button
+                  type="button"
+                  data-testid="reconcile-date-cancel"
+                  (click)="cancelDateReconciliation()"
+                  class="px-3 py-1.5 rounded-lg border border-white/10 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-200"
+                >
+                  Keep catalogue date
+                </button>
+              </div>
+            </div>
+          }
+        }
+      </div>
+
       <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
         @for (check of readiness().checks; track check.id) {
           <div

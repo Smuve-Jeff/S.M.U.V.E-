@@ -3,6 +3,7 @@ import { provideRouter } from '@angular/router';
 import { signal } from '@angular/core';
 import { ReleasePipelineComponent } from './release-pipeline.component';
 import { ReleasePipelineService } from '../../services/release-pipeline.service';
+import type { PlannedDateReconciliation } from '../../services/release-pipeline.service';
 import { CareerPipelineService } from '../../services/career-pipeline.service';
 import { NotificationService } from '../../services/notification.service';
 import { UserProfileService } from '../../services/user-profile.service';
@@ -102,6 +103,9 @@ describe('ReleasePipelineComponent', () => {
   });
 
   let activeRelease: ReturnType<typeof signal<ReleaseProject | null>>;
+  let reconciliationHistory: ReturnType<
+    typeof signal<PlannedDateReconciliation[]>
+  >;
   let releaseService: {
     activeRelease: typeof activeRelease;
     updateStatus: jest.Mock;
@@ -117,6 +121,11 @@ describe('ReleasePipelineComponent', () => {
     unlinkCatalogWork: jest.Mock;
     createCatalogWorkFromRelease: jest.Mock;
     recordDeliveryMetadata: jest.Mock;
+    setPlannedReleaseDate: jest.Mock;
+    copyPlannedDateToCatalogue: jest.Mock;
+    reconciliationHistory: typeof reconciliationHistory;
+    restoreReconciliation: jest.Mock;
+    clearPlannedDateReconciliationHistory: jest.Mock;
   };
   let notify: { show: jest.Mock };
 
@@ -152,6 +161,7 @@ describe('ReleasePipelineComponent', () => {
 
   beforeEach(() => {
     activeRelease = signal<ReleaseProject | null>(null);
+    reconciliationHistory = signal<PlannedDateReconciliation[]>([]);
     releaseService = {
       activeRelease,
       updateStatus: jest.fn().mockResolvedValue(undefined),
@@ -213,6 +223,52 @@ describe('ReleasePipelineComponent', () => {
         const next = { ...current };
         delete next.marketingCampaignId;
         activeRelease.set(next);
+      }),
+      setPlannedReleaseDate: jest.fn(async (date: string) => {
+        const current = activeRelease();
+        if (!current) return;
+        const next = { ...current };
+        const trimmed = date.trim();
+        if (trimmed) next.plannedReleaseDate = trimmed;
+        else delete next.plannedReleaseDate;
+        activeRelease.set(next);
+      }),
+      copyPlannedDateToCatalogue: jest.fn(async () => {
+        const current = activeRelease();
+        if (!current) return null;
+        const date = current.plannedReleaseDate || '2099-01-01';
+        reconciliationHistory.update((history) => [
+          {
+            id: `rec-${history.length + 1}`,
+            releaseId: current.id,
+            workId: 'w1',
+            workTitle: 'Window Light',
+            plannedDate: date,
+            previousCatalogueDate: '2025-02-01',
+            appliedAt: '2026-11-06T10:00:00.000Z',
+          },
+          ...history,
+        ]);
+        return { workId: 'w1', date };
+      }),
+      reconciliationHistory,
+      restoreReconciliation: jest.fn(async (id: string) => {
+        reconciliationHistory.update((history) =>
+          history.map((entry) =>
+            entry.id === id
+              ? { ...entry, restoredAt: '2026-11-06T11:00:00.000Z' }
+              : entry
+          )
+        );
+        return 'restored';
+      }),
+      clearPlannedDateReconciliationHistory: jest.fn(() => {
+        const releaseId = activeRelease()?.id;
+        const before = reconciliationHistory().length;
+        reconciliationHistory.update((history) =>
+          history.filter((entry) => entry.releaseId !== releaseId)
+        );
+        return before - reconciliationHistory().length;
       }),
     };
     notify = { show: jest.fn() };
@@ -691,5 +747,282 @@ describe('ReleasePipelineComponent', () => {
     expect(pack.upc).toBe('00123456789012');
     expect(pack.distributor).toBe('DistroKid');
     expect(pack.platforms).toEqual(['Spotify', 'Apple Music']);
+  });
+
+  it('asks for confirmation before copying the planned date onto the catalogue', async () => {
+    const { component, fixture } = await setup({
+      ...readyRelease(),
+      plannedReleaseDate: '2099-01-01',
+    });
+    const el = fixture.nativeElement as HTMLElement;
+
+    expect(component.plannedDateMismatch()).not.toBeNull();
+    const action = el.querySelector(
+      '[data-testid="reconcile-date"]'
+    ) as HTMLButtonElement;
+    expect(action).toBeTruthy();
+
+    action.click();
+    fixture.detectChanges();
+
+    // The first click only opens the confirmation; nothing is written yet.
+    expect(component.showDateReconciliation()).toBe(true);
+    expect(releaseService.copyPlannedDateToCatalogue).not.toHaveBeenCalled();
+    expect(
+      el.querySelector('[data-testid="reconcile-date-confirm"]')
+    ).toBeTruthy();
+
+    await component.confirmDateReconciliation();
+
+    expect(releaseService.copyPlannedDateToCatalogue).toHaveBeenCalledTimes(1);
+    expect(component.showDateReconciliation()).toBe(false);
+    expect(notify.show).toHaveBeenCalledWith(
+      expect.stringContaining('Catalogue date updated to 2099-01-01'),
+      'info'
+    );
+
+    fixture.detectChanges();
+    expect(component.dateReconciliationUndo()).not.toBeNull();
+    expect(
+      el.querySelector('[data-testid="undo-date-reconcile"]')
+    ).toBeTruthy();
+    const historyPanel = el.querySelector(
+      '[data-testid="reconciliation-history"]'
+    );
+    expect(historyPanel?.textContent).toContain(
+      'Date reconciliation history (1)'
+    );
+    expect(historyPanel?.textContent).toContain('2025-02-01 → 2099-01-01');
+    expect(historyPanel?.textContent).not.toContain('Time not recorded');
+
+    const entryId = component.reconciliationHistory()[0].id;
+    await component.undoDateReconciliation();
+
+    expect(releaseService.restoreReconciliation).toHaveBeenCalledWith(entryId);
+    expect(component.dateReconciliationUndo()).toBeNull();
+    expect(notify.show).toHaveBeenCalledWith(
+      expect.stringContaining('restored to 2025-02-01'),
+      'info'
+    );
+    fixture.detectChanges();
+    expect(historyPanel?.textContent).toContain('Restored');
+  });
+
+  it('lists more than the last reconciliation and restores a chosen entry', async () => {
+    reconciliationHistory.set([
+      {
+        id: 'rec-2',
+        releaseId: 'rel-1',
+        workId: 'w1',
+        workTitle: 'Window Light',
+        plannedDate: '2099-06-01',
+        previousCatalogueDate: '2099-01-01',
+        appliedAt: '2026-11-06T10:05:00.000Z',
+      },
+      {
+        id: 'rec-1',
+        releaseId: 'rel-1',
+        workId: 'w1',
+        workTitle: 'Window Light',
+        plannedDate: '2099-01-01',
+        previousCatalogueDate: '2025-02-01',
+        appliedAt: '2026-11-06T10:00:00.000Z',
+      },
+      {
+        id: 'rec-other',
+        releaseId: 'rel-other',
+        workId: 'w1',
+        workTitle: 'Window Light',
+        plannedDate: '2099-01-01',
+        appliedAt: '2026-11-06T10:00:00.000Z',
+      },
+    ]);
+    const { component, fixture } = await setup({
+      ...readyRelease(),
+      plannedReleaseDate: '2099-06-01',
+    });
+    const el = fixture.nativeElement as HTMLElement;
+
+    expect(component.reconciliationHistory()).toHaveLength(2);
+    const entries = el.querySelectorAll(
+      '[data-testid="reconciliation-history-entry"]'
+    );
+    expect(entries).toHaveLength(2);
+    expect(entries[0].textContent).toContain('2099-06-01');
+    expect(entries[1].textContent).toContain('2099-01-01');
+    expect(
+      el.querySelectorAll('[data-testid="restore-reconciliation"]')
+    ).toHaveLength(2);
+
+    await component.restoreHistoryEntry('rec-1');
+
+    expect(releaseService.restoreReconciliation).toHaveBeenCalledWith('rec-1');
+    expect(notify.show).toHaveBeenCalledWith(
+      expect.stringContaining('restored to 2025-02-01'),
+      'info'
+    );
+    fixture.detectChanges();
+    expect(entries[1].textContent).toContain('Restored');
+    expect(
+      el.querySelectorAll('[data-testid="restore-reconciliation"]')
+    ).toHaveLength(1);
+  });
+
+  it('requires confirmation before clearing this release history', async () => {
+    reconciliationHistory.set([
+      {
+        id: 'rec-1',
+        releaseId: 'rel-1',
+        workId: 'w1',
+        workTitle: 'Window Light',
+        plannedDate: '2099-01-01',
+        previousCatalogueDate: '2025-02-01',
+        appliedAt: '2026-11-06T10:00:00.000Z',
+      },
+    ]);
+    const { component, fixture } = await setup({
+      ...readyRelease(),
+      plannedReleaseDate: '2099-01-01',
+    });
+    const el = fixture.nativeElement as HTMLElement;
+    const panel = el.querySelector(
+      '[data-testid="reconciliation-history"]'
+    ) as HTMLDetailsElement;
+    panel.open = true;
+
+    (
+      el.querySelector(
+        '[data-testid="clear-reconciliation-history"]'
+      ) as HTMLButtonElement
+    ).click();
+    fixture.detectChanges();
+
+    expect(
+      releaseService.clearPlannedDateReconciliationHistory
+    ).not.toHaveBeenCalled();
+    expect(
+      el.querySelector('[data-testid="clear-reconciliation-confirm"]')
+    ).toBeTruthy();
+
+    (
+      el.querySelector(
+        '[data-testid="clear-reconciliation-cancel"]'
+      ) as HTMLButtonElement
+    ).click();
+    fixture.detectChanges();
+    expect(
+      releaseService.clearPlannedDateReconciliationHistory
+    ).not.toHaveBeenCalled();
+    expect(component.showHistoryClearConfirmation()).toBe(false);
+
+    (
+      el.querySelector(
+        '[data-testid="clear-reconciliation-history"]'
+      ) as HTMLButtonElement
+    ).click();
+    fixture.detectChanges();
+    (
+      el.querySelector(
+        '[data-testid="clear-reconciliation-confirm-button"]'
+      ) as HTMLButtonElement
+    ).click();
+    fixture.detectChanges();
+
+    expect(
+      releaseService.clearPlannedDateReconciliationHistory
+    ).toHaveBeenCalledTimes(1);
+    expect(component.reconciliationHistory()).toHaveLength(0);
+    expect(
+      el.querySelector('[data-testid="reconciliation-history"]')
+    ).toBeNull();
+    expect(notify.show).toHaveBeenCalledWith(
+      expect.stringContaining(
+        'Catalogue dates and the planned date were not changed'
+      ),
+      'info'
+    );
+  });
+
+  it('cancels the date reconciliation without writing', async () => {
+    const { component } = await setup({
+      ...readyRelease(),
+      plannedReleaseDate: '2099-01-01',
+    });
+
+    component.requestDateReconciliation();
+    component.cancelDateReconciliation();
+
+    expect(component.showDateReconciliation()).toBe(false);
+    expect(releaseService.copyPlannedDateToCatalogue).not.toHaveBeenCalled();
+  });
+
+  it('warns when the planned date disagrees with the catalogue date', async () => {
+    const { component, fixture } = await setup({
+      ...readyRelease(),
+      plannedReleaseDate: '2099-01-01',
+    });
+
+    expect(component.timingCheck()?.gaps.join(' ')).toContain(
+      'differs from the catalogue date'
+    );
+    expect(
+      (fixture.nativeElement as HTMLElement)
+        .querySelector('[data-testid="planned-window"]')
+        ?.textContent
+    ).toContain('differs from the catalogue date');
+  });
+
+  it('records a planned date and scores timing from it', async () => {
+    const { component } = await setup(readyRelease());
+
+    // The catalogue date is in the past, so timing is scored down, not unknown.
+    expect(component.timingCheck()?.score).toBe(0);
+
+    component.plannedDateDraft.set('2099-01-01');
+    await component.savePlannedReleaseDate();
+
+    expect(releaseService.setPlannedReleaseDate).toHaveBeenCalledWith(
+      '2099-01-01'
+    );
+    expect(component.plannedDateDraft()).toBeNull();
+    expect(component.timingCheck()?.score).toBe(100);
+    expect(notify.show).toHaveBeenCalledWith(
+      expect.stringContaining('Timing is scored from the runway'),
+      'info'
+    );
+  });
+
+  it('clears the planned date and falls back to the catalogue date', async () => {
+    const { component } = await setup({
+      ...readyRelease(),
+      plannedReleaseDate: '2099-01-01',
+    });
+    expect(component.timingCheck()?.score).toBe(100);
+
+    component.plannedDateDraft.set('');
+    await component.savePlannedReleaseDate();
+
+    expect(releaseService.setPlannedReleaseDate).toHaveBeenCalledWith('');
+    expect(component.timingCheck()?.score).toBe(0);
+    expect(component.timingCheck()?.evidence.join(' ')).toContain(
+      'Catalogue date 2025-02-01'
+    );
+    expect(notify.show).toHaveBeenCalledWith(
+      expect.stringContaining('falls back to the catalogue date'),
+      'info'
+    );
+  });
+
+  it('refuses an unreadable planned date', async () => {
+    const { component } = await setup(readyRelease());
+
+    component.plannedDateDraft.set('next spring');
+    await component.savePlannedReleaseDate();
+
+    expect(releaseService.setPlannedReleaseDate).not.toHaveBeenCalled();
+    expect(notify.show).toHaveBeenCalledWith(
+      expect.stringContaining('YYYY-MM-DD'),
+      'warning'
+    );
   });
 });
