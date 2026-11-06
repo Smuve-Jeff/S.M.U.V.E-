@@ -1455,11 +1455,13 @@ describe("ArrangementViewComponent", () => {
 
     mockDialog.confirm.mockResolvedValueOnce(true);
     await component.clearSavedSplits();
-    expect(schedule).toHaveBeenCalledWith(6000);
+    expect(schedule).not.toHaveBeenCalled();
     expect(component.stemSaved()).toEqual([]);
 
     const toast = mockSnackbar.show.mock.calls.at(-1)?.[0] as any;
     expect(toast.action).toBe("Undo");
+    toast.onShown();
+    expect(schedule).toHaveBeenCalledWith(6000);
     toast.onAction();
     expect(cancel).toHaveBeenCalled();
     expect(component.stemSaved()).toEqual([saved]);

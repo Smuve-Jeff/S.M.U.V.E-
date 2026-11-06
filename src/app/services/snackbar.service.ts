@@ -72,6 +72,9 @@ export class SnackbarService {
     // in-app toast was blank (only the close glyph rendered). Re-render the
     // toast's own view once its state is set.
     this.snackbarRef.changeDetectorRef.detectChanges();
+    // Queued toasts reach the screen late; defer time-based actions (such as an
+    // undo window) until this one is actually visible.
+    config.onShown?.();
 
     setTimeout(() => {
       this.isShowing.set(false);

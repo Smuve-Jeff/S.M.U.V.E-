@@ -2393,13 +2393,15 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
       tone: "danger",
     });
     if (!approved) return;
-    this.stemCache.scheduleClearSaved(6000);
     this.clearStemDisplay();
     this.stemSaved.set([]);
     this.snackbar.show({
       message: "🎚 Saved stems cleared",
       action: "Undo",
       duration: 6000,
+      // Start the undo window only once the toast is on screen, so a queued
+      // toast cannot eat into the six seconds the button needs.
+      onShown: () => this.stemCache.scheduleClearSaved(6000),
       onAction: () => {
         if (!this.stemCache.cancelScheduledClearSaved()) return;
         this.stemSaved.set(saved);

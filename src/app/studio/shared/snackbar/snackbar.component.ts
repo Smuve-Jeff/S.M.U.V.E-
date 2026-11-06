@@ -6,6 +6,8 @@ export type SnackbarConfig = {
   action?: string;
   /** Runs when the action button is pressed, before the toast dismisses. */
   onAction?: () => void;
+  /** Runs when this toast reaches the screen, after any queueing. */
+  onShown?: () => void;
   duration?: number;
   type?: "info" | "success" | "error" | "warning";
 };
