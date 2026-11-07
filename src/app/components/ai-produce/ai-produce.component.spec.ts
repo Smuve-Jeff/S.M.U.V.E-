@@ -293,6 +293,44 @@ describe('AiProduceService', () => {
     expect(sut.hasArtifacts()).toBe(true);
   });
 
+  it('hands the run off to a creator and to the release pipeline', async () => {
+    await sut.run({
+      prompt: 'midnight rooftop swing',
+      genre: 'Trap',
+      mood: 'dark',
+    });
+
+    const creator = sut.creatorHandoff();
+    expect(creator).not.toBeNull();
+    expect(creator!.title).toBe(sut.currentIdea()!.title);
+    expect(creator!.sections.map((section) => section.name)).toEqual([
+      'Intro',
+      'Verse',
+    ]);
+    expect(creator!.chords).toEqual(['i', 'VI']);
+    expect(creator!.brief).toContain('creator handoff');
+    expect(creator!.brief).toContain('140 BPM');
+    expect(creator!.brief).toContain('- Target -10 LUFS · -0.3 dBFS ceiling.');
+
+    const release = sut.releaseHandoff();
+    expect(release).not.toBeNull();
+    expect(release!.releaseId).toBe('rel-stub');
+    expect(release!.stages.map((stage) => stage.name)).toEqual([
+      'instrumental',
+      'lyrics',
+      'vocals',
+      'mixing',
+      'mastering',
+    ]);
+    expect(release!.pending).toContain('vocals');
+    expect(release!.nextStep).toContain('vocals');
+  });
+
+  it('reports no handoffs before a run produces artifacts', () => {
+    expect(sut.creatorHandoff()).toBeNull();
+    expect(sut.releaseHandoff()).toBeNull();
+  });
+
   it('buildStudioActionResults attaches actionable studio targets', async () => {
     await sut.run({
       prompt: 'midnight rooftop swing',

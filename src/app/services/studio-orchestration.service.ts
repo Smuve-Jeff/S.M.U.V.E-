@@ -39,6 +39,19 @@ function mergeById<T extends { id: string }>(
   });
 }
 
+/** Delivery state of a packet this artist sent, before/after the server echo. */
+export type PacketDeliveryState = 'queued' | 'delivered';
+
+/**
+ * Receipt for a packet this artist sent. `ackedAt` stays null until the server
+ * echoes the packet back, so a queued row can never read as delivered.
+ */
+export interface OutboundPacketReceipt {
+  sentAt: number;
+  handoffId?: string;
+  ackedAt: number | null;
+}
+
 @Injectable({ providedIn: 'root' })
 export class StudioOrchestrationService {
   private auth = inject(AuthService);
@@ -58,6 +71,8 @@ export class StudioOrchestrationService {
   remixLineage = signal<RemixLineageRecord[]>([]);
   lastPreviewedActionId = signal<string | null>(null);
   lastExportedAction = signal<StudioActionResult | null>(null);
+  /** Outbound packets awaiting a server acknowledgement, keyed by local id. */
+  private outboundReceipts = signal<Record<string, OutboundPacketReceipt>>({});
 
   currentProjectId = computed(() => {
     const currentProject = this.projects.currentProject();
@@ -104,6 +119,91 @@ export class StudioOrchestrationService {
 
   pendingAsyncPackets = computed(() =>
     this.asyncPackets().filter((packet) => packet.status === 'pending')
+  );
+
+  /** Packets belonging to the session this artist is actually in. */
+  sessionAsyncPackets = computed<AsyncCollaborationPacket[]>(() => {
+    const sessionId = this.collaboration.currentSession()?.sessionId;
+    if (!sessionId) return [];
+    return this.asyncPackets()
+      .filter((packet) => packet.sessionId === sessionId)
+      .sort((a, b) => b.createdAt - a.createdAt);
+  });
+
+  /**
+   * Delivery state of a packet row.
+   *
+   * Anything that arrived from a peer is real by definition, so it reads as
+   * delivered. A packet this artist sent reads as delivered only once the
+   * server echo acknowledged it — until then the row says queued, never sent.
+   */
+  packetDelivery(packet: AsyncCollaborationPacket): PacketDeliveryState {
+    const receipt = this.outboundReceipts()[packet.id];
+    if (!receipt) return 'delivered';
+    return receipt.ackedAt !== null ? 'delivered' : 'queued';
+  }
+
+  /**
+   * Reconcile locally-queued sends against the packets the server echoed back.
+   *
+   * The echo normally carries the same id, and `mergeById` then overwrites the
+   * optimistic row. When the server assigns its own id, the packet is matched
+   * on `payload.handoffId` instead: the optimistic row is dropped so the list
+   * shows the acknowledged copy once, and the receipt is stamped. Anything not
+   * matched stays queued.
+   */
+  reconcilePacketAcks(incoming: AsyncCollaborationPacket[]): void {
+    if (!incoming.length) return;
+
+    const receipts = this.outboundReceipts();
+    const next: Record<string, OutboundPacketReceipt> = { ...receipts };
+    const replacedLocally = new Set<string>();
+
+    if (Object.keys(receipts).length > 0) {
+      const ackedAt = Date.now();
+      for (const packet of incoming) {
+        const direct = next[packet.id];
+        if (direct) {
+          if (direct.ackedAt === null) next[packet.id] = { ...direct, ackedAt };
+          continue;
+        }
+        const payload = (packet.payload ?? {}) as Record<string, unknown>;
+        const handoffId = payload['handoffId'];
+        if (
+          payload['kind'] !== 'creator_brief' ||
+          typeof handoffId !== 'string'
+        ) {
+          continue;
+        }
+        for (const [localId, receipt] of Object.entries(next)) {
+          if (receipt.ackedAt === null && receipt.handoffId === handoffId) {
+            next[localId] = { ...receipt, ackedAt };
+            replacedLocally.add(localId);
+          }
+        }
+      }
+    }
+
+    this.asyncPackets.update((records) => {
+      const kept = replacedLocally.size
+        ? records.filter((record) => !replacedLocally.has(record.id))
+        : records;
+      // The echo is the authoritative copy: merge it in the same pass so a
+      // matched optimistic row is replaced instead of duplicated.
+      return mergeById(kept, incoming);
+    });
+    this.outboundReceipts.set(next);
+  }
+
+  /**
+   * A creator brief can be sent when a finished AI Produce run exists inside a
+   * live session this artist is allowed to share from.
+   */
+  canSendCreatorHandoff = computed(
+    () =>
+      !!this.aiProduce.creatorHandoff() &&
+      !!this.collaboration.currentSession()?.sessionId &&
+      this.can('share')
   );
 
   pendingApprovals = computed(() =>
@@ -480,6 +580,69 @@ export class StudioOrchestrationService {
     return this.lastExportedAction();
   }
 
+  /**
+   * Send the AI Produce creator brief as an async collaboration packet.
+   *
+   * The brief, sections, chords, hook and mix notes travel as a
+   * `review_request` packet tagged `payload.kind === 'creator_brief'`, so a
+   * collaborator who was never in the session can still act on the run.
+   * `toUserId` targets one collaborator; omitting it addresses the session.
+   *
+   * The packet is recorded on `asyncPackets` before the socket echo, which is
+   * what makes delivery visible to the sender: the row appears in the session
+   * list immediately, the server echo merges into the same id via
+   * `mergeById`, and the recipient sees the packet through session sync.
+   * Returns null when nothing was sent — no artifacts, no live session, no
+   * share permission — so callers never report a phantom send.
+   */
+  sendCreatorHandoff(toUserId?: string): AsyncCollaborationPacket | null {
+    const handoff = this.aiProduce.creatorHandoff();
+    const sessionId = this.collaboration.currentSession()?.sessionId;
+    const fromUserId = this.auth.currentUser()?.id;
+    if (!handoff || !sessionId || !fromUserId || !this.can('share')) return null;
+
+    const recipient = (toUserId ?? '').trim();
+    const now = Date.now();
+    const packet: AsyncCollaborationPacket = {
+      id: `packet_creator_${now.toString(36)}`,
+      sessionId,
+      fromUserId,
+      toUserId: recipient,
+      packetType: 'review_request',
+      status: 'pending',
+      payload: {
+        kind: 'creator_brief',
+        handoffId: handoff.id,
+        title: handoff.title,
+        genre: handoff.genre,
+        mood: handoff.mood,
+        bpm: handoff.bpm,
+        key: handoff.key,
+        sections: handoff.sections,
+        chords: handoff.chords,
+        hookLines: handoff.hookLines,
+        mixNotes: handoff.mixNotes,
+        brief: handoff.brief,
+        generatedAt: handoff.generatedAt,
+      },
+      createdAt: now,
+      appliedAt: null,
+    };
+
+    this.outboundReceipts.update((map) => ({
+      ...map,
+      [packet.id]: { sentAt: now, handoffId: handoff.id, ackedAt: null },
+    }));
+    this.asyncPackets.update((records) => mergeById(records, [packet]));
+    this.social.sendAsyncCollaborationPacket({
+      sessionId,
+      toUserId: recipient,
+      packetType: packet.packetType,
+      payload: packet.payload,
+    });
+    return packet;
+  }
+
   async requestRemix(toUserId?: string): Promise<boolean> {
     const projectId = this.currentProjectId();
     const sessionId = this.collaboration.currentSession()?.sessionId ?? null;
@@ -535,9 +698,7 @@ export class StudioOrchestrationService {
     this.approvals.update((records) =>
       mergeById(records, sync.approvals ?? [])
     );
-    this.asyncPackets.update((records) =>
-      mergeById(records, sync.asyncPackets ?? [])
-    );
+    this.reconcilePacketAcks(sync.asyncPackets ?? []);
     this.remixLineage.update((records) =>
       mergeById(records, sync.remixLineage ?? [])
     );

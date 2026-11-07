@@ -373,6 +373,101 @@
     </div>
   </section>
 
+  <!-- Session packets: what left AI Produce, visible to sender and recipient. -->
+  <section
+    class="apply-card"
+    *ngIf="orchestration.sessionAsyncPackets().length > 0">
+    <div class="apply-card-head">
+      <h2>SESSION PACKETS · async handoffs</h2>
+      <p>
+        {{ orchestration.sessionAsyncPackets().length }} packet(s) in this
+        collaboration session.
+      </p>
+    </div>
+    <ul class="handoff-stages">
+      <li *ngFor="let packet of orchestration.sessionAsyncPackets()">
+        <span class="meta-label">
+          {{ packet.packetType }} · {{ packetDeliveryLabel(packet) }}
+        </span>
+        <span class="meta-value">
+          {{ packetTitle(packet) }} → {{ packetRecipient(packet) }} ·
+          {{ formatStamp(packet.createdAt) }}
+        </span>
+      </li>
+    </ul>
+    <pre class="handoff-brief" *ngIf="latestPacketBrief() as brief">{{ brief }}</pre>
+  </section>
+
+  <!-- Creator + release handoffs: the run ends in a handoff, not a dead file. -->
+  <section
+    class="handoff-grid"
+    *ngIf="produce.creatorHandoff() || produce.releaseHandoff()">
+    <article class="apply-card" *ngIf="produce.creatorHandoff() as creator">
+      <div class="apply-card-head">
+        <h2>CREATOR HANDOFF · brief for a collaborator</h2>
+        <p>
+          {{ creator.title }} · {{ creator.bpm }} BPM · {{ creator.key }} ·
+          {{ creator.sections.length }} sections
+        </p>
+      </div>
+      <div class="handoff-meta">
+        <span class="meta-label">Chords</span>
+        <span class="meta-value">{{ creator.chords.join(' · ') || 'open' }}</span>
+      </div>
+      <div class="handoff-meta">
+        <span class="meta-label">Hook</span>
+        <span class="meta-value">
+          {{ creator.hookLines.length
+            ? creator.hookLines.length + ' line(s) ready'
+            : 'not drafted yet' }}
+        </span>
+      </div>
+      <pre class="handoff-brief">{{ creator.brief }}</pre>
+      <div class="apply-card-actions">
+        <button
+          type="button"
+          class="btn btn-ghost"
+          [disabled]="!orchestration.canSendCreatorHandoff()"
+          [attr.title]="orchestration.canSendCreatorHandoff()
+            ? 'Send this brief to the live collaboration session as an async packet'
+            : 'Needs a finished run and a live collaboration session with share rights'"
+          (click)="sendCreatorBrief()">
+          <i class="fas fa-paper-plane"></i> Send to session
+        </button>
+        <button type="button" class="btn btn-ghost" (click)="copyCreatorBrief()">
+          <i class="fas fa-copy"></i> Copy brief
+        </button>
+        <button type="button" class="btn btn-ghost" (click)="downloadCreatorBrief()">
+          <i class="fas fa-download"></i> Download .md
+        </button>
+      </div>
+    </article>
+
+    <article class="apply-card" *ngIf="produce.releaseHandoff() as release">
+      <div class="apply-card-head">
+        <h2>RELEASE HANDOFF · delivery state</h2>
+        <p>
+          {{ release.releaseName || 'No release row yet' }}
+          <ng-container *ngIf="release.releaseId">· {{ release.releaseId }}</ng-container>
+        </p>
+      </div>
+      <ul class="handoff-stages">
+        <li *ngFor="let stage of release.stages">
+          <span class="meta-label">{{ stage.name }}</span>
+          <span class="meta-value">{{ stage.status }}</span>
+        </li>
+      </ul>
+      <p class="handoff-next">
+        <span class="meta-label">Next</span> {{ release.nextStep }}
+      </p>
+      <div class="apply-card-actions">
+        <button type="button" class="btn btn-ghost" (click)="goToRelease()">
+          Open release pipeline
+        </button>
+      </div>
+    </article>
+  </section>
+
   <section class="latency-card" *ngIf="engineSnapshot() as snap">
     <div class="latency-card-head">
       <h3>ENGINE METRICS · Sprint C1</h3>

@@ -17,6 +17,12 @@ import {
   StudioActionResult,
   StudioActionTarget,
 } from '../types/studio-orchestration.types';
+import {
+  CreatorHandoff,
+  ReleaseHandoff,
+  buildCreatorHandoff,
+  buildReleaseHandoff,
+} from './ai-produce-handoff.util';
 
 export type ProduceStage =
   | 'idle'
@@ -146,6 +152,61 @@ export class AiProduceService {
   hasArtifacts = computed(
     () => !!this.currentIdea() && !!this.currentBeat() && !!this.currentLyrics()
   );
+
+  /**
+   * Creator handoff — the run's artifacts as a brief a collaborator can work
+   * from without the session: tempo, key, sections, chords, the chorus hook
+   * and the mastering notes. Built from the live artifacts, so editing a stage
+   * updates the brief instead of leaving a stale copy behind.
+   */
+  creatorHandoff = computed<CreatorHandoff | null>(() => {
+    const idea = this.currentIdea();
+    const beat = this.currentBeat();
+    if (!idea || !beat) return null;
+    const chorus = this.currentLyrics()?.lyrics?.find(
+      (section) => section.type === 'chorus'
+    );
+    return buildCreatorHandoff({
+      title: idea.title,
+      genre: beat.genre || idea.genre,
+      mood: idea.mood,
+      bpm: idea.bpm,
+      key: idea.key,
+      sections: (beat.arrangement ?? []).map((section) => ({
+        name: section.name,
+        bars: section.bars,
+        energy: section.energy,
+        elements: section.elements ?? [],
+      })),
+      chords: (beat.chords ?? []).map((chord) => chord.chord),
+      hookLines: (chorus?.lines ?? []).map((line) => line.text),
+      mixNotes: this.currentMixReport().slice(0, 8),
+    });
+  });
+
+  /**
+   * Release handoff — the delivery state of the run's release row: which
+   * stages are complete, what is still pending and the one next step. Reads
+   * the pipeline's live release so a stage marked done there shows up here.
+   */
+  releaseHandoff = computed<ReleaseHandoff | null>(() => {
+    const idea = this.currentIdea();
+    if (!idea) return null;
+    const release = this.releases.activeRelease();
+    const track = release?.tracks?.find(
+      (candidate) =>
+        (candidate.title || '').trim().toLowerCase() ===
+        idea.title.trim().toLowerCase()
+    );
+    return buildReleaseHandoff({
+      title: idea.title,
+      bpm: idea.bpm,
+      key: idea.key,
+      releaseId: release?.id ?? this.appliedReleaseId(),
+      releaseName: release?.name ?? null,
+      stages: (track?.stages ?? {}) as Record<string, string>,
+    });
+  });
 
   private cancelled = false;
 

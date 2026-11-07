@@ -1386,3 +1386,50 @@
     margin-top: 8px;
   }
 }
+
+/* ── Creator + release handoffs ─────────────────────────────────────── */
+.handoff-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+}
+
+.handoff-meta {
+  display: flex;
+  gap: 0.5rem;
+  align-items: baseline;
+  padding: 0.15rem 0;
+}
+
+.handoff-brief {
+  max-height: 12rem;
+  overflow: auto;
+  white-space: pre-wrap;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  margin: 0.5rem 0;
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.25);
+}
+
+.handoff-stages {
+  list-style: none;
+  margin: 0 0 0.5rem;
+  padding: 0;
+  display: grid;
+  gap: 0.25rem;
+}
+
+.handoff-stages li {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  font-size: 0.8rem;
+}
+
+.handoff-next {
+  font-size: 0.8rem;
+  margin: 0 0 0.5rem;
+}

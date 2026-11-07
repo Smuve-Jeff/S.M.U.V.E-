@@ -23,6 +23,8 @@ import { NotificationService } from '../../services/notification.service';
 import { MusicManagerService } from '../../services/music-manager.service';
 import { formatMemoryBytes } from '../../services/memory-estimate.util';
 import { StudioRecordingEngineService } from '../../studio/studio-recording-engine.service';
+import { StudioOrchestrationService } from '../../services/studio-orchestration.service';
+import { AsyncCollaborationPacket } from '../../types/studio-orchestration.types';
 
 interface GenreOption {
   value: string;
@@ -49,6 +51,7 @@ export class AiProduceComponent implements OnDestroy {
   public engine = inject(AudioEngineService);
   public latency = inject(AudioEngineLatencyService);
   public recorder = inject(StudioRecordingEngineService);
+  public orchestration = inject(StudioOrchestrationService);
   private router = inject(Router);
   /** Whether the voice-preview stage card has visible artifacts. */
   hasVoicePreview = computed(() => !!this.produce.currentVoicePreview());
@@ -246,6 +249,110 @@ export class AiProduceComponent implements OnDestroy {
     // release (if any) and always renders the full pipeline otherwise, so
     // there is exactly one destination.
     this.router.navigate(['/release-pipeline']);
+  }
+
+  /**
+   * Hand the run to a collaborator: the brief is plain text, so a creator can
+   * work from it in a message thread without opening the session.
+   */
+  async copyCreatorBrief(): Promise<void> {
+    const handoff = this.produce.creatorHandoff();
+    if (!handoff) return;
+    const clipboard = navigator.clipboard;
+    if (!clipboard?.writeText) {
+      this.notify.show(
+        'Clipboard is blocked here — select the brief and copy it manually.',
+        'warning'
+      );
+      return;
+    }
+    try {
+      await clipboard.writeText(handoff.brief);
+      this.notify.show(
+        'Creator brief copied — paste it to your collaborator.',
+        'success'
+      );
+    } catch (e: any) {
+      this.notify.show(
+        'Clipboard was refused: ' + (e?.message ?? 'unknown'),
+        'warning'
+      );
+    }
+  }
+
+  /**
+   * Send the brief into a live collaboration session as an async packet, so a
+   * collaborator who is not online still receives the work.
+   */
+  sendCreatorBrief(): void {
+    const packet = this.orchestration.sendCreatorHandoff();
+    this.notify.show(
+      packet
+        ? 'Creator brief sent to the session as an async packet.'
+        : 'No live session with share rights — the brief was not sent.',
+      packet ? 'success' : 'warning'
+    );
+  }
+
+  /** Row title for a session packet: creator briefs carry the track title. */
+  packetTitle(packet: AsyncCollaborationPacket): string {
+    const payload = (packet.payload ?? {}) as Record<string, unknown>;
+    const title = payload['title'];
+    if (typeof title === 'string' && title.trim()) return title;
+    return packet.packetType.replace(/_/g, ' ');
+  }
+
+  /**
+   * A row never claims delivery before the server echoed the packet; queued
+   * means it left this tab but is not confirmed yet.
+   */
+  packetDeliveryLabel(packet: AsyncCollaborationPacket): string {
+    return this.orchestration.packetDelivery(packet) === 'delivered'
+      ? 'delivered'
+      : 'queued · awaiting session ack';
+  }
+
+  /** Empty string means the session — a brief addressed to everyone. */
+  packetRecipient(packet: AsyncCollaborationPacket): string {
+    return packet.toUserId || 'session';
+  }
+
+  /** The newest brief in the session list, so both sides can read it inline. */
+  latestPacketBrief(): string {
+    const packet = this.orchestration
+      .sessionAsyncPackets()
+      .find((entry) => !!this.packetBrief(entry));
+    return packet ? this.packetBrief(packet) : '';
+  }
+
+  private packetBrief(packet: AsyncCollaborationPacket): string {
+    const payload = (packet.payload ?? {}) as Record<string, unknown>;
+    const brief = payload['brief'];
+    return typeof brief === 'string' ? brief : '';
+  }
+
+  /**
+   * Same brief as a file, so an async collaborator keeps it after the tab
+   * closes and the handoff is not trapped in this app.
+   */
+  downloadCreatorBrief(): void {
+    const handoff = this.produce.creatorHandoff();
+    if (!handoff) return;
+    try {
+      const blob = new Blob([handoff.brief], { type: 'text/markdown' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${handoff.id}.md`;
+      link.click();
+      URL.revokeObjectURL(url);
+      this.notify.show('Creator brief downloaded.', 'success');
+    } catch (e: any) {
+      this.notify.show(
+        'Brief could not be downloaded: ' + (e?.message ?? 'unknown'),
+        'warning'
+      );
+    }
   }
 
   /** Listen for the synthesized voice preview playback on the live
