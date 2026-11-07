@@ -76,6 +76,26 @@ describe("PianoRollComponent", () => {
         );
       },
     ),
+    updateNotes: jest.fn(
+      (
+        trackId: string,
+        updates: Array<{ id: string; patch: Record<string, unknown> }>,
+      ) => {
+        const byId = new Map(updates.map((u) => [u.id, u.patch]));
+        mockTracks.update((list) =>
+          list.map((t) =>
+            t.id === trackId
+              ? {
+                  ...t,
+                  notes: (t.notes ?? []).map((n) =>
+                    byId.has(n.id) ? { ...n, ...byId.get(n.id) } : n,
+                  ),
+                }
+              : t,
+          ),
+        );
+      },
+    ),
     addNoteToTrack: jest.fn(),
     removeNotes: jest.fn(),
     quantizeTrack: jest.fn(),
@@ -1062,10 +1082,16 @@ describe("PianoRollComponent", () => {
       pointerType: "touch",
     } as unknown as PointerEvent);
 
-    expect(mockMusicManager.updateNote).toHaveBeenCalledWith(
+    expect(mockMusicManager.updateNotes).toHaveBeenCalledWith(
       expect.any(String),
-      "v-near",
-      expect.objectContaining({ velocity: expect.any(Number) }),
+      [
+        {
+          id: "v-near",
+          patch: expect.objectContaining({ velocity: expect.any(Number) }),
+        },
+      ],
+      "Set Velocity",
+      expect.any(String),
     );
   });
 
@@ -1089,7 +1115,11 @@ describe("PianoRollComponent", () => {
       currentTarget: lane,
     } as any);
 
-    const velocity = mockMusicManager.updateNote.mock.calls[0][2].velocity;
+    const velocity = (
+      mockMusicManager.updateNotes.mock.calls[0][1] as Array<{
+        patch: { velocity: number };
+      }>
+    )[0].patch.velocity;
     expect(velocity).toBeGreaterThan(0.45);
     expect(velocity).toBeLessThan(0.55);
   });

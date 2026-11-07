@@ -2021,6 +2021,56 @@ export class MusicManagerService {
     );
   }
 
+  /**
+   * Apply one patch to many notes as a single undoable step.
+   *
+   * The piano roll's inspector writes the same value to every selected note;
+   * routing that through `updateNote` per note made one slider move a stack of
+   * history entries (and one undo put back a single note). `mergeKey` folds a
+   * whole drag into one command, the way the fader and pan gestures do.
+   */
+  updateNotes(
+    trackId: string,
+    updates: { id: string; patch: Partial<TrackNote> }[],
+    name = 'Edit Notes',
+    mergeKey?: string
+  ) {
+    const t = this.tracks().find((x) => x.id === trackId);
+    if (!t || updates.length === 0) return;
+    const byId = new Map(updates.map((u) => [u.id, u.patch]));
+    const targets = t.notes.filter((n) => byId.has(n.id));
+    if (targets.length === 0) return;
+    const before = targets.map((n) => this.clone(n));
+    const apply = () => {
+      this.tracks.update((ts) =>
+        ts.map((x) =>
+          x.id === trackId
+            ? {
+                ...x,
+                notes: x.notes.map((n) => {
+                  const patch = byId.get(n.id);
+                  return patch ? { ...n, ...patch } : n;
+                }),
+              }
+            : x
+        )
+      );
+    };
+    const undo = () => {
+      const priorById = new Map(before.map((n) => [n.id, n]));
+      this.tracks.update((ts) =>
+        ts.map((x) =>
+          x.id === trackId
+            ? { ...x, notes: x.notes.map((n) => priorById.get(n.id) ?? n) }
+            : x
+        )
+      );
+    };
+    const label = `${name} · ${t.name}`;
+    if (mergeKey) this.runMerge(mergeKey, label, apply, undo);
+    else this.runCommand(label, apply, undo);
+  }
+
   duplicateNotes(trackId: string, ids: string[], offset: number): string[] {
     const t = this.tracks().find((x) => x.id === trackId);
     if (!t) return [];

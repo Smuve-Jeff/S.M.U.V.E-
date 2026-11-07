@@ -173,6 +173,19 @@ export class TempoMapService {
     this.syncToEngine();
   }
 
+  /** A copy of the map for the undo stack. */
+  snapshot(): TempoMarker[] {
+    return this.markers().map((marker) => ({ ...marker }));
+  }
+
+  /** Put a snapshot back and re-sync the transport exactly once. */
+  restore(markers: readonly TempoMarker[]): void {
+    this.markers.set(
+      this.sorted((markers ?? []).map((marker) => ({ ...marker }))),
+    );
+    this.syncToEngine();
+  }
+
   private clampBpm(value: number): number | null {
     if (!Number.isFinite(value)) return null;
     const bpm = Math.round(value * 10) / 10;

@@ -13,6 +13,7 @@ import { signal } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { HistoryService } from "../../services/history.service";
+import { ArrangementMarkersService } from "../arrangement-markers.service";
 import { EnhancedTouchGestureService } from "../../services/enhanced-touch-gesture.service";
 import { HapticService } from "../../services/haptic.service";
 import { AiService } from "../../services/ai.service";
@@ -40,14 +41,23 @@ describe("ArrangementViewComponent", () => {
   ]);
   const mockMeterMap = {
     markers: meterMarkers,
-    addMarker: jest.fn((step: number, beats: number, unit: number) => ({
-      id: "meter-new",
-      step,
-      beats,
-      unit,
-    })),
-    updateMarker: jest.fn(),
-    removeMarker: jest.fn(),
+    snapshot: jest.fn(() => meterMarkers().map((marker) => ({ ...marker }))),
+    restore: jest.fn((list: any[]) => meterMarkers.set([...list])),
+    addMarker: jest.fn((step: number, beats: number, unit: number) => {
+      const marker = { id: "meter-new", step, beats, unit };
+      meterMarkers.update((list) => [...list, marker]);
+      return marker;
+    }),
+    updateMarker: jest.fn((id: string, patch: Record<string, unknown>) => {
+      meterMarkers.update((list) =>
+        list.map((marker) =>
+          marker.id === id ? ({ ...marker, ...patch } as any) : marker,
+        ),
+      );
+    }),
+    removeMarker: jest.fn((id: string) =>
+      meterMarkers.update((list) => list.filter((marker) => marker.id !== id)),
+    ),
     meterAtStep: jest.fn((step: number) => {
       const matches = meterMarkers().filter((marker) => marker.step <= step);
       return matches[matches.length - 1] ?? null;
@@ -56,13 +66,23 @@ describe("ArrangementViewComponent", () => {
 
   const mockTempoMap = {
     markers: tempoMarkers,
-    addMarker: jest.fn((step: number, bpm: number) => ({
-      id: "tempo-new",
-      step,
-      bpm,
-    })),
-    updateMarker: jest.fn(),
-    removeMarker: jest.fn(),
+    snapshot: jest.fn(() => tempoMarkers().map((marker) => ({ ...marker }))),
+    restore: jest.fn((list: any[]) => tempoMarkers.set([...list])),
+    addMarker: jest.fn((step: number, bpm: number) => {
+      const marker = { id: "tempo-new", step, bpm };
+      tempoMarkers.update((list) => [...list, marker]);
+      return marker;
+    }),
+    updateMarker: jest.fn((id: string, patch: Record<string, unknown>) => {
+      tempoMarkers.update((list) =>
+        list.map((marker) =>
+          marker.id === id ? ({ ...marker, ...patch } as any) : marker,
+        ),
+      );
+    }),
+    removeMarker: jest.fn((id: string) =>
+      tempoMarkers.update((list) => list.filter((marker) => marker.id !== id)),
+    ),
     toggleCurve: jest.fn(),
     bpmAtStep: jest.fn(() => 118),
     barOf: jest.fn((marker: { step: number }) =>
@@ -105,6 +125,8 @@ describe("ArrangementViewComponent", () => {
   };
 
   const mockHistory = {
+    execute: jest.fn((command: { execute: () => void }) => command.execute()),
+    coalesce: jest.fn((command: { execute: () => void }) => command.execute()),
     undo: jest.fn(),
     redo: jest.fn(),
     canUndo: signal(false),
@@ -145,6 +167,8 @@ describe("ArrangementViewComponent", () => {
 
   beforeEach(async () => {
     jest.clearAllMocks();
+    tempoMarkers.set([{ id: "tempo-1", step: 16, bpm: 90 }]);
+    meterMarkers.set([{ id: "meter-1", step: 0, beats: 4, unit: 4 }]);
     mockMusicManager.tracks.set([
       { id: "1", name: "Lead", clips: [], mute: false, solo: false },
     ]);
@@ -811,6 +835,83 @@ describe("ArrangementViewComponent", () => {
     expect(mockSnackbar.show).toHaveBeenCalledWith(
       expect.stringContaining("Deleted 2 clips"),
     );
+  });
+
+  it("records a tempo change as one undoable step that restores the map", () => {
+    const commands: Array<{ name: string; undo: () => void }> = [];
+    (mockHistory.execute as jest.Mock).mockImplementation((command: any) => {
+      commands.push(command);
+      command.execute();
+    });
+    mockMusicManager.currentStep.set(32);
+
+    component.addTempoHere();
+
+    expect(commands).toHaveLength(1);
+    expect(commands[0].name).toContain("Tempo");
+    expect(mockTempoMap.markers().some((marker) => marker.step === 32)).toBe(true);
+
+    commands[0].undo();
+    expect(mockTempoMap.markers()).toEqual([
+      { id: "tempo-1", step: 16, bpm: 90 },
+    ]);
+  });
+
+  it("folds a marker drag into one undo step instead of one per move", () => {
+    const track = { getBoundingClientRect: () => ({ left: 0, width: 1024 }) };
+    const handle = { closest: () => track, setPointerCapture: jest.fn() };
+    component.startTempoDrag(
+      {
+        button: 0,
+        pointerId: 11,
+        clientX: 100,
+        currentTarget: handle,
+        preventDefault: jest.fn(),
+        stopPropagation: jest.fn(),
+      } as any,
+      { id: "tempo-1", step: 16, bpm: 90 },
+    );
+    component.onTempoDragMove({
+      pointerId: 11,
+      clientX: 164,
+      preventDefault: jest.fn(),
+    } as any);
+    component.onTempoDragMove({
+      pointerId: 11,
+      clientX: 228,
+      preventDefault: jest.fn(),
+    } as any);
+
+    // Every move retimes the map; only the coalesced key reaches history.
+    expect(mockHistory.execute).not.toHaveBeenCalled();
+    const keys = (mockHistory.coalesce as jest.Mock).mock.calls.map(
+      ([command]) => command.mergeKey,
+    );
+    expect(keys.length).toBeGreaterThan(0);
+    expect(new Set(keys)).toEqual(new Set(["tempo-move:tempo-1"]));
+  });
+
+  it("records a cue marker and a meter change as one step each", () => {
+    const markers = TestBed.inject(ArrangementMarkersService);
+    markers.replaceAll([]);
+    const commands: Array<{ name: string; undo: () => void }> = [];
+    (mockHistory.execute as jest.Mock).mockImplementation((command: any) => {
+      commands.push(command);
+      command.execute();
+    });
+
+    component.addMarker("Verse");
+    expect(commands).toHaveLength(1);
+    expect(markers.markerCount()).toBe(1);
+    commands[0].undo();
+    expect(markers.markerCount()).toBe(0);
+
+    component.addMeterHere();
+    expect(commands).toHaveLength(2);
+    commands[1].undo();
+    expect(mockMeterMap.markers()).toEqual([
+      { id: "meter-1", step: 0, beats: 4, unit: 4 },
+    ]);
   });
 
   it("pins the tempo map at the playhead bar", () => {

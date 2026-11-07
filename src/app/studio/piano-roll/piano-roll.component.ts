@@ -1645,7 +1645,13 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
       }
     }
     if (note) {
-      this.musicManager.updateNote(track.id, note.id, { velocity });
+      // One merge key per note, so dragging a bar across the lane is one step.
+      this.musicManager.updateNotes(
+        track.id,
+        [{ id: note.id, patch: { velocity } }],
+        "Set Velocity",
+        `velocity:${track.id}:${note.id}`,
+      );
       this.haptic.velocity(velocity);
       this.markDirty();
     }
@@ -2170,14 +2176,19 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
     if (event.shiftKey && this.selectionCount() > 0) {
       const track = this.selectedTrack();
       if (!track) return;
-      Array.from(this.selectedNoteIds()).forEach((id) => {
-        const note = track.notes.find((candidate) => candidate.id === id);
-        if (!note) return;
-        this.musicManager.updateNote(track.id, id, {
-          step: Math.max(0, note.step + move.step),
-          midi: Math.max(0, Math.min(127, note.midi + move.midi)),
-        });
-      });
+      const moves = Array.from(this.selectedNoteIds())
+        .map((id) => track.notes.find((candidate) => candidate.id === id))
+        .filter((note): note is NonNullable<typeof note> => !!note)
+        .map((note) => ({
+          id: note.id,
+          patch: {
+            step: Math.max(0, note.step + move.step),
+            midi: Math.max(0, Math.min(127, note.midi + move.midi)),
+          },
+        }));
+      if (moves.length > 0) {
+        this.musicManager.updateNotes(track.id, moves, "Nudge Notes");
+      }
       this.markDirty();
       return;
     }
@@ -2401,12 +2412,34 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
     this.markDirty();
   }
 
-  setSelectedVelocity(value: number) {
+  /**
+   * Apply one patch to the whole selection as a single undo step.
+   *
+   * Every setter used to call `updateNote` per note, so moving a velocity
+   * slider with eight notes selected wrote eight history entries. `mergeKey`
+   * folds a continuous drag into one step; a different control or selection
+   * starts a new one.
+   */
+  private applyToSelection(
+    patch: Parameters<MusicManagerService["updateNote"]>[2],
+    name: string,
+    mergeKey?: string,
+  ): void {
     const track = this.selectedTrack();
-    if (!track) return;
-    Array.from(this.selectedNoteIds()).forEach((id) =>
-      this.musicManager.updateNote(track.id, id, { velocity: value }),
+    const ids = Array.from(this.selectedNoteIds());
+    if (!track || ids.length === 0) return;
+    this.musicManager.updateNotes(
+      track.id,
+      ids.map((id) => ({ id, patch })),
+      name,
+      mergeKey
+        ? `${mergeKey}:${track.id}:${[...ids].sort().join(",")}`
+        : undefined,
     );
+  }
+
+  setSelectedVelocity(value: number) {
+    this.applyToSelection({ velocity: value }, "Set Velocity", "velocity");
     this.markDirty();
   }
   /** Curve used by the selection velocity ramp; linear preserves the old ramp. */
@@ -2443,11 +2476,7 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   setSelectedProbability(value: number) {
-    const track = this.selectedTrack();
-    if (!track) return;
-    Array.from(this.selectedNoteIds()).forEach((id) =>
-      this.musicManager.updateNote(track.id, id, { probability: value }),
-    );
+    this.applyToSelection({ probability: value }, "Set Probability", "probability");
   }
   setSelectedMicroOffset(value: number) {
     const track = this.selectedTrack();
@@ -2455,55 +2484,39 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
     // One tick at 960 PPQ = 1/240 of a 16th step. Snapping here means the
     // value the inspector shows is exactly what the scheduler plays.
     const microOffset = quantizeMicroOffset(value);
-    Array.from(this.selectedNoteIds()).forEach((id) =>
-      this.musicManager.updateNote(track.id, id, { microOffset }),
-    );
+    this.applyToSelection({ microOffset }, "Set Micro Offset", "micro-offset");
   }
   setSelectedAftertouch(value: number) {
-    const track = this.selectedTrack();
-    if (!track) return;
-    Array.from(this.selectedNoteIds()).forEach((id) =>
-      this.musicManager.updateNote(track.id, id, {
-        aftertouch: Math.max(0, Math.min(1, value)),
-      }),
+    this.applyToSelection(
+      { aftertouch: Math.max(0, Math.min(1, value)) },
+      "Set Aftertouch",
+      "aftertouch",
     );
   }
   setSelectedTimbre(value: number) {
-    const track = this.selectedTrack();
-    if (!track) return;
-    Array.from(this.selectedNoteIds()).forEach((id) =>
-      this.musicManager.updateNote(track.id, id, {
-        timbre: Math.max(0, Math.min(1, value)),
-      }),
+    this.applyToSelection(
+      { timbre: Math.max(0, Math.min(1, value)) },
+      "Set Timbre",
+      "timbre",
     );
   }
   setSelectedPitchBend(value: number) {
-    const track = this.selectedTrack();
-    if (!track) return;
-    Array.from(this.selectedNoteIds()).forEach((id) =>
-      this.musicManager.updateNote(track.id, id, {
-        pitchBend: Number(value.toFixed(2)),
-      }),
+    this.applyToSelection(
+      { pitchBend: Number(value.toFixed(2)) },
+      "Set Pitch Bend",
+      "pitch-bend",
     );
   }
   setSelectedArticulation(value: string) {
-    const track = this.selectedTrack();
-    if (!track) return;
-    Array.from(this.selectedNoteIds()).forEach((id) =>
-      this.musicManager.updateNote(track.id, id, {
-        articulation: value as any,
-      }),
+    this.applyToSelection(
+      { articulation: value as any },
+      "Set Articulation",
+      "articulation",
     );
     this.haptic.light();
   }
   setSelectedLength(value: number) {
-    const track = this.selectedTrack();
-    if (!track) return;
-    Array.from(this.selectedNoteIds()).forEach((id) =>
-      this.musicManager.updateNote(track.id, id, {
-        length: Math.max(0.125, value),
-      }),
-    );
+    this.applyToSelection({ length: Math.max(0.125, value) }, "Set Length", "length");
   }
   togglePrecisionPanel() {
     this.showPrecisionPanel.update((v) => !v);

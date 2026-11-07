@@ -926,13 +926,52 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
 
   // ── Existing methods (unchanged behavior) ────────────────
 
+  /**
+   * Record one marker, tempo or meter edit as a single undoable step.
+   *
+   * These maps sit outside MusicManager, so before this a tempo or meter change
+   * vanished from history while a clip drag stayed undoable. A pointer drag
+   * passes the same `mergeKey` on every move, so the whole gesture collapses to
+   * one step whose undo rewinds to the pre-drag state.
+   */
+  private commitArrangementEdit<T>(
+    name: string,
+    before: T,
+    after: T,
+    restore: (state: T) => void,
+    mergeKey?: string,
+  ): void {
+    const command = {
+      name,
+      execute: () => restore(after),
+      undo: () => restore(before),
+      ...(mergeKey ? { mergeKey } : {}),
+    };
+    if (mergeKey) this.history.coalesce(command);
+    else this.history.execute(command);
+  }
+
   addMarker(name: string) {
     const time = this.musicManager.currentStep() / 16;
+    const before = this.markerService.snapshot();
     this.markerService.add(name, time);
+    this.commitArrangementEdit(
+      `Add Marker · ${name}`,
+      before,
+      this.markerService.snapshot(),
+      (state) => this.markerService.restore(state),
+    );
   }
 
   removeMarker(id: string) {
+    const before = this.markerService.snapshot();
     this.markerService.remove(id);
+    this.commitArrangementEdit(
+      "Remove Marker",
+      before,
+      this.markerService.snapshot(),
+      (state) => this.markerService.restore(state),
+    );
   }
 
   toggleAutomationView() {
@@ -1563,11 +1602,19 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
   }
 
   private addTempoMarkerAt(step: number, bpm: number): void {
+    const before = this.tempoMap.snapshot();
     const marker = this.tempoMap.addMarker(step, bpm);
     if (!marker) {
+      // The map rejected the BPM, so nothing changed and nothing is recorded.
       this.snackbar.info("Tempo must be between 20 and 300 BPM");
       return;
     }
+    this.commitArrangementEdit(
+      `Add Tempo Change · ${marker.bpm} BPM`,
+      before,
+      this.tempoMap.snapshot(),
+      (state) => this.tempoMap.restore(state),
+    );
     this.haptic.light();
     this.snackbar.show(
       `⏱ Tempo ${marker.bpm} BPM pinned at bar ${this.tempoMap.barOf(marker)}`,
@@ -1685,7 +1732,17 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
       if (!quiet) this.snackbar.info("A tempo change already exists at that bar");
       return false;
     }
+    const before = this.tempoMap.snapshot();
     this.tempoMap.updateMarker(id, { step });
+    // A drag retimes on every pointer move; one merge key per marker keeps the
+    // gesture to a single step, while arrow-key moves stay separate steps.
+    this.commitArrangementEdit(
+      `Move Tempo Change · ${marker.bpm} BPM`,
+      before,
+      this.tempoMap.snapshot(),
+      (state) => this.tempoMap.restore(state),
+      quiet ? `tempo-move:${id}` : undefined,
+    );
     return true;
   }
 
@@ -1715,14 +1772,28 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
 
   removeTempoMarker(id: string, event: Event): void {
     event.stopPropagation();
+    const before = this.tempoMap.snapshot();
     this.tempoMap.removeMarker(id);
+    this.commitArrangementEdit(
+      "Remove Tempo Change",
+      before,
+      this.tempoMap.snapshot(),
+      (state) => this.tempoMap.restore(state),
+    );
     this.haptic.light();
   }
 
   /** Toggle a marker between a hard tempo change and a continuous glide. */
   toggleTempoCurve(marker: { id: string; curve?: 'step' | 'ramp' }, event: Event): void {
     event.stopPropagation();
+    const before = this.tempoMap.snapshot();
     this.tempoMap.toggleCurve(marker.id);
+    this.commitArrangementEdit(
+      marker.curve === 'ramp' ? "Set Tempo Step" : "Set Tempo Ramp",
+      before,
+      this.tempoMap.snapshot(),
+      (state) => this.tempoMap.restore(state),
+    );
     this.haptic.light();
     this.snackbar.info(
       marker.curve === 'ramp'
@@ -1820,11 +1891,18 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
   }
 
   private addMeterMarkerAt(step: number, beats: number, unit: number): void {
+    const before = this.meterMap.snapshot();
     const marker = this.meterMap.addMarker(step, beats, unit);
     if (!marker) {
       this.snackbar.info("Choose a valid time signature");
       return;
     }
+    this.commitArrangementEdit(
+      `Add Meter Change · ${marker.beats}/${marker.unit}`,
+      before,
+      this.meterMap.snapshot(),
+      (state) => this.meterMap.restore(state),
+    );
     this.haptic.light();
     this.snackbar.show(
       `🎵 Meter ${marker.beats}/${marker.unit} pinned at bar ${this.meterBarOf(marker)}`,
@@ -1967,7 +2045,16 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
       if (!quiet) this.snackbar.info("A meter change already exists at that bar");
       return false;
     }
+    const before = this.meterMap.snapshot();
     this.meterMap.updateMarker(id, { step });
+    // Dragging retimes on every move; the merge key folds it into one step.
+    this.commitArrangementEdit(
+      `Move Meter Change · ${marker.beats}/${marker.unit}`,
+      before,
+      this.meterMap.snapshot(),
+      (state) => this.meterMap.restore(state),
+      quiet ? `meter-move:${id}` : undefined,
+    );
     return true;
   }
 
@@ -1979,7 +2066,14 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
       select.value = this.meterMarkerLabel(marker);
       return;
     }
+    const before = this.meterMap.snapshot();
     this.meterMap.updateMarker(marker.id, { beats, unit });
+    this.commitArrangementEdit(
+      `Set Meter · ${beats}/${unit}`,
+      before,
+      this.meterMap.snapshot(),
+      (state) => this.meterMap.restore(state),
+    );
     this.haptic.light();
     this.snackbar.info(
       `Meter ${beats}/${unit} at bar ${this.meterBarOf(marker)}`,
@@ -1988,7 +2082,14 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
 
   removeMeterMarker(id: string, event: Event): void {
     event.stopPropagation();
+    const before = this.meterMap.snapshot();
     this.meterMap.removeMarker(id);
+    this.commitArrangementEdit(
+      "Remove Meter Change",
+      before,
+      this.meterMap.snapshot(),
+      (state) => this.meterMap.restore(state),
+    );
     this.haptic.light();
   }
 

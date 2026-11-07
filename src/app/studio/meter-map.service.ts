@@ -149,6 +149,19 @@ export class MeterMapService {
     this.syncToEngine();
   }
 
+  /** A copy of the map for the undo stack. */
+  snapshot(): MeterMarker[] {
+    return this.markers().map((marker) => ({ ...marker }));
+  }
+
+  /** Put a snapshot back and re-sync the transport exactly once. */
+  restore(markers: readonly MeterMarker[]): void {
+    this.markers.set(
+      this.sorted((markers ?? []).map((marker) => ({ ...marker }))),
+    );
+    this.syncToEngine();
+  }
+
   private ensureBaseMarker(): void {
     const list = this.markers();
     if (list.length === 0 || list[0].step === 0) return;

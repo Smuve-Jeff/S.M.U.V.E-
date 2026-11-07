@@ -46,6 +46,21 @@ export class ArrangementMarkersService {
     this.persist();
   }
 
+  /** A copy of the marker list for the undo stack. */
+  snapshot(): ArrangementMarker[] {
+    return this.markers().map((marker) => ({ ...marker }));
+  }
+
+  /** Put a snapshot back, sorted the same way a normal edit leaves it. */
+  restore(markers: readonly ArrangementMarker[]): void {
+    this.markers.set(
+      (markers ?? [])
+        .map((marker) => ({ ...marker }))
+        .sort((a, b) => a.time - b.time),
+    );
+    this.persist();
+  }
+
   clear(): void {
     this.markers.set([]);
     this.persist();

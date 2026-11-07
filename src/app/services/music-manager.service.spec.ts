@@ -3012,4 +3012,57 @@ describe('MusicManagerService per-scene follow rules', () => {
     expect(service.mirrorNotes('track-1', ['a'])).toBe(false);
   });
 
+  describe('bulk note edits', () => {
+    const seed = () => {
+      service.tracks.update((ts) =>
+        ts.map((track) => ({
+          ...track,
+          notes: [
+            { id: 'n1', midi: 60, step: 0, length: 1, velocity: 0.8 },
+            { id: 'n2', midi: 62, step: 1, length: 1, velocity: 0.8 },
+            { id: 'n3', midi: 64, step: 2, length: 1, velocity: 0.8 },
+            { id: 'n4', midi: 67, step: 3, length: 1, velocity: 0.8 },
+          ],
+        })) as any,
+      );
+    };
+    const steps = () => service.tracks()[0].notes.map((n) => n.step);
+    const velocities = () => service.tracks()[0].notes.map((n) => n.velocity);
+
+    it('records humanize and strum as one undo step for the whole selection', () => {
+      seed();
+      const random = jest.spyOn(Math, 'random').mockReturnValue(0.9);
+      try {
+        service.humanizeTrack('track-1');
+      } finally {
+        random.mockRestore();
+      }
+      TestBed.inject(HistoryService).undo();
+      expect(steps()).toEqual([0, 1, 2, 3]);
+
+      service.strumTrack('track-1', ['n1', 'n2', 'n3', 'n4']);
+      TestBed.inject(HistoryService).undo();
+      expect(steps()).toEqual([0, 1, 2, 3]);
+    });
+
+    it('writes many notes in one step and coalesces a drag', () => {
+      seed();
+      const updates = ['n1', 'n2', 'n3'].map((id) => ({
+        id,
+        patch: { velocity: 0.5 },
+      }));
+      service.updateNotes('track-1', updates, 'Set Velocity', 'velocity:track-1');
+
+      service.updateNotes(
+        'track-1',
+        updates.map((u) => ({ id: u.id, patch: { velocity: 0.6 } })),
+        'Set Velocity',
+        'velocity:track-1',
+      );
+      expect(velocities()).toEqual([0.6, 0.6, 0.6, 0.8]);
+
+      TestBed.inject(HistoryService).undo();
+      expect(velocities()).toEqual([0.8, 0.8, 0.8, 0.8]);
+    });
+  });
 });
