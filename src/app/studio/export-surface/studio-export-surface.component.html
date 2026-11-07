@@ -273,6 +273,9 @@
       <button type="button" class="primary" (click)="confirmExport()">
         Export Anyway
       </button>
+      <button type="button" (click)="shareExport()" [disabled]="busy()">
+        Share
+      </button>
       <button type="button" (click)="openMasteringFromReview()">
         Open Mastering
       </button>

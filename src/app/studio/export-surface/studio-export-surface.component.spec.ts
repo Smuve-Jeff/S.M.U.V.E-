@@ -343,6 +343,24 @@ describe("StudioExportSurfaceComponent", () => {
       expect(share.disabled).toBe(false);
     });
 
+    it("shares from the review action row", async () => {
+      await component.exportMixdown();
+      fixture.detectChanges();
+
+      const actions = fixture.nativeElement.querySelector(
+        ".export-analysis-actions",
+      ) as HTMLElement;
+      const share = Array.from(actions.querySelectorAll("button")).find(
+        (button) => button.textContent?.trim() === "Share",
+      ) as HTMLButtonElement;
+
+      expect(share).toBeTruthy();
+      share.click();
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      expect(exportService.shareBlob).toHaveBeenCalled();
+    });
+
     it("shares the reviewed master without rendering the arrangement again", async () => {
       await component.exportMixdown();
       const renders = exportService.renderProjectOffline.mock.calls.length;
