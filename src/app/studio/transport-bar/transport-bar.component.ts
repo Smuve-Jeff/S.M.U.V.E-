@@ -23,6 +23,7 @@ import { SnackbarService } from "../../services/snackbar.service";
 import { ProjectService } from "../../services/project.service";
 import { HapticService } from "../../services/haptic.service";
 import { HistoryService } from "../../services/history.service";
+import { recordTempoChange } from "../../services/tempo-history";
 import { STEPS_PER_BAR, TempoMapService } from "../tempo-map.service";
 import { MidiClockSyncService } from "../midi-clock-sync.service";
 import {
@@ -705,11 +706,11 @@ export class TransportBarComponent {
     this.audioSession.updateMasterVolume(v);
   }
   nudgeTempo(delta: number): void {
-    this.audioEngine.setTempo(this.audioEngine.tempo() + delta);
+    this.commitTempo(this.audioEngine.tempo() + delta);
   }
   setTempo(bpm: number): void {
     if (!Number.isFinite(bpm)) return;
-    this.audioEngine.setTempo(bpm);
+    this.commitTempo(bpm);
     this.showBpmDropdown.set(false);
   }
   toggleBpmDropdown(): void {
@@ -727,10 +728,33 @@ export class TransportBarComponent {
       input.value = this.tempoLabel();
       return;
     }
-    const committed = this.audioEngine.setTempo(val);
+    const committed = this.commitTempo(val, "tempo:entry");
     input.value = Number.isInteger(committed)
       ? String(committed)
       : committed.toFixed(1);
+  }
+
+  /**
+   * Commit a tempo change as a project edit.
+   *
+   * Typed values, nudges, presets and tap tempo all used to write the engine
+   * directly, so a BPM change was the one edit in a session that Ctrl+Z
+   * silently skipped. Every path now records a command: undo puts the old BPM
+   * back on the transport (and the scheduler reads the same signal), redo
+   * restores the new one. Typed entry coalesces on `tempo:entry` so one typing
+   * burst is one step instead of one step per keystroke.
+   */
+  private commitTempo(bpm: number, mergeKey?: string): number {
+    const before = this.audioEngine.tempo();
+    const committed = this.audioEngine.setTempo(bpm);
+    recordTempoChange(
+      this.history,
+      before,
+      committed,
+      (value) => this.audioEngine.setTempo(value),
+      mergeKey,
+    );
+    return committed;
   }
 
   toggleLoop(): void {
@@ -767,7 +791,7 @@ export class TransportBarComponent {
     });
     const guess = untracked(() => this.tapBpmGuess());
     if (guess !== null) {
-      this.audioEngine.tempo.set(guess);
+      this.commitTempo(guess);
       this.haptic.light();
       this.snack.success(`Tap tempo · ${guess} BPM`);
     } else {

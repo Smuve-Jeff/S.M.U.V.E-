@@ -30,6 +30,7 @@ import { StudioFocusService } from "../shared/studio-focus.service";
 import { DjMidiService } from "../../services/dj-midi.service";
 import { HardwareService } from "../../services/hardware.service";
 import { HistoryService } from "../../services/history.service";
+import { recordTempoChange } from "../../services/tempo-history";
 import { AutomationService } from "../automation.service";
 import { MidiImportService } from "../midi-import.service";
 import { SnackbarService } from "../../services/snackbar.service";
@@ -2071,12 +2072,30 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
 
   nudgeTempo(delta: number): void {
     const next = Math.max(20, Math.min(300, this.audioEngine.tempo() + delta));
-    this.audioEngine.tempo.set(next);
+    this.commitTempo(next);
   }
 
   setTempo(bpm: number): void {
-    this.audioEngine.tempo.set(bpm);
+    this.commitTempo(bpm);
     this.showTempoMenu.set(false);
+  }
+
+  /**
+   * Tempo lives on the shared engine signal, not in a track, so it needs an
+   * explicit history command: undo puts the previous BPM back on the transport
+   * and redo restores the new one. No merge key — each nudge, preset or tap is
+   * a discrete edit here rather than a keystroke stream.
+   */
+  private commitTempo(next: number): void {
+    const before = this.audioEngine.tempo();
+    if (!Number.isFinite(next) || next === before) return;
+    this.audioEngine.tempo.set(next);
+    recordTempoChange(
+      this.history,
+      before,
+      next,
+      (value) => this.audioEngine.tempo.set(value),
+    );
   }
 
   tapTempo(): void {
@@ -2088,7 +2107,7 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
     });
     const guess = this.tapBpmGuess();
     if (guess !== null) {
-      this.audioEngine.tempo.set(guess);
+      this.commitTempo(guess);
       this.haptic.light();
     } else {
       this.haptic.medium();

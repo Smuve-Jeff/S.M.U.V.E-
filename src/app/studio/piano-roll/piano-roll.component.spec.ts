@@ -278,6 +278,25 @@ describe("PianoRollComponent", () => {
     mockMidiImport.importFileToTrack.mockClear();
   });
 
+  it("records a tempo preset or nudge as one undoable step", () => {
+    mockAudioEngine.tempo.set(120);
+    try {
+      component.setTempo(140);
+
+      expect(mockAudioEngine.tempo()).toBe(140);
+      const command = mockHistory.execute.mock.calls[0][0];
+      expect(command.name).toBe("Set tempo · 140 BPM");
+
+      command.undo();
+      expect(mockAudioEngine.tempo()).toBe(120);
+      command.execute();
+      expect(mockAudioEngine.tempo()).toBe(140);
+    } finally {
+      // The suite shares one engine mock; leave the tempo where it started.
+      mockAudioEngine.tempo.set(120);
+    }
+  });
+
   it("should create", () => {
     expect(component).toBeTruthy();
   });

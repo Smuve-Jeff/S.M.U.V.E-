@@ -1017,6 +1017,13 @@ describe("ArrangementViewComponent", () => {
     expect(mockTempoMap.updateMarker).toHaveBeenCalledWith("tempo-1", {
       bpm: 132.4,
     });
+
+    // A typed BPM is a tempo-map edit like a retime or a curve toggle, so it
+    // has to be one undo step that restores the point's previous BPM.
+    const command = mockHistory.execute.mock.calls.at(-1)![0] as any;
+    expect(command.name).toBe("Set Tempo Change · 132.4 BPM");
+    command.undo();
+    expect(mockTempoMap.restore).toHaveBeenCalled();
   });
 
   it("draws step and ramp tempo automation across the lane", () => {

@@ -3384,6 +3384,43 @@ export class AudioEngineService {
     return osc;
   }
 
+  /**
+   * Sounding voices per choke group. A kit maps open and closed hats (or any
+   * mutually exclusive pads) to one group; triggering one silences the rest.
+   * Sampler and synth voices register their own click-free cut, so a choke
+   * works for imported one-shots and the synth fallback alike.
+   */
+  private chokeGroups = new Map<string, Set<() => void>>();
+
+  /** Silence every sounding voice in `group`, click-free. */
+  choke(group: string | number | null | undefined): void {
+    if (group === null || group === undefined || group === "") return;
+    const voices = this.chokeGroups.get(String(group));
+    if (!voices) return;
+    for (const cut of voices) {
+      try {
+        cut();
+      } catch {
+        // A voice that already ended must never break the new hit.
+      }
+    }
+    voices.clear();
+  }
+
+  private registerChoke(
+    group: string | number | null | undefined,
+    cut: () => void,
+  ): void {
+    if (group === null || group === undefined || group === "") return;
+    const key = String(group);
+    let voices = this.chokeGroups.get(key);
+    if (!voices) {
+      voices = new Set();
+      this.chokeGroups.set(key, voices);
+    }
+    voices.add(cut);
+  }
+
   triggerAttack(
     trackId: string | number, // TAP
     freq: number,
@@ -3398,6 +3435,9 @@ export class AudioEngineService {
   ) {
     const voiceGain = Number.isFinite(gain) ? gain : 1;
     const peak = Math.max(0.0001, velocity * voiceGain);
+    // A choked pad silences its group before this hit is scheduled, so an open
+    // hat does not ring through the closed hat that follows it.
+    this.choke(params?.chokeGroup);
     this.buildVoiceGraph(
       this.ctx,
       this.getTrackOutput(trackId.toString()),
@@ -3411,7 +3451,10 @@ export class AudioEngineService {
       // `budget().maxVoices` is enforced where the artist actually hears
       // notes. The offline bounce omits the hook, so an export is never
       // throttled by the interactive ceiling.
-      (voice) => this.admitLiveVoice(voice)
+      (voice) => {
+        this.admitLiveVoice(voice);
+        this.registerChoke(params?.chokeGroup, voice.cut);
+      }
     );
 
     if (this.isRecording()) {
@@ -4207,6 +4250,7 @@ export class AudioEngineService {
     fadeElapsedSeconds: number = 0,
     control: VoiceControlPoint[] = [],
     fadeCurve: ClipFadeCurve = 'linear',
+    chokeGroup: string | number | null = null,
   ) {
     const isStreamer =
       bufferOrStreamer instanceof SampleStreamer ||
@@ -4222,6 +4266,7 @@ export class AudioEngineService {
       ? this.sampleStreamerToWindow(streamer, clipOriginSeconds, sampleRate)
       : bufferOrStreamer as AudioBuffer;
     if (!buffer) return;
+    this.choke(chokeGroup);
     const initialOffset = streamer
       ? Math.max(0, clipOriginSeconds - (streamer.getResidentStartSeconds?.() ?? 0))
       : Math.max(0, clipOriginSeconds);
@@ -4405,6 +4450,18 @@ export class AudioEngineService {
       if (initialOffset > 0) source.start(time, initialOffset);
       else source.start(time);
       source.stop(time + safeDuration + 0.01);
+      // One-shots are stoppable too: a hat choked by the next hit fades out
+      // where it is instead of playing its full tail.
+      this.registerChoke(chokeGroup, () => {
+        const now = this.ctx.currentTime;
+        gain.gain.cancelScheduledValues?.(now);
+        this.targetParam(gain.gain, 0.0001, now, 0.005);
+        try {
+          source.stop(now + 0.01);
+        } catch {
+          // The source already ended on its schedule.
+        }
+      });
       return;
     }
 

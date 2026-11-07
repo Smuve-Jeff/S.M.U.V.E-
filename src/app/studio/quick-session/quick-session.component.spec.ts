@@ -9,6 +9,7 @@ import { AudioEngineService } from "../../services/audio-engine.service";
 import { InstrumentsService } from "../../services/instruments.service";
 import { IdeasGeneratorService } from "../../services/ideas-generator.service";
 import { HapticService } from "../../services/haptic.service";
+import { HistoryService } from "../../services/history.service";
 import { SnackbarService } from "../../services/snackbar.service";
 
 describe("QuickSessionComponent", () => {
@@ -19,6 +20,10 @@ describe("QuickSessionComponent", () => {
   const isRecording = signal(false);
   const masterVolume = signal(80);
   const tempo = signal(120);
+  const history = {
+    execute: jest.fn(),
+    coalesce: jest.fn(),
+  };
   const metronomeEnabled = signal(false);
   const playbackLoopEnabled = signal(false);
   const resume = jest.fn();
@@ -237,6 +242,7 @@ describe("QuickSessionComponent", () => {
         { provide: InstrumentsService, useValue: mockInstruments },
         { provide: IdeasGeneratorService, useValue: mockIdeas },
         { provide: HapticService, useValue: { light: jest.fn(), medium: jest.fn() } },
+        { provide: HistoryService, useValue: history },
         {
           provide: SnackbarService,
           useValue: { info: jest.fn(), success: jest.fn(), error: jest.fn() },
@@ -292,6 +298,19 @@ describe("QuickSessionComponent", () => {
     expect(tempo()).toBe(240);
     component.onTempoInput("not a number");
     expect(tempo()).toBe(240);
+  });
+
+  it("makes a typed tempo undoable instead of skipping the history stack", () => {
+    component.onTempoInput("100");
+
+    expect(history.coalesce).toHaveBeenCalledTimes(1);
+    const command = history.coalesce.mock.calls[0][0];
+    expect(command).toMatchObject({ name: "Set tempo", mergeKey: "tempo:entry" });
+
+    command.undo();
+    expect(tempo()).toBe(120);
+    command.execute();
+    expect(tempo()).toBe(100);
   });
 
   it("adds the chosen sound as a real channel and selects it", () => {

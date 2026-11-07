@@ -1765,7 +1765,16 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
       return;
     }
     const bpm = Math.round(value * 10) / 10;
+    const before = this.tempoMap.snapshot();
     this.tempoMap.updateMarker(marker.id, { bpm });
+    // A BPM typed on a tempo point is a map edit like a retime or a curve
+    // toggle, so it goes through the same snapshot/restore step.
+    this.commitArrangementEdit(
+      `Set Tempo Change · ${bpm} BPM`,
+      before,
+      this.tempoMap.snapshot(),
+      (state) => this.tempoMap.restore(state),
+    );
     this.haptic.light();
     this.snackbar.info(`Tempo ${bpm} BPM at bar ${this.tempoMap.barOf(marker)}`);
   }

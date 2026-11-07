@@ -23,6 +23,8 @@ import {
   type IdeaRecipe,
 } from "../../services/ideas-generator.service";
 import { HapticService } from "../../services/haptic.service";
+import { HistoryService } from "../../services/history.service";
+import { recordTempoChange } from "../../services/tempo-history";
 import { SnackbarService } from "../../services/snackbar.service";
 
 /**
@@ -152,6 +154,7 @@ export class QuickSessionComponent {
   private readonly recordingStatus = inject(RecordingStatusService);
   private readonly haptic = inject(HapticService);
   private readonly snackbar = inject(SnackbarService);
+  private readonly history = inject(HistoryService);
 
   /** Ask the shell to switch surfaces (advanced tools, editors, export). */
   readonly openView = output<string>();
@@ -272,14 +275,36 @@ export class QuickSessionComponent {
   setTempo(delta: number): void {
     const next = Math.min(240, Math.max(40, Math.round(this.tempo() + delta)));
     if (next === this.tempo()) return;
-    this.audioEngine.tempo.set(next);
+    this.commitTempo(next);
     this.haptic.light();
   }
 
   onTempoInput(value: string | number): void {
     const parsed = Number(value);
     if (!Number.isFinite(parsed)) return;
-    this.audioEngine.tempo.set(Math.min(240, Math.max(40, Math.round(parsed))));
+    this.commitTempo(
+      Math.min(240, Math.max(40, Math.round(parsed))),
+      "tempo:entry",
+    );
+  }
+
+  /**
+   * The BPM field writes through the same engine signal the transport bar uses,
+   * so it has to land in history too — otherwise a typed tempo is the one edit
+   * Ctrl+Z skips. Typed keystrokes coalesce into a single step so undo returns
+   * the tempo the artist started typing from, and redo restores the new one.
+   */
+  private commitTempo(next: number, mergeKey?: string): void {
+    const before = this.tempo();
+    if (next === before) return;
+    this.tempo.set(next);
+    recordTempoChange(
+      this.history,
+      before,
+      next,
+      (value) => this.tempo.set(value),
+      mergeKey,
+    );
   }
 
   // ── Starters ────────────────────────────────────────────────────────

@@ -169,6 +169,8 @@ describe("TransportBarComponent", () => {
     undo: jest.fn(),
     redo: jest.fn(),
     undoToDepth: jest.fn(),
+    execute: jest.fn(),
+    coalesce: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -702,6 +704,33 @@ describe("TransportBarComponent", () => {
 
       expect(mockAudioEngine.tempo()).toBe(120);
       expect((event.target as HTMLInputElement).value).toBe("120");
+    });
+
+    it("records typed tempo as one coalesced undo step", () => {
+      component.onTempoInput(tempoEvent("124.5"));
+
+      expect(mockHistory.coalesce).toHaveBeenCalledTimes(1);
+      const command = mockHistory.coalesce.mock.calls[0][0];
+      expect(command).toMatchObject({ name: "Set tempo", mergeKey: "tempo:entry" });
+
+      // Undo returns the transport to the BPM the artist started typing from.
+      command.undo();
+      expect(mockAudioEngine.tempo()).toBe(120);
+      // Redo puts the committed tempo back.
+      command.execute();
+      expect(mockAudioEngine.tempo()).toBe(124.5);
+    });
+
+    it("records nudges and presets as discrete undo steps", () => {
+      component.nudgeTempo(1);
+
+      expect(mockHistory.execute).toHaveBeenCalledTimes(1);
+      const command = mockHistory.execute.mock.calls[0][0];
+      expect(command.name).toBe("Set tempo · 121 BPM");
+      expect(command.mergeKey).toBeUndefined();
+
+      command.undo();
+      expect(mockAudioEngine.tempo()).toBe(120);
     });
   });
 

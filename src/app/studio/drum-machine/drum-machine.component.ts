@@ -18,6 +18,8 @@ import { AudioEngineService } from "../../services/audio-engine.service";
 import { InstrumentsService } from "../../services/instruments.service";
 import { AiService } from "../../services/ai.service";
 import { HapticService } from "../../services/haptic.service";
+import { HistoryService } from "../../services/history.service";
+import { recordTempoChange } from "../../services/tempo-history";
 import { SnackbarService } from "../../services/snackbar.service";
 import { StudioBottomSheetComponent } from "../shared/studio-bottom-sheet/studio-bottom-sheet.component";
 import { WavEncoder } from "../wav-encoder.util";
@@ -958,6 +960,7 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
         probability: 1.0,
         params: {
           ...pad.params,
+          chokeGroup: this.padChokeGroup(pad),
           sampleBuffer: pad.sampleBuffer,
           sampleRefId: pad.sampleRefId,
         },
@@ -1048,12 +1051,30 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
 
   nudgeTempo(delta: number): void {
     const next = Math.max(20, Math.min(300, this.audioEngine.tempo() + delta));
-    this.audioEngine.tempo.set(next);
+    this.commitTempo(next);
   }
 
   setTempo(bpm: number): void {
-    this.audioEngine.tempo.set(bpm);
+    this.commitTempo(bpm);
     this.showTempoMenu.set(false);
+  }
+
+  /**
+   * The compact transport here writes the same engine signal the main transport
+   * reads, so a BPM change needs a history command or Ctrl+Z silently skips it.
+   * Nudges, presets and tap tempo are discrete edits, so no merge key.
+   */
+  private readonly history = inject(HistoryService);
+  private commitTempo(next: number): void {
+    const before = this.audioEngine.tempo();
+    if (!Number.isFinite(next) || next === before) return;
+    this.audioEngine.tempo.set(next);
+    recordTempoChange(
+      this.history,
+      before,
+      next,
+      (value) => this.audioEngine.tempo.set(value),
+    );
   }
 
   tapTempo(): void {
@@ -1065,7 +1086,7 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
     });
     const guess = this.tapBpmGuess();
     if (guess !== null) {
-      this.audioEngine.tempo.set(guess);
+      this.commitTempo(guess);
       this.haptic.light();
     } else {
       this.haptic.medium();
@@ -1251,6 +1272,7 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
           probability: 1.0,
           params: {
             ...pad.params,
+            chokeGroup: this.padChokeGroup(pad),
             sampleBuffer: pad.sampleBuffer,
             sampleRefId: pad.sampleRefId,
           },
@@ -1414,6 +1436,7 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
           probability: 1.0,
           params: {
             ...pad.params,
+            chokeGroup: this.padChokeGroup(pad),
             sampleBuffer: pad.sampleBuffer,
             sampleRefId: pad.sampleRefId,
           },
@@ -1519,6 +1542,23 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
     return Math.max(0.25, Math.min(1, centered));
   }
 
+  /**
+   * Choke group for a pad.
+   *
+   * Open and closed hats are the same instrument struck two ways, so both sit
+   * in group 1: hitting one silences the other instead of stacking tails. A
+   * pad can override the group through its params (0/"" means "no group"),
+   * which is what a kit with its own choke layout will set.
+   */
+  private padChokeGroup(pad: DrumPad): number | undefined {
+    const explicit = pad.params?.chokeGroup;
+    if (explicit !== undefined && explicit !== null && explicit !== "") {
+      const value = Number(explicit);
+      return Number.isFinite(value) && value > 0 ? value : undefined;
+    }
+    return /hat/i.test(pad.name) ? 1 : undefined;
+  }
+
   triggerPad(pad: DrumPad, velocity = 1) {
     this.haptic.impact("light");
     const track = this.getDrumTrack();
@@ -1538,6 +1578,18 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
         velocity,
         pad.params.pan,
         pad.params.decay || 0.3,
+        1,
+        0,
+        0,
+        0,
+        0,
+        48000,
+        2,
+        false,
+        0,
+        [],
+        "linear",
+        this.padChokeGroup(pad),
       );
     } else if (this.instruments.isSamplePreset(track.instrumentId)) {
       const playSample = () => {
@@ -1546,6 +1598,8 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
         this.audioEngine.triggerSampler(
           track.id, sample.buffer, this.audioEngine.ctx.currentTime, velocity,
           pad.params.pan, sample.buffer.duration / sample.rate, sample.rate,
+          0, 0, 0, 0, 48000, 2, false, 0, [], "linear",
+          this.padChokeGroup(pad),
         );
         return true;
       };
@@ -1565,7 +1619,7 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
         pad.params.pan,
         0,
         0,
-        pad.params,
+        { ...pad.params, chokeGroup: this.padChokeGroup(pad) },
       );
     }
   }

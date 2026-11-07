@@ -5197,9 +5197,18 @@ export class MusicManagerService {
                 }
               }
               const ccStart = ccCurve[0];
-              const voiceParams = ccCurve.length
+              const noteChokeGroup = (n as any).params?.chokeGroup;
+              const baseVoiceParams = ccCurve.length
                 ? { ...synthParams, midiCc: ccCurve }
                 : synthParams;
+              // Carried into the voice so the engine can choke the group before
+              // this hit sounds (open/closed hats on a kit). Kept out of the
+              // object entirely when there is no group, so an un-choked drum
+              // note still passes the track patch through untouched.
+              const voiceParams =
+                noteChokeGroup !== undefined
+                  ? { ...baseVoiceParams, chokeGroup: noteChokeGroup }
+                  : baseVoiceParams;
               const ccPan = ccStart?.pan ?? notePan;
 
               // Imported drum/percussion one-shots are attached to the pad
@@ -5226,7 +5235,9 @@ export class MusicManagerService {
                 typeof (this.engine as any).triggerSampler === 'function'
               ) {
                 for (let hit = 0; hit < ratchet; hit++) {
-                  this.engine.triggerSampler(
+                  // The choke group is appended only when the note has one, so
+                  // an un-choked drum keeps the exact call shape it always had.
+                  const args: any[] = [
                     t.id,
                     oneShot,
                     time + tickSeconds(swungTicks + startOffsetTicks + ratchetOffsetTicks(hit, ratchet)),
@@ -5234,7 +5245,11 @@ export class MusicManagerService {
                     ccPan,
                     Math.max(0.01, oneShot.duration),
                     1, 0, 0, 0, 0, 48000, 2, true, 0, ccCurve,
-                  );
+                  ];
+                  if (noteParams?.chokeGroup !== undefined) {
+                    args.push(noteParams.chokeGroup);
+                  }
+                  (this.engine.triggerSampler as any)(...args);
                 }
                 return;
               }
@@ -5250,12 +5265,16 @@ export class MusicManagerService {
                     sample.oneShot ? Infinity : noteDuration + sample.release,
                   );
                   for (let hit = 0; hit < ratchet; hit++) {
-                    this.engine.triggerSampler(
+                    const args: any[] = [
                       t.id, sample.buffer, time + tickSeconds(swungTicks + startOffsetTicks + ratchetOffsetTicks(hit, ratchet)), n.velocity ?? 0.8, ccPan,
                       sampleDuration, sample.rate, 0,
                       sample.oneShot ? 0 : Math.min(sample.release, sampleDuration),
                       0, 0, 48000, 2, true, 0, ccCurve,
-                    );
+                    ];
+                    if (noteParams?.chokeGroup !== undefined) {
+                      args.push(noteParams.chokeGroup);
+                    }
+                    (this.engine.triggerSampler as any)(...args);
                   }
                   return;
                 }

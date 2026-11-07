@@ -3,6 +3,7 @@ import { DrumMachineComponent } from "./drum-machine.component";
 import { MusicManagerService } from "../../services/music-manager.service";
 import { AudioSessionService } from "../audio-session.service";
 import { AudioEngineService } from "../../services/audio-engine.service";
+import { HistoryService } from "../../services/history.service";
 import { AiService } from "../../services/ai.service";
 import { InstrumentsService } from "../../services/instruments.service";
 import { HapticService } from "../../services/haptic.service";
@@ -92,6 +93,10 @@ describe("DrumMachineComponent", () => {
         { provide: AudioSessionService, useValue: mockAudioSession },
         { provide: MusicManagerService, useValue: mockMusicManager },
         { provide: AudioEngineService, useValue: mockAudioEngine },
+        {
+          provide: HistoryService,
+          useValue: { execute: jest.fn(), coalesce: jest.fn() },
+        },
         { provide: InstrumentsService, useValue: mockInstruments },
         { provide: HapticService, useValue: mockHaptic },
         { provide: AiService, useValue: mockAiService },
@@ -171,8 +176,11 @@ describe("DrumMachineComponent", () => {
     mockInstruments.isSamplePreset.mockReturnValue(true);
     mockInstruments.getPresetSample.mockReturnValue({ buffer, rate: 1, oneShot: true });
     component.triggerPad(component.pads()[0]);
+    // Pad taps carry the full sampler shape now, including the trailing
+    // choke group (undefined for a kick, 1 for the hats).
     expect(mockAudioEngine.triggerSampler).toHaveBeenLastCalledWith(
       MusicManagerService.DRUM_TRACK_ID, buffer, 0, 1, expect.any(Number), 0.4, 1,
+      0, 0, 0, 0, 48000, 2, false, 0, [], "linear", undefined,
     );
   });
 
@@ -302,6 +310,26 @@ describe("DrumMachineComponent", () => {
     component.doublePattern();
 
     expect(component.getPadStep(padId, 32).active).toBe(true);
+  });
+
+  it("makes a tempo nudge undoable from the compact transport", () => {
+    const history = TestBed.inject(HistoryService) as any;
+    mockAudioEngine.tempo.set(120);
+    try {
+      component.nudgeTempo(4);
+
+      expect(history.execute).toHaveBeenCalledTimes(1);
+      const command = history.execute.mock.calls[0][0];
+      expect(command.name).toBe("Set tempo · 124 BPM");
+
+      command.undo();
+      expect(mockAudioEngine.tempo()).toBe(120);
+      command.execute();
+      expect(mockAudioEngine.tempo()).toBe(124);
+    } finally {
+      // The suite shares one engine mock; leave the tempo where it started.
+      mockAudioEngine.tempo.set(120);
+    }
   });
 
   it("updates tempo and toggles metronome from the compact transport controls", () => {
@@ -467,5 +495,27 @@ describe("DrumMachineComponent", () => {
     expect(updated.sampleName).toBeUndefined();
     expect(updated.sampleMeta).toBeUndefined();
   });
+  it("gives every hat one choke group and leaves the kick unchoked", () => {
+    const pads = component.pads();
+    const kick = pads.find((pad) => pad.midi === 36)!;
+    const hats = pads.filter((pad) => /HAT/i.test(pad.name));
+    expect(hats.length).toBeGreaterThanOrEqual(2);
+    const buffer = { duration: 1, sampleRate: 48000 } as AudioBuffer;
+    kick.sampleBuffer = buffer;
+    hats.forEach((pad) => (pad.sampleBuffer = buffer));
 
+    const lastChoke = () => {
+      const args = (mockAudioEngine.triggerSampler as jest.Mock).mock.calls;
+      return args[args.length - 1]?.at(-1);
+    };
+
+    component.triggerPad(kick);
+    expect(lastChoke()).toBeUndefined();
+
+    component.triggerPad(hats[0]);
+    expect(lastChoke()).toBe(1);
+
+    component.triggerPad(hats[1]);
+    expect(lastChoke()).toBe(1);
+  });
 });
