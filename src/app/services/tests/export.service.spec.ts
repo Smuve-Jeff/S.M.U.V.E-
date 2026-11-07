@@ -356,8 +356,9 @@ describe("ExportService", () => {
    * the mocked context created, so an envelope test can pick out the clip's
    * fader (the only stage carrying ramps / a target approach).
    */
-  async function renderClipGains(clip: Record<string, unknown>) {
+  async function renderClipBounce(clip: Record<string, unknown>) {
     const gains: any[] = [];
+    const sources: any[] = [];
     const offline = {
       destination: {},
       createGain: jest.fn(() => {
@@ -377,13 +378,17 @@ describe("ExportService", () => {
         pan: { value: 0 },
         connect: jest.fn(),
       })),
-      createBufferSource: jest.fn(() => ({
-        buffer: null,
-        connect: jest.fn(),
-        playbackRate: { setValueAtTime: jest.fn() },
-        start: jest.fn(),
-        stop: jest.fn(),
-      })),
+      createBufferSource: jest.fn(() => {
+        const node = {
+          buffer: null,
+          connect: jest.fn(),
+          playbackRate: { setValueAtTime: jest.fn() },
+          start: jest.fn(),
+          stop: jest.fn(),
+        };
+        sources.push(node);
+        return node;
+      }),
       startRendering: jest.fn().mockResolvedValue({}),
     };
     const original = (globalThis as any).OfflineAudioContext;
@@ -413,7 +418,12 @@ describe("ExportService", () => {
         (globalThis as any).OfflineAudioContext = original;
       }
     }
-    return gains;
+    return { gains, sources };
+  }
+
+  /** Gains only, for envelope tests. */
+  async function renderClipGains(clip: Record<string, unknown>) {
+    return (await renderClipBounce(clip)).gains;
   }
 
   it("applies clip-level gain as the fade envelope's ceiling in the bounce", async () => {
@@ -475,6 +485,103 @@ describe("ExportService", () => {
     expect(midpointOut?.[0]).toBeCloseTo(Math.SQRT1_2, 6);
     expect(calls.find(([, time]) => Math.abs(time - 2) < 1e-9)?.[0]).toBe(1);
     expect(calls.find(([, time]) => Math.abs(time - 8) < 1e-9)?.[0]).toBe(0);
+  });
+
+  it("time-stretches a clip by its original tempo in the bounce", async () => {
+    const rate = jest.fn(() => 1.5);
+    (service as any).engine.calculatePlaybackRate = rate;
+
+    const { sources } = await renderClipBounce({
+      type: "audio",
+      start: 0,
+      length: 4,
+      originalBpm: 80,
+      audioData: { duration: 8, sampleRate: 44100 },
+    });
+
+    // The clip was recorded at 80 BPM in a 120 BPM project; playing it at
+    // unity speed made the export drift against the arrangement.
+    expect(rate).toHaveBeenCalledWith(80);
+    expect(sources).toHaveLength(1);
+    expect(sources[0].playbackRate.setValueAtTime).toHaveBeenCalledWith(1.5, 0);
+  });
+
+  it("starts a clip from its saved offset and bounds it to the buffer", async () => {
+    const { sources } = await renderClipBounce({
+      type: "audio",
+      start: 0,
+      length: 4,
+      offset: 0.75,
+      audioData: { duration: 8, sampleRate: 44100 },
+    });
+
+    // 4 bars at 120 BPM is 8 s, but only 7.25 s of the buffer is left after
+    // the 0.75 s offset, so the source starts late and stops at the end.
+    expect(sources).toHaveLength(1);
+    expect(sources[0].start).toHaveBeenCalledWith(0, 0.75, 7.25);
+    expect(sources[0].playbackRate.setValueAtTime).toHaveBeenCalledWith(1, 0);
+  });
+
+  it("reverses a clip's buffer before it is scheduled", async () => {
+    const reversedBuffer = { duration: 8, sampleRate: 44100 } as AudioBuffer;
+    // Exactly representable in Float32, so the comparison is exact.
+    const channel = Float32Array.from([0.25, 0.5, 1]);
+    const reverseBuffer = jest.fn(
+      (buffer: AudioBuffer, reverse: (channelIndex: number, src: any) => Float32Array) => {
+        const flipped = reverse(0, { getChannelData: () => channel });
+        expect(Array.from(flipped)).toEqual([1, 0.5, 0.25]);
+        return reversedBuffer;
+      },
+    );
+    (service as any).engine.reverseBuffer = reverseBuffer;
+
+    const source = { duration: 8, sampleRate: 44100 } as AudioBuffer;
+    const { sources } = await renderClipBounce({
+      type: "audio",
+      start: 0,
+      length: 4,
+      reversed: true,
+      audioData: source,
+    });
+
+    // The scheduled source must read the flipped buffer, not the original.
+    expect(reverseBuffer).toHaveBeenCalledWith(source, expect.any(Function));
+    expect(sources).toHaveLength(1);
+    expect(sources[0].buffer).toBe(reversedBuffer);
+  });
+
+  it("leaves a streamed clip forward even when it is marked reversed", async () => {
+    const resident = {
+      duration: 1,
+      length: 48000,
+      sampleRate: 48000,
+      numberOfChannels: 2,
+      getChannelData: () => new Float32Array(48000),
+    };
+    const streamer = {
+      setPlayhead: jest.fn(),
+      getResidentBuffer: jest.fn(() => resident),
+      getResidentOffsetSeconds: jest.fn(() => 0),
+      getRemainingSecondsFrom: jest.fn(() => 1),
+    };
+    const reverseBuffer = jest.fn();
+    (service as any).engine.reverseBuffer = reverseBuffer;
+
+    const { sources } = await renderClipBounce({
+      type: "audio",
+      start: 0,
+      length: 4,
+      reversed: true,
+      clipStreamer: streamer,
+      clipOriginSeconds: 0,
+      clipSampleRate: 48000,
+    });
+
+    // Only the resident window is in memory; reversing a whole take would need
+    // the file, so a streamed clip is exported forward.
+    expect(reverseBuffer).not.toHaveBeenCalled();
+    expect(sources).toHaveLength(1);
+    expect(sources[0].buffer).toBe(resident);
   });
 
   it("uses meter-aware bar starts and lengths for audio clips", async () => {

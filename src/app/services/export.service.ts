@@ -962,6 +962,17 @@ export class ExportService {
           const source = offline.createBufferSource();
           source.buffer = playbackBuffer as AudioBuffer;
           source.connect(pan);
+          // A clip recorded at another tempo is time-stretched live; without
+          // this the export played it at its original speed and drifted.
+          const rate =
+            typeof this.engine.calculatePlaybackRate === 'function'
+              ? this.engine.calculatePlaybackRate(
+                  (clip as any).originalBpm || timing.bpmAtStep(startStep),
+                )
+              : 1;
+          if (Number.isFinite(rate) && rate > 0) {
+            source.playbackRate.setValueAtTime(rate, start);
+          }
           if (duration > 0) source.start(start, offset, duration);
         }
       }
