@@ -2013,11 +2013,19 @@ describe("ExportService", () => {
       const compressors: any[] = [];
       const filters: any[] = [];
       const gains: any[] = [];
+      // Master lanes are written as scheduled curves, so every param needs the
+      // scheduling methods the renderer uses.
+      const param = (value = 0) => ({
+        value,
+        setValueAtTime: jest.fn(),
+        linearRampToValueAtTime: jest.fn(),
+        setTargetAtTime: jest.fn(),
+      });
       const offline: any = {
         destination: {},
         createGain: jest.fn(() => {
           const node = {
-            gain: { value: 0, setTargetAtTime: jest.fn() },
+            gain: param(),
             connect: jest.fn(),
           };
           gains.push(node);
@@ -2026,9 +2034,9 @@ describe("ExportService", () => {
         createBiquadFilter: jest.fn(() => {
           const node = {
             type: "lowpass",
-            frequency: { value: 0 },
-            Q: { value: 0 },
-            gain: { value: 0 },
+            frequency: param(),
+            Q: param(),
+            gain: param(),
             connect: jest.fn(),
           };
           filters.push(node);
@@ -2036,11 +2044,11 @@ describe("ExportService", () => {
         }),
         createDynamicsCompressor: jest.fn(() => {
           const node = {
-            threshold: { value: -24 },
-            ratio: { value: 12 },
-            attack: { value: 0.003 },
-            release: { value: 0.25 },
-            knee: { value: 30 },
+            threshold: param(-24),
+            ratio: param(12),
+            attack: param(0.003),
+            release: param(0.25),
+            knee: param(30),
             connect: jest.fn(),
           };
           compressors.push(node);
@@ -2056,7 +2064,10 @@ describe("ExportService", () => {
       return { offline, compressors, filters, gains };
     }
 
-    async function renderMaster(onlyTrackIds?: ReadonlySet<string>) {
+    async function renderMaster(
+      onlyTrackIds?: ReadonlySet<string>,
+      lanes: any[] = [],
+    ) {
       const recording = masterContext();
       const original = (globalThis as any).OfflineAudioContext;
       (globalThis as any).OfflineAudioContext = jest.fn(() => recording.offline);
@@ -2090,7 +2101,7 @@ describe("ExportService", () => {
       });
       (service as any).musicManager.tracks = jest.fn(() => []);
       (service as any).musicManager.activeLoopBars = jest.fn(() => 1);
-      (service as any).automation.lanes.set([]);
+      (service as any).automation.lanes.set(lanes);
       try {
         await service.renderProjectOffline(
           onlyTrackIds ? { onlyTrackIds } : {},
@@ -2120,6 +2131,64 @@ describe("ExportService", () => {
       expect(compressors[5].knee.value).toBe(0);
       const highShelf = filters.find((node) => node.type === "highshelf");
       expect(highShelf?.gain.value).toBe(1.5);
+    });
+
+    it("matches live master lanes in the rendered chain", async () => {
+      const automation = (service as any).automation;
+      audioEngineMock.applyProductionParameter = jest.fn();
+      const masterLane = (parameter: string) => ({
+        id: `master-${parameter}`,
+        target: { trackId: "master", parameter },
+        points: [
+          { time: 0, value: 0 },
+          { time: 2, value: 12 },
+        ],
+        enabled: true,
+        interpolation: "linear" as const,
+        modulationDepth: 0,
+      });
+
+      try {
+        const { filters, gains } = await renderMaster(undefined, [
+          masterLane("makeup"),
+          masterLane("lowShelf"),
+        ]);
+
+        automation.applyAutomation(2, 0.5);
+        const live = (parameter: string) =>
+          audioEngineMock.applyProductionParameter.mock.calls.find(
+            ([trackId, name]: [string, string]) =>
+              trackId === "master" && name === parameter,
+          )![2];
+        expect(live("makeup")).toBeCloseTo(12, 5);
+        expect(live("lowShelf")).toBeCloseTo(12, 5);
+
+        // Makeup is rendered as the linear gain of the live dB value…
+        const makeup = gains.find(
+          (node) => Math.abs(node.gain.value - Math.pow(10, 2 / 20)) < 1e-9,
+        );
+        expect(makeup).toBeTruthy();
+        const makeupAtTwo =
+          makeup!.gain.linearRampToValueAtTime.mock.calls.find(
+            ([, time]: [number, number]) => Math.abs(time - 2) < 1e-6,
+          );
+        expect(makeupAtTwo).toBeTruthy();
+        expect(20 * Math.log10(makeupAtTwo![0])).toBeCloseTo(
+          live("makeup"),
+          5,
+        );
+
+        // …and the tone shelf carries the same dB value on its own gain.
+        const lowShelf = filters.find((node) => node.type === "lowshelf");
+        expect(lowShelf).toBeTruthy();
+        const shelfAtTwo = lowShelf!.gain.linearRampToValueAtTime.mock.calls.find(
+          ([, time]: [number, number]) => Math.abs(time - 2) < 1e-6,
+        );
+        expect(shelfAtTwo).toBeTruthy();
+        expect(shelfAtTwo![0]).toBeCloseTo(live("lowShelf"), 5);
+      } finally {
+        automation.lanes.set([]);
+      }
     });
 
     it("leaves stems pre-master so a stem set still sums to the mix", async () => {

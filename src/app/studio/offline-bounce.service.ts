@@ -108,8 +108,6 @@ export class OfflineBounceService {
       // Bars are meter-aware (3/4, 6/8 …); the render length is straight
       // step time plus the requested tail.
       const totalBars = (totalSteps * stepSeconds) / this.secondsPerBar(tempo);
-      const totalDuration = totalSteps * stepSeconds + tailSeconds;
-      const totalFrames = Math.ceil(totalDuration * sampleRate);
 
       this.updateProgress(
         "preparing",
@@ -118,38 +116,34 @@ export class OfflineBounceService {
         onProgress,
       );
 
-      // Create offline context
-      const offlineCtx = new OfflineAudioContext(2, totalFrames, sampleRate);
-
-      // Clone the arrangement into the offline context
-      await this.renderArrangement(
-        offlineCtx,
-        totalSteps,
-        totalDuration,
+      // One renderer, not two. The full bounce used to run the simplified
+      // arrangement pass below, which had no automation, CC curves, aux sends
+      // or insert rack — a lane drawn in the editor was dropped on export.
+      // ExportService is the authoritative renderer; resolve it lazily to
+      // avoid the MusicManager construction cycle.
+      const { ExportService } = await import("../services/export.service");
+      const exporter = this.injector.get(ExportService);
+      const renderedBuffer = await exporter.renderProjectOffline({
         sampleRate,
-        onProgress,
-        undefined,
-        durationBars === undefined ? totalSteps - 16 : totalSteps,
-      );
+        durationBars: durationBars ?? totalSteps / 16,
+        tailSeconds,
+        onProgress: (percent) => {
+          this.updateProgress(
+            "rendering",
+            Math.max(10, Math.min(90, 10 + percent * 0.8)),
+            "Rendering arrangement…",
+            onProgress,
+          );
+        },
+      });
 
-      this.updateProgress(
-        "rendering",
-        40,
-        "Processing audio through mastering chain…",
-        onProgress,
-      );
-
-      // Start rendering
-      const renderedBuffer = await offlineCtx.startRendering();
-
-      this.updateProgress("mixing", 75, "Mixing down to stereo…", onProgress);
       this.updateProgress("encoding", 90, `Encoding to ${format}…`, onProgress);
 
       const result = this.buildResult(
         renderedBuffer,
         format,
         sampleRate,
-        totalDuration,
+        renderedBuffer.duration,
       );
 
       this.lastResult.set(result);

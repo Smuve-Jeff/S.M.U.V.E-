@@ -455,6 +455,13 @@ export class ExportService {
       /** Delivery sample rate (default 44.1 kHz). */
       sampleRate?: number;
       /**
+       * Render this many bars instead of auto-detecting the arrangement. The
+       * full-mix bounce passes its explicit bar count through here.
+       */
+      durationBars?: number;
+      /** Silence after the last bar for reverb/echo tails (default 1 s). */
+      tailSeconds?: number;
+      /**
        * Render progress, 0–100. Fired after setup, once per scheduled track,
        * and after the offline context finishes; a listener may not abort the
        * render, so its exceptions are swallowed.
@@ -486,12 +493,23 @@ export class ExportService {
         return timing.stepAtTime(timing.timeAtStep(startStep) + clipSeconds);
       }),
     ), 0);
+    const requestedBars = Number(options.durationBars);
     const bars = Math.max(
       1,
-      this.musicManager.activeLoopBars(),
-      this.barCountForStep(lastEventStep),
+      Number.isFinite(requestedBars) && requestedBars > 0
+        ? Math.round(requestedBars)
+        : Math.max(
+            this.musicManager.activeLoopBars(),
+            this.barCountForStep(lastEventStep),
+          ),
     );
-    const totalSeconds = Math.max(1, timing.timeAtStep(this.stepAtBar(bars)) + 1);
+    const requestedTail = Number(options.tailSeconds);
+    const tailSeconds =
+      Number.isFinite(requestedTail) && requestedTail >= 0 ? requestedTail : 1;
+    const totalSeconds = Math.max(
+      1,
+      timing.timeAtStep(this.stepAtBar(bars)) + tailSeconds,
+    );
     if (!Number.isFinite(totalSeconds) || totalSeconds > 600) {
       throw new Error('Offline export supports up to 10 minutes per render. Shorten the arrangement first.');
     }

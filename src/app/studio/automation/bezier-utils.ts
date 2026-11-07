@@ -58,7 +58,15 @@ export function bezierTimeToU(
   tolerance = 0.0001,
   maxIter = 10,
 ): number {
-  let u = targetTime; // Initial guess
+  // Start from the normalised position: the segment may be in absolute
+  // seconds, where `targetTime` itself is a poor guess for the curve parameter.
+  let u = Math.max(
+    0,
+    Math.min(
+      1,
+      (targetTime - segment.p0.t) / (segment.p3.t - segment.p0.t || 1),
+    ),
+  );
   for (let i = 0; i < maxIter; i++) {
     const u2 = u * u;
     const um = 1 - u;
@@ -156,9 +164,12 @@ export function bezierInterpolate(
     handles?.cpOut ?? { t: 0.75, value: 0 },
   );
 
-  // Map ratio (0..1) to actual time within segment
+  // Map ratio (0..1) to actual time within segment. The segment's control
+  // points are in absolute time, so the lookup must be too — dividing the
+  // target by `endTime` mixed a normalised time into an absolute curve and
+  // pinned every lane to its start value until the endpoint snapped.
   const targetTime = startTime + ratio * (endTime - startTime);
-  const u = bezierTimeToU(segment, targetTime / (endTime || 1));
+  const u = bezierTimeToU(segment, targetTime);
   return evaluateCubicBezier(segment, u);
 }
 
@@ -166,17 +177,32 @@ export function bezierInterpolate(
  * Pre-built bezier handle presets for common curve shapes.
  */
 export const BezierPresets = {
-  /** Linear (no curve) — equivalent to 'linear' mode */
-  linear: { cpIn: { t: 0.0, value: 0 }, cpOut: { t: 1.0, value: 0 } },
+  /**
+   * Linear (no curve) — equivalent to 'linear' mode.
+   *
+   * Handle `value`s are fractions of the segment's rise, so a straight line
+   * needs them on the line itself at the third and two-third marks; zeroes
+   * bent it into u³.
+   */
+  linear: { cpIn: { t: 1 / 3, value: 1 / 3 }, cpOut: { t: 2 / 3, value: 2 / 3 } },
 
   /** Ease-in (slow start, fast end) */
   easeIn: { cpIn: { t: 0.5, value: 0 }, cpOut: { t: 0.75, value: 0 } },
 
-  /** Ease-out (fast start, slow end) */
-  easeOut: { cpIn: { t: 0.25, value: 0 }, cpOut: { t: 0.5, value: 0 } },
+  /**
+   * Ease-out (fast start, slow end). Both handles sit at the end value, which
+   * is what makes the curve leave the start quickly; at 0 it eased in instead.
+   */
+  easeOut: { cpIn: { t: 0.25, value: 1 }, cpOut: { t: 0.5, value: 1 } },
 
-  /** Ease-in-out (slow start, slow end, fast middle) */
-  easeInOut: { cpIn: { t: 0.33, value: 0 }, cpOut: { t: 0.67, value: 0 } },
+  /**
+   * Ease-in-out (slow start, slow end, fast middle).
+   *
+   * The outgoing handle's `value` is a fraction of the segment's rise, so it
+   * belongs at the end value (1). Leaving it at 0 bent the default curve into
+   * a pure ease-in that only moved near the end of the lane.
+   */
+  easeInOut: { cpIn: { t: 0.33, value: 0 }, cpOut: { t: 0.67, value: 1 } },
 
   /** Quick jump (steep start, level off) */
   quick: { cpIn: { t: 0.1, value: 0.2 }, cpOut: { t: 0.5, value: -0.1 } },

@@ -3,6 +3,9 @@ import { OfflineBounceService } from "./offline-bounce.service";
 import { AudioEngineService } from "../services/audio-engine.service";
 import { MusicManagerService } from "../services/music-manager.service";
 import { LoggingService } from "../services/logging.service";
+import { VideoEngineService } from "../services/video-engine.service";
+import { AutomationService } from "./automation.service";
+import { ExportService } from "../services/export.service";
 
 describe("OfflineBounceService", () => {
   let service: OfflineBounceService;
@@ -51,6 +54,10 @@ describe("OfflineBounceService", () => {
         {
           provide: LoggingService,
           useValue: { info: jest.fn(), warn: jest.fn(), error: jest.fn() },
+        },
+        {
+          provide: VideoEngineService,
+          useValue: { isPlaying: jest.fn(() => false), pause: jest.fn(), play: jest.fn() },
         },
       ],
     });
@@ -118,22 +125,41 @@ describe("OfflineBounceService", () => {
     expect((service as any).computeTotalSteps()).toBe(80);
   });
 
-  it("passes only the musical duration, excluding the extra tail bar, to drum expansion", async () => {
+  it("passes the requested bars and tail to the authoritative renderer", async () => {
     const track = { id: 'drums', type: 'drum', instrumentId: 'synth-kit', gain: 1, pan: 0, clips: [], notes: [] };
     mockMusicManager.tracks = () => [track];
-    mockMusicManager.arrangementNotes = jest.fn(() => []);
-    const render = jest.spyOn(service as any, 'renderArrangement').mockResolvedValue(undefined);
-    const result = await service.bounce('wav-16');
-    expect(result).toBeTruthy();
-    expect(render.mock.calls[0][1]).toBe(80);
-    expect(render.mock.calls[0][6]).toBe(64);
-    if (result) URL.revokeObjectURL(result.url);
-    const explicit = await service.bounce('wav-16', 2);
-    expect(explicit).toBeTruthy();
-    expect(render.mock.calls[1][6]).toBe(32);
-    if (explicit) URL.revokeObjectURL(explicit.url);
-    // Track bounce deliberately goes through ExportService, the authoritative
-    // renderer, rather than this simplified arrangement pass.
+    const exporter = TestBed.inject(ExportService);
+    const buffer = {
+      duration: 4,
+      length: 4 * 48000,
+      sampleRate: 48000,
+      numberOfChannels: 2,
+      getChannelData: () => new Float32Array(4 * 48000),
+    };
+    const render = jest
+      .spyOn(exporter, "renderProjectOffline")
+      .mockResolvedValue(buffer as any);
+    try {
+      const result = await service.bounce('wav-16');
+      expect(result).toBeTruthy();
+      // Auto-detect keeps the historical length: 80 steps (five bars) plus the
+      // default two-second tail.
+      expect(render.mock.calls[0][0]).toMatchObject({
+        durationBars: 5,
+        tailSeconds: 2,
+      });
+      if (result) URL.revokeObjectURL(result.url);
+
+      const explicit = await service.bounce('wav-16', 2, 0.5);
+      expect(explicit).toBeTruthy();
+      expect(render.mock.calls[1][0]).toMatchObject({
+        durationBars: 2,
+        tailSeconds: 0.5,
+      });
+      if (explicit) URL.revokeObjectURL(explicit.url);
+    } finally {
+      render.mockRestore();
+    }
   });
 
   it("repeats a swung drum hit in a track bounce and skips a failed probability gate", () => {
@@ -327,6 +353,7 @@ describe("OfflineBounceService", () => {
     };
     mockMusicManager.tracks = () => [
       {
+        id: "streamed",
         name: "Streamed",
         notes: [],
         clips: [
@@ -348,8 +375,28 @@ describe("OfflineBounceService", () => {
     const renderSpy = jest
       .spyOn(service as any, "renderAudioClip")
       .mockImplementation(() => {});
-    const result = await service.bounce("wav-16", 2, 0.5);
-    if (result) URL.revokeObjectURL(result.url);
+    // The arrangement pass is still the renderer for a stem-shaped selection;
+    // the full bounce now delegates to ExportService, which reads the same
+    // streamer (see its clip scheduling).
+    const ctx: any = {
+      destination: {},
+      createGain: jest.fn(() => ({
+        gain: { value: 0, setValueAtTime: jest.fn() },
+        connect: jest.fn(),
+      })),
+      createStereoPanner: jest.fn(() => ({
+        pan: { value: 0, setValueAtTime: jest.fn() },
+        connect: jest.fn(),
+      })),
+    };
+    await (service as any).renderArrangement(
+      ctx,
+      32,
+      4,
+      48000,
+      undefined,
+      "streamed",
+    );
     expect(streamer.setPlayhead).toHaveBeenCalledWith(96000);
     expect(renderSpy).toHaveBeenCalledWith(
       expect.anything(),
@@ -380,5 +427,230 @@ describe("OfflineBounceService", () => {
     const result = await service.bounce("wav-16");
     if (result) URL.revokeObjectURL(result.url);
     expect(service.isBouncing()).toBe(false);
+  });
+
+  it("applies step lanes in a full bounce, not just a stem", async () => {
+    const automation = TestBed.inject(AutomationService);
+    const gains: any[] = [];
+    const param = () => ({
+      value: 0,
+      setValueAtTime: jest.fn(),
+      linearRampToValueAtTime: jest.fn(),
+      setTargetAtTime: jest.fn(),
+    });
+    const rendered = {
+      duration: 2.5,
+      length: Math.ceil(2.5 * 48000),
+      sampleRate: 48000,
+      numberOfChannels: 2,
+      getChannelData: () => new Float32Array(Math.ceil(2.5 * 48000)),
+    };
+    const offline: any = {
+      destination: {},
+      sampleRate: 48000,
+      createGain: jest.fn(() => {
+        const node = { gain: param(), connect: jest.fn() };
+        gains.push(node);
+        return node;
+      }),
+      createStereoPanner: jest.fn(() => ({ pan: param(), connect: jest.fn() })),
+      createBiquadFilter: jest.fn(() => ({
+        type: "lowpass",
+        frequency: param(),
+        Q: param(),
+        gain: param(),
+        connect: jest.fn(),
+      })),
+      createDynamicsCompressor: jest.fn(() => ({
+        threshold: param(),
+        ratio: param(),
+        attack: param(),
+        release: param(),
+        knee: param(),
+        connect: jest.fn(),
+      })),
+      createWaveShaper: jest.fn(() => ({
+        curve: null,
+        oversample: "none",
+        connect: jest.fn(),
+      })),
+      createConvolver: jest.fn(() => ({ buffer: null, connect: jest.fn() })),
+      createDelay: jest.fn(() => ({ delayTime: param(), connect: jest.fn() })),
+      createBufferSource: jest.fn(() => ({
+        buffer: null,
+        connect: jest.fn(),
+        playbackRate: param(),
+        start: jest.fn(),
+        stop: jest.fn(),
+      })),
+      startRendering: jest.fn().mockResolvedValue(rendered),
+    };
+    const original = (globalThis as any).OfflineAudioContext;
+    (globalThis as any).OfflineAudioContext = jest.fn(() => offline);
+    mockMusicManager.tracks = () => [
+      {
+        id: "lead",
+        name: "Lead",
+        type: "midi",
+        muted: false,
+        soloed: false,
+        gain: 0.53,
+        volume: 0.53,
+        pan: 0,
+        sendA: 0,
+        sendB: 0,
+        notes: [],
+        clips: [],
+        synthParams: { type: "sine" },
+      },
+    ];
+    mockMusicManager.activeLoopBars = jest.fn(() => 1);
+    mockMusicManager.prepareTrackSamples = jest.fn(async () => undefined);
+    automation.lanes.set([
+      {
+        id: "lane-lead-volume-step",
+        target: { trackId: "lead", parameter: "volume" },
+        points: [
+          { time: 0, value: 0.2 },
+          { time: 1, value: 0.9 },
+        ],
+        enabled: true,
+        interpolation: "step" as const,
+        modulationDepth: 0,
+      },
+    ]);
+
+    try {
+      const result = await service.bounce("wav-16", 1, 0.5);
+      expect(result).toBeTruthy();
+      if (result) URL.revokeObjectURL(result.url);
+
+      // The full mix runs the same renderer as a stem, so the lane reaches the
+      // track fader and steps instead of gliding.
+      const fader = gains.find((node) => node.gain.value === 0.53);
+      expect(fader).toBeTruthy();
+      const written = fader!.gain.setValueAtTime.mock.calls.map(
+        ([value]: [number]) => value,
+      );
+      expect(written).toContain(0.2);
+      expect(written).toContain(0.9);
+      expect(written.every((value: number) => value === 0.2 || value === 0.9)).toBe(
+        true,
+      );
+      expect(fader!.gain.linearRampToValueAtTime).not.toHaveBeenCalled();
+    } finally {
+      automation.lanes.set([]);
+      if (original === undefined) {
+        delete (globalThis as any).OfflineAudioContext;
+      } else {
+        (globalThis as any).OfflineAudioContext = original;
+      }
+    }
+  });
+
+  it("carries step lanes through the shared renderer in a stem bounce", async () => {
+    const automation = TestBed.inject(AutomationService);
+    const gains: any[] = [];
+    const param = () => ({
+      value: 0,
+      setValueAtTime: jest.fn(),
+      linearRampToValueAtTime: jest.fn(),
+      setTargetAtTime: jest.fn(),
+    });
+    const rendered = {
+      duration: 3,
+      length: 3 * 44100,
+      sampleRate: 44100,
+      numberOfChannels: 2,
+      getChannelData: () => new Float32Array(3 * 44100),
+    };
+    const offline: any = {
+      destination: {},
+      sampleRate: 44100,
+      createGain: jest.fn(() => {
+        const node = { gain: param(), connect: jest.fn() };
+        gains.push(node);
+        return node;
+      }),
+      createStereoPanner: jest.fn(() => ({ pan: param(), connect: jest.fn() })),
+      createBiquadFilter: jest.fn(() => ({
+        type: "lowpass",
+        frequency: param(),
+        Q: param(),
+        gain: param(),
+        connect: jest.fn(),
+      })),
+      createConvolver: jest.fn(() => ({ buffer: null, connect: jest.fn() })),
+      createDelay: jest.fn(() => ({ delayTime: param(), connect: jest.fn() })),
+      createBufferSource: jest.fn(() => ({
+        buffer: null,
+        connect: jest.fn(),
+        playbackRate: param(),
+        start: jest.fn(),
+        stop: jest.fn(),
+      })),
+      startRendering: jest.fn().mockResolvedValue(rendered),
+    };
+    const original = (globalThis as any).OfflineAudioContext;
+    (globalThis as any).OfflineAudioContext = jest.fn(() => offline);
+    mockMusicManager.tracks = () => [
+      {
+        id: "lead",
+        name: "Lead",
+        type: "midi",
+        muted: false,
+        soloed: false,
+        gain: 0.53,
+        volume: 0.53,
+        pan: 0,
+        sendA: 0,
+        sendB: 0,
+        notes: [],
+        clips: [],
+        synthParams: { type: "sine" },
+      },
+    ];
+    mockMusicManager.activeLoopBars = jest.fn(() => 1);
+    mockMusicManager.prepareTrackSamples = jest.fn(async () => undefined);
+    automation.lanes.set([
+      {
+        id: "lane-lead-volume-step",
+        target: { trackId: "lead", parameter: "volume" },
+        points: [
+          { time: 0, value: 0.2 },
+          { time: 1, value: 0.9 },
+        ],
+        enabled: true,
+        interpolation: "step" as const,
+        modulationDepth: 0,
+      },
+    ]);
+
+    try {
+      const result = await service.bounceTrack("lead");
+      expect(result).toBeTruthy();
+      if (result) URL.revokeObjectURL(result.url);
+
+      // The stem render goes through ExportService, so the step lane reaches
+      // the track fader as a step — never as a ramp.
+      const fader = gains.find((node) => node.gain.value === 0.53);
+      expect(fader).toBeTruthy();
+      const written = fader!.gain.setValueAtTime.mock.calls.map(
+        ([value]: [number]) => value,
+      );
+      expect(written).toContain(0.2);
+      expect(written).toContain(0.9);
+      expect(written.every((value: number) => value === 0.2 || value === 0.9)).toBe(
+        true,
+      );
+      expect(fader!.gain.linearRampToValueAtTime).not.toHaveBeenCalled();
+    } finally {
+      automation.lanes.set([]);
+      if (original === undefined) {
+        delete (globalThis as any).OfflineAudioContext;
+      } else {
+        (globalThis as any).OfflineAudioContext = original;
+      }
+    }
   });
 });

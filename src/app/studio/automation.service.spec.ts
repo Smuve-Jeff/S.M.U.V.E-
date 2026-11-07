@@ -50,6 +50,26 @@ describe("AutomationService", () => {
     expect(value).toBeLessThan(0.8);
   });
 
+  it("eases a bezier lane across the whole segment", () => {
+    const lane = service.addLane("1", "gain", { interpolation: "bezier" });
+    service.addPoint(lane.id, 0, 0);
+    service.addPoint(lane.id, 4, 1);
+
+    const at = (time: number) => service.getValueAtTime(lane.id, time)!;
+
+    expect(at(0)).toBeCloseTo(0, 5);
+    expect(at(4)).toBeCloseTo(1, 5);
+    // The lookup used to mix a normalised time into an absolute-time curve,
+    // pinning the lane to its start value until the endpoint snapped.
+    expect(at(2)).toBeCloseTo(0.5, 1);
+    expect(at(1)).toBeGreaterThan(0.1);
+    expect(at(1)).toBeLessThan(0.35);
+    expect(at(3)).toBeGreaterThan(0.65);
+    expect(at(3)).toBeLessThan(0.9);
+    expect(at(1)).toBeLessThan(at(2));
+    expect(at(2)).toBeLessThan(at(3));
+  });
+
   it("samples CC lanes into the normalized curve a voice consumes", () => {
     for (const parameter of [
       "cc_modulation",
