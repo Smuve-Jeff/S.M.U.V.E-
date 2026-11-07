@@ -137,6 +137,16 @@ export class ReleaseReadinessService {
     );
     const score = Math.round((mastered.length / tracks.length) * 100);
     const unfinished = tracks.filter((track) => !mastered.includes(track));
+    const delivered = tracks.filter((track) => track.masterDelivery);
+    const evidence = [
+      `${mastered.length} of ${tracks.length} track${tracks.length === 1 ? '' : 's'} finished every stage.`,
+      // A checklist tick is the artist's word; a delivery is measured from the
+      // file that left the Studio, so the two are reported separately.
+      ...delivered.map((track) => {
+        const delivery = track.masterDelivery!;
+        return `"${track.title}" has a delivered master measured at ${delivery.lufs} LUFS / ${delivery.truePeakDb} dBTP against ${delivery.targetLabel} (${delivery.allPass ? 'pass' : 'miss'}).`;
+      }),
+    ];
 
     return {
       id: 'production',
@@ -146,9 +156,7 @@ export class ReleaseReadinessService {
       score,
       // Stage flags are the artist's own checklist state, not a verified export.
       provenance: 'inferred',
-      evidence: [
-        `${mastered.length} of ${tracks.length} track${tracks.length === 1 ? '' : 's'} finished every stage.`,
-      ],
+      evidence,
       gaps: unfinished.map((track) => `Finish "${track.title}" through mastering.`),
     };
   }

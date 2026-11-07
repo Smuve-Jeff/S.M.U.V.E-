@@ -1,4 +1,62 @@
 <div class="export-surface-shell">
+  <!-- One resolver for every place a master can leave: review, receipt, or
+       the top-level Share action. Resolving a field re-uses the collaboration
+       service's own LWW decision path. -->
+  <ng-template #conflictGate>
+    <div
+      class="export-conflicts"
+      *ngIf="collaborationConflicts().length"
+      role="status"
+      aria-live="polite"
+    >
+      <p class="export-conflicts-kicker">
+        Collaboration check · {{ collaborationConflictCount() }} unresolved
+        {{ collaborationConflictCount() === 1 ? 'edit' : 'edits' }}
+      </p>
+      <p class="export-conflicts-lede">
+        A collaborator changed these fields. Exporting or filing now could ship
+        a version they have not seen.
+      </p>
+      <ul class="export-conflicts-list">
+        <li
+          *ngFor="let conflict of collaborationConflicts(); trackBy: trackConflict"
+        >
+          <p class="export-conflicts-head">
+            {{ trackName(conflict.trackId) }} ·
+            {{ conflictFieldLabel(conflict.fieldKey) }}
+          </p>
+          <div class="export-conflict-values">
+            <p>
+              <span>Yours</span>
+              {{ formatConflictValue(conflict.localValue) }}
+            </p>
+            <p>
+              <span>{{ conflict.remoteUserName || 'Collaborator' }}</span>
+              {{ formatConflictValue(conflict.remoteValue) }}
+            </p>
+          </div>
+          <div class="export-conflict-actions">
+            <button
+              type="button"
+              (click)="resolveCollaborationConflict(conflict, 'mine')"
+              [disabled]="busy() || filingRelease()"
+            >
+              Keep mine
+            </button>
+            <button
+              type="button"
+              class="primary"
+              (click)="resolveCollaborationConflict(conflict, 'theirs')"
+              [disabled]="busy() || filingRelease()"
+            >
+              Use theirs
+            </button>
+          </div>
+        </li>
+      </ul>
+    </div>
+  </ng-template>
+
   <div class="export-options" role="group" aria-label="Export options">
     <label class="export-field">
       <span>Format</span>
@@ -103,6 +161,10 @@
     </p>
   </div>
 
+  <ng-container *ngIf="!pendingExport() && !deliveryReceipt() && !analysis()">
+    <ng-container *ngTemplateOutlet="conflictGate"></ng-container>
+  </ng-container>
+
   <div class="export-actions">
     <button
       type="button"
@@ -144,7 +206,7 @@
     <button
       type="button"
       (click)="shareExport()"
-      [disabled]="busy()"
+      [disabled]="busy() || collaborationBlocked()"
     >
       Share Mixdown
     </button>
@@ -269,11 +331,21 @@
         Refresh master
       </button>
     </div>
+    <ng-container *ngTemplateOutlet="conflictGate"></ng-container>
     <div class="export-analysis-actions" *ngIf="pendingExport()">
-      <button type="button" class="primary" (click)="confirmExport()">
+      <button
+        type="button"
+        class="primary"
+        (click)="confirmExport()"
+        [disabled]="collaborationBlocked()"
+      >
         Export Anyway
       </button>
-      <button type="button" (click)="shareExport()" [disabled]="busy()">
+      <button
+        type="button"
+        (click)="shareExport()"
+        [disabled]="busy() || collaborationBlocked()"
+      >
         Share
       </button>
       <button type="button" (click)="openMasteringFromReview()">
@@ -295,5 +367,74 @@
     >
       Open Mastering
     </button>
+  </div>
+
+  <!-- The delivered file is the handoff to release, not the end of the flow. -->
+  <div
+    class="export-receipt"
+    *ngIf="!pendingExport() && deliveryReceipt() as receipt"
+    role="status"
+    aria-live="polite"
+  >
+    <p class="export-receipt-kicker">Delivered master · ready to file</p>
+    <p class="export-receipt-file">{{ receipt.fileName }}</p>
+    <p
+      class="export-receipt-target"
+      [class.miss]="!receipt.comparison.allPass"
+    >
+      {{ receipt.comparison.allPass ? 'PASS' : 'MISS' }} ·
+      {{ receipt.comparison.targetLabel }} · {{ receipt.formatLabel }} ·
+      {{ rateLabel(receipt.sampleRate) }}
+    </p>
+
+    <ng-container *ngTemplateOutlet="conflictGate"></ng-container>
+
+    <ng-container *ngIf="releaseFiling() as filing; else fileAction">
+      <p class="export-receipt-filed">
+        Filed to “{{ filing.releaseName }}”
+        <ng-container
+          *ngIf="
+            filing.trackTitle.trim().toLowerCase() !==
+            filing.releaseName.trim().toLowerCase()
+          "
+        >
+          · {{ filing.trackTitle }}
+        </ng-container>
+      </p>
+      <button
+        type="button"
+        class="export-receipt-done"
+        (click)="dismissDeliveryReceipt()"
+      >
+        Done
+      </button>
+    </ng-container>
+
+    <ng-template #fileAction>
+      <div class="export-receipt-actions">
+        <button
+          type="button"
+          class="primary"
+          (click)="fileDeliveryForRelease()"
+          [disabled]="filingRelease() || collaborationBlocked()"
+        >
+          {{
+            filingRelease()
+              ? 'Filing…'
+              : activeRelease()
+                ? 'Add to release'
+                : 'Start release'
+          }}
+        </button>
+        <button
+          type="button"
+          class="ghost"
+          (click)="dismissDeliveryReceipt()"
+          [disabled]="filingRelease()"
+        >
+          Dismiss
+        </button>
+      </div>
+    </ng-template>
   </div>
 </div>

@@ -828,4 +828,105 @@ describe('ReleasePipelineService', () => {
     expect(service.activeRelease()?.status).toBe('Released');
     expect(marketingServiceSpy.createCampaign).not.toHaveBeenCalled();
   });
+
+  describe('master delivery evidence', () => {
+    const evidence = (overrides: Record<string, unknown> = {}) => ({
+      fileName: 'Demo_Set_1.wav',
+      formatLabel: 'WAV 24-bit',
+      sampleRate: 44100,
+      method: 'download' as const,
+      deliveredAt: 1_700_000_000_000,
+      targetId: 'spotify',
+      targetLabel: 'Spotify · streaming',
+      lufs: -14.2,
+      truePeakDb: -1.2,
+      correlation: 0.4,
+      allPass: true,
+      ...overrides,
+    });
+
+    it('starts a single-track release when there is no active release', async () => {
+      const filing = await service.fileMasterDelivery(
+        'proj-1',
+        'Demo Set',
+        evidence(),
+      );
+
+      expect(filing).toMatchObject({
+        releaseName: 'Demo Set',
+        trackTitle: 'Demo Set',
+        releaseCreated: true,
+        trackCreated: true,
+      });
+      const release = service.activeRelease()!;
+      expect(release.type).toBe('Single');
+      expect(release.tracks).toHaveLength(1);
+      expect(release.tracks[0]).toMatchObject({
+        studioProjectId: 'proj-1',
+        masterDelivery: expect.objectContaining({
+          lufs: -14.2,
+          targetLabel: 'Spotify · streaming',
+          allPass: true,
+          method: 'download',
+        }),
+        stages: expect.objectContaining({ mastering: 'Completed' }),
+      });
+      expect(profileServiceSpy.updateProfile).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          knowledgeBase: expect.objectContaining({
+            currentRelease: expect.objectContaining({
+              tracks: expect.arrayContaining([
+                expect.objectContaining({
+                  masterDelivery: expect.objectContaining({ fileName: 'Demo_Set_1.wav' }),
+                }),
+              ]),
+            }),
+          }),
+        }),
+      );
+    });
+
+    it('files into the matching track without duplicating it', async () => {
+      await service.initializeRelease('Test Album', 'Album');
+      await service.addTrack('Test Album');
+
+      const filing = await service.fileMasterDelivery(
+        'proj-9',
+        'Test Album',
+        evidence({ lufs: -11.4, truePeakDb: -0.2, allPass: false }),
+      );
+
+      expect(filing.trackCreated).toBe(false);
+      expect(service.activeRelease()?.tracks).toHaveLength(1);
+      const track = service.activeRelease()!.tracks[0];
+      expect(track.studioProjectId).toBe('proj-9');
+      expect(track.masterDelivery).toMatchObject({
+        lufs: -11.4,
+        allPass: false,
+      });
+      // A delivered miss is evidence, not a completed mastering stage.
+      expect(track.stages.mastering).toBe('Pending');
+    });
+
+    it('updates a linked track by project id even after a rename', async () => {
+      await service.initializeRelease('Test Album', 'Album');
+      await service.addTrack('Working Title');
+      await service.fileMasterDelivery(
+        'proj-3',
+        'Working Title',
+        evidence(),
+      );
+
+      await service.fileMasterDelivery(
+        'proj-3',
+        'Final Title',
+        evidence({ fileName: 'Final_Title_2.wav', allPass: false }),
+      );
+
+      const tracks = service.activeRelease()!.tracks;
+      expect(tracks).toHaveLength(1);
+      expect(tracks[0].masterDelivery?.fileName).toBe('Final_Title_2.wav');
+      expect(tracks[0].studioProjectId).toBe('proj-3');
+    });
+  });
 });

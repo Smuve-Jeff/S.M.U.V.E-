@@ -1,6 +1,7 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { UserProfile, UserProfileService } from './user-profile.service';
 import {
+  MasterDeliveryEvidence,
   ReleaseProject,
   ProductionTrack,
   ReleaseType,
@@ -40,6 +41,14 @@ export type PlannedDateUndoResult =
   | 'no-reconciliation'
   | 'work-missing'
   | 'date-changed';
+
+/** What filing a delivered master changed in the release pipeline. */
+export interface MasterDeliveryFiling {
+  releaseName: string;
+  trackTitle: string;
+  releaseCreated: boolean;
+  trackCreated: boolean;
+}
 
 @Injectable({
   providedIn: 'root',
@@ -82,8 +91,105 @@ export class ReleasePipelineService {
   }
 
   async initializeRelease(name: string, type: ReleaseType): Promise<void> {
+    const newRelease = this.createRelease(name, type);
+
+    this.activeRelease.set(newRelease);
+    await this.saveToProfile(newRelease);
+    this.logger.info('ReleasePipeline: Initialized new release', name);
+  }
+
+  /**
+   * File a master that left the Studio against the release it belongs to.
+   *
+   * The evidence is attached to the matching track (by Studio project id first,
+   * then by an unlinked title match) and the track is created when the artist
+   * has no release yet, so finishing a mix does not dead-end in a download.
+   * Only a passing delivery marks mastering complete; a measured miss stays a
+   * miss and the stage is left alone.
+   */
+  async fileMasterDelivery(
+    projectId: string,
+    projectTitle: string,
+    evidence: MasterDeliveryEvidence,
+  ): Promise<MasterDeliveryFiling> {
+    const title =
+      (projectTitle || '').trim() ||
+      evidence.fileName.replace(/\.[^.]+$/, '') ||
+      'Untitled';
+    let release = this.activeRelease();
+    let releaseCreated = false;
+    if (!release) {
+      release = this.createRelease(title, 'Single');
+      releaseCreated = true;
+    }
+
+    const normalizedTitle = normalizeReleaseTitle(title);
+    const linked = projectId
+      ? release.tracks.find((track) => track.studioProjectId === projectId)
+      : undefined;
+    const unlinkedTitleMatch = release.tracks.find(
+      (track) =>
+        !track.studioProjectId &&
+        normalizeReleaseTitle(track.title) === normalizedTitle,
+    );
+    const existing = linked ?? unlinkedTitleMatch;
+    const trackCreated = !existing;
+
+    const nextTrack: ProductionTrack = existing
+      ? { ...existing, stages: { ...existing.stages } }
+      : {
+          id: `trk-${Date.now()}`,
+          title,
+          status: 'In Progress',
+          stages: {
+            instrumental: 'Pending',
+            lyrics: 'Pending',
+            vocals: 'Pending',
+            mixing: 'Pending',
+            mastering: 'Pending',
+          },
+        };
+
+    nextTrack.title = nextTrack.title || title;
+    if (projectId) nextTrack.studioProjectId = projectId;
+    nextTrack.masterDelivery = {
+      ...evidence,
+      projectId: evidence.projectId ?? projectId ?? undefined,
+    };
+    if (evidence.allPass) nextTrack.stages.mastering = 'Completed';
+    nextTrack.status = Object.values(nextTrack.stages).every(
+      (stage) => stage === 'Completed',
+    )
+      ? 'Completed'
+      : 'In Progress';
+
+    const tracks = existing
+      ? release.tracks.map((track) =>
+          track.id === existing.id ? nextTrack : track,
+        )
+      : [...release.tracks, nextTrack];
+    const updated: ReleaseProject = {
+      ...release,
+      tracks,
+      updatedAt: Date.now(),
+    };
+
+    this.activeRelease.set(updated);
+    await this.saveToProfile(updated);
+    this.logger.info(
+      `ReleasePipeline: Filed ${evidence.allPass ? 'passing' : 'missed'} master for ${title}`,
+    );
+    return {
+      releaseName: updated.name,
+      trackTitle: nextTrack.title,
+      releaseCreated,
+      trackCreated,
+    };
+  }
+
+  private createRelease(name: string, type: ReleaseType): ReleaseProject {
     const profile = this.profileService.profile();
-    const newRelease: ReleaseProject = {
+    return {
       id: `rel-${Date.now()}`,
       name,
       type,
@@ -99,10 +205,6 @@ export class ReleasePipelineService {
       createdAt: Date.now(),
       updatedAt: Date.now(),
     };
-
-    this.activeRelease.set(newRelease);
-    await this.saveToProfile(newRelease);
-    this.logger.info('ReleasePipeline: Initialized new release', name);
   }
 
   async addTrack(title: string): Promise<void> {

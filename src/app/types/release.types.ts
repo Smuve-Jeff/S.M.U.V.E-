@@ -2,6 +2,32 @@ export type ReleaseType = 'Album' | 'EP' | 'Mixtape' | 'Single';
 
 export type ProductionStageStatus = 'Pending' | 'In Progress' | 'Completed';
 
+/**
+ * The measurement of a master that actually left the Studio.
+ *
+ * This is evidence, not a checklist tick: it records the target the artist
+ * delivered against and the numbers measured from the encoded audio, so the
+ * release pipeline can tell a verified delivery from a stage the artist marked
+ * complete by hand. A miss is kept as a miss; filing a master never upgrades
+ * the verdict.
+ */
+export interface MasterDeliveryEvidence {
+  fileName: string;
+  formatLabel: string;
+  sampleRate: number;
+  /** `share` means a file was prepared for the share sheet, not a download. */
+  method: 'download' | 'share';
+  deliveredAt: number;
+  targetId: string;
+  targetLabel: string;
+  lufs: number;
+  truePeakDb: number;
+  correlation: number;
+  allPass: boolean;
+  /** The Studio project this master came from, when it is known. */
+  projectId?: string;
+}
+
 export interface ProductionTrack {
   id: string;
   title: string;
@@ -14,6 +40,8 @@ export interface ProductionTrack {
     mastering: ProductionStageStatus;
   };
   studioProjectId?: string;
+  /** Present only after a mastered file was delivered from the Studio. */
+  masterDelivery?: MasterDeliveryEvidence;
 }
 
 export interface ReleaseProject {

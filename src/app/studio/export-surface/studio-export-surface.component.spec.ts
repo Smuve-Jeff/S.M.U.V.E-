@@ -5,15 +5,43 @@ import { StudioExportSurfaceComponent } from "./studio-export-surface.component"
 import { ExportService } from "../../services/export.service";
 import { ProjectWorkspaceService } from "../project-workspace.service";
 import { ExportReviewService } from "./export-review.service";
+import { ReleasePipelineService } from "../../services/release-pipeline.service";
+import { CollaborationService } from "../../services/collaboration.service";
+import { MusicManagerService } from "../../services/music-manager.service";
 
 describe("StudioExportSurfaceComponent", () => {
   let fixture: ComponentFixture<StudioExportSurfaceComponent>;
   let component: StudioExportSurfaceComponent;
 
-  const metadata = signal<{ name: string } | null>({ name: "Demo Set" });
+  const metadata = signal<{ id?: string; name: string } | null>({
+    id: "proj-demo",
+    name: "Demo Set",
+  });
   const projectWorkspace = {
     metadata,
     downloadProjectBundle: jest.fn(),
+  };
+
+  const releasePipeline = {
+    activeRelease: signal<any>(null),
+    fileMasterDelivery: jest.fn(),
+  };
+
+  const conflicts = signal<any[]>([]);
+  const collaboration = {
+    pendingConflicts: conflicts,
+    resolveConflict: jest.fn((trackId: string, fieldKey: string) => {
+      conflicts.update((list) =>
+        list.filter(
+          (conflict) =>
+            !(conflict.trackId === trackId && conflict.fieldKey === fieldKey),
+        ),
+      );
+    }),
+  };
+
+  const musicManager = {
+    tracks: signal([{ id: "track-1", name: "Lead Vocal" }]),
   };
 
   const wavBlob = () => new Blob(["wav"], { type: "audio/wav" });
@@ -34,7 +62,11 @@ describe("StudioExportSurfaceComponent", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     localStorage.clear();
-    metadata.set({ name: "Demo Set" });
+    metadata.set({ id: "proj-demo", name: "Demo Set" });
+    releasePipeline.activeRelease.set(null);
+    releasePipeline.fileMasterDelivery.mockReset();
+    conflicts.set([]);
+    collaboration.resolveConflict.mockClear();
     exportService.renderProjectOffline.mockResolvedValue({});
     exportService.masterRetainedMix.mockResolvedValue({});
     exportService.applySmuvePolish.mockResolvedValue({});
@@ -56,6 +88,9 @@ describe("StudioExportSurfaceComponent", () => {
       providers: [
         { provide: ExportService, useValue: exportService },
         { provide: ProjectWorkspaceService, useValue: projectWorkspace },
+        { provide: ReleasePipelineService, useValue: releasePipeline },
+        { provide: CollaborationService, useValue: collaboration },
+        { provide: MusicManagerService, useValue: musicManager },
         ExportReviewService,
       ],
     });
@@ -239,6 +274,156 @@ describe("StudioExportSurfaceComponent", () => {
       // Re-mastered at delivery, so the numbers are equal, not the same object.
       expect(component.analysis()).toEqual(measured);
       expect(component.feedback()?.tone).toBe("ok");
+    });
+
+    it("files the delivered master into the release pipeline as evidence", async () => {
+      await component.exportMixdown();
+      await component.confirmExport();
+
+      const receipt = component.deliveryReceipt();
+      expect(receipt).not.toBeNull();
+      expect(receipt?.comparison.targetId).toBe("spotify");
+
+      releasePipeline.fileMasterDelivery.mockResolvedValue({
+        releaseName: "Demo Set",
+        trackTitle: "Demo Set",
+        releaseCreated: true,
+        trackCreated: true,
+      });
+
+      await component.fileDeliveryForRelease();
+
+      expect(releasePipeline.fileMasterDelivery).toHaveBeenCalledWith(
+        "proj-demo",
+        "Demo Set",
+        expect.objectContaining({
+          method: "download",
+          targetId: "spotify",
+          lufs: -11.5,
+          truePeakDb: -1.2,
+          correlation: 0.62,
+          // The numbers are a measured miss against -14 +/-1; filing must not
+          // turn that into a pass.
+          allPass: false,
+        }),
+      );
+      expect(component.releaseFiling()).toMatchObject({
+        releaseName: "Demo Set",
+        trackTitle: "Demo Set",
+      });
+      expect(component.feedback()?.text).toContain("Started");
+    });
+
+    it("does not file a delivered master while a collaborator edit is unresolved", async () => {
+      await component.exportMixdown();
+      await component.confirmExport();
+      expect(component.deliveryReceipt()).not.toBeNull();
+
+      conflicts.set([
+        {
+          trackId: "track-1",
+          fieldKey: "volume",
+          localValue: 0.8,
+          remoteValue: 0.5,
+          remoteUserId: "user-2",
+          remoteUserName: "Nova",
+          remoteAtMs: 1,
+        },
+      ]);
+      releasePipeline.fileMasterDelivery.mockResolvedValue({
+        releaseName: "Demo Set",
+        trackTitle: "Demo Set",
+        releaseCreated: true,
+        trackCreated: true,
+      });
+
+      await component.fileDeliveryForRelease();
+
+      expect(releasePipeline.fileMasterDelivery).not.toHaveBeenCalled();
+      expect(component.releaseFiling()).toBeNull();
+      expect(component.deliveryReceipt()).not.toBeNull();
+      expect(component.feedback()?.text).toContain(
+        "before filing this master",
+      );
+    });
+
+    it("blocks delivery while a collaborator edit is unresolved", async () => {
+      conflicts.set([
+        {
+          trackId: "track-1",
+          fieldKey: "volume",
+          localValue: 0.8,
+          remoteValue: 0.5,
+          remoteUserId: "user-2",
+          remoteUserName: "Nova",
+          remoteAtMs: 1,
+        },
+      ]);
+      await component.exportMixdown();
+
+      await component.confirmExport();
+
+      expect(exportService.downloadBlob).not.toHaveBeenCalled();
+      expect(component.pendingExport()).not.toBeNull();
+      expect(component.feedback()?.text).toContain(
+        "Resolve 1 unresolved collaborator edit before exporting this master",
+      );
+
+      component.resolveCollaborationConflict(conflicts()[0], "mine");
+      expect(conflicts()).toHaveLength(0);
+      expect(component.pendingExport()).not.toBeNull();
+
+      await component.confirmExport();
+      expect(exportService.downloadBlob).toHaveBeenCalled();
+    });
+
+    it("invalidates a measured review when the collaborator's value is applied", async () => {
+      await component.exportMixdown();
+      conflicts.set([
+        {
+          trackId: "track-1",
+          fieldKey: "volume",
+          localValue: 0.8,
+          remoteValue: 0.5,
+          remoteUserId: "user-2",
+          remoteUserName: "Nova",
+          remoteAtMs: 1,
+        },
+      ]);
+
+      component.resolveCollaborationConflict(conflicts()[0], "theirs");
+
+      expect(conflicts()).toHaveLength(0);
+      expect(component.pendingExport()).toBeNull();
+      expect(component.analysis()).toBeNull();
+      expect(component.feedback()?.text).toContain(
+        "render a fresh mixdown before exporting",
+      );
+    });
+
+    it("renders the conflicting values and the two resolution choices", async () => {
+      conflicts.set([
+        {
+          trackId: "track-1",
+          fieldKey: "volume",
+          localValue: 0.8,
+          remoteValue: 0.5,
+          remoteUserId: "user-2",
+          remoteUserName: "Nova",
+          remoteAtMs: 1,
+        },
+      ]);
+      await component.exportMixdown();
+      fixture.detectChanges();
+
+      const text = fixture.nativeElement.textContent;
+      expect(text).toContain("Lead Vocal · volume");
+      expect(text).toContain("Yours");
+      expect(text).toContain("0.8");
+      expect(text).toContain("Nova");
+      expect(text).toContain("0.5");
+      expect(text).toContain("Keep mine");
+      expect(text).toContain("Use theirs");
     });
 
     it("does not start a second render while a decision is pending", async () => {

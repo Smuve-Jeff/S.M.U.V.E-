@@ -20,14 +20,38 @@ import {
   DELIVERY_TARGETS,
   compareToDeliveryTarget,
   describeExportAnalysis,
+  type DeliveryComparison,
   type ExportAnalysisVerdict,
 } from "./export-analysis.util";
 import {
   ExportReviewService,
   type PendingMixdown,
 } from "./export-review.service";
+import {
+  ReleasePipelineService,
+  type MasterDeliveryFiling,
+} from "../../services/release-pipeline.service";
+import {
+  CollaborationService,
+  type ProjectConflict,
+} from "../../services/collaboration.service";
+import { MusicManagerService } from "../../services/music-manager.service";
 
 type ExportFeedback = { tone: "ok" | "error"; text: string };
+
+/** A master that left the Studio, kept until the artist files or dismisses it. */
+interface DeliveryReceipt {
+  fileName: string;
+  formatLabel: string;
+  sampleRate: number;
+  method: "download" | "share";
+  deliveredAt: number;
+  projectId: string;
+  projectTitle: string;
+  analysis: ExportAnalysisVerdict;
+  /** Frozen at delivery: later target changes cannot rewrite this receipt. */
+  comparison: DeliveryComparison;
+}
 
 /** A saved delivery setup: the same options a finished release needs twice. */
 export interface ExportPreset {
@@ -100,6 +124,9 @@ export class StudioExportSurfaceComponent {
   private readonly exportService = inject(ExportService);
   private readonly projectWorkspace = inject(ProjectWorkspaceService);
   private readonly exportReview = inject(ExportReviewService);
+  private readonly releasePipeline = inject(ReleasePipelineService);
+  private readonly collaboration = inject(CollaborationService);
+  private readonly musicManager = inject(MusicManagerService);
 
   constructor() {
     // The Export view is recreated after a visit to Mastering. Pick the review
@@ -154,6 +181,25 @@ export class StudioExportSurfaceComponent {
   readonly pendingExport = signal<PendingMixdown | null>(null);
   /** Set when Mastering was opened after this render, so the master may differ. */
   readonly reviewNeedsRefresh = signal(false);
+  /** The delivered master, so the next step can be a release rather than a note. */
+  readonly deliveryReceipt = signal<DeliveryReceipt | null>(null);
+  readonly releaseFiling = signal<MasterDeliveryFiling | null>(null);
+  readonly filingRelease = signal(false);
+  /** Lets the receipt label the action before it has been filed. */
+  readonly activeRelease = this.releasePipeline.activeRelease;
+  /**
+   * Peer edits that collided with the local project. A master measured before
+   * one of these is a different version from what the collaborators see.
+   */
+  readonly collaborationConflicts = this.collaboration.pendingConflicts.asReadonly();
+  readonly collaborationConflictCount = computed(
+    () => this.collaborationConflicts().length,
+  );
+  readonly collaborationBlocked = computed(
+    () => this.collaborationConflictCount() > 0,
+  );
+  readonly trackConflict = (_: number, conflict: ProjectConflict) =>
+    `${conflict.trackId}:${conflict.fieldKey}`;
 
   /** The destination this master is judged against; remembered across sessions. */
   readonly deliveryTargets = DELIVERY_TARGETS;
@@ -288,6 +334,10 @@ export class StudioExportSurfaceComponent {
   async exportMixdown() {
     if (this.busy() || this.pendingExport()) return;
 
+    // A new render replaces the previous delivery; its receipt is not evidence
+    // for the master that is about to be measured.
+    this.deliveryReceipt.set(null);
+    this.releaseFiling.set(null);
     this.begin("Rendering mixdown…", true);
     try {
       // Render the arrangement without the master chain. The mix is retained,
@@ -347,6 +397,7 @@ export class StudioExportSurfaceComponent {
     if (this.busy()) return;
     const pending = this.pendingExport();
     if (!pending) return;
+    if (this.blockOnCollaborationConflicts("exporting this master")) return;
 
     // Mastering is applied to the retained mix at delivery time, so a download
     // never ships a master the artist has already moved past.
@@ -389,6 +440,13 @@ export class StudioExportSurfaceComponent {
       const filename = `${this.projectBase()}_${Date.now()}.${extension}`;
       this.exportService.downloadBlob(blob, filename);
       this.progress.set(100);
+      this.analysis.set(analysis);
+      if (analysis) {
+        this.deliveryReceipt.set(
+          this.buildDeliveryReceipt(filename, "download", analysis, pending),
+        );
+      }
+      this.releaseFiling.set(null);
       this.finish("ok", `Downloaded ${filename}`);
     } catch (error) {
       // The reviewed file was never delivered; its measurements no longer
@@ -448,6 +506,7 @@ export class StudioExportSurfaceComponent {
 
   /** Encode and share the retained mix at the review's captured settings. */
   private async shareReviewedMaster(pending: PendingMixdown): Promise<void> {
+    if (this.blockOnCollaborationConflicts("sharing this master")) return;
     this.begin(`Preparing ${pending.formatLabel} for sharing…`);
     try {
       const current = await this.masterPending(pending);
@@ -472,6 +531,12 @@ export class StudioExportSurfaceComponent {
       // download fallback here, so the artist can still download or share again.
       this.analysis.set(current.analysis);
       this.reviewNeedsRefresh.set(false);
+      this.deliveryReceipt.set(
+        current.analysis
+          ? this.buildDeliveryReceipt(filename, "share", current.analysis, pending)
+          : null,
+      );
+      this.releaseFiling.set(null);
       this.exportReview.keep(pending, current.analysis, this.projectBase());
       this.finish(
         "ok",
@@ -616,6 +681,7 @@ export class StudioExportSurfaceComponent {
    */
   async shareExport() {
     if (this.busy()) return;
+    if (this.blockOnCollaborationConflicts("sharing a master")) return;
     const pending = this.pendingExport();
     if (pending) {
       await this.shareReviewedMaster(pending);
@@ -637,6 +703,171 @@ export class StudioExportSurfaceComponent {
     } catch (error) {
       this.fail("Share failed", error);
     }
+  }
+
+  /**
+   * Never ship or file a master while a collaborator edit is unresolved.
+   * Returns true when the action was blocked so the caller can stop.
+   */
+  private blockOnCollaborationConflicts(action: string): boolean {
+    const count = this.collaborationConflictCount();
+    if (count === 0) return false;
+    this.feedback.set({
+      tone: "error",
+      text: `Resolve ${count} unresolved collaborator edit${count === 1 ? "" : "s"} before ${action}.`,
+    });
+    return true;
+  }
+
+  /**
+   * Resolve one peer collision from the export review. Keeping the local value
+   * leaves the measured master valid; applying theirs changes the project, so a
+   * review or receipt measured before it can no longer describe the session.
+   */
+  resolveCollaborationConflict(
+    conflict: ProjectConflict,
+    decision: "mine" | "theirs",
+  ): void {
+    const hadReview = this.pendingExport() !== null;
+    const hadReceipt = this.deliveryReceipt() !== null;
+
+    this.collaboration.resolveConflict(
+      conflict.trackId,
+      conflict.fieldKey,
+      decision,
+    );
+
+    if (decision === "theirs") {
+      if (hadReview) this.discardPendingExport();
+      if (hadReceipt) {
+        this.deliveryReceipt.set(null);
+        this.releaseFiling.set(null);
+      }
+      this.feedback.set({
+        tone: "ok",
+        text: hadReview
+          ? "Collaborator edit applied — render a fresh mixdown before exporting."
+          : hadReceipt
+            ? "Collaborator edit applied — export a fresh master before filing."
+            : "Collaborator edit applied to the project.",
+      });
+      return;
+    }
+
+    this.feedback.set({
+      tone: "ok",
+      text: "Kept your version. The measured master still matches this project.",
+    });
+  }
+
+  trackName(trackId: string): string {
+    return (
+      this.musicManager.tracks().find((track) => track.id === trackId)?.name ||
+      "Unnamed track"
+    );
+  }
+
+  conflictFieldLabel(fieldKey: string): string {
+    return (fieldKey || "edit")
+      .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+      .replace(/[_-]+/g, " ")
+      .trim();
+  }
+
+  formatConflictValue(value: unknown): string {
+    if (value === null || value === undefined) return "(empty)";
+    if (typeof value === "string") return value.trim() || "(empty)";
+    if (typeof value === "number" || typeof value === "boolean") {
+      return String(value);
+    }
+    try {
+      const json = JSON.stringify(value);
+      if (typeof json !== "string") return String(value);
+      return json.length > 72 ? `${json.slice(0, 69)}…` : json;
+    } catch {
+      return "(unreadable value)";
+    }
+  }
+
+  private buildDeliveryReceipt(
+    fileName: string,
+    method: DeliveryReceipt["method"],
+    analysis: ExportAnalysisVerdict,
+    pending: PendingMixdown,
+  ): DeliveryReceipt {
+    const metadata = this.projectWorkspace.metadata();
+    return {
+      fileName,
+      formatLabel: pending.formatLabel,
+      sampleRate: pending.sampleRate,
+      method,
+      deliveredAt: Date.now(),
+      projectId: metadata?.id ?? "",
+      projectTitle: metadata?.name || "Untitled",
+      analysis,
+      comparison: compareToDeliveryTarget(analysis, this.deliveryTarget()),
+    };
+  }
+
+  /**
+   * Attach the delivered master to the release pipeline. The measurement is
+   * carried as evidence; a passing target completes mastering, a miss is
+   * recorded as a miss rather than silently ticking the stage.
+   */
+  async fileDeliveryForRelease(): Promise<void> {
+    const receipt = this.deliveryReceipt();
+    if (!receipt || this.filingRelease() || this.releaseFiling()) return;
+    if (this.blockOnCollaborationConflicts("filing this master")) return;
+
+    this.filingRelease.set(true);
+    this.feedback.set(null);
+    try {
+      const filing = await this.releasePipeline.fileMasterDelivery(
+        receipt.projectId,
+        receipt.projectTitle,
+        {
+          fileName: receipt.fileName,
+          formatLabel: receipt.formatLabel,
+          sampleRate: receipt.sampleRate,
+          method: receipt.method,
+          deliveredAt: receipt.deliveredAt,
+          targetId: receipt.comparison.targetId,
+          targetLabel: receipt.comparison.targetLabel,
+          lufs: receipt.analysis.lufs,
+          truePeakDb: receipt.analysis.truePeakDb,
+          correlation: receipt.analysis.correlation,
+          allPass: receipt.comparison.allPass,
+          projectId: receipt.projectId || undefined,
+        },
+      );
+      this.releaseFiling.set(filing);
+      const sameName =
+        filing.releaseName.trim().toLowerCase() ===
+        filing.trackTitle.trim().toLowerCase();
+      const filed = sameName
+        ? `Filed to “${filing.releaseName}”`
+        : `Filed to “${filing.releaseName}” · ${filing.trackTitle}`;
+      this.feedback.set({
+        tone: "ok",
+        text: filing.releaseCreated
+          ? `Started “${filing.releaseName}” as a Single · master filed`
+          : filed,
+      });
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : "unknown error";
+      this.feedback.set({
+        tone: "error",
+        text: `Could not file this master in the release pipeline · ${detail}`,
+      });
+    } finally {
+      this.filingRelease.set(false);
+    }
+  }
+
+  dismissDeliveryReceipt(): void {
+    if (this.filingRelease()) return;
+    this.deliveryReceipt.set(null);
+    this.releaseFiling.set(null);
   }
 
   private begin(status: string, cancellable = false) {

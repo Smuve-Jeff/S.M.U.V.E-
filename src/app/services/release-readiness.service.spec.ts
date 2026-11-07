@@ -377,6 +377,32 @@ describe('ReleaseReadinessService', () => {
     );
   });
 
+  it('reports a delivered master as measured evidence, not another checklist tick', () => {
+    const delivered = finishedTrack('Window Light');
+    delivered.masterDelivery = {
+      fileName: 'Window_Light_1.wav',
+      formatLabel: 'WAV 24-bit',
+      sampleRate: 44100,
+      method: 'download',
+      deliveredAt: 1_700_000_000_000,
+      targetId: 'spotify',
+      targetLabel: 'Spotify · streaming',
+      lufs: -14.2,
+      truePeakDb: -1.2,
+      correlation: 0.4,
+      allPass: true,
+      projectId: 'proj-1',
+    };
+
+    const production = service
+      .assess(profile(), release({ tracks: [delivered] }))
+      .checks.find((check) => check.id === 'production')!;
+
+    expect(production.evidence.join(' ')).toContain(
+      'has a delivered master measured at -14.2 LUFS / -1.2 dBTP against Spotify · streaming (pass)'
+    );
+  });
+
   it('handles a null profile without inventing catalogue data', () => {
     const readiness = service.assess(null, release());
 
