@@ -5285,8 +5285,18 @@ export class AudioEngineService {
 
     if ((patch.gain !== undefined || patch.muted !== undefined) && fader) {
       const previous = this.tracksMap.get(idStr) ?? {};
-      const baseGain = patch.gain ?? previous.gain ?? 0.8;
-      const targetGain = patch.muted === true ? 0 : baseGain;
+      const rawGain = Number(
+        patch.gain ?? this.baseFaderGains.get(idStr) ?? previous.gain ?? 0.8,
+      );
+      const baseGain = Number.isFinite(rawGain)
+        ? Math.max(0, Math.min(1.5, rawGain))
+        : 0.8;
+      this.baseFaderGains.set(idStr, baseGain);
+      const muted = (patch.muted ?? previous.muted) === true;
+      const multiplier = this.vcaMultipliers.get(idStr) ?? 1;
+      const targetGain = muted
+        ? 0
+        : Math.max(0, Math.min(1.5, baseGain * multiplier));
       fader.gain.setTargetAtTime(targetGain, this.ctx.currentTime, 0.05);
     }
 

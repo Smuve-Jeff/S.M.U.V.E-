@@ -20,6 +20,7 @@ import { IdeaRecipe, IdeaTrack } from './ideas-generator.service';
 import { StudioRecordingEngineService } from '../studio/studio-recording-engine.service';
 import { LoggingService } from './logging.service';
 import { NotificationService } from './notification.service';
+import { isTrackAudibleUnderSolo } from './mix-routing.util';
 import { StudioDeviceProfileService } from './studio-device-profile.service';
 import {
   copyPatternName,
@@ -4777,8 +4778,7 @@ export class MusicManagerService {
     const track = this.tracks().find((t) => t.id === trackId);
     if (!track || track.frozenBackup) return false;
     if (track.type === "audio") return false;
-    const hasSolo = this.tracks().some((t) => t.soloed);
-    if (track.muted || (hasSolo && !track.soloed && !track.soloSafe)) {
+    if (track.type === 'bus' || !isTrackAudibleUnderSolo(track, this.tracks())) {
       return false;
     }
     if (this.offlineBounce.isBouncing()) return false;
@@ -4947,9 +4947,8 @@ export class MusicManagerService {
 
   private preparePlaybackSamples(): Promise<void> | void {
     const allTracks = this.tracks();
-    const hasSolo = allTracks.some((track) => track.soloed);
     const tracks = allTracks.filter((track) =>
-      !track.muted && (!hasSolo || track.soloed || track.soloSafe) &&
+      isTrackAudibleUnderSolo(track, allTracks) &&
       track.type !== 'audio' && this.instruments.isSamplePreset?.(track.instrumentId));
     if (!tracks.length) return;
     return Promise.all(tracks.map((track) => this.prepareTrackSamples(track))).then(() => undefined);
@@ -4979,9 +4978,8 @@ export class MusicManagerService {
     const swungTime = time + tickSeconds(swungTicks);
 
     const allTracks = this.tracks();
-    const hasSolo = allTracks.some((t) => t.soloed);
     allTracks
-      .filter((t) => !t.muted && (!hasSolo || t.soloed || t.soloSafe))
+      .filter((t) => isTrackAudibleUnderSolo(t, allTracks))
       .forEach((t) => {
 
       // Track gain is one fader stage, exactly like the offline bounce's

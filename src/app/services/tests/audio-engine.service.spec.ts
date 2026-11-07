@@ -636,8 +636,24 @@ describe('AudioEngineService', () => {
 
     (service as any).scheduler();
 
-    expect(scheduled).toHaveBeenNthCalledWith(1, 0, 0.01, 0.0625, 0, false);
-    expect(scheduled).toHaveBeenNthCalledWith(2, 1, 0.0725, 0.0625, 1, false);
+    expect(scheduled).toHaveBeenNthCalledWith(
+      1,
+      0,
+      0.01,
+      0.0625,
+      0,
+      false,
+      expect.objectContaining({ step: 0, ticksPerStep: 240 }),
+    );
+    expect(scheduled).toHaveBeenNthCalledWith(
+      2,
+      1,
+      0.0725,
+      0.0625,
+      1,
+      false,
+      expect.objectContaining({ step: 1, ticksPerStep: 240 }),
+    );
     // expect(service.currentBeat()).toBe(1 / 4); // setTimeout async
 
     const oscillators = mockAudioContext.createOscillator.mock.results.map(
@@ -699,6 +715,33 @@ describe('AudioEngineService', () => {
     const fader = (service as any).trackFaderGains.get('102');
     expect(fader.gain.setTargetAtTime).toHaveBeenCalledWith(
       0.25,
+      expect.any(Number),
+      expect.any(Number),
+    );
+  });
+
+  it('keeps the VCA multiplier when the channel fader or mute changes', () => {
+    service.ensureTrack({ id: 103, gain: 0.8, pan: 0 });
+    const fader = (service as any).trackFaderGains.get('103');
+    service.setVcaMultiplier('103', 0.5);
+
+    service.updateTrack('103', { gain: 0.6 });
+    expect(fader.gain.setTargetAtTime).toHaveBeenLastCalledWith(
+      0.3,
+      expect.any(Number),
+      expect.any(Number),
+    );
+
+    service.updateTrack('103', { muted: true });
+    expect(fader.gain.setTargetAtTime).toHaveBeenLastCalledWith(
+      0,
+      expect.any(Number),
+      expect.any(Number),
+    );
+
+    service.updateTrack('103', { muted: false });
+    expect(fader.gain.setTargetAtTime).toHaveBeenLastCalledWith(
+      0.3,
       expect.any(Number),
       expect.any(Number),
     );

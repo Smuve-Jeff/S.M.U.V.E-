@@ -29,6 +29,7 @@ import {
   toDecibels,
 } from './loudness-meter';
 import { LoggingService } from './logging.service';
+import { isTrackAudibleUnderSolo } from './mix-routing.util';
 import { PluginStoreService } from './plugin-store.service';
 import type { ClipFadeCurve } from '../types/studio.types';
 import {
@@ -595,7 +596,11 @@ export class ExportService {
       if (echoReturn || !sendSnapshot) return echoReturn;
       const sum = offline.createGain();
       const delay = offline.createDelay(2);
-      delay.delayTime.value = Math.max(0.02, Math.min(2, (60 / timing.bpmAtStep(0)) * 0.75));
+      const snapshotDelay = Number(sendSnapshot.echo.delaySeconds);
+      delay.delayTime.value =
+        Number.isFinite(snapshotDelay) && snapshotDelay > 0
+          ? Math.max(0.02, Math.min(2, snapshotDelay))
+          : Math.max(0.02, Math.min(2, (60 / timing.bpmAtStep(0)) * 0.75));
       const damp = offline.createBiquadFilter();
       damp.type = 'lowpass';
       damp.frequency.value = sendSnapshot.echo.dampingHz;
@@ -625,10 +630,7 @@ export class ExportService {
 
     // A single-track render is a stem: solo on another track must not silence
     // it, so `onlyTrackIds` implies `ignoreSolo`.
-    const hasSolo =
-      !options.ignoreSolo &&
-      !options.onlyTrackIds &&
-      tracks.some((track) => track.soloed);
+    const soloIgnored = options.ignoreSolo === true || options.onlyTrackIds !== undefined;
 
     // Sample presets are loaded lazily by the live path. The offline renderer
     // must ask for the same banks before it schedules a note, otherwise
@@ -639,7 +641,7 @@ export class ExportService {
       const audibleTracks = tracks.filter((track) => {
         if (track.type === 'bus' || track.muted) return false;
         if (options.onlyTrackIds) return options.onlyTrackIds.has(track.id);
-        return !hasSolo || track.soloed || track.soloSafe;
+        return soloIgnored || isTrackAudibleUnderSolo(track, tracks);
       });
       await Promise.all(
         audibleTracks.map((track) =>
@@ -677,12 +679,13 @@ export class ExportService {
       }
 
       const channel = offline.createGain();
-      const audible = track.type === 'bus'
+      const audible = soloIgnored
         ? !track.muted
-        : !track.muted && (!hasSolo || track.soloed || track.soloSafe);
+        : isTrackAudibleUnderSolo(track, tracks);
       channel.gain.value = audible
         ? Math.max(0, Math.min(1.5, track.gain ?? track.volume ?? 0.8))
         : 0;
+      let sendSource: AudioNode = channel;
 
       // VCA is a control multiplier, not an audio bus. Give the channel its own
       // post-fader gain node so an offline curve can ride the group without
@@ -697,6 +700,7 @@ export class ExportService {
           : this.vcaBuses!.effectiveMultiplier(track.id);
         channel.connect(vcaGain);
         vcaGain.connect(destination);
+        sendSource = vcaGain;
         if (audible && vcaLane && !vcaBus?.muted) {
           this.scheduleLaneCurve(
             vcaGain.gain,
@@ -715,9 +719,11 @@ export class ExportService {
       let channelFilter: BiquadFilterNode | null = null;
       const panLane = laneFor(track.id, 'pan');
       const cutoffLane = laneFor(track.id, 'cutoff');
-      if (panLane) {
+      if (panLane || track.type === 'bus') {
         panner = offline.createStereoPanner();
-        panner.pan.value = 0;
+        panner.pan.value = panLane
+          ? 0
+          : Math.max(-1, Math.min(1, track.pan ?? 0));
         panner.connect(input);
         input = panner;
       }
@@ -783,8 +789,8 @@ export class ExportService {
           (value) => Math.max(20, Math.min(20000, value)));
       }
 
-      // Post-fader aux sends. `reverb` is the lane name the editor offers for
-      // send A, so both spellings resolve to the same return.
+      // Post-fader, post-VCA aux sends. `reverb` is the lane name the editor
+      // offers for send A, so both spellings resolve to the same return.
       const sendALane = laneFor(track.id, 'sendA', 'reverb');
       const sendBLane = laneFor(track.id, 'sendB');
       const staticSendA = Math.max(0, Math.min(1, track.sendA ?? 0));
@@ -794,7 +800,7 @@ export class ExportService {
         if (bus) {
           const send = offline.createGain();
           send.gain.value = staticSendA;
-          channel.connect(send);
+          sendSource.connect(send);
           send.connect(bus);
           if (sendALane) {
             this.scheduleLaneCurve(send.gain, sendALane, totalSeconds,
@@ -807,7 +813,7 @@ export class ExportService {
         if (bus) {
           const send = offline.createGain();
           send.gain.value = staticSendB;
-          channel.connect(send);
+          sendSource.connect(send);
           send.connect(bus);
           if (sendBLane) {
             this.scheduleLaneCurve(send.gain, sendBLane, totalSeconds,
@@ -834,10 +840,8 @@ export class ExportService {
       reportProgress(20 + (index / Math.max(1, tracks.length)) * 50);
       if (track.type === 'bus') continue;
       if (options.onlyTrackIds && !options.onlyTrackIds.has(track.id)) continue;
-      if (
-        track.muted ||
-        (hasSolo && !track.soloed && !track.soloSafe)
-      ) continue;
+      if (track.muted) continue;
+      if (!soloIgnored && !isTrackAudibleUnderSolo(track, tracks)) continue;
       const built = channels.get(track.id);
       if (!built) continue;
       const input = built.input;
@@ -1377,21 +1381,66 @@ export class ExportService {
     scale: (value: number) => number,
   ): void {
     const grid = Math.max(0.01, minStepSeconds / 2);
-    const times = new Set<number>([0]);
+    const sampleAt = (time: number): number | null => {
+      const value = this.automation.sampleLane(lane.id, time);
+      return value !== null && Number.isFinite(value) ? scale(value) : null;
+    };
+    const values = new Map<number, number>();
+    const add = (time: number): void => {
+      if (values.has(time)) return;
+      const value = sampleAt(time);
+      if (value !== null) values.set(time, value);
+    };
+    add(0);
     for (const point of lane.points) {
-      if (point.time > 0 && point.time < totalSeconds) times.add(point.time);
+      if (point.time > 0 && point.time < totalSeconds) add(point.time);
     }
     for (let time = 0; time < totalSeconds; time += grid) {
-      times.add(Math.round(time * 1000) / 1000);
+      add(Math.round(time * 1000) / 1000);
     }
+
+    // A curved lane can travel a long way inside one grid slice, and the
+    // linear join then cuts the corner: the bounce took a shape the live curve
+    // never played. Refine each slice whose chord misses the curve, in scaled
+    // units so a 20 kHz filter and a 0 dB gain are both resolved.
+    if (lane.interpolation !== 'step') {
+      const minGap = 0.002;
+      for (let pass = 0; pass < 6 && values.size < 4096; pass += 1) {
+        const times = [...values.keys()].sort((a, b) => a - b);
+        let inserted = false;
+        for (let i = 0; i < times.length - 1; i += 1) {
+          const start = times[i];
+          const end = times[i + 1];
+          if (end - start <= minGap * 2) continue;
+          const middle = (start + end) / 2;
+          if (values.has(middle)) continue;
+          const sampled = sampleAt(middle);
+          if (sampled === null) continue;
+          const from = values.get(start)!;
+          const to = values.get(end)!;
+          const tolerance = Math.max(
+            1e-4,
+            0.002 * Math.max(Math.abs(from), Math.abs(to)),
+          );
+          if (Math.abs(sampled - (from + to) / 2) > tolerance) {
+            values.set(middle, sampled);
+            inserted = true;
+          }
+        }
+        if (!inserted) break;
+      }
+    }
+
     let scheduled = false;
-    for (const time of [...times].sort((a, b) => a - b)) {
-      const value = this.automation.sampleLane(lane.id, time);
-      if (value === null || !Number.isFinite(value)) continue;
-      const target = scale(value);
+    for (const time of [...values.keys()].sort((a, b) => a - b)) {
+      const target = values.get(time)!;
       if (!scheduled) {
         param.setValueAtTime(target, time);
         scheduled = true;
+      } else if (lane.interpolation === 'step') {
+        // A step lane must jump. Ramping from the previous grid sample glided
+        // into the new value for one slice, so the bounce smeared every step.
+        param.setValueAtTime(target, time);
       } else {
         param.linearRampToValueAtTime(target, time);
       }

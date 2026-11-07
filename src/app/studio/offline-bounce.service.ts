@@ -4,6 +4,7 @@ import { InstrumentsService, scheduleOfflinePresetSample } from "../services/ins
 import { drumRatchetCount, MusicManagerService } from "../services/music-manager.service";
 import { WavEncoder } from "./wav-encoder.util";
 import { LoggingService } from "../services/logging.service";
+import { isTrackAudibleUnderSolo } from "../services/mix-routing.util";
 import type { ClipFadeCurve } from "../types/studio.types";
 import { normalizeFadeCurve, scheduleFadeSegment } from "./clip-fade.util";
 import { connectOfflineMasterChain } from "../services/offline-master-chain";
@@ -380,14 +381,9 @@ export class OfflineBounceService {
     const pool = onlyTrackId
       ? tracks.filter((t: any) => t.id === onlyTrackId)
       : tracks;
-    const hasSolo = pool.some((t: any) => t.soloed === true);
     const activeTracks = onlyTrackId
       ? pool
-      : hasSolo
-        // Solo-safe channels stay in the render under another channel's solo,
-        // matching the live stepper so a bounce is not quieter than playback.
-        ? pool.filter((t: any) => t.soloed === true || t.soloSafe === true)
-        : pool.filter((t: any) => !t.muted);
+      : pool.filter((track) => isTrackAudibleUnderSolo(track, tracks));
 
     const secondsAtStep = (step: number) =>
       typeof (this.engine as any).secondsBetweenSteps === "function"

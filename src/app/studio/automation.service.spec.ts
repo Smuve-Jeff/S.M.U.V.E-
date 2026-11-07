@@ -3,6 +3,7 @@ import { TestBed } from "@angular/core/testing";
 import { AutomationService } from "./automation.service";
 import { AudioEngineService } from "../services/audio-engine.service";
 import { PluginStoreService } from "../services/plugin-store.service";
+import { VcaBusService } from "./vca-bus.service";
 
 describe("AutomationService", () => {
   let service: AutomationService;
@@ -11,6 +12,9 @@ describe("AutomationService", () => {
   const tempo = signal(120);
   const engineMock = {
     applyProductionParameter: jest.fn(),
+    setMasterReverbWet: jest.fn(),
+    setMasterEchoWet: jest.fn(),
+    setVcaMultiplier: jest.fn(),
     isPlaying,
     visualStep,
     tempo,
@@ -27,6 +31,7 @@ describe("AutomationService", () => {
         AutomationService,
         { provide: AudioEngineService, useValue: engineMock },
         { provide: PluginStoreService, useValue: pluginStoreMock },
+        VcaBusService,
       ],
     });
     service = TestBed.inject(AutomationService);
@@ -252,6 +257,57 @@ describe("AutomationService", () => {
     service.setWriteEnabled(true);
     expect(service.captureWrite("t1", "gain", 0.7)).toBe(false);
     expect(service.lanes()).toHaveLength(0);
+  });
+
+  it("routes VCA lanes to every assigned channel and honors bus mute", () => {
+    const vca = TestBed.inject(VcaBusService);
+    vca.replaceRouting([], {});
+    const bus = vca.createBus("Drums");
+    vca.assignTrack("track-1", bus.id);
+    const lane = service.addLane(`vca:${bus.id}`, "vca", {
+      min: 0,
+      max: 1.5,
+    });
+    service.addPoint(lane.id, 0, 0.25);
+    service.addPoint(lane.id, 1, 1.25);
+
+    try {
+      service.applyAutomation(0.5, 0.05);
+      expect(engineMock.setVcaMultiplier).toHaveBeenCalledWith(
+        "track-1",
+        expect.closeTo(0.75, 2),
+      );
+
+      engineMock.setVcaMultiplier.mockClear();
+      vca.toggleBusMute(bus.id);
+      service.applyAutomation(0.5, 0.05);
+      expect(engineMock.setVcaMultiplier).toHaveBeenCalledWith("track-1", 0);
+    } finally {
+      vca.replaceRouting([], {});
+    }
+  });
+
+  it("routes aux-return trim lanes to the live wet returns", () => {
+    const reverb = service.addLane("aux:reverb", "volume", {
+      min: 0,
+      max: 1,
+    });
+    service.addPoint(reverb.id, 0, 0.2);
+    service.addPoint(reverb.id, 1, 0.8);
+    const echo = service.addLane("aux:echo", "volume", { min: 0, max: 1 });
+    service.addPoint(echo.id, 0, 0.2);
+    service.addPoint(echo.id, 1, 0.8);
+
+    service.applyAutomation(0.5, 0.05);
+
+    expect(engineMock.setMasterReverbWet).toHaveBeenCalledWith(
+      expect.closeTo(0.5, 2),
+    );
+    expect(engineMock.setMasterEchoWet).toHaveBeenCalledWith(
+      expect.closeTo(0.5, 2),
+    );
+    // Aux lanes are a return-trim bridge, not a no-op track parameter.
+    expect(engineMock.applyProductionParameter).not.toHaveBeenCalled();
   });
 
   it("supports snapshot hydration", () => {

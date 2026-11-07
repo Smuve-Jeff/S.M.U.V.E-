@@ -1162,15 +1162,49 @@ describe("ExportService", () => {
     function lane(
       parameter: string,
       points: Array<{ time: number; value: number }>,
+      trackId = "lead",
+      interpolation: "linear" | "step" | "smooth" | "bezier" = "linear",
     ) {
       return {
-        id: `lane-${parameter}`,
-        target: { trackId: "lead", parameter },
+        id: `lane-${trackId}-${parameter}-${interpolation}`,
+        target: { trackId, parameter },
         points,
         enabled: true,
-        interpolation: "linear" as const,
+        interpolation,
         modulationDepth: 0,
       };
+    }
+
+    /**
+     * Read a scheduled `AudioParam` back as the value it holds at `time`.
+     *
+     * `setValueAtTime` holds from its event onward while
+     * `linearRampToValueAtTime` travels to its target from the previous event,
+     * matching the offline context — so a step lane is not read as a glide.
+     */
+    function curveValueAt(param: any, time: number): number | null {
+      const events = [
+        ...param.setValueAtTime.mock.calls.map(
+          ([value, at]: [number, number]) => ({ at, value, ramp: false }),
+        ),
+        ...param.linearRampToValueAtTime.mock.calls.map(
+          ([value, at]: [number, number]) => ({ at, value, ramp: true }),
+        ),
+      ].sort((a, b) => a.at - b.at || Number(a.ramp) - Number(b.ramp));
+      if (events.length === 0) return null;
+      let index = -1;
+      for (let i = 0; i < events.length; i += 1) {
+        if (events[i].at <= time + 1e-9) index = i;
+      }
+      if (index < 0) return events[0].ramp ? null : events[0].value;
+      const current = events[index];
+      const next = events[index + 1];
+      if (next?.ramp && next.at > current.at) {
+        const span = next.at - current.at;
+        const ratio = Math.max(0, Math.min(1, (time - current.at) / span));
+        return current.value + (next.value - current.value) * ratio;
+      }
+      return current.value;
     }
 
     function track(overrides: Record<string, unknown> = {}) {
@@ -1286,6 +1320,393 @@ describe("ExportService", () => {
       // The send tap itself sits post-fader at the model's level.
       const tap = recording.gains.find((node) => node.gain.value === 0.4);
       expect(tap).toBeTruthy();
+    });
+
+    it("taps aux sends after the VCA so the wet path follows the group fader", async () => {
+      const recording = recordingContext();
+      const vca = (service as any).vcaBuses;
+      vca.replaceRouting([], {});
+      (service as any).engine.getSendBusSnapshot = jest.fn(() => ({
+        impulse: { duration: 1, sampleRate: 44100 } as AudioBuffer,
+        reverbWet: 0.25,
+        echo: { delaySeconds: 0.375, feedback: 0.3, dampingHz: 3200, wet: 0.4 },
+      }));
+      const bus = vca.createBus("Drums");
+      vca.assignTrack("lead", bus.id);
+      vca.setBusFader(bus.id, 0.5);
+
+      try {
+        await render(recording, [track({ sendA: 1 })]);
+
+        const vcaGain = recording.gains.find((node) => node.gain.value === 0.5);
+        expect(vcaGain).toBeTruthy();
+        const sendTap = vcaGain!.connect.mock.calls
+          .map(([node]: [any]) => node)
+          .find((node: any) => node?.gain?.value === 1);
+        expect(sendTap).toBeTruthy();
+      } finally {
+        vca.replaceRouting([], {});
+      }
+    });
+
+    it("bounces VCA lanes onto the assigned channel's post-fader gain", async () => {
+      const recording = recordingContext();
+      const vca = (service as any).vcaBuses;
+      vca.replaceRouting([], {});
+      const bus = vca.createBus("Drums");
+      vca.assignTrack("lead", bus.id);
+      vca.setBusFader(bus.id, 0.8);
+      (service as any).automation.lanes.set([
+        lane(
+          "vca",
+          [
+            { time: 0, value: 0.2 },
+            { time: 4, value: 1.2 },
+          ],
+          `vca:${bus.id}`,
+        ),
+      ]);
+
+      try {
+        await render(recording, [track({ gain: 0.5 })]);
+
+        const vcaGain = recording.gains.find((node) => node.gain.value === 0.8);
+        expect(vcaGain).toBeTruthy();
+        expect(vcaGain!.gain.setValueAtTime).toHaveBeenNthCalledWith(1, 0.2, 0);
+        expect(
+          vcaGain!.gain.linearRampToValueAtTime.mock.calls.at(-1)![0],
+        ).toBeCloseTo(1.2, 5);
+      } finally {
+        vca.replaceRouting([], {});
+      }
+    });
+
+    it("bounces aux-return trim lanes onto the wet returns", async () => {
+      const recording = recordingContext();
+      (service as any).engine.getSendBusSnapshot = jest.fn(() => ({
+        impulse: { duration: 1, sampleRate: 44100 } as AudioBuffer,
+        reverbWet: 0.25,
+        echo: { delaySeconds: 0.72, feedback: 0.3, dampingHz: 3200, wet: 0.42 },
+      }));
+      (service as any).automation.lanes.set([
+        lane(
+          "volume",
+          [
+            { time: 0, value: 0.1 },
+            { time: 4, value: 0.9 },
+          ],
+          "aux:reverb",
+        ),
+        lane(
+          "volume",
+          [
+            { time: 0, value: 0.2 },
+            { time: 4, value: 0.8 },
+          ],
+          "aux:echo",
+        ),
+      ]);
+
+      await render(recording, [track({ sendA: 0.4, sendB: 0.5 })]);
+
+      const reverbWet = recording.gains.find((node) => node.gain.value === 0.25);
+      const echoWet = recording.gains.find((node) => node.gain.value === 0.42);
+      expect(reverbWet).toBeTruthy();
+      expect(echoWet).toBeTruthy();
+      expect(
+        reverbWet!.gain.linearRampToValueAtTime.mock.calls.at(-1)![0],
+      ).toBeCloseTo(0.9, 5);
+      expect(
+        echoWet!.gain.linearRampToValueAtTime.mock.calls.at(-1)![0],
+      ).toBeCloseTo(0.8, 5);
+      expect(recording.delays[0].delayTime.value).toBeCloseTo(0.72, 5);
+    });
+
+    /**
+     * End-to-end parity: the curve the live transport writes and the curve the
+     * renderer draws must be the same number. The real `AutomationService`, the
+     * real `VcaBusService` and the real renderer are wired together here — only
+     * the audio context is a recording double — so a divergence in either the
+     * clamping, the tap point or the lane resolution fails the test.
+     */
+    it("matches live VCA and aux-return automation in the rendered curves", async () => {
+      const recording = recordingContext();
+      const automation = (service as any).automation;
+      const vca = (service as any).vcaBuses;
+      vca.replaceRouting([], {});
+      audioEngineMock.setVcaMultiplier = jest.fn();
+      audioEngineMock.setMasterReverbWet = jest.fn();
+      audioEngineMock.setMasterEchoWet = jest.fn();
+      (service as any).engine.getSendBusSnapshot = jest.fn(() => ({
+        impulse: { duration: 1, sampleRate: 44100 } as AudioBuffer,
+        reverbWet: 0.25,
+        echo: { delaySeconds: 0.375, feedback: 0.3, dampingHz: 3200, wet: 0.42 },
+      }));
+      const bus = vca.createBus("Drums");
+      vca.assignTrack("lead", bus.id);
+      vca.setBusFader(bus.id, 0.8);
+      automation.lanes.set([
+        lane(
+          "vca",
+          [
+            { time: 0, value: 0.5 },
+            { time: 4, value: 1.5 },
+          ],
+          `vca:${bus.id}`,
+        ),
+        lane(
+          "volume",
+          [
+            { time: 0, value: 0.1 },
+            { time: 4, value: 0.9 },
+          ],
+          "aux:reverb",
+        ),
+        lane(
+          "volume",
+          [
+            { time: 0, value: 0.2 },
+            { time: 4, value: 1 },
+          ],
+          "aux:echo",
+        ),
+      ]);
+
+      try {
+        // Live transport at t = 2: the lane midpoints, clamped the way the
+        // engine bridge clamps them.
+        automation.applyAutomation(2, 0.5);
+        const liveVca = audioEngineMock.setVcaMultiplier.mock.calls.at(-1)![1];
+        const liveReverb =
+          audioEngineMock.setMasterReverbWet.mock.calls.at(-1)![0];
+        const liveEcho = audioEngineMock.setMasterEchoWet.mock.calls.at(-1)![0];
+        expect(liveVca).toBeCloseTo(1, 5);
+        expect(liveReverb).toBeCloseTo(0.5, 5);
+        expect(liveEcho).toBeCloseTo(0.6, 5);
+
+        await render(recording, [track({ gain: 0.5, sendA: 0.4, sendB: 0.5 })]);
+
+        // Offline: the group gain carries the VCA curve and the two wet returns
+        // carry the aux trim curves. Base values identify each node.
+        const vcaNode = recording.gains.find((node) => node.gain.value === 0.8);
+        const reverbWet = recording.gains.find(
+          (node) => node.gain.value === 0.25,
+        );
+        const echoWet = recording.gains.find((node) => node.gain.value === 0.42);
+        expect(vcaNode).toBeTruthy();
+        expect(reverbWet).toBeTruthy();
+        expect(echoWet).toBeTruthy();
+
+        expect(curveValueAt(vcaNode!.gain, 2)).toBeCloseTo(liveVca, 5);
+        expect(curveValueAt(reverbWet!.gain, 2)).toBeCloseTo(liveReverb, 5);
+        expect(curveValueAt(echoWet!.gain, 2)).toBeCloseTo(liveEcho, 5);
+      } finally {
+        automation.lanes.set([]);
+        vca.replaceRouting([], {});
+      }
+    });
+
+    it("matches live aux send-level automation at the rendered send taps", async () => {
+      const recording = recordingContext();
+      const automation = (service as any).automation;
+      audioEngineMock.applyProductionParameter = jest.fn();
+      (service as any).engine.getSendBusSnapshot = jest.fn(() => ({
+        impulse: { duration: 1, sampleRate: 44100 } as AudioBuffer,
+        reverbWet: 0.25,
+        echo: { delaySeconds: 0.375, feedback: 0.3, dampingHz: 3200, wet: 0.42 },
+      }));
+      automation.lanes.set([
+        lane("sendA", [
+          { time: 0, value: 0.1 },
+          { time: 4, value: 0.9 },
+        ]),
+        lane("sendB", [
+          { time: 0, value: 0.2 },
+          { time: 4, value: 1 },
+        ]),
+      ]);
+
+      try {
+        // Live transport at t = 2: the bridge hands the level to the engine,
+        // whose track send feeds the same reverb and echo returns.
+        automation.applyAutomation(2, 0.5);
+        const calls = audioEngineMock.applyProductionParameter.mock.calls;
+        const liveSendA = calls.find(
+          ([trackId, parameter]: [string, string]) =>
+            trackId === "lead" && parameter === "sendA",
+        )![2];
+        const liveSendB = calls.find(
+          ([trackId, parameter]: [string, string]) =>
+            trackId === "lead" && parameter === "sendB",
+        )![2];
+        expect(liveSendA).toBeCloseTo(0.5, 5);
+        expect(liveSendB).toBeCloseTo(0.6, 5);
+
+        // Distinct saved sends identify the two taps; the lane must override
+        // them, otherwise the bounce would follow the static mix again.
+        await render(recording, [
+          track({ gain: 0.53, sendA: 0.31, sendB: 0.37 }),
+        ]);
+
+        const sendA = recording.gains.find((node) => node.gain.value === 0.31);
+        const sendB = recording.gains.find((node) => node.gain.value === 0.37);
+        expect(sendA).toBeTruthy();
+        expect(sendB).toBeTruthy();
+        expect(curveValueAt(sendA!.gain, 2)).toBeCloseTo(liveSendA, 5);
+        expect(curveValueAt(sendB!.gain, 2)).toBeCloseTo(liveSendB, 5);
+        expect(curveValueAt(sendA!.gain, 2)).not.toBeCloseTo(0.31, 3);
+        expect(curveValueAt(sendB!.gain, 2)).not.toBeCloseTo(0.37, 3);
+      } finally {
+        automation.lanes.set([]);
+      }
+    });
+
+    it("matches live step lanes and keeps the step hard in the curve", async () => {
+      const recording = recordingContext();
+      const automation = (service as any).automation;
+      const stepLane = lane(
+        "volume",
+        [
+          { time: 0, value: 0.2 },
+          { time: 2, value: 0.9 },
+          { time: 4, value: 0.3 },
+        ],
+        "lead",
+        "step",
+      );
+      automation.lanes.set([stepLane]);
+
+      try {
+        await render(recording, [track({ gain: 0.53 })]);
+        const fader = recording.gains.find((node) => node.gain.value === 0.53);
+        expect(fader).toBeTruthy();
+
+        // Every sample written must be the live evaluation, and the lane may
+        // only ever hold its point values: a ramp anywhere would draw a glide
+        // the live curve never plays.
+        for (const [value, at] of fader!.gain.setValueAtTime.mock.calls) {
+          expect(value).toBeCloseTo(automation.sampleLane(stepLane.id, at)!, 5);
+        }
+        const written = [
+          ...fader!.gain.setValueAtTime.mock.calls,
+          ...fader!.gain.linearRampToValueAtTime.mock.calls,
+        ].map(([value]: [number]) => value);
+        expect(
+          written.every((value) =>
+            [0.2, 0.9, 0.3].some((step) => Math.abs(value - step) < 1e-9),
+          ),
+        ).toBe(true);
+
+        // Before the step boundary the curve still holds the previous value;
+        // after it the new one. No early glide into 0.9.
+        expect(curveValueAt(fader!.gain, 1.999)).toBeCloseTo(0.2, 5);
+        expect(curveValueAt(fader!.gain, 3)).toBeCloseTo(0.9, 5);
+        expect(curveValueAt(fader!.gain, 0.5)).toBeCloseTo(0.2, 5);
+      } finally {
+        automation.lanes.set([]);
+      }
+    });
+
+    it("matches live bezier lanes across the sampled render", async () => {
+      const recording = recordingContext();
+      const automation = (service as any).automation;
+      const bezierLane = lane(
+        "volume",
+        [
+          { time: 0, value: 0.1 },
+          { time: 4, value: 0.9 },
+        ],
+        "lead",
+        "bezier",
+      );
+      automation.lanes.set([bezierLane]);
+
+      try {
+        await render(recording, [track({ gain: 0.53 })]);
+        const fader = recording.gains.find((node) => node.gain.value === 0.53);
+        expect(fader).toBeTruthy();
+
+
+        // Every sample the renderer writes is the live evaluation of the same
+        // lane, so the eased shape — not a linear stand-in — reaches the node.
+        for (const [value, at] of fader!.gain.setValueAtTime.mock.calls) {
+          expect(value).toBeCloseTo(automation.sampleLane(bezierLane.id, at)!, 5);
+        }
+        for (const [value, at] of fader!.gain.linearRampToValueAtTime.mock.calls) {
+          expect(value).toBeCloseTo(automation.sampleLane(bezierLane.id, at)!, 5);
+        }
+        // Between samples the linear join stays inside the grid's error budget;
+        // a linear draw of this lane would drift ~0.08 mid-curve.
+        // The live curve snaps to the point value at the point itself while a
+        // sampled render approaches that jump over its final slice, so the
+        // instant of the jump cannot match; compare the body of the lane.
+        for (let time = 0.1; time <= 3.9; time += 0.05) {
+          expect(curveValueAt(fader!.gain, time)).toBeCloseTo(
+            automation.sampleLane(bezierLane.id, time)!,
+            2,
+          );
+        }
+      } finally {
+        automation.lanes.set([]);
+      }
+    });
+
+    it("applies a group bus's static pan in the bounce", async () => {
+      const recording = recordingContext();
+
+      await render(recording, [
+        track({
+          id: "kick",
+          name: "Kick",
+          busId: "drum-bus",
+          notes: [
+            { id: "kick-note", midi: 36, step: 0, length: 1, velocity: 0.9 },
+          ],
+        }),
+        track({
+          id: "drum-bus",
+          name: "Drum Bus",
+          type: "bus",
+          pan: -0.6,
+          notes: [],
+        }),
+      ]);
+
+      expect(recording.panners).toHaveLength(1);
+      expect(recording.panners[0].pan.value).toBeCloseTo(-0.6, 5);
+    });
+
+    it("keeps a soloed group bus's members audible in the bounce", async () => {
+      const recording = recordingContext();
+      (audioEngineMock.scheduleOfflineNote as jest.Mock).mockClear();
+
+      await render(recording, [
+        track({
+          id: "kick",
+          name: "Kick",
+          busId: "drum-bus",
+          notes: [
+            { id: "kick-note", midi: 36, step: 0, length: 1, velocity: 0.9 },
+          ],
+        }),
+        track({
+          id: "bass",
+          name: "Bass",
+          notes: [
+            { id: "bass-note", midi: 36, step: 0, length: 1, velocity: 0.9 },
+          ],
+        }),
+        track({
+          id: "drum-bus",
+          name: "Drum Bus",
+          type: "bus",
+          soloed: true,
+          notes: [],
+        }),
+      ]);
+
+      // The bus is soloed, so its kick member renders; the unrelated bass does not.
+      expect(audioEngineMock.scheduleOfflineNote).toHaveBeenCalledTimes(1);
     });
 
     it("chains a track's enabled insert slots into the bounce in rack order", async () => {

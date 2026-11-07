@@ -389,6 +389,45 @@ describe('MusicManagerService clip glue workflows', () => {
     expect(engineMock.triggerAttack).toHaveBeenCalledTimes(2);
   });
 
+  it('keeps a group bus and its members audible when the bus is soloed', () => {
+    const base = {
+      type: 'midi',
+      instrumentId: 'grand-piano',
+      muted: false,
+      soloed: false,
+      volume: 0.8,
+      gain: 0.8,
+      pan: 0,
+      clips: [],
+      steps: new Array(64).fill(false),
+      fxSlots: [],
+      sendA: 0,
+      sendB: 0,
+      effects: [],
+      patternSlots: [],
+      activePatternSlotId: null,
+      notes: [{ midi: 60, step: 0, length: 1, velocity: 1 }],
+    };
+    service.tracks.set([
+      { ...base, id: 'kick', name: 'Kick', busId: 'drum-bus' },
+      { ...base, id: 'snare', name: 'Snare', busId: 'drum-bus' },
+      { ...base, id: 'bass', name: 'Bass' },
+      { ...base, id: 'drum-bus', name: 'Drum Bus', type: 'bus', soloed: true, notes: [] },
+    ] as any);
+
+    engineMock.triggerAttack.mockClear();
+    engineMock.setBaseFaderGain.mockClear();
+    service.playStep(0, 0, 0.25);
+
+    const channels = engineMock.triggerAttack.mock.calls.map((call) => call[0]);
+    expect(channels).toEqual(expect.arrayContaining(['kick', 'snare']));
+    expect(channels).not.toContain('bass');
+    expect(engineMock.triggerAttack).toHaveBeenCalledTimes(2);
+    expect(
+      engineMock.setBaseFaderGain.mock.calls.map((call) => call[0]),
+    ).toEqual(expect.arrayContaining(['kick', 'snare']));
+  });
+
   it('mute wins over solo-safe and the flag is undoable', () => {
     service.tracks.update((tracks) =>
       tracks.map((track) => ({ ...track, soloSafe: false }))
