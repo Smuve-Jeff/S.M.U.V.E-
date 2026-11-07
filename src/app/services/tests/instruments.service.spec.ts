@@ -50,23 +50,24 @@ describe('InstrumentsService', () => {
         ok: true, arrayBuffer: async () => new ArrayBuffer(8),
       }));
       await service.loadPresetSample('steinway-d-concert-grand', 57, 0.8);
-      expect((globalThis as any).fetch).toHaveBeenCalledWith(expect.stringContaining('/C4.mp3'));
+      // Roots come from the shipped (lowercased) factory filenames.
+      expect((globalThis as any).fetch).toHaveBeenCalledWith(expect.stringMatching(/salamander-c4\.mp3$/i));
       expect(service.getPresetSample('steinway-d-concert-grand', 57, 0.8)?.rate)
         .toBeCloseTo(Math.pow(2, -3 / 12));
       await service.loadPresetSample('steinway-d-concert-grand', 33, 0.8);
-      expect((globalThis as any).fetch).toHaveBeenCalledWith(expect.stringContaining('/A1.mp3'));
+      expect((globalThis as any).fetch).toHaveBeenCalledWith(expect.stringMatching(/salamander-a1\.mp3$/i));
       expect(service.getPresetSample('steinway-d-concert-grand', 33, 0.8)?.rate).toBe(1);
     });
 
     it('loads the selected piano velocity layer and falls back to the base on failure', async () => {
       (globalThis as any).fetch = jest.fn(async (url: string) => ({
-        ok: !url.endsWith('FF-C4.m4a'), arrayBuffer: async () => new ArrayBuffer(8),
+        ok: !/ff-c4\.m4a$/i.test(url), arrayBuffer: async () => new ArrayBuffer(8),
       }));
       await service.loadPresetSample('grand-piano', 60, 0.4);
-      expect((globalThis as any).fetch).toHaveBeenCalledWith(expect.stringContaining('PP-C4.m4a'));
+      expect((globalThis as any).fetch).toHaveBeenCalledWith(expect.stringMatching(/grand-piano-pp-c4\.m4a$/i));
       await service.loadPresetSample('grand-piano', 60, 0.9);
-      expect((globalThis as any).fetch).toHaveBeenCalledWith(expect.stringContaining('FF-C4.m4a'));
-      expect((globalThis as any).fetch).toHaveBeenCalledWith(expect.stringContaining('/C4.mp3'));
+      expect((globalThis as any).fetch).toHaveBeenCalledWith(expect.stringMatching(/grand-piano-ff-c4\.m4a$/i));
+      expect((globalThis as any).fetch).toHaveBeenCalledWith(expect.stringMatching(/salamander-c4\.mp3$/i));
       expect(service.getPresetSample('grand-piano', 60, 0.9)?.buffer).toBe(decoded);
     });
 
@@ -150,7 +151,7 @@ describe('InstrumentsService', () => {
       const requested = ((globalThis as any).fetch as jest.Mock).mock
         .calls[0][0] as string;
       // The quinto (60) is the closest conga to a low note.
-      expect(requested).toContain('Quinto');
+      expect(requested).toContain('conga-quinto');
       expect(triggerSampler).toHaveBeenCalledTimes(1);
     });
 

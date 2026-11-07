@@ -116,4 +116,70 @@ test.describe('S.M.U.V.E advisor launch and anomaly regression', () => {
     console.log('Page errors:', JSON.stringify(pageErrors, null, 2));
     console.log('Console errors:', JSON.stringify(consoleErrors, null, 2));
   });
+
+  /**
+   * Regression: the advisor drawer is a 384px panel from `md` up, but every
+   * dismissal affordance used to be phone-only. The header's control row
+   * overflowed the clipped panel — pushing the ✕ past the panel's edge — and
+   * the click-to-dismiss scrim carried `md:hidden`. A desktop artist who
+   * finished chatting therefore had no pointer way out of the overlay. Clicking
+   * the workspace beside the drawer has to dismiss it, and the scrim has to
+   * catch that click without dimming the workspace on desktop.
+   */
+  test('a desktop click beside the advisor drawer dismisses it', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await seedAuthenticatedSession(page);
+    await page.goto('/hub');
+
+    const advisor = page.locator('app-chatbot .chatbot-container');
+    const drawer = page.locator('#smuve-assistant-drawer');
+    const headerLaunch = page.getByRole('button', {
+      name: 'Toggle S.M.U.V.E advisor',
+    });
+
+    await expect(headerLaunch).toBeVisible();
+    await headerLaunch.click();
+    await expect(advisor).toBeVisible();
+
+    // The ✕ has to land inside the clipped panel rather than past its edge.
+    const panel = await drawer.boundingBox();
+    const closeBox = await page
+      .getByRole('button', { name: 'Close S.M.U.V.E assistant chat' })
+      .boundingBox();
+    expect(panel).not.toBeNull();
+    expect(closeBox).not.toBeNull();
+    expect(closeBox!.x).toBeGreaterThanOrEqual(panel!.x);
+    expect(closeBox!.x + closeBox!.width).toBeLessThanOrEqual(
+      panel!.x + panel!.width
+    );
+
+    // Clear of the drawer (which starts at 1056px on a 1440px viewport).
+    const outside = { x: 240, y: 420 };
+    const scrim = await page.evaluate((point) => {
+      const element = document.elementFromPoint(
+        point.x,
+        point.y
+      ) as HTMLElement | null;
+      if (!element) return null;
+      const style = getComputedStyle(element);
+      return {
+        background: style.backgroundColor,
+        blur:
+          style.getPropertyValue('backdrop-filter') ||
+          style.getPropertyValue('-webkit-backdrop-filter'),
+        zIndex: style.zIndex,
+      };
+    }, outside);
+    expect(scrim).not.toBeNull();
+    expect(scrim!.zIndex).toBe('30');
+    expect(scrim!.background).toBe('rgba(0, 0, 0, 0)');
+    expect(scrim!.blur || 'none').toBe('none');
+
+    await page.mouse.click(outside.x, outside.y);
+    await expect(advisor).toBeHidden();
+    await expect(drawer).toHaveCount(0);
+    await expect(headerLaunch).toHaveAttribute('aria-expanded', 'false');
+  });
 });

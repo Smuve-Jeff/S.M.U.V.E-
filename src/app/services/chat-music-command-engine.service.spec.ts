@@ -12,6 +12,8 @@ import {
 } from '../composer/composition-core.service';
 import { CompositionAuditionService } from '../composer/composition-audition.service';
 import { ComponentKind, Composition } from '../composer/composer.types';
+import { InstrumentsService } from './instruments.service';
+import { BEAT_SAMPLE_PACKS } from './beat-sample-packs';
 
 function makeTrack(
   id: string,
@@ -187,6 +189,11 @@ describe('ChatMusicCommandEngineService', () => {
       ),
       addNoteToTrack,
       removeNotes,
+      setInstrument: jest.fn((trackId: string, instrumentId: string) => {
+        tracks.update((ts) =>
+          ts.map((t) => (t.id === trackId ? { ...t, instrumentId } : t))
+        );
+      }),
     };
 
     TestBed.configureTestingModule({
@@ -335,18 +342,54 @@ describe('ChatMusicCommandEngineService', () => {
     expect(tempo()).toBe(124);
   });
 
-  it('creates reproducible musical note content with unique note ids', () => {
+  it('writes a different beat on every request instead of replaying one loop', () => {
     service.tryExecute('make a jazz beat');
-    const first = tracks().map((track) => track.notes.map(({ midi, step, velocity }) => ({ midi, step, velocity })));
+    const first = tracks().map((track) => track.notes.map(({ midi, step }) => ({ midi, step })));
     const firstIds = tracks().flatMap((track) => track.notes.map((note) => note.id));
     service.tryExecute('undo');
     service.tryExecute('make a jazz beat');
-    const second = tracks().map((track) => track.notes.map(({ midi, step, velocity }) => ({ midi, step, velocity })));
+    const second = tracks().map((track) => track.notes.map(({ midi, step }) => ({ midi, step })));
     const secondIds = tracks().flatMap((track) => track.notes.map((note) => note.id));
 
-    expect(second).toEqual(first);
+    // Same genre and the same four tracks — but a genuinely new reading.
+    expect(second).not.toEqual(first);
+    expect(trackNames()).toEqual(['Drums', 'Bass', 'Chords', 'Melody']);
+    expect(second.every((notes) => notes.length > 0)).toBe(true);
     expect(new Set(secondIds).size).toBe(secondIds.length);
     expect(secondIds).not.toEqual(firstIds);
+  });
+
+  it('builds beats from the sample-library shelves instead of four fixed presets', () => {
+    const known = new Set(
+      TestBed.inject(InstrumentsService)
+        .getPresets()
+        .map((preset) => preset.id)
+    );
+
+    const first = service.tryExecute('make a jazz beat')!;
+    const firstInstruments = tracks().map((track) => track.instrumentId);
+    expect(first.content).toMatch(/from the .+ shelf\./);
+    expect(BEAT_SAMPLE_PACKS.some((pack) => first.content.includes(pack.label))).toBe(true);
+    expect(new Set(firstInstruments).size).toBe(4);
+    expect(firstInstruments.every((id) => known.has(id))).toBe(true);
+
+    service.tryExecute('undo');
+    const second = service.tryExecute('make a jazz beat')!;
+    const secondInstruments = tracks().map((track) => track.instrumentId);
+    // The next reading lands on another shelf and repoints the same channels.
+    expect(secondInstruments).not.toEqual(firstInstruments);
+    expect(secondInstruments.every((id) => known.has(id))).toBe(true);
+    expect(BEAT_SAMPLE_PACKS.some((pack) => second.content.includes(pack.label))).toBe(true);
+  });
+
+  it("undo restores the previous shelf's instruments", () => {
+    service.tryExecute('make a jazz beat');
+    const first = tracks().map((track) => track.instrumentId);
+    service.tryExecute('make a jazz beat');
+    expect(tracks().map((track) => track.instrumentId)).not.toEqual(first);
+
+    expect(service.tryExecute('undo')!.content).toContain('Undone');
+    expect(tracks().map((track) => track.instrumentId)).toEqual(first);
   });
 
   it('writes a chord progression with the nearest-octave voice leading', () => {
@@ -415,6 +458,7 @@ describe('ChatMusicCommandEngineService', () => {
   });
 
   it('preview renders the last creation and auditions it', async () => {
+    const oscTypes: string[] = [];
     (window as any).OfflineAudioContext = class FakeOffline {
       destination = {};
       constructor(
@@ -433,13 +477,21 @@ describe('ChatMusicCommandEngineService', () => {
         };
       }
       createOscillator() {
-        return {
+        const osc: any = {
           connect: jest.fn(),
           start: jest.fn(),
           stop: jest.fn(),
-          type: '',
+          _type: '',
           frequency: { value: 0 },
         };
+        Object.defineProperty(osc, 'type', {
+          get: () => osc._type,
+          set: (wave: string) => {
+            osc._type = wave;
+            oscTypes.push(wave);
+          },
+        });
+        return osc;
       }
       startRendering() {
         return Promise.resolve({ duration: 2 });
@@ -452,6 +504,96 @@ describe('ChatMusicCommandEngineService', () => {
     expect(previewResult!.content).toContain('Previewing');
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(playAudition).toHaveBeenCalled();
+    // The kit keeps its own voices instead of one flat triangle synth.
+    expect(new Set(oscTypes).size).toBeGreaterThan(1);
+  });
+
+  it('previews from the factory samples the presets declare', async () => {
+    let bufferSources = 0;
+    const sampleBuffer = { duration: 1.2, getChannelData: () => new Float32Array(1) };
+    class FakeSampleOffline {
+      destination = {};
+      constructor(
+        public channels: number,
+        public length: number,
+        public sampleRate = 44100
+      ) {}
+      createGain() {
+        return {
+          connect: jest.fn(),
+          gain: {
+            value: 0,
+            setValueAtTime: jest.fn(),
+            exponentialRampToValueAtTime: jest.fn(),
+            setTargetAtTime: jest.fn(),
+            linearRampToValueAtTime: jest.fn(),
+          },
+        };
+      }
+      createOscillator() {
+        return {
+          connect: jest.fn(),
+          start: jest.fn(),
+          stop: jest.fn(),
+          type: '',
+          frequency: { value: 0 },
+        };
+      }
+      createBufferSource() {
+        bufferSources += 1;
+        return {
+          buffer: null,
+          connect: jest.fn(),
+          start: jest.fn(),
+          stop: jest.fn(),
+          playbackRate: { setValueAtTime: jest.fn() },
+        };
+      }
+      createStereoPanner() {
+        return {
+          connect: jest.fn(),
+          pan: {
+            setValueAtTime: jest.fn(),
+            linearRampToValueAtTime: jest.fn(),
+          },
+        };
+      }
+      decodeAudioData() {
+        return Promise.resolve(sampleBuffer);
+      }
+      startRendering() {
+        return Promise.resolve({ duration: 2 });
+      }
+    }
+    (window as any).OfflineAudioContext = FakeSampleOffline;
+    const fetchMock = jest.fn(async () => ({
+      ok: true,
+      arrayBuffer: async () => new ArrayBuffer(8),
+    }));
+    const originalFetch = (global as any).fetch;
+    (global as any).fetch = fetchMock;
+    try {
+      service.tryExecute('make a jazz beat');
+      const instruments = TestBed.inject(InstrumentsService);
+      const usesSamples = tracks().some((track) =>
+        instruments.sampleSelectionFor(
+          track.instrumentId,
+          track.notes[0]?.midi ?? 60,
+          0.9
+        )
+      );
+      expect(usesSamples).toBe(true);
+
+      expect(service.tryExecute('preview')!.content).toContain('Previewing');
+      for (let i = 0; i < 100 && bufferSources === 0; i++) {
+        await new Promise((resolve) => setTimeout(resolve, 5));
+      }
+      expect(fetchMock).toHaveBeenCalled();
+      expect(bufferSources).toBeGreaterThan(0);
+    } finally {
+      (global as any).fetch = originalFetch;
+      (window as any).OfflineAudioContext = undefined;
+    }
   });
 
   it('preview degrades gracefully without Web Audio', () => {

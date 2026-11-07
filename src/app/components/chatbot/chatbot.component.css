@@ -1,7 +1,23 @@
-/* ── Chatbot Mobile Polish ──────────────────────────── */
+/* ── Chatbot panel polish ───────────────────────────── */
 
-/* Header: allow wrap on phones instead of clipping toggle buttons */
-@media (max-width: 768px) {
+/* The assistant is a 384px drawer from `md` up but a full-width sheet on a
+   phone, so its internal layout has to answer to the panel's own width rather
+   than the viewport's. Keyed to the viewport, a desktop drawer kept the wide
+   one-line header: its seven-control row (296px) overflowed the 380px panel,
+   the container's `overflow-hidden` clipped it, and the close button landed
+   ~100px past the panel's right edge. With the scrim hidden from `md` up and
+   the launcher covered by the drawer, the chat had no reachable way out except
+   Escape. Answering a container query keeps the desktop drawer on the same
+   compact header the phone already got. */
+.chatbot-container {
+  container-type: inline-size;
+}
+
+/* 520px is where the title block (151px) and the seven-control row (296px)
+   still share one line inside the panel's own padding; narrower than that and
+   the controls must wrap or they run past the clipped edge. */
+@container (max-width: 520px) {
+  /* Header: wrap the controls onto their own line instead of clipping them. */
   .chatbot-container header {
     height: auto !important;
     min-height: 56px !important;
@@ -13,6 +29,11 @@
   .chatbot-container header > div:first-child {
     flex: 1 1 auto;
     min-width: 0;
+  }
+
+  /* Wrapped controls stay against the panel's trailing edge. */
+  .chatbot-container header > div:last-child {
+    margin-left: auto;
   }
 
   .chatbot-container header h3 {

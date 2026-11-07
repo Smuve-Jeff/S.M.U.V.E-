@@ -7,6 +7,13 @@ import {
 import { AudioEngineService } from './audio-engine.service';
 import { SpeechSynthesisService } from './speech-synthesis.service';
 import { UserProfileService } from './user-profile.service';
+import {
+  InstrumentPreset,
+  InstrumentsService,
+  PresetSample,
+  scheduleOfflinePresetSample,
+} from './instruments.service';
+import { beatPackForGenre } from './beat-sample-packs';
 import type { CompositionCoreService } from '../composer/composition-core.service';
 import type { ComponentKind, Composition } from '../composer/composer.types';
 import { comparePasses } from '../composer/composition-compare';
@@ -51,6 +58,8 @@ export interface ChatMusicAction {
 export interface ChatMusicResult {
   content: string;
   actions: ChatMusicAction[];
+  /** Sample-library shelf a generated beat was built from. */
+  packLabel?: string;
 }
 
 export interface ComposeIntent {
@@ -85,17 +94,25 @@ interface UndoEntry {
   label: string;
   tempo?: number;
   notes: { trackId: string; notes: TrackNote[] }[];
+  /** Track instruments the command swapped, so undo restores the old patch. */
+  instruments?: { trackId: string; instrumentId: string }[];
   /** Tracks created by this command, so undo can remove them again. */
   createdTrackIds?: string[];
   /** Selection before the command changed it by creating a track. */
   selectedTrackId?: string | null;
 }
 
+/** Instrument family of a note, so the preview keeps its timbre. */
+type NoteVoice = 'kick' | 'snare' | 'hat' | 'perc' | 'bass' | 'chords' | 'melody';
+
 interface NoteEvent {
   midi: number;
   start: number; // seconds
   duration: number; // seconds
   velocity: number;
+  voice: NoteVoice;
+  /** Studio preset backing the track, so the preview can play its sample. */
+  presetId: string;
 }
 
 // ── Music theory helpers ────────────────────────────────────────────────────
@@ -269,6 +286,10 @@ export class ChatMusicCommandEngineService {
   private audio = inject(AudioEngineService);
   private speech = inject(SpeechSynthesisService);
   private profileService = inject(UserProfileService, { optional: true });
+  private instruments = inject(InstrumentsService);
+
+  /** Decoded factory samples, shared across previews of the same preset. */
+  private readonly sampleCache = new Map<string, AudioBuffer>();
 
   private currentProfile() {
     return this.profileService?.profile() ?? null;
@@ -276,6 +297,11 @@ export class ChatMusicCommandEngineService {
 
   private readonly undoStack: UndoEntry[] = [];
   private generationCounter = 0;
+  /**
+   * Rotates the musical choices (groove fill, bass shape, progression, hook,
+   * fallback key) so no two readings of a beat come out the same.
+   */
+  private beatVariation = 0;
   private pendingClear: { input: string; state: string; expires: number } | null = null;
 
   /** Last mutation label — used by preview()/undo() messaging. */
@@ -385,6 +411,9 @@ export class ChatMusicCommandEngineService {
     if (entry.createdTrackIds?.length) {
       const created = new Set(entry.createdTrackIds);
       this.music.tracks.update((ts) => ts.filter((track) => !created.has(track.id)));
+    }
+    for (const change of entry.instruments ?? []) {
+      this.music.setInstrument(change.trackId, change.instrumentId);
     }
     for (const snap of entry.notes) {
       this.music.tracks.update((ts) =>
@@ -1118,10 +1147,11 @@ export class ChatMusicCommandEngineService {
       (Number.isFinite(profile?.genreSpecificData?.tempo)
         ? Math.max(40, Math.min(240, profile.genreSpecificData.tempo))
         : this.currentTempo());
+    const variation = this.beatVariation++;
     const key =
       this.parseKey(args.key) ??
       this.parseKey(profile?.genreSpecificData?.key) ??
-      this.parseKey('C minor')!;
+      this.defaultKey(variation);
     const genre = args.genre || profile?.primaryGenre || 'trap';
 
     const target = this.music.selectedTrackId();
@@ -1134,17 +1164,49 @@ export class ChatMusicCommandEngineService {
       selectedTrackId: this.music.selectedTrackId(),
     };
 
-    const drumId = this.ensureTrack(tracks, 'Drums', 'trap-808-elite', 'drum', snapshot);
-    const bassId = this.ensureTrack(tracks, 'Bass', 'sub-commander', 'midi', snapshot);
-    const chordId = this.ensureTrack(tracks, 'Chords', 'analog-warmth', 'midi', snapshot);
-    const melodyId = this.ensureTrack(tracks, 'Melody', 'cyber-stab', 'midi', snapshot);
+    // The beat is built on the Studio's sample-library shelves, not four fixed
+    // synth presets: every role comes from the pack's real instrument ids.
+    const pack = beatPackForGenre(genre, variation);
+    const drumId = this.ensureTrack(
+      tracks,
+      'Drums',
+      this.presetOr(pack.drums, 'trap-kit-elite', ['drum', 'perc']),
+      'drum',
+      snapshot
+    );
+    const bassId = this.ensureTrack(
+      tracks,
+      'Bass',
+      this.presetOr(pack.bass, 'sub-commander', ['bass']),
+      'midi',
+      snapshot
+    );
+    const chordId = this.ensureTrack(
+      tracks,
+      'Chords',
+      this.presetOr(pack.chords, 'rhodes-mk2-stage', ['keys', 'piano', 'organ']),
+      'midi',
+      snapshot
+    );
+    const melodyId = this.ensureTrack(
+      tracks,
+      'Melody',
+      this.presetOr(pack.melody, 'supersaw-stack', ['lead', 'keys', 'pad']),
+      'midi',
+      snapshot
+    );
 
     this.music.engine.tempo.set(bpm);
 
-    this.writeDrumPattern(drumId, genre, args.feel || blueprint?.rhythmicFeel || '');
-    this.writeBass(bassId, key);
-    this.writeChords(chordId, key, blueprint?.harmonicLanguage || '');
-    this.writeMelody(melodyId, key);
+    this.writeDrumPattern(
+      drumId,
+      genre,
+      args.feel || blueprint?.rhythmicFeel || '',
+      variation
+    );
+    this.writeBass(bassId, key, variation);
+    this.writeChords(chordId, key, blueprint?.harmonicLanguage || '', variation);
+    this.writeMelody(melodyId, key, variation);
 
     if (target) this.music.selectedTrackId.set(target);
 
@@ -1152,7 +1214,8 @@ export class ChatMusicCommandEngineService {
     this.lastCommandLabel = snapshot.label;
 
     return {
-      content: `Beat forged: ${key.label} at ${bpm} BPM, ${genre} energy. Four tracks armed — Drums, Bass, Chords, Melody.${blueprint?.sonicNonNegotiables ? ` Protecting your sonic rule: ${blueprint.sonicNonNegotiables}.` : ''} Say "preview" to hear it or "undo" to scrap it.`,
+      content: `Beat forged: ${key.label} at ${bpm} BPM, ${genre} energy from the ${pack.label} shelf. Four tracks armed — Drums, Bass, Chords, Melody.${blueprint?.sonicNonNegotiables ? ` Protecting your sonic rule: ${blueprint.sonicNonNegotiables}.` : ''} Say "preview" to hear it or "undo" to scrap it.`,
+      packLabel: pack.label,
       actions: [
         { id: 'music-preview', label: 'Preview' },
         { id: 'music-undo', label: 'Undo' },
@@ -1169,11 +1232,21 @@ export class ChatMusicCommandEngineService {
       createdTrackIds: [],
       selectedTrackId: this.music.selectedTrackId(),
     };
-    const drumId = this.ensureTrack(tracks, 'Drums', 'trap-808-elite', 'drum', snapshot);
+    const variation = this.beatVariation++;
+    const genre = args.genre || this.currentProfile()?.primaryGenre || 'trap';
+    const pack = beatPackForGenre(genre, variation);
+    const drumId = this.ensureTrack(
+      tracks,
+      'Drums',
+      this.presetOr(pack.drums, 'trap-kit-elite', ['drum', 'perc']),
+      'drum',
+      snapshot
+    );
     this.writeDrumPattern(
       drumId,
-      args.genre || this.currentProfile()?.primaryGenre || 'trap',
-      args.feel || this.currentProfile()?.musicalJourney?.musicBlueprint?.rhythmicFeel || ''
+      genre,
+      args.feel || this.currentProfile()?.musicalJourney?.musicBlueprint?.rhythmicFeel || '',
+      variation
     );
     this.pushUndo(snapshot);
     this.lastCommandLabel = snapshot.label;
@@ -1188,7 +1261,8 @@ export class ChatMusicCommandEngineService {
 
   private createBass(args: { key?: string }): ChatMusicResult {
     if (this.currentProfile()?.settings?.ai?.aiTotalControlEnabled !== true) return { content: 'Full-Control Mode is off. No music changed.', actions: [] };
-    const key = this.parseKey(args.key) ?? this.parseKey('C minor')!;
+    const variation = this.beatVariation++;
+    const key = this.parseKey(args.key) ?? this.defaultKey(variation);
     const tracks = this.music.tracks();
     const snapshot: UndoEntry = {
       label: `bassline in ${key.label}`,
@@ -1196,8 +1270,18 @@ export class ChatMusicCommandEngineService {
       createdTrackIds: [],
       selectedTrackId: this.music.selectedTrackId(),
     };
-    const bassId = this.ensureTrack(tracks, 'Bass', 'sub-commander', 'midi', snapshot);
-    this.writeBass(bassId, key);
+    const pack = beatPackForGenre(
+      this.currentProfile()?.primaryGenre || 'trap',
+      variation
+    );
+    const bassId = this.ensureTrack(
+      tracks,
+      'Bass',
+      this.presetOr(pack.bass, 'sub-commander', ['bass']),
+      'midi',
+      snapshot
+    );
+    this.writeBass(bassId, key, variation);
     this.pushUndo(snapshot);
     this.lastCommandLabel = snapshot.label;
     return {
@@ -1218,7 +1302,18 @@ export class ChatMusicCommandEngineService {
       createdTrackIds: [],
       selectedTrackId: this.music.selectedTrackId(),
     };
-    const chordId = this.ensureTrack(tracks, 'Chords', 'analog-warmth', 'midi', snapshot);
+    const variation = this.beatVariation++;
+    const pack = beatPackForGenre(
+      this.currentProfile()?.primaryGenre || 'trap',
+      variation
+    );
+    const chordId = this.ensureTrack(
+      tracks,
+      'Chords',
+      this.presetOr(pack.chords, 'rhodes-mk2-stage', ['keys', 'piano', 'organ']),
+      'midi',
+      snapshot
+    );
 
     const progression = args.progression
       ? this.parseProgression(args.progression)
@@ -1227,8 +1322,8 @@ export class ChatMusicCommandEngineService {
       this.writeProgression(chordId, progression);
       snapshot.label = progression.map((c) => c.label).join(' – ');
     } else {
-      const key = this.parseKey(args.key) ?? this.parseKey('C minor')!;
-      this.writeChords(chordId, key);
+      const key = this.parseKey(args.key) ?? this.defaultKey(variation);
+      this.writeChords(chordId, key, '', variation);
       snapshot.label = `chords in ${key.label}`;
     }
 
@@ -1245,7 +1340,8 @@ export class ChatMusicCommandEngineService {
 
   private createMelody(args: { key?: string }): ChatMusicResult {
     if (this.currentProfile()?.settings?.ai?.aiTotalControlEnabled !== true) return { content: 'Full-Control Mode is off. No music changed.', actions: [] };
-    const key = this.parseKey(args.key) ?? this.parseKey('C major')!;
+    const variation = this.beatVariation++;
+    const key = this.parseKey(args.key) ?? this.defaultKey(variation);
     const tracks = this.music.tracks();
     const snapshot: UndoEntry = {
       label: `melody in ${key.label}`,
@@ -1253,8 +1349,18 @@ export class ChatMusicCommandEngineService {
       createdTrackIds: [],
       selectedTrackId: this.music.selectedTrackId(),
     };
-    const melodyId = this.ensureTrack(tracks, 'Melody', 'cyber-stab', 'midi', snapshot);
-    this.writeMelody(melodyId, key);
+    const pack = beatPackForGenre(
+      this.currentProfile()?.primaryGenre || 'trap',
+      variation
+    );
+    const melodyId = this.ensureTrack(
+      tracks,
+      'Melody',
+      this.presetOr(pack.melody, 'supersaw-stack', ['lead', 'keys', 'pad']),
+      'midi',
+      snapshot
+    );
+    this.writeMelody(melodyId, key, variation);
     this.pushUndo(snapshot);
     this.lastCommandLabel = snapshot.label;
     return {
@@ -1321,6 +1427,16 @@ export class ChatMusicCommandEngineService {
     );
     if (existing) {
       snapshot.notes.push({ trackId: existing.id, notes: [...existing.notes] });
+      // Reuse the channel, but move it onto this reading's kit / bass / keys.
+      // `setInstrument` also resets the channel patch, so a sample preset does
+      // not inherit the previous instrument's synth voice.
+      if (existing.instrumentId !== instrumentId) {
+        (snapshot.instruments ??= []).push({
+          trackId: existing.id,
+          instrumentId: existing.instrumentId,
+        });
+        this.music.setInstrument(existing.id, instrumentId);
+      }
       return existing.id;
     }
     const id = this.music.addTrack(name, instrumentId, type);
@@ -1329,6 +1445,32 @@ export class ChatMusicCommandEngineService {
     snapshot.createdTrackIds.push(id);
     snapshot.notes.push({ trackId: id, notes: [] });
     return id;
+  }
+
+  /**
+   * A pack id only reaches a track when the Studio really has that preset; a
+   * renamed or removed preset falls back instead of pointing at nothing.
+   */
+  private presetOr(
+    preferred: string,
+    fallback: string,
+    categories: InstrumentPreset['category'][] = []
+  ): string {
+    const presets = this.instruments?.getPresets?.() ?? [];
+    const usable = (id: string) => {
+      const preset = presets.find((candidate) => candidate.id === id);
+      return (
+        !!preset &&
+        (categories.length === 0 || categories.includes(preset.category))
+      );
+    };
+    if (usable(preferred)) return preferred;
+    if (usable(fallback)) return fallback;
+    const alternative = presets.find(
+      (preset) =>
+        categories.length === 0 || categories.includes(preset.category)
+    );
+    return alternative?.id ?? fallback;
   }
 
   private mutationState(): string {
@@ -1346,8 +1488,50 @@ export class ChatMusicCommandEngineService {
 
   // ── Writers ───────────────────────────────────────────────────────────────
 
+  /**
+   * A fill for the second bar, picked by `variation`. Sparse feels keep their
+   * space and never gain a backbeat snare.
+   */
+  private drumFill(
+    variation: number,
+    bar: number,
+    sparse: boolean
+  ): { midi: number; step: number; velocity: number }[] {
+    if (bar !== 1) return [];
+    if (sparse) {
+      return variation % 2 === 1
+        ? [{ midi: 49, step: 4, velocity: 0.2 }]
+        : [{ midi: 42, step: 8, velocity: 0.18 }];
+    }
+    const fills = [
+      [
+        { midi: 42, step: 13, velocity: 0.32 },
+        { midi: 42, step: 14, velocity: 0.28 },
+        { midi: 42, step: 15, velocity: 0.34 },
+      ],
+      [
+        { midi: 38, step: 15, velocity: 0.3 },
+        { midi: 42, step: 13, velocity: 0.32 },
+      ],
+      [
+        { midi: 45, step: 13, velocity: 0.4 },
+        { midi: 45, step: 15, velocity: 0.3 },
+      ],
+      [
+        { midi: 42, step: 11, velocity: 0.3 },
+        { midi: 46, step: 12, velocity: 0.36 },
+      ],
+    ];
+    return fills[Math.abs(variation) % fills.length];
+  }
+
   /** Standard trap/hip-hop grid: kick on 1 & 3, snare on 2 & 4, busy hats. */
-  private writeDrumPattern(trackId: string, genre: string, rhythmicFeel = '') {
+  private writeDrumPattern(
+    trackId: string,
+    genre: string,
+    rhythmicFeel = '',
+    variation = 0
+  ) {
     const kickMidi = 36;
     const snareMidi = 38;
     const hatMidi = 42;
@@ -1355,13 +1539,16 @@ export class ChatMusicCommandEngineService {
     const bars = 2;
     const style = genre.toLowerCase();
     const feel = rhythmicFeel.toLowerCase();
+    const sparse =
+      /(sparse|spacious|breathing|minimal)/.test(feel) ||
+      /ambient|classical|orchestral/.test(style);
     const hits: { midi: number; step: number; velocity: number }[] = [];
     const add = (midi: number, step: number, velocity: number) =>
       hits.push({ midi, step, velocity });
 
     for (let bar = 0; bar < bars; bar++) {
       const base = bar * 16;
-      if (/(sparse|spacious|breathing|minimal)/.test(feel) || /ambient|classical|orchestral/.test(style)) {
+      if (sparse) {
         // Leave intentional space; the Studio's other tracks carry the harmony.
         add(kickMidi, base, 0.4);
         add(49, base + 12, 0.24);
@@ -1501,33 +1688,66 @@ export class ChatMusicCommandEngineService {
           add(hatMidi, base + step, step % 4 === 0 ? 0.46 : 0.3);
         }
       }
+
+      // A genre-safe fill closes the second bar, so asking twice is not a
+      // carbon copy of the previous beat.
+      for (const fill of this.drumFill(variation, bar, sparse)) {
+        add(fill.midi, base + fill.step, fill.velocity);
+      }
     }
 
     const stamp = this.nextStamp('drums');
     hits.forEach((hit, index) => {
+      // Humanised dynamics: no two readings land identically.
+      const velocity = Math.max(
+        0.05,
+        Math.min(1, hit.velocity + (Math.random() - 0.5) * 0.08)
+      );
       this.music.addNoteToTrack(trackId, {
         id: `${stamp}_${index}`,
         midi: hit.midi,
         step: hit.step,
         length: index % 2 === 0 ? 1 : 0.5,
-        velocity: hit.velocity,
+        velocity,
       });
     });
   }
 
-  private writeBass(trackId: string, key: ParsedKey) {
+  private writeBass(trackId: string, key: ParsedKey, variation = 0) {
     const rootMidi = key.root + 24; // octave 2
     const stamp = this.nextStamp('bass');
     const scale = key.minor ? MINOR_SCALE : MAJOR_SCALE;
     const fifth = scale[4];
     const sixth = scale[5];
+    const seventh = scale[6];
 
-    const pattern: { midi: number; step: number; length: number; velocity: number }[] = [
-      { midi: rootMidi, step: 0, length: 6, velocity: 0.95 },
-      { midi: rootMidi + fifth, step: 8, length: 2, velocity: 0.7 },
-      { midi: rootMidi + 12, step: 10, length: 2, velocity: 0.6 },
-      { midi: rootMidi + sixth, step: 12, length: 4, velocity: 0.65 },
+    // Four rhythm shapes; each reading rotates through them.
+    const variants: { midi: number; step: number; length: number; velocity: number }[][] = [
+      [
+        { midi: rootMidi, step: 0, length: 6, velocity: 0.95 },
+        { midi: rootMidi + fifth, step: 8, length: 2, velocity: 0.7 },
+        { midi: rootMidi + 12, step: 10, length: 2, velocity: 0.6 },
+        { midi: rootMidi + sixth, step: 12, length: 4, velocity: 0.65 },
+      ],
+      [
+        { midi: rootMidi, step: 0, length: 4, velocity: 0.92 },
+        { midi: rootMidi, step: 4, length: 2, velocity: 0.62 },
+        { midi: rootMidi + 12, step: 8, length: 2, velocity: 0.66 },
+        { midi: rootMidi + seventh, step: 12, length: 4, velocity: 0.58 },
+      ],
+      [
+        { midi: rootMidi, step: 0, length: 8, velocity: 0.95 },
+        { midi: rootMidi + fifth, step: 8, length: 4, velocity: 0.72 },
+        { midi: rootMidi + 12, step: 13, length: 2, velocity: 0.6 },
+      ],
+      [
+        { midi: rootMidi, step: 0, length: 2, velocity: 0.9 },
+        { midi: rootMidi, step: 3, length: 5, velocity: 0.7 },
+        { midi: rootMidi + sixth, step: 9, length: 3, velocity: 0.64 },
+        { midi: rootMidi + fifth, step: 13, length: 3, velocity: 0.58 },
+      ],
     ];
+    const pattern = variants[Math.abs(variation) % variants.length];
     pattern.forEach((n, i) =>
       this.music.addNoteToTrack(trackId, {
         id: `${stamp}_${i}`,
@@ -1539,8 +1759,13 @@ export class ChatMusicCommandEngineService {
     );
   }
 
-  private writeChords(trackId: string, key: ParsedKey, harmonicLanguage = '') {
-    let progression = this.defaultProgression(key);
+  private writeChords(
+    trackId: string,
+    key: ParsedKey,
+    harmonicLanguage = '',
+    variation = 0
+  ) {
+    let progression = this.defaultProgression(key, variation);
     const language = harmonicLanguage.toLowerCase();
     if (/open fifth|power chord|no third/.test(language)) {
       progression = progression.map((chord) => ({ ...chord, intervals: [0, 7] }));
@@ -1581,12 +1806,20 @@ export class ChatMusicCommandEngineService {
     });
   }
 
-  private writeMelody(trackId: string, key: ParsedKey) {
+  private writeMelody(trackId: string, key: ParsedKey, variation = 0) {
     const stamp = this.nextStamp('melody');
     const scale = key.minor ? MINOR_SCALE : MAJOR_SCALE;
-    const anchor = key.root + 60; // octave 4
-    // Pentatonic-ish contour: root, 3rd, 4th, 5th, 7th, octave — 8 steps.
-    const contour = [0, 2, 4, 5, 4, 7, 5, 2];
+    // The hook alternates octaves between readings, so a new beat is audibly
+    // a new beat.
+    const anchor = key.root + (Math.abs(variation) % 2 === 0 ? 60 : 72);
+    // Pentatonic-ish contours over scale degrees — eight steps each.
+    const contours = [
+      [0, 2, 4, 5, 4, 7, 5, 2],
+      [0, 4, 2, 5, 7, 5, 4, 2],
+      [7, 5, 4, 2, 0, 2, 4, 0],
+      [0, 2, 7, 5, 4, 2, 5, 7],
+    ];
+    const contour = contours[Math.abs(variation) % contours.length];
     contour.forEach((degree, i) => {
       const midi = anchor + scale[degree % 7] + Math.floor(degree / 7) * 12;
       this.music.addNoteToTrack(trackId, {
@@ -1602,24 +1835,71 @@ export class ChatMusicCommandEngineService {
   // ── Preview rendering ─────────────────────────────────────────────────────
 
   private collectLastEvents(): NoteEvent[] {
+    // The preview plays each track through its own preset's factory samples,
+    // so `presetId` travels with every note.
     const tracks = this.music.tracks();
-    const recent = tracks
-      .filter((t) =>
+    const musicTracks = tracks.filter(
+      (t) =>
         /drums|bass|chord|melody|piano|keys/i.test(t.name) ||
         /drum|bass|piano|key/.test(t.instrumentId)
-      )
-      .flatMap((t) => t.notes);
-    if (recent.length === 0) return [];
+    );
+    if (!musicTracks.some((t) => t.notes.length > 0)) return [];
     const spb = 60 / this.currentTempo() / 4; // seconds per 16th step
-    return recent.map((n) => ({
-      midi: n.midi,
-      start: n.step * spb,
-      duration: Math.max(0.05, n.length * spb),
-      velocity: n.velocity,
-    }));
+    return musicTracks.flatMap((t) =>
+      t.notes.map((n) => ({
+        midi: n.midi,
+        start: n.step * spb,
+        duration: Math.max(0.05, n.length * spb),
+        velocity: n.velocity,
+        voice: this.voiceFor(t, n.midi),
+        presetId: t.instrumentId,
+      }))
+    );
   }
 
-  /** Simple offline render — a detuned triangle synth with a pluck envelope. */
+  /** Which family a note belongs to, from its track and its drum register. */
+  private voiceFor(track: TrackModel, midi: number): NoteVoice {
+    const name = `${track.name} ${track.instrumentId}`.toLowerCase();
+    if (track.type === 'drum' || /drum|808|kit/.test(name)) {
+      if (midi === 37 || midi === 38 || midi === 39 || midi === 40) return 'snare';
+      if (midi <= 41) return 'kick';
+      if (midi === 42 || midi === 44 || midi === 46) return 'hat';
+      if (midi === 49 || midi === 50 || midi === 51 || midi === 54) return 'hat';
+      return 'perc';
+    }
+    if (/bass|sub/.test(name)) return 'bass';
+    if (/melody|lead|stab/.test(name)) return 'melody';
+    return 'chords';
+  }
+
+  /** One timbre per family — a preview is not one flat synth across the kit. */
+  private voiceSpec(voice: NoteVoice): {
+    wave: OscillatorType;
+    pitch: number;
+    level: number;
+    attack: number;
+    decayRatio: number;
+    minDuration: number;
+  } {
+    switch (voice) {
+      case 'kick':
+        return { wave: 'sine', pitch: 0.6, level: 1, attack: 0.006, decayRatio: 0.6, minDuration: 0.18 };
+      case 'snare':
+        return { wave: 'square', pitch: 3, level: 0.45, attack: 0.004, decayRatio: 0.35, minDuration: 0.1 };
+      case 'hat':
+        return { wave: 'square', pitch: 6, level: 0.2, attack: 0.002, decayRatio: 0.25, minDuration: 0.05 };
+      case 'perc':
+        return { wave: 'triangle', pitch: 2, level: 0.38, attack: 0.004, decayRatio: 0.3, minDuration: 0.09 };
+      case 'bass':
+        return { wave: 'sine', pitch: 1, level: 0.9, attack: 0.01, decayRatio: 0.95, minDuration: 0.25 };
+      case 'melody':
+        return { wave: 'square', pitch: 1, level: 0.32, attack: 0.012, decayRatio: 0.8, minDuration: 0.15 };
+      default:
+        return { wave: 'triangle', pitch: 1, level: 0.38, attack: 0.02, decayRatio: 1, minDuration: 0.3 };
+    }
+  }
+
+  /** Offline render with the per-family timbres from `voiceSpec` above. */
   private async renderToBuffer(
     events: NoteEvent[],
     _bpm: number
@@ -1636,25 +1916,101 @@ export class ChatMusicCommandEngineService {
     master.gain.value = 0.8;
     master.connect(ctx.destination);
 
+    // Factory samples first; the synth voice is the fallback for presets that
+    // ship no zone for a note, or when a sample cannot be fetched.
+    const samples = await this.loadFactorySamples(events, ctx);
+
     for (const e of events) {
-      // Kick-ish low thump for drum-register notes (≤ 46).
+      const sample = samples.get(this.sampleKey(e));
+      if (sample) {
+        scheduleOfflinePresetSample(
+          ctx,
+          master,
+          sample,
+          e.start,
+          e.duration,
+          e.velocity,
+          0
+        );
+        continue;
+      }
+      const spec = this.voiceSpec(e.voice);
       const osc = ctx.createOscillator();
-      osc.type = e.midi <= 46 ? 'sine' : 'triangle';
-      osc.frequency.value = this.midiToFreq(e.midi);
+      osc.type = spec.wave;
+      osc.frequency.value = this.midiToFreq(e.midi) * spec.pitch;
       const gain = ctx.createGain();
-      const peak = Math.max(0.05, Math.min(1, e.velocity));
-      gain.gain.setValueAtTime(0.0001, e.start);
-      gain.gain.exponentialRampToValueAtTime(peak, e.start + 0.008);
-      gain.gain.exponentialRampToValueAtTime(
-        0.0001,
-        e.start + Math.max(0.1, e.duration)
+      const peak = Math.max(
+        0.02,
+        Math.min(1, e.velocity) * spec.level
       );
+      const tail = Math.max(spec.minDuration, e.duration) * spec.decayRatio;
+      gain.gain.setValueAtTime(0.0001, e.start);
+      gain.gain.exponentialRampToValueAtTime(peak, e.start + spec.attack);
+      gain.gain.exponentialRampToValueAtTime(0.0001, e.start + tail);
       osc.connect(gain);
       gain.connect(master);
       osc.start(e.start);
-      osc.stop(e.start + Math.max(0.12, e.duration));
+      osc.stop(e.start + Math.max(0.12, tail));
     }
     return ctx.startRendering();
+  }
+
+  private sampleKey(event: NoteEvent): string {
+    return `${event.presetId}|${event.midi}|${Math.round(event.velocity * 127)}`;
+  }
+
+  /**
+   * Decode the factory sample for every note that has one. Failures are silent
+   * per note: a missing file or a zone-less preset keeps its synth voice rather
+   * than muting the preview.
+   */
+  private async loadFactorySamples(
+    events: NoteEvent[],
+    ctx: BaseAudioContext
+  ): Promise<Map<string, PresetSample>> {
+    const loaded = new Map<string, PresetSample>();
+    if (typeof fetch !== 'function') return loaded;
+    const offline = ctx as OfflineAudioContext;
+    if (
+      typeof offline.decodeAudioData !== 'function' ||
+      typeof offline.createBufferSource !== 'function'
+    ) {
+      return loaded;
+    }
+    const wanted = new Set(events.map((event) => this.sampleKey(event)));
+    await Promise.all(
+      [...wanted].map(async (key) => {
+        const [presetId, midiText, velocityText] = key.split('|');
+        const midi = Number(midiText);
+        const velocity = Number(velocityText) / 127;
+        const selection = this.instruments?.sampleSelectionFor?.(
+          presetId,
+          midi,
+          velocity
+        );
+        if (!selection) return;
+        let buffer = this.sampleCache.get(selection.url);
+        if (!buffer) {
+          try {
+            const response = await fetch(selection.url);
+            if (!response.ok) return;
+            const bytes = await response.arrayBuffer();
+            buffer = await offline.decodeAudioData(bytes.slice(0));
+          } catch {
+            return;
+          }
+          if (!buffer || !(buffer.duration > 0)) return;
+          this.sampleCache.set(selection.url, buffer);
+        }
+        loaded.set(key, {
+          buffer,
+          rate: Math.pow(2, (midi - selection.rootNote) / 12),
+          oneShot: selection.oneShot,
+          release: selection.release,
+        });
+      })
+    );
+    return loaded;
   }
 
   private midiToFreq(midi: number): number {
@@ -1679,6 +2035,26 @@ export class ChatMusicCommandEngineService {
     const label =
       match[1].toUpperCase() + (match[2] || '') + (minor ? ' minor' : ' major');
     return { root, minor, label };
+  }
+
+  /**
+   * Unprompted beats rotate through a key pool. Landing on C minor every time
+   * was the difference between "a new beat" and "the same beat again".
+   */
+  private defaultKey(variation: number): ParsedKey {
+    const keys = [
+      'C minor',
+      'F minor',
+      'G minor',
+      'D minor',
+      'A minor',
+      'E minor',
+      'Bb minor',
+      'D major',
+      'G major',
+      'Eb major',
+    ];
+    return this.parseKey(keys[Math.abs(variation) % keys.length])!;
   }
 
   /** Parse "C - Am - F - G", "Cmaj7", "D min", "A♭" etc. into chords. */
@@ -1715,12 +2091,27 @@ export class ChatMusicCommandEngineService {
     return { root, intervals, label };
   }
 
-  /** i–VI–III–VII for minor, I–V–vi–IV for major. */
-  private defaultProgression(key: ParsedKey): ParsedChord[] {
-    const numerals = key.minor
-      ? ['i', 'VI', 'III', 'VII']
-      : ['I', 'V', 'vi', 'IV'];
-    return numerals.map((numeral) => this.degreeToChord(key, numeral));
+  /**
+   * Four-bar progressions per mode. A reading without an explicit progression
+   * rotates through these instead of restating one loop every time.
+   */
+  private defaultProgression(key: ParsedKey, variation = 0): ParsedChord[] {
+    const minor = [
+      ['i', 'VI', 'III', 'VII'],
+      ['i', 'iv', 'VI', 'V'],
+      ['i', 'VII', 'VI', 'v'],
+      ['i', 'v', 'VI', 'iv'],
+    ];
+    const major = [
+      ['I', 'V', 'vi', 'IV'],
+      ['I', 'vi', 'IV', 'V'],
+      ['I', 'iii', 'IV', 'V'],
+      ['vi', 'IV', 'I', 'V'],
+    ];
+    const options = key.minor ? minor : major;
+    return options[Math.abs(variation) % options.length].map((numeral) =>
+      this.degreeToChord(key, numeral)
+    );
   }
 
   private degreeToChord(key: ParsedKey, numeral: string): ParsedChord {
