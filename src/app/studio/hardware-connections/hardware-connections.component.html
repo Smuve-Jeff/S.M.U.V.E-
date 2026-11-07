@@ -6,14 +6,33 @@
       <span class="hw-status" [class.is-on]="midiDevices().length > 0">
         {{ midiDevices().length }} input{{ midiDevices().length === 1 ? "" : "s" }}
       </span>
+      <button
+        type="button"
+        class="hw-link"
+        (click)="connectMidi()"
+        [disabled]="hardware.midiStatus() === 'requesting'"
+        aria-label="Rescan Web MIDI and Android native MIDI inputs"
+      >
+        {{ hardware.midiStatus() === 'requesting' ? 'Scanning…' : 'Rescan' }}
+      </button>
     </header>
+
+    <p
+      class="hw-note hw-midi-status"
+      *ngIf="midiStatusNotice() as notice"
+      [attr.data-midi-status]="hardware.midiStatus()"
+      role="status"
+      aria-live="polite"
+    >
+      {{ notice }}
+    </p>
 
     <p class="hw-empty" *ngIf="midiDevices().length === 0">
       No MIDI input detected.
       <button type="button" class="hw-link" (click)="connectMidi()">
         Enable MIDI access
       </button>
-      — then connect a keyboard or pad controller.
+      — then connect a USB/BLE keyboard or pad controller, and rescan.
     </p>
     <ul class="hw-device-list" *ngIf="midiDevices().length > 0">
       <li *ngFor="let device of midiDevices()">

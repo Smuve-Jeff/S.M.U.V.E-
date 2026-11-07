@@ -21,6 +21,7 @@ import { alignRecordingStart } from "./recording-start-alignment.util";
 import { ScreenWakeLockService } from "../services/screen-wake-lock.service";
 import { SnackbarService } from "../services/snackbar.service";
 import { NativePlaybackService } from "../services/native-playback.service";
+import { NativeCaptureService } from "../services/native-capture.service";
 
 export interface MicChannel {
   id: string;
@@ -47,6 +48,7 @@ export class AudioSessionService {
   private readonly wakeLock = inject(ScreenWakeLockService);
   private readonly snackbar = inject(SnackbarService);
   private readonly nativePlayback = inject(NativePlaybackService);
+  private readonly nativeCapture = inject(NativeCaptureService);
 
   /** Shared in-flight input open, so two gestures never open the same device
    *  twice — `StudioRecordingEngineService.initialize()` tears down the
@@ -288,6 +290,14 @@ export class AudioSessionService {
       this.logger.info(`AudioSession: continuing playback in background (${reason}).`);
       return;
     }
+    if (this.isRecording() && this.nativeCapture.active()) {
+      // Android's microphone foreground service keeps the process and capture
+      // graph alive behind the lock screen. Finalizing here would end the take
+      // the moment the artist locked their phone, which is exactly what the
+      // service exists to prevent.
+      this.logger.info(`AudioSession: continuing recording in background (${reason}).`);
+      return;
+    }
     this.lastBackgroundStopAt.set(Date.now());
     this.logger.info(`AudioSession: finalizing the session (${reason}).`);
     this.stop();
@@ -362,6 +372,7 @@ export class AudioSessionService {
 
     if (this.isRecording()) {
       this.engine.stop();
+      void this.nativeCapture.stop();
       // Await the flush, then drop the pass onto its destination track as a
       // real clip. The promise is kept on `takeSaveInFlight` so a caller can
       // wait for the take to be editable before saving/exporting.
@@ -407,6 +418,12 @@ export class AudioSessionService {
         }
       }
       this.musicManager.startRecording();
+      // Give audio passes Android's microphone foreground guarantee before
+      // the screen can lock. A MIDI-only pass has no microphone stream, so it
+      // must not raise a recording notification it cannot back up.
+      if (this.recordingEngine.isInitialized()) {
+        await this.nativeCapture.start();
+      }
       this.playbackState.set("recording");
       // Snapshot the destinations for the whole pass: arming a strip mid-pass
       // must not claim a take that started before it was armed. The fractional
@@ -447,6 +464,7 @@ export class AudioSessionService {
   stop(): void {
     this.engine.stop();
     void this.nativePlayback.stop();
+    void this.nativeCapture.stop();
     if (this.recordingEngine.isRecording() || this.pendingTransportTake) {
       // Keep the promise: the take is not durable until the engine has flushed
       // the worklet, encoded the WAV, committed the IndexedDB write and the

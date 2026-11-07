@@ -2,6 +2,13 @@ import { Injectable, signal, computed, inject, NgZone } from '@angular/core';
 import { LoggingService } from './logging.service';
 import { MicrophoneService } from './microphone.service';
 import { NativeMidiService } from './native-midi.service';
+import {
+  MidiInputBusService,
+  type MidiInputRef,
+} from './midi-input-bus.service';
+import { setMidiInputHandler } from './midi-input-chain';
+
+const HARDWARE_MIDI_HANDLER = Symbol('smuve-hardware-midi');
 
 export interface MidiInputDevice {
   id: string;
@@ -17,12 +24,21 @@ export interface HardwareStatus {
   recordReady: boolean;
 }
 
+/** How far the MIDI input handshake has got. */
+export type MidiConnectionStatus =
+  | 'idle'
+  | 'requesting'
+  | 'ready'
+  | 'unsupported'
+  | 'denied';
+
 @Injectable({ providedIn: 'root' })
 export class HardwareService {
   private logger = inject(LoggingService);
   private micService = inject(MicrophoneService);
   private nativeMidi = inject(NativeMidiService);
   private zone = inject(NgZone);
+  private readonly midiBus = inject(MidiInputBusService);
 
   status = signal<HardwareStatus>({
     audioInterfaceConnected: false,
@@ -52,6 +68,14 @@ export class HardwareService {
   });
 
   midiInputs = signal<MidiInputDevice[]>([]);
+  /**
+   * Observable MIDI handshake state. Android has no Web MIDI, so a denied or
+   * unsupported Web MIDI request is not the end of the story: the native
+   * bridge is tried before this settles on `unsupported`.
+   */
+  readonly midiStatus = signal<MidiConnectionStatus>('idle');
+  readonly midiError = signal<string | null>(null);
+  private connectInFlight: Promise<MidiConnectionStatus> | null = null;
   /** Callback fired when a MIDI note-on is received (note 0-127, velocity 0-127). Called by the service. */
   onMidiNoteOn?: (note: number, velocity: number) => void;
   onMidiNoteOff?: (note: number) => void;
@@ -88,7 +112,7 @@ export class HardwareService {
 
   constructor() {
     this.initMonitoring();
-    this.initMidiInput();
+    void this.connectMidi();
   }
 
   private initMonitoring() {
@@ -161,65 +185,140 @@ export class HardwareService {
     this.status.update((s) => ({ ...s, midiDevicesConnected: Math.max(0, Math.floor(count)) }));
   }
 
-  /** Initialize Web MIDI input, falling back to Android's native MIDI API. */
-  private initMidiInput(): void {
-    if (typeof navigator === 'undefined') return;
-    const request = (navigator as any)?.requestMIDIAccess;
-    if (typeof request !== 'function') {
-      void this.initNativeMidi();
-      return;
+  /**
+   * Open MIDI input, preferring Web MIDI and falling back to Android's native
+   * bridge. Safe to call again from the hardware panel's rescans: an in-flight
+   * handshake is shared, and a repeat request re-enumerates hot-plugged ports.
+   */
+  async connectMidi(): Promise<MidiConnectionStatus> {
+    if (this.connectInFlight) return this.connectInFlight;
+    this.connectInFlight = this.openMidiInputs().finally(() => {
+      this.connectInFlight = null;
+    });
+    return this.connectInFlight;
+  }
+
+  private async openMidiInputs(): Promise<MidiConnectionStatus> {
+    this.midiStatus.set('requesting');
+    this.midiError.set(null);
+
+    if (typeof navigator === 'undefined') {
+      this.midiStatus.set('unsupported');
+      return 'unsupported';
     }
 
-    this.zone.runOutsideAngular(() => {
-      request.call(navigator).then((midi: any) => {
+    const request = (navigator as any)?.requestMIDIAccess;
+    if (typeof request === 'function') {
+      try {
+        const midi = await this.zone.runOutsideAngular(() =>
+          request.call(navigator),
+        );
         this.refreshMidiInputs(midi);
         midi.onstatechange = () => this.refreshMidiInputs(midi);
-      }).catch(() => {
+        this.midiStatus.set('ready');
+        return 'ready';
+      } catch (error) {
         // Android WebViews usually have no Web MIDI at all; when access is
         // refused, try the platform bridge before declaring MIDI unavailable.
-        void this.initNativeMidi();
-      });
+        this.midiError.set(
+          error instanceof Error ? error.message : 'Web MIDI access was denied',
+        );
+        this.midiStatus.set('denied');
+      }
+    }
+
+    if (await this.initNativeMidi()) {
+      this.midiStatus.set('ready');
+      return 'ready';
+    }
+
+    if (this.midiStatus() !== 'denied') this.midiStatus.set('unsupported');
+    this.midiBus.publishState({
+      available: false,
+      native: false,
+      inputs: [],
     });
+    return this.midiStatus() as MidiConnectionStatus;
   }
 
   /**
-   * Connect the Android MIDI bridge. A native controller is listed with the
-   * same `MidiInputDevice` shape as a Web MIDI input, so every existing
-   * keyboard/MPE/CC consumer keeps working without a second code path.
+   * Connect the Android MIDI bridge. A native controller is published through
+   * the MIDI input bus so the hardware keyboard, DJ mappings, Studio MIDI learn
+   * and performer streams all see the same messages instead of overwriting the
+   * bridge's single callback.
    */
-  private async initNativeMidi(): Promise<void> {
+  private async initNativeMidi(): Promise<boolean> {
     try {
-      if (!(await this.nativeMidi.init())) return;
-      this.nativeMidi.onMessage = (data) => this.handleMidiData(data);
-      await this.nativeMidi.connectInputs();
+      if (!(await this.nativeMidi.refresh())) return false;
       const inputs: MidiInputDevice[] = this.nativeMidi.devices().map((device) => ({
         id: device.id,
         name: device.name || 'MIDI Device',
         manufacturer: device.manufacturer || '',
       }));
+      const sources = new Map<string, MidiInputRef>(
+        inputs.map((input) => [
+          input.id,
+          { ...input, native: true },
+        ]),
+      );
+      this.nativeMidi.onMessage = (data, deviceId) => {
+        const source =
+          sources.get(deviceId) ??
+          ({
+            id: deviceId,
+            name: 'MIDI Device',
+            manufacturer: '',
+            native: true,
+          } satisfies MidiInputRef);
+        this.midiBus.publishMessage(data, source);
+        this.handleMidiData(data);
+      };
+      await this.nativeMidi.connectInputs();
       this.zone.run(() => {
         this.midiInputs.set(inputs);
         this.updateMidiCount(inputs.length);
       });
-    } catch {
+      this.midiBus.publishState({
+        available: true,
+        native: true,
+        inputs: [...sources.values()],
+      });
+      return true;
+    } catch (error) {
+      this.midiError.set(
+        error instanceof Error ? error.message : 'Native MIDI is unavailable',
+      );
       // No native bridge / no connected hardware is a valid state.
+      return false;
     }
   }
 
   private refreshMidiInputs(midi: any): void {
     const inputs: MidiInputDevice[] = [];
     for (const input of (midi.inputs as any).values()) {
-      inputs.push({
+      const device: MidiInputDevice = {
         id: input.id,
         name: input.name || 'MIDI Device',
         manufacturer: input.manufacturer || '',
+      };
+      inputs.push(device);
+      setMidiInputHandler(input, HARDWARE_MIDI_HANDLER, (event: any) => {
+        this.midiBus.publishMessage(event.data, {
+          ...device,
+          native: false,
+        });
+        this.handleMidiData(event.data);
       });
-      input.onmidimessage = (event: any) => this.handleMidiData(event.data);
     }
 
     this.zone.run(() => {
       this.midiInputs.set(inputs);
       this.updateMidiCount(inputs.length);
+    });
+    this.midiBus.publishState({
+      available: true,
+      native: false,
+      inputs: inputs.map((input) => ({ ...input, native: false })),
     });
   }
 

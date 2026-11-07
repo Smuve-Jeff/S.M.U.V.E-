@@ -1,5 +1,9 @@
 import { Injectable, computed, inject, signal } from "@angular/core";
 import { AudioEngineService } from "../services/audio-engine.service";
+import { MidiInputBusService } from "../services/midi-input-bus.service";
+import { setMidiInputHandler } from "../services/midi-input-chain";
+
+const CLOCK_MIDI_HANDLER = Symbol("smuve-midi-clock");
 
 /** MIDI beat clock resolution: 24 pulses per quarter note. */
 export const MIDI_CLOCK_PPQN = 24;
@@ -86,6 +90,7 @@ export type MidiClockStatus = "off" | "waiting" | "locked" | "unsupported";
 @Injectable({ providedIn: "root" })
 export class MidiClockSyncService {
   private readonly engine = inject(AudioEngineService);
+  private readonly midiBus = inject(MidiInputBusService);
 
   readonly enabled = signal(false);
   readonly status = signal<MidiClockStatus>("off");
@@ -99,7 +104,7 @@ export class MidiClockSyncService {
       case "waiting":
         return "WAITING FOR CLOCK";
       case "unsupported":
-        return "NO WEB MIDI";
+        return "NO MIDI INPUT";
       case "locked": {
         const bpm = this.bpm();
         return bpm === null ? "LOCKING…" : `${bpm} BPM`;
@@ -110,14 +115,33 @@ export class MidiClockSyncService {
   private tracker = new MidiClockTracker();
   private access: any = null;
   private inputs: any[] = [];
+  /** True when clock pulses come from the native MIDI bus, not Web MIDI. */
+  private usingBus = false;
   /** Tempo the artist had before external sync took over. */
   private tempoBeforeSync: number | null = null;
+
+  constructor() {
+    // Android controllers arrive through the hardware service's native bus.
+    // HardwareService is the single owner of that platform callback, so the
+    // clock follows the same messages instead of opening a second MIDI session
+    // (which would overwrite the keyboard/learn listeners).
+    this.midiBus.messages$.subscribe((message) => {
+      if (!message.source.native || !this.enabled() || !this.usingBus) return;
+      this.handleMessage({ data: new Uint8Array(message.data) });
+    });
+    this.midiBus.state$.subscribe((state) => {
+      if (!this.enabled() || !this.usingBus) return;
+      if (!state.available || state.inputs.length === 0) {
+        this.handleSourceLost();
+      }
+    });
+  }
 
   async enable(): Promise<void> {
     if (this.enabled()) return;
     const request = (navigator as any)?.requestMIDIAccess;
     if (typeof request !== "function") {
-      this.status.set("unsupported");
+      if (!this.enableNativeFallback()) return;
       return;
     }
     this.enabled.set(true);
@@ -127,14 +151,31 @@ export class MidiClockSyncService {
       this.access.onstatechange = () => this.attachInputs();
       this.attachInputs();
     } catch {
-      this.enabled.set(false);
-      this.status.set("unsupported");
+      this.access = null;
+      if (!this.enableNativeFallback()) {
+        this.enabled.set(false);
+        this.status.set("unsupported");
+      }
     }
+  }
+
+  /** Follow the Android bridge when Web MIDI is absent or refused. */
+  private enableNativeFallback(): boolean {
+    const state = this.midiBus.state();
+    if (!state.available || !state.native || state.inputs.length === 0) {
+      this.status.set("unsupported");
+      return false;
+    }
+    this.usingBus = true;
+    this.enabled.set(true);
+    this.status.set("waiting");
+    return true;
   }
 
   disable(): void {
     if (!this.enabled() && this.status() === "off") return;
     this.detachInputs();
+    this.usingBus = false;
     this.tracker.reset();
     this.enabled.set(false);
     this.status.set("off");
@@ -159,8 +200,11 @@ export class MidiClockSyncService {
     }
     this.inputs = Array.from(this.access.inputs.values());
     for (const input of this.inputs) {
-      input.onmidimessage = (event: { data: Uint8Array }) =>
-        this.handleMessage(event);
+      setMidiInputHandler(
+        input,
+        CLOCK_MIDI_HANDLER,
+        (event: { data: Uint8Array }) => this.handleMessage(event),
+      );
     }
     if (this.inputs.length === 0) this.handleSourceLost();
   }
@@ -185,9 +229,7 @@ export class MidiClockSyncService {
 
   private detachInputs(): void {
     for (const input of this.inputs) {
-      try {
-        input.onmidimessage = null;
-      } catch { /* ignore */ }
+      setMidiInputHandler(input, CLOCK_MIDI_HANDLER, null);
     }
     this.inputs = [];
   }

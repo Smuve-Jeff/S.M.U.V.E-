@@ -2,6 +2,13 @@ import { Injectable, inject, signal } from '@angular/core';
 import { Subject } from 'rxjs';
 import { DeckService } from './deck.service';
 import { LoggingService } from './logging.service';
+import {
+  MidiInputBusService,
+  type MidiInputRef,
+} from './midi-input-bus.service';
+import { setMidiInputHandler } from './midi-input-chain';
+
+const DJ_MIDI_HANDLER = Symbol('smuve-dj-midi');
 
 export interface MidiNoteEvent {
   note: number;
@@ -56,8 +63,11 @@ export interface MidiLogEntry {
 export class DjMidiService {
   private deckService = inject(DeckService);
   private logger = inject(LoggingService);
+  private readonly midiBus = inject(MidiInputBusService);
   private midiAccess: any = null;
   private initialized = false;
+  /** Android inputs are delivered by the hardware service through the bus. */
+  private externalNativeInputs: MidiInputRef[] = [];
 
   /** Persisted custom MIDI mappings */
   mappings = signal<MidiMapping[]>([]);
@@ -95,13 +105,15 @@ export class DjMidiService {
     this.applyDeviceGating();
   }
 
-  /** Attach/detach onmidimessage per device to match enabledDevices. */
+  /** Attach/detach this consumer's handler per device to match enabledDevices. */
   private applyDeviceGating(): void {
     for (const device of this.midiInputDevices) {
       const name = device.name || 'Unknown MIDI Device';
-      device.onmidimessage = this.isDeviceEnabled(name)
-        ? (msg: any) => this.handleMidi(msg)
-        : null;
+      setMidiInputHandler(
+        device,
+        DJ_MIDI_HANDLER,
+        this.isDeviceEnabled(name) ? (msg: any) => this.handleMidi(msg) : null,
+      );
     }
   }
 
@@ -225,6 +237,21 @@ export class DjMidiService {
   constructor() {
     this.loadCustomMappings();
     this.loadPerformerCCMappings();
+    // Native MIDI has one platform callback, owned by HardwareService. Listen
+    // to its fan-out so DJ mappings, MIDI learn and the performer see USB/BLE
+    // controllers on Android just like Web MIDI devices on desktop.
+    this.midiBus.messages$.subscribe((message) => {
+      if (!message.source.native) return;
+      if (!this.isDeviceEnabled(message.source.name)) return;
+      this.handleMidi({
+        data: message.data,
+        target: { name: message.source.name },
+      });
+    });
+    this.midiBus.state$.subscribe((state) => {
+      this.externalNativeInputs = state.native ? state.inputs : [];
+      this.syncDeviceSignals();
+    });
     this.autoInit();
   }
 
@@ -394,14 +421,26 @@ export class DjMidiService {
       this.midiInputDevices.push(device);
       devices.push(device.name || 'Unknown MIDI Device');
     }
-    this.connectedDevices.set(devices);
-    this.midiInputNames.set(devices);
+    this.syncDeviceSignals();
     // Respect the picker's enable list — a disabled device must not listen.
     this.applyDeviceGating();
     this.refreshOutputList();
     if (devices.length > 0) {
       this.logger.info(`DJ MIDI Devices: ${devices.join(', ')}`);
     }
+  }
+
+  /** Merge Web MIDI inputs with native inputs discovered by the hardware service. */
+  private syncDeviceSignals(): void {
+    const web = this.midiInputDevices.map(
+      (device) => device.name || 'Unknown MIDI Device',
+    );
+    const native = this.externalNativeInputs.map(
+      (device) => device.name || 'MIDI Device',
+    );
+    const devices = [...new Set([...web, ...native])];
+    this.connectedDevices.set(devices);
+    this.midiInputNames.set(devices);
   }
 
   // ── Performer MIDI Learn ─────────────────────────────

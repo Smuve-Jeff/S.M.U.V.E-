@@ -8,6 +8,7 @@ import {
 } from "../../services/audio-engine-latency.service";
 import { StudioMidiLearnService } from "../studio-midi-learn.service";
 import { DjMidiService } from "../../services/dj-midi.service";
+import { HardwareService } from "../../services/hardware.service";
 import { MicrophoneService } from "../../services/microphone.service";
 import { GamepadService } from "../../services/gamepad.service";
 
@@ -92,6 +93,14 @@ describe("HardwareConnectionsComponent input latency", () => {
     autoInit: jest.fn(),
   };
 
+  const hardwareMock = {
+    connectMidi: jest.fn(),
+    midiStatus: signal<'idle' | 'requesting' | 'ready' | 'denied' | 'unsupported'>(
+      'idle',
+    ),
+    midiError: signal<string | null>(null),
+  };
+
   const microphoneMock = {
     availableDevices: signal([]),
     selectedDeviceId: signal(""),
@@ -107,6 +116,9 @@ describe("HardwareConnectionsComponent input latency", () => {
     latencyMock.calibrateAndApply.mockClear();
     latencyMock.calibrateWithLoopback.mockClear();
     latencyMock.lastLoopback.set(null);
+    hardwareMock.midiStatus.set('idle');
+    hardwareMock.midiError.set(null);
+    hardwareMock.connectMidi.mockClear();
 
     await TestBed.configureTestingModule({
       imports: [HardwareConnectionsComponent],
@@ -114,6 +126,7 @@ describe("HardwareConnectionsComponent input latency", () => {
         { provide: AudioEngineLatencyService, useValue: latencyMock },
         { provide: StudioMidiLearnService, useValue: midiLearnMock },
         { provide: DjMidiService, useValue: midiMock },
+        { provide: HardwareService, useValue: hardwareMock },
         { provide: MicrophoneService, useValue: microphoneMock },
         { provide: GamepadService, useValue: gamepadMock },
       ],
@@ -122,6 +135,31 @@ describe("HardwareConnectionsComponent input latency", () => {
     fixture = TestBed.createComponent(HardwareConnectionsComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
+  });
+
+  it("explains when no MIDI API is available in this build", () => {
+    hardwareMock.midiStatus.set('unsupported');
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain(
+      "No Web MIDI or Android native MIDI API is available in this build.",
+    );
+  });
+
+  it("prompts for a controller when MIDI is ready but nothing is connected", () => {
+    hardwareMock.midiStatus.set('ready');
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain(
+      "MIDI is available — connect a USB/BLE controller, then rescan.",
+    );
+  });
+
+  it("rescans both Web MIDI and the Android native bridge", () => {
+    component.connectMidi();
+
+    expect(midiMock.autoInit).toHaveBeenCalled();
+    expect(hardwareMock.connectMidi).toHaveBeenCalled();
   });
 
   it("renders the calibration action and the applied compensation", () => {

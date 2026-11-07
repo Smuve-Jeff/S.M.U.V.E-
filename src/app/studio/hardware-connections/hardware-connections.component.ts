@@ -3,6 +3,7 @@ import { CommonModule } from "@angular/common";
 
 import { StudioMidiLearnService } from "../studio-midi-learn.service";
 import { DjMidiService } from "../../services/dj-midi.service";
+import { HardwareService } from "../../services/hardware.service";
 import { MicrophoneService } from "../../services/microphone.service";
 import { GamepadService } from "../../services/gamepad.service";
 import { AudioEngineLatencyService } from "../../services/audio-engine-latency.service";
@@ -29,6 +30,7 @@ import { AudioEngineLatencyService } from "../../services/audio-engine-latency.s
 export class HardwareConnectionsComponent {
   readonly midiLearn = inject(StudioMidiLearnService);
   readonly midi = inject(DjMidiService);
+  readonly hardware = inject(HardwareService);
   readonly microphone = inject(MicrophoneService);
   readonly gamepad = inject(GamepadService);
   /**
@@ -47,6 +49,29 @@ export class HardwareConnectionsComponent {
     const connected = this.midi.connectedDevices();
     const inputs = this.midi.midiInputNames();
     return connected.length > 0 ? connected : inputs;
+  });
+
+  /**
+   * The panel's health line. A count alone cannot tell the artist whether MIDI
+   * was denied, unavailable in this build, or simply waiting for a controller.
+   */
+  readonly midiStatusNotice = computed(() => {
+    const status = this.hardware.midiStatus();
+    const count = this.midiDevices().length;
+    if (status === "requesting") return "Looking for MIDI inputs…";
+    if (status === "denied") {
+      const error = this.hardware.midiError();
+      return error
+        ? `MIDI access was denied: ${error}`
+        : "MIDI access was denied. Allow MIDI permission, then rescan.";
+    }
+    if (status === "unsupported") {
+      return "No Web MIDI or Android native MIDI API is available in this build.";
+    }
+    if (status === "ready" && count === 0) {
+      return "MIDI is available — connect a USB/BLE controller, then rescan.";
+    }
+    return null;
   });
 
   readonly micDevices = computed(() =>
@@ -74,7 +99,11 @@ export class HardwareConnectionsComponent {
   ];
 
   connectMidi(): void {
+    // Re-open Web MIDI and re-enumerate the Android native bridge. The bridge
+    // is how a USB/BLE controller is found on mobile; asking only for Web MIDI
+    // made the panel's "Enable MIDI access" a no-op there.
     void this.midi.autoInit();
+    void this.hardware.connectMidi();
   }
 
   /** Defensive count so a partial test double cannot break the template. */

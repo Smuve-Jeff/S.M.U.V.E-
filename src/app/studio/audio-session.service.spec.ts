@@ -10,6 +10,8 @@ import { MusicManagerService } from "../services/music-manager.service";
 import { RecordingStatusService } from "./recording-status.service";
 import { ScreenWakeLockService } from "../services/screen-wake-lock.service";
 import { SnackbarService } from "../services/snackbar.service";
+import { NativePlaybackService } from "../services/native-playback.service";
+import { NativeCaptureService } from "../services/native-capture.service";
 
 describe("AudioSessionService", () => {
   let service: AudioSessionService;
@@ -52,6 +54,18 @@ describe("AudioSessionService", () => {
     success: jest.fn(),
     warning: jest.fn(),
     error: jest.fn(),
+  };
+
+  const nativePlaybackMock = {
+    active: signal(false),
+    start: jest.fn(() => Promise.resolve(true)),
+    stop: jest.fn(() => Promise.resolve()),
+  };
+
+  const nativeCaptureMock = {
+    active: signal(false),
+    start: jest.fn(() => Promise.resolve(true)),
+    stop: jest.fn(() => Promise.resolve()),
   };
 
   const musicManagerMock = {
@@ -111,6 +125,8 @@ describe("AudioSessionService", () => {
         { provide: SnackbarService, useValue: snackbarMock },
         { provide: RecordingStatusService, useValue: recordingStatusMock },
         { provide: ScreenWakeLockService, useValue: wakeLockMock },
+        { provide: NativePlaybackService, useValue: nativePlaybackMock },
+        { provide: NativeCaptureService, useValue: nativeCaptureMock },
       ],
     });
     service = TestBed.inject(AudioSessionService);
@@ -124,6 +140,12 @@ describe("AudioSessionService", () => {
     wakeLockMock.request.mockClear();
     wakeLockMock.release.mockClear();
     snackbarMock.warning.mockClear();
+    nativePlaybackMock.active.set(false);
+    nativePlaybackMock.start.mockClear();
+    nativePlaybackMock.stop.mockClear();
+    nativeCaptureMock.active.set(false);
+    nativeCaptureMock.start.mockClear();
+    nativeCaptureMock.stop.mockClear();
     musicManagerMock.startRecording.mockClear();
     musicManagerMock.stopRecording.mockReset();
     recordingEngineMock.isRecording.mockReturnValue(false);
@@ -389,6 +411,19 @@ describe("AudioSessionService", () => {
       expect(service.lastBackgroundStopAt()).toBeNull();
     });
 
+    it("keeps a protected native recording rolling when the app is hidden", () => {
+      recordingEngineMock.isRecording.mockReturnValue(true);
+      nativeCaptureMock.active.set(true);
+      service.playbackState.set("recording");
+
+      setVisibility("hidden");
+
+      expect(engineMock.stop).not.toHaveBeenCalled();
+      expect(musicManagerMock.stopRecording).not.toHaveBeenCalled();
+      expect(service.playbackState()).toBe("recording");
+      expect(service.lastBackgroundStopAt()).toBeNull();
+    });
+
     it("exposes the take save so a caller can await durability", async () => {
       let release!: () => void;
       musicManagerMock.stopRecording.mockImplementationOnce(
@@ -425,6 +460,36 @@ describe("AudioSessionService", () => {
       expect(musicManagerMock.stopRecording).not.toHaveBeenCalled();
       await expect(service.whenTakeSaved()).resolves.toBeNull();
     });
+  });
+
+  it("keeps playback alive behind the Android foreground service", () => {
+    nativePlaybackMock.active.set(true);
+    service.playbackState.set("playing");
+
+    setVisibility("hidden");
+
+    expect(engineMock.stop).not.toHaveBeenCalled();
+    expect(service.playbackState()).toBe("playing");
+    expect(service.lastBackgroundStopAt()).toBeNull();
+  });
+
+  it("starts the native capture service for an audio record pass", async () => {
+    recordingEngineMock.isInitialized.mockReturnValue(true);
+    recordingEngineMock.isRecording.mockReturnValue(true);
+
+    await service.toggleRecord();
+
+    expect(nativeCaptureMock.start).toHaveBeenCalledTimes(1);
+    expect(service.isRecording()).toBe(true);
+  });
+
+  it("does not raise a capture notification for a MIDI-only pass", async () => {
+    recordingEngineMock.isInitialized.mockReturnValue(false);
+
+    await service.toggleRecord();
+
+    expect(nativeCaptureMock.start).not.toHaveBeenCalled();
+    expect(service.isRecording()).toBe(true);
   });
 
   it("stops playback when the tab/app is hidden mid-transport", () => {

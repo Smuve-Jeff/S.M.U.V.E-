@@ -48,6 +48,18 @@ export class NativeMidiService {
     return this.initPromise;
   }
 
+  /** Re-enumerate devices so a controller connected after boot is discoverable. */
+  async refresh(): Promise<boolean> {
+    if (!(await this.init()) || !this.plugin) return false;
+    try {
+      const result = await this.plugin.listMidiDevices();
+      this.devices.set(Array.isArray(result?.devices) ? result.devices : []);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   async connectInputs(): Promise<void> {
     if (!(await this.init()) || !this.plugin) return;
     for (const device of this.devices()) {

@@ -2,6 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { DjMidiService } from './dj-midi.service';
 import { DeckService } from './deck.service';
 import { LoggingService } from './logging.service';
+import { MidiInputBusService } from './midi-input-bus.service';
 
 /**
  * Contract under test: the performer device picker's ON/OFF toggles must
@@ -87,6 +88,51 @@ describe('DjMidiService device gating', () => {
     (deviceA.onmidimessage as (m: unknown) => void)(noteOn);
     expect(service.lastMidiMessage()).not.toBeNull();
   });
+  it('consumes native Android input published on the MIDI bus', () => {
+    const bus = TestBed.inject(MidiInputBusService);
+    const source = {
+      id: 'native-1',
+      name: 'USB Pad',
+      manufacturer: 'Acme',
+      native: true,
+    };
+    bus.publishState({ available: true, native: true, inputs: [source] });
+
+    expect(service.connectedDevices()).toEqual([
+      'Controller X',
+      'Keyboard Y',
+      'USB Pad',
+    ]);
+
+    const notes: number[] = [];
+    service.performerNoteOn.subscribe((event) => notes.push(event.note));
+    bus.publishMessage([0x90, 60, 100], source);
+
+    expect(notes).toEqual([60]);
+    expect(service.lastMidiMessage()).toEqual({
+      type: 'note_on',
+      channel: 0,
+      number: 60,
+      value: 100,
+    });
+  });
+
+  it('keeps a disabled native device from reaching the handlers', () => {
+    const bus = TestBed.inject(MidiInputBusService);
+    const source = {
+      id: 'native-1',
+      name: 'USB Pad',
+      manufacturer: 'Acme',
+      native: true,
+    };
+    bus.publishState({ available: true, native: true, inputs: [source] });
+    service.toggleDevice('Controller X'); // only Controller X enabled
+
+    bus.publishMessage([0x90, 64, 100], source);
+
+    expect(service.lastMidiMessage()).toBeNull();
+  });
+
   it('logs a MIDI message the output device refused', () => {
     const failedOutput = {
       send: jest.fn(() => {

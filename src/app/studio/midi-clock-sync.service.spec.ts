@@ -1,6 +1,7 @@
 import { TestBed } from "@angular/core/testing";
 import { signal } from "@angular/core";
 import { AudioEngineService } from "../services/audio-engine.service";
+import { MidiInputBusService } from "../services/midi-input-bus.service";
 import {
   MIDI_CLOCK_PPQN,
   MidiClockSyncService,
@@ -85,7 +86,39 @@ describe("MidiClockSyncService", () => {
 
     expect(service.enabled()).toBe(false);
     expect(service.status()).toBe("unsupported");
-    expect(service.statusLabel()).toBe("NO WEB MIDI");
+    expect(service.statusLabel()).toBe("NO MIDI INPUT");
+  });
+
+  it("follows clock from the native bridge when Web MIDI is absent", async () => {
+    delete (navigator as any).requestMIDIAccess;
+    const bus = TestBed.inject(MidiInputBusService);
+    const source = {
+      id: "native-1",
+      name: "USB Sequencer",
+      manufacturer: "",
+      native: true,
+    };
+    bus.publishState({
+      available: true,
+      native: true,
+      inputs: [source],
+    });
+
+    await service.enable();
+    expect(service.enabled()).toBe(true);
+    expect(service.status()).toBe("waiting");
+
+    const interval = INTERVAL_FOR(118);
+    let now = 0;
+    jest.spyOn(performance, "now").mockImplementation(() => now);
+    for (let i = 0; i < 20; i++) {
+      now = i * interval;
+      bus.publishMessage([0xf8], source);
+    }
+
+    expect(service.status()).toBe("locked");
+    expect(service.bpm()).toBeCloseTo(118, 0);
+    expect(engine.tempo()).toBeCloseTo(118, 0);
   });
 
   it("locks to an incoming clock and follows its tempo", async () => {
@@ -104,6 +137,38 @@ describe("MidiClockSyncService", () => {
     expect(service.status()).toBe("locked");
     expect(service.bpm()).toBeCloseTo(132, 0);
     expect(engine.tempo()).toBeCloseTo(132, 0);
+  });
+
+  it("returns to waiting when the native clock source disappears", async () => {
+    delete (navigator as any).requestMIDIAccess;
+    const bus = TestBed.inject(MidiInputBusService);
+    const source = {
+      id: "native-1",
+      name: "USB Sequencer",
+      manufacturer: "",
+      native: true,
+    };
+    bus.publishState({
+      available: true,
+      native: true,
+      inputs: [source],
+    });
+    await service.enable();
+
+    let now = 0;
+    jest.spyOn(performance, "now").mockImplementation(() => now);
+    const interval = INTERVAL_FOR(120);
+    for (let i = 0; i < 20; i++) {
+      now = i * interval;
+      bus.publishMessage([0xf8], source);
+    }
+    expect(service.status()).toBe("locked");
+
+    bus.publishState({ available: true, native: true, inputs: [] });
+
+    expect(service.status()).toBe("waiting");
+    expect(service.bpm()).toBeNull();
+    expect(engine.tempo()).toBe(124);
   });
 
   it("drives transport start and stop from clock messages", async () => {
