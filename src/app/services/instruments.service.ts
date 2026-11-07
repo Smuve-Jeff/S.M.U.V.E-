@@ -1663,6 +1663,33 @@ export class InstrumentsService {
     return { preset, zone, url: layer?.url ?? zone.url, rootNote: sampleZoneRoot(zone) };
   }
 
+  /**
+   * Public zone selection for callers that render their own offline audio (the
+   * chat preview does). Same rules as live playback: closest zone root, then
+   * the velocity layer that covers the note.
+   */
+  sampleSelectionFor(
+    presetId: string,
+    midi: number,
+    velocity: number
+  ): {
+    url: string;
+    rootNote: number;
+    oneShot: boolean;
+    release: number;
+  } | null {
+    const selection = this.sampleFor(presetId, midi, velocity);
+    if (!selection) return null;
+    return {
+      url: selection.url,
+      rootNote: selection.rootNote,
+      oneShot:
+        selection.preset.category === 'drum' ||
+        selection.preset.category === 'perc',
+      release: selection.preset.articulation?.release ?? 0.05,
+    };
+  }
+
   isSamplePreset(presetId: string): boolean {
     const preset = this.presets.find((p) => p.id === presetId);
     return !!preset && (preset.type === 'sample' || preset.type === 'hybrid') && !!preset.zones?.length;

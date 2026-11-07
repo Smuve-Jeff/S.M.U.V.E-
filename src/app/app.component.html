@@ -858,7 +858,7 @@
         *ngIf="uiService.isChatbotOpen() && !isAuthRoute() && !authService.isGuest()"
         (click)="closeChatbot()"
         aria-hidden="true"
-        class="fixed inset-0 bg-black/40 backdrop-blur-sm z-30 md:hidden animate-in fade-in duration-300"
+        class="fixed inset-0 bg-black/40 backdrop-blur-sm z-30 animate-in fade-in duration-300 md:bg-transparent md:backdrop-blur-none"
       ></div>
       <aside
         *ngIf="uiService.isChatbotOpen() && !isAuthRoute() && !authService.isGuest()"
