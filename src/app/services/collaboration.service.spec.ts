@@ -312,6 +312,130 @@ describe('CollaborationService (Sprint B2)', () => {
     expect(last.payload.fieldVersions.volume).toBeGreaterThan(0);
   });
 
+  it('broadcasts a normal field edit as a track delta, not a full snapshot', async () => {
+    svc.currentSession.set({
+      sessionId: 'edit1',
+      partyKey: 'studio_edit1',
+      projectId: 'proj-1',
+      participants: [],
+    });
+    svc.sessionMembers.set([
+      { sessionId: 'edit1', userId: 'user_me', role: 'host', status: 'active' },
+    ] as any);
+    // Let the first full snapshot establish the baseline.
+    await new Promise((r) => setTimeout(r, 30));
+    sent.length = 0;
+
+    mockMk.tracks.set([
+      {
+        id: 't1',
+        name: 'Lead',
+        notes: [],
+        volume: 0.9,
+        clips: [{ id: 'clip-1', start: 0, length: 4 }],
+      },
+    ]);
+    await new Promise((r) => setTimeout(r, 80));
+
+    const messages = sent.map((entry) => JSON.parse(entry));
+    const delta = messages.find((msg) => msg.type === 'TRACK_DELTA_SYNC');
+    expect(delta).toBeDefined();
+    expect(delta.payload.trackId).toBe('t1');
+    expect(delta.payload.fieldVersions.volume).toBeGreaterThan(0);
+    // Clip edits travel the same path, not only fader moves.
+    expect(delta.payload.fieldVersions.clips).toBeGreaterThan(0);
+    expect(delta.payload.fieldVersions.name).toBeUndefined();
+    expect(messages.some((msg) => msg.type === 'PROJECT_SYNC')).toBe(false);
+  });
+
+  it('merges only the fields named by a remote delta', async () => {
+    mockMk.tracks.set([
+      { id: 'tMerge', name: 'Mine', volume: 0.2, pan: 0.4 },
+    ]);
+    svc.currentSession.set({
+      sessionId: 'merge1',
+      partyKey: 'studio_merge1',
+      projectId: 'proj-1',
+      participants: [],
+    });
+    const remoteVersion = Date.now() + 50;
+    roomMessages.set([
+      {
+        roomId: 'studio_merge1',
+        fromUserId: 'other_user',
+        message: JSON.stringify({
+          type: 'TRACK_DELTA_SYNC',
+          v: remoteVersion,
+          fromUserId: 'other_user',
+          payload: {
+            trackId: 'tMerge',
+            track: { id: 'tMerge', name: 'Theirs', volume: 0.9, pan: 0.9 },
+            fieldVersions: { volume: remoteVersion },
+          },
+        }),
+        timestamp: remoteVersion,
+      },
+    ]);
+    await new Promise((r) => setTimeout(r, 260));
+
+    const applied = mockMk.loadProject.mock.calls.at(-1)?.[0];
+    const track = applied.tracks.find((entry: any) => entry.id === 'tMerge');
+    expect(track.volume).toBe(0.9);
+    // The sender did not touch pan or name, so the receiver keeps its values.
+    expect(track.pan).toBe(0.4);
+    expect(track.name).toBe('Mine');
+  });
+
+  it('raises a conflict when a normal local edit meets a peer edit', async () => {
+    svc.currentSession.set({
+      sessionId: 'edit2',
+      partyKey: 'studio_edit2',
+      projectId: 'proj-1',
+      participants: [],
+    });
+    svc.sessionMembers.set([
+      { sessionId: 'edit2', userId: 'user_me', role: 'host', status: 'active' },
+    ] as any);
+    await new Promise((r) => setTimeout(r, 30));
+
+    // A normal edit updates the shared track signal; the service should turn
+    // that into a delta without any direct dispatchTrackDelta call.
+    mockMk.tracks.set([{ id: 't1', name: 'Lead', notes: [], volume: 0.4 }]);
+    await new Promise((r) => setTimeout(r, 60));
+    const localVersion = (svc as any).fieldVersions?.t1?.volume;
+    expect(localVersion).toBeGreaterThan(0);
+
+    const remoteVersion = localVersion + 50;
+    roomMessages.set([
+      {
+        roomId: 'studio_edit2',
+        fromUserId: 'peer_edit',
+        message: JSON.stringify({
+          type: 'TRACK_DELTA_SYNC',
+          v: remoteVersion,
+          fromUserId: 'peer_edit',
+          fromUserName: 'Peer',
+          payload: {
+            trackId: 't1',
+            track: { id: 't1', name: 'Lead', notes: [], volume: 0.9 },
+            fieldVersions: { volume: remoteVersion },
+          },
+        }),
+        timestamp: remoteVersion,
+      },
+    ]);
+    await new Promise((r) => setTimeout(r, 220));
+
+    const conflict = svc
+      .pendingConflicts()
+      .find((entry) => entry.trackId === 't1' && entry.fieldKey === 'volume');
+    expect(conflict).toMatchObject({
+      localValue: 0.4,
+      remoteValue: 0.9,
+      remoteUserName: 'Peer',
+    });
+  });
+
   it('handleTrackDelta applies without conflict when no local recent edits', async () => {
     svc.currentSession.set({
       sessionId: 'd2',
@@ -339,6 +463,37 @@ describe('CollaborationService (Sprint B2)', () => {
     expect(mockMk.loadProject).toHaveBeenCalled();
     const applied = mockMk.loadProject.mock.calls[0][0];
     expect(applied.tracks.find((t: any) => t.id === 'tX').volume).toBe(0.5);
+  });
+
+  it('keeps syncing local edits after a suppressed remote update', async () => {
+    mockMk.tracks.set([{ id: 't1', name: 'Lead', notes: [], volume: 0.2 }]);
+    svc.currentSession.set({
+      sessionId: 'd2b',
+      partyKey: 'studio_d2b',
+      projectId: 'proj-1',
+      participants: [],
+    });
+    svc.sessionMembers.set([
+      { sessionId: 'd2b', userId: 'user_me', role: 'host', status: 'active' },
+    ] as any);
+    await new Promise((r) => setTimeout(r, 40));
+    sent.length = 0;
+
+    // A remote apply temporarily suppresses local dispatch. The effect must
+    // still retain the track signal as a dependency, or every later fader
+    // move becomes silent.
+    (svc as any).isRemoteUpdate = true;
+    mockMk.tracks.set([{ id: 't1', name: 'Lead', notes: [], volume: 0.6 }]);
+    await new Promise((r) => setTimeout(r, 20));
+    (svc as any).isRemoteUpdate = false;
+
+    mockMk.tracks.set([{ id: 't1', name: 'Lead', notes: [], volume: 0.7 }]);
+    await new Promise((r) => setTimeout(r, 60));
+
+    const deltas = sent
+      .map((message) => JSON.parse(message))
+      .filter((message) => message.type === 'TRACK_DELTA_SYNC');
+    expect(deltas.at(-1)?.payload.track.volume).toBe(0.7);
   });
 
   it('handleTrackDelta surfaces pendingConflicts on near-simultaneous edits', async () => {
@@ -380,6 +535,49 @@ describe('CollaborationService (Sprint B2)', () => {
     expect(
       conflicts.some((c) => c.trackId === 'tY' && c.fieldKey === 'volume')
     ).toBe(true);
+  });
+
+  it('only surfaces fields whose values actually differ', async () => {
+    svc.currentSession.set({
+      sessionId: 'd3b',
+      partyKey: 'studio_d3b',
+      projectId: 'proj-1',
+      participants: [],
+    });
+    svc.sessionMembers.set([
+      { sessionId: 'd3b', userId: 'user_me', role: 'host', status: 'active' },
+    ] as any);
+    // Let the session's first full sync establish a baseline before the edit.
+    await new Promise((r) => setTimeout(r, 30));
+    svc.dispatchTrackDelta('tName', {
+      id: 'tName',
+      name: 'Same Name',
+      volume: 0.3,
+    });
+    const remoteVersion =
+      ((svc as any).fieldVersions?.tName?.volume ?? Date.now()) + 50;
+    const delta = {
+      roomId: 'studio_d3b',
+      fromUserId: 'other_user',
+      message: JSON.stringify({
+        type: 'TRACK_DELTA_SYNC',
+        v: Date.now(),
+        fromUserId: 'other_user',
+        fromUserName: 'Bob',
+        payload: {
+          trackId: 'tName',
+          track: { id: 'tName', name: 'Same Name', volume: 0.85 },
+          fieldVersions: { name: remoteVersion, volume: remoteVersion },
+        },
+      }),
+      timestamp: remoteVersion,
+    };
+    roomMessages.set([delta]);
+    await new Promise((r) => setTimeout(r, 220));
+
+    const conflicts = svc.pendingConflicts();
+    expect(conflicts.some((c) => c.fieldKey === 'volume')).toBe(true);
+    expect(conflicts.some((c) => c.fieldKey === 'name')).toBe(false);
   });
 
   it('resolveConflict(their) applies remote value and clears the entry', async () => {
@@ -510,6 +708,43 @@ describe('CollaborationService (Sprint B2)', () => {
     expect(svc.peerCursors()['peer_z']).toBeDefined();
     expect(svc.peerCursors()['peer_z'].x).toBeCloseTo(0.6);
     expect(svc.peerCursors()['peer_z'].surface).toBe('studio');
+  });
+
+  it('keeps session identity when repeated server syncs carry the same project', () => {
+    svc.currentSession.set({
+      sessionId: 'perm1',
+      partyKey: 'studio_perm1',
+      projectId: 'proj-1',
+      participants: [],
+    });
+    const members = [
+      {
+        sessionId: 'perm1',
+        userId: 'user_me',
+        role: 'viewer' as const,
+        status: 'active' as const,
+      },
+    ];
+    const before = svc.currentSession();
+
+    (svc as any).applySessionSync({
+      session: { id: 'perm1', projectId: 'proj-1', status: 'active' },
+      members,
+    });
+    expect(svc.currentSession()).toBe(before);
+
+    (svc as any).applySessionSync({
+      session: { id: 'perm1', projectId: 'proj-2', status: 'active' },
+      members,
+    });
+    const moved = svc.currentSession();
+    expect(moved?.projectId).toBe('proj-2');
+
+    (svc as any).applySessionSync({
+      session: { id: 'perm1', projectId: 'proj-2', status: 'active' },
+      members,
+    });
+    expect(svc.currentSession()).toBe(moved);
   });
 
   it('derives viewer permissions from server-backed session sync', () => {

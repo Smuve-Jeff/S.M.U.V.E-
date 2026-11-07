@@ -1,4 +1,5 @@
 import { LoggingService } from './logging.service';
+import { canonicalize } from '../utils/djb2-hash.util';
 import {
   Injectable,
   signal,
@@ -209,6 +210,11 @@ export class CollaborationService {
   private lastSnapshotByTrack: Record<string, any> = {};
   /** Last full snapshot we sent — used by PROJECT_SYNC fallback. */
   private lastFullSnapshot: any = null;
+  /** Structural/tempo baseline for deciding delta vs full snapshot. */
+  private lastSyncedTrackIds: string[] = [];
+  private lastSyncedBpm: number | null = null;
+  private lastSyncedSignature = '';
+  private hasInitialSync = false;
 
   /** Size threshold above which we collapse delta to snapshot. */
   private readonly DELTA_SIZE_BUDGET = 32 * 1024;
@@ -289,12 +295,47 @@ export class CollaborationService {
   constructor() {
     effect(() => {
       const session = this.currentSession();
+      // Read every reactive source before any early return. In particular,
+      // returning before `tracks()` while a remote delta is being applied
+      // would remove the track signal from this effect's dependencies and
+      // stop all later local edits from syncing.
+      const tracks = this.musicManager.tracks();
       if (!session || this.isRemoteUpdate || !this.autoSync()) return;
-      const _tracks = this.musicManager.tracks();
-      void _tracks;
-      const snapshot = this.musicManager.snapshotProject();
-      if (!snapshot) return;
-      this.dispatchProjectSync(snapshot, false);
+      // Quick Session projects may not have a ProjectService record yet. The
+      // collaboration layer still needs a snapshot to seed a peer and to
+      // detect later track edits, so build the minimal one it needs.
+      const snapshot =
+        this.musicManager.snapshotProject() ?? {
+          id: session.projectId ?? 'studio-session',
+          name: 'Studio Session',
+          tracks: tracks as any,
+          bpm: this.musicManager.engine?.tempo?.() ?? 120,
+          timeSignature: null,
+          takeState: null,
+        };
+      const ids = tracks.map((track: any) => track?.id).filter(Boolean);
+      const bpm = snapshot.bpm ?? 120;
+      const signature = JSON.stringify(snapshot.timeSignature ?? null);
+      const structuralChange =
+        ids.length !== this.lastSyncedTrackIds.length ||
+        ids.some((id: string, index: number) => id !== this.lastSyncedTrackIds[index]);
+
+      if (
+        !this.hasInitialSync ||
+        structuralChange ||
+        bpm !== this.lastSyncedBpm ||
+        signature !== this.lastSyncedSignature
+      ) {
+        this.dispatchProjectSync(snapshot, false);
+        return;
+      }
+
+      for (const track of tracks) {
+        const previous = this.lastSnapshotByTrack[track.id];
+        if (!previous || canonicalize(previous) !== canonicalize(track)) {
+          this.dispatchTrackDelta(track.id, track);
+        }
+      }
     });
 
     this.heartbeatTimer = setInterval(() => {
@@ -308,7 +349,12 @@ export class CollaborationService {
     effect(() => {
       const sync = this.social.sessionSyncState();
       if (!sync?.session) return;
-      if (sync.session.id !== this.currentSession()?.sessionId) return;
+      // Do not track currentSession here: applying the sync writes it, which
+      // would re-run this effect and apply the same sync forever.
+      const activeSessionId = untracked(
+        () => this.currentSession()?.sessionId
+      );
+      if (sync.session.id !== activeSessionId) return;
       untracked(() => this.applySessionSync(sync));
     });
 
@@ -347,17 +393,14 @@ export class CollaborationService {
   }
 
   private applySessionSync(sync: StudioSessionSyncState): void {
-    const projectId =
-      sync.session?.projectId ?? this.currentSession()?.projectId ?? null;
+    const current = this.currentSession();
+    const projectId = sync.session?.projectId ?? current?.projectId ?? null;
     this.sessionMembers.set(sync.members ?? []);
-    this.currentSession.update((session) =>
-      session
-        ? {
-            ...session,
-            projectId,
-          }
-        : session
-    );
+    // Only replace the session when the server actually changed something.
+    // A repeated sync must not create a new session object on every event.
+    if (current && current.projectId !== projectId) {
+      this.currentSession.set({ ...current, projectId });
+    }
   }
 
   private emitSessionEnvelope(envelope: CollabMessage): void {
@@ -394,13 +437,14 @@ export class CollaborationService {
       payload: snapshot,
     };
     this.emitSessionEnvelope(envelope);
+    this.rememberSnapshot(snapshot);
   }
 
   /**
    * Dispatch a per-track delta. Falls back to a full PROJECT_SYNC when the
    * delta would exceed the size budget or the diff shrunk nothing.
    */
-  dispatchTrackDelta(trackId: string, trackState: any): void {
+  dispatchTrackDelta(trackId: string, trackState: any, force = false): void {
     if (
       !this.currentSession() ||
       this.isRemoteUpdate ||
@@ -410,13 +454,32 @@ export class CollaborationService {
       return;
     const v = Date.now();
     this.lastDispatchedVersion = v;
-
+    const previous = this.lastSnapshotByTrack[trackId];
     const fieldVersions: Record<string, number> = {};
     for (const key of Object.keys(trackState ?? {})) {
-      fieldVersions[key] = v;
+      if (
+        !previous ||
+        canonicalize(previous[key]) !== canonicalize(trackState[key])
+      ) {
+        fieldVersions[key] = v;
+      }
     }
-    this.fieldVersions[trackId] = fieldVersions;
-    this.lastSnapshotByTrack[trackId] = trackState;
+    // No actual field changed (a rename-free signal flush); do not send an
+    // empty delta that would still look like an edit to a peer. Resolution
+    // can force a resend so "keep mine" still reaches the peers.
+    if (previous && Object.keys(fieldVersions).length === 0) {
+      if (!force) return;
+      for (const key of Object.keys(trackState ?? {})) fieldVersions[key] = v;
+    }
+
+    this.fieldVersions[trackId] = {
+      ...(this.fieldVersions[trackId] ?? {}),
+      ...fieldVersions,
+    };
+    this.lastSnapshotByTrack[trackId] = this.clone(trackState);
+    if (!this.lastSyncedTrackIds.includes(trackId)) {
+      this.lastSyncedTrackIds.push(trackId);
+    }
 
     const serialized = JSON.stringify(trackState ?? {});
     if (serialized.length > this.DELTA_SIZE_BUDGET) {
@@ -481,21 +544,39 @@ export class CollaborationService {
     const remoteVersions = env?.payload?.fieldVersions ?? {};
     if (!trackId || !track) return;
     const localVersions = this.fieldVersions[trackId] ?? {};
+    const localTrack = (this.musicManager.tracks() ?? []).find(
+      (entry: any) => entry?.id === trackId,
+    );
 
     const now = Date.now();
     const newConflicts: ProjectConflict[] = [];
     for (const field of Object.keys(remoteVersions)) {
       const lv = localVersions[field] ?? 0;
       const rv = remoteVersions[field];
-      if (lv && rv && lv < rv && now - lv < 800 && track[field] !== undefined) {
+      const localValue =
+        localTrack?.[field] ?? this.lastSnapshotByTrack[trackId]?.[field] ?? null;
+      const remoteValue = track[field];
+      // A delta carries field versions for the whole track, so a recent
+      // version alone is not a conflict: the two values must actually differ.
+      // Without this, every unchanged field (name, id, clips...) became a
+      // "conflict" on any near-simultaneous edit.
+      const changed = canonicalize(localValue) !== canonicalize(remoteValue);
+      if (
+        lv &&
+        rv &&
+        lv < rv &&
+        now - lv < 800 &&
+        remoteValue !== undefined &&
+        changed
+      ) {
         newConflicts.push({
           trackId,
           fieldKey: field,
-          remoteValue: track[field],
+          remoteValue,
           remoteUserId: env.fromUserId,
           remoteUserName: env.fromUserName,
           remoteAtMs: rv,
-          localValue: this.lastSnapshotByTrack[trackId]?.[field] ?? null,
+          localValue,
         });
       }
     }
@@ -512,11 +593,24 @@ export class CollaborationService {
       this.lastAppliedVersion = env.v;
       this.isRemoteUpdate = true;
       try {
-        const trackList = this.upsertTrackState(trackId, track);
+        // A delta only owns the fields named in fieldVersions. Replacing the
+        // whole track would silently discard unrelated local edits made since
+        // the sender's snapshot.
+        const merged: any = {
+          ...(localTrack ?? { id: trackId }),
+        };
+        for (const field of Object.keys(remoteVersions)) {
+          merged[field] = track[field];
+        }
+        const trackList = this.upsertTrackState(trackId, merged);
         this.musicManager.loadProject({
           ...(this.musicManager.snapshotProject() ?? {}),
           tracks: trackList,
         });
+        this.lastSnapshotByTrack[trackId] = this.clone(merged);
+        if (!this.lastSyncedTrackIds.includes(trackId)) {
+          this.lastSyncedTrackIds.push(trackId);
+        }
       } finally {
         setTimeout(() => (this.isRemoteUpdate = false), 250);
       }
@@ -527,9 +621,43 @@ export class CollaborationService {
     this.isRemoteUpdate = true;
     try {
       this.musicManager.loadProject(snapshot);
+      this.rememberSnapshot(snapshot);
     } finally {
       setTimeout(() => (this.isRemoteUpdate = false), 250);
     }
+  }
+
+  /** Store the state both sides now agree on, so the effect cannot echo it. */
+  private rememberSnapshot(snapshot: any): void {
+    const tracks = Array.isArray(snapshot?.tracks)
+      ? snapshot.tracks
+      : this.musicManager.tracks();
+    this.lastSnapshotByTrack = {};
+    for (const track of tracks) {
+      if (track?.id) this.lastSnapshotByTrack[track.id] = this.clone(track);
+    }
+    this.lastSyncedTrackIds = tracks
+      .map((track: any) => track?.id)
+      .filter(Boolean);
+    this.lastSyncedBpm =
+      typeof snapshot?.bpm === 'number'
+        ? snapshot.bpm
+        : (this.musicManager.engine?.tempo?.() ?? 120);
+    this.lastSyncedSignature = JSON.stringify(snapshot?.timeSignature ?? null);
+    this.hasInitialSync = true;
+  }
+
+  private clone<T>(value: T): T {
+    if (value === undefined) return value;
+    return JSON.parse(JSON.stringify(value));
+  }
+
+  private resetSyncBaseline(): void {
+    this.hasInitialSync = false;
+    this.lastSnapshotByTrack = {};
+    this.lastSyncedTrackIds = [];
+    this.lastSyncedBpm = null;
+    this.lastSyncedSignature = '';
   }
 
   private handlePeerCursor(env: PeerCursorMessage): void {
@@ -757,7 +885,18 @@ export class CollaborationService {
 
     if (resolution === 'mine') {
       const localTrack = trackList.find((t: any) => t?.id === trackId);
-      if (localTrack) this.dispatchTrackDelta(trackId, localTrack);
+      if (localTrack) this.dispatchTrackDelta(trackId, localTrack, true);
+      return;
+    }
+
+    // "Use theirs" is a remote-authored state. Record it as the new baseline so
+    // the local sync effect does not immediately echo it back as an edit.
+    const applied = trackList.find((t: any) => t?.id === trackId);
+    if (applied) {
+      this.lastSnapshotByTrack[trackId] = this.clone(applied);
+      if (!this.lastSyncedTrackIds.includes(trackId)) {
+        this.lastSyncedTrackIds.push(trackId);
+      }
     }
   }
 
@@ -797,6 +936,7 @@ export class CollaborationService {
       role: 'host',
     });
     this.lastAppliedVersion = Date.now();
+    this.resetSyncBaseline();
     this.currentSession.set({
       sessionId,
       partyKey,
@@ -827,6 +967,7 @@ export class CollaborationService {
     }
     this.social.joinStudioSession(sessionId);
     this.lastAppliedVersion = Date.now();
+    this.resetSyncBaseline();
     this.currentSession.set({
       sessionId,
       partyKey,
@@ -852,6 +993,7 @@ export class CollaborationService {
     }
     this.social.leaveStudioSession(session.sessionId);
     this.currentSession.set(null);
+    this.resetSyncBaseline();
     this.sessionMembers.set([]);
     this.pendingConflicts.set([]);
     this.voicePeers.set({});
@@ -892,6 +1034,7 @@ export class CollaborationService {
     this.fieldVersions = {};
     this.lastSnapshotByTrack = {};
     this.lastFullSnapshot = null;
+    this.resetSyncBaseline();
     this.lastCursorPublishMs = 0;
     this.lastCursorSentX = -1;
     this.lastCursorSentY = -1;
