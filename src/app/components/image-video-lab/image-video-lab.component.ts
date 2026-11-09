@@ -51,6 +51,10 @@ import { pipTransform, type ClipMaskSettings } from '../../services/clip-mask';
 import { DEFAULT_MASK, DEFAULT_PIP, PIP_PRESETS, type MaskShape, type PipPreset } from '../../services/clip-mask';
 import { estimateRotationDegrees, estimateTranslation, smoothCorrection, smoothRotation, toGrayscaleThumb, DEFAULT_STABILIZATION } from '../../services/video-stabilization';
 import { estimateCaptionDuration } from '../../services/clip-captions';
+import {
+  encodeWavSegment,
+  MAX_SEGMENT_SECONDS,
+} from '../../services/audio-segment';
 import { applyLut, parseCubeLut } from '../../services/lut';
 import { computeHistogram, computeVectorscope, computeWaveform, lumaPercentiles } from '../../services/scopes';
 import { CLIP_TEMPLATES, getClipTemplate, resolveTemplatePatch } from '../../services/clip-templates';
@@ -321,7 +325,7 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
   photoSource = signal<string | null>(null);
   enhancedPhotoUrl = signal<string | null>(null);
   cutoutPhotoUrl = signal<string | null>(null);
-  photoBusy = signal<'enhance' | 'cutout' | null>(null);
+  photoBusy = signal<'enhance' | 'cutout' | 'lip' | null>(null);
 
   highQualityEnhancer = signal(false);
   selectedFilter = signal<ClipFilter>('cinematic');
@@ -5963,7 +5967,10 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
   async generateShotConcept(shot: ShotPlanShot): Promise<void> {
     if (this.director.shotMediaBusy() !== null) return;
     try {
-      const url = await this.director.generateShotConcept(shot);
+      const angle = this.camera.activeAngleLabel();
+      const url = await this.director.generateShotConcept(shot, {
+        cameraAngle: angle,
+      });
       this.placeShotMedia(shot, url, 'image', shot.durationSeconds);
       this.aiFeedback.set(
         `SHOT ${shot.index} CONCEPT STYLED — STILL CUT TO THE LANE.`
@@ -5982,7 +5989,9 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
   async animateShot(shot: ShotPlanShot): Promise<void> {
     if (this.director.shotMediaBusy() !== null) return;
     try {
-      const result = await this.director.animateShot(shot);
+      const result = await this.director.animateShot(shot, {
+        cameraAngle: this.camera.activeAngleLabel(),
+      });
       this.placeShotMedia(
         shot,
         result.url,
@@ -5997,6 +6006,96 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
           ? error.message.toUpperCase()
           : 'SHOT ANIMATION FAILED. VERIFY AI PROVIDER CONFIGURATION.'
       );
+    }
+  }
+
+  /**
+   * Speaking head: the Photo Studio still performs the overlay bed.
+   * The overlay's buffer is re-encoded to WAV on-device (fal cannot open
+   * the overlay's blob: URL), sync-3 animates the still's face to it, and
+   * the render goes onto the visuals lane after the other footage.
+   */
+  async generateTalkingHead(): Promise<void> {
+    const still = this.photoSource();
+    const overlay = this.videoEngine.audioOverlay() as {
+      name?: string;
+      duration: number;
+      buffer: AudioBuffer;
+    } | null;
+    if (!still) {
+      this.aiFeedback.set(
+        'LOAD A STILL FIRST — THE TALKING HEAD NEEDS A FACE TO MOVE.'
+      );
+      return;
+    }
+    if (!overlay?.buffer) {
+      this.aiFeedback.set(
+        'THE AUDIO OVERLAY HAS NO BUFFERED AUDIO — RELOAD IT FIRST.'
+      );
+      return;
+    }
+    if (this.photoBusy()) return;
+    this.photoBusy.set('lip');
+    try {
+      const segment = encodeWavSegment(
+        overlay.buffer,
+        0,
+        Math.min(overlay.duration, MAX_SEGMENT_SECONDS)
+      );
+      const audioDataUrl = `data:audio/wav;base64,${toBase64(segment.wav)}`;
+      const result = await this.aiService.lipSync(
+        still,
+        audioDataUrl,
+        segment.durationSeconds
+      );
+      const track = this.videoEngine.tracks().find(
+        (candidate) => candidate.id === 't1'
+      );
+      if (track?.locked) {
+        this.aiFeedback.set(
+          'THE VISUALS LANE IS LOCKED — UNLOCK IT, THEN CUT THE SHOT.'
+        );
+        return;
+      }
+      const existing = track?.clips ?? [];
+      const footage = existing.filter((clip) => !this.isShotCard(clip));
+      const startTime = footage.reduce(
+        (end, clip) => Math.max(end, clip.startTime + clip.duration),
+        0
+      );
+      this.videoEngine.addClip('t1', {
+        name: 'Talking Head',
+        url: result.url,
+        startTime,
+        duration: Math.max(1, result.duration || segment.durationSeconds),
+        offset: 0,
+        type: 'video',
+        source: 'ai',
+        effects: createDefaultEffects({
+          upscale: this.highQualityEnhancer(),
+          bgRemoval: false,
+          noiseReduction: false,
+          brightness: 1,
+          contrast: 1,
+          filter: this.selectedFilter(),
+          transition: this.selectedTransition(),
+          transitionDuration: this.transitionDuration(),
+          trimStart: 0,
+          trimEnd: 0,
+        }),
+      });
+      this.aiFeedback.set(
+        `TALKING HEAD RENDERED — ${segment.durationSeconds.toFixed(0)}S CUT TO THE LANE.`
+      );
+    } catch (error: any) {
+      this.logger.error('Talking Head Error:', error);
+      this.aiFeedback.set(
+        error?.message
+          ? error.message.toUpperCase()
+          : 'TALKING HEAD FAILED. VERIFY AI PROVIDER CONFIGURATION.'
+      );
+    } finally {
+      this.photoBusy.set(null);
     }
   }
 
@@ -6173,4 +6272,16 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     this.ownedObjectUrls.forEach((url) => URL.revokeObjectURL(url));
     this.ownedObjectUrls.clear();
   }
+}
+
+/** Bytes to base64 without blowing the call stack on multi-megabyte WAVs. */
+function toBase64(bytes: Uint8Array): string {
+  const CHUNK = 0x8000;
+  let binary = '';
+  for (let offset = 0; offset < bytes.length; offset += CHUNK) {
+    binary += String.fromCharCode(
+      ...bytes.subarray(offset, Math.min(offset + CHUNK, bytes.length)),
+    );
+  }
+  return btoa(binary);
 }

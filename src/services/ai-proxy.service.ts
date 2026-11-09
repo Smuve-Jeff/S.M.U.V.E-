@@ -279,8 +279,18 @@ export const generateConceptArt = async (
 /** fal.ai endpoints, verified against fal.ai's published schemas. */
 const FAL_TOPAZ_UPSCALE_IMAGE = "https://fal.run/fal-ai/topaz/upscale/image";
 const FAL_BIREFNET_V2 = "https://fal.run/fal-ai/birefnet/v2";
-const FAL_PIKA_V2_2_IMAGE_TO_VIDEO =
-  "https://fal.run/fal-ai/pika/v2.2/image-to-video";
+/** Image-to-video runs through the fal queue: renders take minutes, not ms. */
+const FAL_PIKA_V2_2_IMAGE_TO_VIDEO = "fal-ai/pika/v2.2/image-to-video";
+/** sync-3: animates a still's face to the supplied audio (talking head). */
+const FAL_SYNC_LIPSYNC_IMAGE_TO_VIDEO =
+  "fal-ai/sync-lipsync/v3/image-to-video";
+
+/**
+ * Largest audio source a caller may hand the media endpoints, in characters.
+ * The talking-head audio is a data URL WAV and the client caps the slice at
+ * 60 s of 16 kHz mono, so this comfortably covers it while bounding POSTs.
+ */
+export const MAX_AUDIO_SOURCE_LENGTH = 8_000_000;
 
 /**
  * Largest image source a caller may hand the media endpoints, in characters.
@@ -354,6 +364,78 @@ function falMediaUrl(payload: Record<string, unknown>): string | undefined {
     return typeof url === "string" && url ? url : undefined;
   }
   return undefined;
+}
+
+/**
+ * Normalise a caller-supplied audio source the same way as an image: an
+ * http(s) URL or data URL passes through; bare base64 is re-wrapped with
+ * the caller's MIME type.
+ */
+export function normalizeAudioSource(
+  source: string,
+  mimeType = "audio/wav",
+): string {
+  const value = source.trim();
+  if (/^https?:\/\//i.test(value) || value.startsWith("data:")) return value;
+  return `data:${mimeType};base64,${value}`;
+}
+
+/** How long the proxy will poll a queued render before giving up. */
+export const FAL_QUEUE_MAX_WAIT_MS = 540_000;
+export const FAL_QUEUE_POLL_MS = 2_000;
+
+/**
+ * One fal queue job: submit, poll the status URL until COMPLETED, fetch the
+ * response. Long video renders must not hold a synchronous request, so the
+ * movie endpoints go through here while the fast still endpoints keep
+ * `falRun`. A FAILED job is a 502 and a deadline overrun a 504 — never a
+ * hung socket.
+ */
+export async function falRunQueue(
+  model: string,
+  input: Record<string, unknown>,
+  options: {
+    maxWaitMs?: number;
+    sleep?: (ms: number) => Promise<void>;
+  } = {},
+): Promise<Record<string, unknown>> {
+  if (!FAL_KEY) throw new AiProviderUnavailableError();
+  const auth = { Authorization: `Key ${FAL_KEY}` };
+
+  const submit = await fetch(`https://queue.fal.run/${model}`, {
+    method: "POST",
+    headers: { ...auth, "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  if (!submit.ok) throw providerFailure({ status: submit.status });
+  const submission = (await submit.json()) as Record<string, unknown>;
+  const statusUrl = submission.status_url;
+  const responseUrl = submission.response_url;
+  if (typeof statusUrl !== "string" || typeof responseUrl !== "string") {
+    throw new AppError(502, "AI queue provider returned no request URLs");
+  }
+
+  const sleep =
+    options.sleep ??
+    ((ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms)));
+  const deadline = Date.now() + (options.maxWaitMs ?? FAL_QUEUE_MAX_WAIT_MS);
+  for (;;) {
+    const poll = await fetch(statusUrl, { headers: auth });
+    if (!poll.ok) throw providerFailure({ status: poll.status });
+    const status = ((await poll.json()) as Record<string, unknown>).status;
+    if (status === "COMPLETED") break;
+    if (status === "FAILED") {
+      throw new AppError(502, "AI video render failed in the provider queue");
+    }
+    if (Date.now() > deadline) {
+      throw new AppError(504, "AI video render timed out in the provider queue");
+    }
+    await sleep(FAL_QUEUE_POLL_MS);
+  }
+
+  const result = await fetch(responseUrl, { headers: auth });
+  if (!result.ok) throw providerFailure({ status: result.status });
+  return (await result.json()) as Record<string, unknown>;
 }
 
 /**
@@ -476,7 +558,7 @@ export const generateShotVideo = async (request: {
   if (!prompt) throw new AppError(400, "prompt is required");
   const duration =
     Number(request.durationSeconds) > 5 ? 10 : 5;
-  const payload = await falRun(FAL_PIKA_V2_2_IMAGE_TO_VIDEO, {
+  const payload = await falRunQueue(FAL_PIKA_V2_2_IMAGE_TO_VIDEO, {
     image_url: normalizeImageSource(request.image, request.mimeType),
     prompt,
     duration,
@@ -484,4 +566,36 @@ export const generateShotVideo = async (request: {
   const url = falMediaUrl(payload);
   if (!url) throw new AppError(502, "AI video provider returned no video");
   return { type: "video", url, duration };
+};
+
+/**
+ * Talking head: sync-3 animates a still's face so it lip-syncs to the
+ * supplied audio. The output matches the audio's duration (the client
+ * sends the slice it cut), so the returned duration echoes that for the
+ * lane placement.
+ */
+export const generateLipSync = async (request: {
+  image: string;
+  mimeType?: string;
+  audio: string;
+  durationSeconds?: number;
+}): Promise<{ type: "video"; url: string; duration: number }> => {
+  const image = request.image?.trim();
+  const audio = request.audio?.trim();
+  if (!image) throw new AppError(400, "image is required");
+  if (!audio) throw new AppError(400, "audio is required");
+  const payload = await falRunQueue(FAL_SYNC_LIPSYNC_IMAGE_TO_VIDEO, {
+    image_url: normalizeImageSource(image, request.mimeType),
+    audio_url: normalizeAudioSource(audio),
+  });
+  const url = falMediaUrl(payload);
+  if (!url) throw new AppError(502, "AI lip-sync provider returned no video");
+  const duration = Number(request.durationSeconds);
+  return {
+    type: "video",
+    url,
+    duration: Number.isFinite(duration)
+      ? Math.min(120, Math.max(1, duration))
+      : 0,
+  };
 };

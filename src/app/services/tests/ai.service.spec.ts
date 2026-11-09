@@ -662,6 +662,41 @@ describe('AiService', () => {
     await expect(requestPromise).rejects.toThrow('Add GEMINI_API_KEY in the environment');
   });
 
+  it('should lip-sync a still to audio through the authenticated backend proxy', async () => {
+    const requestPromise = service.lipSync(
+      'https://cdn.example.test/still.png',
+      'data:audio/wav;base64,AUDIO',
+      8
+    );
+
+    const req = httpMock.expectOne('http://localhost:4000/api/ai/lip-sync');
+    expect(req.request.method).toBe('POST');
+    expect(req.request.body).toEqual({
+      image: 'https://cdn.example.test/still.png',
+      audio: 'data:audio/wav;base64,AUDIO',
+      durationSeconds: 8,
+    });
+    req.flush({ type: 'video', url: 'https://cdn.example.test/head.mp4', duration: 8 });
+
+    await expect(requestPromise).resolves.toEqual({
+      url: 'https://cdn.example.test/head.mp4',
+      duration: 8,
+    });
+  });
+
+  it('rejects lip-sync responses without a video URL', async () => {
+    const requestPromise = service.lipSync(
+      'https://cdn.example.test/still.png',
+      'data:audio/wav;base64,AUDIO',
+      8
+    );
+
+    const req = httpMock.expectOne('http://localhost:4000/api/ai/lip-sync');
+    req.flush({ type: 'video' });
+
+    await expect(requestPromise).rejects.toThrow('returned no video');
+  });
+
   it('should handle getAIResponse when backend fails', async () => {
     const requestPromise = service.getAIResponse('Analyze this');
     const req = httpMock.expectOne('http://localhost:4000/api/ai/analyze');

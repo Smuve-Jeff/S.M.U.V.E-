@@ -575,6 +575,10 @@ describe('ImageVideoLabComponent', () => {
             url: 'https://cdn.example.test/shot.mp4',
             duration: 5,
           }),
+          lipSync: jest.fn().mockResolvedValue({
+            url: 'https://cdn.example.test/talking-head.mp4',
+            duration: 8,
+          }),
           isFailureNotice: jest.fn(() => false),
           lastAiCall: jest.fn(() => null),
         } },
@@ -4894,6 +4898,76 @@ describe('ImageVideoLabComponent', () => {
       await component.animateShot(stageablePlan().shots[0]);
 
       expect(component.aiFeedback()).toContain('STYLE THE SHOT FIRST');
+    });
+
+    it('frames concept stills through the active camera angle', async () => {
+      const { component } = await createComponent();
+      const ai = TestBed.inject(AiService) as unknown as {
+        generateImage: jest.Mock;
+      };
+      ai.generateImage.mockResolvedValue('https://cdn.example.test/still.png');
+      component.director.plan.set(stageablePlan());
+
+      await component.generateShotConcept(component.director.plan()!.shots[0]);
+
+      expect(ai.generateImage).toHaveBeenCalledWith(
+        expect.stringContaining('Camera angle: Front')
+      );
+    });
+
+    it('renders a talking head from the still and the overlay bed', async () => {
+      const { component, videoEngine: engine } = await createComponent();
+      const ai = TestBed.inject(AiService) as unknown as {
+        lipSync: jest.Mock;
+      };
+      ai.lipSync.mockResolvedValue({
+        url: 'https://cdn.example.test/talking-head.mp4',
+        duration: 8,
+      });
+      component.photoSource.set('data:image/png;base64,STILL');
+      const channel = new Float32Array(16_000 * 8).fill(0.25);
+      (engine.audioOverlay as any).set({
+        name: 'bed.wav',
+        url: 'blob:bed',
+        duration: 8,
+        buffer: {
+          sampleRate: 16_000,
+          duration: 8,
+          length: channel.length,
+          getChannelData: () => channel,
+        },
+      });
+      visualsLane(engine).clips = [];
+      (engine.addClip as jest.Mock).mockClear();
+
+      await component.generateTalkingHead();
+
+      expect(ai.lipSync).toHaveBeenCalledWith(
+        'data:image/png;base64,STILL',
+        expect.stringMatching(/^data:audio\/wav;base64,/),
+        8
+      );
+      const placed = (engine.addClip as jest.Mock).mock.calls[0]?.[1];
+      expect(placed).toMatchObject({
+        name: 'Talking Head',
+        url: 'https://cdn.example.test/talking-head.mp4',
+        startTime: 0,
+        duration: 8,
+        type: 'video',
+      });
+      expect(component.aiFeedback()).toContain('TALKING HEAD RENDERED');
+    });
+
+    it('explains that a talking head needs a face first', async () => {
+      const { component } = await createComponent();
+      const ai = TestBed.inject(AiService) as unknown as {
+        lipSync: jest.Mock;
+      };
+
+      await component.generateTalkingHead();
+
+      expect(ai.lipSync).not.toHaveBeenCalled();
+      expect(component.aiFeedback()).toContain('LOAD A STILL FIRST');
     });
   });
 

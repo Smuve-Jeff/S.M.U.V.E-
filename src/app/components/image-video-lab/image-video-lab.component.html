@@ -1378,7 +1378,7 @@
                         type="button"
                         (click)="generateShotConcept(row.shot)"
                         [disabled]="director.shotMediaBusy() !== null"
-                        title="Generate a concept still for this shot"
+                        [title]="'Generate a concept still for this shot — framed through ' + camera.activeAngleLabel() + ' angle'"
                       >
                         {{
                           director.shotMediaBusy() === row.shot.index
@@ -1393,7 +1393,7 @@
                           !row.shot.conceptImageUrl ||
                           director.shotMediaBusy() !== null
                         "
-                        title="Animate this shot from its concept still"
+                        [title]="'Animate this shot from its concept still — motion framed through ' + camera.activeAngleLabel() + ' angle'"
                       >
                         ANIMATE
                       </button>
@@ -1806,6 +1806,38 @@
               >
                 Place on lane
               </button>
+            }
+            @if (photoSource(); as still) {
+              @if (videoEngine.audioOverlay(); as overlay) {
+                <!--
+                  Talking head: the still performs the overlay bed. The
+                  overlay's buffer is re-encoded to WAV on-device first —
+                  fal cannot open the overlay's blob: URL.
+                -->
+                <div class="rounded-xl border border-border bg-surface p-3 grid gap-2">
+                  <span
+                    class="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-text-dim"
+                  >
+                    Talking Head — Still × Overlay
+                  </span>
+                  <span class="text-[9px] uppercase text-text-dim">
+                    Performs “{{ overlay.name }}” (first
+                    {{ overlay.duration | number: '1.0-0' }}s, max 60s)
+                  </span>
+                  <button
+                    type="button"
+                    (click)="generateTalkingHead()"
+                    [disabled]="photoBusy() !== null"
+                    class="rounded-lg border border-brand-primary/40 bg-surface px-2.5 py-1.5 text-[8px] font-black uppercase tracking-[0.16em] text-brand-primary hover:border-brand-primary transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {{
+                      photoBusy() === 'lip'
+                        ? 'RENDERING…'
+                        : 'Make it talk'
+                    }}
+                  </button>
+                </div>
+              }
             }
             @if (cutoutPhotoUrl(); as cutout) {
               <img

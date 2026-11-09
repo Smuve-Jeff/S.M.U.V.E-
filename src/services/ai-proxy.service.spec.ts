@@ -313,14 +313,33 @@ describe("fal media endpoints (Photo Studio + shot video)", () => {
     );
   });
 
-  it("animates one still with Pika, snapping the duration to 5 or 10", async () => {
-    const { proxy, fetchSpy } = await loadProxy({
-      ok: true,
-      status: 200,
-      json: async () => ({
-        video: { url: "https://fal.example/shot.mp4" },
-      }),
-    });
+  it("animates one still with Pika through the fal queue", async () => {
+    process.env.FAL_KEY = "test-fal-key";
+    jest.resetModules();
+    const fetchSpy = jest
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          request_id: "req-1",
+          status_url: "https://queue.fal.run/status/req-1",
+          response_url: "https://queue.fal.run/response/req-1",
+        }),
+      } as never)
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ status: "COMPLETED" }),
+      } as never)
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          video: { url: "https://fal.example/shot.mp4" },
+        }),
+      } as never);
+    const proxy = await import("./ai-proxy.service");
 
     const result = await proxy.generateShotVideo({
       image: "https://fal.example/still.png",
@@ -334,8 +353,12 @@ describe("fal media endpoints (Photo Studio + shot video)", () => {
       duration: 10,
     });
     expect(fetchSpy).toHaveBeenCalledWith(
-      "https://fal.run/fal-ai/pika/v2.2/image-to-video",
+      "https://queue.fal.run/fal-ai/pika/v2.2/image-to-video",
       expect.objectContaining({
+        method: "POST",
+        headers: expect.objectContaining({
+          Authorization: "Key test-fal-key",
+        }),
         body: JSON.stringify({
           image_url: "https://fal.example/still.png",
           prompt: "slow push in",
@@ -343,6 +366,11 @@ describe("fal media endpoints (Photo Studio + shot video)", () => {
         }),
       })
     );
+    expect(fetchSpy.mock.calls.map((call) => call[0])).toEqual([
+      "https://queue.fal.run/fal-ai/pika/v2.2/image-to-video",
+      "https://queue.fal.run/status/req-1",
+      "https://queue.fal.run/response/req-1",
+    ]);
   });
 
   it("maps a provider rate limit to a retryable 429, not a dead link", async () => {
@@ -374,6 +402,142 @@ describe("fal media endpoints (Photo Studio + shot video)", () => {
     await expect(
       proxy.enhancePhoto({ image: "https://cdn.example/a.png" })
     ).rejects.toBeInstanceOf(proxy.AiProviderUnavailableError);
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+});
+
+describe("normalizeAudioSource", () => {
+  it("passes hosted URLs and data URLs through untouched", () => {
+    const { normalizeAudioSource } = require("./ai-proxy.service");
+    expect(normalizeAudioSource("https://cdn.example/voice.wav")).toBe(
+      "https://cdn.example/voice.wav"
+    );
+    expect(normalizeAudioSource("data:audio/wav;base64,AAA")).toBe(
+      "data:audio/wav;base64,AAA"
+    );
+  });
+
+  it("wraps bare base64 as audio/wav", () => {
+    const { normalizeAudioSource } = require("./ai-proxy.service");
+    expect(normalizeAudioSource("AAA")).toBe("data:audio/wav;base64,AAA");
+  });
+});
+
+describe("fal queue polling + lip-sync", () => {
+  const originalKey = process.env.FAL_KEY;
+
+  afterEach(() => {
+    if (originalKey === undefined) delete process.env.FAL_KEY;
+    else process.env.FAL_KEY = originalKey;
+    jest.restoreAllMocks();
+  });
+
+  const queueWithStatus = (status: string) => {
+    process.env.FAL_KEY = "test-fal-key";
+    jest.resetModules();
+    return jest
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          status_url: "https://queue.fal.run/status/req-9",
+          response_url: "https://queue.fal.run/response/req-9",
+        }),
+      } as never)
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ status }),
+      } as never)
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          video: { url: "https://fal.example/head.mp4" },
+        }),
+      } as never);
+  };
+
+  it("animates a still to audio through sync-3 and echoes the duration", async () => {
+    const fetchSpy = queueWithStatus("COMPLETED");
+    const proxy = await import("./ai-proxy.service");
+
+    const result = await proxy.generateLipSync({
+      image: "https://fal.example/still.png",
+      audio: "data:audio/wav;base64,AAA",
+      durationSeconds: 12,
+    });
+
+    expect(result).toEqual({
+      type: "video",
+      url: "https://fal.example/head.mp4",
+      duration: 12,
+    });
+    expect(fetchSpy).toHaveBeenCalledWith(
+      "https://queue.fal.run/fal-ai/sync-lipsync/v3/image-to-video",
+      expect.objectContaining({
+        body: JSON.stringify({
+          image_url: "https://fal.example/still.png",
+          audio_url: "data:audio/wav;base64,AAA",
+        }),
+      })
+    );
+  });
+
+  it("maps a failed queue job to a 502", async () => {
+    queueWithStatus("FAILED");
+    const proxy = await import("./ai-proxy.service");
+
+    await expect(
+      proxy.generateLipSync({
+        image: "https://fal.example/still.png",
+        audio: "https://cdn.example/voice.wav",
+        durationSeconds: 5,
+      })
+    ).rejects.toMatchObject({ statusCode: 502 });
+  });
+
+  it("gives up with a 504 when the job never finishes", async () => {
+    process.env.FAL_KEY = "test-fal-key";
+    jest.resetModules();
+    jest
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          status_url: "https://queue.fal.run/status/slow",
+          response_url: "https://queue.fal.run/response/slow",
+        }),
+      } as never)
+      .mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => ({ status: "IN_PROGRESS" }),
+      } as never);
+    const proxy = await import("./ai-proxy.service");
+
+    await expect(
+      proxy.falRunQueue("fal-ai/pika/v2.2/image-to-video", {}, {
+        maxWaitMs: 0,
+        sleep: async () => {},
+      })
+    ).rejects.toMatchObject({ statusCode: 504 });
+  });
+
+  it("rejects lip-sync with no audio before any provider call", async () => {
+    process.env.FAL_KEY = "test-fal-key";
+    jest.resetModules();
+    const fetchSpy = jest.spyOn(globalThis, "fetch");
+    const proxy = await import("./ai-proxy.service");
+
+    await expect(
+      proxy.generateLipSync({
+        image: "https://fal.example/still.png",
+        audio: "",
+      })
+    ).rejects.toMatchObject({ statusCode: 400 });
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 });

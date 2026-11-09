@@ -6,7 +6,9 @@ import {
   cutoutPhoto,
   enhancePhoto,
   generateConceptArt,
+  generateLipSync,
   generateShotVideo,
+  MAX_AUDIO_SOURCE_LENGTH,
   MAX_IMAGE_SOURCE_LENGTH,
   AiProviderUnavailableError,
 } from "@/services";
@@ -184,6 +186,42 @@ router.post("/shot-video", authenticate, videoLimiter, async (req, res) => {
   } catch (error) {
     if (error instanceof AiProviderUnavailableError) {
       return mediaUnavailable(res, "video generation");
+    }
+    throw error;
+  }
+});
+
+// POST /api/ai/lip-sync — Talking head: animate one still to audio (sync-3).
+// The audio travels as a data-URL WAV (the client's blob: overlay URL is
+// meaningless to fal); the client caps the slice at 60 s, and
+// `durationSeconds` echoes it for lane placement.
+router.post("/lip-sync", authenticate, videoLimiter, async (req, res) => {
+  const image =
+    typeof req.body?.image === "string" ? req.body.image : undefined;
+  const mimeType =
+    typeof req.body?.mimeType === "string" ? req.body.mimeType : undefined;
+  const audio =
+    typeof req.body?.audio === "string" ? req.body.audio : undefined;
+  const durationSeconds =
+    typeof req.body?.durationSeconds === "number"
+      ? req.body.durationSeconds
+      : undefined;
+  if (!image) return res.status(400).json({ error: "image is required" });
+  if (image.length > MAX_IMAGE_SOURCE_LENGTH) {
+    return res.status(413).json({ error: "image too large" });
+  }
+  if (!audio) return res.status(400).json({ error: "audio is required" });
+  if (audio.length > MAX_AUDIO_SOURCE_LENGTH) {
+    return res.status(413).json({ error: "audio too large" });
+  }
+
+  try {
+    return res.json(
+      await generateLipSync({ image, mimeType, audio, durationSeconds }),
+    );
+  } catch (error) {
+    if (error instanceof AiProviderUnavailableError) {
+      return mediaUnavailable(res, "lip-sync");
     }
     throw error;
   }

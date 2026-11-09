@@ -55,7 +55,7 @@ export type { UpgradeRecommendation } from '../types/ai.types';
  * Budget for one image-to-video render. A 1080p shot can take minutes on
  * the provider; the default ask timeout would kill every real render.
  */
-const SHOT_VIDEO_REQUEST_TIMEOUT_MS = 300_000;
+const SHOT_VIDEO_REQUEST_TIMEOUT_MS = 600_000;
 
 @Injectable({
   providedIn: 'root',
@@ -1170,6 +1170,34 @@ Remember: sharpen the artist's decisions, sign the work with a GOD's signature, 
     );
     if (!response?.url) {
       throw new Error('AI video provider returned no video.');
+    }
+    return { url: response.url, duration: response.duration ?? durationSeconds };
+  }
+
+  /**
+   * Talking head: animate one still's face to the supplied audio. Like
+   * shot-video it renders through the server-side fal queue, so it gets
+   * the same long-timeout budget.
+   */
+  async lipSync(
+    imageSource: string,
+    audioSource: string,
+    durationSeconds = 0
+  ): Promise<{ url: string; duration: number }> {
+    const response = await this.postAi<
+      { type: 'video'; url: string; duration?: number }
+    >(
+      'lip-sync',
+      { image: imageSource, audio: audioSource, durationSeconds },
+      {
+        timeoutMs: SHOT_VIDEO_REQUEST_TIMEOUT_MS,
+        timeoutMessage:
+          'The lip-sync provider took too long to answer. Resend the still and audio.',
+        fallbackMessage: 'AI lip-sync is unavailable.',
+      }
+    );
+    if (!response?.url) {
+      throw new Error('AI lip-sync provider returned no video.');
     }
     return { url: response.url, duration: response.duration ?? durationSeconds };
   }

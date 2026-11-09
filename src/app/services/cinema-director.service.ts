@@ -227,17 +227,24 @@ export class CinemaDirectorService {
   /**
    * Director v2, styling: generate the concept still for one planned shot.
    * The prompt carries the shot's title, description, size and section, so
-   * the still is framed the way the plan says it will be shot.
+   * the still is framed the way the plan says it will be shot. `cameraAngle`
+   * is what the console was looking through when the artist pressed
+   * CONCEPT — the multicam angle is part of the framing.
    */
-  async generateShotConcept(shot: ShotPlanShot): Promise<string> {
+  async generateShotConcept(
+    shot: ShotPlanShot,
+    options: { cameraAngle?: string } = {}
+  ): Promise<string> {
     if (this.shotMediaBusy() !== null) {
       throw new Error('A shot is already being styled or animated.');
     }
     this.shotMediaBusy.set(shot.index);
     try {
+      const angle = options.cameraAngle?.trim();
       const prompt =
         `${shot.title}: ${shot.description} ` +
-        `(${shot.size} shot, ${shot.section})`;
+        `(${shot.size} shot, ${shot.section})` +
+        (angle ? `. Camera angle: ${angle}` : '');
       const url = await this.aiService.generateImage(prompt);
       this.setShotMedia(shot.index, { conceptImageUrl: url });
       return url;
@@ -251,7 +258,8 @@ export class CinemaDirectorService {
    * Animation needs the still first — there is nothing to move without it.
    */
   async animateShot(
-    shot: ShotPlanShot
+    shot: ShotPlanShot,
+    options: { cameraAngle?: string } = {}
   ): Promise<{ url: string; duration: number }> {
     const current = this.plan()?.shots.find((s) => s.index === shot.index);
     const still = current?.conceptImageUrl ?? shot.conceptImageUrl;
@@ -263,9 +271,11 @@ export class CinemaDirectorService {
     }
     this.shotMediaBusy.set(shot.index);
     try {
-      const prompt = `${current?.title ?? shot.title}: ${
-        current?.description ?? shot.description
-      }`;
+      const angle = options.cameraAngle?.trim();
+      const prompt =
+        `${current?.title ?? shot.title}: ${
+          current?.description ?? shot.description
+        }` + (angle ? `. Camera angle: ${angle}` : '');
       const result = await this.aiService.generateShotVideo(
         still,
         prompt,

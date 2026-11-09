@@ -329,6 +329,46 @@ describe('CinemaDirectorService', () => {
     expect(ai.generateImage).not.toHaveBeenCalled();
   });
 
+  it('frames a concept still through the active camera angle', async () => {
+    const service = createService(
+      JSON.stringify({
+        title: 'Night Drive',
+        logline: 'A headlight-lit performance cut.',
+        shots: [{ title: 'Dashboard', description: 'Wide', size: 'wide', bars: 4 }],
+      })
+    );
+    const plan = await service.generateShotPlan(request);
+
+    await service.generateShotConcept(plan.shots[0], {
+      cameraAngle: 'Rear camera',
+    });
+
+    expect(ai.generateImage).toHaveBeenCalledWith(
+      expect.stringContaining('Camera angle: Rear camera')
+    );
+  });
+
+  it('frames a shot animation through the active camera angle', async () => {
+    const service = createService(
+      JSON.stringify({
+        title: 'Night Drive',
+        logline: 'A headlight-lit performance cut.',
+        shots: [{ title: 'Dashboard', description: 'Wide', size: 'wide', bars: 4 }],
+      })
+    );
+    const plan = await service.generateShotPlan(request);
+    const shot = plan.shots[0];
+    await service.generateShotConcept(shot);
+
+    await service.animateShot(shot, { cameraAngle: 'Rear camera' });
+
+    expect(ai.generateShotVideo).toHaveBeenCalledWith(
+      'https://cdn.example.test/still.png',
+      expect.stringContaining('Camera angle: Rear camera'),
+      shot.durationSeconds
+    );
+  });
+
   it('uses safe defaults for invalid tempo and keeps a sub-frame runtime bounded', () => {
     const service = createService();
 
