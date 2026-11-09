@@ -27,6 +27,7 @@ import { AiMixAssistantService } from './effects/ai-mix-assistant.service';
 import { AiCopilotService } from './ai-copilot.service';
 import { OfflineBounceService } from './offline-bounce.service';
 import { ProjectWorkspaceService, type ProjectBundle } from './project-workspace.service';
+import { buildProjectArchive } from './project-archive.util';
 import { SmartSoundService } from './smart-sound.service';
 import { SmartProductionFoundationsService } from './smart-production-foundations.service';
 import { PerformanceRecordingService } from './performance-recording.service';
@@ -36,6 +37,7 @@ import {
   frequencyToNote,
   midiToFrequency,
 } from './tuner/tuner-pitch.util';
+import { TunerLiveService } from './tuner/tuner-live.service';
 import {
   detectTransientFrames,
   sliceAudioBufferAtFrames,
@@ -98,6 +100,15 @@ export interface StudioDirectorRunResult {
   failed: number;
 }
 
+export interface DirectorCheckpointSummary {
+  id: string;
+  label: string;
+  at: number;
+  isFullSnapshot: boolean;
+  hasBundle: boolean;
+  detail: string;
+}
+
 const SURFACE_LOOKUP = new Map(STUDIO_SURFACES.map((s) => [s.id, s]));
 const PITCHES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 
@@ -136,6 +147,7 @@ export class StudioAiDirectorService {
   private performanceRecording = inject(PerformanceRecordingService);
   private audioImport = inject(AudioImportService);
   private samplerState = inject(SamplerStateService);
+  private tunerLive = inject(TunerLiveService);
   private telemetry = inject(StudioTelemetryService);
   private logger = inject(LoggingService);
 
@@ -254,6 +266,113 @@ export class StudioAiDirectorService {
     if (checkpoints.length === 0) return 'No session checkpoints are available yet.';
     const latest = checkpoints[checkpoints.length - 1];
     return `${checkpoints.length} checkpoint${checkpoints.length === 1 ? '' : 's'}; latest: ${latest.label}.`;
+  }
+
+  /**
+   * Newest-first browser rows for the active project branch. Each row says
+   * whether the checkpoint materializes to a full portable bundle and, for
+   * metadata-only checkpoints, which fields a restore can actually apply.
+   */
+  listCheckpoints(): DirectorCheckpointSummary[] {
+    const projectId = this.workspace.metadata()?.id;
+    if (!projectId) return [];
+    const branchId = this.sessionHistory.activeBranch(projectId);
+    if (!branchId) return [];
+    const checkpoints = this.sessionHistory.checkpoints(projectId, branchId);
+    return [...checkpoints]
+      .sort((a, b) => b.at - a.at)
+      .map((checkpoint) => {
+        let hasBundle = false;
+        let detail = 'Delta checkpoint';
+        try {
+          const materialized = this.sessionHistory.materializeSnapshot(projectId, checkpoint.id);
+          const payload = (materialized ?? {}) as Record<string, unknown>;
+          if (payload.metadata && Array.isArray(payload.tracks)) {
+            hasBundle = true;
+            const tracks = payload.tracks as unknown[];
+            const metadata = payload.metadata as Record<string, unknown>;
+            const name = typeof metadata.name === 'string' && metadata.name ? metadata.name : 'project';
+            detail = `Full bundle · ${name} · ${tracks.length} track${tracks.length === 1 ? '' : 's'}`;
+          } else {
+            const keys = Object.keys(payload).filter((key) => key !== 'id');
+            detail = keys.length > 0 ? `Metadata · ${keys.slice(0, 4).join(', ')}` : 'Metadata checkpoint';
+          }
+        } catch {
+          detail = 'Could not be materialized';
+        }
+        return {
+          id: checkpoint.id,
+          label: checkpoint.label,
+          at: checkpoint.at,
+          isFullSnapshot: checkpoint.isFullSnapshot,
+          hasBundle,
+          detail,
+        };
+      });
+  }
+
+  /** Download the open project as a portable `.smuve` bundle. */
+  exportProjectBundle(): string {
+    const meta = this.workspace.metadata();
+    if (!meta) throw new Error('No project metadata is active.');
+    this.workspace.downloadProjectBundle();
+    return `Exported the open project as a .smuve bundle (${meta.name}).`;
+  }
+
+  /**
+   * Download one materialized checkpoint as a portable `.smuve` bundle, so a
+   * checkpoint can leave the browser and be re-imported later. Only full
+   * bundle checkpoints can be exported; metadata-only ones are reported.
+   */
+  exportCheckpointBundle(checkpointId?: string): string {
+    const projectId = this.workspace.metadata()?.id;
+    if (!projectId) throw new Error('No project metadata is active.');
+    const branchId = this.sessionHistory.activeBranch(projectId);
+    if (!branchId) throw new Error('No session checkpoint branch is active.');
+    const checkpoints = this.sessionHistory.checkpoints(projectId, branchId);
+    if (checkpoints.length === 0) throw new Error('No session checkpoints are available to export.');
+    const target = checkpointId
+      ? checkpoints.find((checkpoint) => checkpoint.id === checkpointId)
+      : checkpoints[checkpoints.length - 1];
+    if (!target) throw new Error(`Checkpoint ${checkpointId} was not found.`);
+    const materialized = this.sessionHistory.materializeSnapshot(projectId, target.id);
+    if (!materialized) throw new Error(`Checkpoint ${target.label} could not be materialized.`);
+    const payload = materialized as unknown as Record<string, unknown>;
+    if (!payload.metadata || !Array.isArray(payload.tracks)) {
+      throw new Error(`Checkpoint ${target.label} is not a full project bundle, so it cannot be exported as a .smuve file. Restore it for its tempo/key metadata instead.`);
+    }
+    const bundle = materialized as unknown as ProjectBundle;
+    const blob = buildProjectArchive(bundle);
+    const metadata = bundle.metadata as unknown as Record<string, unknown>;
+    const project = String(metadata.name || this.music.projectName || 'Elite_Session').replace(/[^\w.-]/g, '_');
+    const label = target.label.replace(/[^\w.-]/g, '_') || 'latest';
+    const filename = `${project}_Director_Checkpoint_${label}_${Date.now()}.smuve`;
+    this.exports.downloadBlob(blob, filename);
+    return `Exported checkpoint ${target.label} as ${filename} (${blob.size} bytes).`;
+  }
+
+  /**
+   * Import a portable project bundle into the live project. The import itself
+   * replaces the canvas, so the previous canvas is captured first and the
+   * import is recorded as an undoable edit.
+   */
+  async importProjectBundle(bundle: ProjectBundle): Promise<string> {
+    if (!bundle || typeof bundle !== 'object' || !bundle.metadata || !Array.isArray(bundle.tracks)) {
+      throw new Error('That file is not a valid S.M.U.V.E. project bundle.');
+    }
+    const before = this.workspace.createSnapshot();
+    const ok = await this.workspace.importProjectBundle(bundle);
+    if (!ok) {
+      const workspace = this.workspace as unknown as { persistenceError?: () => string };
+      const reason = typeof workspace.persistenceError === 'function' ? workspace.persistenceError() : '';
+      throw new Error(reason || 'Project bundle import was rejected.');
+    }
+    this.history.execute({
+      name: `Import project bundle ${bundle.metadata.name}`,
+      execute: () => this.workspace.restoreFromSnapshot(bundle),
+      undo: () => this.workspace.restoreFromSnapshot(before),
+    });
+    return `Imported project bundle ${bundle.metadata.name}; the previous canvas is an undoable edit away.`;
   }
 
   /**
@@ -501,9 +620,12 @@ export class StudioAiDirectorService {
       case 'tuner':
         return [
           make(1, 'Report the tuning reference', 'Read the shared A4 concert-pitch reference and tolerance from the tuner pitch utilities, then compare it with the project key. The live needle still needs the artist or line input to play or sing the reference.', true, () => this.tunerReferenceStatus(), 'tuner'),
-          make(2, 'Measure tuner reads from a recorded clip', 'Measure pitch on the selected track’s recorded audio clips and report the resulting note and cents. This is a recorded-clip reading; a live instrument still needs the Tuner input for a needle reading.', true, () => this.measureTunerReads(), 'tuner'),
-          make(3, 'Apply the same reference across takes', 'Retune strings/instruments to one reference so takes can be comped without pitch drift.', false, () => 'Guided: tune the lowest string first, then check each string against the same reference.', 'piano-roll'),
-          make(4, 'Recheck key after tuning', 'After tuning, run key detection again if the material was out of tune.', true, () => this.detectAndApplyKey()),
+          make(2, 'Open the live tuner input', 'Open the shared TunerLiveService microphone input — the same stream the Tuner surface needle reads — so a physical instrument can be tuned against the reference.', true, () => this.openLiveTunerInput(), 'tuner'),
+          make(3, 'Read the live tuner input', 'Report the latest live needle reading from the shared tuner input, or say plainly that no stable note has been heard yet.', true, () => this.liveTunerReading(), 'tuner'),
+          make(4, 'Stop the live tuner input', 'Close the shared tuner input after the instrument is in tune.', true, () => this.stopLiveTunerInput(), 'tuner'),
+          make(5, 'Measure tuner reads from a recorded clip', 'Measure pitch on the selected track’s recorded audio clips and report the resulting note and cents. This is a recorded-clip reading; a live instrument still needs the Tuner input for a needle reading.', true, () => this.measureTunerReads(), 'tuner'),
+          make(6, 'Apply the same reference across takes', 'Retune strings/instruments to one reference so takes can be comped without pitch drift.', false, () => 'Guided: tune the lowest string first, then check each string against the same reference.', 'piano-roll'),
+          make(7, 'Recheck key after tuning', 'After tuning, run key detection again if the material was out of tune.', true, () => this.detectAndApplyKey()),
         ];
       case 'chord-editor':
         return [
@@ -554,7 +676,8 @@ export class StudioAiDirectorService {
           make(3, 'Export stems', 'Render each playable track to its own WAV and download the stems ZIP.', true, () => this.exportStems()),
           make(4, 'Export MIDI', 'Serialize the project’s note data to a Type 1 Standard MIDI File and download it.', true, () => this.exportMidi()),
           make(5, 'Export DAWproject', 'Serialize the project with reference audio to a .dawproject ZIP and download it.', true, () => this.exportDawproject()),
-          make(6, 'Prepare the delivery checklist', 'Read the AI Produce release handoff and surface format, loudness target, artwork, metadata and next delivery step.', true, () => this.deliveryChecklist()),
+          make(6, 'Export project bundle', 'Download the open project as a portable .smuve bundle so the set can be re-imported later. Checkpoint bundles can be exported one by one from the Director checkpoint browser.', true, () => this.exportProjectBundle()),
+          make(7, 'Prepare the delivery checklist', 'Read the AI Produce release handoff and surface format, loudness target, artwork, metadata and next delivery step.', true, () => this.deliveryChecklist()),
         ];
     }
   }
@@ -970,6 +1093,38 @@ export class StudioAiDirectorService {
     const frequency = midiToFrequency(rootMidi);
     const key = this.workspace.metadata()?.key ?? 'C';
     return `Tuning reference: A4 440 Hz with ±${DEFAULT_TUNER_TOLERANCE_CENTS} cents tolerance; project key is ${key} ${this.lastDetectedScale}, so use ${root}4 around ${frequency.toFixed(1)} Hz as the shared reference before opening the tuner input.`;
+  }
+
+  /** Open the shared live tuner microphone input; the Tuner surface reads it too. */
+  private async openLiveTunerInput(): Promise<string> {
+    if (!this.tunerLive.listening() && !this.tunerLive.starting()) {
+      await this.tunerLive.start();
+    }
+    const error = this.tunerLive.error();
+    if (error) throw new Error(error);
+    const device = this.tunerLive.deviceLabel();
+    if (this.tunerLive.listening()) {
+      return `Live tuner input is open on ${device}. Play or sing the reference note; the Tuner surface needle and the next Director read follow the same stream.`;
+    }
+    return `Live tuner input is opening on ${device}. Play or sing the reference note once the needle is live.`;
+  }
+
+  private liveTunerReading(): string {
+    const reading = this.tunerLive.reading();
+    const device = this.tunerLive.deviceLabel();
+    if (!reading) {
+      return this.tunerLive.listening()
+        ? `Live tuner is listening on ${device}; no stable note yet — play or sing a sustained note.`
+        : 'Live tuner is idle; open the live tuner input first.';
+    }
+    const sign = reading.cents > 0 ? '+' : '';
+    const status = reading.inTune ? 'in tune' : 'out of tune';
+    return `Live tuner read on ${device}: ${reading.note}${reading.octave} at ${reading.frequency.toFixed(1)} Hz (${sign}${reading.cents.toFixed(1)} cents) — ${status}.`;
+  }
+
+  private stopLiveTunerInput(): string {
+    this.tunerLive.stop();
+    return 'Live tuner input stopped.';
   }
 
   /**

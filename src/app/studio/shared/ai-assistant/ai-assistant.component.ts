@@ -38,9 +38,11 @@ import { buildArtistMusicContext } from "../../../types/profile.types";
 import { isOfflineAiText } from "../../../../ai-manager.contract";
 import {
   StudioAiDirectorService,
+  type DirectorCheckpointSummary,
   type StudioDirectorPlan,
   type StudioDirectorStep,
 } from "../../studio-ai-director.service";
+import { readProjectFile } from "../../project-archive.util";
 import { StudioOrchestrationService } from "../../../services/studio-orchestration.service";
 import {
   STUDIO_SURFACES,
@@ -138,6 +140,10 @@ export class AiAssistantComponent implements OnInit, AfterViewInit, OnDestroy {
     const plan = this.directorPlan();
     return STUDIO_SURFACES.find((surface) => surface.id === plan?.surfaceId)?.label ?? "Studio";
   });
+  /** Newest-first SessionHistory checkpoints for the open project. */
+  directorCheckpoints = computed<DirectorCheckpointSummary[]>(() =>
+    this.director.listCheckpoints(),
+  );
 
   /** Live AI / local fallback status shown in the header. */
   aiMode = signal<"idle" | "online" | "local">("idle");
@@ -537,6 +543,87 @@ export class AiAssistantComponent implements OnInit, AfterViewInit, OnDestroy {
       this.haptic.medium();
     } catch (error) {
       const message = `Checkpoint restore failed: ${(error as Error).message}`;
+      this.directorStatus.set(message);
+      this.snack.error(message);
+    } finally {
+      this.directorBusy.set(false);
+    }
+  }
+
+  async restoreCheckpointById(checkpointId: string, label: string): Promise<void> {
+    if (this.directorBusy()) return;
+    if (!window.confirm(`Restore checkpoint "${label}"? Current work is preserved as an undoable edit.`)) return;
+    this.directorBusy.set(true);
+    this.directorStatus.set(`Restoring checkpoint ${label}...`);
+    try {
+      const message = await this.director.restoreCheckpoint(checkpointId);
+      this.directorReport.update((report) => [...report, `Done — Restore checkpoint: ${message}`]);
+      this.directorStatus.set(message);
+      this.snack.success(message);
+      this.haptic.medium();
+    } catch (error) {
+      const message = `Checkpoint restore failed: ${(error as Error).message}`;
+      this.directorStatus.set(message);
+      this.snack.error(message);
+    } finally {
+      this.directorBusy.set(false);
+    }
+  }
+
+  exportCheckpointBundle(checkpointId: string, label: string): void {
+    if (this.directorBusy()) return;
+    this.directorBusy.set(true);
+    this.directorStatus.set(`Exporting checkpoint ${label}...`);
+    try {
+      const message = this.director.exportCheckpointBundle(checkpointId);
+      this.directorReport.update((report) => [...report, `Done — Export checkpoint bundle: ${message}`]);
+      this.directorStatus.set(message);
+      this.snack.success(message);
+      this.haptic.medium();
+    } catch (error) {
+      const message = `Checkpoint bundle export failed: ${(error as Error).message}`;
+      this.directorStatus.set(message);
+      this.snack.error(message);
+    } finally {
+      this.directorBusy.set(false);
+    }
+  }
+
+  exportCurrentProjectBundle(): void {
+    if (this.directorBusy()) return;
+    this.directorBusy.set(true);
+    this.directorStatus.set("Exporting the open project bundle...");
+    try {
+      const message = this.director.exportProjectBundle();
+      this.directorReport.update((report) => [...report, `Done — Export project bundle: ${message}`]);
+      this.directorStatus.set(message);
+      this.snack.success(message);
+      this.haptic.medium();
+    } catch (error) {
+      const message = `Project bundle export failed: ${(error as Error).message}`;
+      this.directorStatus.set(message);
+      this.snack.error(message);
+    } finally {
+      this.directorBusy.set(false);
+    }
+  }
+
+  async onDirectorBundleFile(event: Event): Promise<void> {
+    const input = event.target as HTMLInputElement | null;
+    const file = input?.files?.[0];
+    if (input) input.value = "";
+    if (!file || this.directorBusy()) return;
+    this.directorBusy.set(true);
+    this.directorStatus.set(`Importing ${file.name}...`);
+    try {
+      const bundle = await readProjectFile(file);
+      const message = await this.director.importProjectBundle(bundle);
+      this.directorReport.update((report) => [...report, `Done — Import project bundle: ${message}`]);
+      this.directorStatus.set(message);
+      this.snack.success(message);
+      this.haptic.medium();
+    } catch (error) {
+      const message = `Project bundle import failed: ${(error as Error).message}`;
       this.directorStatus.set(message);
       this.snack.error(message);
     } finally {

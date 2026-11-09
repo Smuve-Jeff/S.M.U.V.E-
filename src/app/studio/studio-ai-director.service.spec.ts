@@ -25,6 +25,7 @@ import { SmartSoundService } from './smart-sound.service';
 import { SmartProductionFoundationsService } from './smart-production-foundations.service';
 import { StudioTelemetryService } from './studio-telemetry.service';
 import { ProjectWorkspaceService } from './project-workspace.service';
+import { TunerLiveService } from './tuner/tuner-live.service';
 import { AudioRecorderService } from './audio-recorder.service';
 import { AiCopilotService } from './ai-copilot.service';
 import { OfflineBounceService } from './offline-bounce.service';
@@ -167,8 +168,11 @@ function makeDirector(overrides: Record<string, unknown> = {}) {
   const workspace = {
     metadata: signal(null),
     updateMetadata: jest.fn(),
-    createSnapshot: jest.fn(() => ({ metadata: { id: 'project-1' }, tracks: [] })),
+    createSnapshot: jest.fn(() => ({ metadata: { id: 'project-1', name: 'Test Project' }, tracks: [] })),
     restoreFromSnapshot: jest.fn(),
+    downloadProjectBundle: jest.fn(),
+    importProjectBundle: jest.fn().mockResolvedValue(true),
+    persistenceError: signal(''),
     ...overrides.workspace,
   };
   const telemetry = {
@@ -246,6 +250,19 @@ function makeDirector(overrides: Record<string, unknown> = {}) {
     getLoadedPitches: jest.fn(() => []),
     ...overrides.samplerState,
   };
+  const tunerLive = {
+    listening: signal(false),
+    starting: signal(false),
+    reading: signal(null),
+    level: signal(0),
+    error: signal<string | null>(null),
+    deviceLabel: signal('USB Interface'),
+    needle: signal(50),
+    start: jest.fn().mockResolvedValue(undefined),
+    stop: jest.fn(),
+    toggle: jest.fn(),
+    ...overrides.tunerLive,
+  };
   const history = {
     canUndo: jest.fn(() => true),
     canRedo: jest.fn(() => false),
@@ -309,11 +326,12 @@ function makeDirector(overrides: Record<string, unknown> = {}) {
       { provide: HistoryService, useValue: history },
       { provide: SessionHistoryService, useValue: sessionHistory },
       { provide: SamplerStateService, useValue: samplerState },
+      { provide: TunerLiveService, useValue: tunerLive },
       { provide: ExportService, useValue: exportService },
       { provide: IdeasGeneratorService, useValue: ideas },
     ],
   });
-  return { service: TestBed.inject(StudioAiDirectorService), music, engine, ai, beat, mix, sounds, workspace, telemetry, takeManager, audioRecorder, copilot, offlineBounce, scale, produce, history, sessionHistory, samplerState, exportService, ideas, vocal, vocalMastering, performanceRecording, audioImport, tracks };
+  return { service: TestBed.inject(StudioAiDirectorService), music, engine, ai, beat, mix, sounds, workspace, telemetry, takeManager, audioRecorder, copilot, offlineBounce, scale, produce, history, sessionHistory, samplerState, tunerLive, exportService, ideas, vocal, vocalMastering, performanceRecording, audioImport, tracks };
 }
 
 describe('StudioAiDirectorService', () => {
@@ -688,12 +706,14 @@ describe('StudioAiDirectorService', () => {
     expect(result.message).toContain('shared Sampler pads');
   });
 
-  it('exports stems, MIDI and DAWproject delivery formats from the Export plan', async () => {
-    const { service, exportService } = makeDirector();
+  it('exports stems, MIDI, DAWproject and bundle delivery formats from the Export plan', async () => {
+    const { service, exportService, workspace } = makeDirector();
+    workspace.metadata.set({ id: 'project-1', name: 'Test Project', key: 'C' });
     const plan = service.buildPlan({ surfaceId: 'export' });
     expect(plan.steps.map((step) => step.label)).toContain('Export stems');
     expect(plan.steps.map((step) => step.label)).toContain('Export MIDI');
     expect(plan.steps.map((step) => step.label)).toContain('Export DAWproject');
+    expect(plan.steps.map((step) => step.label)).toContain('Export project bundle');
 
     const stems = await service.runStep(plan.steps[2]);
     expect(stems.ok).toBe(true);
@@ -709,6 +729,11 @@ describe('StudioAiDirectorService', () => {
     expect(dawproject.ok).toBe(true);
     expect(exportService.exportDawproject).toHaveBeenCalled();
     expect(exportService.downloadBlob).toHaveBeenCalledWith(expect.any(Blob), expect.stringContaining('_Director_DAWproject_'));
+
+    const bundle = await service.runStep(plan.steps[5]);
+    expect(bundle.ok).toBe(true);
+    expect(workspace.downloadProjectBundle).toHaveBeenCalled();
+    expect(bundle.message).toContain('Test Project');
   });
 
   it('measures tuner reads from the selected recorded clip', async () => {
@@ -729,7 +754,8 @@ describe('StudioAiDirectorService', () => {
       type: 'audio',
       clips: [{ id: 'clip-1', name: 'Recorded A', type: 'audio', audioData: buffer }],
     });
-    const result = await service.runStep(service.buildPlan({ surfaceId: 'tuner' }).steps[1]);
+    const step = service.buildPlan({ surfaceId: 'tuner' }).steps.find((s) => s.label === 'Measure tuner reads from a recorded clip')!;
+    const result = await service.runStep(step);
     expect(result.ok).toBe(true);
     expect(result.message).toContain('Tuner read on Director Lead');
     expect(result.message).toContain('A4');
@@ -749,6 +775,77 @@ describe('StudioAiDirectorService', () => {
     expect(message).toContain('Restored checkpoint Before drums');
     expect(history.execute).toHaveBeenCalledWith(expect.objectContaining({ name: 'Restore checkpoint Before drums' }));
     expect(workspace.restoreFromSnapshot).toHaveBeenCalledWith(bundle);
+  });
+
+  it('lists checkpoints newest-first and exports a full-bundle checkpoint as .smuve', async () => {
+    const older = { id: 'cp-1', label: 'Start', at: 1000, isFullSnapshot: true };
+    const newer = { id: 'cp-2', label: 'Before drums', at: 2000, isFullSnapshot: false };
+    const bundle = {
+      metadata: { id: 'project-1', name: 'Test Project', key: 'C' },
+      tracks: [{ id: 'track-1' }],
+      audioAssets: [],
+      automation: {},
+      mixState: {},
+      notes: '',
+      exportedAt: 2000,
+    };
+    const { service, workspace, sessionHistory, exportService } = makeDirector();
+    workspace.metadata.set({ id: 'project-1', name: 'Test Project', key: 'C' });
+    sessionHistory.checkpoints.mockReturnValue([older, newer]);
+    sessionHistory.materializeSnapshot.mockReturnValue(bundle);
+
+    const listed = service.listCheckpoints();
+    expect(listed.map((entry) => entry.id)).toEqual(['cp-2', 'cp-1']);
+    expect(listed[0]).toMatchObject({ label: 'Before drums', hasBundle: true });
+    expect(listed[0].detail).toContain('1 track');
+
+    const message = service.exportCheckpointBundle('cp-2');
+    expect(exportService.downloadBlob).toHaveBeenCalledWith(expect.any(Blob), expect.stringContaining('_Director_Checkpoint_Before_drums_'));
+    expect(message).toContain('Exported checkpoint Before drums');
+  });
+
+  it('exports the open project bundle and imports a bundle as an undoable edit', async () => {
+    const { service, workspace, history } = makeDirector();
+    workspace.metadata.set({ id: 'project-1', name: 'Test Project', key: 'C' });
+
+    const exported = service.exportProjectBundle();
+    expect(workspace.downloadProjectBundle).toHaveBeenCalled();
+    expect(exported).toContain('Test Project');
+
+    const bundle = { metadata: { id: 'project-2', name: 'Imported Set' }, tracks: [] } as never;
+    const before = { metadata: { id: 'project-1', name: 'Test Project' }, tracks: [] };
+    workspace.createSnapshot.mockReturnValue(before);
+    const message = await service.importProjectBundle(bundle);
+    expect(workspace.importProjectBundle).toHaveBeenCalledWith(bundle);
+    expect(history.execute).toHaveBeenCalledWith(expect.objectContaining({ name: 'Import project bundle Imported Set' }));
+    expect(message).toContain('Imported project bundle Imported Set');
+  });
+
+  it('opens, reads and stops the shared live tuner input', async () => {
+    const { service, tunerLive } = makeDirector();
+    const plan = service.buildPlan({ surfaceId: 'tuner' });
+    const open = plan.steps.find((step) => step.label === 'Open the live tuner input')!;
+    const read = plan.steps.find((step) => step.label === 'Read the live tuner input')!;
+    const stop = plan.steps.find((step) => step.label === 'Stop the live tuner input')!;
+
+    tunerLive.start.mockImplementation(async () => {
+      tunerLive.listening.set(true);
+    });
+    const opened = await service.runStep(open);
+    expect(opened.ok).toBe(true);
+    expect(tunerLive.start).toHaveBeenCalled();
+    expect(opened.message).toContain('USB Interface');
+
+    tunerLive.reading.set({ note: 'A', octave: 4, cents: 2, frequency: 440.5, midi: 69, inTune: true });
+    const readResult = await service.runStep(read);
+    expect(readResult.ok).toBe(true);
+    expect(readResult.message).toContain('A4');
+    expect(readResult.message).toContain('in tune');
+
+    const stopped = await service.runStep(stop);
+    expect(stopped.ok).toBe(true);
+    expect(tunerLive.stop).toHaveBeenCalled();
+    expect(stopped.message).toContain('stopped');
   });
 
   it('deletes the selected track through the undoable command and restores it through history', async () => {

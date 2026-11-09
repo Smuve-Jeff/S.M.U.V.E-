@@ -17,6 +17,13 @@ import { HapticService } from "../../../services/haptic.service";
 import { SnackbarService } from "../../../services/snackbar.service";
 import { StudioAiDirectorService } from "../../studio-ai-director.service";
 import { StudioOrchestrationService } from "../../../services/studio-orchestration.service";
+import { readProjectFile } from "../../project-archive.util";
+
+jest.mock("../../project-archive.util", () => ({
+  readProjectFile: jest.fn(),
+}));
+
+const readProjectFileMock = readProjectFile as jest.Mock;
 
 describe("AiAssistantComponent voice communication", () => {
   let recognition: any;
@@ -24,6 +31,7 @@ describe("AiAssistantComponent voice communication", () => {
   let profileService: any;
   let orchestration: any;
   let ai: any;
+  let director: any;
 
   beforeEach(async () => {
     recognition = {
@@ -107,7 +115,7 @@ describe("AiAssistantComponent voice communication", () => {
         { provide: Router, useValue: { navigate: jest.fn(() => Promise.resolve(true)) } },
         {
           provide: StudioAiDirectorService,
-          useValue: {
+          useValue: (director = {
             buildPlan: jest.fn(() => ({
               surfaceId: "arrangement",
               title: "Arrangement Director Plan",
@@ -119,7 +127,23 @@ describe("AiAssistantComponent voice communication", () => {
             createStudioBrief: jest.fn().mockResolvedValue("Director brief."),
             runPlan: jest.fn().mockResolvedValue({ report: [], failed: 0 }),
             runStep: jest.fn().mockResolvedValue({ ok: true, message: "ok" }),
-          },
+            listCheckpoints: jest.fn(() => [
+              {
+                id: "cp-2",
+                label: "Before drums",
+                at: 2000,
+                isFullSnapshot: false,
+                hasBundle: true,
+                detail: "Full bundle · Test Project · 1 track",
+              },
+            ]),
+            restoreCheckpoint: jest.fn().mockResolvedValue("Restored checkpoint Before drums."),
+            exportCheckpointBundle: jest.fn(() => "Exported checkpoint Before drums."),
+            exportProjectBundle: jest.fn(() => "Exported project bundle."),
+            importProjectBundle: jest.fn().mockResolvedValue("Imported project bundle."),
+            canUndoDirectorAction: jest.fn(() => false),
+            canRedoDirectorAction: jest.fn(() => false),
+          }),
         },
       ],
     }).compileComponents();
@@ -241,5 +265,45 @@ describe("AiAssistantComponent voice communication", () => {
     );
     component.stopVoiceOutput();
     expect(synthesis.cancel).toHaveBeenCalled();
+  });
+
+  it("shows Director checkpoints and restores the selected one", async () => {
+    (window as any).confirm = jest.fn(() => true);
+    const fixture = TestBed.createComponent(AiAssistantComponent);
+    const component = fixture.componentInstance;
+    expect(component.directorCheckpoints()).toHaveLength(1);
+    expect(component.directorCheckpoints()[0].label).toBe("Before drums");
+
+    await component.restoreCheckpointById("cp-2", "Before drums");
+    expect(director.restoreCheckpoint).toHaveBeenCalledWith("cp-2");
+    expect(component.directorStatus()).toContain("Restored checkpoint");
+  });
+
+  it("exports a selected checkpoint bundle and the open project bundle", () => {
+    const fixture = TestBed.createComponent(AiAssistantComponent);
+    const component = fixture.componentInstance;
+
+    component.exportCheckpointBundle("cp-2", "Before drums");
+    expect(director.exportCheckpointBundle).toHaveBeenCalledWith("cp-2");
+
+    component.exportCurrentProjectBundle();
+    expect(director.exportProjectBundle).toHaveBeenCalled();
+  });
+
+  it("imports a selected .smuve file through the Director", async () => {
+    const file = new File(["bundle"], "set.smuve");
+    readProjectFileMock.mockResolvedValue({
+      metadata: { id: "project-2", name: "Imported Set" },
+      tracks: [],
+    });
+    const fixture = TestBed.createComponent(AiAssistantComponent);
+    const component = fixture.componentInstance;
+    const input = document.createElement("input");
+    Object.defineProperty(input, "files", { value: [file] });
+
+    await component.onDirectorBundleFile({ target: input } as Event);
+    expect(readProjectFileMock).toHaveBeenCalledWith(file);
+    expect(director.importProjectBundle).toHaveBeenCalled();
+    expect(component.directorStatus()).toContain("Imported");
   });
 });

@@ -317,7 +317,15 @@
       </button>
       <button type="button" class="ai-director-secondary" (click)="restoreCheckpointDirectorAction()" [disabled]="directorBusy()">
         <span class="material-symbols-outlined">history</span>
-        Restore checkpoint
+        Restore latest checkpoint
+      </button>
+      <button type="button" class="ai-director-secondary" (click)="exportCurrentProjectBundle()" [disabled]="directorBusy()">
+        <span class="material-symbols-outlined">download</span>
+        Export project bundle
+      </button>
+      <button type="button" class="ai-director-secondary" (click)="directorBundleInput.click()" [disabled]="directorBusy()">
+        <span class="material-symbols-outlined">upload</span>
+        Import bundle
       </button>
       <button type="button" class="ai-director-secondary ai-director-danger" (click)="deleteSelectedDirectorTrack()" [disabled]="directorBusy() || !musicManager.selectedTrack()">
         <span class="material-symbols-outlined">delete_forever</span>
@@ -327,6 +335,46 @@
     <p *ngIf="directorStatus()" class="ai-director-status" role="status" aria-live="polite">
       {{ directorStatus() }}
     </p>
+    <section class="ai-director-checkpoints" aria-label="Session checkpoints">
+      <header class="ai-director-checkpoints-head">
+        <h3>Checkpoints</h3>
+        <span *ngIf="directorCheckpoints().length" class="ai-director-checkpoints-count">
+          {{ directorCheckpoints().length }} on this branch
+        </span>
+      </header>
+      <p *ngIf="!directorCheckpoints().length" class="ai-director-empty">
+        No session checkpoints yet. Saves record checkpoints automatically; pick any one below to restore or export it as a bundle.
+      </p>
+      <ol *ngIf="directorCheckpoints().length" class="ai-director-checkpoint-list">
+        <li *ngFor="let checkpoint of directorCheckpoints()" class="ai-director-checkpoint">
+          <div class="ai-director-checkpoint-copy">
+            <p class="ai-director-checkpoint-label">
+              {{ checkpoint.label }}
+              <span *ngIf="checkpoint.isFullSnapshot" class="ai-director-badge ai-director-live">FULL</span>
+            </p>
+            <p class="ai-director-checkpoint-detail">
+              {{ checkpoint.detail }} · {{ checkpoint.at | date: "medium" }}
+            </p>
+          </div>
+          <button type="button" class="ai-director-run" (click)="restoreCheckpointById(checkpoint.id, checkpoint.label)" [disabled]="directorBusy()" [attr.aria-label]="'Restore checkpoint ' + checkpoint.label">
+            <span class="material-symbols-outlined">history</span>
+            Restore
+          </button>
+          <button type="button" class="ai-director-open" (click)="exportCheckpointBundle(checkpoint.id, checkpoint.label)" [disabled]="directorBusy() || !checkpoint.hasBundle" [attr.aria-label]="'Export checkpoint ' + checkpoint.label + ' as a bundle'">
+            <span class="material-symbols-outlined">download</span>
+            Bundle
+          </button>
+        </li>
+      </ol>
+      <input
+        #directorBundleInput
+        type="file"
+        accept=".smuve,.zip,.json,application/json,application/zip"
+        hidden
+        (change)="onDirectorBundleFile($event)"
+        aria-label="Import a S.M.U.V.E. project bundle"
+      />
+    </section>
     <article *ngIf="directorPlan() as plan" class="ai-director-plan">
       <header class="ai-director-head">
         <div>
