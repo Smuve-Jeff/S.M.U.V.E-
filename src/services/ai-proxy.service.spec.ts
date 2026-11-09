@@ -145,3 +145,235 @@ describe("analyzePrompt without a provider key", () => {
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 });
+
+
+describe("normalizeImageSource", () => {
+  it("passes hosted URLs and data URLs through untouched", () => {
+    const { normalizeImageSource } = require("./ai-proxy.service");
+    expect(normalizeImageSource("https://cdn.example/frame.png")).toBe(
+      "https://cdn.example/frame.png"
+    );
+    expect(normalizeImageSource("data:image/png;base64,AAA")).toBe(
+      "data:image/png;base64,AAA"
+    );
+  });
+
+  it("wraps bare base64 with the caller's MIME type", () => {
+    const { normalizeImageSource } = require("./ai-proxy.service");
+    expect(normalizeImageSource("AAA", "image/webp")).toBe(
+      "data:image/webp;base64,AAA"
+    );
+    expect(normalizeImageSource("AAA")).toBe("data:image/jpeg;base64,AAA");
+  });
+});
+
+describe("analyzeFrame without a provider key", () => {
+  const originalKey = process.env.GEMINI_API_KEY;
+
+  afterEach(() => {
+    if (originalKey === undefined) delete process.env.GEMINI_API_KEY;
+    else process.env.GEMINI_API_KEY = originalKey;
+    jest.restoreAllMocks();
+  });
+
+  it("refuses instead of guessing about an unviewed frame", async () => {
+    delete process.env.GEMINI_API_KEY;
+    const fetchSpy = jest.spyOn(globalThis, "fetch");
+    jest.resetModules();
+
+    const proxy = await import("./ai-proxy.service");
+    await expect(
+      proxy.analyzeFrame({
+        image: "data:image/jpeg;base64,AAA",
+        mimeType: "image/jpeg",
+        question: "what is in this frame?",
+      })
+    ).rejects.toBeInstanceOf(proxy.AiProviderUnavailableError);
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+});
+
+describe("analyzeFrame validation", () => {
+  const originalKey = process.env.GEMINI_API_KEY;
+
+  afterEach(() => {
+    if (originalKey === undefined) delete process.env.GEMINI_API_KEY;
+    else process.env.GEMINI_API_KEY = originalKey;
+    jest.restoreAllMocks();
+  });
+
+  it("rejects an unsupported frame format before any provider call", async () => {
+    process.env.GEMINI_API_KEY = "test-gemini-key";
+    jest.resetModules();
+    const fetchSpy = jest.spyOn(globalThis, "fetch");
+
+    const proxy = await import("./ai-proxy.service");
+    await expect(
+      proxy.analyzeFrame({
+        image: "data:video/mp4;base64,AAA",
+        mimeType: "video/mp4",
+        question: "what is in this frame?",
+      })
+    ).rejects.toMatchObject({ statusCode: 400 });
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+});
+
+describe("fal media endpoints (Photo Studio + shot video)", () => {
+  const originalKey = process.env.FAL_KEY;
+
+  afterEach(() => {
+    if (originalKey === undefined) delete process.env.FAL_KEY;
+    else process.env.FAL_KEY = originalKey;
+    jest.restoreAllMocks();
+  });
+
+  const loadProxy = async (response: unknown) => {
+    process.env.FAL_KEY = "test-fal-key";
+    jest.resetModules();
+    const fetchSpy = jest.spyOn(globalThis, "fetch").mockResolvedValue(
+      response as never
+    );
+    const proxy = await import("./ai-proxy.service");
+    return { proxy, fetchSpy };
+  };
+
+  it("enhances a photo through Topaz and returns the hosted image", async () => {
+    const { proxy, fetchSpy } = await loadProxy({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        image: { url: "https://fal.example/enhanced.png" },
+      }),
+    });
+
+    const result = await proxy.enhancePhoto({
+      image: "data:image/png;base64,AAA",
+      upscaleFactor: 2,
+    });
+
+    expect(result).toEqual({
+      type: "image",
+      url: "https://fal.example/enhanced.png",
+    });
+    expect(fetchSpy).toHaveBeenCalledWith(
+      "https://fal.run/fal-ai/topaz/upscale/image",
+      expect.objectContaining({
+        method: "POST",
+        headers: expect.objectContaining({
+          Authorization: "Key test-fal-key",
+        }),
+        body: JSON.stringify({
+          image_url: "data:image/png;base64,AAA",
+          upscale_factor: 2,
+          output_format: "png",
+        }),
+      })
+    );
+  });
+
+  it("clamps the upscale factor into the model's 1-4 range", async () => {
+    const { proxy, fetchSpy } = await loadProxy({
+      ok: true,
+      status: 200,
+      json: async () => ({ image: { url: "https://fal.example/x.png" } }),
+    });
+
+    await proxy.enhancePhoto({ image: "https://cdn.example/a.png", upscaleFactor: 99 });
+
+    const body = JSON.parse(String(fetchSpy.mock.calls[0]?.[1]?.body));
+    expect(body.upscale_factor).toBe(4);
+  });
+
+  it("cuts a background out with BiRefNet v2, format png", async () => {
+    const { proxy, fetchSpy } = await loadProxy({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        image: { url: "https://fal.example/cutout.png" },
+      }),
+    });
+
+    const result = await proxy.cutoutPhoto({
+      image: "https://cdn.example/take.png",
+    });
+
+    expect(result).toEqual({
+      type: "image",
+      url: "https://fal.example/cutout.png",
+    });
+    expect(fetchSpy).toHaveBeenCalledWith(
+      "https://fal.run/fal-ai/birefnet/v2",
+      expect.objectContaining({
+        body: JSON.stringify({
+          image_url: "https://cdn.example/take.png",
+          output_format: "png",
+        }),
+      })
+    );
+  });
+
+  it("animates one still with Pika, snapping the duration to 5 or 10", async () => {
+    const { proxy, fetchSpy } = await loadProxy({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        video: { url: "https://fal.example/shot.mp4" },
+      }),
+    });
+
+    const result = await proxy.generateShotVideo({
+      image: "https://fal.example/still.png",
+      prompt: "slow push in",
+      durationSeconds: 20,
+    });
+
+    expect(result).toEqual({
+      type: "video",
+      url: "https://fal.example/shot.mp4",
+      duration: 10,
+    });
+    expect(fetchSpy).toHaveBeenCalledWith(
+      "https://fal.run/fal-ai/pika/v2.2/image-to-video",
+      expect.objectContaining({
+        body: JSON.stringify({
+          image_url: "https://fal.example/still.png",
+          prompt: "slow push in",
+          duration: 10,
+        }),
+      })
+    );
+  });
+
+  it("maps a provider rate limit to a retryable 429, not a dead link", async () => {
+    const { proxy } = await loadProxy({ ok: false, status: 429 });
+
+    await expect(
+      proxy.cutoutPhoto({ image: "https://cdn.example/take.png" })
+    ).rejects.toMatchObject({ statusCode: 429 });
+  });
+
+  it("throws a 502 when the provider answers with no media", async () => {
+    const { proxy } = await loadProxy({
+      ok: true,
+      status: 200,
+      json: async () => ({}),
+    });
+
+    await expect(
+      proxy.cutoutPhoto({ image: "https://cdn.example/take.png" })
+    ).rejects.toMatchObject({ statusCode: 502 });
+  });
+
+  it("is unavailable without FAL_KEY and never calls the provider", async () => {
+    delete process.env.FAL_KEY;
+    const fetchSpy = jest.spyOn(globalThis, "fetch");
+    jest.resetModules();
+
+    const proxy = await import("./ai-proxy.service");
+    await expect(
+      proxy.enhancePhoto({ image: "https://cdn.example/a.png" })
+    ).rejects.toBeInstanceOf(proxy.AiProviderUnavailableError);
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+});

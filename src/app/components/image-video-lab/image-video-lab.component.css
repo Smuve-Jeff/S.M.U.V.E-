@@ -400,6 +400,37 @@ canvas {
   color: rgba(251, 191, 36, 0.9);
 }
 
+/* Director v2 storyboard controls: CONCEPT styles the shot, ANIMATE moves it. */
+.director-plan-shot-actions {
+  grid-column: 2;
+  display: flex;
+  gap: 0.3rem;
+}
+
+.director-plan-shot-actions button {
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  border-radius: 999px;
+  background: transparent;
+  color: #10b981;
+  padding: 0.2rem 0.55rem;
+  font-size: 0.5rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.director-plan-shot-actions button:disabled {
+  opacity: 0.4;
+}
+
+.director-plan-shot-still {
+  grid-column: 2;
+  width: 100%;
+  max-width: 10rem;
+  border-radius: 0.4rem;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+}
+
 .director-plan-meta,
 .command-console-label {
   color: #10b981;

@@ -51,6 +51,12 @@ import type { UpgradeRecommendation } from '../types/ai.types';
 
 export type { UpgradeRecommendation } from '../types/ai.types';
 
+/**
+ * Budget for one image-to-video render. A 1080p shot can take minutes on
+ * the provider; the default ask timeout would kill every real render.
+ */
+const SHOT_VIDEO_REQUEST_TIMEOUT_MS = 300_000;
+
 @Injectable({
   providedIn: 'root',
 })
@@ -1071,6 +1077,117 @@ Remember: sharpen the artist's decisions, sign the work with a GOD's signature, 
   }
 
   async generateImage(prompt: string): Promise<string> {
+    const response = await this.postAi<{ type: 'image'; url: string }>(
+      'concept-art',
+      { prompt },
+      {
+        timeoutMessage:
+          'The concept-art provider took too long to answer. Resend the frame request.',
+        fallbackMessage: 'AI image generation is unavailable.',
+      }
+    );
+    if (!response?.url) {
+      throw new Error('AI image provider returned no concept frame.');
+    }
+    return response.url;
+  }
+
+  /**
+   * Visual grounding: ask the director about the frame on screen. The frame
+   * travels as a data URL (a canvas grab has no hosted URL); the answer is
+   * the provider's words about what is actually visible.
+   */
+  async analyzeFrame(imageDataUrl: string, question: string): Promise<string> {
+    const response = await this.postAi<{ text?: string }>(
+      'vision',
+      { image: imageDataUrl, mimeType: 'image/jpeg', question },
+      {
+        timeoutMessage:
+          'The vision provider took too long to answer. Resend the question.',
+        fallbackMessage: 'AI vision is unavailable.',
+      }
+    );
+    if (!response?.text) {
+      throw new Error('AI vision returned no answer about the frame.');
+    }
+    return response.text;
+  }
+
+  /** Photo Studio enhancement: upscale + detail recovery of one photo. */
+  async enhancePhoto(imageSource: string, upscaleFactor = 2): Promise<string> {
+    const response = await this.postAi<{ type: 'image'; url: string }>(
+      'photo/enhance',
+      { image: imageSource, upscaleFactor },
+      {
+        timeoutMessage:
+          'The photo provider took too long to answer. Resend the photo.',
+        fallbackMessage: 'AI photo tools are unavailable.',
+      }
+    );
+    if (!response?.url) {
+      throw new Error('AI photo provider returned no enhanced image.');
+    }
+    return response.url;
+  }
+
+  /** Photo Studio cutout: AI background removal, transparency preserved. */
+  async cutoutPhoto(imageSource: string): Promise<string> {
+    const response = await this.postAi<{ type: 'image'; url: string }>(
+      'photo/cutout',
+      { image: imageSource },
+      {
+        timeoutMessage:
+          'The photo provider took too long to answer. Resend the photo.',
+        fallbackMessage: 'AI photo tools are unavailable.',
+      }
+    );
+    if (!response?.url) {
+      throw new Error('AI photo provider returned no cutout.');
+    }
+    return response.url;
+  }
+
+  /**
+   * Director v2 image-to-video: animate one still frame. Rendering can run
+   * well past the default ask timeout, so the request gets its own budget.
+   */
+  async generateShotVideo(
+    imageSource: string,
+    prompt: string,
+    durationSeconds = 5
+  ): Promise<{ url: string; duration: number }> {
+    const response = await this.postAi<
+      { type: 'video'; url: string; duration?: number }
+    >(
+      'shot-video',
+      { image: imageSource, prompt, durationSeconds },
+      {
+        timeoutMs: SHOT_VIDEO_REQUEST_TIMEOUT_MS,
+        timeoutMessage:
+          'The video provider took too long to answer. Resend the shot.',
+        fallbackMessage: 'AI video generation is unavailable.',
+      }
+    );
+    if (!response?.url) {
+      throw new Error('AI video provider returned no video.');
+    }
+    return { url: response.url, duration: response.duration ?? durationSeconds };
+  }
+
+  /**
+   * Shared plumbing for the AI media endpoints: guest lock, API-token auth,
+   * a bounded wait, and the backend's own words on failure. Media calls
+   * differ only in the surface they call and how long they may take.
+   */
+  private async postAi<T>(
+    path: string,
+    body: Record<string, unknown>,
+    options: {
+      timeoutMs?: number;
+      timeoutMessage: string;
+      fallbackMessage: string;
+    }
+  ): Promise<T> {
     if (!this.aiAccess()) {
       throw new Error(this.aiLockNotice);
     }
@@ -1079,28 +1196,24 @@ Remember: sharpen the artist's decisions, sign the work with a GOD's signature, 
       token && this.tokenService.isApiToken()
         ? { Authorization: 'Bearer ' + token }
         : {};
-    const response = await firstValueFrom(
-      this.http.post<{ type: 'image'; url: string }>(
-        `${APP_SECURITY_CONFIG.auth_api_url}/ai/concept-art`,
-        { prompt },
+    return firstValueFrom(
+      this.http.post<T>(
+        `${APP_SECURITY_CONFIG.auth_api_url}/ai/${path}`,
+        body,
         { headers }
       ).pipe(
-        timeout(AI_REQUEST_TIMEOUT_MS),
+        timeout(options.timeoutMs ?? AI_REQUEST_TIMEOUT_MS),
         catchError((error: any) => {
           const message =
             error?.name === 'TimeoutError'
-              ? 'The concept-art provider took too long to answer. Resend the frame request.'
+              ? options.timeoutMessage
               : error?.error?.error ||
                 error?.message ||
-                'AI image generation is unavailable.';
+                options.fallbackMessage;
           throw new Error(String(message));
         })
       )
     );
-    if (!response?.url) {
-      throw new Error('AI image provider returned no concept frame.');
-    }
-    return response.url;
   }
 
   // ── Session musician transport ──────────────────────────────────────

@@ -266,3 +266,222 @@ export const generateConceptArt = async (
   if (!url) throw new AppError(502, "AI image provider returned no image");
   return { type: "image", url };
 };
+
+// ── Visual grounding + Photo Studio + image-to-video ──────────────────
+//
+// S.M.U.V.E. could talk about a frame it had never seen. These three
+// additions give the director eyes (Gemini Vision on the already-wired
+// GEMINI_API_KEY) and hands (fal.ai photo enhancement, AI cutout and
+// image-to-video on the already-wired FAL_KEY). No new provider is
+// introduced, so an installation that has one key or the other degrades
+// feature-by-feature instead of failing as a whole.
+
+/** fal.ai endpoints, verified against fal.ai's published schemas. */
+const FAL_TOPAZ_UPSCALE_IMAGE = "https://fal.run/fal-ai/topaz/upscale/image";
+const FAL_BIREFNET_V2 = "https://fal.run/fal-ai/birefnet/v2";
+const FAL_PIKA_V2_2_IMAGE_TO_VIDEO =
+  "https://fal.run/fal-ai/pika/v2.2/image-to-video";
+
+/**
+ * Largest image source a caller may hand the media endpoints, in characters.
+ * A device-local photo travels as a data URL, and a 4 MP JPEG is already
+ * several megabytes of base64 — the cap is generous but finite so one
+ * request cannot carry the whole upload budget.
+ */
+export const MAX_IMAGE_SOURCE_LENGTH = 8_000_000;
+
+/** MIME types Gemini Vision accepts for an inline frame. */
+export const SUPPORTED_FRAME_MIME_TYPES = [
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/gif",
+] as const;
+
+/** Durations the chosen image-to-video model renders, in seconds. */
+export const SHOT_VIDEO_DURATIONS = [5, 10] as const;
+
+/**
+ * Normalise a caller-supplied image into something fal.ai can fetch: an
+ * http(s) URL passes through, a data URL passes through, and bare base64
+ * (what a canvas grab produces after stripping its prefix) is re-wrapped
+ * with the caller's MIME type.
+ */
+export function normalizeImageSource(
+  source: string,
+  mimeType = "image/jpeg",
+): string {
+  const value = source.trim();
+  if (/^https?:\/\//i.test(value) || value.startsWith("data:")) return value;
+  return `data:${mimeType};base64,${value}`;
+}
+
+/** Strip a data-URL prefix down to the raw base64 Gemini Vision expects. */
+function rawBase64(image: string): string {
+  const comma = image.indexOf(",");
+  return image.startsWith("data:") && comma >= 0 ? image.slice(comma + 1) : image;
+}
+
+/**
+ * One fal.run call: FAL_KEY in the header, the provider's failure mapped
+ * through the shared taxonomy so a 429 stays a 429 and a slow provider a
+ * 504, and an empty payload a 502 rather than a crash downstream.
+ */
+async function falRun(
+  endpoint: string,
+  input: Record<string, unknown>,
+): Promise<Record<string, unknown>> {
+  if (!FAL_KEY) throw new AiProviderUnavailableError();
+  const response = await fetch(endpoint, {
+    method: "POST",
+    headers: {
+      Authorization: `Key ${FAL_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(input),
+  });
+  if (!response.ok) {
+    throw providerFailure({ status: response.status });
+  }
+  return (await response.json()) as Record<string, unknown>;
+}
+
+/** The URL a fal media payload carries, or undefined when it carries none. */
+function falMediaUrl(payload: Record<string, unknown>): string | undefined {
+  const media = payload.image ?? payload.video;
+  if (media && typeof media === "object") {
+    const url = (media as { url?: unknown }).url;
+    return typeof url === "string" && url ? url : undefined;
+  }
+  return undefined;
+}
+
+/**
+ * Eyes for S.M.U.V.E: describe or answer questions about one frame.
+ *
+ * Unlike `analyzePrompt` this never answers offline — a text answer about
+ * an unviewed image would be a fabrication, so an unconfigured key is a
+ * 503 the client can name honestly.
+ */
+export const analyzeFrame = async (request: {
+  image: string;
+  mimeType: string;
+  question: string;
+}): Promise<{ text: string; meta?: AiCallMeta }> => {
+  if (!GEMINI_API_KEY) {
+    throw new AiProviderUnavailableError("AI vision is not configured");
+  }
+  const { image, mimeType, question } = request;
+  if (
+    !(SUPPORTED_FRAME_MIME_TYPES as readonly string[]).includes(mimeType)
+  ) {
+    throw new AppError(400, "Unsupported frame format");
+  }
+  if (!image.trim() || !question.trim()) {
+    throw new AppError(400, "image and question are required");
+  }
+
+  const startedAt = Date.now();
+  try {
+    const { GoogleGenAI } = await import("@google/genai");
+    const ai = new GoogleGenAI({
+      apiKey: GEMINI_API_KEY,
+      httpOptions: { timeout: 25_000 },
+    });
+    const { value: result, attempts } = await withProviderRetry(() =>
+      ai.models.generateContent({
+        model: GEMINI_MODEL,
+        contents: [
+          {
+            parts: [
+              { inlineData: { mimeType, data: rawBase64(image) } },
+              { text: question },
+            ],
+          },
+        ],
+        config: {
+          systemInstruction:
+            "You are S.M.U.V.E, a film and photography director looking at one frame. " +
+            "Answer only from what is visible in the frame; when something is not " +
+            "visible, say so instead of guessing. Be concrete: name the subject, " +
+            "lighting, composition and anything a director would stage differently.",
+          maxOutputTokens: 1024,
+        },
+      }),
+    );
+    return {
+      text: result.text || FALLBACK_TEXT,
+      meta: {
+        model: GEMINI_MODEL,
+        attempts,
+        latencyMs: Math.max(0, Date.now() - startedAt),
+      },
+    };
+  } catch (error) {
+    console.error("AI vision request failed"); // Never log prompts, media or credentials.
+    throw providerFailure(error);
+  }
+};
+
+/**
+ * Photo Studio enhancement: Topaz upscale + face/detail recovery.
+ * `upscaleFactor` is clamped to the model's 1–4 range.
+ */
+export const enhancePhoto = async (request: {
+  image: string;
+  mimeType?: string;
+  upscaleFactor?: number;
+}): Promise<{ type: "image"; url: string }> => {
+  const factor = Number(request.upscaleFactor);
+  const payload = await falRun(FAL_TOPAZ_UPSCALE_IMAGE, {
+    image_url: normalizeImageSource(request.image, request.mimeType),
+    upscale_factor: Number.isFinite(factor)
+      ? Math.min(4, Math.max(1, Math.round(factor * 10) / 10))
+      : 2,
+    output_format: "png",
+  });
+  const url = falMediaUrl(payload);
+  if (!url) throw new AppError(502, "AI photo provider returned no image");
+  return { type: "image", url };
+};
+
+/**
+ * Photo Studio cutout: BiRefNet v2 removes the background and returns a
+ * transparency-preserving PNG — the AI replacement for the corner-key.
+ */
+export const cutoutPhoto = async (request: {
+  image: string;
+  mimeType?: string;
+}): Promise<{ type: "image"; url: string }> => {
+  const payload = await falRun(FAL_BIREFNET_V2, {
+    image_url: normalizeImageSource(request.image, request.mimeType),
+    output_format: "png",
+  });
+  const url = falMediaUrl(payload);
+  if (!url) throw new AppError(502, "AI photo provider returned no cutout");
+  return { type: "image", url };
+};
+
+/**
+ * Director v2 image-to-video: Pika 2.2 animates one still frame.
+ * Duration snaps to a length the model renders (5 or 10 seconds).
+ */
+export const generateShotVideo = async (request: {
+  image: string;
+  mimeType?: string;
+  prompt: string;
+  durationSeconds?: number;
+}): Promise<{ type: "video"; url: string; duration: number }> => {
+  const prompt = request.prompt.trim();
+  if (!prompt) throw new AppError(400, "prompt is required");
+  const duration =
+    Number(request.durationSeconds) > 5 ? 10 : 5;
+  const payload = await falRun(FAL_PIKA_V2_2_IMAGE_TO_VIDEO, {
+    image_url: normalizeImageSource(request.image, request.mimeType),
+    prompt,
+    duration,
+  });
+  const url = falMediaUrl(payload);
+  if (!url) throw new AppError(502, "AI video provider returned no video");
+  return { type: "video", url, duration };
+};

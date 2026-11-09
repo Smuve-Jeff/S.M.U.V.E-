@@ -6,6 +6,8 @@ import { LoggingService } from './logging.service';
 describe('CinemaDirectorService', () => {
   let ai: {
     getAIResponse: jest.Mock;
+    generateImage: jest.Mock;
+    generateShotVideo: jest.Mock;
     isFailureNotice: jest.Mock;
     lastAiCall: jest.Mock;
   };
@@ -13,6 +15,10 @@ describe('CinemaDirectorService', () => {
   const createService = (response = '', failureNotice = false) => {
     ai = {
       getAIResponse: jest.fn().mockResolvedValue(response),
+      generateImage: jest.fn().mockResolvedValue('https://cdn.example.test/still.png'),
+      generateShotVideo: jest
+        .fn()
+        .mockResolvedValue({ url: 'https://cdn.example.test/shot.mp4', duration: 5 }),
       isFailureNotice: jest.fn().mockReturnValue(failureNotice),
       lastAiCall: jest.fn(() => null),
     };
@@ -222,6 +228,105 @@ describe('CinemaDirectorService', () => {
     const end = plan.shots.at(-1)!.startTime + plan.shots.at(-1)!.durationSeconds;
 
     expect(end).toBeLessThanOrEqual(request.durationSeconds);
+  });
+
+  it('styles one planned shot with a concept still', async () => {
+    const service = createService(
+      JSON.stringify({
+        title: 'Night Drive',
+        logline: 'A headlight-lit performance cut.',
+        shots: [{ title: 'Dashboard', description: 'Wide', size: 'wide', bars: 4 }],
+      })
+    );
+    const plan = await service.generateShotPlan(request);
+    const shot = plan.shots[0];
+
+    const url = await service.generateShotConcept(shot);
+
+    expect(url).toBe('https://cdn.example.test/still.png');
+    expect(ai.generateImage).toHaveBeenCalledWith(
+      expect.stringContaining('Dashboard')
+    );
+    expect(ai.generateImage).toHaveBeenCalledWith(expect.stringContaining('Wide'));
+    expect(service.plan()?.shots[0].conceptImageUrl).toBe(
+      'https://cdn.example.test/still.png'
+    );
+    expect(service.shotMediaBusy()).toBeNull();
+  });
+
+  it('persists a styled shot into the stored plan', async () => {
+    const service = createService(
+      JSON.stringify({
+        title: 'Night Drive',
+        logline: 'A headlight-lit performance cut.',
+        shots: [{ title: 'Dashboard', description: 'Wide', size: 'wide', bars: 4 }],
+      })
+    );
+    const plan = await service.generateShotPlan(request);
+    await service.generateShotConcept(plan.shots[0]);
+
+    const stored = JSON.parse(
+      localStorage.getItem('smuve_cinema_director_plan') ?? ''
+    );
+    expect(stored.plan.shots[0].conceptImageUrl).toBe(
+      'https://cdn.example.test/still.png'
+    );
+  });
+
+  it('animates a styled shot into motion', async () => {
+    const service = createService(
+      JSON.stringify({
+        title: 'Night Drive',
+        logline: 'A headlight-lit performance cut.',
+        shots: [{ title: 'Dashboard', description: 'Wide', size: 'wide', bars: 4 }],
+      })
+    );
+    const plan = await service.generateShotPlan(request);
+    const shot = plan.shots[0];
+    await service.generateShotConcept(shot);
+
+    const result = await service.animateShot(shot);
+
+    expect(result.url).toBe('https://cdn.example.test/shot.mp4');
+    expect(ai.generateShotVideo).toHaveBeenCalledWith(
+      'https://cdn.example.test/still.png',
+      expect.stringContaining('Dashboard'),
+      shot.durationSeconds
+    );
+    expect(service.plan()?.shots[0].videoUrl).toBe(
+      'https://cdn.example.test/shot.mp4'
+    );
+  });
+
+  it('refuses to animate a shot that has no still', async () => {
+    const service = createService(
+      JSON.stringify({
+        title: 'Night Drive',
+        logline: 'A headlight-lit performance cut.',
+        shots: [{ title: 'Dashboard', description: 'Wide', size: 'wide', bars: 4 }],
+      })
+    );
+    const plan = await service.generateShotPlan(request);
+
+    await expect(service.animateShot(plan.shots[0])).rejects.toThrow(/still/);
+    expect(ai.generateShotVideo).not.toHaveBeenCalled();
+  });
+
+  it('streams one shot at a time instead of the whole list', async () => {
+    const service = createService(
+      JSON.stringify({
+        title: 'Night Drive',
+        logline: 'A headlight-lit performance cut.',
+        shots: [{ title: 'Dashboard', description: 'Wide', size: 'wide', bars: 4 }],
+      })
+    );
+    const plan = await service.generateShotPlan(request);
+    service.shotMediaBusy.set(1);
+
+    await expect(service.generateShotConcept(plan.shots[0])).rejects.toThrow(
+      /already/
+    );
+    expect(ai.generateImage).not.toHaveBeenCalled();
   });
 
   it('uses safe defaults for invalid tempo and keeps a sub-frame runtime bounded', () => {

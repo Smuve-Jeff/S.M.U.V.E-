@@ -1373,6 +1373,48 @@
                     <span class="director-plan-shot-state">
                       {{ row.staged ? 'ON LANE' : 'NOT STAGED' }}
                     </span>
+                    <span class="director-plan-shot-actions">
+                      <button
+                        type="button"
+                        (click)="generateShotConcept(row.shot)"
+                        [disabled]="director.shotMediaBusy() !== null"
+                        title="Generate a concept still for this shot"
+                      >
+                        {{
+                          director.shotMediaBusy() === row.shot.index
+                            ? 'STYLING…'
+                            : 'CONCEPT'
+                        }}
+                      </button>
+                      <button
+                        type="button"
+                        (click)="animateShot(row.shot)"
+                        [disabled]="
+                          !row.shot.conceptImageUrl ||
+                          director.shotMediaBusy() !== null
+                        "
+                        title="Animate this shot from its concept still"
+                      >
+                        ANIMATE
+                      </button>
+                    </span>
+                    @if (row.shot.conceptImageUrl; as still) {
+                      <img
+                        class="director-plan-shot-still"
+                        [src]="still"
+                        [alt]="'Concept still for shot ' + row.shot.index"
+                      />
+                    }
+                    @if (row.shot.videoUrl; as animated) {
+                      <video
+                        class="director-plan-shot-still"
+                        [src]="animated"
+                        muted
+                        loop
+                        playsinline
+                        autoplay
+                      ></video>
+                    }
                   </li>
                 }
               </ol>
@@ -1644,6 +1686,140 @@
                   Retry This Frame
                 </button>
               </div>
+            }
+          </div>
+
+          <!--
+            Visual grounding: grab the frame on the monitor and ask the
+            director about it. The answer names a frame that exists —
+            an unviewed frame gets no opinion at all.
+          -->
+          <div class="rounded-xl border border-border bg-surface p-3 grid gap-2">
+            <span
+              class="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-text-dim"
+            >
+              Vision — Ask About This Frame
+            </span>
+            <label class="grid gap-1">
+              <span class="text-[9px] uppercase text-text-dim">Question</span>
+              <input
+                type="text"
+                aria-label="Vision question about the current frame"
+                placeholder="What should the director stage differently?"
+                [ngModel]="frameAnalysisQuestion()"
+                (ngModelChange)="frameAnalysisQuestion.set($event)"
+                class="w-full rounded-lg bg-background border border-border px-3 py-2 text-[11px] font-bold text-text-main outline-none focus:border-brand-primary"
+              />
+            </label>
+            <button
+              type="button"
+              (click)="analyzeCurrentFrame()"
+              [disabled]="isAnalyzingFrame()"
+              class="rounded-lg border border-brand-primary/40 bg-surface px-2.5 py-1.5 text-[8px] font-black uppercase tracking-[0.16em] text-brand-primary hover:border-brand-primary transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {{ isAnalyzingFrame() ? 'ASKING…' : 'Ask the Director' }}
+            </button>
+            @if (lastFrameThumb(); as thumb) {
+              <figure class="m-0 grid gap-1">
+                <img
+                  [src]="thumb"
+                  alt="Frame the director was asked about"
+                  class="w-full rounded-lg border border-border"
+                />
+                <figcaption
+                  class="text-[8px] font-black uppercase tracking-[0.18em] text-text-dim"
+                >
+                  Frame asked about
+                </figcaption>
+              </figure>
+            }
+            @if (frameAnalysis(); as answer) {
+              <p
+                aria-live="polite"
+                class="text-[10px] font-bold text-text-main break-words"
+              >
+                {{ answer }}
+              </p>
+            }
+          </div>
+
+          <!--
+            Photo Studio: enhance or cut out one still, then place the
+            result on the overlay lane like a concept frame.
+          -->
+          <div class="rounded-xl border border-border bg-surface p-3 grid gap-2">
+            <span
+              class="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-text-dim"
+            >
+              Photo Studio
+            </span>
+            <div
+              class="h-16 rounded-lg border border-border border-dashed flex flex-col items-center justify-center gap-1 cursor-pointer relative"
+            >
+              <input
+                type="file"
+                accept="image/*"
+                aria-label="Load a photo for the Photo Studio"
+                (change)="onPhotoUpload($event)"
+                class="absolute inset-0 opacity-0 cursor-pointer"
+              />
+              <span class="material-symbols-outlined text-text-dim">photo</span>
+              <span class="text-[8px] font-black uppercase text-text-dim">
+                {{ photoSource() ? 'Replace photo' : 'Load a photo' }}
+              </span>
+            </div>
+            @if (photoSource(); as source) {
+              <img
+                [src]="source"
+                alt="Photo loaded for the Photo Studio"
+                class="w-full rounded-lg border border-border"
+              />
+              <div class="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  (click)="enhancePhoto()"
+                  [disabled]="photoBusy() !== null"
+                  class="rounded-lg border border-brand-primary/40 bg-surface px-2.5 py-1.5 text-[8px] font-black uppercase tracking-[0.16em] text-brand-primary hover:border-brand-primary transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {{ photoBusy() === 'enhance' ? 'ENHANCING…' : 'Enhance' }}
+                </button>
+                <button
+                  type="button"
+                  (click)="cutoutPhoto()"
+                  [disabled]="photoBusy() !== null"
+                  class="rounded-lg border border-brand-primary/40 bg-surface px-2.5 py-1.5 text-[8px] font-black uppercase tracking-[0.16em] text-brand-primary hover:border-brand-primary transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {{ photoBusy() === 'cutout' ? 'CUTTING…' : 'Cut out' }}
+                </button>
+              </div>
+            }
+            @if (enhancedPhotoUrl(); as enhanced) {
+              <img
+                [src]="enhanced"
+                alt="Enhanced photo"
+                class="w-full rounded-lg border border-border"
+              />
+              <button
+                type="button"
+                (click)="placePhoto(enhanced, 'Enhanced Photo')"
+                class="rounded-lg border border-brand-primary/40 bg-surface px-2.5 py-1.5 text-[8px] font-black uppercase tracking-[0.16em] text-brand-primary hover:border-brand-primary transition-all"
+              >
+                Place on lane
+              </button>
+            }
+            @if (cutoutPhotoUrl(); as cutout) {
+              <img
+                [src]="cutout"
+                alt="Cutout photo"
+                class="w-full rounded-lg border border-border"
+              />
+              <button
+                type="button"
+                (click)="placePhoto(cutout, 'Cutout Photo')"
+                class="rounded-lg border border-brand-primary/40 bg-surface px-2.5 py-1.5 text-[8px] font-black uppercase tracking-[0.16em] text-brand-primary hover:border-brand-primary transition-all"
+              >
+                Place on lane
+              </button>
             }
           </div>
 

@@ -568,6 +568,13 @@ describe('ImageVideoLabComponent', () => {
         { provide: LoggingService, useValue: { error: jest.fn(), warn: jest.fn() } },
         { provide: AiService, useValue: {
           generateImage: jest.fn(),
+          analyzeFrame: jest.fn().mockResolvedValue('Tighten the frame on the face.'),
+          enhancePhoto: jest.fn().mockResolvedValue('https://cdn.example.test/enhanced.png'),
+          cutoutPhoto: jest.fn().mockResolvedValue('https://cdn.example.test/cutout.png'),
+          generateShotVideo: jest.fn().mockResolvedValue({
+            url: 'https://cdn.example.test/shot.mp4',
+            duration: 5,
+          }),
           isFailureNotice: jest.fn(() => false),
           lastAiCall: jest.fn(() => null),
         } },
@@ -4710,6 +4717,183 @@ describe('ImageVideoLabComponent', () => {
       expect(golive).not.toHaveBeenCalled();
       expect(component.aiFeedback()).toContain('ALREADY ON AIR');
       golive.mockRestore();
+    });
+
+    it('asks the director about the frame on the monitor', async () => {
+      const { component } = await createComponent();
+      const ai = TestBed.inject(AiService) as unknown as {
+        analyzeFrame: jest.Mock;
+      };
+      const canvas = component.previewCanvas.nativeElement;
+      canvas.width = 1920;
+      canvas.toDataURL = () => 'data:image/jpeg;base64,GRAB';
+      component.frameAnalysisQuestion.set('What is wrong with this frame?');
+
+      await component.analyzeCurrentFrame();
+
+      expect(ai.analyzeFrame).toHaveBeenCalledWith(
+        'data:image/jpeg;base64,GRAB',
+        'What is wrong with this frame?'
+      );
+      expect(component.lastFrameThumb()).toBe('data:image/jpeg;base64,GRAB');
+      expect(component.frameAnalysis()).toBe('Tighten the frame on the face.');
+      expect(component.isAnalyzingFrame()).toBe(false);
+    });
+
+    it('declines to describe a frame that is not on the monitor yet', async () => {
+      const { component } = await createComponent();
+      const ai = TestBed.inject(AiService) as unknown as {
+        analyzeFrame: jest.Mock;
+      };
+      component.previewCanvas.nativeElement.width = 0;
+
+      await component.analyzeCurrentFrame();
+
+      expect(ai.analyzeFrame).not.toHaveBeenCalled();
+      expect(component.aiFeedback()).toContain('NO FRAME');
+    });
+
+    it('enhances a Photo Studio photo and places it on the overlay lane', async () => {
+      const { component, videoEngine: engine } = await createComponent();
+      const ai = TestBed.inject(AiService) as unknown as {
+        enhancePhoto: jest.Mock;
+      };
+      component.photoSource.set('data:image/png;base64,PHOTO');
+
+      await component.enhancePhoto();
+
+      expect(ai.enhancePhoto).toHaveBeenCalledWith('data:image/png;base64,PHOTO', 2);
+      expect(component.enhancedPhotoUrl()).toBe('https://cdn.example.test/enhanced.png');
+      expect(component.aiFeedback()).toContain('ENHANCED');
+
+      component.placePhoto('https://cdn.example.test/enhanced.png', 'Enhanced Photo');
+      const calls = (engine.addClip as jest.Mock).mock.calls;
+      const placed = calls[calls.length - 1];
+      expect(placed[0]).toBe('t2');
+      expect(placed[1]).toMatchObject({
+        name: 'Enhanced Photo',
+        url: 'https://cdn.example.test/enhanced.png',
+        type: 'image',
+        source: 'ai',
+      });
+    });
+
+    it('cuts a Photo Studio photo out with the AI background removal', async () => {
+      const { component } = await createComponent();
+      const ai = TestBed.inject(AiService) as unknown as {
+        cutoutPhoto: jest.Mock;
+      };
+      component.photoSource.set('data:image/png;base64,PHOTO');
+
+      await component.cutoutPhoto();
+
+      expect(ai.cutoutPhoto).toHaveBeenCalledWith('data:image/png;base64,PHOTO');
+      expect(component.cutoutPhotoUrl()).toBe('https://cdn.example.test/cutout.png');
+      expect(component.aiFeedback()).toContain('CUTOUT READY');
+    });
+
+    it('styles a planned shot and cuts the still to the lane', async () => {
+      const { component, videoEngine: engine } = await createComponent();
+      const ai = TestBed.inject(AiService) as unknown as {
+        generateImage: jest.Mock;
+      };
+      ai.generateImage.mockResolvedValue('https://cdn.example.test/still.png');
+      component.director.plan.set(stageablePlan());
+      visualsLane(engine).clips = [];
+      (engine.addClip as jest.Mock).mockClear();
+
+      await component.generateShotConcept(component.director.plan()!.shots[0]);
+
+      expect(component.director.plan()?.shots[0].conceptImageUrl).toBe(
+        'https://cdn.example.test/still.png'
+      );
+      expect(component.aiFeedback()).toContain('CONCEPT STYLED');
+      const placements = (engine.addClip as jest.Mock).mock.calls;
+      expect(placements).toHaveLength(1);
+      expect(placements[0][0]).toBe('t1');
+      expect(placements[0][1]).toMatchObject({
+        url: 'https://cdn.example.test/still.png',
+        type: 'image',
+        startTime: 0,
+        duration: 8,
+      });
+    });
+
+    it('retires the shot card when the still lands', async () => {
+      const { component, videoEngine: engine } = await createComponent();
+      const ai = TestBed.inject(AiService) as unknown as {
+        generateImage: jest.Mock;
+      };
+      ai.generateImage.mockResolvedValue('https://cdn.example.test/still.png');
+      component.director.plan.set(stageablePlan());
+      visualsLane(engine).clips = [
+        {
+          id: 'card-1',
+          name: '01 · Dashboard',
+          url: '',
+          startTime: 0,
+          duration: 8,
+          offset: 0,
+          trackId: 't1',
+          type: 'overlay',
+          source: 'ai',
+        },
+      ];
+      (engine.removeClip as jest.Mock).mockClear();
+      (engine.addClip as jest.Mock).mockClear();
+
+      await component.generateShotConcept(component.director.plan()!.shots[0]);
+
+      expect(engine.removeClip).toHaveBeenCalledWith('card-1');
+      const placement = (engine.addClip as jest.Mock).mock.calls[0]?.[1];
+      expect(placement.url).toBe('https://cdn.example.test/still.png');
+    });
+
+    it('animates a styled shot and cuts the video to the lane', async () => {
+      const { component, videoEngine: engine } = await createComponent();
+      const ai = TestBed.inject(AiService) as unknown as {
+        generateShotVideo: jest.Mock;
+      };
+      ai.generateShotVideo.mockResolvedValue({
+        url: 'https://cdn.example.test/shot.mp4',
+        duration: 5,
+      });
+      const plan = stageablePlan();
+      plan.shots[0] = {
+        ...plan.shots[0],
+        conceptImageUrl: 'https://cdn.example.test/still.png',
+      };
+      component.director.plan.set(plan);
+      visualsLane(engine).clips = [];
+      (engine.addClip as jest.Mock).mockClear();
+
+      await component.animateShot(plan.shots[0]);
+
+      expect(ai.generateShotVideo).toHaveBeenCalledWith(
+        'https://cdn.example.test/still.png',
+        expect.stringContaining('Dashboard'),
+        8
+      );
+      expect(component.director.plan()?.shots[0].videoUrl).toBe(
+        'https://cdn.example.test/shot.mp4'
+      );
+      expect(component.aiFeedback()).toContain('ANIMATED');
+      const placement = (engine.addClip as jest.Mock).mock.calls[0]?.[1];
+      expect(placement).toMatchObject({
+        type: 'video',
+        url: 'https://cdn.example.test/shot.mp4',
+        startTime: 0,
+        duration: 5,
+      });
+    });
+
+    it('explains that a shot must be styled before it can move', async () => {
+      const { component } = await createComponent();
+      component.director.plan.set(stageablePlan());
+
+      await component.animateShot(stageablePlan().shots[0]);
+
+      expect(component.aiFeedback()).toContain('STYLE THE SHOT FIRST');
     });
   });
 

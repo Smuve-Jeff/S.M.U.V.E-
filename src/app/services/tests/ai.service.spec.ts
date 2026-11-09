@@ -561,6 +561,107 @@ describe('AiService', () => {
     await expect(requestPromise).rejects.toThrow('Add FAL_KEY in the environment');
   });
 
+  it('should ask about a frame through the authenticated backend proxy', async () => {
+    const requestPromise = service.analyzeFrame(
+      'data:image/jpeg;base64,FRAME',
+      'What should the director stage differently?'
+    );
+
+    const req = httpMock.expectOne('http://localhost:4000/api/ai/vision');
+    expect(req.request.method).toBe('POST');
+    expect(req.request.body).toEqual({
+      image: 'data:image/jpeg;base64,FRAME',
+      mimeType: 'image/jpeg',
+      question: 'What should the director stage differently?',
+    });
+    req.flush({ text: 'Tighten the frame on the face.', meta: { model: 'gemini-2.5-flash' } });
+
+    await expect(requestPromise).resolves.toBe('Tighten the frame on the face.');
+  });
+
+  it('rejects vision responses without an answer', async () => {
+    const requestPromise = service.analyzeFrame('data:image/jpeg;base64,FRAME', 'What is this?');
+
+    const req = httpMock.expectOne('http://localhost:4000/api/ai/vision');
+    req.flush({});
+
+    await expect(requestPromise).rejects.toThrow('returned no answer');
+  });
+
+  it('should enhance a photo through the authenticated backend proxy', async () => {
+    const requestPromise = service.enhancePhoto('data:image/png;base64,PHOTO', 2);
+
+    const req = httpMock.expectOne('http://localhost:4000/api/ai/photo/enhance');
+    expect(req.request.method).toBe('POST');
+    expect(req.request.body).toEqual({ image: 'data:image/png;base64,PHOTO', upscaleFactor: 2 });
+    req.flush({ type: 'image', url: 'https://cdn.example.test/enhanced.png' });
+
+    await expect(requestPromise).resolves.toBe('https://cdn.example.test/enhanced.png');
+  });
+
+  it('should cut a photo out through the authenticated backend proxy', async () => {
+    const requestPromise = service.cutoutPhoto('data:image/png;base64,PHOTO');
+
+    const req = httpMock.expectOne('http://localhost:4000/api/ai/photo/cutout');
+    expect(req.request.method).toBe('POST');
+    expect(req.request.body).toEqual({ image: 'data:image/png;base64,PHOTO' });
+    req.flush({ type: 'image', url: 'https://cdn.example.test/cutout.png' });
+
+    await expect(requestPromise).resolves.toBe('https://cdn.example.test/cutout.png');
+  });
+
+  it('rejects photo responses without an image URL', async () => {
+    const requestPromise = service.cutoutPhoto('data:image/png;base64,PHOTO');
+
+    const req = httpMock.expectOne('http://localhost:4000/api/ai/photo/cutout');
+    req.flush({ type: 'image' });
+
+    await expect(requestPromise).rejects.toThrow('returned no cutout');
+  });
+
+  it('should animate a shot still through the authenticated backend proxy', async () => {
+    const requestPromise = service.generateShotVideo(
+      'https://cdn.example.test/still.png',
+      'slow push in as rain hits the glass',
+      5
+    );
+
+    const req = httpMock.expectOne('http://localhost:4000/api/ai/shot-video');
+    expect(req.request.method).toBe('POST');
+    expect(req.request.body).toEqual({
+      image: 'https://cdn.example.test/still.png',
+      prompt: 'slow push in as rain hits the glass',
+      durationSeconds: 5,
+    });
+    req.flush({ type: 'video', url: 'https://cdn.example.test/shot.mp4', duration: 10 });
+
+    await expect(requestPromise).resolves.toEqual({
+      url: 'https://cdn.example.test/shot.mp4',
+      duration: 10,
+    });
+  });
+
+  it('rejects shot-video responses without a video URL', async () => {
+    const requestPromise = service.generateShotVideo('https://cdn.example.test/still.png', 'slow push in');
+
+    const req = httpMock.expectOne('http://localhost:4000/api/ai/shot-video');
+    req.flush({ type: 'video' });
+
+    await expect(requestPromise).rejects.toThrow('returned no video');
+  });
+
+  it('surfaces the backend vision configuration message', async () => {
+    const requestPromise = service.analyzeFrame('data:image/jpeg;base64,FRAME', 'What is this?');
+
+    const req = httpMock.expectOne('http://localhost:4000/api/ai/vision');
+    req.flush(
+      { error: 'AI vision is not configured. Add GEMINI_API_KEY in the environment.' },
+      { status: 503, statusText: 'Service Unavailable' }
+    );
+
+    await expect(requestPromise).rejects.toThrow('Add GEMINI_API_KEY in the environment');
+  });
+
   it('should handle getAIResponse when backend fails', async () => {
     const requestPromise = service.getAIResponse('Analyze this');
     const req = httpMock.expectOne('http://localhost:4000/api/ai/analyze');

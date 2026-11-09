@@ -34,6 +34,10 @@ export interface ShotPlanShot {
   durationSeconds: number;
   /** Section or act this shot belongs to. */
   section: string;
+  /** Director v2: the styled concept still for this shot, once generated. */
+  conceptImageUrl?: string;
+  /** Director v2: the animated video for this shot, once rendered. */
+  videoUrl?: string;
 }
 
 /**
@@ -212,6 +216,85 @@ export class CinemaDirectorService {
     const shots = this.plan()?.shots ?? [];
     return shots.reduce((total, shot) => total + shot.durationSeconds, 0);
   });
+
+  /**
+   * Which shot is currently being styled or animated, if any. One at a
+   * time: the render budget is per-call, and firing the whole list at once
+   * is what exhausts it.
+   */
+  shotMediaBusy = signal<number | null>(null);
+
+  /**
+   * Director v2, styling: generate the concept still for one planned shot.
+   * The prompt carries the shot's title, description, size and section, so
+   * the still is framed the way the plan says it will be shot.
+   */
+  async generateShotConcept(shot: ShotPlanShot): Promise<string> {
+    if (this.shotMediaBusy() !== null) {
+      throw new Error('A shot is already being styled or animated.');
+    }
+    this.shotMediaBusy.set(shot.index);
+    try {
+      const prompt =
+        `${shot.title}: ${shot.description} ` +
+        `(${shot.size} shot, ${shot.section})`;
+      const url = await this.aiService.generateImage(prompt);
+      this.setShotMedia(shot.index, { conceptImageUrl: url });
+      return url;
+    } finally {
+      this.shotMediaBusy.set(null);
+    }
+  }
+
+  /**
+   * Director v2, animating: render the shot's concept still into motion.
+   * Animation needs the still first — there is nothing to move without it.
+   */
+  async animateShot(
+    shot: ShotPlanShot
+  ): Promise<{ url: string; duration: number }> {
+    const current = this.plan()?.shots.find((s) => s.index === shot.index);
+    const still = current?.conceptImageUrl ?? shot.conceptImageUrl;
+    if (!still) {
+      throw new Error('Style the shot first — animation needs a still frame.');
+    }
+    if (this.shotMediaBusy() !== null) {
+      throw new Error('A shot is already being styled or animated.');
+    }
+    this.shotMediaBusy.set(shot.index);
+    try {
+      const prompt = `${current?.title ?? shot.title}: ${
+        current?.description ?? shot.description
+      }`;
+      const result = await this.aiService.generateShotVideo(
+        still,
+        prompt,
+        shot.durationSeconds
+      );
+      this.setShotMedia(shot.index, { videoUrl: result.url });
+      return result;
+    } finally {
+      this.shotMediaBusy.set(null);
+    }
+  }
+
+  /**
+   * Write generated media onto one shot and persist it with the plan, so a
+   * styled storyboard is still there when the session returns.
+   */
+  private setShotMedia(
+    index: number,
+    media: { conceptImageUrl?: string; videoUrl?: string }
+  ): void {
+    const plan = this.plan();
+    if (!plan) return;
+    const shots = plan.shots.map((shot) =>
+      shot.index === index ? { ...shot, ...media } : shot
+    );
+    const updated = { ...plan, shots };
+    this.plan.set(updated);
+    this.storePlan(updated, this.brief());
+  }
 
   /**
    * Ask S.M.U.V.E for a shot list. The AI proxy speaks free text, so the

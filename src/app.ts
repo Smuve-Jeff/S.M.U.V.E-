@@ -106,6 +106,10 @@ app.use(
   express.raw({ type: "application/octet-stream", limit: "8mb" }),
 );
 app.use("/api/profile", express.json({ limit: PROFILE_JSON_LIMIT }));
+// The AI routes carry device-local photos as data URLs (visual grounding,
+// Photo Studio), so they get a budget of their own ahead of the 100 kb
+// default. Same mount-order rule as the profile parser above.
+app.use("/api/ai", express.json({ limit: "12mb" }));
 
 app.use(express.json());
 

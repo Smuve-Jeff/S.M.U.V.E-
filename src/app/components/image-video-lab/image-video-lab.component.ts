@@ -301,6 +301,28 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
    * had been picked in the meantime the "retry" was a different frame.
    */
   failedImagePrompt = signal<string | null>(null);
+
+  /**
+   * Visual grounding: the director's answer about the frame on the monitor,
+   * plus the grabbed still and the question that produced it. A null answer
+   * means the director has not been asked yet — never a fabricated one.
+   */
+  frameAnalysis = signal<string | null>(null);
+  frameAnalysisQuestion = signal(
+    'What should the director stage differently in this frame?'
+  );
+  isAnalyzingFrame = signal(false);
+  lastFrameThumb = signal<string | null>(null);
+
+  /**
+   * Photo Studio: the artist's photo as a data URL, plus the provider's
+   * enhancement and cutout as hosted URLs.
+   */
+  photoSource = signal<string | null>(null);
+  enhancedPhotoUrl = signal<string | null>(null);
+  cutoutPhotoUrl = signal<string | null>(null);
+  photoBusy = signal<'enhance' | 'cutout' | null>(null);
+
   highQualityEnhancer = signal(false);
   selectedFilter = signal<ClipFilter>('cinematic');
   selectedTransition = signal<ClipTransition>('fade');
@@ -5789,6 +5811,235 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     const failed = this.failedImagePrompt();
     if (!failed || this.isGenerating()) return Promise.resolve();
     return this.generateImage(failed);
+  }
+
+  // ── Visual grounding: ask the director about this frame ────────────
+
+  /**
+   * Grab the frame on the monitor and ask S.M.U.V.E what it sees. The grab
+   * is a JPEG data URL the AI proxy feeds to Gemini Vision, so the answer
+   * names a frame that actually exists — including the honest failures
+   * when the mesh is opaque (webcam) or the link is down.
+   */
+  async analyzeCurrentFrame(): Promise<void> {
+    if (this.isAnalyzingFrame()) return;
+    const canvas = this.previewCanvas?.nativeElement;
+    if (!canvas || canvas.width === 0) {
+      this.aiFeedback.set(
+        'NO FRAME ON THE MONITOR YET — PLAY THE TIMELINE, THEN ASK.'
+      );
+      return;
+    }
+    const question = this.frameAnalysisQuestion().trim();
+    if (!question) {
+      this.aiFeedback.set('ASK SOMETHING ABOUT THE FRAME FIRST.');
+      return;
+    }
+    let grab: string;
+    try {
+      grab = canvas.toDataURL('image/jpeg', 0.85);
+    } catch {
+      this.aiFeedback.set(
+        'THIS FRAME CANNOT BE READ — REMOTE MEDIA WITHOUT CORS BLOCKS THE GRAB.'
+      );
+      return;
+    }
+    this.isAnalyzingFrame.set(true);
+    this.lastFrameThumb.set(grab);
+    try {
+      const answer = await this.aiService.analyzeFrame(grab, question);
+      this.frameAnalysis.set(answer);
+    } catch (error: any) {
+      this.logger.error('Frame Analysis Error:', error);
+      this.frameAnalysis.set(
+        error?.message
+          ? `VISION FAILED: ${error.message}`
+          : 'VISION FAILED. VERIFY THE AI PROVIDER CONFIGURATION.'
+      );
+    } finally {
+      this.isAnalyzingFrame.set(false);
+    }
+  }
+
+  // ── Photo Studio ────────────────────────────────────────────────────
+
+  /**
+   * Load a photo for enhancement or cutout. Device-local: the file is read
+   * as a data URL and only ever sent to the AI proxy, never uploaded
+   * directly to a provider.
+   */
+  onPhotoUpload(event: Event): void {
+    const file = (event.target as HTMLInputElement).files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      this.aiFeedback.set('PHOTO STUDIO TAKES A STILL IMAGE.');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      this.photoSource.set(String(reader.result));
+      this.enhancedPhotoUrl.set(null);
+      this.cutoutPhotoUrl.set(null);
+    };
+    reader.onerror = () => this.aiFeedback.set('PHOTO COULD NOT BE READ.');
+    reader.readAsDataURL(file);
+  }
+
+  /** Upscale + detail recovery for the loaded photo. */
+  async enhancePhoto(): Promise<void> {
+    const source = this.photoSource();
+    if (!source || this.photoBusy()) return;
+    this.photoBusy.set('enhance');
+    try {
+      const url = await this.aiService.enhancePhoto(source, 2);
+      this.enhancedPhotoUrl.set(url);
+      this.aiFeedback.set('PHOTO ENHANCED — UPSCALED AND RECOVERED.');
+    } catch (error: any) {
+      this.logger.error('Photo Enhance Error:', error);
+      this.aiFeedback.set(
+        error?.message
+          ? error.message.toUpperCase()
+          : 'ENHANCE FAILED. VERIFY AI PROVIDER CONFIGURATION.'
+      );
+    } finally {
+      this.photoBusy.set(null);
+    }
+  }
+
+  /** AI background removal for the loaded photo, transparency kept. */
+  async cutoutPhoto(): Promise<void> {
+    const source = this.photoSource();
+    if (!source || this.photoBusy()) return;
+    this.photoBusy.set('cutout');
+    try {
+      const url = await this.aiService.cutoutPhoto(source);
+      this.cutoutPhotoUrl.set(url);
+      this.aiFeedback.set('CUTOUT READY — BACKGROUND REMOVED.');
+    } catch (error: any) {
+      this.logger.error('Photo Cutout Error:', error);
+      this.aiFeedback.set(
+        error?.message
+          ? error.message.toUpperCase()
+          : 'CUTOUT FAILED. VERIFY AI PROVIDER CONFIGURATION.'
+      );
+    } finally {
+      this.photoBusy.set(null);
+    }
+  }
+
+  /** Place a Photo Studio result on the overlay lane, like a concept frame. */
+  placePhoto(url: string, label: string): void {
+    const duration =
+      this.videoEngine.productionMode() === 'movie'
+        ? AI_CLIP_DURATION_MOVIE
+        : AI_CLIP_DURATION_OTHER;
+    this.videoEngine.addClip('t2', {
+      name: label,
+      url,
+      startTime: this.videoEngine.currentTime(),
+      duration,
+      offset: 0,
+      type: 'image',
+      source: 'ai',
+      effects: createDefaultEffects({
+        upscale: true,
+        bgRemoval: false,
+        noiseReduction: false,
+        brightness: 1,
+        contrast: 1,
+        filter: this.selectedFilter(),
+        transition: this.selectedTransition(),
+        transitionDuration: this.transitionDuration(),
+        trimStart: this.resolveTrimAmount(duration),
+        trimEnd: this.resolveTrimAmount(duration),
+      }),
+    });
+    this.aiFeedback.set(`${label.toUpperCase()} PLACED ON THE OVERLAY LANE.`);
+  }
+
+  // ── Director v2: storyboard styling + animation ─────────────────────
+
+  /** Generate the concept still for one planned shot and cut it onto the lane. */
+  async generateShotConcept(shot: ShotPlanShot): Promise<void> {
+    if (this.director.shotMediaBusy() !== null) return;
+    try {
+      const url = await this.director.generateShotConcept(shot);
+      this.placeShotMedia(shot, url, 'image', shot.durationSeconds);
+      this.aiFeedback.set(
+        `SHOT ${shot.index} CONCEPT STYLED — STILL CUT TO THE LANE.`
+      );
+    } catch (error: any) {
+      this.logger.error('Shot Concept Error:', error);
+      this.aiFeedback.set(
+        error?.message
+          ? error.message.toUpperCase()
+          : 'SHOT CONCEPT FAILED. VERIFY AI PROVIDER CONFIGURATION.'
+      );
+    }
+  }
+
+  /** Animate one planned shot from its concept still and cut it onto the lane. */
+  async animateShot(shot: ShotPlanShot): Promise<void> {
+    if (this.director.shotMediaBusy() !== null) return;
+    try {
+      const result = await this.director.animateShot(shot);
+      this.placeShotMedia(
+        shot,
+        result.url,
+        'video',
+        Math.min(shot.durationSeconds, result.duration)
+      );
+      this.aiFeedback.set(`SHOT ${shot.index} ANIMATED — VIDEO CUT TO THE LANE.`);
+    } catch (error: any) {
+      this.logger.error('Shot Animation Error:', error);
+      this.aiFeedback.set(
+        error?.message
+          ? error.message.toUpperCase()
+          : 'SHOT ANIMATION FAILED. VERIFY AI PROVIDER CONFIGURATION.'
+      );
+    }
+  }
+
+  /**
+   * Cut generated media onto the visuals lane at the shot's planned slot,
+   * retiring the storyboard card that slot was holding. The offset follows
+   * stageShotPlan (footage end), so media and cards always agree.
+   */
+  private placeShotMedia(
+    shot: ShotPlanShot,
+    url: string,
+    type: 'image' | 'video',
+    duration: number
+  ): void {
+    const track = this.videoEngine.tracks().find(
+      (candidate) => candidate.id === 't1'
+    );
+    if (track?.locked) {
+      this.aiFeedback.set(
+        'THE VISUALS LANE IS LOCKED — UNLOCK IT, THEN CUT THE SHOT.'
+      );
+      return;
+    }
+    const existing = track?.clips ?? [];
+    // Retire this shot's card, if one is staged.
+    existing
+      .filter(
+        (clip) =>
+          this.isShotCard(clip) && clip.name === this.shotCardName(shot)
+      )
+      .forEach((clip) => this.videoEngine.removeClip(clip.id));
+    const footage = existing.filter((clip) => !this.isShotCard(clip));
+    const offset = footage.reduce(
+      (end, clip) => Math.max(end, clip.startTime + clip.duration),
+      0
+    );
+    this.videoEngine.addClip('t1', {
+      ...this.shotClip(shot),
+      url,
+      type,
+      startTime: shot.startTime + offset,
+      duration,
+    });
   }
 
   applyTemplate(templatePrompt: string) {
