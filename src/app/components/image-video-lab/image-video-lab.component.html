@@ -10,16 +10,20 @@
       class="cinema-resume-overlay"
       role="status"
       aria-live="polite"
+      aria-atomic="true"
       aria-busy="true"
-      aria-label="Restoring your last Cinema project"
     >
       <div class="cinema-resume-card">
         <span class="cinema-resume-pulse" aria-hidden="true"></span>
         <span class="cinema-resume-copy">
           <span class="cinema-resume-eyebrow">Restoring session</span>
-          <strong class="cinema-resume-title"
-            >Reopening your last project…</strong
-          >
+          <strong class="cinema-resume-title">
+            @if (resumingProjectName(); as projectName) {
+              Reopening “{{ projectName }}”…
+            } @else {
+              Reopening your last project…
+            }
+          </strong>
           <span class="cinema-resume-detail"
             >Timeline, footage and Director plans are coming back.</span
           >

@@ -80,6 +80,7 @@ describe('ImageVideoLabComponent section disclosures', () => {
       expect(template).toContain('@if (resumingProject())');
       expect(template).toContain('class="cinema-resume-overlay"');
       expect(template).toContain('role="status"');
+      expect(template).toContain('resumingProjectName()');
       expect(template).toContain('Reopening your last project');
     });
 

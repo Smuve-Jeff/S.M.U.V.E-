@@ -1777,6 +1777,8 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
    * gated from the first paint so an empty timeline never appears first.
    */
   resumingProject = signal(false);
+  /** The stored project's name, shown once the project list has loaded. */
+  resumingProjectName = signal('');
 
   /** Save the current edit, creating a project the first time. */
   async saveProject(): Promise<void> {
@@ -1807,16 +1809,26 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
    * the same session does not replace an edit started since.
    */
   async resumeLastProject(): Promise<void> {
+    this.resumingProjectName.set('');
     const id = await this.cinemaProjects.takeResumableProjectId();
     if (!id || this.cinemaProjects.activeProjectId()) {
       this.resumingProject.set(false);
       return;
     }
+    // The service just refreshed the project list, so the name is available
+    // before the longer project open begins. No summary means no stored
+    // name to show; the overlay keeps its generic wording.
+    this.resumingProjectName.set(
+      this.cinemaProjects
+        .projects()
+        .find((project) => project.id === id)?.name ?? ''
+    );
     this.resumingProject.set(true);
     try {
       await this.openProject(id);
     } finally {
       this.resumingProject.set(false);
+      this.resumingProjectName.set('');
     }
   }
 
