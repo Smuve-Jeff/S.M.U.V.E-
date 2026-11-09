@@ -1,37 +1,12 @@
 /**
  * Cinema Engine public entry point.
- * Re-exports every feature module plus the upload and analysis helpers.
+ *
+ * Media analysis only: metadata, thumbnails, sprite sheets and upload.
+ * Rendering (filters, effects, transitions, titles, voice-over) lives in
+ * the app's canvas renderer — see the removal note in `cinemaEngine.ts`.
  */
 
-export { CinemaEngine, default } from './cinemaEngine';
-export type { EnhancementMetrics } from './cinemaEngine';
-
-export { SpecialEffects } from './specialEffects';
-export type { EffectParams } from './specialEffects';
-
-export { Transitions } from './transitions';
-export type { TransitionParams } from './transitions';
-
-export { VoiceOver } from './voiceOver';
-export type { VoiceOverParams } from './voiceOver';
-
-export { Filters } from './filters';
-export type { FilterParams } from './filters';
-
-export { Crop } from './crop';
-export type { CropParams } from './crop';
-
-export { TextEditor } from './textEditor';
-export type { TextStyle } from './textEditor';
-
-export { MusicVideoFeatures } from './musicVideoFeatures';
-export type { MusicVideoParams } from './musicVideoFeatures';
-
-export { LiveStreamingFeatures } from './liveStreamingFeatures';
-export type { LiveStreamingParams } from './liveStreamingFeatures';
-
-export { MovieDirectingFeatures } from './movieDirectingFeatures';
-export type { MovieDirectingParams } from './movieDirectingFeatures';
+export { CinemaEngine } from './cinemaEngine';
 
 export {
   VideoUploader,

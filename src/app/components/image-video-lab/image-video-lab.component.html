@@ -256,6 +256,8 @@
               #previewCanvas
               class="monitor-canvas"
               [class.monitor-hidden]="showCameraSurface()"
+              [class.path-drawing]="drawingPath()"
+              (click)="onMonitorClick($event)"
             ></canvas>
 
             <!--
@@ -800,6 +802,17 @@
               @if (selectedKeyframeCount() > 0) {
                 <button type="button" (click)="removeSelectedKeyframes()">CLEAR</button>
               }
+              @for (kf of selectedKeyframes(); track kf.id) {
+                <span class="keyframe-row" [title]="kf.property + ' @ ' + kf.time.toFixed(2) + 's = ' + kf.value">
+                  {{ kf.property }} {{ kf.time | number: '1.2-2' }}s
+                  <select aria-label="Keyframe easing" [ngModel]="kf.easing" (ngModelChange)="setKeyframeEasing(kf.id, $event)">
+                    @for (easing of keyframeEasings; track easing.id) {
+                      <option [value]="easing.id">{{ easing.label }}</option>
+                    }
+                  </select>
+                  <button type="button" (click)="removeKeyframeById(kf.id)" aria-label="Remove keyframe">×</button>
+                </span>
+              }
             </span>
             <span class="keyframe-editor" aria-label="Chroma key controls">
               <button type="button" (click)="toggleChromaKey(true)" title="Key out the green/blue screen on this clip">CHROMA KEY</button>
@@ -819,6 +832,10 @@
               <label><input type="checkbox" [ngModel]="maskInvert()" (ngModelChange)="maskInvert.set($event)" /> Invert</label>
               <button type="button" (click)="applyMaskToSelected()">MASK</button>
               <button type="button" (click)="clearMaskFromSelected()">NO MASK</button>
+              <button type="button" (click)="startPathDraw()" title="Click the monitor to drop Bezier anchors">DRAW PATH</button>
+              @if (drawingPath()) {
+                <button type="button" (click)="endPathDraw()">DONE PATH</button>
+              }
             </span>
             <span class="keyframe-editor" aria-label="Picture in picture controls">
               <select aria-label="PiP position" [ngModel]="pipPreset()" (ngModelChange)="pipPreset.set($event)">
@@ -842,6 +859,7 @@
               <button type="button" (click)="addCaptionAtPlayhead()">+ CAPTION</button>
               <button type="button" (click)="generateCaptionsFromVoiceover()" title="Generate cues from every voiceover line">AUTO (VO)</button>
               <button type="button" (click)="toggleAutoCaptionCapture()" [attr.aria-pressed]="autoCaptionListening()">{{ autoCaptionListening() ? 'STOP CAPTURING' : 'LIVE CAPTIONS' }}</button>
+              <button type="button" (click)="transcribeSelectedClip()" [disabled]="transcribing()" title="Transcribe this clip's audio on-device with Whisper">{{ transcribing() ? 'TRANSCRIBING…' : 'WHISPER CLIP' }}</button>
               <span>{{ captionCount() }} cue(s)</span>
             </span>
             <span class="keyframe-editor" aria-label="Template and LUT controls">

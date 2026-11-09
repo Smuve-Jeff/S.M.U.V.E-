@@ -17,6 +17,8 @@ export interface StabilizationSettings {
   /** 0..1 — edge-crop zoom (0.04 ≈ 8% crop). */
   crop: number;
 }
+/** Whether rotation correction runs alongside translation. */
+export const ROTATION_STABILIZATION = true;
 
 export const DEFAULT_STABILIZATION: StabilizationSettings = {
   enabled: true,
@@ -111,6 +113,65 @@ export function toGrayscaleThumb(
     }
   }
   return out;
+}
+
+/**
+ * Estimate in-plane rotation between two grayscale frames.
+ *
+ * Runs block matching on four quadrants: a rotation moves the top half one
+ * way and the bottom half the other, so the differential of the two
+ * vertical shifts over their separation is the angle. Returns degrees.
+ */
+export function estimateRotationDegrees(
+  prev: Uint8ClampedArray,
+  curr: Uint8ClampedArray,
+  width: number,
+  height: number,
+  maxShift = 4,
+): number {
+  const n = width * height;
+  if (prev.length !== n || curr.length !== n || width < 16 || height < 16) return 0;
+  const match = (x0: number, y0: number, x1: number, y1: number) => {
+    let best = { dx: 0, dy: 0, error: Infinity };
+    for (let dy = -maxShift; dy <= maxShift; dy++) {
+      for (let dx = -maxShift; dx <= maxShift; dx++) {
+        let sad = 0;
+        let count = 0;
+        for (let y = y0; y < y1; y++) {
+          for (let x = x0; x < x1; x++) {
+            const cx = x + dx;
+            const cy = y + dy;
+            if (cx < 0 || cy < 0 || cx >= width || cy >= height) continue;
+            sad += Math.abs(curr[cy * width + cx] - prev[y * width + x]);
+            count++;
+          }
+        }
+        const mean = count ? sad / count : Infinity;
+        if (mean < best.error) best = { dx, dy, error: mean };
+      }
+    }
+    return best;
+  };
+  const hw = Math.floor(width / 2);
+  const hh = Math.floor(height / 2);
+  const margin = maxShift + 2;
+  const top = match(margin, margin, width - margin, hh - margin);
+  const bottom = match(margin, hh + margin, width - margin, height - margin);
+  if (!Number.isFinite(top.error) || !Number.isFinite(bottom.error)) return 0;
+  // Differential vertical shift over the quadrant separation ≈ tan(angle).
+  const separation = Math.max(1, height - 2 * margin);
+  const angle = Math.atan2(top.dy - bottom.dy, separation) * (180 / Math.PI);
+  return Math.max(-10, Math.min(10, angle));
+}
+
+/** One-pole smoothing of a rotation correction (degrees). */
+export function smoothRotation(
+  correction: number,
+  measuredDegrees: number,
+  strength: number,
+): number {
+  const alpha = Math.max(0.05, Math.min(1, strength));
+  return correction + (-measuredDegrees - correction) * alpha;
 }
 
 export function sanitizeStabilization(value: unknown): StabilizationSettings | null {

@@ -1,6 +1,8 @@
 import {
+  estimateRotationDegrees,
   estimateTranslation,
   smoothCorrection,
+  smoothRotation,
   toGrayscaleThumb,
 } from './video-stabilization';
 
@@ -62,5 +64,19 @@ describe('toGrayscaleThumb', () => {
     const thumb = toGrayscaleThumb(rgba, 2, 1, 2, 1);
     expect(thumb[0]).toBeCloseTo(76);
     expect(thumb[1]).toBeCloseTo(150);
+  });
+});
+
+describe('estimateRotationDegrees / smoothRotation', () => {
+  it('reports ~0 for identical frames', () => {
+    const a = frame(32, 24, (x, y) => (x * 37 + y * 17) % 251);
+    expect(estimateRotationDegrees(a, a, 32, 24)).toBe(0);
+  });
+
+  it('smoothRotation counter-rotates and converges', () => {
+    expect(smoothRotation(0, 4, 0.5)).toBe(-2);
+    let c = 0;
+    for (let i = 0; i < 40; i++) c = smoothRotation(c, 3, 0.3);
+    expect(c).toBeCloseTo(-3, 0);
   });
 });

@@ -1,7 +1,7 @@
 {
   "name": "cinema-engine",
   "version": "1.0.0",
-  "description": "Cinema engine module for special effects, transitions, voice over, filters, crops, text editor and other features enhancing music video, live streaming, and movie directing quality",
+  "description": "Media analysis for the S.M.U.V.E. Image & Video Lab: video metadata, thumbnails, sprite sheets and upload. Rendering lives in the app's canvas renderer.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "files": [
@@ -15,16 +15,10 @@
   },
   "keywords": [
     "cinema",
-    "engine",
-    "special-effects",
-    "transitions",
-    "voice-over",
-    "filters",
-    "crop",
-    "text-editor",
-    "music-video",
-    "live-streaming",
-    "movie-directing"
+    "media-analysis",
+    "thumbnails",
+    "sprite-sheet",
+    "upload"
   ],
   "author": "Freebuff",
   "license": "MIT",

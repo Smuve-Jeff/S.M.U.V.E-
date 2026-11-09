@@ -45,15 +45,16 @@ import {
 } from '../../services/video-engine.service';
 import { ExportService } from '../../services/export.service';
 import { FfmpegVideoExportService } from '../../services/ffmpeg-video-export.service';
-import { KEYFRAME_PROPERTIES, evaluateKeyframes, type KeyframeProperty } from '../../services/clip-keyframes';
+import { KEYFRAME_EASINGS, KEYFRAME_PROPERTIES, evaluateKeyframes, type KeyframeEasing, type KeyframeProperty } from '../../services/clip-keyframes';
 import { applyChromaKey, DEFAULT_CHROMA_KEY, type ChromaKeySettings } from '../../services/chroma-key';
 import { pipTransform, type ClipMaskSettings } from '../../services/clip-mask';
 import { DEFAULT_MASK, DEFAULT_PIP, PIP_PRESETS, type MaskShape, type PipPreset } from '../../services/clip-mask';
-import { estimateTranslation, smoothCorrection, toGrayscaleThumb, DEFAULT_STABILIZATION } from '../../services/video-stabilization';
+import { estimateRotationDegrees, estimateTranslation, smoothCorrection, smoothRotation, toGrayscaleThumb, DEFAULT_STABILIZATION } from '../../services/video-stabilization';
 import { estimateCaptionDuration } from '../../services/clip-captions';
 import { applyLut, parseCubeLut } from '../../services/lut';
 import { computeHistogram, computeVectorscope, computeWaveform, lumaPercentiles } from '../../services/scopes';
 import { CLIP_TEMPLATES, getClipTemplate, resolveTemplatePatch } from '../../services/clip-templates';
+import { WhisperTranscriptionService } from '../../services/whisper-transcription.service';
 import { CinemaEngineService } from '../../services/cinema-engine.service';
 import {
   AUDIO_BED_MEDIA_ID,
@@ -260,6 +261,8 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
   public videoEngine = inject(VideoEngineService);
   private exportService = inject(ExportService);
   private ffmpegExport = inject(FfmpegVideoExportService, { optional: true });
+  private whisper = inject(WhisperTranscriptionService, { optional: true });
+  transcribing = signal(false);
   public camera = inject(CameraCaptureService);
   public director = inject(CinemaDirectorService);
   private speechRecognition = inject(SpeechRecognitionService);
@@ -321,6 +324,8 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
   keyframeProperty = signal<KeyframeProperty>('scale');
   keyframeValue = signal(1);
   readonly keyframeProperties = KEYFRAME_PROPERTIES;
+  readonly keyframeEasings = KEYFRAME_EASINGS;
+  selectedKeyframes = computed(() => this.selectedClip()?.effects.keyframes ?? []);
   keyframeSpec = computed(() => KEYFRAME_PROPERTIES.find((p) => p.id === this.keyframeProperty()) ?? KEYFRAME_PROPERTIES[2]);
   selectedKeyframeCount = computed(() => this.selectedClip()?.effects.keyframes?.length ?? 0);
   /** Chroma key / mask / PiP staged controls for the selected clip. */
@@ -340,6 +345,8 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
   readonly clipTemplates = CLIP_TEMPLATES;
   multicamAngleName = signal('CAM 1');
   lutName = signal<string | null>(null);
+  /** Freehand path drawing mode: clicks on the monitor add mask anchors. */
+  drawingPath = signal(false);
   @ViewChild('lutFileInput') lutFileInput?: ElementRef<HTMLInputElement>;
   multicamGroups = computed(() => {
     const groups = new Map<string, { id: string; clips: VideoClip[] }>();
@@ -358,6 +365,7 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     { id: 'rect', label: 'Rectangle' },
     { id: 'ellipse', label: 'Ellipse' },
     { id: 'linear', label: 'Linear Wipe' },
+    { id: 'path', label: 'Freehand Path' },
   ];
 
   /** Speed envelope shared by the slider bounds. */
@@ -2899,7 +2907,7 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
   }
 
   /** Per-clip stabilization state: previous thumbnail + smoothed correction. */
-  private stabState = new Map<string, { prev: Uint8ClampedArray | null; x: number; y: number }>();
+  private stabState = new Map<string, { prev: Uint8ClampedArray | null; x: number; y: number; rot: number }>();
   private stabThumb: HTMLCanvasElement | null = null;
   private stabThumbCtx: CanvasRenderingContext2D | null = null;
 
@@ -2953,12 +2961,15 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
       tctx.drawImage(layer, 0, 0, TW, TH);
       const rgba = tctx.getImageData(0, 0, TW, TH).data;
       const gray = toGrayscaleThumb(rgba, TW, TH, TW, TH);
-      const state = this.stabState.get(clip.id) ?? { prev: null, x: 0, y: 0 };
+      const state = this.stabState.get(clip.id) ?? { prev: null, x: 0, y: 0, rot: 0 };
       if (state.prev) {
         const measured = estimateTranslation(state.prev, gray, TW, TH, 6);
         const next = smoothCorrection(state, measured, settings.strength ?? DEFAULT_STABILIZATION.strength);
         state.x = next.x;
         state.y = next.y;
+        // Rotation: differential quadrant shift, smoothed like translation.
+        const measuredRot = estimateRotationDegrees(state.prev, gray, TW, TH, 4);
+        state.rot = smoothRotation(state.rot, measuredRot, settings.strength ?? DEFAULT_STABILIZATION.strength);
       }
       state.prev = gray;
       this.stabState.set(clip.id, state);
@@ -3265,7 +3276,28 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     append = false,
   ): void {
     if (!append) mctx.beginPath();
-    if (mask.shape === 'ellipse') {
+    if (mask.shape === 'path') {
+      const pts = mask.points ?? [];
+      if (pts.length >= 3) {
+        // Smooth closed spline through the anchors (Catmull-Rom -> cubic).
+        const n = pts.length;
+        const px = (pt: { x: number; y: number }) => pt.x * width;
+        const py = (pt: { x: number; y: number }) => pt.y * height;
+        mctx.moveTo(px(pts[0]), py(pts[0]));
+        for (let i = 0; i < n; i++) {
+          const p0 = pts[(i - 1 + n) % n];
+          const p1 = pts[i];
+          const p2 = pts[(i + 1) % n];
+          const p3 = pts[(i + 2) % n];
+          const c1x = px(p1) + (px(p2) - px(p0)) / 6;
+          const c1y = py(p1) + (py(p2) - py(p0)) / 6;
+          const c2x = px(p2) - (px(p3) - px(p1)) / 6;
+          const c2y = py(p2) - (py(p3) - py(p1)) / 6;
+          mctx.bezierCurveTo(c1x, c1y, c2x, c2y, px(p2), py(p2));
+        }
+        mctx.closePath();
+      }
+    } else if (mask.shape === 'ellipse') {
       mctx.ellipse(
         mask.x * width, mask.y * height,
         Math.max(1, mask.w * width), Math.max(1, mask.h * height),
@@ -3707,6 +3739,7 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
       // Correction is in 96x54 thumbnail pixels; convert to a frame fraction.
       t.positionX += stab.x / 96;
       t.positionY += stab.y / 54;
+      t.rotation += stab.rot ?? 0;
       t.scale *= 1 + (clip.effects.stabilization?.crop ?? DEFAULT_STABILIZATION.crop) * 2;
     }
     const cx = width / 2;
@@ -3976,6 +4009,102 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
   switchMulticamAngle(groupId: string, clipId: string): void {
     this.videoEngine.setMulticamAngle(groupId, clipId);
     this.aiFeedback.set('MULTICAM ANGLE SWITCHED.');
+  }
+
+  /** Start freehand path drawing on the selected clip. */
+  startPathDraw(): void {
+    const clip = this.selectedClip();
+    if (!clip) return;
+    this.videoEngine.updateClip(clip.id, {
+      effects: {
+        ...clip.effects,
+        mask: { ...DEFAULT_MASK, shape: 'path', points: [], feather: 8, invert: false },
+      },
+    } as never);
+    this.drawingPath.set(true);
+    this.aiFeedback.set('PATH MODE: CLICK THE MONITOR TO DROP ANCHORS, THEN DONE PATH.');
+  }
+
+  /** Add one anchor from a monitor click (normalized into the mask). */
+  onMonitorClick(event: MouseEvent): void {
+    if (!this.drawingPath()) return;
+    const clip = this.selectedClip();
+    const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
+    if (!clip || !rect.width || !rect.height) return;
+    const point = {
+      x: Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width)),
+      y: Math.max(0, Math.min(1, (event.clientY - rect.top) / rect.height)),
+    };
+    const mask = clip.effects.mask;
+    const points = [...(mask?.points ?? []), point];
+    this.videoEngine.updateClip(clip.id, {
+      effects: {
+        ...clip.effects,
+        mask: { ...(mask ?? DEFAULT_MASK), shape: 'path', points },
+      },
+    } as never);
+    this.aiFeedback.set(`PATH ANCHOR ${points.length} DROPPED.`);
+  }
+
+  /** Finish path drawing (a path needs at least 3 anchors to show). */
+  endPathDraw(): void {
+    this.drawingPath.set(false);
+    const clip = this.selectedClip();
+    const count = clip?.effects.mask?.points?.length ?? 0;
+    this.aiFeedback.set(
+      count >= 3 ? `PATH MASK COMPLETE (${count} ANCHORS).` : 'PATH NEEDS AT LEAST 3 ANCHORS - DRAW AGAIN.',
+    );
+  }
+
+  /** Change the easing of one keyframe on the selected clip. */
+  setKeyframeEasing(keyframeId: string, easing: KeyframeEasing): void {
+    const clip = this.selectedClip();
+    if (!clip) return;
+    this.videoEngine.setKeyframeEasing(clip.id, keyframeId, easing);
+  }
+
+  /** Remove one keyframe from the selected clip. */
+  removeKeyframeById(keyframeId: string): void {
+    const clip = this.selectedClip();
+    if (!clip) return;
+    this.videoEngine.removeClipKeyframe(clip.id, keyframeId);
+  }
+
+  /**
+   * Transcribe the selected clip's audio with Whisper and drop the cues
+   * onto the timeline at the clip's position. The model downloads once
+   * (~75 MB); afterwards it runs on-device.
+   */
+  async transcribeSelectedClip(): Promise<void> {
+    const clip = this.selectedClip();
+    if (!clip || !this.whisper || this.transcribing()) return;
+    if (!clip.url) {
+      this.aiFeedback.set('NO MEDIA ON THE SELECTED CLIP TO TRANSCRIBE.');
+      return;
+    }
+    this.transcribing.set(true);
+    this.aiFeedback.set('TRANSCRIBING CLIP AUDIO WITH WHISPER - FIRST RUN DOWNLOADS THE MODEL.');
+    try {
+      const blob = await (await fetch(clip.url)).blob();
+      const audio = await this.whisper.decodeToMono16k(blob);
+      const cues = await this.whisper.transcribeAudio(audio, clip.startTime, {
+        onProgress: (message) => this.aiFeedback.set(message),
+      });
+      let added = 0;
+      for (const cue of cues) {
+        if (this.videoEngine.addCaption(cue.start, cue.end, cue.text)) added++;
+      }
+      this.aiFeedback.set(
+        added
+          ? `TRANSCRIPTION COMPLETE: ${added} CAPTION CUE(S) ADDED.`
+          : 'TRANSCRIPTION COMPLETE: NO SPEECH DETECTED IN THIS CLIP.',
+      );
+    } catch (error: any) {
+      this.logger.error('Whisper transcription failed', error);
+      this.aiFeedback.set('TRANSCRIPTION FAILED - THE CLIP AUDIO COULD NOT BE DECODED ON THIS BROWSER.');
+    } finally {
+      this.transcribing.set(false);
+    }
   }
 
   removeSelectedKeyframes(): void {

@@ -760,6 +760,30 @@ export class VideoEngineService {
     return found;
   }
 
+  /** Change one keyframe's easing (the curve out of that keyframe). */
+  setKeyframeEasing(clipId: string, keyframeId: string, easing: import('./clip-keyframes').KeyframeEasing): boolean {
+    let found = false;
+    this.tracks.update((tracks) =>
+      tracks.map((track) => ({
+        ...track,
+        clips: track.clips.map((clip) => {
+          if (clip.id !== clipId) return clip;
+          const keyframes = clip.effects.keyframes ?? [];
+          if (!keyframes.some((kf) => kf.id === keyframeId)) return clip;
+          found = true;
+          return {
+            ...clip,
+            effects: {
+              ...clip.effects,
+              keyframes: keyframes.map((kf) => (kf.id === keyframeId ? { ...kf, easing } : kf)),
+            },
+          };
+        }),
+      })),
+    );
+    return found;
+  }
+
   removeClipKeyframe(clipId: string, keyframeId: string): boolean {
     let found = false;
     this.tracks.update((tracks) =>

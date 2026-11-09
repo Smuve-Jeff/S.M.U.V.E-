@@ -1,20 +1,17 @@
 /**
  * Smoke tests for the built package.
  * They run against dist/, so they verify what shipping consumers receive.
+ *
+ * The package is intentionally media-analysis only now (see cinemaEngine.ts):
+ * rendering lives in the app's canvas renderer.
  */
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
 const cinema = require('../dist');
 
-test('entry point exposes the public API', () => {
+test('entry point exposes the analysis API', () => {
   assert.equal(typeof cinema.CinemaEngine, 'function');
-  assert.equal(typeof cinema.SpecialEffects, 'function');
-  assert.equal(typeof cinema.Transitions, 'function');
-  assert.equal(typeof cinema.VoiceOver, 'function');
-  assert.equal(typeof cinema.Filters, 'function');
-  assert.equal(typeof cinema.Crop, 'function');
-  assert.equal(typeof cinema.TextEditor, 'function');
   assert.equal(typeof cinema.VideoUploader, 'function');
   assert.equal(typeof cinema.VideoAnalyzer, 'function');
   assert.equal(cinema.DEFAULT_UPLOAD_ENDPOINT, '/api/videos/upload');
@@ -24,21 +21,16 @@ test('entry point exposes the public API', () => {
   assert.equal(typeof cinema.toSpriteSheetMeta, 'function');
 });
 
-test('engine applies effects and rejects unknown ones', () => {
+test('engine exposes metadata and thumbnail analysis without descriptor modules', () => {
   const engine = new cinema.CinemaEngine();
-  const applied = engine.applyEffect('cinematic', { intensity: 0.7 });
-  assert.equal(applied.effect, 'cinematic');
-  assert.equal(applied.intensity, 0.7);
-  assert.throws(() => engine.applyEffect('not-an-effect', {}), /Unknown effect/);
-});
-
-test('engine enhancement reports metrics', () => {
-  const engine = new cinema.CinemaEngine();
-  const { result, metrics } = engine.enhanceForMusicVideo({ width: 1920, height: 1080 }, {});
-  assert.ok(result);
-  assert.equal(typeof metrics.durationMs, 'number');
-  assert.equal(metrics.usedAI, false);
-  assert.equal(metrics.integration, 'none');
+  assert.equal(typeof engine.extractVideoMetadata, 'function');
+  assert.equal(typeof engine.captureThumbnail, 'function');
+  assert.equal(typeof engine.createSpriteSheet, 'function');
+  assert.equal(typeof engine.uploadVideo, 'function');
+  // The removed descriptor surface must stay gone.
+  assert.equal(engine.applyEffect, undefined);
+  assert.equal(engine.applyFilter, undefined);
+  assert.equal(engine.enhanceForMusicVideo, undefined);
 });
 
 test('sprite helpers map a playback position onto its tile', () => {

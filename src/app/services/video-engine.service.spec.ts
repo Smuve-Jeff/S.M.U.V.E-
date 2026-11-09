@@ -801,6 +801,11 @@ describe('VideoEngineService clip keyframes', () => {
     expect(engine.getClipTransform(clip, 1).scale).toBeCloseTo(1.5);
     expect(engine.getClipTransform(clip, 0).opacity).toBe(1);
 
+    expect(engine.setKeyframeEasing(id, 'b', 'ease-in')).toBe(true);
+    expect(engine.setKeyframeEasing('missing', 'b', 'ease-in')).toBe(false);
+    const eased = engine.tracks().flatMap((t) => t.clips).find((c) => c.id === id)!;
+    expect(eased.effects.keyframes!.find((k) => k.id === 'b')!.easing).toBe('ease-in');
+
     expect(engine.removeClipKeyframe(id, 'a')).toBe(true);
     const afterRemove = engine.tracks().flatMap((t) => t.clips).find((c) => c.id === id)!;
     expect(engine.getClipTransform(afterRemove, 0).scale).toBe(2); // first remaining keyframe holds

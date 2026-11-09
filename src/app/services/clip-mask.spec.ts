@@ -1,5 +1,6 @@
 import {
   DEFAULT_MASK,
+  flattenPath,
   maskContains,
   maskKeeps,
   pipTransform,
@@ -39,6 +40,36 @@ describe('maskContains / maskKeeps', () => {
     const m = mask({ shape: 'rect', x: 0.25, y: 0.25, w: 0.5, h: 0.5, invert: true });
     expect(maskKeeps(m, 0.5, 0.5)).toBe(false);
     expect(maskKeeps(m, 0.05, 0.05)).toBe(true);
+  });
+});
+
+describe('freehand path masks', () => {
+  const diamond = mask({
+    shape: 'path',
+    points: [
+      { x: 0.5, y: 0.1 },
+      { x: 0.9, y: 0.5 },
+      { x: 0.5, y: 0.9 },
+      { x: 0.1, y: 0.5 },
+    ],
+  });
+
+  it('contains the centre and rejects the corners', () => {
+    expect(maskContains(diamond, 0.5, 0.5)).toBe(true);
+    expect(maskContains(diamond, 0.05, 0.05)).toBe(false);
+    expect(maskContains(diamond, 0.5, 0.05)).toBe(false);
+  });
+
+  it('needs at least 3 anchors', () => {
+    expect(maskContains(mask({ shape: 'path', points: [{ x: 0.5, y: 0.5 }] }), 0.5, 0.5)).toBe(false);
+  });
+
+  it('flattens the spline smoothly through every anchor', () => {
+    const flat = flattenPath(diamond.points!);
+    expect(flat.length).toBeGreaterThan(16);
+    for (const pt of diamond.points!) {
+      expect(flat.some((f) => Math.abs(f.x - pt.x) < 0.05 && Math.abs(f.y - pt.y) < 0.05)).toBe(true);
+    }
   });
 });
 

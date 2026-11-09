@@ -2711,3 +2711,9 @@ canvas {
     display: none;
   }
 }
+
+.monitor-canvas.path-drawing {
+  cursor: crosshair;
+  outline: 2px dashed #10b981;
+  outline-offset: -2px;
+}
