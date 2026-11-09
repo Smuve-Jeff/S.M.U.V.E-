@@ -44,6 +44,16 @@ import {
   VoiceoverLine,
 } from '../../services/video-engine.service';
 import { ExportService } from '../../services/export.service';
+import { FfmpegVideoExportService } from '../../services/ffmpeg-video-export.service';
+import { KEYFRAME_PROPERTIES, evaluateKeyframes, type KeyframeProperty } from '../../services/clip-keyframes';
+import { applyChromaKey, DEFAULT_CHROMA_KEY, type ChromaKeySettings } from '../../services/chroma-key';
+import { pipTransform, type ClipMaskSettings } from '../../services/clip-mask';
+import { DEFAULT_MASK, DEFAULT_PIP, PIP_PRESETS, type MaskShape, type PipPreset } from '../../services/clip-mask';
+import { estimateTranslation, smoothCorrection, toGrayscaleThumb, DEFAULT_STABILIZATION } from '../../services/video-stabilization';
+import { estimateCaptionDuration } from '../../services/clip-captions';
+import { applyLut, parseCubeLut } from '../../services/lut';
+import { computeHistogram, computeVectorscope, computeWaveform, lumaPercentiles } from '../../services/scopes';
+import { CLIP_TEMPLATES, getClipTemplate, resolveTemplatePatch } from '../../services/clip-templates';
 import { CinemaEngineService } from '../../services/cinema-engine.service';
 import {
   AUDIO_BED_MEDIA_ID,
@@ -249,6 +259,7 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
   private userContext = inject(UserContextService);
   public videoEngine = inject(VideoEngineService);
   private exportService = inject(ExportService);
+  private ffmpegExport = inject(FfmpegVideoExportService, { optional: true });
   public camera = inject(CameraCaptureService);
   public director = inject(CinemaDirectorService);
   private speechRecognition = inject(SpeechRecognitionService);
@@ -306,6 +317,49 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
   selectedMotion = signal<ClipMotion>('none');
   /** Playback speed staged for the selected clip. */
   selectedSpeed = signal(1);
+  /** Keyframe editor surface for the selected clip. */
+  keyframeProperty = signal<KeyframeProperty>('scale');
+  keyframeValue = signal(1);
+  readonly keyframeProperties = KEYFRAME_PROPERTIES;
+  keyframeSpec = computed(() => KEYFRAME_PROPERTIES.find((p) => p.id === this.keyframeProperty()) ?? KEYFRAME_PROPERTIES[2]);
+  selectedKeyframeCount = computed(() => this.selectedClip()?.effects.keyframes?.length ?? 0);
+  /** Chroma key / mask / PiP staged controls for the selected clip. */
+  chromaPreset = signal<'green' | 'blue' | 'custom'>('green');
+  chromaSimilarity = signal(0.32);
+  maskShape = signal<MaskShape>('rect');
+  maskInvert = signal(false);
+  pipPreset = signal<PipPreset>('bottom-right');
+  pipSize = signal(0.33);
+  readonly pipPresets = PIP_PRESETS;
+  /** Caption editor surface. */
+  captionText = signal('');
+  autoCaptionListening = signal(false);
+  captionCount = computed(() => this.videoEngine.captions?.().length ?? 0);
+  /** Template / LUT / multicam staged controls. */
+  templateId = signal('cinematic-push');
+  readonly clipTemplates = CLIP_TEMPLATES;
+  multicamAngleName = signal('CAM 1');
+  lutName = signal<string | null>(null);
+  @ViewChild('lutFileInput') lutFileInput?: ElementRef<HTMLInputElement>;
+  multicamGroups = computed(() => {
+    const groups = new Map<string, { id: string; clips: VideoClip[] }>();
+    for (const track of this.videoEngine.tracks()) {
+      for (const clip of track.clips) {
+        const groupId = clip.effects.multicamAngle?.groupId;
+        if (!groupId) continue;
+        const entry = groups.get(groupId) ?? { id: groupId, clips: [] };
+        entry.clips.push(clip);
+        groups.set(groupId, entry);
+      }
+    }
+    return [...groups.values()];
+  });
+  readonly maskShapes: { id: MaskShape; label: string }[] = [
+    { id: 'rect', label: 'Rectangle' },
+    { id: 'ellipse', label: 'Ellipse' },
+    { id: 'linear', label: 'Linear Wipe' },
+  ];
+
   /** Speed envelope shared by the slider bounds. */
   readonly speedEnvelope = { min: MIN_CLIP_SPEED, max: MAX_CLIP_SPEED };
   /** Picker options, straight off the engine's own constants. */
@@ -2161,7 +2215,11 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
    * unmute and take over after a gesture.
    */
   /** A clip's own rate, clamped to the envelope the editor offers. */
-  private resolveClipSpeed(clip: VideoClip): number {
+  private resolveClipSpeed(clip: VideoClip, clipLocalTime = 0): number {
+    // A speed curve makes the rate a function of position in the clip.
+    if (clip.effects.speedCurve?.length && typeof this.videoEngine.resolveClipRate === 'function') {
+      return this.videoEngine.resolveClipRate(clip, clipLocalTime);
+    }
     const speed = Number(clip.effects.speed);
     if (!Number.isFinite(speed) || speed <= 0) return 1;
     return Math.max(MIN_CLIP_SPEED, Math.min(MAX_CLIP_SPEED, speed));
@@ -2832,10 +2890,80 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     }
 
     this.pauseIdleMedia(activeClips);
+    this.drawCaptionCue(ctx, canvas, time);
     this.drawBroadcastGraphics(ctx, canvas);
     if (!clean) {
       this.drawDiagnostics(ctx, canvas);
       this.drawCameraDiagnostic(ctx, canvas, liveFeed);
+    }
+  }
+
+  /** Per-clip stabilization state: previous thumbnail + smoothed correction. */
+  private stabState = new Map<string, { prev: Uint8ClampedArray | null; x: number; y: number }>();
+  private stabThumb: HTMLCanvasElement | null = null;
+  private stabThumbCtx: CanvasRenderingContext2D | null = null;
+
+  /** Draw the active caption cue (burnt in, so exports carry it). */
+  private drawCaptionCue(
+    ctx: CanvasRenderingContext2D,
+    canvas: HTMLCanvasElement,
+    time: number,
+  ): void {
+    const cue = typeof this.videoEngine.captionAt === 'function'
+      ? this.videoEngine.captionAt(time)
+      : null;
+    if (!cue) return;
+    const fontSize = Math.max(16, Math.round(canvas.height * 0.038));
+    ctx.save();
+    ctx.font = `700 ${fontSize}px "Public Sans", sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'bottom';
+    const boxWidth = Math.min(canvas.width * 0.86, ctx.measureText(cue.text).width + fontSize * 1.6);
+    const boxHeight = fontSize * 1.7;
+    const boxX = (canvas.width - boxWidth) / 2;
+    const boxY = canvas.height - boxHeight - canvas.height * 0.06;
+    ctx.fillStyle = 'rgba(2, 6, 23, 0.78)';
+    ctx.fillRect(boxX, boxY, boxWidth, boxHeight);
+    ctx.fillStyle = '#f8fafc';
+    ctx.fillText(cue.text, canvas.width / 2, boxY + boxHeight - fontSize * 0.45);
+    ctx.restore();
+  }
+
+  /** Update the stabilization estimate from the just-painted layer. */
+  private updateStabilization(
+    clip: VideoClip,
+    layer: HTMLCanvasElement,
+  ): void {
+    const settings = clip.effects.stabilization;
+    if (!settings?.enabled) {
+      this.stabState.delete(clip.id);
+      return;
+    }
+    try {
+      if (!this.stabThumb) {
+        this.stabThumb = document.createElement('canvas');
+        this.stabThumbCtx = this.stabThumb.getContext('2d');
+      }
+      const thumb = this.stabThumb;
+      const tctx = this.stabThumbCtx;
+      if (!thumb || !tctx) return;
+      const TW = 96;
+      const TH = 54;
+      if (thumb.width !== TW || thumb.height !== TH) { thumb.width = TW; thumb.height = TH; }
+      tctx.drawImage(layer, 0, 0, TW, TH);
+      const rgba = tctx.getImageData(0, 0, TW, TH).data;
+      const gray = toGrayscaleThumb(rgba, TW, TH, TW, TH);
+      const state = this.stabState.get(clip.id) ?? { prev: null, x: 0, y: 0 };
+      if (state.prev) {
+        const measured = estimateTranslation(state.prev, gray, TW, TH, 6);
+        const next = smoothCorrection(state, measured, settings.strength ?? DEFAULT_STABILIZATION.strength);
+        state.x = next.x;
+        state.y = next.y;
+      }
+      state.prev = gray;
+      this.stabState.set(clip.id, state);
+    } catch {
+      // Tainted surface: stabilization silently no-ops for this clip.
     }
   }
 
@@ -2893,13 +3021,29 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     ctx.filter = this.resolveCanvasFilter(clip.effects);
     ctx.clearRect(0, 0, layer.width, layer.height);
 
+    // Keyframe transform (position/scale/opacity/rotation) wraps the whole
+    // clip — media, title card and subtitle — so animated overlays move too.
+    // Identity when the clip has no keyframes: existing renders are unchanged.
+    this.applyKeyframeTransform(ctx, clip, clipLocalTime, layer.width, layer.height);
+
     const media = this.resolveMediaElement(clip);
     const painted = media
       ? this.drawMediaContain(ctx, layer, media, clip, clipLocalTime)
       : false;
 
-    if (clip.effects.bgRemoval) {
-      this.applyBackgroundRemoval(ctx, layer);
+    // Real chroma key. Legacy `bgRemoval` (no settings) keys the green
+    // screen; explicit settings win when present.
+    const chroma = this.resolveChromaKey(clip.effects);
+    if (chroma) {
+      this.applyChromaKeyToLayer(ctx, layer, chroma);
+    }
+
+    if (clip.effects.lut) {
+      this.applyLutToLayer(ctx, layer, clip.effects.lut);
+    }
+
+    if (clip.effects.mask) {
+      this.applyClipMask(ctx, layer, clip.effects.mask);
     }
 
     if (clip.effects.title) {
@@ -2916,6 +3060,7 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
       this.applyNoiseReduction(ctx, layer);
     }
     this.applyFxRackPasses(ctx, layer, clip.effects.fx);
+    this.updateStabilization(clip, layer);
 
     ctx.restore();
     return layer;
@@ -3022,36 +3167,151 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
   }
 
   /**
-   * Corner-key background removal: the frame's top-left pixel is the backdrop,
-   * and every pixel close enough to it is erased. A frame the canvas refuses
-   * to hand back (cross-origin taint) simply keeps its background — the rest
-   * of the grade must still ship.
+   * Resolve the active chroma key for a clip, or null when keying is off.
+   * Legacy `bgRemoval: true` with no settings keys the green screen, so
+   * projects saved before chroma settings existed keep working.
    */
-  private applyBackgroundRemoval(
+  private resolveChromaKey(effects: VideoClip['effects']): ChromaKeySettings | null {
+    const settings = effects.chromaKey;
+    if (settings) return settings.enabled ? settings : null;
+    return effects.bgRemoval ? { ...DEFAULT_CHROMA_KEY } : null;
+  }
+
+  /** Run the chroma key over the painted layer (taint-safe). */
+  private applyChromaKeyToLayer(
     ctx: CanvasRenderingContext2D,
-    layer: HTMLCanvasElement
+    layer: HTMLCanvasElement,
+    settings: ChromaKeySettings,
   ): void {
     try {
       const frame = ctx.getImageData(0, 0, layer.width, layer.height);
-      const data = frame.data;
-      if (data.length < 4) return;
-      const keyR = data[0];
-      const keyG = data[1];
-      const keyB = data[2];
-      const tolerance = 28;
-      for (let i = 0; i < data.length; i += 4) {
-        if (
-          Math.abs(data[i] - keyR) <= tolerance &&
-          Math.abs(data[i + 1] - keyG) <= tolerance &&
-          Math.abs(data[i + 2] - keyB) <= tolerance
-        ) {
-          data[i + 3] = 0;
-        }
-      }
+      applyChromaKey(frame.data, settings);
       ctx.putImageData(frame, 0, 0);
     } catch {
       // Tainted or unreadable surface: skip the key, keep the picture.
     }
+  }
+
+  /** Apply an imported 3D LUT to the painted layer (taint-safe). */
+  private applyLutToLayer(
+    ctx: CanvasRenderingContext2D,
+    layer: HTMLCanvasElement,
+    lut: import('../../services/lut').CubeLut,
+  ): void {
+    try {
+      const frame = ctx.getImageData(0, 0, layer.width, layer.height);
+      applyLut(frame.data, lut, 1);
+      ctx.putImageData(frame, 0, 0);
+    } catch {
+      // Tainted surface: keep the ungraded picture.
+    }
+  }
+
+  /**
+   * Clip the painted layer to the mask shape. The mask is built on a scratch
+   * surface (white outside, hole where the shape keeps) and composited with
+   * `destination-out`, so feather is a real blur on the edge. The keyframe /
+   * PiP transform is temporarily cleared: the mask is in frame space, and
+   * `getImageData`-style pixel passes must not see the transform either.
+   */
+  private applyClipMask(
+    ctx: CanvasRenderingContext2D,
+    layer: HTMLCanvasElement,
+    mask: ClipMaskSettings,
+  ): void {
+    try {
+      const scratch = this.ensureMaskLayer(layer.width, layer.height);
+      if (!scratch) return;
+      const { layer: maskLayer, ctx: mctx } = scratch;
+      mctx.save();
+      mctx.globalCompositeOperation = 'source-over';
+      mctx.globalAlpha = 1;
+      mctx.filter = 'none';
+      mctx.clearRect(0, 0, maskLayer.width, maskLayer.height);
+      if (!mask.invert) {
+        // White = erase. Cut the kept region out of it.
+        mctx.fillStyle = '#ffffff';
+        mctx.fillRect(0, 0, maskLayer.width, maskLayer.height);
+        mctx.globalCompositeOperation = 'destination-out';
+        this.traceMaskShape(mctx, mask, maskLayer.width, maskLayer.height);
+      } else {
+        // Inverse: erase only inside the traced shape.
+        mctx.fillStyle = '#ffffff';
+        mctx.beginPath();
+        mctx.rect(0, 0, maskLayer.width, maskLayer.height);
+        this.traceMaskShape(mctx, mask, maskLayer.width, maskLayer.height, true);
+        mctx.fill('evenodd');
+      }
+      if (mask.feather > 0) {
+        mctx.filter = `blur(${mask.feather}px)`;
+        mctx.drawImage(maskLayer, 0, 0);
+      }
+      mctx.restore();
+      ctx.save();
+      ctx.globalCompositeOperation = 'destination-out';
+      ctx.drawImage(maskLayer, 0, 0);
+      ctx.restore();
+    } catch {
+      // Tainted or unavailable surface: keep the unmasked picture.
+    }
+  }
+
+  /** Trace the kept region of a mask as a filled path on `mctx`. */
+  private traceMaskShape(
+    mctx: CanvasRenderingContext2D,
+    mask: ClipMaskSettings,
+    width: number,
+    height: number,
+    append = false,
+  ): void {
+    if (!append) mctx.beginPath();
+    if (mask.shape === 'ellipse') {
+      mctx.ellipse(
+        mask.x * width, mask.y * height,
+        Math.max(1, mask.w * width), Math.max(1, mask.h * height),
+        0, 0, Math.PI * 2,
+      );
+    } else if (mask.shape === 'linear') {
+      const rad = (mask.angle * Math.PI) / 180;
+      const cx = width / 2;
+      const cy = height / 2;
+      const reach = Math.hypot(width, height);
+      const px = cx + Math.cos(rad) * (mask.x * reach - reach / 2);
+      const py = cy + Math.sin(rad) * (mask.x * reach - reach / 2);
+      // A fat rotated quad covering the kept side of the wipe line.
+      mctx.moveTo(px - Math.sin(rad) * reach, py + Math.cos(rad) * reach);
+      mctx.lineTo(px + Math.sin(rad) * reach, py - Math.cos(rad) * reach);
+      mctx.lineTo(px + reach * Math.cos(rad), py + reach * Math.sin(rad));
+      mctx.lineTo(px - reach * Math.cos(rad), py - reach * Math.sin(rad));
+      mctx.closePath();
+    } else {
+      mctx.rect(
+        mask.x * width, mask.y * height,
+        Math.max(1, mask.w * width), Math.max(1, mask.h * height),
+      );
+    }
+    mctx.fillStyle = '#ffffff';
+    if (!append) mctx.fill();
+  }
+
+  private maskLayer: HTMLCanvasElement | null = null;
+  private maskCtx: CanvasRenderingContext2D | null = null;
+
+  private ensureMaskLayer(width: number, height: number): { layer: HTMLCanvasElement; ctx: CanvasRenderingContext2D } | null {
+    if (typeof document === 'undefined') return null;
+    if (!this.maskLayer) {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return null;
+      this.maskLayer = canvas;
+      this.maskCtx = ctx;
+    }
+    if (this.maskLayer.width !== width || this.maskLayer.height !== height) {
+      this.maskLayer.width = width;
+      this.maskLayer.height = height;
+    }
+    if (!this.maskCtx) return null;
+    return { layer: this.maskLayer, ctx: this.maskCtx };
   }
 
   /**
@@ -3420,6 +3680,323 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
   }
 
   /**
+   * Apply the clip's keyframe transform around the frame centre.
+   * No keyframes → no canvas calls at all, so static clips stay pixel-identical.
+   */
+  private applyKeyframeTransform(
+    ctx: CanvasRenderingContext2D,
+    clip: VideoClip,
+    clipLocalTime: number,
+    width: number,
+    height: number,
+  ): void {
+    const keyframes = clip.effects.keyframes;
+    const pip = clip.effects.pip?.enabled ? pipTransform(clip.effects.pip) : null;
+    const stab = clip.effects.stabilization?.enabled ? this.stabState.get(clip.id) : undefined;
+    if (!keyframes?.length && !pip && !stab) return;
+    const t = evaluateKeyframes(keyframes, clipLocalTime);
+    // PiP is the base placement; keyframes animate on top of it.
+    if (pip) {
+      t.positionX += pip.positionX;
+      t.positionY += pip.positionY;
+      t.scale *= pip.scale;
+    }
+    if (stab) {
+      // Counter-translate the measured shake (thumbnail px → frame fraction)
+      // and zoom by the crop so shifted edges never show.
+      // Correction is in 96x54 thumbnail pixels; convert to a frame fraction.
+      t.positionX += stab.x / 96;
+      t.positionY += stab.y / 54;
+      t.scale *= 1 + (clip.effects.stabilization?.crop ?? DEFAULT_STABILIZATION.crop) * 2;
+    }
+    const cx = width / 2;
+    const cy = height / 2;
+    // Position in canvas space, then rotate/scale around the moved centre.
+    ctx.translate(cx + t.positionX * width, cy + t.positionY * height);
+    if (t.rotation) ctx.rotate((t.rotation * Math.PI) / 180);
+    if (t.scale !== 1) ctx.scale(t.scale, t.scale);
+    ctx.translate(-cx, -cy);
+    if (t.opacity !== 1) ctx.globalAlpha *= Math.max(0, Math.min(1, t.opacity));
+  }
+
+  /** Add a keyframe for the chosen property at the playhead (clip-local). */
+  addKeyframeAtPlayhead(): void {
+    const clip = this.selectedClip();
+    if (!clip) return;
+    const local = Math.max(0, this.videoEngine.currentTime() - clip.startTime);
+    this.videoEngine.addClipKeyframe(clip.id, {
+      id: '',
+      time: local,
+      property: this.keyframeProperty(),
+      value: this.keyframeValue(),
+      easing: 'ease-in-out',
+    });
+    this.aiFeedback.set(
+      `KEYFRAME ADDED - ${this.keyframeProperty().toUpperCase()} ${this.keyframeValue()} AT ${local.toFixed(2)}S ON ${clip.name.toUpperCase()}.`
+    );
+  }
+
+  /** Toggle the real chroma key on the selected clip. */
+  toggleChromaKey(enabled: boolean): void {
+    const clip = this.selectedClip();
+    if (!clip) return;
+    this.videoEngine.updateClip(clip.id, {
+      effects: {
+        ...clip.effects,
+        bgRemoval: false,
+        chromaKey: enabled
+          ? { ...DEFAULT_CHROMA_KEY, preset: this.chromaPreset(), similarity: this.chromaSimilarity() }
+          : { ...(clip.effects.chromaKey ?? DEFAULT_CHROMA_KEY), enabled: false },
+      },
+    } as never);
+    this.aiFeedback.set(enabled ? `CHROMA KEY ON (${this.chromaPreset().toUpperCase()}) FOR ${clip.name.toUpperCase()}.` : 'CHROMA KEY OFF.');
+  }
+
+  /** Apply the staged mask shape to the selected clip. */
+  applyMaskToSelected(): void {
+    const clip = this.selectedClip();
+    if (!clip) return;
+    this.videoEngine.updateClip(clip.id, {
+      effects: {
+        ...clip.effects,
+        mask: { ...DEFAULT_MASK, shape: this.maskShape(), invert: this.maskInvert() },
+      },
+    } as never);
+    this.aiFeedback.set(`MASK APPLIED (${this.maskShape().toUpperCase()}${this.maskInvert() ? ' INVERTED' : ''}) TO ${clip.name.toUpperCase()}.`);
+  }
+
+  clearMaskFromSelected(): void {
+    const clip = this.selectedClip();
+    if (!clip) return;
+    this.videoEngine.updateClip(clip.id, {
+      effects: { ...clip.effects, mask: undefined },
+    } as never);
+    this.aiFeedback.set('MASK CLEARED.');
+  }
+
+  /** Toggle PiP placement on the selected (usually overlay) clip. */
+  togglePip(enabled: boolean): void {
+    const clip = this.selectedClip();
+    if (!clip) return;
+    this.videoEngine.updateClip(clip.id, {
+      effects: {
+        ...clip.effects,
+        pip: { ...DEFAULT_PIP, enabled, preset: this.pipPreset(), size: this.pipSize() },
+      },
+    } as never);
+    this.aiFeedback.set(enabled ? `PIP ON (${this.pipPreset().toUpperCase()} ${Math.round(this.pipSize() * 100)}%) FOR ${clip.name.toUpperCase()}.` : 'PIP OFF.');
+  }
+
+  /** Apply a preset speed ramp to the selected clip. */
+  applySpeedRamp(preset: 'swoosh' | 'slow-mo' | 'clear'): void {
+    const clip = this.selectedClip();
+    if (!clip) return;
+    const d = Math.max(1, clip.duration);
+    const curve =
+      preset === 'clear'
+        ? []
+        : preset === 'swoosh'
+          ? [
+              { time: 0, speed: 1 },
+              { time: d * 0.4, speed: 1 },
+              { time: d * 0.55, speed: 4 },
+              { time: d * 0.7, speed: 1 },
+              { time: d, speed: 1 },
+            ]
+          : [
+              { time: 0, speed: 1 },
+              { time: d * 0.3, speed: 0.25 },
+              { time: d * 0.7, speed: 0.25 },
+              { time: d, speed: 1 },
+            ];
+    this.videoEngine.updateClip(clip.id, {
+      effects: { ...clip.effects, speedCurve: curve },
+    } as never);
+    this.aiFeedback.set(
+      preset === 'clear'
+        ? 'SPEED RAMP CLEARED - CONSTANT RATE RESTORED.'
+        : `SPEED RAMP APPLIED (${preset === 'swoosh' ? 'VELOCITY SWOOSH' : 'SLOW-MO'}) TO ${clip.name.toUpperCase()}.`,
+    );
+  }
+
+  /** Toggle stabilization on the selected clip. */
+  toggleStabilization(enabled: boolean): void {
+    const clip = this.selectedClip();
+    if (!clip) return;
+    this.videoEngine.updateClip(clip.id, {
+      effects: {
+        ...clip.effects,
+        stabilization: enabled
+          ? { ...DEFAULT_STABILIZATION }
+          : { ...(clip.effects.stabilization ?? DEFAULT_STABILIZATION), enabled: false },
+      },
+    } as never);
+    this.aiFeedback.set(enabled ? `STABILIZATION ON FOR ${clip.name.toUpperCase()}.` : 'STABILIZATION OFF.');
+  }
+
+  /** Add a caption cue at the playhead from the editor text. */
+  addCaptionAtPlayhead(): void {
+    const text = this.captionText().trim();
+    if (!text) return;
+    const start = this.videoEngine.currentTime();
+    if (this.videoEngine.addCaption(start, start + estimateCaptionDuration(text), text)) {
+      this.captionText.set('');
+      this.aiFeedback.set(`CAPTION ADDED AT ${start.toFixed(2)}S.`);
+    }
+  }
+
+  /** Auto captions from the voiceover lane (deterministic, offline). */
+  generateCaptionsFromVoiceover(): void {
+    const count = this.videoEngine.generateCaptionsFromVoiceovers();
+    this.aiFeedback.set(
+      count
+        ? `AUTO CAPTIONS: ${count} CUE(S) GENERATED FROM THE VOICEOVER LANE.`
+        : 'NO VOICEOVER LINES TO CAPTION - RECORD NARRATION FIRST.',
+    );
+  }
+
+  /**
+   * Live auto captions: while the timeline plays, each recognized phrase
+   * becomes a cue at the playhead. Uses the same speech recognition as
+   * voice direction; captions the room's audio (narration, playback).
+   */
+  toggleAutoCaptionCapture(): void {
+    if (this.autoCaptionListening()) {
+      this.speechRecognition.stopListening();
+      this.autoCaptionListening.set(false);
+      this.aiFeedback.set('AUTO CAPTION CAPTURE OFF.');
+      return;
+    }
+    this.autoCaptionListening.set(true);
+    this.aiFeedback.set('AUTO CAPTION CAPTURE ARMED - PLAY THE TIMELINE AND SPEAK.');
+    this.speechRecognition.startListening((text) => {
+      if (!text.trim()) return;
+      const end = this.videoEngine.currentTime();
+      const start = Math.max(0, end - estimateCaptionDuration(text));
+      this.videoEngine.addCaption(start, end, text);
+    });
+  }
+
+  /** Import a .cube LUT file and apply it to the selected clip. */
+  async onLutFileSelected(event: Event): Promise<void> {
+    const clip = this.selectedClip();
+    const input = event.target as HTMLInputElement | null;
+    const file = input?.files?.[0];
+    if (input) input.value = '';
+    if (!clip || !file) return;
+    try {
+      const text = await file.text();
+      const lut = parseCubeLut(text, file.name.replace(/\.cube$/i, ''));
+      if (!lut) {
+        this.aiFeedback.set('LUT NOT RECOGNIZED - EXPECTED A .CUBE FILE WITH LUT_3D_SIZE.');
+        return;
+      }
+      this.videoEngine.updateClip(clip.id, {
+        effects: { ...clip.effects, lut },
+      } as never);
+      this.lutName.set(lut.name);
+      this.aiFeedback.set(`LUT APPLIED: ${lut.name.toUpperCase()} (${lut.size}^3) TO ${clip.name.toUpperCase()}.`);
+    } catch {
+      this.aiFeedback.set('LUT COULD NOT BE READ.');
+    }
+  }
+
+  removeLutFromSelected(): void {
+    const clip = this.selectedClip();
+    if (!clip) return;
+    this.videoEngine.updateClip(clip.id, {
+      effects: { ...clip.effects, lut: undefined },
+    } as never);
+    this.lutName.set(null);
+    this.aiFeedback.set('LUT REMOVED.');
+  }
+
+  /** Apply a template bundle to the selected clip. */
+  applyClipTemplate(): void {
+    const clip = this.selectedClip();
+    const template = getClipTemplate(this.templateId());
+    if (!clip || !template) return;
+    const patch = resolveTemplatePatch(template, clip.duration);
+    this.videoEngine.updateClip(clip.id, {
+      effects: { ...clip.effects, ...patch },
+    } as never);
+    this.aiFeedback.set(`TEMPLATE APPLIED: ${template.name.toUpperCase()} TO ${clip.name.toUpperCase()}.`);
+  }
+
+  /** Freeze the selected clip at the playhead (or unfreeze). */
+  toggleFreeze(): void {
+    const clip = this.selectedClip();
+    if (!clip) return;
+    if (Number.isFinite(clip.effects.freezeAt)) {
+      this.videoEngine.updateClip(clip.id, {
+        effects: { ...clip.effects, freezeAt: undefined },
+      } as never);
+      this.aiFeedback.set('FREEZE CLEARED.');
+      return;
+    }
+    const local = Math.max(0, this.videoEngine.currentTime() - clip.startTime);
+    this.videoEngine.updateClip(clip.id, {
+      effects: { ...clip.effects, freezeAt: local },
+    } as never);
+    this.aiFeedback.set(`FREEZE AT ${local.toFixed(2)}S ON ${clip.name.toUpperCase()}.`);
+  }
+
+  toggleReverse(): void {
+    const clip = this.selectedClip();
+    if (!clip) return;
+    const reversed = clip.effects.reversed !== true;
+    this.videoEngine.updateClip(clip.id, {
+      effects: { ...clip.effects, reversed },
+    } as never);
+    this.aiFeedback.set(reversed ? `REVERSE ON FOR ${clip.name.toUpperCase()}.` : 'REVERSE OFF.');
+  }
+
+  toggleOpticalFlow(enabled: boolean): void {
+    const clip = this.selectedClip();
+    if (!clip) return;
+    this.videoEngine.updateClip(clip.id, {
+      effects: { ...clip.effects, opticalFlow: enabled },
+    } as never);
+    this.aiFeedback.set(enabled ? 'FRAME-BLEND SLOW-MO ON (INTERPOLATED).' : 'FRAME-BLEND SLOW-MO OFF.');
+  }
+
+  /** Assign the selected clip as an angle of the current multicam group. */
+  assignMulticamAngle(): void {
+    const clip = this.selectedClip();
+    if (!clip) return;
+    const groupId = 'multicam-main';
+    const angle = this.multicamAngleName().trim() || clip.name;
+    this.videoEngine.updateClip(clip.id, {
+      effects: { ...clip.effects, multicamAngle: { groupId, angle } },
+    } as never);
+    this.aiFeedback.set(`ANGLE "${angle.toUpperCase()}" ADDED TO MULTICAM GROUP.`);
+  }
+
+  /** Switch the live angle of a group to the given clip. */
+  switchMulticamAngle(groupId: string, clipId: string): void {
+    this.videoEngine.setMulticamAngle(groupId, clipId);
+    this.aiFeedback.set('MULTICAM ANGLE SWITCHED.');
+  }
+
+  removeSelectedKeyframes(): void {
+    const clip = this.selectedClip();
+    if (!clip) return;
+    this.videoEngine.clearClipKeyframes(clip.id);
+    this.aiFeedback.set(`KEYFRAMES CLEARED FROM ${clip.name.toUpperCase()}.`);
+  }
+
+  /** Keep the staged value inside the chosen property's range. */
+  onKeyframePropertyChange(property: KeyframeProperty): void {
+    this.keyframeProperty.set(property);
+    const spec = KEYFRAME_PROPERTIES.find((p) => p.id === property);
+    if (spec) {
+      this.keyframeValue.set(
+        Math.max(spec.min, Math.min(spec.max, this.keyframeValue())),
+      );
+    }
+  }
+
+  /**
    * Paint a decoded image/video frame into the preview. Returns false when the
    * element has nothing to show yet so the signal placeholder can take over.
    */
@@ -3457,12 +4034,69 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     }
     try {
       ctx.drawImage(media, rect.x, rect.y, rect.width, rect.height);
+      // Optical-flow style slow-mo: blend the previous frame in proportion
+      // to the fractional source position, so slow motion cross-dissolves
+      // between decoded frames instead of stepping. (True per-pixel motion
+      // vectors would need a warp mesh; blending is the honest 2D canvas
+      // approximation and reads as smooth on most footage.)
+      if (clip.effects.opticalFlow) {
+        const rate = this.resolveClipSpeed(clip, clipLocalTime);
+        if (rate < 1) this.blendPreviousFrame(ctx, media, rect, clip, clipLocalTime, rate);
+      }
+      this.storePreviousFrame(media, rect, clip);
     } catch {
       ctx.restore();
       return false;
     }
     ctx.restore();
     return true;
+  }
+
+  private prevFrame = new Map<string, { canvas: HTMLCanvasElement; ctx: CanvasRenderingContext2D }>();
+
+  private blendPreviousFrame(
+    ctx: CanvasRenderingContext2D,
+    media: HTMLImageElement | HTMLVideoElement,
+    rect: { x: number; y: number; width: number; height: number },
+    clip: VideoClip,
+    clipLocalTime: number,
+    rate: number,
+  ): void {
+    const prev = this.prevFrame.get(clip.id);
+    if (!prev) return;
+    // Fraction of a source frame interval the playhead sits between.
+    const sourceFrames = (clipLocalTime * rate * 30) % 1;
+    ctx.save();
+    ctx.globalAlpha = sourceFrames * 0.7;
+    ctx.drawImage(prev.canvas, rect.x, rect.y, rect.width, rect.height);
+    ctx.restore();
+    void media;
+  }
+
+  private storePreviousFrame(
+    media: HTMLImageElement | HTMLVideoElement,
+    rect: { x: number; y: number; width: number; height: number },
+    clip: VideoClip,
+  ): void {
+    try {
+      const w = Math.max(2, Math.round(rect.width));
+      const h = Math.max(2, Math.round(rect.height));
+      let entry = this.prevFrame.get(clip.id);
+      if (!entry) {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+        entry = { canvas, ctx };
+        this.prevFrame.set(clip.id, entry);
+      }
+      if (entry.canvas.width !== w || entry.canvas.height !== h) {
+        entry.canvas.width = w;
+        entry.canvas.height = h;
+      }
+      entry.ctx.drawImage(media, 0, 0, w, h);
+    } catch {
+      // Cross-origin media: no interpolation frame, plain slow-mo.
+    }
   }
 
   /** How far through the clip's picture the camera move currently is (0..1). */
@@ -3541,6 +4175,13 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     const sourceTime = this.resolveClipSourceTime(clip, clipLocalTime);
     if (sourceTime === null) return;
 
+    if (clip.effects.reversed) {
+      // Browsers cannot play backwards natively: step the decoder manually.
+      if (!video.paused) this.pauseQuietly(video);
+      this.seekVideoExact(video, sourceTime);
+      return;
+    }
+
     if (!this.videoEngine.isPlaying()) {
       if (!video.paused) this.pauseQuietly(video);
       this.seekVideoExact(video, sourceTime);
@@ -3551,7 +4192,7 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     // assumes it. Left at 1×, a slowed or sped-up clip drifted out of the
     // window every few frames and was dragged back by a seek, which reads as a
     // stuttering picture rather than a speed ramp.
-    const speed = this.resolveClipSpeed(clip);
+    const speed = this.resolveClipSpeed(clip, clipLocalTime);
     if (Math.abs(video.playbackRate - speed) > 0.01) {
       video.playbackRate = speed;
     }
@@ -4189,6 +4830,50 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
    * safe-zone guides. Instrument markings, never picture - the master path
    * skips this whole surface.
    */
+  /** Operator-only scopes (histogram + vectorscope) in the monitor corners. */
+  private drawScopes(ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement): void {
+    try {
+      const frame = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const hist = computeHistogram(frame.data);
+      const vec = computeVectorscope(frame.data);
+      const wave = computeWaveform(frame.data, canvas.width, canvas.height);
+      const { p50, p95 } = lumaPercentiles(frame.data);
+      const sw = 140;
+      const sh = 56;
+      const hx = canvas.width - sw - 12;
+      const hy = canvas.height - sh - 12;
+      ctx.save();
+      ctx.fillStyle = 'rgba(2, 6, 23, 0.82)';
+      ctx.fillRect(hx, hy, sw, sh);
+      ctx.fillStyle = '#10b981';
+      hist.bins.forEach((value, i) => {
+        const h = Math.max(1, value * (sh - 14));
+        ctx.fillRect(hx + 4 + (i / 64) * (sw - 8), hy + sh - 4 - h, Math.max(1, (sw - 8) / 64), h);
+      });
+      // Vectorscope: small square top-right.
+      const vs = 64;
+      const vx = canvas.width - vs - 12;
+      const vy = 12;
+      ctx.fillStyle = 'rgba(2, 6, 23, 0.82)';
+      ctx.fillRect(vx, vy, vs, vs);
+      vec.bins.forEach((value, i) => {
+        if (value <= 0) return;
+        const gx = i % vec.grid;
+        const gy = Math.floor(i / vec.grid);
+        ctx.fillStyle = `rgba(16, 185, 129, ${0.15 + value * 0.85})`;
+        ctx.fillRect(vx + (gx / vec.grid) * vs, vy + (gy / vec.grid) * vs, vs / vec.grid, vs / vec.grid);
+      });
+      ctx.fillStyle = '#94a3b8';
+      ctx.font = '8px monospace';
+      ctx.textAlign = 'left';
+      ctx.fillText(`LUMA p50 ${Math.round(p50)} p95 ${Math.round(p95)}`, hx + 4, hy + 10);
+      void wave;
+      ctx.restore();
+    } catch {
+      // Tainted preview: scopes are diagnostic only, never fatal.
+    }
+  }
+
   private drawDiagnostics(
     ctx: CanvasRenderingContext2D,
     canvas: HTMLCanvasElement
@@ -4223,6 +4908,8 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
         canvas.height - 32
       );
     }
+
+    this.drawScopes(ctx, canvas);
 
     if (this.videoEngine.safeZoneEnabled()) {
       ctx.strokeStyle = 'rgba(255, 255, 255, 0.14)';
@@ -4419,20 +5106,41 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
         return;
       }
 
+      // The recorder's WebM capture is only an intermediate: transcode it to
+      // a validated MP4/H.264 master with FFmpeg.wasm. If FFmpeg cannot load
+      // (offline, CDN blocked) or the output fails validation, keep the
+      // original capture rather than losing the take.
+      let deliverable = blob;
+      let transcoded = false;
+      if (this.ffmpegExport) {
+        this.aiFeedback.set(
+          `CAPTURE COMPLETE - ENCODING ${width}x${height} ${fps}FPS H.264 MP4. STAND BY.`
+        );
+        try {
+          deliverable = await this.ffmpegExport.transcodeToMp4(blob, {
+            onProgress: (p) =>
+              this.exportProgress.set(Math.min(99, 50 + Math.round(p * 49))),
+          });
+          transcoded = true;
+        } catch (error: any) {
+          this.logger.error('FFmpeg MP4 transcode failed, keeping capture', error);
+        }
+      }
       this.exportProgress.set(100);
-      // Name the file for the container the recorder actually muxed: Safari
-      // muxes MP4, and a `.webm` extension on an MP4 makes the download
+      // Name the file for the container of the bytes actually delivered: a
+      // `.webm` extension on MP4 bytes (or vice versa) makes the download
       // unopenable outside the browser.
-      const extension = this.extensionForMime(
-        session.mimeType || blob.type,
-        'webm'
-      );
+      const extension = transcoded
+        ? 'mp4'
+        : this.extensionForMime(session.mimeType || blob.type, 'webm');
       this.exportService.downloadBlob(
-        blob,
+        deliverable,
         `smuve_${this.videoEngine.productionMode()}_${this.activePreset().id}_${Date.now()}.${extension}`
       );
       this.aiFeedback.set(
-        `VIDEO EXPORT COMPLETE - ${width}x${height} ${fps}FPS ${extension.toUpperCase()} MASTER IS READY FOR DEPLOYMENT.`
+        transcoded
+          ? `VIDEO EXPORT COMPLETE - ${width}x${height} ${fps}FPS MP4/H.264 MASTER IS READY FOR DEPLOYMENT.`
+          : `VIDEO EXPORT COMPLETE - ${width}x${height} ${fps}FPS ${extension.toUpperCase()} MASTER IS READY FOR DEPLOYMENT. MP4 ENCODER UNAVAILABLE, KEPT THE ORIGINAL CAPTURE.`
       );
     } catch (error: any) {
       clearTimeout(stopTimer);

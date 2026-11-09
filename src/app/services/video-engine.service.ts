@@ -56,6 +56,29 @@ export type ClipMotion =
   | 'pan-left'
   | 'pan-right';
 
+/** Keyframe animation, evaluated per frame by the lab's renderer. */
+export type { ClipKeyframe, ClipTransformState, KeyframeProperty, KeyframeEasing } from './clip-keyframes';
+export type { ChromaKeySettings } from './chroma-key';
+export { sanitizeChromaKey } from './chroma-key';
+import { sanitizeChromaKey } from './chroma-key';
+export type { ClipMaskSettings, PipSettings, PipPreset, MaskShape } from './clip-mask';
+export { sanitizeMask, sanitizePip, pipTransform } from './clip-mask';
+import { sanitizeMask, sanitizePip } from './clip-mask';
+export type { SpeedCurvePoint } from './speed-curve';
+export { sanitizeSpeedCurve, evaluateSpeedCurve, sourceSecondsForClipTime } from './speed-curve';
+import { sanitizeSpeedCurve, evaluateSpeedCurve, sourceSecondsForClipTime } from './speed-curve';
+export type { StabilizationSettings } from './video-stabilization';
+export { sanitizeStabilization } from './video-stabilization';
+import { sanitizeStabilization } from './video-stabilization';
+export type { CaptionCue } from './clip-captions';
+export { sanitizeCaptions, captionAt, estimateCaptionDuration } from './clip-captions';
+import { sanitizeCaptions } from './clip-captions';
+export type { CubeLut } from './lut';
+export { sanitizeLut } from './lut';
+import { sanitizeLut } from './lut';
+export { evaluateKeyframes, sanitizeKeyframes, addKeyframe, removeKeyframe } from './clip-keyframes';
+import { evaluateKeyframes, sanitizeKeyframes, addKeyframe, removeKeyframe } from './clip-keyframes';
+
 /** How a title card is drawn on the program monitor. */
 export type TitleStyle = 'title-card' | 'lower-third' | 'caption' | 'centered';
 
@@ -220,6 +243,29 @@ export interface VideoClip {
     speed: number;
     /** Non-destructive FX rack applied after the base grade. */
     fx: ClipEffect[];
+    /** Timed transform animation (position/scale/opacity/rotation). */
+    keyframes?: import('./clip-keyframes').ClipKeyframe[];
+    /** Real chroma key (green/blue screen). Legacy `bgRemoval` enables the
+     * green preset when this is unset. */
+    chromaKey?: import('./chroma-key').ChromaKeySettings;
+    /** Shape mask clipping what this clip shows. */
+    mask?: import('./clip-mask').ClipMaskSettings;
+    /** Picture-in-picture placement for overlay clips. */
+    pip?: import('./clip-mask').PipSettings;
+    /** Speed ramp: piecewise-linear rate over the clip's own time. */
+    speedCurve?: import('./speed-curve').SpeedCurvePoint[];
+    /** Digital stabilization by translation estimation. */
+    stabilization?: import('./video-stabilization').StabilizationSettings;
+    /** Imported 3D LUT applied after the base grade. */
+    lut?: import('./lut').CubeLut;
+    /** Freeze frame at this clip-local time (seconds), when set. */
+    freezeAt?: number;
+    /** Play the clip backwards from its end. */
+    reversed?: boolean;
+    /** Frame-blend interpolation for slow motion (optical-flow style). */
+    opticalFlow?: boolean;
+    /** Multicam: which angle group this clip belongs to. */
+    multicamAngle?: { groupId: string; angle: string };
     /** Title card burnt into the feed when this clip is an overlay title. */
     title?: TitleCard;
     /** Narration line when this clip is a voiceover. */
@@ -283,6 +329,7 @@ export interface CinemaSnapshot {
   snapToBeat: boolean;
   lowerThird: LowerThird;
   markers: SceneMarker[];
+  captions?: import('./clip-captions').CaptionCue[];
   tracks: VideoTrack[];
   /** The imported music/voice bed, or null when the cut plays bare. */
   audioOverlay: CinemaAudioBedMeta | null;
@@ -326,6 +373,7 @@ export const createDefaultEffects = (
   motion: 'none',
   speed: 1,
   fx: [],
+  keyframes: [],
   ...overrides,
 });
 
@@ -576,6 +624,13 @@ const DELIVERY_PRESETS: DeliveryPreset[] = [
   },
 ];
 
+function sortCaptionsLocal(cues: import('./clip-captions').CaptionCue[]): import('./clip-captions').CaptionCue[] {
+  return [...cues].sort((a, b) => a.start - b.start || a.end - b.end);
+}
+function captionAtLocal(cues: import('./clip-captions').CaptionCue[], time: number): import('./clip-captions').CaptionCue | null {
+  return cues.find((cue) => time >= cue.start && time < cue.end) ?? null;
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -604,6 +659,10 @@ export class VideoEngineService {
   // ── Scene / act / section markers ──────────────────────────────────────
 
   markers = signal<SceneMarker[]>([]);
+  captions = signal<import('./clip-captions').CaptionCue[]>([]);
+  /** Multicam: active angle clip id per group. */
+  multicamActive = signal<Record<string, string>>({});
+
   sortedMarkers = computed(() =>
     [...this.markers()].sort((a, b) => a.time - b.time)
   );
@@ -677,6 +736,69 @@ export class VideoEngineService {
         clips: t.clips.filter((c) => c.id !== clipId),
       }))
     );
+  }
+
+  /** Add/replace a keyframe on a clip at a clip-local time. */
+  addClipKeyframe(clipId: string, keyframe: import('./clip-keyframes').ClipKeyframe): boolean {
+    let found = false;
+    this.tracks.update((tracks) =>
+      tracks.map((track) => ({
+        ...track,
+        clips: track.clips.map((clip) => {
+          if (clip.id !== clipId) return clip;
+          found = true;
+          return {
+            ...clip,
+            effects: {
+              ...clip.effects,
+              keyframes: addKeyframe(clip.effects.keyframes, keyframe, clip.duration),
+            },
+          };
+        }),
+      })),
+    );
+    return found;
+  }
+
+  removeClipKeyframe(clipId: string, keyframeId: string): boolean {
+    let found = false;
+    this.tracks.update((tracks) =>
+      tracks.map((track) => ({
+        ...track,
+        clips: track.clips.map((clip) => {
+          if (clip.id !== clipId) return clip;
+          found = true;
+          return {
+            ...clip,
+            effects: {
+              ...clip.effects,
+              keyframes: removeKeyframe(clip.effects.keyframes, keyframeId),
+            },
+          };
+        }),
+      })),
+    );
+    return found;
+  }
+
+  clearClipKeyframes(clipId: string): boolean {
+    let found = false;
+    this.tracks.update((tracks) =>
+      tracks.map((track) => ({
+        ...track,
+        clips: track.clips.map((clip) => {
+          if (clip.id !== clipId) return clip;
+          found = true;
+          return { ...clip, effects: { ...clip.effects, keyframes: [] } };
+        }),
+      })),
+    );
+    return found;
+  }
+
+  /** Resolved transform for a clip at a clip-local time (identity when none). */
+  getClipTransform(clip: VideoClip, clipLocalTime: number): import('./clip-keyframes').ClipTransformState {
+    return evaluateKeyframes(clip.effects.keyframes, clipLocalTime);
   }
 
   updateClip(clipId: string, patch: Partial<VideoClip>) {
@@ -1087,12 +1209,32 @@ export class VideoEngineService {
    * head trim.
    */
   resolveSourceTime(clip: VideoClip, clipLocalTime: number): number {
-    const speed = this.clampSpeed(clip.effects.speed);
     const trimStart = Math.max(0, clip.effects.trimStart || 0);
-    return Math.max(
-      0,
-      (clip.offset || 0) + trimStart + clipLocalTime * speed
-    );
+    const trimEnd = Math.max(0, clip.effects.trimEnd || 0);
+    const activeDuration = Math.max(0.05, clip.duration - trimStart - trimEnd);
+    // Freeze: hold the frame at the freeze point for the rest of the clip.
+    // Negative locals (scrubbing before the picture) still map back through
+    // the head trim; only a freeze clamps the local time.
+    const local = Number.isFinite(clip.effects.freezeAt)
+      ? Math.min(Math.max(0, clipLocalTime), Math.max(0, clip.effects.freezeAt as number))
+      : clipLocalTime;
+    // A speed curve integrates its ramp; a constant rate is the special case.
+    const consumed = clip.effects.speedCurve?.length
+      ? sourceSecondsForClipTime(clip.effects.speedCurve, local, this.clampSpeed(clip.effects.speed))
+      : local * this.clampSpeed(clip.effects.speed);
+    // Reverse: play the active span backwards from its end.
+    if (clip.effects.reversed) {
+      const span = Math.max(0, activeDuration * this.clampSpeed(clip.effects.speed));
+      return Math.max(0, (clip.offset || 0) + trimStart + (span - consumed));
+    }
+    return Math.max(0, (clip.offset || 0) + trimStart + consumed);
+  }
+
+  /** Instantaneous rate for a clip at a clip-local time (for playbackRate). */
+  resolveClipRate(clip: VideoClip, clipLocalTime: number): number {
+    return clip.effects.speedCurve?.length
+      ? evaluateSpeedCurve(clip.effects.speedCurve, clipLocalTime, this.clampSpeed(clip.effects.speed))
+      : this.clampSpeed(clip.effects.speed);
   }
 
   private mintClipId(): string {
@@ -1289,7 +1431,31 @@ export class VideoEngineService {
         }
       });
     });
-    return active;
+    // Multicam: when several angles of one group are live at once, only the
+    // selected angle plays (default: the first angle in the group).
+    const groups = new Map<string, VideoClip[]>();
+    for (const clip of active) {
+      const groupId = clip.effects.multicamAngle?.groupId;
+      if (!groupId) continue;
+      const list = groups.get(groupId) ?? [];
+      list.push(clip);
+      groups.set(groupId, list);
+    }
+    if (!groups.size) return active;
+    const selected = this.multicamActive();
+    return active.filter((clip) => {
+      const groupId = clip.effects.multicamAngle?.groupId;
+      if (!groupId) return true;
+      const list = groups.get(groupId)!;
+      if (list.length <= 1) return true;
+      const chosen = selected[groupId];
+      return chosen ? clip.id === chosen : clip === list[0];
+    });
+  }
+
+  /** Switch the live angle of a multicam group. */
+  setMulticamAngle(groupId: string, clipId: string): void {
+    this.multicamActive.update((map) => ({ ...map, [groupId]: clipId }));
   }
 
   getAllDeliveryPresets(): DeliveryPreset[] {
@@ -1471,6 +1637,58 @@ export class VideoEngineService {
     return remaining === null ? null : `T-${remaining}`;
   }
 
+  // ── Captions ────────────────────────────────────────────────────────
+
+  addCaption(start: number, end: number, text: string): boolean {
+    const clean = text.trim();
+    if (!clean || !(end > start)) return false;
+    this.captions.update((cues) =>
+      sortCaptionsLocal([
+        ...cues,
+        { id: `cap-${Math.random().toString(36).slice(2, 9)}`, start: Math.max(0, start), end, text: clean },
+      ]),
+    );
+    return true;
+  }
+
+  removeCaption(id: string): void {
+    this.captions.update((cues) => cues.filter((cue) => cue.id !== id));
+  }
+
+  clearCaptions(): void {
+    this.captions.set([]);
+  }
+
+  captionAt(time: number): import('./clip-captions').CaptionCue | null {
+    return captionAtLocal(this.captions(), time);
+  }
+
+  /**
+   * Build cues from the voiceover lane: each narrated line captions itself
+   * over its clip. Deterministic, offline, and it is what "auto captions"
+   * means for the lab's own narration.
+   */
+  generateCaptionsFromVoiceovers(): number {
+    const generated: import('./clip-captions').CaptionCue[] = [];
+    for (const track of this.tracks()) {
+      if (track.type !== 'voiceover') continue;
+      for (const clip of track.clips) {
+        const text = clip.effects.voiceover?.text?.trim();
+        if (!text) continue;
+        generated.push({
+          id: `cap-${Math.random().toString(36).slice(2, 9)}`,
+          start: clip.startTime,
+          end: clip.startTime + clip.duration,
+          text,
+        });
+      }
+    }
+    if (generated.length) {
+      this.captions.update((cues) => sortCaptionsLocal([...cues, ...generated]));
+    }
+    return generated.length;
+  }
+
   // ── Project snapshot ───────────────────────────────────────────────────
 
   /**
@@ -1500,6 +1718,7 @@ export class VideoEngineService {
       lowerThird: { ...this.lowerThird() },
       audioOverlay: this.audioBedMeta(),
       markers: this.markers().map((marker) => ({ ...marker })),
+      captions: this.captions().map((cue) => ({ ...cue })),
       tracks: this.tracks().map((track) => ({
         ...track,
         clips: track.clips.map((clip) => ({
@@ -1507,7 +1726,18 @@ export class VideoEngineService {
           // Session-scoped media is dropped rather than saved as a url that will
           // never resolve again.
           url: isReloadableMediaUrl(clip.url) ? clip.url : '',
-          effects: { ...clip.effects, fx: (clip.effects.fx ?? []).map((entry) => ({ ...entry })) },
+          effects: { ...clip.effects, fx: (clip.effects.fx ?? []).map((entry) => ({ ...entry })), keyframes: (clip.effects.keyframes ?? []).map((entry) => ({ ...entry })),
+          chromaKey: clip.effects.chromaKey ? { ...clip.effects.chromaKey, keyColor: [...clip.effects.chromaKey.keyColor] } : undefined,
+          mask: clip.effects.mask ? { ...clip.effects.mask } : undefined,
+          pip: clip.effects.pip ? { ...clip.effects.pip } : undefined,
+          speedCurve: (clip.effects.speedCurve ?? []).map((entry) => ({ ...entry })),
+          stabilization: clip.effects.stabilization ? { ...clip.effects.stabilization } : undefined,
+          lut: clip.effects.lut ? { ...clip.effects.lut, data: [...clip.effects.lut.data] } : undefined,
+          freezeAt: clip.effects.freezeAt,
+          reversed: clip.effects.reversed,
+          opticalFlow: clip.effects.opticalFlow,
+          multicamAngle: clip.effects.multicamAngle ? { ...clip.effects.multicamAngle } : undefined,
+        },
         })),
       })),
     };
@@ -1580,6 +1810,19 @@ export class VideoEngineService {
             // A record written before the FX rack existed carries no array, and
             // a malformed one can carry entries that are not effects at all.
             fx: this.sanitizeEffects(effects.fx),
+            keyframes: sanitizeKeyframes(effects.keyframes),
+            chromaKey: sanitizeChromaKey(effects.chromaKey) ?? undefined,
+            mask: sanitizeMask(effects.mask) ?? undefined,
+            pip: sanitizePip(effects.pip) ?? undefined,
+            speedCurve: sanitizeSpeedCurve(effects.speedCurve),
+            stabilization: sanitizeStabilization(effects.stabilization) ?? undefined,
+            lut: sanitizeLut(effects.lut) ?? undefined,
+            freezeAt: Number.isFinite(effects.freezeAt) ? Math.max(0, effects.freezeAt) : undefined,
+            reversed: effects.reversed === true,
+            opticalFlow: effects.opticalFlow === true,
+            multicamAngle: effects.multicamAngle && typeof effects.multicamAngle.groupId === 'string'
+              ? { groupId: effects.multicamAngle.groupId, angle: String(effects.multicamAngle.angle ?? '') }
+              : undefined,
             speed: this.clampSpeed(effects.speed),
             motion: this.isMotion(effects.motion) ? effects.motion : 'none',
           },
@@ -1595,6 +1838,7 @@ export class VideoEngineService {
 
     const markers = (snapshot.markers ?? []).map((marker) => ({ ...marker }));
     this.markers.set(markers);
+    this.captions.set(sanitizeCaptions((snapshot as { captions?: unknown }).captions));
     report.markers = markers.length;
 
     if (snapshot.lowerThird) {

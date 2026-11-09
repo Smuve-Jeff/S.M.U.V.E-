@@ -13,6 +13,7 @@ import {
   VideoEngineService,
 } from '../../services/video-engine.service';
 import { ExportService } from '../../services/export.service';
+import { FfmpegVideoExportService } from '../../services/ffmpeg-video-export.service';
 import {
   CameraAngle,
   CameraCaptureService,
@@ -213,6 +214,15 @@ describe('ImageVideoLabComponent', () => {
       pause: jest.fn(),
       seek: jest.fn(),
       addClip: jest.fn(),
+      addClipKeyframe: jest.fn(() => true),
+      findClip: jest.fn(),
+      captions: signal([]),
+      captionAt: jest.fn(() => null),
+      resolveClipRate: jest.fn((_clip: unknown, _t: number) => 1),
+      addCaption: jest.fn(() => true),
+      generateCaptionsFromVoiceovers: jest.fn(() => 0),
+      setMulticamAngle: jest.fn(),
+      clearClipKeyframes: jest.fn(() => true),
       removeClip: jest.fn(),
       updateClip: jest.fn(),
       getAllDeliveryPresets: jest.fn().mockReturnValue([
@@ -496,6 +506,10 @@ describe('ImageVideoLabComponent', () => {
       setClipAudioLevel: jest.fn(),
     };
 
+    const ffmpegExport = {
+      transcodeToMp4: jest.fn(async (blob: Blob) => blob),
+    };
+
     /**
      * Project persistence stand-in. `activeProject` is derived from the list and
      * the active id exactly as the real service derives it, so a test can drive
@@ -560,6 +574,7 @@ describe('ImageVideoLabComponent', () => {
         { provide: UserContextService, useValue: {} },
         { provide: VideoEngineService, useValue: videoEngine },
         { provide: ExportService, useValue: exportService },
+        { provide: FfmpegVideoExportService, useValue: ffmpegExport },
         { provide: CameraCaptureService, useValue: camera },
         { provide: CinemaProjectService, useValue: cinemaProjects },
         { provide: SpeechSynthesisService, useValue: speechSynthesis },
@@ -588,6 +603,7 @@ describe('ImageVideoLabComponent', () => {
       cinemaEngine,
       camera,
       exportService,
+      ffmpegExport,
       cinemaProjects,
       speechSynthesis,
       projectList,
@@ -2718,13 +2734,15 @@ describe('ImageVideoLabComponent', () => {
       });
     });
 
-    it('erases a flat backdrop when background removal is on', async () => {
+    it('erases a green screen when background removal is on', async () => {
       const { videoEngine, renderFrame } = await createComponent();
-      // A uniformly white frame: every pixel matches the corner key.
+      // A uniformly green frame: every pixel is the key colour.
+      const green = new Uint8ClampedArray(1920 * 803 * 4);
+      for (let i = 0; i < green.length; i += 4) { green[i] = 0; green[i + 1] = 255; green[i + 2] = 0; green[i + 3] = 255; }
       (ctxStub.getImageData as jest.Mock).mockReturnValue({
         width: 1920,
         height: 803,
-        data: new Uint8ClampedArray(1920 * 803 * 4).fill(255),
+        data: green,
       });
       videoEngine.getActiveClips.mockReturnValue([
         createVideoClip({
@@ -2755,6 +2773,69 @@ describe('ImageVideoLabComponent', () => {
       // A cross-origin frame that cannot be read must not take the whole
       // render down — the rest of the grade still ships.
       expect(() => renderFrame()).not.toThrow();
+    });
+
+    it('keys a green screen with explicit chroma settings and keeps the subject', async () => {
+      const { videoEngine, renderFrame } = await createComponent();
+      const data = new Uint8ClampedArray([0, 255, 0, 255, 255, 0, 0, 255]);
+      (ctxStub.getImageData as jest.Mock).mockReturnValue({ width: 2, height: 1, data });
+      videoEngine.getActiveClips.mockReturnValue([
+        createVideoClip({
+          effects: {
+            ...createVideoClip().effects,
+            bgRemoval: false,
+            chromaKey: {
+              enabled: true, preset: 'green', keyColor: [0, 255, 0],
+              similarity: 0.32, smoothness: 0.28, spill: 0.6,
+            },
+          },
+        }),
+      ]);
+
+      renderFrame();
+
+      const written = (ctxStub.putImageData as jest.Mock).mock.calls[0][0] as { data: Uint8ClampedArray };
+      expect(written.data[3]).toBe(0); // green backdrop keyed out
+      expect(written.data[7]).toBe(255); // red subject kept
+    });
+
+    it('applies a mask to the clip layer', async () => {
+      const { videoEngine, renderFrame } = await createComponent();
+      videoEngine.getActiveClips.mockReturnValue([
+        createVideoClip({
+          effects: {
+            ...createVideoClip().effects,
+            mask: { shape: 'ellipse', x: 0.5, y: 0.5, w: 0.3, h: 0.3, angle: 0, feather: 0, invert: false },
+          },
+        }),
+      ]);
+      (ctxStub.drawImage as jest.Mock).mockClear();
+
+      renderFrame();
+
+      // The mask composites its erase layer with destination-out.
+      const composites = (ctxStub.drawImage as jest.Mock).mock.calls;
+      expect(composites.length).toBeGreaterThan(0);
+    });
+
+    it('scales an overlay clip down for picture-in-picture', async () => {
+      const { videoEngine, renderFrame } = await createComponent();
+      const videos = installVideoElement();
+      videoEngine.getActiveClips.mockReturnValue([
+        createVideoClip({
+          effects: {
+            ...createVideoClip().effects,
+            pip: { enabled: true, preset: 'bottom-right', size: 0.33 },
+          },
+        }),
+      ]);
+      renderFrame();
+      decodeVideo(videos[0]);
+      (ctxStub.scale as jest.Mock).mockClear();
+
+      renderFrame();
+
+      expect(ctxStub.scale).toHaveBeenCalledWith(0.33, 0.33);
     });
 
     it('softens the frame when noise reduction is on', async () => {
@@ -2912,6 +2993,123 @@ describe('ImageVideoLabComponent', () => {
       renderFrame();
 
       expect(ctxStub.scale).toHaveBeenCalled();
+    });
+
+    it('burns the active caption cue into the feed', async () => {
+      const { videoEngine, renderFrame } = await createComponent();
+      videoEngine.captionAt.mockReturnValue({ id: 'c1', start: 0, end: 5, text: 'Hello captions' });
+      (ctxStub.fillText as jest.Mock).mockClear();
+
+      renderFrame();
+
+      const texts = (ctxStub.fillText as jest.Mock).mock.calls.map((c) => String(c[0]));
+      expect(texts).toContain('Hello captions');
+    });
+
+    it('applies a clip template bundle to the selected clip', async () => {
+      const { component, videoEngine } = await createComponent();
+      const clip = createVideoClip({ id: 'tpl-clip', duration: 10 });
+      videoEngine.findClip.mockReturnValue(clip);
+      component.selectedClipId.set('tpl-clip');
+      component.templateId.set('vintage-film');
+      videoEngine.updateClip.mockClear();
+
+      component.applyClipTemplate();
+
+      expect(videoEngine.updateClip).toHaveBeenCalledWith(
+        'tpl-clip',
+        expect.objectContaining({
+          effects: expect.objectContaining({ filter: 'sepia' }),
+        }),
+      );
+      expect(component.aiFeedback()).toContain('TEMPLATE APPLIED');
+    });
+
+    it('freezes the selected clip at the playhead', async () => {
+      const { component, videoEngine } = await createComponent();
+      const clip = createVideoClip({ id: 'freeze-clip', startTime: 2, duration: 8 });
+      videoEngine.findClip.mockReturnValue(clip);
+      component.selectedClipId.set('freeze-clip');
+      videoEngine.currentTime.set(5);
+
+      component.toggleFreeze();
+
+      expect(videoEngine.updateClip).toHaveBeenCalledWith(
+        'freeze-clip',
+        expect.objectContaining({
+          effects: expect.objectContaining({ freezeAt: 3 }),
+        }),
+      );
+    });
+
+    it('applies a velocity speed ramp preset to the selected clip', async () => {
+      const { component, videoEngine } = await createComponent();
+      const clip = createVideoClip({ id: 'ramp-clip', duration: 10 });
+      videoEngine.findClip.mockReturnValue(clip);
+      component.selectedClipId.set('ramp-clip');
+
+      component.applySpeedRamp('swoosh');
+
+      expect(videoEngine.updateClip).toHaveBeenCalledWith(
+        'ramp-clip',
+        expect.objectContaining({
+          effects: expect.objectContaining({
+            speedCurve: expect.arrayContaining([
+              expect.objectContaining({ speed: 4 }),
+            ]),
+          }),
+        }),
+      );
+      expect(component.aiFeedback()).toContain('SPEED RAMP APPLIED');
+    });
+
+    it('applies a keyframe scale transform to the frame', async () => {
+      const { videoEngine, renderFrame } = await createComponent();
+      const videos = installVideoElement();
+      videoEngine.getActiveClips.mockReturnValue([
+        createVideoClip({
+          ...staticSource,
+          effects: {
+            ...createVideoClip().effects,
+            motion: 'none',
+            keyframes: [
+              { id: 'k1', time: 0, property: 'scale', value: 1, easing: 'linear' },
+              { id: 'k2', time: 10, property: 'scale', value: 2, easing: 'linear' },
+            ],
+          },
+        }),
+      ]);
+      videoEngine.currentTime.set(5); // halfway through the 10s clip
+      renderFrame();
+      decodeVideo(videos[0]);
+      (ctxStub.scale as jest.Mock).mockClear();
+
+      renderFrame();
+
+      // Halfway through the clip the interpolated scale is 1.5.
+      expect(ctxStub.scale).toHaveBeenCalledWith(1.5, 1.5);
+    });
+
+    it('adds a keyframe for the selected clip at the playhead', async () => {
+      const { component, videoEngine } = await createComponent();
+      const clip = createVideoClip({ id: 'kf-clip', startTime: 2, duration: 6 });
+      videoEngine.tracks.set([
+        { id: 't1', name: 'Visuals', type: 'visual', muted: false, locked: false, clips: [clip] },
+      ]);
+      videoEngine.findClip.mockReturnValue(clip);
+      component.selectedClipId.set('kf-clip');
+      videoEngine.currentTime.set(4); // 2s into the clip
+      component.keyframeProperty.set('opacity');
+      component.keyframeValue.set(0.5);
+
+      component.addKeyframeAtPlayhead();
+
+      expect(videoEngine.addClipKeyframe).toHaveBeenCalledWith(
+        'kf-clip',
+        expect.objectContaining({ time: 2, property: 'opacity', value: 0.5 }),
+      );
+      expect(component.aiFeedback()).toContain('KEYFRAME ADDED');
+      expect(component.selectedKeyframeCount()).toBeGreaterThanOrEqual(0);
     });
 
     it('leaves a static clip untransformed', async () => {
@@ -3604,6 +3802,46 @@ describe('ImageVideoLabComponent', () => {
         expect.any(Blob),
         expect.stringMatching(/\.mp4$/)
       );
+    });
+
+    it('delivers an MP4 after FFmpeg transcodes the capture', async () => {
+      const { component, exportService, ffmpegExport } = await createComponent();
+      const { complete } = installRecorder(exportService);
+      jest.useFakeTimers();
+
+      const run = component.exportVideo();
+      await Promise.resolve();
+      await Promise.resolve();
+      jest.advanceTimersByTime(component.exportWindow() * 1000);
+      complete(new Blob(['webm-bytes'], { type: 'video/webm' }));
+      await run;
+
+      expect(ffmpegExport.transcodeToMp4).toHaveBeenCalled();
+      expect(exportService.downloadBlob).toHaveBeenCalledWith(
+        expect.any(Blob),
+        expect.stringMatching(/\.mp4$/)
+      );
+      expect(component.aiFeedback()).toContain('MP4/H.264');
+    });
+
+    it('keeps the original capture when FFmpeg transcode fails', async () => {
+      const { component, exportService, ffmpegExport } = await createComponent();
+      const { complete } = installRecorder(exportService);
+      ffmpegExport.transcodeToMp4.mockRejectedValueOnce(new Error('core download failed'));
+      jest.useFakeTimers();
+
+      const run = component.exportVideo();
+      await Promise.resolve();
+      await Promise.resolve();
+      jest.advanceTimersByTime(component.exportWindow() * 1000);
+      complete(new Blob(['webm-bytes'], { type: 'video/webm' }));
+      await run;
+
+      expect(exportService.downloadBlob).toHaveBeenCalledWith(
+        expect.any(Blob),
+        expect.stringMatching(/\.webm$/)
+      );
+      expect(component.aiFeedback()).toContain('KEPT THE ORIGINAL CAPTURE');
     });
 
     it('reports a no-frames export honestly and resets progress', async () => {

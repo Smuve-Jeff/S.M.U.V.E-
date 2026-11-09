@@ -780,6 +780,101 @@
                 <option [value]="track.id" [disabled]="track.locked">{{ track.name }}</option>
               }
             </select>
+            <span class="keyframe-editor" aria-label="Keyframe editor">
+              <select aria-label="Keyframe property" [ngModel]="keyframeProperty()" (ngModelChange)="onKeyframePropertyChange($event)">
+                @for (prop of keyframeProperties; track prop.id) {
+                  <option [value]="prop.id">{{ prop.label }}</option>
+                }
+              </select>
+              <input
+                type="range"
+                aria-label="Keyframe value"
+                [min]="keyframeSpec().min"
+                [max]="keyframeSpec().max"
+                [step]="keyframeSpec().step"
+                [ngModel]="keyframeValue()"
+                (ngModelChange)="keyframeValue.set($event)"
+              />
+              <button type="button" (click)="addKeyframeAtPlayhead()" title="Add a keyframe at the playhead">+ KEYFRAME</button>
+              <span>{{ selectedKeyframeCount() }} keyframe(s)</span>
+              @if (selectedKeyframeCount() > 0) {
+                <button type="button" (click)="removeSelectedKeyframes()">CLEAR</button>
+              }
+            </span>
+            <span class="keyframe-editor" aria-label="Chroma key controls">
+              <button type="button" (click)="toggleChromaKey(true)" title="Key out the green/blue screen on this clip">CHROMA KEY</button>
+              <select aria-label="Chroma key colour" [ngModel]="chromaPreset()" (ngModelChange)="chromaPreset.set($event)">
+                <option value="green">Green screen</option>
+                <option value="blue">Blue screen</option>
+              </select>
+              <input type="range" aria-label="Chroma similarity" min="0" max="1" step="0.01" [ngModel]="chromaSimilarity()" (ngModelChange)="chromaSimilarity.set($event)" />
+              <button type="button" (click)="toggleChromaKey(false)">OFF</button>
+            </span>
+            <span class="keyframe-editor" aria-label="Mask controls">
+              <select aria-label="Mask shape" [ngModel]="maskShape()" (ngModelChange)="maskShape.set($event)">
+                @for (shape of maskShapes; track shape.id) {
+                  <option [value]="shape.id">{{ shape.label }}</option>
+                }
+              </select>
+              <label><input type="checkbox" [ngModel]="maskInvert()" (ngModelChange)="maskInvert.set($event)" /> Invert</label>
+              <button type="button" (click)="applyMaskToSelected()">MASK</button>
+              <button type="button" (click)="clearMaskFromSelected()">NO MASK</button>
+            </span>
+            <span class="keyframe-editor" aria-label="Picture in picture controls">
+              <select aria-label="PiP position" [ngModel]="pipPreset()" (ngModelChange)="pipPreset.set($event)">
+                @for (preset of pipPresets; track preset.id) {
+                  <option [value]="preset.id">{{ preset.label }}</option>
+                }
+              </select>
+              <input type="range" aria-label="PiP size" min="0.15" max="0.6" step="0.01" [ngModel]="pipSize()" (ngModelChange)="pipSize.set($event)" />
+              <button type="button" (click)="togglePip(true)">PIP</button>
+              <button type="button" (click)="togglePip(false)">FULL</button>
+            </span>
+            <span class="keyframe-editor" aria-label="Speed ramp and stabilization controls">
+              <button type="button" (click)="applySpeedRamp('swoosh')" title="Velocity ramp: hold, swoosh to 4x, settle">VELOCITY</button>
+              <button type="button" (click)="applySpeedRamp('slow-mo')" title="Slow-motion middle section">SLOW-MO</button>
+              <button type="button" (click)="applySpeedRamp('clear')">CONSTANT</button>
+              <button type="button" (click)="toggleStabilization(true)" title="Smooth handheld shake on this clip">STABILIZE</button>
+              <button type="button" (click)="toggleStabilization(false)">NO STAB</button>
+            </span>
+            <span class="keyframe-editor" aria-label="Caption controls">
+              <input type="text" placeholder="Caption text" [ngModel]="captionText()" (ngModelChange)="captionText.set($event)" (keyup.enter)="addCaptionAtPlayhead()" />
+              <button type="button" (click)="addCaptionAtPlayhead()">+ CAPTION</button>
+              <button type="button" (click)="generateCaptionsFromVoiceover()" title="Generate cues from every voiceover line">AUTO (VO)</button>
+              <button type="button" (click)="toggleAutoCaptionCapture()" [attr.aria-pressed]="autoCaptionListening()">{{ autoCaptionListening() ? 'STOP CAPTURING' : 'LIVE CAPTIONS' }}</button>
+              <span>{{ captionCount() }} cue(s)</span>
+            </span>
+            <span class="keyframe-editor" aria-label="Template and LUT controls">
+              <select aria-label="Clip template" [ngModel]="templateId()" (ngModelChange)="templateId.set($event)">
+                @for (template of clipTemplates; track template.id) {
+                  <option [value]="template.id">{{ template.name }}</option>
+                }
+              </select>
+              <button type="button" (click)="applyClipTemplate()">TEMPLATE</button>
+              <input #lutFileInput type="file" accept=".cube,text/plain" hidden (change)="onLutFileSelected($event)" />
+              <button type="button" (click)="lutFileInput.click()">IMPORT LUT</button>
+              @if (lutName()) {
+                <span>{{ lutName() }}</span>
+                <button type="button" (click)="removeLutFromSelected()">NO LUT</button>
+              }
+            </span>
+            <span class="keyframe-editor" aria-label="Freeze, reverse and slow motion controls">
+              <button type="button" (click)="toggleFreeze()">FREEZE</button>
+              <button type="button" (click)="toggleReverse()">REVERSE</button>
+              <button type="button" (click)="toggleOpticalFlow(true)" title="Frame-blend interpolated slow motion">SMOOTH SLOW-MO</button>
+              <button type="button" (click)="toggleOpticalFlow(false)">STEP SLOW-MO</button>
+            </span>
+            <span class="keyframe-editor" aria-label="Multicam controls">
+              <input type="text" placeholder="Angle name" [ngModel]="multicamAngleName()" (ngModelChange)="multicamAngleName.set($event)" />
+              <button type="button" (click)="assignMulticamAngle()">+ ANGLE</button>
+              @for (group of multicamGroups(); track group.id) {
+                <span>
+                  @for (clip of group.clips; track clip.id) {
+                    <button type="button" (click)="switchMulticamAngle(group.id, clip.id)">{{ clip.effects.multicamAngle?.angle ?? clip.name }}</button>
+                  }
+                </span>
+              }
+            </span>
           </div>
         </div>
 

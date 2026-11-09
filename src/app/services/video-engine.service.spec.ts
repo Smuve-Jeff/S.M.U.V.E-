@@ -773,3 +773,187 @@ describe('VideoEngineService audio overlay', () => {
     expect(engine.audioOverlay()).toBeNull();
   });
 });
+
+describe('VideoEngineService clip keyframes', () => {
+  const createEngine = (): VideoEngineService => {
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({
+      providers: [
+        VideoEngineService,
+        { provide: AudioEngineService, useValue: { tempo: () => 120 } },
+      ],
+    });
+    return TestBed.inject(VideoEngineService);
+  };
+
+  it('adds, evaluates and clears keyframes on a clip', () => {
+    const engine = createEngine();
+    const id = engine.addClip('t1', {
+      name: 'Zoom take', url: 'blob:x', startTime: 0, duration: 4, offset: 0,
+      type: 'video', effects: {} as never,
+    } as never);
+
+    expect(engine.addClipKeyframe(id, { id: 'a', time: 0, property: 'scale', value: 1, easing: 'linear' })).toBe(true);
+    expect(engine.addClipKeyframe(id, { id: 'b', time: 2, property: 'scale', value: 2, easing: 'linear' })).toBe(true);
+    expect(engine.addClipKeyframe('missing', { id: 'c', time: 0, property: 'scale', value: 1, easing: 'linear' })).toBe(false);
+
+    const clip = engine.tracks().flatMap((t) => t.clips).find((c) => c.id === id)!;
+    expect(engine.getClipTransform(clip, 1).scale).toBeCloseTo(1.5);
+    expect(engine.getClipTransform(clip, 0).opacity).toBe(1);
+
+    expect(engine.removeClipKeyframe(id, 'a')).toBe(true);
+    const afterRemove = engine.tracks().flatMap((t) => t.clips).find((c) => c.id === id)!;
+    expect(engine.getClipTransform(afterRemove, 0).scale).toBe(2); // first remaining keyframe holds
+
+    expect(engine.clearClipKeyframes(id)).toBe(true);
+    const cleared = engine.tracks().flatMap((t) => t.clips).find((c) => c.id === id)!;
+    expect(cleared.effects.keyframes).toEqual([]);
+    expect(engine.getClipTransform(cleared, 1)).toEqual({
+      positionX: 0, positionY: 0, scale: 1, opacity: 1, rotation: 0,
+    });
+  });
+
+  it('round-trips chroma key, mask and PiP through snapshot/restore', () => {
+    const engine = createEngine();
+    const id = engine.addClip('t1', {
+      name: 'Keyed', url: 'blob:z', startTime: 0, duration: 3, offset: 0,
+      type: 'video', effects: {} as never,
+    } as never);
+    engine.updateClip(id, {
+      effects: {
+        ...(engine.tracks().flatMap((t) => t.clips).find((c) => c.id === id)!.effects),
+        chromaKey: { enabled: true, preset: 'blue', keyColor: [0, 0, 255], similarity: 0.4, smoothness: 0.2, spill: 0.5 },
+        mask: { shape: 'ellipse', x: 0.5, y: 0.5, w: 0.3, h: 0.2, angle: 0, feather: 12, invert: true },
+        pip: { enabled: true, preset: 'top-left', size: 0.25 },
+      },
+    } as never);
+
+    const snapshot = engine.snapshot();
+    const fresh = createEngine();
+    fresh.restore(snapshot as never);
+    const restored = fresh.tracks().flatMap((t) => t.clips).find((c) => c.id === id)!;
+    expect(restored.effects.chromaKey).toMatchObject({ preset: 'blue', similarity: 0.4 });
+    expect(restored.effects.mask).toMatchObject({ shape: 'ellipse', invert: true, feather: 12 });
+    expect(restored.effects.pip).toMatchObject({ enabled: true, preset: 'top-left', size: 0.25 });
+  });
+
+  it('integrates a speed curve in resolveSourceTime and round-trips captions', () => {
+    const engine = createEngine();
+    const id = engine.addClip('t1', {
+      name: 'Ramp', url: 'blob:r', startTime: 0, duration: 10, offset: 0,
+      type: 'video', effects: {} as never,
+    } as never);
+    engine.updateClip(id, {
+      effects: {
+        ...(engine.tracks().flatMap((t) => t.clips).find((c) => c.id === id)!.effects),
+        speedCurve: [
+          { time: 0, speed: 1 },
+          { time: 4, speed: 1 },
+          { time: 5.5, speed: 4 },
+          { time: 7, speed: 1 },
+          { time: 10, speed: 1 },
+        ],
+      },
+    } as never);
+    const clip = engine.tracks().flatMap((t) => t.clips).find((c) => c.id === id)!;
+    expect(engine.resolveSourceTime(clip, 7)).toBeCloseTo(11.5);
+    expect(engine.resolveClipRate(clip, 5.5)).toBe(4);
+
+    engine.addCaption(1, 3, 'Hello world');
+    expect(engine.captionAt(2)?.text).toBe('Hello world');
+    expect(engine.captionAt(4)).toBeNull();
+
+    const snapshot = engine.snapshot();
+    const fresh = createEngine();
+    fresh.restore(snapshot as never);
+    expect(fresh.captionAt(2)?.text).toBe('Hello world');
+    const restored = fresh.tracks().flatMap((t) => t.clips).find((c) => c.id === id)!;
+    expect(restored.effects.speedCurve).toHaveLength(5);
+    expect(fresh.resolveSourceTime(restored, 7)).toBeCloseTo(11.5);
+  });
+
+  it('generates captions from the voiceover lane', () => {
+    const engine = createEngine();
+    engine.addClip('t3', {
+      name: 'Narration', url: '', startTime: 2, duration: 4, offset: 0,
+      type: 'overlay',
+      effects: { voiceover: { text: 'Welcome to the show', voice: 'Deep Bass (Male)', rendered: true } } as never,
+    } as never);
+    expect(engine.generateCaptionsFromVoiceovers()).toBe(1);
+    expect(engine.captionAt(3)?.text).toBe('Welcome to the show');
+  });
+
+  it('freezes, reverses and switches multicam angles', () => {
+    const engine = createEngine();
+    const freezeId = engine.addClip('t1', {
+      name: 'Freeze', url: 'blob:f', startTime: 0, duration: 10, offset: 0,
+      type: 'video', effects: {} as never,
+    } as never);
+    engine.updateClip(freezeId, {
+      effects: {
+        ...(engine.tracks().flatMap((t) => t.clips).find((c) => c.id === freezeId)!.effects),
+        freezeAt: 3,
+      },
+    } as never);
+    const frozen = engine.tracks().flatMap((t) => t.clips).find((c) => c.id === freezeId)!;
+    expect(engine.resolveSourceTime(frozen, 8)).toBe(engine.resolveSourceTime(frozen, 3));
+    expect(engine.resolveSourceTime(frozen, 8)).toBe(3);
+
+    const revId = engine.addClip('t1', {
+      name: 'Reverse', url: 'blob:r2', startTime: 20, duration: 4, offset: 0,
+      type: 'video', effects: {} as never,
+    } as never);
+    engine.updateClip(revId, {
+      effects: {
+        ...(engine.tracks().flatMap((t) => t.clips).find((c) => c.id === revId)!.effects),
+        reversed: true,
+      },
+    } as never);
+    const reversed = engine.tracks().flatMap((t) => t.clips).find((c) => c.id === revId)!;
+    expect(engine.resolveSourceTime(reversed, 0)).toBe(4);
+    expect(engine.resolveSourceTime(reversed, 4)).toBe(0);
+
+    // Multicam: two angles live at once, only the selected one plays.
+    const cam1 = engine.addClip('t1', {
+      name: 'Wide', url: 'blob:w', startTime: 40, duration: 5, offset: 0,
+      type: 'video',
+      effects: { multicamAngle: { groupId: 'g1', angle: 'CAM 1' } } as never,
+    } as never);
+    const cam2 = engine.addClip('t1', {
+      name: 'Close', url: 'blob:c', startTime: 40, duration: 5, offset: 0,
+      type: 'video',
+      effects: { multicamAngle: { groupId: 'g1', angle: 'CAM 2' } } as never,
+    } as never);
+    expect(engine.getActiveClips(42).map((c) => c.id)).toEqual([cam1]);
+    engine.setMulticamAngle('g1', cam2);
+    expect(engine.getActiveClips(42).map((c) => c.id)).toEqual([cam2]);
+  });
+
+  it('round-trips keyframes through snapshot/restore and sanitizes bad records', () => {
+    const engine = createEngine();
+    const id = engine.addClip('t1', {
+      name: 'Slide', url: 'blob:y', startTime: 0, duration: 3, offset: 0,
+      type: 'video', effects: {} as never,
+    } as never);
+    engine.addClipKeyframe(id, { id: 'a', time: 0, property: 'positionX', value: -0.25, easing: 'ease-in-out' });
+
+    const snapshot = engine.snapshot();
+    const fresh = createEngine();
+    fresh.restore(snapshot as never);
+    const restored = fresh.tracks().flatMap((t) => t.clips).find((c) => c.id === id)!;
+    expect(restored.effects.keyframes).toHaveLength(1);
+    expect(restored.effects.keyframes![0]).toMatchObject({ property: 'positionX', value: -0.25 });
+
+    // A hand-edited record with an out-of-range value is clamped on restore.
+    const bad = JSON.parse(JSON.stringify(snapshot));
+    bad.tracks[0].clips[0].effects.keyframes = [
+      { id: 'x', time: 0, property: 'scale', value: 99, easing: 'linear' },
+      { id: 'y', time: 0, property: 'bogus', value: 1, easing: 'linear' },
+    ];
+    const fresh2 = createEngine();
+    fresh2.restore(bad);
+    const restored2 = fresh2.tracks().flatMap((t) => t.clips).find((c) => c.id === id)!;
+    expect(restored2.effects.keyframes).toHaveLength(1);
+    expect(restored2.effects.keyframes![0].value).toBe(4);
+  });
+});
