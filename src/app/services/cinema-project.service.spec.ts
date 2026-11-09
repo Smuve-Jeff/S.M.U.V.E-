@@ -469,8 +469,11 @@ describe('CinemaProjectService', () => {
     it('remembers the project that was open after a save', async () => {
       const { service } = createHarness();
       const saved = await service.save('Feature Cut');
+      expect(service.hasResumableProject()).toBe(true);
 
       await expect(service.takeResumableProjectId()).resolves.toBe(saved.id);
+
+      expect(service.hasResumableProject()).toBe(false);
     });
 
     it('only offers a resume once per document', async () => {

@@ -76,6 +76,13 @@ describe('ImageVideoLabComponent section disclosures', () => {
       );
     });
 
+    it('gates the lab behind a resume state while a saved project loads', () => {
+      expect(template).toContain('@if (resumingProject())');
+      expect(template).toContain('class="cinema-resume-overlay"');
+      expect(template).toContain('role="status"');
+      expect(template).toContain('Reopening your last project');
+    });
+
     it('keeps the folded groups labelled for assistive tech', () => {
       // Each toggle names the group it opens, in both states.
       for (const label of [
@@ -98,6 +105,13 @@ describe('ImageVideoLabComponent section disclosures', () => {
   });
 
   describe('stylesheet contract', () => {
+    it('covers the workspace while the resume is in flight', () => {
+      const overlay = blocksFor('.cinema-resume-overlay').join(' ');
+      expect(overlay).toContain('position: fixed');
+      expect(overlay).toContain('inset: 0');
+      expect(overlay).toContain('z-index: 80');
+    });
+
     it('scopes the fold to the stacked breakpoint', () => {
       // Base rule: not rendered above the stacked breakpoint …
       const base = blocksFor('.section-toggle');

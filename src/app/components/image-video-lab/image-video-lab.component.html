@@ -1,6 +1,33 @@
 <div
   class="cinema-shell flex flex-col bg-background animate-enter min-h-full"
 >
+  @if (resumingProject()) {
+    <!--
+      Reopening a project replaces the whole edit. Gate the lab from the first
+      paint so the empty timeline never shows through before it lands.
+    -->
+    <div
+      class="cinema-resume-overlay"
+      role="status"
+      aria-live="polite"
+      aria-busy="true"
+      aria-label="Restoring your last Cinema project"
+    >
+      <div class="cinema-resume-card">
+        <span class="cinema-resume-pulse" aria-hidden="true"></span>
+        <span class="cinema-resume-copy">
+          <span class="cinema-resume-eyebrow">Restoring session</span>
+          <strong class="cinema-resume-title"
+            >Reopening your last project…</strong
+          >
+          <span class="cinema-resume-detail"
+            >Timeline, footage and Director plans are coming back.</span
+          >
+        </span>
+      </div>
+    </div>
+  }
+
   <!-- CINEMA HEADER: Fluid & Adaptive -->
   <header
     class="p-4 md:p-8 pb-4 flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-border glass-v42 shadow-v42-xl"

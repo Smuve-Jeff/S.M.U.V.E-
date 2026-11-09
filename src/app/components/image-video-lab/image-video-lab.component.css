@@ -2765,3 +2765,83 @@ canvas {
   outline: 2px dashed #10b981;
   outline-offset: -2px;
 }
+
+
+/*
+ * Reopening a project replaces the whole edit. This overlay owns the first
+ * paint of a resume so the empty timeline underneath is never shown as the
+ * workspace, and it stays up until media and Director plans have loaded.
+ */
+.cinema-resume-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  padding: 1.5rem;
+  background: rgba(2, 6, 23, 0.88);
+  backdrop-filter: blur(14px);
+}
+
+.cinema-resume-card {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  width: min(26rem, 100%);
+  padding: 1.25rem 1.4rem;
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  border-radius: 1rem;
+  background: linear-gradient(
+    135deg,
+    rgba(15, 23, 42, 0.98),
+    rgba(15, 23, 42, 0.88)
+  );
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.55);
+}
+
+.cinema-resume-pulse {
+  width: 2rem;
+  height: 2rem;
+  flex: 0 0 auto;
+  border: 2px solid rgba(16, 185, 129, 0.22);
+  border-top-color: #10b981;
+  border-radius: 999px;
+  animation: cinema-resume-spin 0.8s linear infinite;
+}
+
+.cinema-resume-copy {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.cinema-resume-eyebrow {
+  color: #10b981;
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.cinema-resume-title {
+  color: #e2e8f0;
+  font-size: 0.95rem;
+  font-weight: 800;
+}
+
+.cinema-resume-detail {
+  color: #94a3b8;
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+
+@keyframes cinema-resume-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cinema-resume-pulse {
+    animation: none;
+  }
+}

@@ -547,6 +547,7 @@ describe('ImageVideoLabComponent', () => {
       remove: jest.fn(async () => true),
       startNew: jest.fn(),
       refresh: jest.fn(async () => []),
+      hasResumableProject: jest.fn(() => false),
       takeResumableProjectId: jest.fn(
         async (): Promise<string | null> => null
       ),
@@ -3851,6 +3852,29 @@ describe('ImageVideoLabComponent', () => {
       expect(component.projectName()).toBe('Act Two');
       expect(component.director.plan()?.title).toBe('Night Drive');
       expect(component.director.sectionVfxPlan()?.title).toBe('Saved FX');
+    });
+
+    it('holds the resume state until the project has fully loaded', async () => {
+      const { component, cinemaProjects } = await createComponent();
+      let finishOpen!: (outcome: { ok: boolean; message: string }) => void;
+      cinemaProjects.takeResumableProjectId.mockResolvedValueOnce('p2');
+      cinemaProjects.open.mockImplementationOnce(
+        () =>
+          new Promise<{ ok: boolean; message: string }>((resolve) => {
+            finishOpen = resolve;
+          })
+      );
+
+      const resuming = component.resumeLastProject();
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(component.resumingProject()).toBe(true);
+
+      finishOpen({ ok: true, message: 'PROJECT OPENED: ACT TWO.' });
+      await resuming;
+
+      expect(component.resumingProject()).toBe(false);
     });
 
     it('deletes without also opening the project under the pointer', async () => {

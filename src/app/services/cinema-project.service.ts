@@ -205,6 +205,11 @@ export class CinemaProjectService {
     }
   }
 
+  /** Whether this document still has an unconsumed project to reopen. */
+  hasResumableProject(): boolean {
+    return !this.resumeConsumed && this.readStoredProjectId() !== null;
+  }
+
   /**
    * The project to reopen after a page reload, or null when there is none.
    *

@@ -942,9 +942,9 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
   ];
 
   constructor() {
-    // A project was open when the page last unloaded: reopen it once, with
-    // its timeline, footage and Director plans, instead of making the artist
-    // find it in the list again.
+    // Decide before the first paint whether the empty timeline is about to be
+    // replaced, then reopen the last project through the normal project path.
+    this.resumingProject.set(this.cinemaProjects.hasResumableProject());
     void this.resumeLastProject();
 
     // Track the one layout where the section disclosures apply. `matchMedia`
@@ -1772,6 +1772,11 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
    * film does not silently fork a second copy of it under a blank title.
    */
   projectName = signal('');
+  /**
+   * True while the project from the last page load is reopening. The lab is
+   * gated from the first paint so an empty timeline never appears first.
+   */
+  resumingProject = signal(false);
 
   /** Save the current edit, creating a project the first time. */
   async saveProject(): Promise<void> {
@@ -1803,8 +1808,16 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
    */
   async resumeLastProject(): Promise<void> {
     const id = await this.cinemaProjects.takeResumableProjectId();
-    if (!id || this.cinemaProjects.activeProjectId()) return;
-    await this.openProject(id);
+    if (!id || this.cinemaProjects.activeProjectId()) {
+      this.resumingProject.set(false);
+      return;
+    }
+    this.resumingProject.set(true);
+    try {
+      await this.openProject(id);
+    } finally {
+      this.resumingProject.set(false);
+    }
   }
 
   /** Replace the current edit with a stored project. */
