@@ -338,6 +338,12 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
   coachReport = signal<CoachReport | null>(null);
   coachBusy = signal(false);
 
+  /** Auto-Direct: the one-job music-video pipeline (null = idle). */
+  autoDirectProgress = signal<{ label: string; done: number; total: number } | null>(
+    null
+  );
+  private autoDirectCancelled = false;
+
   /**
    * The journey ladder, recomputed live from the console state — the strip
    * the coach card renders before any ask is even made.
@@ -6114,6 +6120,122 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     } finally {
       this.photoBusy.set(null);
     }
+  }
+
+  /**
+   * Auto-Direct: plan → staged → styled → animated → talking head, one job.
+   * Sequential on purpose — one render at a time, same rule as the per-shot
+   * buttons. Shots that already landed are skipped, so a budget or a cancel
+   * mid-run never loses work: re-run and it finishes the rest. The Coach
+   * grades the result at the end.
+   */
+  async autoDirect(): Promise<void> {
+    if (this.autoDirectProgress()) return;
+    if (!this.videoEngine.audioOverlay()) {
+      this.aiFeedback.set(
+        'LOAD THE AUDIO BED FIRST — AUTO-DIRECT CUTS TO THE SCORE.'
+      );
+      return;
+    }
+    if (this.director.shotMediaBusy() !== null) {
+      this.aiFeedback.set(
+        'A SHOT IS ALREADY RENDERING — LET IT LAND, THEN RUN AUTO-DIRECT.'
+      );
+      return;
+    }
+    this.autoDirectCancelled = false;
+    this.autoDirectProgress.set({
+      label: 'Writing the shot plan',
+      done: 0,
+      total: 1,
+    });
+    let styled = 0;
+    let animated = 0;
+    let failed = 0;
+    let performanceCut = false;
+    try {
+      if (!this.director.plan()) await this.generateShotPlan();
+      const plan = this.director.plan();
+      if (!plan || plan.shots.length === 0) {
+        this.aiFeedback.set('NO SHOOTABLE PLAN — AUTO-DIRECT STANDS DOWN.');
+        return;
+      }
+      this.autoDirectProgress.set({
+        label: 'Staging the storyboard',
+        done: 1,
+        total: plan.shots.length,
+      });
+      this.stageShotPlan();
+      const angle = this.camera.activeAngleLabel();
+      const total = plan.shots.length;
+      for (let i = 0; i < total; i++) {
+        if (this.autoDirectCancelled) break;
+        // Fresh read every round: styling a shot replaces the plan object.
+        const shot = this.director.plan()?.shots[i];
+        if (!shot) break;
+        this.autoDirectProgress.set({
+          label: `Rendering shot ${i + 1} of ${total}`,
+          done: i,
+          total,
+        });
+        try {
+          if (!shot.conceptImageUrl) {
+            const url = await this.director.generateShotConcept(shot, {
+              cameraAngle: angle,
+            });
+            this.placeShotMedia(shot, url, 'image', shot.durationSeconds);
+          }
+          styled++;
+          const latest =
+            this.director.plan()?.shots.find(
+              (candidate) => candidate.index === shot.index,
+            ) ?? shot;
+          if (!latest.videoUrl) {
+            const result = await this.director.animateShot(shot, {
+              cameraAngle: angle,
+            });
+            this.placeShotMedia(
+              shot,
+              result.url,
+              'video',
+              Math.min(shot.durationSeconds, result.duration),
+            );
+          }
+          animated++;
+        } catch (error: any) {
+          failed++;
+          this.logger.error('Auto-Direct Shot Error:', error);
+        }
+      }
+      if (!this.autoDirectCancelled && this.photoSource()) {
+        this.autoDirectProgress.set({
+          label: 'Cutting the talking head',
+          done: total,
+          total,
+        });
+        await this.generateTalkingHead();
+        performanceCut = true;
+      }
+      await this.askCoach();
+      const headline = this.coachReport()?.headline ?? 'ASK THE DIRECTOR';
+      this.aiFeedback.set(
+        `AUTO-DIRECT ${
+          this.autoDirectCancelled ? 'PAUSED' : 'COMPLETE'
+        } — ${styled} SHOTS STYLED, ${animated} ANIMATED${
+          performanceCut ? ', TALKING HEAD CUT' : ''
+        }${failed ? `, ${failed} FAILED` : ''}. COACH: ${headline.toUpperCase()}.`
+      );
+    } finally {
+      this.autoDirectProgress.set(null);
+    }
+  }
+
+  /** End the autopilot after the current render lands; progress is kept. */
+  cancelAutoDirect(): void {
+    this.autoDirectCancelled = true;
+    this.aiFeedback.set(
+      'AUTO-DIRECT ENDING AFTER THE CURRENT RENDER — THE REST IS UNRENDERED.'
+    );
   }
 
   /**

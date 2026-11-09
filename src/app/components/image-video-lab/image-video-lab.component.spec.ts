@@ -120,6 +120,7 @@ describe('ImageVideoLabComponent', () => {
       isPlaying: signal(false),
       currentTime: signal(0),
       duration: signal(7200),
+      bpm: signal(120),
       productionMode: signal<'movie' | 'stream' | 'vlog'>('movie'),
       deliveryPreset: signal({
         id: 'movie-cinema-4k',
@@ -577,6 +578,13 @@ describe('ImageVideoLabComponent', () => {
       providers: [
         { provide: LoggingService, useValue: { error: jest.fn(), warn: jest.fn() } },
         { provide: AiService, useValue: {
+          getAIResponse: jest.fn().mockResolvedValue(JSON.stringify({
+            title: 'Auto Video',
+            logline: 'One bed, one night, one cut.',
+            shots: [
+              { title: 'Opener', description: 'Wide', size: 'wide', bars: 4 },
+            ],
+          })),
           generateImage: jest.fn(),
           analyzeFrame: jest.fn().mockResolvedValue('Tighten the frame on the face.'),
           enhancePhoto: jest.fn().mockResolvedValue('https://cdn.example.test/enhanced.png'),
@@ -5081,6 +5089,176 @@ describe('ImageVideoLabComponent', () => {
         'Export it. Every step is done. Next move: Export the cut.',
       );
       expect(component.aiFeedback()).toContain('COACHING READ ALOUD');
+    });
+
+    /** The autopilot's preconditions: the bed, and a buffer to perform it. */
+    const withBed = (engine: any, duration = 8) => {
+      const channel = new Float32Array(16_000 * duration).fill(0.25);
+      engine.audioOverlay.set({
+        name: 'bed.wav',
+        url: 'blob:bed',
+        duration,
+        buffer: {
+          sampleRate: 16_000,
+          duration,
+          length: channel.length,
+          getChannelData: () => channel,
+        },
+      });
+    };
+
+    it('auto-directs the whole video as one job and lets the coach grade it', async () => {
+      const { component, coach, videoEngine: engine } = await createComponent();
+      const ai = TestBed.inject(AiService) as unknown as {
+        generateImage: jest.Mock;
+        generateShotVideo: jest.Mock;
+        lipSync: jest.Mock;
+      };
+      ai.generateImage.mockResolvedValue('https://cdn.example.test/still.png');
+      ai.generateShotVideo.mockResolvedValue({
+        url: 'https://cdn.example.test/shot.mp4',
+        duration: 5,
+      });
+      ai.lipSync.mockResolvedValue({
+        url: 'https://cdn.example.test/talking-head.mp4',
+        duration: 8,
+      });
+      withBed(engine);
+      component.photoSource.set('data:image/png;base64,STILL');
+      component.director.plan.set(stageablePlan());
+      visualsLane(engine).clips = [];
+
+      await component.autoDirect();
+
+      expect(ai.generateImage).toHaveBeenCalledTimes(2);
+      expect(ai.generateShotVideo).toHaveBeenCalledTimes(2);
+      expect(ai.lipSync).toHaveBeenCalledTimes(1);
+      const placements = (engine.addClip as jest.Mock).mock.calls.map(
+        ([, clip]: [string, Record<string, unknown>]) => clip,
+      );
+      const media = placements.filter((clip) => clip.url !== '');
+      expect(media.some((clip) => clip.name === 'Talking Head')).toBe(true);
+      expect(coach.coach).toHaveBeenCalled();
+      expect(component.aiFeedback()).toContain('AUTO-DIRECT COMPLETE');
+      expect(component.aiFeedback()).toContain('2 SHOTS STYLED, 2 ANIMATED');
+      expect(component.aiFeedback()).toContain('TALKING HEAD CUT');
+      expect(component.autoDirectProgress()).toBeNull();
+    });
+
+    it('asks for the audio bed before flying the autopilot', async () => {
+      const { component } = await createComponent();
+
+      await component.autoDirect();
+
+      expect(component.aiFeedback()).toContain('AUDIO BED FIRST');
+      expect(component.autoDirectProgress()).toBeNull();
+    });
+
+    it('writes the plan itself when none exists', async () => {
+      const { component, videoEngine: engine } = await createComponent();
+      const ai = TestBed.inject(AiService) as unknown as {
+        generateImage: jest.Mock;
+        generateShotVideo: jest.Mock;
+        getAIResponse: jest.Mock;
+      };
+      ai.generateImage.mockResolvedValue('https://cdn.example.test/still.png');
+      ai.generateShotVideo.mockResolvedValue({
+        url: 'https://cdn.example.test/shot.mp4',
+        duration: 5,
+      });
+      withBed(engine);
+      // The director restores its plan from localStorage between tests;
+      // force the plan-less state the autopilot should have to repair.
+      component.director.plan.set(null);
+
+      await component.autoDirect();
+
+      expect(ai.getAIResponse).toHaveBeenCalled();
+      expect(component.director.plan()?.title).toBe('Auto Video');
+      expect(ai.generateImage).toHaveBeenCalledTimes(1);
+      expect(ai.generateShotVideo).toHaveBeenCalledTimes(1);
+      expect(component.aiFeedback()).toContain('AUTO-DIRECT COMPLETE');
+    });
+
+    it('resumes past shots that already landed', async () => {
+      const { component, videoEngine: engine } = await createComponent();
+      const ai = TestBed.inject(AiService) as unknown as {
+        generateImage: jest.Mock;
+        generateShotVideo: jest.Mock;
+      };
+      ai.generateImage.mockResolvedValue('https://cdn.example.test/still.png');
+      ai.generateShotVideo.mockResolvedValue({
+        url: 'https://cdn.example.test/shot.mp4',
+        duration: 5,
+      });
+      withBed(engine);
+      const plan = stageablePlan();
+      plan.shots[0] = {
+        ...plan.shots[0],
+        conceptImageUrl: 'https://cdn.example.test/still.png',
+        videoUrl: 'https://cdn.example.test/shot.mp4',
+      };
+      component.director.plan.set(plan);
+      visualsLane(engine).clips = [];
+
+      await component.autoDirect();
+
+      expect(ai.generateImage).toHaveBeenCalledTimes(1);
+      expect(ai.generateShotVideo).toHaveBeenCalledTimes(1);
+      expect(component.aiFeedback()).toContain('2 SHOTS STYLED, 2 ANIMATED');
+    });
+
+    it('continues past a failed render and reports the count', async () => {
+      const { component, videoEngine: engine } = await createComponent();
+      const ai = TestBed.inject(AiService) as unknown as {
+        generateImage: jest.Mock;
+        generateShotVideo: jest.Mock;
+      };
+      ai.generateImage.mockResolvedValue('https://cdn.example.test/still.png');
+      ai.generateShotVideo
+        .mockRejectedValueOnce(new Error('provider said no'))
+        .mockResolvedValue({
+          url: 'https://cdn.example.test/shot.mp4',
+          duration: 5,
+        });
+      withBed(engine);
+      component.director.plan.set(stageablePlan());
+      visualsLane(engine).clips = [];
+
+      await component.autoDirect();
+
+      expect(ai.generateImage).toHaveBeenCalledTimes(2);
+      expect(component.aiFeedback()).toContain('1 FAILED');
+      expect(component.aiFeedback()).toContain('1 ANIMATED');
+      expect(component.autoDirectProgress()).toBeNull();
+    });
+
+    it('pauses between shots when cancelled', async () => {
+      const { component, videoEngine: engine } = await createComponent();
+      const ai = TestBed.inject(AiService) as unknown as {
+        generateImage: jest.Mock;
+        generateShotVideo: jest.Mock;
+      };
+      ai.generateImage.mockResolvedValue('https://cdn.example.test/still.png');
+      // Cancel lands while the first shot's video is queued: the honest
+      // granularity is the shot boundary, so shot 2 never renders.
+      ai.generateShotVideo.mockImplementation(() => {
+        component.cancelAutoDirect();
+        return Promise.resolve({
+          url: 'https://cdn.example.test/shot.mp4',
+          duration: 5,
+        });
+      });
+      withBed(engine);
+      component.director.plan.set(stageablePlan());
+      visualsLane(engine).clips = [];
+
+      await component.autoDirect();
+
+      expect(ai.generateImage).toHaveBeenCalledTimes(1);
+      expect(ai.generateShotVideo).toHaveBeenCalledTimes(1);
+      expect(component.aiFeedback()).toContain('AUTO-DIRECT PAUSED');
+      expect(component.autoDirectProgress()).toBeNull();
     });
   });
 

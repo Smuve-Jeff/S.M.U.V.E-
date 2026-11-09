@@ -1313,6 +1313,27 @@
               STAGE ON TIMELINE
             </button>
             <!--
+              The autopilot: plan → staged → styled → animated → talking head
+              as one job. It skips shots that already landed, so a budget
+              mid-run never loses work — re-run and it finishes the rest.
+            -->
+            <button
+              type="button"
+              class="director-button director-button-primary"
+              [disabled]="
+                autoDirectProgress() !== null ||
+                director.shotMediaBusy() !== null
+              "
+              (click)="autoDirect()"
+              title="Plan, stage, style, animate and perform the whole video as one job — needs the audio bed loaded"
+            >
+              {{
+                autoDirectProgress()
+                  ? 'AUTO-DIRECTING…'
+                  : 'AUTO-DIRECT THE VIDEO'
+              }}
+            </button>
+            <!--
               Staged cards had no exit of their own: once a frame was shot the
               placeholder sat on the lane until the plan was restaged or the
               whole lane cleared, which took real takes with it.
@@ -1340,6 +1361,19 @@
               CLEAR SHOT LIST
             </button>
           </div>
+          @if (autoDirectProgress(); as progress) {
+            <p class="director-plan-runtime" aria-live="polite">
+              <span>{{ progress.label | uppercase }}</span>
+              <span> {{ progress.done }}/{{ progress.total }} </span>
+              <button
+                type="button"
+                class="director-button"
+                (click)="cancelAutoDirect()"
+              >
+                END AFTER THIS SHOT
+              </button>
+            </p>
+          }
           @if (director.plan(); as plan) {
             <div class="director-plan-card">
               <div class="director-plan-title">{{ plan.title }}</div>
