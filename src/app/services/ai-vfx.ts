@@ -14,6 +14,27 @@
  * gets the same look as the preview rather than a crop of it.
  */
 
+import type { TransientHit } from './audio-transients';
+
+/**
+ * Onsets detected in the music bed, plus the bed's loop length when it
+ * repeats. The renderer looks up the most recent hit instead of guessing a
+ * beat from the tempo, so a burst lands on the actual kick or stab.
+ */
+export interface AiVfxTransientTrack {
+  hits: readonly TransientHit[];
+  /** Wrap hit lookups by this many seconds when the bed loops. */
+  loopDuration?: number;
+}
+
+export interface TransientEnvelope {
+  active: boolean;
+  /** Seconds since the onset; Infinity when no hit is in range. */
+  age: number;
+  /** 0..1 strength of the onset that opened the envelope. */
+  strength: number;
+}
+
 /** The five production families the effect shelf is organised around. */
 export type AiVfxStyle =
   | 'cartoon'
@@ -703,6 +724,64 @@ function beatPulse(time: number, bpm: number): number {
 }
 
 /**
+ * The most recent onset at or before `timeSeconds`, with its age.
+ *
+ * Without a transient track this reports inactive and the caller keeps its
+ * tempo pulse. With one, a burst outside `holdSeconds` stays inactive rather
+ * than firing on an arbitrary clock tick: silence between hits is the point.
+ */
+export function transientEnvelope(
+  track: AiVfxTransientTrack | null | undefined,
+  timeSeconds: number,
+  holdSeconds: number,
+): TransientEnvelope {
+  const inactive: TransientEnvelope = {
+    active: false,
+    age: Number.POSITIVE_INFINITY,
+    strength: 0,
+  };
+  if (!track || !track.hits.length || !Number.isFinite(timeSeconds)) return inactive;
+
+  const loop =
+    Number.isFinite(track.loopDuration) && (track.loopDuration as number) > 0
+      ? (track.loopDuration as number)
+      : 0;
+  const time = loop ? ((timeSeconds % loop) + loop) % loop : timeSeconds;
+
+  let low = 0;
+  let high = track.hits.length - 1;
+  let index = -1;
+  while (low <= high) {
+    const middle = (low + high) >> 1;
+    if (track.hits[middle].time <= time) {
+      index = middle;
+      low = middle + 1;
+    } else {
+      high = middle - 1;
+    }
+  }
+
+  let hit: TransientHit | undefined;
+  if (index >= 0) {
+    hit = track.hits[index];
+  } else if (loop) {
+    // Before the first hit of this pass: the previous pass's last hit is the
+    // onset the frame is still inside when the bed wraps.
+    const last = track.hits[track.hits.length - 1];
+    hit = { time: last.time - loop, strength: last.strength };
+  }
+  if (!hit) return inactive;
+
+  const age = time - hit.time;
+  if (age < 0 || age > Math.max(0, holdSeconds)) return inactive;
+  return {
+    active: true,
+    age,
+    strength: Math.max(0, Math.min(1, hit.strength)),
+  };
+}
+
+/**
  * Draw one recipe over the graded clip layer.
  *
  * Every pass saves/restores the context, uses only `globalAlpha`,
@@ -718,6 +797,7 @@ export function renderAiVfx(
   timeSeconds: number,
   width: number,
   height: number,
+  transients?: AiVfxTransientTrack | null,
 ): void {
   if (!settings || !settings.enabled) return;
   if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) {
@@ -771,9 +851,16 @@ export function renderAiVfx(
         }
         case 'impact-sparks': {
           ctx.globalCompositeOperation = 'lighter';
+          const hold = 0.65;
+          const hit = transientEnvelope(transients, time, hold);
+          // With a bed the burst fires on the detected onset; without one it
+          // falls back to a tempo pulse so the look still reads.
+          if (transients && !hit.active) break;
           const period = Math.max(0.35, (60 / bpm) * 2);
-          const phase = (time % period) / period;
-          const fade = (1 - phase) * (1 - phase);
+          const phase = transients ? hit.age / hold : (time % period) / period;
+          const fade = transients
+            ? Math.pow(1 - phase, 2) * (0.35 + 0.65 * hit.strength)
+            : (1 - phase) * (1 - phase);
           const sparks = 34;
           for (let i = 0; i < sparks; i += 1) {
             const angle = hash(i) * TAU;
@@ -791,15 +878,19 @@ export function renderAiVfx(
         }
         case 'shockwave': {
           ctx.globalCompositeOperation = 'lighter';
+          const hold = 0.95;
+          const hit = transientEnvelope(transients, time, hold);
+          if (transients && !hit.active) break;
           const period = Math.max(0.5, (60 / bpm) * 4);
-          const phase = (time % period) / period;
+          const phase = transients ? hit.age / hold : (time % period) / period;
+          const energy = transients ? 0.45 + 0.55 * hit.strength : 1;
           const radius = max * 0.15 + max * 0.45 * phase;
-          ctx.strokeStyle = hexToRgba(palette[0], strength * (1 - phase) * 0.55);
+          ctx.strokeStyle = hexToRgba(palette[0], strength * energy * (1 - phase) * 0.55);
           ctx.lineWidth = Math.max(1, (8 * (1 - phase) + 1) * unit);
           ctx.beginPath();
           ctx.arc(cx, cy, radius, 0, TAU);
           ctx.stroke();
-          ctx.strokeStyle = hexToRgba(palette[1], strength * (1 - phase) * 0.3);
+          ctx.strokeStyle = hexToRgba(palette[1], strength * energy * (1 - phase) * 0.3);
           ctx.lineWidth = Math.max(0.6, 2 * unit);
           ctx.beginPath();
           ctx.arc(cx, cy, radius * 0.82, 0, TAU);
@@ -807,7 +898,13 @@ export function renderAiVfx(
           break;
         }
         case 'energy-aura': {
-          const radius = min * (0.32 + pulse * 0.06);
+          const auraHit = transientEnvelope(transients, time, 0.5);
+          const auraPulse = transients
+            ? auraHit.active
+              ? auraHit.strength * (1 - auraHit.age / 0.5)
+              : 0
+            : pulse;
+          const radius = min * (0.3 + auraPulse * 0.08);
           const gradient = ctx.createRadialGradient(cx, cy, min * 0.06, cx, cy, radius);
           gradient.addColorStop(0, hexToRgba(palette[1], strength * 0.32));
           gradient.addColorStop(0.55, hexToRgba(palette[0], strength * 0.18));
@@ -835,15 +932,21 @@ export function renderAiVfx(
         }
         case 'comic-burst': {
           ctx.globalCompositeOperation = 'lighter';
+          const burstHit = transientEnvelope(transients, time, 0.55);
+          const burstPulse = transients
+            ? burstHit.active
+              ? burstHit.strength * (1 - burstHit.age / 0.55)
+              : 0
+            : pulse;
           const wedges = 26;
-          const reach = max * (0.5 + pulse * 0.08);
+          const reach = max * (0.5 + burstPulse * 0.08);
           for (let i = 0; i < wedges; i += 1) {
             if (i % 2) continue;
             const start = (i / wedges) * TAU + time * 0.03;
             const end = ((i + 0.65) / wedges) * TAU + time * 0.03;
             ctx.fillStyle = hexToRgba(
               i % 4 === 0 ? palette[1] : palette[0],
-              strength * 0.1 * (0.6 + pulse * 0.4),
+              strength * 0.1 * (0.25 + burstPulse * 0.75),
             );
             ctx.beginPath();
             ctx.moveTo(cx, cy);

@@ -175,6 +175,8 @@ describe('ImageVideoLabComponent', () => {
       ),
       audioOverlayVolume: signal(0.8),
       audioOverlayLoop: signal(true),
+      audioTransients: jest.fn(() => null),
+      aiVfxTransientTrack: jest.fn(() => null),
       loadAudioOverlay: jest.fn(),
       clearAudioOverlay: jest.fn(),
       setAudioOverlayVolume: jest.fn(),

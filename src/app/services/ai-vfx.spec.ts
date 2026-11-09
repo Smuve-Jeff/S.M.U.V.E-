@@ -8,6 +8,7 @@ import {
   parseAiVfxRecipe,
   presetRecipe,
   renderAiVfx,
+  transientEnvelope,
   sanitizeAiVfx,
   sanitizeAiVfxRecipe,
 } from './ai-vfx';
@@ -205,5 +206,47 @@ describe('AI VFX renderer', () => {
     const previewRadius = (preview.arc as jest.Mock).mock.calls[0][2];
     const masterRadius = (master.arc as jest.Mock).mock.calls[0][2];
     expect(masterRadius / previewRadius).toBeCloseTo(2, 3);
+  });
+});
+
+describe('AI VFX beat lock', () => {
+  it('finds the last onset and reports its age and strength', () => {
+    const track = {
+      hits: [
+        { time: 0.5, strength: 1 },
+        { time: 1, strength: 0.6 },
+      ],
+    };
+    const envelope = transientEnvelope(track, 1.02, 0.5);
+
+    expect(envelope.active).toBe(true);
+    expect(envelope.age).toBeCloseTo(0.02, 3);
+    expect(envelope.strength).toBe(0.6);
+    expect(transientEnvelope(track, 1.8, 0.5).active).toBe(false);
+  });
+
+  it('wraps hits across the loop boundary of a looping bed', () => {
+    const track = { hits: [{ time: 9.8, strength: 0.9 }], loopDuration: 10 };
+    const wrapped = transientEnvelope(track, 0.1, 0.5);
+
+    expect(wrapped.active).toBe(true);
+    expect(wrapped.age).toBeCloseTo(0.3, 3);
+  });
+
+  it('fires the impact recipe on a transient instead of a tempo tick', () => {
+    const settings = {
+      enabled: true,
+      intensity: 1,
+      recipe: AI_VFX_PRESETS.find((preset) => preset.id === 'blockbuster-impact')!.recipe,
+    };
+    const onBeat = fakeContext();
+    const between = fakeContext();
+    const track = { hits: [{ time: 3, strength: 1 }] };
+
+    renderAiVfx(onBeat as unknown as CanvasRenderingContext2D, {} as CanvasImageSource, settings, 3.01, 1920, 1080, track);
+    renderAiVfx(between as unknown as CanvasRenderingContext2D, {} as CanvasImageSource, settings, 4.2, 1920, 1080, track);
+
+    expect((onBeat.arc as jest.Mock).mock.calls.length).toBeGreaterThan(0);
+    expect((between.arc as jest.Mock).mock.calls.length).toBe(0);
   });
 });

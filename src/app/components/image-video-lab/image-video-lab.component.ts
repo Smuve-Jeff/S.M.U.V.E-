@@ -3214,9 +3214,12 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
         ctx,
         layer,
         clip.effects.aiVfx,
-        clipLocalTime,
+        // Beat-locked passes read the bed's absolute timeline, not the clip's
+        // own zero, so an impact lands where the song's hit actually is.
+        clip.startTime + Math.max(0, clip.effects.trimStart || 0) + clipLocalTime,
         layer.width,
-        layer.height
+        layer.height,
+        this.videoEngine.aiVfxTransientTrack()
       );
     }
     this.updateStabilization(clip, layer);
@@ -5997,6 +6000,15 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
   /** Readable pass label for the recipe chips in the panel. */
   aiVfxPassLabel(id: string): string {
     return AI_VFX_PASSES.find((pass) => pass.id === id)?.label ?? id;
+  }
+
+  /** What the bursts are locked to, for the panel. */
+  aiVfxBeatLockLabel(): string {
+    const map = this.videoEngine.audioTransients?.();
+    if (!map || !map.hits.length) {
+      return 'tempo pulse — import a music bed to lock to its beats';
+    }
+    return `${map.hits.length} transients from the music bed`;
   }
 
   async generateImage(retryPrompt?: string) {

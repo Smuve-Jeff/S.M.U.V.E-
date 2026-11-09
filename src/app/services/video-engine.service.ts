@@ -62,7 +62,8 @@ export type { ChromaKeySettings } from './chroma-key';
 export { sanitizeChromaKey } from './chroma-key';
 import { sanitizeChromaKey } from './chroma-key';
 export type { AiVfxPass, AiVfxPassId, AiVfxRecipe, AiVfxSettings, AiVfxStyle } from './ai-vfx';
-import { sanitizeAiVfx, type AiVfxSettings } from './ai-vfx';
+import { sanitizeAiVfx, type AiVfxSettings, type AiVfxTransientTrack } from './ai-vfx';
+import { analyzeAudioTransients, type TransientMap } from './audio-transients';
 export type { ClipMaskSettings, PipSettings, PipPreset, MaskShape } from './clip-mask';
 export { sanitizeMask, sanitizePip, pipTransform } from './clip-mask';
 import { sanitizeMask, sanitizePip } from './clip-mask';
@@ -696,6 +697,11 @@ export class VideoEngineService {
   // ── Audio overlay (imported music bed / voice bed) ─────────────────────
 
   audioOverlay = signal<AudioOverlay | null>(null);
+  /**
+   * Onsets found in the bed when it was decoded. Derived data: it is rebuilt
+   * from the stored bytes on reopen, never persisted into the project.
+   */
+  audioTransients = signal<TransientMap | null>(null);
   /** Bed level, 0…1. Applied live so a fader move is heard, not re-rendered. */
   audioOverlayVolume = signal(0.8);
   /** Repeat the bed under a cut that is longer than the file. */
@@ -1382,6 +1388,12 @@ export class VideoEngineService {
       buffer: decoded,
     };
     this.audioOverlay.set(overlay);
+    // Analyse once on import so the render loop only does a lookup per frame.
+    try {
+      this.audioTransients.set(analyzeAudioTransients(decoded));
+    } catch {
+      this.audioTransients.set(null);
+    }
     if (this.isPlaying()) this.startAudioOverlay(this.currentTime());
     return overlay;
   }
@@ -1392,6 +1404,21 @@ export class VideoEngineService {
     const previous = this.audioOverlay();
     if (previous?.url) URL.revokeObjectURL(previous.url);
     this.audioOverlay.set(null);
+    this.audioTransients.set(null);
+  }
+
+  /**
+   * What the AI effect renderer reads: the onset list, wrapped by the bed's
+   * length when it loops. Null when no bed has been analysed, which keeps the
+   * recipes on their tempo fallback.
+   */
+  aiVfxTransientTrack(): AiVfxTransientTrack | null {
+    const map = this.audioTransients();
+    if (!map || !map.hits.length) return null;
+    return {
+      hits: map.hits,
+      loopDuration: this.audioOverlayLoop() ? map.duration : undefined,
+    };
   }
 
   setAudioOverlayVolume(volume: number) {
