@@ -3,9 +3,12 @@ import {
   AI_VFX_PRESETS,
   AI_VFX_STYLES,
   buildAiVfxPrompt,
+  buildLocalSectionVfxPlan,
   copyAiVfxSettings,
+  inferAiVfxStyle,
   describeAiVfx,
   parseAiVfxRecipe,
+  parseAiVfxSectionPlan,
   presetRecipe,
   renderAiVfx,
   transientEnvelope,
@@ -248,5 +251,95 @@ describe('AI VFX beat lock', () => {
 
     expect((onBeat.arc as jest.Mock).mock.calls.length).toBeGreaterThan(0);
     expect((between.arc as jest.Mock).mock.calls.length).toBe(0);
+  });
+});
+
+describe('AI VFX section plans', () => {
+  const sections = [
+    { section: 'Intro', startTime: 0, endTime: 10 },
+    { section: 'Chorus 1', startTime: 10, endTime: 30 },
+    { section: 'Final Chorus', startTime: 30, endTime: 40 },
+  ];
+
+  it('reads the production family from the track brief', () => {
+    expect(inferAiVfxStyle('a cartoon chase for the kids', 'music-video')).toBe(
+      'cartoon'
+    );
+    expect(inferAiVfxStyle('an anime storybook interlude', 'action')).toBe(
+      'animation'
+    );
+    expect(inferAiVfxStyle('no styling at all', 'action')).toBe(
+      'action'
+    );
+  });
+
+  it('builds a same-family look for every section, led by the section name', () => {
+    const plan = buildLocalSectionVfxPlan(
+      'neon club visualizer',
+      'music-video',
+      sections
+    );
+
+    expect(plan.sections).toHaveLength(3);
+    expect(plan.sections.map((entry) => entry.recipe.style)).toEqual([
+      'music-video',
+      'music-video',
+      'music-video',
+    ]);
+    expect(plan.sections[0].recipe.name).toBe('Chrome Leak');
+    expect(plan.sections[1].recipe.name).toBe('Neon Pulse');
+    expect(plan.sections[2].intensity).toBeGreaterThan(
+      plan.sections[0].intensity
+    );
+    expect(plan.origin).toBe('preset');
+  });
+
+  it('accepts a directed section answer and clamps its intensities', () => {
+    const answer = JSON.stringify({
+      title: 'Night Drive FX',
+      sections: [
+        { section: 'intro', preset: 'chrome-leak', intensity: 0.3 },
+        { section: 'Chorus 1', preset: 'neon-pulse', intensity: 4 },
+        { section: 'Final Chorus', preset: 'strobe-burst', intensity: -1 },
+      ],
+    });
+
+    const plan = parseAiVfxSectionPlan(
+      answer,
+      'neon performance',
+      'music-video',
+      sections
+    );
+
+    expect(plan.origin).toBe('ai');
+    expect(plan.title).toBe('Night Drive FX');
+    expect(plan.sections.map((entry) => entry.recipe.name)).toEqual([
+      'Chrome Leak',
+      'Neon Pulse',
+      'Strobe Burst',
+    ]);
+    expect(plan.sections[1].intensity).toBe(1);
+    expect(plan.sections[2].intensity).toBe(0.2);
+  });
+
+  it('rejects an out-of-family preset and keeps the local look there', () => {
+    const answer = JSON.stringify({
+      sections: [
+        { section: 'Chorus 1', preset: 'explosion-shockwave', intensity: 0.9 },
+      ],
+    });
+
+    const plan = parseAiVfxSectionPlan(
+      answer,
+      'anime interlude',
+      'animation',
+      sections
+    );
+
+    expect(plan.origin).toBe('preset');
+    expect(plan.style).toBe('animation');
+    expect(plan.sections.every((entry) => entry.recipe.style === 'animation')).toBe(
+      true
+    );
   });
 });

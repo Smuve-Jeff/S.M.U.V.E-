@@ -6,6 +6,15 @@ import {
   MarkerKind,
   ProductionMode,
 } from './video-engine.service';
+import {
+  buildAiVfxSectionPrompt,
+  buildLocalSectionVfxPlan,
+  inferAiVfxStyle,
+  parseAiVfxSectionPlan,
+  type AiVfxSectionPlan,
+  type AiVfxSectionRange,
+  type AiVfxStyle,
+} from './ai-vfx';
 
 /** Shot sizes the director knows how to stage. */
 export const SHOT_SIZES = [
@@ -78,6 +87,12 @@ export interface ShotPlanRequest {
     source?: string;
   }>;
   existingMarkers?: Array<{ label: string; time: number; kind: MarkerKind }>;
+}
+
+/** A request to score the cut's sections with beat-locked AI effects. */
+export interface SectionVfxRequest extends ShotPlanRequest {
+  /** The effect family being authored; a specific brief can override it. */
+  style: AiVfxStyle;
 }
 
 export interface StructureMarker {
@@ -198,6 +213,13 @@ export class CinemaDirectorService {
   plan = signal<ShotPlan | null>(null);
   plannerNote = signal(
     'S.M.U.V.E stands ready. Describe the piece and it will cut a shot list.'
+  );
+
+  /** The per-section effect plan the director last assigned. */
+  sectionVfxPlan = signal<AiVfxSectionPlan | null>(null);
+  isPlanningVfx = signal(false);
+  sectionVfxNote = signal(
+    'Assign a beat-locked effect look to every section of the cut.'
   );
 
   constructor() {
@@ -446,6 +468,104 @@ export class CinemaDirectorService {
       return `${response} ${local.charAt(0).toUpperCase()}${local.slice(1)}`;
     }
     return `The model answered, but not with a shot list the timeline can read — ${local}`;
+  }
+
+  /**
+   * Score each part of the cut with a beat-locked effect look. Sections come
+   * from the shot list when one exists and from the structure map otherwise,
+   * so the effects always line up with the edit's own markers.
+   */
+  async directSectionVfx(request: SectionVfxRequest): Promise<AiVfxSectionPlan> {
+    this.isPlanningVfx.set(true);
+    const brief = request.brief.trim();
+    const style = inferAiVfxStyle(brief, request.style);
+    const sections = this.currentSectionRanges(request);
+    try {
+      if (!sections.length) {
+        const empty = buildLocalSectionVfxPlan(brief, style, sections);
+        this.sectionVfxPlan.set(empty);
+        this.sectionVfxNote.set(
+          'The cut has no runtime yet — stage footage or set a duration first.'
+        );
+        return empty;
+      }
+
+      let response = '';
+      try {
+        response = await this.aiService.getAIResponse(
+          buildAiVfxSectionPrompt(
+            brief,
+            style,
+            sections,
+            request.mode,
+            request.bpm
+          )
+        );
+      } catch (error) {
+        this.logger.warn('Cinema director: section VFX link unavailable', error);
+      }
+
+      const plan = response.trim()
+        ? parseAiVfxSectionPlan(response, brief, style, sections)
+        : buildLocalSectionVfxPlan(brief, style, sections);
+      this.sectionVfxPlan.set(plan);
+      this.sectionVfxNote.set(
+        plan.origin === 'ai'
+          ? `S.M.U.V.E scored ${plan.sections.length} sections — "${plan.title}"`
+          : `Section effects cut locally from the ${style} shelf — ${plan.sections.length} sections ready.`
+      );
+      return plan;
+    } finally {
+      this.isPlanningVfx.set(false);
+    }
+  }
+
+  clearSectionVfxPlan(): void {
+    this.sectionVfxPlan.set(null);
+    this.sectionVfxNote.set(
+      'Section effects cleared. The cut is back to its own look.'
+    );
+  }
+
+  /**
+   * Section ranges for the current cut. The shot plan wins when it has one, so
+   * a directed effect lands on the same part names the shot list uses; without
+   * a plan the mode's structure map supplies the sections.
+   */
+  currentSectionRanges(request: ShotPlanRequest): AiVfxSectionRange[] {
+    const durationSeconds = this.safeDuration(request.durationSeconds);
+    if (durationSeconds <= 0) return [];
+
+    const ranges: AiVfxSectionRange[] = [];
+    for (const shot of this.plan()?.shots ?? []) {
+      const startTime = Math.max(0, Math.min(durationSeconds, shot.startTime));
+      const endTime = Math.max(
+        startTime,
+        Math.min(durationSeconds, shot.startTime + shot.durationSeconds)
+      );
+      if (endTime - startTime < 0.05) continue;
+      const last = ranges[ranges.length - 1];
+      if (last && last.section === shot.section) {
+        last.endTime = endTime;
+        continue;
+      }
+      ranges.push({ section: shot.section || 'Coverage', startTime, endTime });
+    }
+    if (ranges.length) return ranges;
+
+    const markers = this.sectionMap(
+      request.mode,
+      durationSeconds,
+      request.bpm
+    );
+    return markers.map((marker, index) => ({
+      section: marker.label,
+      startTime: Math.max(0, Math.min(durationSeconds, marker.time)),
+      endTime: Math.max(
+        marker.time + 0.01,
+        Math.min(durationSeconds, markers[index + 1]?.time ?? durationSeconds)
+      ),
+    }));
   }
 
   clearPlan(): void {

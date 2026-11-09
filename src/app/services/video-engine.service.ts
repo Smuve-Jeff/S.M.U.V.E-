@@ -62,7 +62,12 @@ export type { ChromaKeySettings } from './chroma-key';
 export { sanitizeChromaKey } from './chroma-key';
 import { sanitizeChromaKey } from './chroma-key';
 export type { AiVfxPass, AiVfxPassId, AiVfxRecipe, AiVfxSettings, AiVfxStyle } from './ai-vfx';
-import { sanitizeAiVfx, type AiVfxSettings, type AiVfxTransientTrack } from './ai-vfx';
+import {
+  sanitizeAiVfx,
+  type AiVfxSectionAssignment,
+  type AiVfxSettings,
+  type AiVfxTransientTrack,
+} from './ai-vfx';
 import { analyzeAudioTransients, type TransientMap } from './audio-transients';
 export type { ClipMaskSettings, PipSettings, PipPreset, MaskShape } from './clip-mask';
 export { sanitizeMask, sanitizePip, pipTransform } from './clip-mask';
@@ -1178,6 +1183,50 @@ export class VideoEngineService {
           return {
             ...clip,
             effects: { ...clip.effects, aiVfx: sanitizeAiVfx(sanitized) ?? undefined },
+          };
+        }),
+      }))
+    );
+    return updated;
+  }
+
+  /**
+   * Lock a directed section plan onto the timeline. A clip joins the section it
+   * overlaps most, so footage straddling a boundary carries the look of the
+   * part it mostly covers rather than whichever section starts last.
+   *
+   * @returns the number of clips that received a look.
+   */
+  applyAiVfxSectionPlan(sections: readonly AiVfxSectionAssignment[]): number {
+    if (!sections?.length) return 0;
+    let updated = 0;
+    this.tracks.update((tracks) =>
+      tracks.map((track) => ({
+        ...track,
+        clips: track.clips.map((clip) => {
+          const clipEnd = clip.startTime + clip.duration;
+          let best: AiVfxSectionAssignment | null = null;
+          let bestOverlap = 0;
+          for (const section of sections) {
+            const overlap =
+              Math.min(clipEnd, section.endTime) -
+              Math.max(clip.startTime, section.startTime);
+            if (overlap > bestOverlap + 1e-6) {
+              bestOverlap = overlap;
+              best = section;
+            }
+          }
+          if (!best) return clip;
+          const sanitized = sanitizeAiVfx({
+            enabled: true,
+            intensity: best.intensity,
+            recipe: best.recipe,
+          });
+          if (!sanitized) return clip;
+          updated += 1;
+          return {
+            ...clip,
+            effects: { ...clip.effects, aiVfx: sanitized },
           };
         }),
       }))

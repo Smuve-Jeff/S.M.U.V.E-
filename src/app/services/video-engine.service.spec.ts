@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { AudioEngineService } from './audio-engine.service';
 import { CinemaSnapshot, VideoClip, VideoEngineService } from './video-engine.service';
+import { AI_VFX_PRESETS } from './ai-vfx';
 
 /**
  * The project snapshot is the only thing keeping a film or a broadcast rundown
@@ -960,5 +961,56 @@ describe('VideoEngineService clip keyframes', () => {
     const restored2 = fresh2.tracks().flatMap((t) => t.clips).find((c) => c.id === id)!;
     expect(restored2.effects.keyframes).toHaveLength(1);
     expect(restored2.effects.keyframes![0].value).toBe(4);
+  });
+});
+
+describe('VideoEngineService section AI effects', () => {
+  const createEngine = (): VideoEngineService => {
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({
+      providers: [
+        VideoEngineService,
+        { provide: AudioEngineService, useValue: { tempo: () => 120 } },
+      ],
+    });
+    return TestBed.inject(VideoEngineService);
+  };
+
+  it('gives a clip the look of the section it overlaps most', () => {
+    const engine = createEngine();
+    engine.addClip('t1', {
+      name: 'Boundary take',
+      url: 'blob:boundary',
+      startTime: 8,
+      duration: 8,
+      offset: 0,
+      type: 'video',
+      effects: {
+        upscale: false,
+        bgRemoval: false,
+        noiseReduction: false,
+        brightness: 1,
+        contrast: 1,
+        filter: 'none',
+        transition: 'cut',
+        transitionDuration: 0.4,
+        trimStart: 0,
+        trimEnd: 0,
+      },
+    });
+    const recipe = AI_VFX_PRESETS.find(
+      (preset) => preset.id === 'neon-pulse'
+    )!.recipe;
+
+    const count = engine.applyAiVfxSectionPlan([
+      { section: 'Verse', startTime: 0, endTime: 9, recipe, intensity: 0.4 },
+      { section: 'Chorus', startTime: 9, endTime: 20, recipe, intensity: 0.9 },
+    ]);
+
+    expect(count).toBe(1);
+    const settings = engine.tracks()[0].clips[0].effects.aiVfx;
+    expect(settings?.enabled).toBe(true);
+    expect(settings?.intensity).toBeCloseTo(0.9, 5);
+    expect(settings?.recipe.name).toBe('Neon Pulse');
   });
 });

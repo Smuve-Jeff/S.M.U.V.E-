@@ -5997,6 +5997,46 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     this.aiVfxStatus.set(`AI VFX CLEARED FROM ${clip.name.toUpperCase()}.`);
   }
 
+  /**
+   * Director: assign a beat-locked effect look to every section of the cut.
+   * The brief and the shot list decide the structure; the family comes from
+   * the Neural Assets shelf unless the brief names a different one.
+   */
+  async directSectionVfx(): Promise<void> {
+    if (this.director.isPlanningVfx()) return;
+    await this.director.directSectionVfx({
+      brief: this.director.brief() || this.aiVfxBrief(),
+      mode: this.videoEngine.productionMode(),
+      bpm: this.videoEngine.bpm(),
+      durationSeconds: this.videoEngine.duration(),
+      existingClipCount: this.clipCount(),
+      style: this.aiVfxStyle(),
+    });
+    this.aiFeedback.set(this.director.sectionVfxNote().toUpperCase());
+  }
+
+  /** Bake the director's section plan onto the timeline. */
+  applySectionVfxToTimeline(): void {
+    const plan = this.director.sectionVfxPlan();
+    if (!plan?.sections.length) {
+      this.aiFeedback.set('DIRECT THE SECTION EFFECTS FIRST.');
+      return;
+    }
+    const count = this.videoEngine.applyAiVfxSectionPlan(plan.sections);
+    this.aiFeedback.set(
+      count
+        ? `${plan.sections.length} SECTION LOOKS LOCKED TO ${count} CLIP${
+            count === 1 ? '' : 'S'
+          }.`
+        : 'NO CLIPS TO SCORE YET — STAGE FOOTAGE ON THE TIMELINE FIRST.'
+    );
+  }
+
+  clearSectionVfxPlan(): void {
+    this.director.clearSectionVfxPlan();
+    this.aiFeedback.set('SECTION EFFECTS CLEARED.');
+  }
+
   /** Readable pass label for the recipe chips in the panel. */
   aiVfxPassLabel(id: string): string {
     return AI_VFX_PASSES.find((pass) => pass.id === id)?.label ?? id;

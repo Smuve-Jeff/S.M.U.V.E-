@@ -1460,6 +1460,76 @@
             </div>
           }
 
+          <!--
+            Per-section AI effects: the Director assigns a look to each part of
+            the cut from the brief, and every burst fires on the music bed's
+            transients once the plan is locked to the timeline.
+          -->
+          <div class="director-section-vfx">
+            <div class="director-plan-meta">
+              <span>Section AI effects</span>
+              <span class="director-state" [class.busy]="director.isPlanningVfx()">
+                {{
+                  director.isPlanningVfx()
+                    ? 'Scoring…'
+                    : (director.sectionVfxPlan()?.sections.length ?? 0) + ' sections'
+                }}
+              </span>
+            </div>
+            <p class="panel-detail">
+              S.M.U.V.E reads the brief and assigns a beat-locked effect look to
+              each section — choruses and drops hit hardest. Once locked, every
+              burst fires on a transient in the imported music bed.
+            </p>
+            <div class="director-actions director-actions-compact">
+              <button
+                type="button"
+                class="director-button director-button-primary"
+                [disabled]="director.isPlanningVfx()"
+                (click)="directSectionVfx()"
+              >
+                {{
+                  director.isPlanningVfx()
+                    ? 'SCORING SECTIONS…'
+                    : 'ASSIGN SECTION EFFECTS'
+                }}
+              </button>
+              <button
+                type="button"
+                class="director-button"
+                [disabled]="!director.sectionVfxPlan()"
+                (click)="applySectionVfxToTimeline()"
+              >
+                LOCK TO TIMELINE
+              </button>
+              <button
+                type="button"
+                class="director-button"
+                [disabled]="!director.sectionVfxPlan()"
+                (click)="clearSectionVfxPlan()"
+              >
+                CLEAR SECTION FX
+              </button>
+            </div>
+            @if (director.sectionVfxPlan(); as vfxPlan) {
+              <div class="director-plan-card">
+                <div class="director-plan-title">{{ vfxPlan.title }}</div>
+                <ul class="director-plan-editorial">
+                  @for (section of vfxPlan.sections; track section.section) {
+                    <li>
+                      {{ section.section }} · {{ section.recipe.name }} ·
+                      {{ section.intensity * 100 | number: '1.0-0' }}%
+                    </li>
+                  }
+                </ul>
+                <div class="director-plan-meta">
+                  <span>{{ vfxPlan.origin === 'ai' ? 'S.M.U.V.E DIRECTED' : 'LOCAL SHELF' }}</span>
+                  <span>{{ vfxPlan.style | uppercase }}</span>
+                </div>
+              </div>
+            }
+          </div>
+
           <div class="command-console">
             <div class="command-console-label">Interactive direction</div>
             <div class="command-row">

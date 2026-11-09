@@ -591,6 +591,307 @@ export function presetById(id: string): AiVfxPreset | undefined {
   return AI_VFX_PRESETS.find((preset) => preset.id === id);
 }
 
+/* ── Section plans: one recipe per part of the piece ───────────────── */
+
+export interface AiVfxSectionRange {
+  section: string;
+  startTime: number;
+  endTime: number;
+}
+
+export interface AiVfxSectionAssignment extends AiVfxSectionRange {
+  recipe: AiVfxRecipe;
+  /** 0..1 master dial for this section. */
+  intensity: number;
+}
+
+export interface AiVfxSectionPlan {
+  title: string;
+  brief: string;
+  style: AiVfxStyle;
+  sections: AiVfxSectionAssignment[];
+  origin: 'ai' | 'preset';
+}
+
+/** Words in a track brief that name a production family. */
+const STYLE_KEYWORDS: Record<AiVfxStyle, string[]> = {
+  cartoon: ['cartoon', 'toon', 'comic', 'cel', 'sketch', 'kids', 'illustrated'],
+  animation: ['anime', 'animation', 'animated', 'manga', 'storybook', 'motion'],
+  avatar: ['avatar', 'hologram', 'holo', 'virtual', 'vtuber', 'digital double', 'character'],
+  action: ['action', 'chase', 'fight', 'explosion', 'blockbuster', 'stunt', 'combat', 'gun'],
+  'music-video': ['music video', 'performance', 'neon', 'club', 'concert', 'visualizer'],
+};
+
+/**
+ * Read the family the track brief is asking for. The artist's selected family
+ * wins only when the brief says nothing more specific, so "a cartoon skit"
+ * cannot quietly ship an action look.
+ */
+export function inferAiVfxStyle(
+  brief: string,
+  fallback: AiVfxStyle = 'music-video',
+): AiVfxStyle {
+  const words = (brief || '').toLowerCase();
+  let best = fallback;
+  let bestScore = 0;
+  for (const style of AI_VFX_STYLES) {
+    const score = STYLE_KEYWORDS[style.id].reduce(
+      (total, keyword) => total + (words.includes(keyword) ? 1 : 0),
+      0,
+    );
+    if (score > bestScore) {
+      bestScore = score;
+      best = style.id;
+    }
+  }
+  return best;
+}
+
+/** Section-name rules that pick a same-family shelf look. */
+const SECTION_PRESET_RULES: Record<AiVfxStyle, { pattern: RegExp; presetId: string }[]> = {
+  cartoon: [
+    { pattern: /final|climax|chorus|hook|drop/, presetId: 'comic-impact' },
+    { pattern: /bridge|break|solo/, presetId: 'toon-speed' },
+    { pattern: /intro|outro|open|end|credits/, presetId: 'bubblegum-drift' },
+    { pattern: /verse|act|scene|segment/, presetId: 'cel-pop' },
+  ],
+  animation: [
+    { pattern: /final|climax|chorus|hook|drop/, presetId: 'anime-aura' },
+    { pattern: /bridge|break|solo/, presetId: 'motion-echo' },
+    { pattern: /intro|outro|open|end|credits/, presetId: 'storybook-glow' },
+    { pattern: /verse|act|scene|segment/, presetId: 'sparkle-drift' },
+  ],
+  avatar: [
+    { pattern: /final|climax|chorus|hook|drop/, presetId: 'holo-avatar' },
+    { pattern: /bridge|break|solo/, presetId: 'neon-orbit' },
+    { pattern: /intro|outro|open|end|credits/, presetId: 'signal-ghost' },
+    { pattern: /verse|act|scene|segment/, presetId: 'digital-aura' },
+  ],
+  action: [
+    { pattern: /final|climax|chorus|hook|drop/, presetId: 'explosion-shockwave' },
+    { pattern: /bridge|break|solo|chase/, presetId: 'muzzle-flash' },
+    { pattern: /intro|outro|open|end|credits/, presetId: 'speed-storm' },
+    { pattern: /verse|act|scene|segment/, presetId: 'blockbuster-impact' },
+  ],
+  'music-video': [
+    { pattern: /final|climax|chorus|hook|drop/, presetId: 'neon-pulse' },
+    { pattern: /bridge|break|solo|interlude/, presetId: 'vhs-glitch' },
+    { pattern: /intro|outro|open|end|credits/, presetId: 'chrome-leak' },
+    { pattern: /verse|act|scene|segment/, presetId: 'strobe-burst' },
+  ],
+};
+
+function cloneRecipe(recipe: AiVfxRecipe, origin: 'ai' | 'preset'): AiVfxRecipe {
+  return {
+    ...recipe,
+    passes: recipe.passes.map((pass) => ({
+      ...pass,
+      palette: pass.palette ? [...pass.palette] : undefined,
+    })),
+    origin,
+  };
+}
+
+function normaliseSectionLabel(label: string): string {
+  return String(label || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '');
+}
+
+function normalizeSectionRanges(
+  sections: readonly AiVfxSectionRange[],
+): AiVfxSectionRange[] {
+  return sections
+    .filter((section) => section && typeof section.section === 'string')
+    .map((section, index) => {
+      const startTime = Math.max(0, Number(section.startTime) || 0);
+      const rawEnd = Number(section.endTime);
+      const endTime = Math.max(
+        startTime + 0.01,
+        Number.isFinite(rawEnd) ? rawEnd : startTime + 0.01,
+      );
+      return {
+        section: section.section.trim() || `Section ${index + 1}`,
+        startTime,
+        endTime,
+      };
+    })
+    .sort((a, b) => a.startTime - b.startTime);
+}
+
+function sectionIntensity(label: string): number {
+  const words = label.toLowerCase();
+  if (/final|climax|drop/.test(words)) return 0.95;
+  if (/chorus|hook/.test(words)) return 0.9;
+  if (/pre-?chorus|build/.test(words)) return 0.8;
+  if (/bridge|break|solo|interlude/.test(words)) return 0.72;
+  if (/verse/.test(words)) return 0.65;
+  if (/intro|outro|credits|end/.test(words)) return 0.5;
+  return 0.7;
+}
+
+function pickSectionRecipe(
+  style: AiVfxStyle,
+  label: string,
+  brief: string,
+): AiVfxRecipe {
+  const family = AI_VFX_PRESETS.filter((preset) => preset.style === style);
+  const haystack = `${label} ${brief}`.toLowerCase();
+  for (const rule of SECTION_PRESET_RULES[style] ?? []) {
+    if (!rule.pattern.test(haystack)) continue;
+    const preset = family.find((candidate) => candidate.id === rule.presetId);
+    if (preset) return preset.recipe;
+  }
+  return presetRecipe(style, haystack);
+}
+
+/**
+ * The local plan: section name decides the look, the brief only breaks ties.
+ * It ships when the model is out of reach, and it is the skeleton a directed
+ * answer fills in.
+ */
+export function buildLocalSectionVfxPlan(
+  brief: string,
+  style: AiVfxStyle,
+  sections: readonly AiVfxSectionRange[],
+): AiVfxSectionPlan {
+  const safeStyle = isAiVfxStyle(style) ? style : 'music-video';
+  const ranges = normalizeSectionRanges(sections);
+  const label = AI_VFX_STYLES.find((entry) => entry.id === safeStyle)?.label ?? safeStyle;
+  return {
+    title: brief.trim()
+      ? `${brief.trim().slice(0, 48)} — Section FX`
+      : `${label} Section FX`,
+    brief,
+    style: safeStyle,
+    sections: ranges.map((range) => ({
+      ...range,
+      recipe: cloneRecipe(pickSectionRecipe(safeStyle, range.section, brief), 'preset'),
+      intensity: sectionIntensity(range.section),
+    })),
+    origin: 'preset',
+  };
+}
+
+/** Ask for a per-section assignment, bounded to one family. */
+export function buildAiVfxSectionPrompt(
+  brief: string,
+  style: AiVfxStyle,
+  sections: readonly AiVfxSectionRange[],
+  mode: string,
+  bpm: number,
+): string {
+  const safeStyle = isAiVfxStyle(style) ? style : 'music-video';
+  const label = AI_VFX_STYLES.find((entry) => entry.id === safeStyle)?.label ?? safeStyle;
+  const shelf = AI_VFX_PRESETS.filter((preset) => preset.style === safeStyle)
+    .map((preset) => `- ${preset.id}: ${preset.name} — ${preset.description}`)
+    .join('\n');
+  const sectionList = normalizeSectionRanges(sections)
+    .map(
+      (section, index) =>
+        `${index + 1}. "${section.section}" (${section.startTime.toFixed(1)}-${section.endTime.toFixed(1)}s)`,
+    )
+    .join('\n');
+
+  return [
+    'You are the special-effects supervisor inside S.M.U.V.E Cinema Engine.',
+    `Production: ${mode}. Visual family: ${label} (${safeStyle}). Tempo: ${bpm} BPM.`,
+    'Assign one special-effects look to each section of this cut.',
+    'These effects fire on transients detected in the music bed, so stronger looks belong on choruses, drops and finales; intros and outros stay restrained.',
+    '',
+    'Sections, in timeline order:',
+    sectionList || '1. "Full Cut" (the whole piece)',
+    '',
+    `Choose one preset id per section from this ${label} shelf and nothing else:`,
+    shelf,
+    '',
+    'Answer with ONLY JSON, no prose, markdown or code fences:',
+    '{"title":"<=60 chars","sections":[{"section":"exact section label","preset":"preset-id","intensity":0.0-1.0}]}',
+    'Cover every section exactly once. Keep intensities between 0.2 and 0.95.',
+    `ARTIST BRIEF: ${brief.trim() || 'a signature look for this track'}`,
+  ].join('\n');
+}
+
+/**
+ * Read a directed section plan. A skipped section keeps the local look, an
+ * out-of-family preset is rejected, and a prose answer falls back wholesale —
+ * the timeline always gets one valid recipe per section.
+ */
+export function parseAiVfxSectionPlan(
+  answer: string,
+  brief: string,
+  style: AiVfxStyle,
+  sections: readonly AiVfxSectionRange[],
+): AiVfxSectionPlan {
+  const safeStyle = isAiVfxStyle(style) ? style : inferAiVfxStyle(brief, 'music-video');
+  const fallback = buildLocalSectionVfxPlan(brief, safeStyle, sections);
+  if (!fallback.sections.length) return fallback;
+
+  const cleaned = (answer || '').replace(/```(?:json)?/gi, '');
+  const start = cleaned.indexOf('{');
+  const end = cleaned.lastIndexOf('}');
+  if (start < 0 || end <= start) return fallback;
+
+  let payload: Record<string, unknown>;
+  try {
+    const parsed = JSON.parse(cleaned.slice(start, end + 1));
+    if (!parsed || typeof parsed !== 'object') return fallback;
+    payload = parsed as Record<string, unknown>;
+  } catch {
+    return fallback;
+  }
+
+  const rawSections = Array.isArray(payload['sections']) ? payload['sections'] : [];
+  if (!rawSections.length) return fallback;
+
+  const byLabel = new Map<string, Record<string, unknown>>();
+  rawSections.forEach((raw) => {
+    if (!raw || typeof raw !== 'object') return;
+    const entry = raw as Record<string, unknown>;
+    const label =
+      typeof entry['section'] === 'string' ? normaliseSectionLabel(entry['section']) : '';
+    if (label) byLabel.set(label, entry);
+  });
+
+  let directed = 0;
+  const assignments = fallback.sections.map((section, index) => {
+    const byIndex =
+      rawSections.length === fallback.sections.length &&
+      rawSections[index] &&
+      typeof rawSections[index] === 'object'
+        ? (rawSections[index] as Record<string, unknown>)
+        : undefined;
+    const entry = byLabel.get(normaliseSectionLabel(section.section)) ?? byIndex;
+    const preset =
+      entry && typeof entry['preset'] === 'string' ? presetById(entry['preset']) : undefined;
+    if (!preset || preset.style !== safeStyle) return section;
+    const rawIntensity = Number(entry?.['intensity']);
+    const intensity = Number.isFinite(rawIntensity)
+      ? Math.max(0.2, Math.min(1, rawIntensity))
+      : section.intensity;
+    directed += 1;
+    return {
+      ...section,
+      recipe: cloneRecipe(preset.recipe, 'ai'),
+      intensity,
+    };
+  });
+  if (!directed) return fallback;
+
+  const title =
+    typeof payload['title'] === 'string' && payload['title'].trim()
+      ? payload['title'].trim().slice(0, 60)
+      : fallback.title;
+  return {
+    title,
+    brief,
+    style: safeStyle,
+    sections: assignments,
+    origin: 'ai',
+  };
+}
+
+
 /** The prompt the director sends: strict JSON, catalogue-bounded pass ids. */
 export function buildAiVfxPrompt(
   brief: string,

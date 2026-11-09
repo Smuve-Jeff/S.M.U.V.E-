@@ -382,4 +382,67 @@ describe('CinemaDirectorService', () => {
     expect(plan.shots[0].startTime + plan.shots[0].durationSeconds).toBeLessThanOrEqual(0.01);
     expect(plan.editorial[0]).toContain('120.00 BPM');
   });
+
+  it('reads section ranges off the shot plan so effects follow the edit', async () => {
+    const service = createService(
+      JSON.stringify({
+        title: 'Night Drive',
+        logline: 'A headlight-lit performance cut.',
+        shots: [
+          { title: 'Open', description: 'Wide', size: 'wide', bars: 2 },
+          { title: 'Hook', description: 'Close', size: 'close', bars: 2 },
+        ],
+      })
+    );
+    const longRequest = { ...request, durationSeconds: 40 };
+    await service.generateShotPlan(longRequest);
+
+    const ranges = service.currentSectionRanges(longRequest);
+
+    expect(ranges.length).toBeGreaterThan(0);
+    expect(ranges[0].startTime).toBe(0);
+    expect(ranges[0].section).toBeTruthy();
+    expect(ranges.every((range) => range.endTime > range.startTime)).toBe(true);
+  });
+
+  it('directs a same-family section plan locally when the link is down', async () => {
+    const service = createService('');
+
+    const plan = await service.directSectionVfx({
+      ...request,
+      brief: 'a cartoon chase',
+      style: 'music-video',
+    });
+
+    expect(plan.style).toBe('cartoon');
+    expect(plan.origin).toBe('preset');
+    expect(plan.sections.length).toBeGreaterThan(0);
+    expect(plan.sections.every((section) => section.recipe.style === 'cartoon')).toBe(
+      true
+    );
+    expect(service.isPlanningVfx()).toBe(false);
+    expect(service.sectionVfxPlan()).not.toBeNull();
+    expect(service.sectionVfxNote()).toContain('locally');
+  });
+
+  it('takes a directed section assignment from the model', async () => {
+    const service = createService(
+      JSON.stringify({
+        title: 'Directed FX',
+        sections: [{ section: 'Intro', preset: 'comic-impact', intensity: 0.8 }],
+      })
+    );
+
+    const plan = await service.directSectionVfx({
+      ...request,
+      brief: 'a cartoon skit',
+      style: 'cartoon',
+    });
+
+    expect(plan.origin).toBe('ai');
+    expect(plan.title).toBe('Directed FX');
+    expect(plan.sections.some((section) => section.recipe.name === 'Comic Impact')).toBe(
+      true
+    );
+  });
 });
