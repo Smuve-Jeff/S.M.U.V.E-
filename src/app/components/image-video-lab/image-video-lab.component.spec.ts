@@ -3854,9 +3854,10 @@ describe('ImageVideoLabComponent', () => {
       expect(component.director.sectionVfxPlan()?.title).toBe('Saved FX');
     });
 
-    it('holds the resume state until the project has fully loaded', async () => {
-      const { component, cinemaProjects } = await createComponent();
+    it('names the saved project and holds the resume state while it loads', async () => {
+      const { component, cinemaProjects, projectList } = await createComponent();
       let finishOpen!: (outcome: { ok: boolean; message: string }) => void;
+      projectList.set([{ id: 'p2', name: 'Act Two' }]);
       cinemaProjects.takeResumableProjectId.mockResolvedValueOnce('p2');
       cinemaProjects.open.mockImplementationOnce(
         () =>
@@ -3870,11 +3871,13 @@ describe('ImageVideoLabComponent', () => {
       await Promise.resolve();
 
       expect(component.resumingProject()).toBe(true);
+      expect(component.resumingProjectName()).toBe('Act Two');
 
       finishOpen({ ok: true, message: 'PROJECT OPENED: ACT TWO.' });
       await resuming;
 
       expect(component.resumingProject()).toBe(false);
+      expect(component.resumingProjectName()).toBe('');
     });
 
     it('deletes without also opening the project under the pointer', async () => {

@@ -2812,6 +2812,7 @@ canvas {
 .cinema-resume-copy {
   display: grid;
   gap: 0.2rem;
+  min-width: 0;
 }
 
 .cinema-resume-eyebrow {
@@ -2826,6 +2827,7 @@ canvas {
   color: #e2e8f0;
   font-size: 0.95rem;
   font-weight: 800;
+  overflow-wrap: anywhere;
 }
 
 .cinema-resume-detail {
