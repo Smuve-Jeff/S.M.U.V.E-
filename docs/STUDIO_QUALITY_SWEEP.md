@@ -1435,7 +1435,7 @@ The page answered eleven keys and showed none of them. There is now a
 `Shortcuts` button in the top bar (and `?`), opening a cheat sheet that lists
 **exactly** what the page answers: Space/R/M, ⌘S/⌘E/⌘Z/⇧⌘Z/⌘I, ⌘K, `?`, `Esc`.
 
-![The cheat sheet on desktop](artifacts/studio-shortcuts-desktop.png)
+![The cheat sheet on desktop](../artifacts/studio-shortcuts-desktop.png)
 
 It is a dialog over everything — including the full-surface editors — so it is
 also the **first** layer `dismissTopOverlay()` takes back: with a panel open,
@@ -1657,7 +1657,7 @@ never a guess. **Check again** re-reads it — the right action after clearing a
 block, since firing another `getUserMedia` could not prompt and would only
 produce the same error.
 
-![The blocked-microphone banner](artifacts/studio-mic-blocked.png)
+![The blocked-microphone banner](../artifacts/studio-mic-blocked.png)
 
 Two smaller corrections came out of looking at it on screen:
 
@@ -1716,7 +1716,7 @@ the device list, so "no microphone detected" would be the wrong diagnosis there.
 The notice is suppressed while a permission problem is on screen — the permission
 banner owns that case, and it says what to do about it.
 
-![No input device](artifacts/studio-recorder-no-input.png)
+![No input device](../artifacts/studio-recorder-no-input.png)
 
 ### 27.3 Verification
 
@@ -1776,7 +1776,7 @@ That is the kind of defect a faked `getUserMedia` hides completely: the fake
 returns whatever the test says, so the label looks correct in a spec and wrong in
 the app.
 
-![A captured take in the bank](artifacts/studio-take-captured.png)
+![A captured take in the bank](../artifacts/studio-take-captured.png)
 
 ### 28.3 Verification
 

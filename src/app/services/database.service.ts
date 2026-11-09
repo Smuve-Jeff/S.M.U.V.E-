@@ -20,7 +20,12 @@ export class DatabaseService {
 
   private getHeaders() {
     const token = this.tokenService.jwtToken();
-    return token ? { headers: { Authorization: 'Bearer ' + token } } : {};
+    // A legacy local/demo token is not signed by the API. Presenting it as a
+    // bearer credential only earns a 401 that can tear down the session; the
+    // interceptor applies the same rule to requests without their own header.
+    return token && this.tokenService.isApiToken()
+      ? { headers: { Authorization: 'Bearer ' + token } }
+      : {};
   }
 
   get apiUrl(): string {

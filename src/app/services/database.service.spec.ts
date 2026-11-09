@@ -19,12 +19,14 @@ describe('DatabaseService profile ownership', () => {
   let service: DatabaseService;
   let http: HttpTestingController;
   let warn: jest.Mock;
+  let apiToken: boolean;
 
   const profile = (overrides: Partial<UserProfile> = {}): UserProfile =>
     JSON.parse(JSON.stringify({ ...initialProfile, ...overrides })) as UserProfile;
 
   beforeEach(() => {
     warn = jest.fn();
+    apiToken = true;
     TestBed.configureTestingModule({
       providers: [
         DatabaseService,
@@ -34,7 +36,13 @@ describe('DatabaseService profile ownership', () => {
           provide: LoggingService,
           useValue: { info: jest.fn(), warn, error: jest.fn(), system: jest.fn() },
         },
-        { provide: TokenService, useValue: { jwtToken: () => 'test-token' } },
+        {
+          provide: TokenService,
+          useValue: {
+            jwtToken: () => 'test-token',
+            isApiToken: () => apiToken,
+          },
+        },
       ],
     });
     service = TestBed.inject(DatabaseService);
@@ -84,6 +92,27 @@ describe('DatabaseService profile ownership', () => {
     await pending;
 
     expect(warn).not.toHaveBeenCalled();
+  });
+
+  it('sends only an API-signed token on an upload', async () => {
+    const file = new File(['cover'], 'cover.png', { type: 'image/png' });
+
+    const signed = service.uploadAsset(file);
+    const signedRequest = http.expectOne(service.apiUrl + '/upload');
+    expect(signedRequest.request.headers.get('Authorization')).toBe(
+      'Bearer test-token'
+    );
+    signedRequest.flush({ url: 'https://cdn.example/cover.png' });
+    await expect(signed).resolves.toBe('https://cdn.example/cover.png');
+
+    // A legacy local/demo token is not an API credential. Sending it would
+    // replace a clear signed-out state with a 401 that tears the session down.
+    apiToken = false;
+    const unsigned = service.uploadAsset(file);
+    const unsignedRequest = http.expectOne(service.apiUrl + '/upload');
+    expect(unsignedRequest.request.headers.has('Authorization')).toBe(false);
+    unsignedRequest.flush({ url: 'https://cdn.example/cover-2.png' });
+    await expect(unsigned).resolves.toBe('https://cdn.example/cover-2.png');
   });
 
   it('treats the guest fallback key as its own destination', async () => {

@@ -35,6 +35,9 @@ piano velocity layers use the public-domain Splendid Grand Piano via the
 - **S.M.U.V.E. Prime AI** — an in-character executive advisor, producer, and collaborator
   powered by Gemini, with strategy audits, viral hooks, session musicians, and
   artist-granted full-control mode.
+- **Independent Artist Toolkit** — a dated release blueprint, signable split sheet,
+  royalty estimator, rights/money checklist, and career journey guides, all saved
+  on the artist's device.
 - **Cinema engine room** — `Image & Video Lab` with layered timeline, titles, narration,
   FX rack, and delivery cutdowns.
 - **Tha Spot** — a 900+ cabinet browser-gaming and community hub with rooms,
@@ -74,6 +77,7 @@ public routes.
 | `/career` | Career Board | Career planning and momentum tracking |
 | `/business-suite` | Business Suite | Business operations and pipelines |
 | `/business-pipeline/:id` | Pipeline Detail | Single-pipeline drill-down |
+| `/toolkit` | Artist Toolkit | Release blueprint, split sheet, royalty estimator, rights checklist, and career guides |
 | `/artist-development` | Artist Development | Growth programs and missions (`/dev-hub` alias) |
 | `/knowledge-base` | Knowledge Base | AI reference surface |
 | `/cowrite` | Cowrite Studio | Collaborative writing sessions |
@@ -190,6 +194,9 @@ The visual workspace is a cinema-style editor rather than a simple preview:
 - **Realtime**: Socket.IO for presence, rooms, direct messages, challenges, and WebRTC
   voice signaling.
 - **Storage**: S3-compatible client for media uploads (`src/services/storage.service.ts`).
+  Uploads are magic-byte checked against their declared type, stored under an
+  owner-scoped unguessable key (`uploads/<userId>/<year>/<uuid>/<name>`), and
+  served with an immutable cache policy and the sniffed content type.
 - `authentication-worker/` is an optional Cloudflare Worker JWT gate that can front the
   API (see its `wrangler.toml`).
 
@@ -257,6 +264,9 @@ Copy `.env.example` → `.env` for the API base keys (`NODE_ENV`, `PORT`, `DATAB
 | `FRONTEND_URL` | Allowed frontend origins (comma-separated) |
 | `PLUNK_API_KEY` | Plunk **secret** key (`sk_*`) for account-recovery email |
 | `PLUNK_FROM_EMAIL` / `PLUNK_FROM_NAME` | Verified sender identity |
+| `R2_ENDPOINT` / `R2_ACCESS_KEY_ID` / `R2_SECRET_ACCESS_KEY` | S3-compatible R2 credentials for uploads and private project storage |
+| `R2_BUCKET_NAME` | Bucket for media uploads and cloud snapshots |
+| `R2_PUBLIC_DOMAIN` | Public CDN domain that serves uploaded media |
 
 Never commit real secrets; `.env*` is gitignored except `.env.example`.
 
@@ -276,6 +286,7 @@ Never commit real secrets; `.env*` is gitignored except `.env.example`.
 | `npm run build:wasm` | Build the WASM DSP modules (emscripten pipeline) |
 | `npm run cap:sync` | Sync the web build into the Android shell |
 | `npm run audit:tha-spot-artwork` | Tha Spot artwork audit (add `--live --smoke` for browser checks) |
+| `npm run audit:links` | Offline link audit: routes, workspace registry, docs, and new-tab safety |
 
 ### Verification
 

@@ -35,7 +35,13 @@ describe('profile ownership loop', () => {
         provideHttpClient(),
         provideHttpClientTesting(),
         { provide: AuthService, useValue: { currentUser: () => ({ id: 'u1' }) } },
-        { provide: TokenService, useValue: { jwtToken: () => 'test-token' } },
+        {
+          provide: TokenService,
+          useValue: {
+            jwtToken: () => 'test-token',
+            isApiToken: () => true,
+          },
+        },
         {
           provide: LoggingService,
           useValue: { info: jest.fn(), warn: jest.fn(), error: jest.fn(), system: jest.fn() },

@@ -1,6 +1,15 @@
+import { randomUUID } from "node:crypto";
 import type { Request } from "express";
 import type { S3Client } from "@aws-sdk/client-s3";
 import { AppError } from "@/lib";
+import {
+  buildUploadObjectKey,
+  isConsistentUpload,
+  publicUploadUrl,
+  sanitizeUploadFilename,
+  sniffUploadMime,
+  storedUploadMime,
+} from "@/lib/upload-security";
 
 const R2_ENDPOINT = process.env.R2_ENDPOINT;
 const R2_ACCESS_KEY_ID = process.env.R2_ACCESS_KEY_ID;
@@ -54,31 +63,58 @@ const s3Client = async (): Promise<S3Client> => {
 export const uploadToStorage = async (
   req: Request,
   file: Express.Multer.File,
-): Promise<{ url: string }> => {
+): Promise<{ url: string; key: string; contentType: string }> => {
   if (!r2Configured()) {
     throw new AppError(503, "Upload storage is not configured");
+  }
+
+  const userId = req.user?.userId;
+  if (userId === undefined || userId === null || String(userId).length === 0) {
+    throw new AppError(401, "Authentication required to upload.");
+  }
+
+  // A MIME header is a claim. Sniff the bytes and refuse a file whose content
+  // contradicts what it says it is; otherwise an executable or HTML document
+  // could be stored and served from the public media domain under an image
+  // content type.
+  const detected = sniffUploadMime(file.buffer);
+  if (!isConsistentUpload(file.mimetype, detected)) {
+    throw new AppError(
+      415,
+      "File content does not match its declared type. Upload a real image, audio, video, PDF, zip or text file.",
+    );
   }
 
   // Lazy require so the API boots without @aws-sdk/client-s3 installed.
   const { PutObjectCommand } = await import("@aws-sdk/client-s3");
 
-  const userId = req.user?.userId ?? "anon";
-  // Sanitize the client-supplied name: strip path separators and whitespace
-  // so the value can only ever be a single flat object key in the bucket.
-  const safeName = file.originalname.replace(/[\\/]/g, "_").replace(/\s+/g, "_");
-  const fileName = `${userId}_${Date.now()}_${safeName}`;
+  const safeName = sanitizeUploadFilename(file.originalname);
+  const contentType = storedUploadMime(file.mimetype, detected);
+  // Owner-scoped and unguessable: the first segment proves ownership and the
+  // UUID stops one account's filename from predicting another's object.
+  const key = buildUploadObjectKey(String(userId), safeName, randomUUID());
 
   const client = await s3Client();
   await client.send(
     new PutObjectCommand({
       Bucket: R2_BUCKET_NAME,
-      Key: fileName,
+      Key: key,
       Body: file.buffer,
-      ContentType: file.mimetype,
+      ContentType: contentType,
+      CacheControl: "public, max-age=31536000, immutable",
+      ContentDisposition: `inline; filename="${safeName}"`,
+      Metadata: {
+        owner: String(userId),
+        "original-filename": safeName,
+      },
     }),
   );
 
-  return { url: `${R2_PUBLIC_DOMAIN}/${fileName}` };
+  return {
+    url: publicUploadUrl(R2_PUBLIC_DOMAIN!, key),
+    key,
+    contentType,
+  };
 };
 
 /**
