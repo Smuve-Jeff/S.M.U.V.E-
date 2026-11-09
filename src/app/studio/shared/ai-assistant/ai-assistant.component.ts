@@ -524,6 +524,26 @@ export class AiAssistantComponent implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
+  async restoreCheckpointDirectorAction(): Promise<void> {
+    if (this.directorBusy()) return;
+    if (!window.confirm("Restore the latest checkpoint? Current work is preserved as an undoable edit.")) return;
+    this.directorBusy.set(true);
+    this.directorStatus.set("Restoring checkpoint...");
+    try {
+      const message = await this.director.restoreCheckpoint();
+      this.directorReport.update((report) => [...report, `Done — Restore checkpoint: ${message}`]);
+      this.directorStatus.set(message);
+      this.snack.success(message);
+      this.haptic.medium();
+    } catch (error) {
+      const message = `Checkpoint restore failed: ${(error as Error).message}`;
+      this.directorStatus.set(message);
+      this.snack.error(message);
+    } finally {
+      this.directorBusy.set(false);
+    }
+  }
+
   deleteSelectedDirectorTrack(): void {
     if (this.directorBusy()) return;
     const track = this.musicManager.selectedTrack();

@@ -7,6 +7,7 @@ import {
   type TrackNote,
 } from '../services/music-manager.service';
 import { HistoryService } from '../services/history.service';
+import { SessionHistoryService } from '../services/session-history.service';
 import { ExportService } from '../services/export.service';
 import { IdeasGeneratorService } from '../services/ideas-generator.service';
 import { AudioEngineService } from '../services/audio-engine.service';
@@ -25,19 +26,22 @@ import { AudioRecorderService } from './audio-recorder.service';
 import { AiMixAssistantService } from './effects/ai-mix-assistant.service';
 import { AiCopilotService } from './ai-copilot.service';
 import { OfflineBounceService } from './offline-bounce.service';
-import { ProjectWorkspaceService } from './project-workspace.service';
+import { ProjectWorkspaceService, type ProjectBundle } from './project-workspace.service';
 import { SmartSoundService } from './smart-sound.service';
 import { SmartProductionFoundationsService } from './smart-production-foundations.service';
 import { PerformanceRecordingService } from './performance-recording.service';
 import { AudioImportService } from './audio-import.service';
 import {
   DEFAULT_TUNER_TOLERANCE_CENTS,
+  frequencyToNote,
   midiToFrequency,
 } from './tuner/tuner-pitch.util';
 import {
   detectTransientFrames,
   sliceAudioBufferAtFrames,
 } from './sampler-slice.util';
+import { detectPitch } from './audio-to-midi.util';
+import { SamplerStateService } from './sampler-state.service';
 import { StudioTelemetryService } from './studio-telemetry.service';
 import {
   STUDIO_SURFACES,
@@ -111,6 +115,7 @@ export class StudioAiDirectorService {
   private ai = inject(AiService);
   private music = inject(MusicManagerService);
   private history = inject(HistoryService);
+  private sessionHistory = inject(SessionHistoryService);
   private exports = inject(ExportService);
   private ideas = inject(IdeasGeneratorService);
   private engine = inject(AudioEngineService);
@@ -130,6 +135,7 @@ export class StudioAiDirectorService {
   private foundations = inject(SmartProductionFoundationsService);
   private performanceRecording = inject(PerformanceRecordingService);
   private audioImport = inject(AudioImportService);
+  private samplerState = inject(SamplerStateService);
   private telemetry = inject(StudioTelemetryService);
   private logger = inject(LoggingService);
 
@@ -236,6 +242,75 @@ export class StudioAiDirectorService {
 
   restoreLastDeletedState(): string {
     return this.undoLastAction();
+  }
+
+  /** Checkpoint count / latest label for the current project branch. */
+  checkpointSummary(): string {
+    const projectId = this.workspace.metadata()?.id;
+    if (!projectId) return 'No project metadata is active.';
+    const branchId = this.sessionHistory.activeBranch(projectId);
+    if (!branchId) return 'No session checkpoint branch is active.';
+    const checkpoints = this.sessionHistory.checkpoints(projectId, branchId);
+    if (checkpoints.length === 0) return 'No session checkpoints are available yet.';
+    const latest = checkpoints[checkpoints.length - 1];
+    return `${checkpoints.length} checkpoint${checkpoints.length === 1 ? '' : 's'}; latest: ${latest.label}.`;
+  }
+
+  /**
+   * Restore a persisted SessionHistory checkpoint into the live project.
+   * The current project state is captured first, then the restore is pushed
+   * through HistoryService, so the restore is an undoable edit.
+   */
+  async restoreCheckpoint(checkpointId?: string): Promise<string> {
+    const projectId = this.workspace.metadata()?.id;
+    if (!projectId) throw new Error('No project metadata is active.');
+    const branchId = this.sessionHistory.activeBranch(projectId);
+    if (!branchId) throw new Error('No session checkpoint branch is active.');
+    const checkpoints = this.sessionHistory.checkpoints(projectId, branchId);
+    if (checkpoints.length === 0) throw new Error('No session checkpoints are available to restore.');
+    const target = checkpointId
+      ? checkpoints.find((checkpoint) => checkpoint.id === checkpointId)
+      : checkpoints[checkpoints.length - 1];
+    if (!target) throw new Error(`Checkpoint ${checkpointId} was not found.`);
+    const materialized = this.sessionHistory.materializeSnapshot(projectId, target.id);
+    if (!materialized) throw new Error(`Checkpoint ${target.label} could not be materialized.`);
+    const before = this.workspace.createSnapshot();
+    const payload = materialized as unknown as Record<string, unknown>;
+
+    if (payload.metadata && Array.isArray(payload.tracks)) {
+      const bundle = materialized as unknown as ProjectBundle;
+      this.history.execute({
+        name: `Restore checkpoint ${target.label}`,
+        execute: () => this.workspace.restoreFromSnapshot(bundle),
+        undo: () => this.workspace.restoreFromSnapshot(before),
+      });
+      await this.sessionHistory.rewind({ branchId, targetCheckpointId: target.id }).catch(() => null);
+      return `Restored checkpoint ${target.label} into the live project. The previous project state is an undoable edit away.`;
+    }
+
+    const metadataPatch: Record<string, unknown> = {};
+    const tempo = typeof payload.tempo === 'number' ? payload.tempo : typeof payload.bpm === 'number' ? payload.bpm : null;
+    if (typeof tempo === 'number' && Number.isFinite(tempo)) metadataPatch.bpm = tempo;
+    if (typeof payload.key === 'string' && payload.key.trim()) metadataPatch.key = payload.key;
+    if (Object.keys(metadataPatch).length === 0) {
+      throw new Error(`Checkpoint ${target.label} does not contain a full project bundle or tempo/key metadata to restore.`);
+    }
+    const beforeMetadata = { ...(this.workspace.metadata() ?? {}) } as Record<string, unknown>;
+    const beforeTempo = this.engine.tempo();
+    const restoredTempo = typeof metadataPatch.bpm === 'number' ? metadataPatch.bpm as number : null;
+    this.history.execute({
+      name: `Restore checkpoint ${target.label}`,
+      execute: () => {
+        this.workspace.updateMetadata(metadataPatch as never);
+        if (restoredTempo !== null) this.engine.tempo.set(restoredTempo);
+      },
+      undo: () => {
+        this.workspace.updateMetadata(beforeMetadata as never);
+        this.engine.tempo.set(beforeTempo);
+      },
+    });
+    await this.sessionHistory.rewind({ branchId, targetCheckpointId: target.id }).catch(() => null);
+    return `Restored checkpoint ${target.label} metadata (${Object.keys(metadataPatch).join(', ')}). It did not contain a full project bundle, so tracks were left unchanged; the previous tempo/key state is an undoable edit away.`;
   }
 
   /** Run one plan step and report its real outcome. */
@@ -426,8 +501,9 @@ export class StudioAiDirectorService {
       case 'tuner':
         return [
           make(1, 'Report the tuning reference', 'Read the shared A4 concert-pitch reference and tolerance from the tuner pitch utilities, then compare it with the project key. The live needle still needs the artist or line input to play or sing the reference.', true, () => this.tunerReferenceStatus(), 'tuner'),
-          make(2, 'Apply the same reference across takes', 'Retune strings/instruments to one reference so takes can be comped without pitch drift.', false, () => 'Guided: tune the lowest string first, then check each string against the same reference.', 'piano-roll'),
-          make(3, 'Recheck key after tuning', 'After tuning, run key detection again if the material was out of tune.', true, () => this.detectAndApplyKey()),
+          make(2, 'Measure tuner reads from a recorded clip', 'Measure pitch on the selected track’s recorded audio clips and report the resulting note and cents. This is a recorded-clip reading; a live instrument still needs the Tuner input for a needle reading.', true, () => this.measureTunerReads(), 'tuner'),
+          make(3, 'Apply the same reference across takes', 'Retune strings/instruments to one reference so takes can be comped without pitch drift.', false, () => 'Guided: tune the lowest string first, then check each string against the same reference.', 'piano-roll'),
+          make(4, 'Recheck key after tuning', 'After tuning, run key detection again if the material was out of tune.', true, () => this.detectAndApplyKey()),
         ];
       case 'chord-editor':
         return [
@@ -438,7 +514,7 @@ export class StudioAiDirectorService {
       case 'sampler':
         return [
           make(1, 'Find a sample that fits the key and tempo', 'Search the sound library by the session key/BPM and favorite only the sample that loops cleanly.', true, () => this.smartSearchSounds(context)),
-          make(2, 'Slice the selected sample on phrase boundaries', 'Use transient detection and the sampler-slice utility to cut the selected imported sample on measured phrase boundaries, then place the resulting AudioBuffers as arrangement audio clips for audition.', true, () => this.sliceSelectedSampleOnPhraseBoundaries(), 'sampler'),
+          make(2, 'Slice the selected sample on phrase boundaries', 'Use transient detection and the sampler-slice utility to cut the selected imported sample on measured phrase boundaries, then load the resulting AudioBuffers into the shared Sampler pads and place arrangement audio clips for audition.', true, () => this.sliceSelectedSampleOnPhraseBoundaries(), 'sampler'),
           make(3, 'Chop against the generated groove', 'Use the generated drum pattern as the timing reference for the chop.', true, () => this.applyBeatPackage(context)),
         ];
       case 'score':
@@ -475,7 +551,10 @@ export class StudioAiDirectorService {
         return [
           make(1, 'Run the final mastering pass', 'Master against the intended delivery surface before exporting.', true, () => this.autoMaster()),
           make(2, 'Complete the delivery export', 'Render the pre-master mix, apply the retained master chain, run the S.M.U.V.E polish, measure the polished buffer, encode a real WAV and download the delivery file.', true, () => this.completeDeliveryExport()),
-          make(3, 'Prepare the delivery checklist', 'Read the AI Produce release handoff and surface format, loudness target, artwork, metadata and next delivery step.', true, () => this.deliveryChecklist()),
+          make(3, 'Export stems', 'Render each playable track to its own WAV and download the stems ZIP.', true, () => this.exportStems()),
+          make(4, 'Export MIDI', 'Serialize the project’s note data to a Type 1 Standard MIDI File and download it.', true, () => this.exportMidi()),
+          make(5, 'Export DAWproject', 'Serialize the project with reference audio to a .dawproject ZIP and download it.', true, () => this.exportDawproject()),
+          make(6, 'Prepare the delivery checklist', 'Read the AI Produce release handoff and surface format, loudness target, artwork, metadata and next delivery step.', true, () => this.deliveryChecklist()),
         ];
     }
   }
@@ -617,6 +696,30 @@ export class StudioAiDirectorService {
     const filename = `${project}_Director_Delivery_24bit_${Date.now()}.wav`;
     this.exports.downloadBlob(blob, filename);
     return `Complete delivery export downloaded ${filename}: rendered ${analysis.durationSec.toFixed(1)}s at ${Math.round(sampleRate / 1000)} kHz, peak ${analysis.peakDb} dBFS, true peak ${analysis.truePeakDb} dBFS, RMS ${analysis.rmsDb} dBFS, ${analysis.lufs} LUFS.`;
+  }
+
+  private async exportStems(): Promise<string> {
+    const blob = await this.exports.exportStems();
+    if (!blob) throw new Error('Stem export did not complete.');
+    return `Exported the stems ZIP (${blob.size} bytes) with the master WAV plus one WAV per unmuted non-bus track.`;
+  }
+
+  private exportMidi(): string {
+    const blob = this.exports.exportProjectMidi();
+    if (!blob) throw new Error('MIDI export did not produce a file.');
+    const project = (this.music.projectName || 'Elite_Session').replace(/[^\w.-]/g, '_');
+    const filename = `${project}_Director_MIDI_${Date.now()}.mid`;
+    this.exports.downloadBlob(blob, filename);
+    return `Exported project MIDI as ${filename} (${blob.size} bytes).`;
+  }
+
+  private async exportDawproject(): Promise<string> {
+    const blob = await this.exports.exportDawproject();
+    if (!blob) throw new Error('DAWproject export did not produce a package.');
+    const project = (this.music.projectName || 'Elite_Session').replace(/[^\w.-]/g, '_');
+    const filename = `${project}_Director_DAWproject_${Date.now()}.dawproject`;
+    this.exports.downloadBlob(blob, filename);
+    return `Exported DAWproject as ${filename} (${blob.size} bytes).`;
   }
 
   private recommendQuickSessionRecipe(): string {
@@ -867,6 +970,51 @@ export class StudioAiDirectorService {
     const frequency = midiToFrequency(rootMidi);
     const key = this.workspace.metadata()?.key ?? 'C';
     return `Tuning reference: A4 440 Hz with ±${DEFAULT_TUNER_TOLERANCE_CENTS} cents tolerance; project key is ${key} ${this.lastDetectedScale}, so use ${root}4 around ${frequency.toFixed(1)} Hz as the shared reference before opening the tuner input.`;
+  }
+
+  /**
+   * Measure pitch on the selected track’s recorded audio clips and report the
+   * tuner reading. This reads recorded audio, not a live Tuner input; the
+   * Tuner surface remains the live needle path for physical instruments.
+   */
+  private measureTunerReads(): string {
+    const track = this.music.selectedTrack();
+    if (!track) throw new Error('Select a track with a recorded audio clip before measuring tuner reads.');
+    const audioClips = (track.clips ?? []).filter((clip) => clip.type === 'audio');
+    if (audioClips.length === 0) throw new Error(`${track.name} has no recorded audio clips to measure.`);
+
+    const readings: Array<{ note: string; octave: number; cents: number; frequency: number }> = [];
+    for (const clip of audioClips) {
+      const buffer = clip.audioData ?? (clip.audioRefId ? this.music.stemAudioCache.get(clip.audioRefId) : undefined);
+      if (!buffer || buffer.numberOfChannels === 0 || buffer.length === 0) continue;
+      const data = buffer.getChannelData(0);
+      const sampleRate = buffer.sampleRate;
+      const frameSize = Math.max(512, Math.round(sampleRate * 0.05));
+      const hop = Math.max(128, Math.round(sampleRate * 0.02));
+      for (let start = 0; start + frameSize <= data.length; start += hop) {
+        const frame = data.subarray(start, start + frameSize);
+        let energy = 0;
+        for (let i = 0; i < frame.length; i++) energy += frame[i] * frame[i];
+        const rms = Math.sqrt(energy / frame.length);
+        if (rms < 0.004) continue;
+        const frequency = detectPitch(frame, sampleRate, {
+          clarityThreshold: 0.6,
+          silenceThreshold: 0.004,
+        });
+        if (frequency === null) continue;
+        const reading = frequencyToNote(frequency);
+        if (reading) readings.push({ note: reading.note, octave: reading.octave, cents: reading.cents, frequency: reading.frequency });
+        if (readings.length >= 24) break;
+      }
+      if (readings.length >= 24) break;
+    }
+
+    if (readings.length === 0) throw new Error(`${track.name} has audio clips, but none produced a stable pitch reading.`);
+    const sorted = [...readings].sort((a, b) => a.frequency - b.frequency);
+    const median = sorted[Math.floor(sorted.length / 2)];
+    const sign = median.cents > 0 ? '+' : '';
+    const status = Math.abs(median.cents) <= DEFAULT_TUNER_TOLERANCE_CENTS ? 'in tune' : 'out of tune';
+    return `Tuner read on ${track.name}: ${median.note}${median.octave} at ${median.frequency.toFixed(1)} Hz (${sign}${median.cents.toFixed(1)} cents) — ${status} from ${readings.length} measured frame${readings.length === 1 ? '' : 's'}.`;
   }
 
   private detectAndApplyKey(): string {
@@ -1166,7 +1314,7 @@ export class StudioAiDirectorService {
     return { pitchClass, intervals: minor ? [0, 3, 7] : [0, 4, 7] };
   }
 
-  private sliceSelectedSampleOnPhraseBoundaries(): string {
+  private async sliceSelectedSampleOnPhraseBoundaries(): Promise<string> {
     const imported = this.audioImport.selectedAudio() ?? this.audioImport.importedAudio()[0];
     const streamedBuffer = (imported?.sampleStreamer as unknown as { getResidentBuffer?: () => AudioBuffer | null } | null)?.getResidentBuffer?.() ?? null;
     const buffer = imported?.buffer ?? streamedBuffer;
@@ -1188,7 +1336,16 @@ export class StudioAiDirectorService {
     }
     const track = this.ensureTrack('Director Sample Slices', 'grand-piano', 'audio');
     if ((track.clips?.length ?? 0) > 0) {
-      return `Kept the existing ${track.clips.length} phrase-boundary slices on ${track.name}; run a different sample to reslice.`;
+      const alreadyLoaded = this.samplerState.getLoadedPitches().length >= slices.length;
+      if (alreadyLoaded) {
+        return `Kept the existing ${track.clips.length} phrase-boundary slices on ${track.name} and their shared Sampler pads; run a different sample to reslice.`;
+      }
+      const migratedPitches = await this.samplerState.loadSlices(slices, 60);
+      return `Loaded ${migratedPitches.length} existing slices into the shared Sampler pads at MIDI ${migratedPitches.join(', ')} and kept the ${track.clips.length} arrangement clips on ${track.name}.`;
+    }
+    const loadedPitches = await this.samplerState.loadSlices(slices, 60);
+    if (loadedPitches.length === 0) {
+      throw new Error('The shared Sampler pads are full; clear a pad pitch range before loading more slices.');
     }
     const beatSeconds = 60 / Math.max(20, this.engine.tempo() || 120) / 4;
     let startStep = 0;
@@ -1207,7 +1364,7 @@ export class StudioAiDirectorService {
       });
       startStep += lengthSteps;
     });
-    return `Sliced ${imported.name} into ${slices.length} phrase-boundary audio clips on ${track.name}; ${onsets.length} transient onsets were measured at ${onsets.map((o) => `${o.time.toFixed(2)}s`).join(', ')}.`;
+    return `Sliced ${imported.name} into ${slices.length} phrase-boundary slices, loaded them into the shared Sampler pads at MIDI ${loadedPitches.join(', ')}, and placed them as audio clips on ${track.name}; ${onsets.length} transient onsets were measured at ${onsets.map((o) => `${o.time.toFixed(2)}s`).join(', ')}.`;
   }
 
   private ensureTrack(name: string, instrumentId: string, type: TrackModel['type']): TrackModel {

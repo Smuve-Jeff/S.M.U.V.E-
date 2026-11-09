@@ -12,6 +12,7 @@ import {
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { Sampler, SampleZone } from "../sampler";
+import { SamplerStateService } from "../sampler-state.service";
 import { AudioSessionService } from "../audio-session.service";
 import { AudioEngineService } from "../../services/audio-engine.service";
 import { FileLoaderService } from "../../services/file-loader.service";
@@ -71,6 +72,7 @@ export class SamplerComponent implements AfterViewInit, OnDestroy {
   private haptic = inject(HapticService);
   private audioImport = inject(AudioImportService);
   private snackbar = inject(SnackbarService);
+  private sharedSampler = inject(SamplerStateService);
 
   /** Semitone pitch-shift applied to the selected zone's first sample. */
   stretchSemitones = signal(0);
@@ -141,6 +143,13 @@ export class SamplerComponent implements AfterViewInit, OnDestroy {
         this.refreshZones();
       }
     });
+    effect(() => {
+      // Shared pads changed outside the surface (e.g. Director slices them).
+      this.sharedSampler.padVersion();
+      if (this.sampler) {
+        this.refreshZones();
+      }
+    });
   }
 
   ngAfterViewInit(): void {
@@ -148,16 +157,15 @@ export class SamplerComponent implements AfterViewInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    this.sampler?.dispose();
+    // The engine is owned by SamplerStateService (root singleton), so it must
+    // survive unmounting. Only drop this surface's view handle.
     this.sampler = null;
   }
 
   private async initializeSampler(): Promise<void> {
     try {
-      const ctx = this.audioEngine.ctx as AudioContext;
-      this.sampler = new Sampler(ctx);
-      await this.sampler.init();
-      this.sampler.connect(ctx.destination);
+      this.sampler = await this.sharedSampler.ensureSampler();
+      this.refreshZones();
     } catch (e) {
       console.warn("Sampler init failed:", e);
     }

@@ -315,6 +315,10 @@
         <span class="material-symbols-outlined">redo</span>
         Redo
       </button>
+      <button type="button" class="ai-director-secondary" (click)="restoreCheckpointDirectorAction()" [disabled]="directorBusy()">
+        <span class="material-symbols-outlined">history</span>
+        Restore checkpoint
+      </button>
       <button type="button" class="ai-director-secondary ai-director-danger" (click)="deleteSelectedDirectorTrack()" [disabled]="directorBusy() || !musicManager.selectedTrack()">
         <span class="material-symbols-outlined">delete_forever</span>
         Delete selected track

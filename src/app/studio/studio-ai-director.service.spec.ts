@@ -5,6 +5,8 @@ import { STUDIO_SURFACES } from './studio-surfaces';
 import { AiService } from '../services/ai.service';
 import { MusicManagerService } from '../services/music-manager.service';
 import { HistoryService } from '../services/history.service';
+import { SessionHistoryService } from '../services/session-history.service';
+import { SamplerStateService } from './sampler-state.service';
 import { ExportService } from '../services/export.service';
 import { IdeasGeneratorService } from '../services/ideas-generator.service';
 import { AudioEngineService } from '../services/audio-engine.service';
@@ -51,6 +53,7 @@ function makeDirector(overrides: Record<string, unknown> = {}) {
       selectedTrackId.set(id);
       return id;
     }),
+    projectName: 'Test Project',
     stemAudioCache: new Map<string, AudioBuffer>(),
     addClipToTrack: jest.fn(),
     addNoteToTrack: jest.fn((trackId: string, note: unknown) => {
@@ -164,6 +167,8 @@ function makeDirector(overrides: Record<string, unknown> = {}) {
   const workspace = {
     metadata: signal(null),
     updateMetadata: jest.fn(),
+    createSnapshot: jest.fn(() => ({ metadata: { id: 'project-1' }, tracks: [] })),
+    restoreFromSnapshot: jest.fn(),
     ...overrides.workspace,
   };
   const telemetry = {
@@ -228,9 +233,23 @@ function makeDirector(overrides: Record<string, unknown> = {}) {
     }),
     ...overrides.offlineBounce,
   };
+  const sessionHistory = {
+    activeBranch: jest.fn(() => 'branch-1'),
+    checkpoints: jest.fn(() => []),
+    materializeSnapshot: jest.fn(() => null),
+    rewind: jest.fn().mockResolvedValue(null),
+    ...overrides.sessionHistory,
+  };
+  const samplerState = {
+    padVersion: signal(0),
+    loadSlices: jest.fn().mockResolvedValue([60, 61, 62]),
+    getLoadedPitches: jest.fn(() => []),
+    ...overrides.samplerState,
+  };
   const history = {
     canUndo: jest.fn(() => true),
     canRedo: jest.fn(() => false),
+    execute: jest.fn((command: { execute: () => void }) => command.execute()),
     undo: jest.fn(),
     redo: jest.fn(),
     lastActionName: jest.fn(() => 'Remove Track · Test Track'),
@@ -252,6 +271,9 @@ function makeDirector(overrides: Record<string, unknown> = {}) {
       sampleCount: 120000,
     }),
     exportToFormat: jest.fn().mockResolvedValue(new Blob(['audio'])),
+    exportStems: jest.fn().mockResolvedValue(new Blob(['stems'])),
+    exportProjectMidi: jest.fn().mockReturnValue(new Blob(['midi'])),
+    exportDawproject: jest.fn().mockResolvedValue(new Blob(['dawproject'])),
     downloadBlob: jest.fn(),
     ...overrides.exportService,
   };
@@ -285,11 +307,13 @@ function makeDirector(overrides: Record<string, unknown> = {}) {
       { provide: AiCopilotService, useValue: copilot },
       { provide: OfflineBounceService, useValue: offlineBounce },
       { provide: HistoryService, useValue: history },
+      { provide: SessionHistoryService, useValue: sessionHistory },
+      { provide: SamplerStateService, useValue: samplerState },
       { provide: ExportService, useValue: exportService },
       { provide: IdeasGeneratorService, useValue: ideas },
     ],
   });
-  return { service: TestBed.inject(StudioAiDirectorService), music, engine, ai, beat, mix, sounds, workspace, telemetry, takeManager, audioRecorder, copilot, offlineBounce, scale, produce, history, exportService, ideas, vocal, vocalMastering, performanceRecording, audioImport, tracks };
+  return { service: TestBed.inject(StudioAiDirectorService), music, engine, ai, beat, mix, sounds, workspace, telemetry, takeManager, audioRecorder, copilot, offlineBounce, scale, produce, history, sessionHistory, samplerState, exportService, ideas, vocal, vocalMastering, performanceRecording, audioImport, tracks };
 }
 
 describe('StudioAiDirectorService', () => {
@@ -654,13 +678,77 @@ describe('StudioAiDirectorService', () => {
       duration: 1,
       getChannelData: () => data,
     };
-    const { service, music, audioImport } = makeDirector();
+    const { service, music, audioImport, samplerState } = makeDirector();
     audioImport.selectedAudio.set({ name: 'break', buffer: fakeBuffer });
     const result = await service.runStep(service.buildPlan({ surfaceId: 'sampler' }).steps[1]);
     expect(result.ok).toBe(true);
     expect(music.addClipToTrack).toHaveBeenCalled();
+    expect(samplerState.loadSlices).toHaveBeenCalled();
     expect(music.stemAudioCache.size).toBeGreaterThan(1);
-    expect(result.message).toContain('phrase-boundary audio clips');
+    expect(result.message).toContain('shared Sampler pads');
+  });
+
+  it('exports stems, MIDI and DAWproject delivery formats from the Export plan', async () => {
+    const { service, exportService } = makeDirector();
+    const plan = service.buildPlan({ surfaceId: 'export' });
+    expect(plan.steps.map((step) => step.label)).toContain('Export stems');
+    expect(plan.steps.map((step) => step.label)).toContain('Export MIDI');
+    expect(plan.steps.map((step) => step.label)).toContain('Export DAWproject');
+
+    const stems = await service.runStep(plan.steps[2]);
+    expect(stems.ok).toBe(true);
+    expect(exportService.exportStems).toHaveBeenCalled();
+    expect(stems.message).toContain('stems ZIP');
+
+    const midi = await service.runStep(plan.steps[3]);
+    expect(midi.ok).toBe(true);
+    expect(exportService.exportProjectMidi).toHaveBeenCalled();
+    expect(exportService.downloadBlob).toHaveBeenCalledWith(expect.any(Blob), expect.stringContaining('_Director_MIDI_'));
+
+    const dawproject = await service.runStep(plan.steps[4]);
+    expect(dawproject.ok).toBe(true);
+    expect(exportService.exportDawproject).toHaveBeenCalled();
+    expect(exportService.downloadBlob).toHaveBeenCalledWith(expect.any(Blob), expect.stringContaining('_Director_DAWproject_'));
+  });
+
+  it('measures tuner reads from the selected recorded clip', async () => {
+    const sampleRate = 48000;
+    const data = new Float32Array(sampleRate);
+    for (let i = 0; i < data.length; i++) data[i] = Math.sin(2 * Math.PI * 440 * (i / sampleRate)) * 0.5;
+    const buffer = {
+      numberOfChannels: 1,
+      length: sampleRate,
+      sampleRate,
+      duration: 1,
+      getChannelData: () => data,
+    };
+    const { service, music } = makeDirector();
+    music.selectedTrack = () => ({
+      id: 'track-1',
+      name: 'Director Lead',
+      type: 'audio',
+      clips: [{ id: 'clip-1', name: 'Recorded A', type: 'audio', audioData: buffer }],
+    });
+    const result = await service.runStep(service.buildPlan({ surfaceId: 'tuner' }).steps[1]);
+    expect(result.ok).toBe(true);
+    expect(result.message).toContain('Tuner read on Director Lead');
+    expect(result.message).toContain('A4');
+  });
+
+  it('restores a persisted checkpoint as an undoable edit', async () => {
+    const checkpoint = { id: 'cp-1', label: 'Before drums' };
+    const bundle = { metadata: { id: 'project-1', key: 'C' }, tracks: [] };
+    const before = { metadata: { id: 'project-1', key: 'C' }, tracks: [{ id: 'live' }] };
+    const { service, workspace, history, sessionHistory } = makeDirector();
+    workspace.metadata.set({ id: 'project-1', key: 'C' });
+    workspace.createSnapshot.mockReturnValue(before);
+    sessionHistory.checkpoints.mockReturnValue([checkpoint]);
+    sessionHistory.materializeSnapshot.mockReturnValue(bundle);
+
+    const message = await service.restoreCheckpoint();
+    expect(message).toContain('Restored checkpoint Before drums');
+    expect(history.execute).toHaveBeenCalledWith(expect.objectContaining({ name: 'Restore checkpoint Before drums' }));
+    expect(workspace.restoreFromSnapshot).toHaveBeenCalledWith(bundle);
   });
 
   it('deletes the selected track through the undoable command and restores it through history', async () => {
