@@ -379,6 +379,34 @@
         aria-label="Import a S.M.U.V.E. project bundle"
       />
     </section>
+    <section class="ai-director-checkpoints" aria-label="Recent Director runs">
+      <header class="ai-director-checkpoints-head">
+        <h3>Recent runs</h3>
+        <button type="button" class="ai-director-open" (click)="clearDirectorRunHistory()" [disabled]="directorBusy() || !directorRecentRuns().length">
+          <span class="material-symbols-outlined">delete_sweep</span>
+          Clear history
+        </button>
+      </header>
+      <p *ngIf="!directorRecentRuns().length" class="ai-director-empty">
+        No Director runs recorded yet. Completed plans are stored here and reused as session evidence.
+      </p>
+      <ol *ngIf="directorRecentRuns().length" class="ai-director-checkpoint-list">
+        <li *ngFor="let run of directorRecentRuns()" class="ai-director-checkpoint">
+          <div class="ai-director-checkpoint-copy">
+            <p class="ai-director-checkpoint-label">
+              {{ run.surfaceId }} · {{ run.completed }}/{{ run.results.length }} completed · {{ run.failed }} failed
+            </p>
+            <p class="ai-director-checkpoint-detail">
+              {{ run.startedAt | date: "medium" }}
+            </p>
+          </div>
+          <button type="button" class="ai-director-open" (click)="exportDirectorRunReport(run)" [disabled]="directorBusy()" [attr.aria-label]="'Export the ' + run.surfaceId + ' Director run report'">
+            <span class="material-symbols-outlined">download</span>
+            Report
+          </button>
+        </li>
+      </ol>
+    </section>
     <article *ngIf="directorPlan() as plan" class="ai-director-plan">
       <header class="ai-director-head">
         <div>

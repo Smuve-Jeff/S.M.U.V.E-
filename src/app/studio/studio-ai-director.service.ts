@@ -527,6 +527,17 @@ export class StudioAiDirectorService {
     }
   }
 
+  /** Clear the persisted run history and the current in-memory last run. */
+  clearDirectorRuns(): void {
+    this.runHistory = [];
+    this.lastRun = null;
+    try {
+      if (typeof localStorage !== 'undefined') localStorage.removeItem(DIRECTOR_RUN_HISTORY_KEY);
+    } catch {
+      // Clearing persistence is best effort; memory state is already reset.
+    }
+  }
+
   private isPersistedRun(run: unknown): run is StudioDirectorRunResult {
     if (!run || typeof run !== 'object') return false;
     const candidate = run as Partial<StudioDirectorRunResult>;

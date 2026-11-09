@@ -485,6 +485,12 @@ describe('StudioAiDirectorService', () => {
     const restored = makeDirector().service;
     expect(restored.lastDirectorRun()).toMatchObject({ surfaceId: 'arrangement', completed: run.completed, failed: run.failed });
     expect(restored.sessionEvidence({ surfaceId: 'arrangement' }).join('\n')).toContain('Last Director run: arrangement');
+
+    restored.clearDirectorRuns();
+    expect(restored.lastDirectorRun()).toBeNull();
+    expect(restored.listDirectorRuns()).toEqual([]);
+    expect(window.localStorage.getItem('smuve.studio.director.run-history.v1')).toBeNull();
+    expect(restored.sessionEvidence({ surfaceId: 'arrangement' }).join('\n')).not.toContain('Last Director run:');
   });
 
   it('returns an error result when a step throws', async () => {

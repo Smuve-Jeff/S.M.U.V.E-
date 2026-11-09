@@ -40,6 +40,7 @@ import {
   StudioAiDirectorService,
   type DirectorCheckpointSummary,
   type StudioDirectorPlan,
+  type StudioDirectorRunResult,
   type StudioDirectorStep,
 } from "../../studio-ai-director.service";
 import { readProjectFile } from "../../project-archive.util";
@@ -142,6 +143,9 @@ export class AiAssistantComponent implements OnInit, AfterViewInit, OnDestroy {
   });
   directorRunExportReady = computed(
     () => this.directorReport().length > 0 || !!this.director.lastDirectorRun?.(),
+  );
+  directorRecentRuns = computed<StudioDirectorRunResult[]>(() =>
+    this.director.listDirectorRuns?.() ?? [],
   );
   /** Newest-first SessionHistory checkpoints for the open project. */
   directorCheckpoints = computed<DirectorCheckpointSummary[]>(() =>
@@ -656,10 +660,10 @@ export class AiAssistantComponent implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
-  exportDirectorRunReport(): void {
+  exportDirectorRunReport(run?: StudioDirectorRunResult): void {
     if (this.directorBusy()) return;
     try {
-      const message = this.director.exportRunReport();
+      const message = this.director.exportRunReport(run);
       this.directorReport.update((report) => [...report, `Done — Export run report: ${message}`]);
       this.directorStatus.set(message);
       this.snack.success(message);
@@ -669,6 +673,16 @@ export class AiAssistantComponent implements OnInit, AfterViewInit, OnDestroy {
       this.directorStatus.set(message);
       this.snack.error(message);
     }
+  }
+
+  clearDirectorRunHistory(): void {
+    if (this.directorBusy()) return;
+    this.director.clearDirectorRuns();
+    const message = "Cleared Director run history.";
+    this.directorReport.update((report) => [...report, `Done — ${message}`]);
+    this.directorStatus.set(message);
+    this.snack.success(message);
+    this.haptic.medium();
   }
 
   private async runDirectorStepFor(surfaceId: string, label: string): Promise<string> {

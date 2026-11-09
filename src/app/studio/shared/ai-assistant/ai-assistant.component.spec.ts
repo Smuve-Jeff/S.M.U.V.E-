@@ -132,6 +132,8 @@ describe("AiAssistantComponent voice communication", () => {
             runPlan: jest.fn().mockResolvedValue({ report: [], failed: 0 }),
             runStep: jest.fn().mockResolvedValue({ ok: true, message: "ok" }),
             lastDirectorRun: jest.fn(() => null),
+            listDirectorRuns: jest.fn(() => []),
+            clearDirectorRuns: jest.fn(),
             exportRunReport: jest.fn(() => "Exported Director run report."),
             listCheckpoints: jest.fn(() => [
               {
