@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { TestBed } from '@angular/core/testing';
+import { DirectorCoachService } from '../../services/director-coach.service';
 import { computed, signal } from '@angular/core';
 
 import { ImageVideoLabComponent } from './image-video-lab.component';
@@ -549,6 +550,15 @@ describe('ImageVideoLabComponent', () => {
       capturePoster: jest.fn(async () => null),
     };
 
+    const coach = {
+      coach: jest.fn(async () => ({
+        headline: 'Style the shots',
+        narration: 'Two concepts need a still before anything moves.',
+        nextAction: 'Style the remaining shot.',
+        steps: [],
+      })),
+    };
+
     const speechSynthesis = {
       speak: jest.fn(),
       cancel: jest.fn(),
@@ -590,6 +600,7 @@ describe('ImageVideoLabComponent', () => {
         { provide: CinemaProjectService, useValue: cinemaProjects },
         { provide: SpeechSynthesisService, useValue: speechSynthesis },
         { provide: CinemaEngineService, useValue: cinemaEngine },
+        { provide: DirectorCoachService, useValue: coach },
       ],
     })
       .overrideComponent(ImageVideoLabComponent, {
@@ -610,6 +621,7 @@ describe('ImageVideoLabComponent', () => {
 
     return {
       component,
+      coach,
       videoEngine,
       cinemaEngine,
       camera,
@@ -4968,6 +4980,107 @@ describe('ImageVideoLabComponent', () => {
 
       expect(ai.lipSync).not.toHaveBeenCalled();
       expect(component.aiFeedback()).toContain('LOAD A STILL FIRST');
+    });
+
+    it('starts the journey at the audio bed', async () => {
+      const { component } = await createComponent();
+
+      const journey = component.coachJourney();
+
+      expect(journey[0]).toMatchObject({ id: 'audio', state: 'active' });
+      expect(journey).toHaveLength(6);
+    });
+
+    it('moves the journey marker as steps land', async () => {
+      const { component, videoEngine: engine } = await createComponent();
+      engine.audioOverlay.set({
+        name: 'bed.wav',
+        url: 'blob:bed',
+        duration: 12,
+      });
+      component.director.plan.set(stageablePlan());
+
+      const journey = component.coachJourney();
+
+      expect(journey[0].state).toBe('done');
+      expect(journey[1].state).toBe('done');
+      expect(journey.find((step) => step.state === 'active')?.id).toBe('stage');
+    });
+
+    it('asks the coach with the verified console state', async () => {
+      const { component, coach, videoEngine: engine } = await createComponent();
+      engine.audioOverlay.set({
+        name: 'bed.wav',
+        url: 'blob:bed',
+        duration: 12,
+      });
+      const plan = stageablePlan();
+      plan.shots[0] = {
+        ...plan.shots[0],
+        conceptImageUrl: 'https://cdn.example.test/still.png',
+      };
+      component.director.plan.set(plan);
+      visualsLane(engine).clips = [
+        {
+          id: 'card-1',
+          name: '01 · Dashboard',
+          url: '',
+          startTime: 0,
+          duration: 8,
+          offset: 0,
+          trackId: 't1',
+          type: 'overlay',
+          source: 'ai',
+        },
+        {
+          id: 'take-1',
+          name: 'Hero take',
+          url: 'blob:take',
+          startTime: 0,
+          duration: 12,
+          offset: 0,
+          trackId: 't1',
+          type: 'video',
+          source: 'camera',
+        },
+      ];
+
+      await component.askCoach();
+
+      expect(coach.coach).toHaveBeenCalledWith(
+        expect.objectContaining({
+          hasPlan: true,
+          planTitle: 'Night Drive',
+          shotCount: 2,
+          stagedShots: 1,
+          styledShots: 1,
+          animatedShots: 0,
+          hasOverlay: true,
+          overlayName: 'bed.wav',
+          overlayDurationSeconds: 12,
+          laneClipCount: 1,
+          hasTalkingHead: false,
+        }),
+      );
+      expect(component.coachReport()?.headline).toBe('Style the shots');
+      expect(component.aiFeedback()).toContain('COACHED');
+    });
+
+    it('reads its coaching aloud', async () => {
+      const { component, speechSynthesis } = await createComponent();
+      component.coachReport.set({
+        headline: 'Export it',
+        narration: 'Every step is done.',
+        nextAction: 'Export the cut.',
+        steps: [],
+      });
+
+      component.hearCoach();
+
+      expect(speechSynthesis.speak).toHaveBeenCalledWith(
+        'Export it. Every step is done. Next move: Export the cut.',
+      );
+      expect(component.aiFeedback()).toContain('COACHING READ ALOUD');
     });
   });
 

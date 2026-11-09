@@ -59,6 +59,12 @@ import { applyLut, parseCubeLut } from '../../services/lut';
 import { computeHistogram, computeVectorscope, computeWaveform, lumaPercentiles } from '../../services/scopes';
 import { CLIP_TEMPLATES, getClipTemplate, resolveTemplatePatch } from '../../services/clip-templates';
 import { WhisperTranscriptionService } from '../../services/whisper-transcription.service';
+import {
+  DirectorCoachService,
+  assessJourney,
+  type CoachReport,
+  type CoachState,
+} from '../../services/director-coach.service';
 import { CinemaEngineService } from '../../services/cinema-engine.service';
 import {
   AUDIO_BED_MEDIA_ID,
@@ -269,6 +275,7 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
   transcribing = signal(false);
   public camera = inject(CameraCaptureService);
   public director = inject(CinemaDirectorService);
+  protected coach = inject(DirectorCoachService);
   private speechRecognition = inject(SpeechRecognitionService);
   private speechSynthesis = inject(SpeechSynthesisService);
   public liveStream = inject(LiveStreamService);
@@ -326,6 +333,16 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
   enhancedPhotoUrl = signal<string | null>(null);
   cutoutPhotoUrl = signal<string | null>(null);
   photoBusy = signal<'enhance' | 'cutout' | 'lip' | null>(null);
+
+  /** Director Coach: the latest narration and the busy flag for the ask. */
+  coachReport = signal<CoachReport | null>(null);
+  coachBusy = signal(false);
+
+  /**
+   * The journey ladder, recomputed live from the console state — the strip
+   * the coach card renders before any ask is even made.
+   */
+  coachJourney = computed(() => assessJourney(this.buildCoachState()));
 
   highQualityEnhancer = signal(false);
   selectedFilter = signal<ClipFilter>('cinematic');
@@ -6096,6 +6113,75 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
       );
     } finally {
       this.photoBusy.set(null);
+    }
+  }
+
+  /**
+   * Verified console state for the Director Coach. Everything the coach
+   * may claim comes from here — what the plan holds, what the lanes hold,
+   * what has been rendered — so the narration can never outrun the edit.
+   */
+  private buildCoachState(): CoachState {
+    const plan = this.director.plan();
+    const shots = plan?.shots ?? [];
+    const overlay = this.videoEngine.audioOverlay() as {
+      name?: string;
+      duration: number;
+    } | null;
+    const t1Clips =
+      this.videoEngine
+        .tracks()
+        .find((track) => track.id === 't1')
+        ?.clips ?? [];
+    return {
+      hasPlan: !!plan,
+      planTitle: plan?.title,
+      shotCount: shots.length,
+      stagedShots: this.plannedShotRows().filter((row) => row.staged).length,
+      styledShots: shots.filter((shot) => !!shot.conceptImageUrl).length,
+      animatedShots: shots.filter((shot) => !!shot.videoUrl).length,
+      hasOverlay: !!overlay,
+      overlayName: overlay?.name,
+      overlayDurationSeconds: overlay?.duration,
+      hasPhoto: !!this.photoSource(),
+      laneClipCount: t1Clips.filter((clip) => !this.isShotCard(clip)).length,
+      hasTalkingHead: t1Clips.some((clip) => clip.name === 'Talking Head'),
+    };
+  }
+
+  /** Ask the coach over the live state; the ladder alone is the fallback. */
+  async askCoach(): Promise<void> {
+    if (this.coachBusy()) return;
+    this.coachBusy.set(true);
+    try {
+      const report = await this.coach.coach(this.buildCoachState());
+      this.coachReport.set(report);
+      this.aiFeedback.set(
+        `COACHED — ${report.headline.toUpperCase()}.`
+      );
+    } catch (error: any) {
+      this.logger.error('Coach Error:', error);
+      this.aiFeedback.set(
+        error?.message
+          ? error.message.toUpperCase()
+          : 'THE COACH IS SILENT. CHECK THE AI LINK AND ASK AGAIN.'
+      );
+    } finally {
+      this.coachBusy.set(false);
+    }
+  }
+
+  /** Read the coaching aloud — the plan, then the narration, then the move. */
+  hearCoach(): void {
+    const report = this.coachReport();
+    if (!report) return;
+    try {
+      this.speechSynthesis.speak(
+        `${report.headline}. ${report.narration} Next move: ${report.nextAction}`
+      );
+      this.aiFeedback.set('COACHING READ ALOUD.');
+    } catch {
+      this.aiFeedback.set('NO SPEECH ENGINE IN THIS BROWSER.');
     }
   }
 

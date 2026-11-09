@@ -1856,6 +1856,74 @@
           </div>
 
           <!--
+            Director Coach: S.M.U.V.E. as narrator over this project. The
+            journey strip is computed from verified console state — the
+            narration can never outrun the edit.
+          -->
+          <div class="rounded-xl border border-border bg-surface p-3 grid gap-2">
+            <span
+              class="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-text-dim"
+            >
+              Director's Coach
+            </span>
+            <ol class="m-0 p-0 list-none grid gap-1">
+              @for (step of coachJourney(); track step.id) {
+                <li class="flex items-center gap-2">
+                  <span
+                    class="text-[7px] font-black uppercase tracking-[0.18em]"
+                    [class.text-brand-secondary]="step.state === 'done'"
+                    [class.text-brand-primary]="step.state === 'active'"
+                    [class.text-text-dim]="step.state === 'upcoming'"
+                  >
+                    {{
+                      step.state === 'done'
+                        ? 'DONE'
+                        : step.state === 'active'
+                          ? 'NOW'
+                          : 'NEXT'
+                    }}
+                  </span>
+                  <span
+                    class="text-[10px] font-bold"
+                    [class.text-text-main]="step.state !== 'upcoming'"
+                    [class.text-text-dim]="step.state === 'upcoming'"
+                  >
+                    {{ step.label }}
+                  </span>
+                </li>
+              }
+            </ol>
+            <button
+              type="button"
+              (click)="askCoach()"
+              [disabled]="coachBusy()"
+              class="rounded-lg border border-brand-primary/40 bg-surface px-2.5 py-1.5 text-[8px] font-black uppercase tracking-[0.16em] text-brand-primary hover:border-brand-primary transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {{ coachBusy() ? 'LISTENING…' : 'Ask the Director' }}
+            </button>
+            @if (coachReport(); as report) {
+              <div class="grid gap-1">
+                <p class="m-0 text-[11px] font-black uppercase text-brand-primary">
+                  {{ report.headline }}
+                </p>
+                <p class="m-0 text-[10px] font-bold text-text-main break-words">
+                  {{ report.narration }}
+                </p>
+                <p class="m-0 text-[10px] font-black uppercase text-text-main break-words">
+                  → {{ report.nextAction }}
+                </p>
+                <button
+                  type="button"
+                  (click)="hearCoach()"
+                  class="rounded-lg border border-border bg-surface px-2.5 py-1.5 text-[8px] font-black uppercase tracking-[0.16em] text-text-dim hover:border-brand-primary hover:text-brand-primary transition-all"
+                >
+                  Hear it
+                </button>
+              </div>
+            }
+          </div>
+
+          <!--
             Audio overlay: the bed a music video or a scored scene is cut to.
             The file is decoded onto the studio's master bus, so it is heard in
             the preview, follows the transport and lands in the export.
