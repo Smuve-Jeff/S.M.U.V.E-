@@ -860,6 +860,8 @@ export class AudioEngineService {
   private visualStepDuration = 0;
   private nextNoteTime = 0;
   private schedulerHandle: any = null;
+  private clockWatchdog: any = null;
+  private clockTickSeen = false;
   private currentStep = 0;
   /** Reject ticks and visual timers from before a seek or stop. */
   private clockGeneration = 0;
@@ -1491,8 +1493,54 @@ export class AudioEngineService {
     return this._resumePromise;
   }
 
+  private async ensureContextRunning(): Promise<boolean> {
+    if (!this.audioAvailable) return true;
+    try {
+      await this.resume();
+    } catch {
+      /* resume() already reports the block; the state check decides. */
+    }
+    const ok = this.ctx.state === 'running';
+    return ok;
+  }
+
   /** Optional asynchronous preparation of arrangement resources before transport starts. */
   public onPreparePlayback?: () => Promise<void> | void;
+
+  /**
+   * Fall back to the main-thread interval clock if the worklet produces no
+   * TICK after START. The worklet clock can die silently (unpulled node,
+   * crashed processor, missing output channels); without this the transport
+   * would report "playing" while the playhead stays at bar 1 forever.
+   */
+  private armClockWatchdog(): void {
+    this.onClockWatchdogDisarm();
+    this.clockTickSeen = false;
+    const generation = this.clockGeneration;
+    this.clockWatchdog = setTimeout(() => {
+      this.clockWatchdog = null;
+      if (
+        this.clockTickSeen ||
+        !this.isPlaying() ||
+        generation !== this.clockGeneration ||
+        this.schedulerHandle !== null
+      ) {
+        return;
+      }
+      console.warn('AudioEngine: worklet clock produced no tick; fell back to interval scheduling.');
+      this.schedulerHandle = setInterval(
+        () => this.scheduler(),
+        AudioEngineService.DEFAULT_SCHEDULER_INTERVAL_MS
+      );
+    }, 800);
+  }
+
+  private onClockWatchdogDisarm(): void {
+    if (this.clockWatchdog !== null) {
+      clearTimeout(this.clockWatchdog);
+      this.clockWatchdog = null;
+    }
+  }
 
   private preparePlayback(begin: () => void): Promise<void> | void {
     const generation = ++this.transportGeneration;
@@ -1510,9 +1558,30 @@ export class AudioEngineService {
     });
   }
 
-  startCountIn(bars: number = 1) {
-    this.resume();
-    if (this.isPlaying()) return;
+  startCountIn(bars: number = 1): Promise<void> | void {
+    if (this.isPlaying()) {
+      return;
+    }
+    if (this.audioAvailable && this.ctx.state === 'suspended') {
+      const generation = this.transportGeneration;
+      return (async (): Promise<void> => {
+        if (!(await this.ensureContextRunning())) {
+          console.warn(
+            'AudioEngine: count-in blocked - AudioContext is suspended. Tap to arm audio, then play again.'
+          );
+          return;
+        }
+        if (this.isPlaying() || generation !== this.transportGeneration) {
+          return;
+        }
+        this.isCountIn.set(true);
+        this.isPlaying.set(true);
+        await this.preparePlayback(() => this.beginCountIn(bars));
+      })();
+    }
+    this.isCountIn.set(true);
+    this.isPlaying.set(true);
+    return this.preparePlayback(() => this.beginCountIn(bars));
     this.isCountIn.set(true);
     this.isPlaying.set(true);
     return this.preparePlayback(() => this.beginCountIn(bars));
@@ -1554,6 +1623,7 @@ export class AudioEngineService {
         payload: this.tempoMap,
       });
       this.workletNode.port.postMessage({ type: 'START', payload: { step: 0, generation: this.clockGeneration, time: this.nextNoteTime } });
+      this.armClockWatchdog();
     } else {
       this.schedulerHandle = setInterval(
         () => this.scheduler(),
@@ -1562,9 +1632,26 @@ export class AudioEngineService {
     }
   }
 
-  start() {
-    this.resume();
-    if (this.isPlaying()) return;
+  start(): Promise<void> | void {
+    if (this.isPlaying()) {
+      return;
+    }
+    if (this.audioAvailable && this.ctx.state === 'suspended') {
+      const generation = this.transportGeneration;
+      return (async (): Promise<void> => {
+        if (!(await this.ensureContextRunning())) {
+          console.warn(
+            'AudioEngine: playback blocked - AudioContext is suspended. Tap to arm audio, then play again.'
+          );
+          return;
+        }
+        if (this.isPlaying() || generation !== this.transportGeneration) {
+          return;
+        }
+        this.isPlaying.set(true);
+        await this.preparePlayback(() => this.beginPlayback());
+      })();
+    }
     this.isPlaying.set(true);
     return this.preparePlayback(() => this.beginPlayback());
   }
@@ -1593,6 +1680,7 @@ export class AudioEngineService {
         payload: this.tempoMap,
       });
       this.workletNode.port.postMessage({ type: 'START', payload: { step: this.currentStep, generation: this.clockGeneration, time: this.nextNoteTime } });
+      this.armClockWatchdog();
     } else {
       this.schedulerHandle = setInterval(
         () => this.scheduler(),
@@ -1617,6 +1705,7 @@ export class AudioEngineService {
       clearInterval(this.schedulerHandle);
       this.schedulerHandle = null;
     }
+    this.onClockWatchdogDisarm();
     this.currentStep = 0;
     this.currentBeat.set(0);
     this.visualStep.set(0);
@@ -1638,12 +1727,35 @@ export class AudioEngineService {
       );
       this.workletNode = new AudioWorkletNode(
         this.ctx,
-        'smuve-audio-processor'
+        'smuve-audio-processor',
+        {
+          numberOfOutputs: 1,
+          // Explicit stereo: with default channel routing the node can
+          // resolve to 0/1 channels on hosts without a standard audio
+          // sink, which crashes the processor and kills the tick clock.
+          channelCount: 2,
+          channelCountMode: 'explicit',
+          channelInterpretation: 'speakers',
+        }
       );
+      // The clock node only ticks while the renderer pulls it. A worklet node
+      // that is never connected is never pulled, so the transport frozen
+      // forever on some hosts ("playing" with a playhead stuck at bar 1).
+      // Its output is silence (no NOTE_ON is ever sent to it), so the master
+      // output is a safe place to hang it.
+      try {
+        this.workletNode.connect(this.masterOutput);
+      } catch (err) {
+        console.warn('AudioEngine: clock worklet connect failed; transport falls back to interval.', err);
+        this.workletNode.disconnect();
+        this.workletNode = null;
+      }
       this.workletNode.port.onmessage = (event) => {
         if (event.data.type === 'TICK') {
           const { step, time, duration, generation } = event.data.payload;
           if (generation !== this.clockGeneration) return;
+          this.clockTickSeen = true;
+          this.onClockWatchdogDisarm();
           this.handleTick(step, time, duration);
         }
       };
@@ -1834,6 +1946,7 @@ export class AudioEngineService {
   }
 
   private scheduler() {
+    if (this.audioAvailable && this.ctx.state !== 'running') return;
     while (
       this.nextNoteTime <
       this.ctx.currentTime + AudioEngineService.DEFAULT_LOOKAHEAD_SECONDS
@@ -6307,18 +6420,29 @@ export class AudioEngineService {
 
   readonly userGestureSeen = signal<boolean>(false);
 
+  private gestureArmed = false;
+
   armOnFirstUserGesture(): void {
-    if (this.userGestureSeen()) return;
+    if (this.userGestureSeen() || this.gestureArmed) return;
     if (typeof document === 'undefined') return;
+    this.gestureArmed = true;
 
     const body = document.body;
-    const onGesture = () => {
-      void this.resume().then(() => {
-        if (!this.selectedOutputDeviceId()) void this.refreshOutputDevices();
-      });
+    const events = ['click', 'touchstart', 'keydown'] as const;
+    const onGesture = async () => {
+      try {
+        await this.resume();
+      } catch {
+        /* resume() already reports the block. */
+      }
+      // Keep listening while the browser still blocks the resume: setting
+      // userGestureSeen now would hide the ARM AUDIO pip and leave the
+      // artist with no visible retry even though the context is suspended.
+      if (this.audioAvailable && this.ctx.state !== 'running') return;
+      if (!this.selectedOutputDeviceId()) void this.refreshOutputDevices();
       this.userGestureSeen.set(true);
-      // Clean up peer listeners safely
-      ['click', 'touchstart', 'keydown'].forEach((e) =>
+      this.gestureArmed = false;
+      events.forEach((e) =>
         body.removeEventListener(e, onGesture, { capture: true })
       );
     };

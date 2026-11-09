@@ -399,9 +399,15 @@ class SmuveAudioProcessor extends AudioWorkletProcessor {
   }
 
   process(inputs, outputs, _parameters) {
-    const output = outputs[0];
-    const outL = output[0];
-    const outR = output[1];
+    // A host without a standard audio sink (headless renderers, some
+    // Bluetooth/USB defects) can hand this node zero output channels.
+    // The tick clock below must keep running even then, so resolve the
+    // channels defensively and skip the DSP loop when there is nowhere
+    // to write instead of crashing the processor (a crashed worklet
+    // never ticks again and freezes the whole transport).
+    const output = outputs[0] || [];
+    const outL = output[0] || null;
+    const outR = output[1] || output[0] || null;
     // ── Scheduling ─────────────────────────────────────
     if (this.isPlaying) {
       while (this.nextNoteTime < currentTime + this.lookahead) {
@@ -428,6 +434,7 @@ class SmuveAudioProcessor extends AudioWorkletProcessor {
     }
 
     // ── DSP Processing (per sample) ────────────────────
+    if (!outL || !outR) return true;
     const now = currentTime;
 
     for (let i = 0; i < outL.length; i++) {

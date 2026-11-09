@@ -33,6 +33,21 @@
         <span class="material-symbols-outlined" aria-hidden="true">download</span>
         <span>MUSICXML</span>
       </button>
+      <button
+        type="button"
+        class="score-export"
+        (click)="printScorePdf()"
+        [disabled]="totalNotes() === 0"
+        [title]="
+          totalNotes() === 0
+            ? 'Add notes before printing a chart'
+            : 'Open the print dialog; choose Save as PDF for a printable score'
+        "
+        aria-label="Print or save the score as PDF"
+      >
+        <span class="material-symbols-outlined" aria-hidden="true">print</span>
+        <span>PRINT / PDF</span>
+      </button>
     </div>
   </header>
 

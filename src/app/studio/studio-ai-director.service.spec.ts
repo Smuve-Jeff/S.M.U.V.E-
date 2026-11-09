@@ -30,6 +30,7 @@ import { TunerLiveService } from './tuner/tuner-live.service';
 import { VcaBusService } from './vca-bus.service';
 import { AudioRecorderService } from './audio-recorder.service';
 import { AiCopilotService } from './ai-copilot.service';
+import { RecordingStatusService } from './recording-status.service';
 import { OfflineBounceService } from './offline-bounce.service';
 
 function makeDirector(overrides: Record<string, unknown> = {}) {
@@ -65,6 +66,7 @@ function makeDirector(overrides: Record<string, unknown> = {}) {
       );
     }),
     humanizeTrack: jest.fn(),
+    applyGeneratedRecipe: jest.fn(),
     structure: signal([
       { id: 'intro', name: 'Intro', start: 0, length: 4 },
       { id: 'verse', name: 'Verse', start: 4, length: 8 },
@@ -184,6 +186,7 @@ function makeDirector(overrides: Record<string, unknown> = {}) {
     ...overrides.sounds,
   };
   const workspace = {
+    isDirty: signal(false),
     metadata: signal(null),
     updateMetadata: jest.fn(),
     createSnapshot: jest.fn(() => ({ metadata: { id: 'project-1', name: 'Test Project' }, tracks: [] })),
@@ -235,6 +238,7 @@ function makeDirector(overrides: Record<string, unknown> = {}) {
   };
   const performanceRecording = {
     takes: signal([]),
+    selectedTakeId: signal<string | null>(null),
     isRecording: signal(false),
     arm: jest.fn(),
     ...overrides.performanceRecording,
@@ -243,6 +247,12 @@ function makeDirector(overrides: Record<string, unknown> = {}) {
     selectedAudio: signal(null),
     importedAudio: signal([]),
     ...overrides.audioImport,
+  };
+  const recordingStatus = {
+    armedTrackIds: signal(new Set<string>()),
+    armTrack: jest.fn(),
+    isTrackArmed: jest.fn(() => true),
+    ...overrides.recordingStatus,
   };
   const copilot = { suggestStructure: jest.fn(), ...overrides.copilot };
   const offlineBounce = {
@@ -347,6 +357,18 @@ function makeDirector(overrides: Record<string, unknown> = {}) {
     exportStems: jest.fn().mockResolvedValue(new Blob(['stems'])),
     exportProjectMidi: jest.fn().mockReturnValue(new Blob(['midi'])),
     exportDawproject: jest.fn().mockResolvedValue(new Blob(['dawproject'])),
+    exportLoopWav: jest.fn().mockResolvedValue({
+      blob: new Blob(['loop']),
+      filename: 'Test_Project_Director_Loop_1-16_wav24_123.wav',
+      format: 'wav24',
+      extension: 'wav',
+      bitrate: 0,
+      startStep: 0,
+      endStep: 16,
+      durationSec: 2,
+      sampleRate: 44100,
+      metadata: { startStep: 0, endStep: 16, startBar: 1, endBar: 1, bpm: 120, format: 'wav24' },
+    }),
     downloadBlob: jest.fn(),
     ...overrides.exportService,
   };
@@ -376,6 +398,7 @@ function makeDirector(overrides: Record<string, unknown> = {}) {
       { provide: SmartProductionFoundationsService, useValue: foundations },
       { provide: StudioTelemetryService, useValue: telemetry },
       { provide: ProjectWorkspaceService, useValue: workspace },
+      { provide: RecordingStatusService, useValue: recordingStatus },
       { provide: AudioRecorderService, useValue: audioRecorder },
       { provide: AiCopilotService, useValue: copilot },
       { provide: OfflineBounceService, useValue: offlineBounce },
@@ -389,7 +412,7 @@ function makeDirector(overrides: Record<string, unknown> = {}) {
       { provide: IdeasGeneratorService, useValue: ideas },
     ],
   });
-  return { service: TestBed.inject(StudioAiDirectorService), music, engine, ai, beat, mix, sounds, workspace, telemetry, takeManager, audioRecorder, copilot, offlineBounce, scale, produce, history, sessionHistory, samplerState, tunerLive, vcaBuses, exportService, ideas, vocal, vocalMastering, performanceRecording, audioImport, tracks, automation };
+  return { service: TestBed.inject(StudioAiDirectorService), music, engine, ai, beat, mix, sounds, workspace, telemetry, takeManager, audioRecorder, copilot, offlineBounce, scale, produce, history, sessionHistory, samplerState, tunerLive, vcaBuses, exportService, ideas, vocal, vocalMastering, performanceRecording, audioImport, tracks, automation, recordingStatus };
 }
 
 describe('StudioAiDirectorService', () => {
@@ -468,13 +491,31 @@ describe('StudioAiDirectorService', () => {
     expect(music.addNoteToTrack).toHaveBeenCalled();
   });
 
-  it('counts MIDI takes from the Take Manager', async () => {
-    const { service, takeManager } = makeDirector();
+  it('reports MIDI takes and selects the strongest performance take', async () => {
+    const { service, takeManager, performanceRecording } = makeDirector();
     takeManager.getTakes.mockReturnValue(signal([{ id: 'take-1' }]));
+    performanceRecording.takes.set([
+      { id: 'perf-1', name: 'Take 1', notes: [{ midi: 60, velocity: 0.8, atMs: 0 }], peakDbL: -6, peakDbR: -6 },
+      { id: 'perf-2', name: 'Take 2', notes: [{ midi: 60, velocity: 0.8, atMs: 0 }, { midi: 64, velocity: 0.9, atMs: 100 }], peakDbL: -9, peakDbR: -9 },
+    ] as never);
     const plan = service.buildPlan({ surfaceId: 'performer' });
     const result = await service.runStep(plan.steps[0]);
     expect(result.ok).toBe(true);
     expect(result.message).toContain('1 MIDI take');
+    expect(result.message).toContain('Take 2');
+    expect(performanceRecording.selectedTakeId()).toBe('perf-2');
+  });
+
+  it('syncs the engine tempo to the project tempo for Quick Session', async () => {
+    const { service, workspace, engine } = makeDirector();
+    workspace.metadata.set({ id: 'project-1', name: 'Test Project', bpm: 96, key: 'A' });
+    expect(engine.tempo()).toBe(120);
+    const plan = service.buildPlan({ surfaceId: 'quick-session' });
+    const result = await service.runStep(plan.steps[1]);
+    expect(result.ok).toBe(true);
+    expect(engine.tempo()).toBe(96);
+    expect(result.message).toContain('96 BPM');
+    expect(result.message).toContain('Synced the engine tempo');
   });
 
   it('applies a stock song structure through the AI Copilot', async () => {
@@ -576,6 +617,7 @@ describe('StudioAiDirectorService', () => {
     expect(readiness.message).toContain('120 BPM');
     const recommendation = await service.runStep(plan.steps[2]);
     expect(recommendation.message).toContain('Recommended next move');
+    expect(recommendation.message).toContain('Selected Director Lead');
   });
 
   it('reads the release handoff and checks chord/bass registers', async () => {
@@ -592,12 +634,14 @@ describe('StudioAiDirectorService', () => {
     expect(voicing.message).toContain('chord register');
   });
 
-  it('reports recorder pass readiness without overwriting existing takes', async () => {
-    const { service, audioRecorder } = makeDirector();
+  it('arms the selected track for the next recorder pass without overwriting takes', async () => {
+    const { service, audioRecorder, recordingStatus } = makeDirector();
     audioRecorder.getOfflineRecordings.mockResolvedValue([{ id: 'rec-1' }]);
     const plan = service.buildPlan({ surfaceId: 'audio-recorder' });
     const result = await service.runStep(plan.steps[1]);
+    expect(recordingStatus.armTrack).toHaveBeenCalledWith('track-1');
     expect(result.message).toContain('1 saved recorder take');
+    expect(result.message).toContain('armed Director Lead');
     expect(result.message).toContain('without overwriting');
   });
 
@@ -610,22 +654,36 @@ describe('StudioAiDirectorService', () => {
     expect(offlineBounce.bounce).toHaveBeenCalledWith('wav-32-float');
   });
 
-  it('counts saved recorder takes', async () => {
+  it('audits saved recorder takes with newest duration and level', async () => {
     const { service, audioRecorder } = makeDirector();
-    audioRecorder.getOfflineRecordings.mockResolvedValue([{ id: 'rec-1' }, { id: 'rec-2' }]);
+    audioRecorder.getOfflineRecordings.mockResolvedValue([
+      { id: 'rec-1', name: 'First', timestamp: 1000, settings: { durationSec: 12, level: 'ok' } },
+      { id: 'rec-2', name: 'Second', timestamp: 2000, settings: { durationSec: 9, level: 'low' } },
+    ]);
     const plan = service.buildPlan({ surfaceId: 'audio-recorder' });
     const result = await service.runStep(plan.steps[0]);
     expect(result.ok).toBe(true);
     expect(result.message).toContain('2 saved recording takes');
+    expect(result.message).toContain('Newest: Second (9s, level low)');
   });
 
-  it('recommends a Quick Session starter from the live BPM', async () => {
-    const { service, ideas } = makeDirector();
+  it('applies the closest Quick Session starter from the live BPM and preserves a dirty sketch', async () => {
+    const { service, ideas, music, workspace } = makeDirector();
     const plan = service.buildPlan({ surfaceId: 'quick-session' });
     const result = await service.runStep(plan.steps[0]);
     expect(result.ok).toBe(true);
     expect(ideas.recommend).toHaveBeenCalledWith(120);
+    expect(music.applyGeneratedRecipe).toHaveBeenCalledWith(expect.objectContaining({ name: 'Neo Soul' }));
+    expect(result.message).toContain('Applied the closest Quick Session starter');
     expect(result.message).toContain('Neo Soul');
+
+    // A dirty sketch must never be replaced: the step reports instead.
+    music.applyGeneratedRecipe.mockClear();
+    workspace.isDirty.set(true);
+    const preserved = await service.runStep(plan.steps[0]);
+    expect(preserved.ok).toBe(true);
+    expect(music.applyGeneratedRecipe).not.toHaveBeenCalled();
+    expect(preserved.message).toContain('preserved and nothing was replaced');
   });
 
   it('runs a real EVOLVE-style mutation on a drum track', async () => {
@@ -772,6 +830,8 @@ describe('StudioAiDirectorService', () => {
     expect(plan.steps.map((step) => step.label)).toContain('Export MIDI');
     expect(plan.steps.map((step) => step.label)).toContain('Export DAWproject');
     expect(plan.steps.map((step) => step.label)).toContain('Export project bundle');
+    expect(plan.steps.map((step) => step.label)).toContain('Export the transport loop as WAV');
+    expect(plan.steps.map((step) => step.label)).toContain('Export the transport loop as MP3');
     expect(plan.steps.map((step) => step.label)).toContain('Check stems readiness before exporting stems');
     expect(plan.steps.map((step) => step.label)).toContain('Check automation coverage for export');
 
@@ -809,6 +869,63 @@ describe('StudioAiDirectorService', () => {
     expect(bundle.ok).toBe(true);
     expect(workspace.downloadProjectBundle).toHaveBeenCalled();
     expect(bundle.message).toContain('Test Project');
+
+    exportService.exportLoopWav.mockResolvedValueOnce({
+      blob: new Blob(['loop']),
+      filename: 'Test_Project_Director_Loop_1-16_wav24_123.wav',
+      format: 'wav24',
+      extension: 'wav',
+      bitrate: 0,
+      startStep: 0,
+      endStep: 16,
+      durationSec: 2,
+      sampleRate: 44100,
+      metadata: { startStep: 0, endStep: 16, startBar: 1, endBar: 1, bpm: 120, format: 'wav24' },
+    }).mockResolvedValueOnce({
+      blob: new Blob(['loop'], { type: 'audio/mpeg' }),
+      filename: 'Test_Project_Director_Loop_1-16_mp3_456.mp3',
+      format: 'mp3',
+      extension: 'mp3',
+      bitrate: 192_000,
+      startStep: 0,
+      endStep: 16,
+      durationSec: 2,
+      sampleRate: 44100,
+      metadata: { startStep: 0, endStep: 16, startBar: 1, endBar: 1, bpm: 120, format: 'mp3' },
+    });
+
+    const loop = await service.runStep(plan.steps[8]);
+    expect(loop.ok).toBe(true);
+    expect(exportService.exportLoopWav).toHaveBeenCalledWith({ format: 'wav24' });
+    expect(loop.message).toContain('Test_Project_Director_Loop_1-16_wav24_123.wav');
+    expect(loop.message).toContain('(wav24)');
+    expect(loop.message).toContain('steps 1-16');
+    expect(loop.message).toContain('2.00s');
+
+    const loopMp3 = await service.runStep(plan.steps.find((step) => step.label === 'Export the transport loop as MP3')!);
+    expect(loopMp3.ok).toBe(true);
+    expect(exportService.exportLoopWav).toHaveBeenCalledWith({ format: 'mp3' });
+    expect(loopMp3.message).toContain('Test_Project_Director_Loop_1-16_mp3_456.mp3');
+    expect(loopMp3.message).toContain('(mp3)');
+  });
+
+  it('exports the score as MusicXML and opens the print/PDF dialog from the Score plan', async () => {
+    const { service, exportService } = makeDirector();
+    const plan = service.buildPlan({ surfaceId: 'score' });
+    expect(plan.steps.map((step) => step.label)).toContain('Export the score as MusicXML');
+    expect(plan.steps.map((step) => step.label)).toContain('Open the score print/PDF dialog');
+
+    const musicXml = await service.runStep(plan.steps.find((step) => step.label === 'Export the score as MusicXML')!);
+    expect(musicXml.ok).toBe(true);
+    expect(exportService.downloadBlob).toHaveBeenCalledWith(expect.objectContaining({ type: 'application/vnd.recordare.musicxml+xml' }), 'test-project.musicxml');
+    expect(musicXml.message).toContain('1 parts, 1 notes');
+
+    const print = jest.fn();
+    Object.defineProperty(window, 'print', { value: print, configurable: true });
+    const printStep = await service.runStep(plan.steps.find((step) => step.label === 'Open the score print/PDF dialog')!);
+    expect(printStep.ok).toBe(true);
+    expect(print).toHaveBeenCalledTimes(1);
+    expect(printStep.message).toContain('Save as PDF');
   });
 
   it('measures tuner reads from the selected recorded clip', async () => {
