@@ -73,6 +73,21 @@ import {
 } from '../../services/director-coach.service';
 import { CinemaEngineService } from '../../services/cinema-engine.service';
 import {
+  AI_VFX_PASSES,
+  AI_VFX_PRESETS,
+  AI_VFX_STYLES,
+  buildAiVfxPrompt,
+  copyAiVfxSettings,
+  describeAiVfx,
+  parseAiVfxRecipe,
+  presetById,
+  presetRecipe,
+  renderAiVfx,
+  type AiVfxRecipe,
+  type AiVfxSettings,
+  type AiVfxStyle,
+} from '../../services/ai-vfx';
+import {
   AUDIO_BED_MEDIA_ID,
   CinemaProjectService,
 } from '../../services/cinema-project.service';
@@ -306,6 +321,36 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
   @ViewChild('stageSurface') stageSurface?: ElementRef<HTMLElement>;
 
   imagePrompt = signal('');
+
+  /**
+   * AI special effects: the family being authored, the brief, and the recipe
+   * the model (or the local shelf) returned. The recipe is applied to a clip
+   * as pure data, so the preview and the export render the same pass list.
+   */
+  aiVfxStyle = signal<AiVfxStyle>('music-video');
+  aiVfxBrief = signal('');
+  aiVfxBusy = signal(false);
+  aiVfxRecipe = signal<AiVfxRecipe | null>(null);
+  aiVfxIntensity = signal(0.75);
+  aiVfxStatus = signal<string | null>(null);
+  readonly aiVfxStyles = AI_VFX_STYLES;
+  readonly aiVfxPresets = AI_VFX_PRESETS;
+  aiVfxPresetsForStyle = computed(() =>
+    AI_VFX_PRESETS.filter((preset) => preset.style === this.aiVfxStyle())
+  );
+  aiVfxStyleHint = computed(
+    () => AI_VFX_STYLES.find((style) => style.id === this.aiVfxStyle())?.hint ?? ''
+  );
+  aiVfxSummary = computed(() => {
+    const recipe = this.aiVfxRecipe();
+    return recipe
+      ? describeAiVfx({
+          enabled: true,
+          intensity: this.aiVfxIntensity(),
+          recipe,
+        })
+      : null;
+  });
   // probe
   isGenerating = signal(false);
   isExporting = signal(false);
@@ -3162,6 +3207,18 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
       this.applyNoiseReduction(ctx, layer);
     }
     this.applyFxRackPasses(ctx, layer, clip.effects.fx);
+    if (clip.effects.aiVfx) {
+      // Recipes render last so their sparks, auras and glitches sit over the
+      // graded picture and are burnt into the export like every other pass.
+      renderAiVfx(
+        ctx,
+        layer,
+        clip.effects.aiVfx,
+        clipLocalTime,
+        layer.width,
+        layer.height
+      );
+    }
     this.updateStabilization(clip, layer);
 
     ctx.restore();
@@ -5814,6 +5871,132 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
         (this.camera.lastError() ?? 'CAMERA TAKE COULD NOT START.').toUpperCase()
       );
     }
+  }
+
+  /** Switch the effect family and clear the previous family's recipe. */
+  selectAiVfxStyle(style: AiVfxStyle): void {
+    this.aiVfxStyle.set(style);
+    this.aiVfxRecipe.set(null);
+    this.aiVfxStatus.set(null);
+  }
+
+  /** Load one shelf look — the offline path when the provider is unavailable. */
+  applyAiVfxPreset(presetId: string): void {
+    const preset = presetById(presetId);
+    if (!preset) return;
+    this.aiVfxStyle.set(preset.style);
+    this.aiVfxRecipe.set({
+      ...preset.recipe,
+      passes: preset.recipe.passes.map((pass) => ({
+        ...pass,
+        palette: pass.palette ? [...pass.palette] : undefined,
+      })),
+      origin: 'preset',
+    });
+    this.aiVfxStatus.set(
+      `${preset.name.toUpperCase()} LOADED - APPLY IT TO THE SELECTED CLIP OR THE WHOLE CUT.`
+    );
+  }
+
+  /**
+   * Ask the director for a recipe. The answer is parsed into the pass
+   * catalogue; a provider outage or a prose answer falls back to the
+   * same-family shelf look, so the control always produces a real effect.
+   */
+  async generateAiVfx(): Promise<void> {
+    if (this.aiVfxBusy()) return;
+    this.aiVfxBusy.set(true);
+    const style = this.aiVfxStyle();
+    const brief = this.aiVfxBrief().trim();
+    try {
+      const answer = await this.aiService.getAIResponse(
+        buildAiVfxPrompt(
+          brief,
+          style,
+          this.videoEngine.productionMode(),
+          this.videoEngine.bpm()
+        )
+      );
+      const recipe = parseAiVfxRecipe(answer, style, brief);
+      this.aiVfxRecipe.set(recipe);
+      this.aiVfxStatus.set(
+        recipe.origin === 'ai'
+          ? `AI BUILT "${recipe.name.toUpperCase()}" - ${recipe.passes.length} PASSES READY. APPLY TO A CLIP.`
+          : `PROVIDER OUT OF REACH - LOADED THE LOCAL "${recipe.name.toUpperCase()}" RECIPE.`
+      );
+    } catch (error: any) {
+      this.logger.error('AI VFX generation error:', error);
+      const fallback = presetRecipe(style, brief);
+      this.aiVfxRecipe.set(fallback);
+      this.aiVfxStatus.set(
+        `AI DIRECTION FAILED - LOADED THE LOCAL "${fallback.name.toUpperCase()}" RECIPE.`
+      );
+    } finally {
+      this.aiVfxBusy.set(false);
+    }
+  }
+
+  /** Bake the current recipe onto the selected clip. */
+  applyAiVfxToSelected(): void {
+    const clip = this.selectedClip();
+    const recipe = this.aiVfxRecipe();
+    if (!clip) {
+      this.aiVfxStatus.set('SELECT A CLIP FIRST - THE EFFECT BAKES ONTO ONE SHOT.');
+      return;
+    }
+    if (!recipe) {
+      this.aiVfxStatus.set('PICK A SHELF LOOK OR GENERATE A RECIPE FIRST.');
+      return;
+    }
+    const settings: AiVfxSettings = {
+      enabled: true,
+      intensity: this.aiVfxIntensity(),
+      recipe,
+    };
+    if (!this.videoEngine.setClipAiVfx(clip.id, copyAiVfxSettings(settings))) {
+      this.aiVfxStatus.set('THE CLIP NO LONGER EXISTS - SELECT ANOTHER SHOT.');
+      return;
+    }
+    this.aiVfxStatus.set(
+      `AI VFX APPLIED TO ${clip.name.toUpperCase()} AT ${Math.round(
+        this.aiVfxIntensity() * 100
+      )}%.`
+    );
+  }
+
+  /** Bake the current recipe across every clip on the timeline. */
+  applyAiVfxToAll(): void {
+    const recipe = this.aiVfxRecipe();
+    if (!recipe) {
+      this.aiVfxStatus.set('PICK A SHELF LOOK OR GENERATE A RECIPE FIRST.');
+      return;
+    }
+    const count = this.videoEngine.applyAiVfxToAllClips({
+      enabled: true,
+      intensity: this.aiVfxIntensity(),
+      recipe,
+    });
+    this.aiVfxStatus.set(
+      count
+        ? `${recipe.name.toUpperCase()} APPLIED TO ${count} CLIP${count === 1 ? '' : 'S'}.`
+        : 'NO CLIPS TO APPLY THE EFFECT TO YET.'
+    );
+  }
+
+  /** Remove the effect from the selected clip. */
+  clearAiVfxFromSelected(): void {
+    const clip = this.selectedClip();
+    if (!clip) {
+      this.aiVfxStatus.set('SELECT A CLIP FIRST.');
+      return;
+    }
+    this.videoEngine.setClipAiVfx(clip.id, null);
+    this.aiVfxStatus.set(`AI VFX CLEARED FROM ${clip.name.toUpperCase()}.`);
+  }
+
+  /** Readable pass label for the recipe chips in the panel. */
+  aiVfxPassLabel(id: string): string {
+    return AI_VFX_PASSES.find((pass) => pass.id === id)?.label ?? id;
   }
 
   async generateImage(retryPrompt?: string) {

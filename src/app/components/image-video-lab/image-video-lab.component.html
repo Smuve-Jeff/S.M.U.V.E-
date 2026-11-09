@@ -1725,6 +1725,143 @@
           </div>
 
           <!--
+            AI special effects: the director writes a recipe of catalogue
+            passes (cartoon / animation / avatar / action / music video) and
+            the renderer composites it into the preview and the export.
+          -->
+          <div class="rounded-xl border border-border bg-surface p-3 grid gap-2">
+            <div class="flex items-center justify-between gap-2">
+              <span
+                class="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-text-dim"
+                >AI Special Effects</span
+              >
+              <span
+                class="text-[8px] font-black uppercase tracking-[0.14em] text-brand-primary"
+                >{{
+                  aiVfxRecipe()?.origin === 'ai'
+                    ? 'AI RECIPE'
+                    : aiVfxRecipe()
+                      ? 'SHELF'
+                      : 'READY'
+                }}</span
+              >
+            </div>
+
+            <div class="flex flex-wrap gap-1.5">
+              @for (style of aiVfxStyles; track style.id) {
+                <button
+                  type="button"
+                  class="rounded-full border px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.14em] transition-all"
+                  [class.border-brand-primary]="aiVfxStyle() === style.id"
+                  [class.text-brand-primary]="aiVfxStyle() === style.id"
+                  [class.border-border]="aiVfxStyle() !== style.id"
+                  [class.text-text-dim]="aiVfxStyle() !== style.id"
+                  [attr.aria-pressed]="aiVfxStyle() === style.id"
+                  (click)="selectAiVfxStyle(style.id)"
+                >
+                  {{ style.label }}
+                </button>
+              }
+            </div>
+            <p class="text-[8px] text-text-dim">{{ aiVfxStyleHint() }}</p>
+
+            <input
+              type="text"
+              aria-label="AI special effects brief"
+              placeholder="Brief it: anime power-up, comic hit, holo avatar…"
+              [ngModel]="aiVfxBrief()"
+              (ngModelChange)="aiVfxBrief.set($event)"
+              class="w-full rounded-lg bg-background border border-border px-3 py-2 text-[11px] font-bold text-text-main outline-none focus:border-brand-primary"
+            />
+
+            <div class="flex flex-wrap gap-1.5">
+              @for (preset of aiVfxPresetsForStyle(); track preset.id) {
+                <button
+                  type="button"
+                  [attr.title]="preset.description"
+                  (click)="applyAiVfxPreset(preset.id)"
+                  class="rounded-full border border-border px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.14em] text-text-dim hover:text-brand-primary hover:border-brand-primary/40 transition-all"
+                >
+                  {{ preset.name }}
+                </button>
+              }
+            </div>
+
+            <button
+              type="button"
+              (click)="generateAiVfx()"
+              [disabled]="aiVfxBusy()"
+              [attr.aria-busy]="aiVfxBusy()"
+              class="rounded-lg border border-brand-primary/40 bg-surface px-2.5 py-1.5 text-[8px] font-black uppercase tracking-[0.16em] text-brand-primary hover:border-brand-primary transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {{ aiVfxBusy() ? 'DIRECTING…' : 'Generate AI VFX' }}
+            </button>
+
+            @if (aiVfxStatus(); as status) {
+              <p aria-live="polite" class="text-[9px] font-bold text-text-main break-words">
+                {{ status }}
+              </p>
+            }
+
+            @if (aiVfxRecipe(); as recipe) {
+              <p class="text-[9px] text-text-dim">{{ recipe.description }}</p>
+              <div class="flex flex-wrap gap-1">
+                @for (pass of recipe.passes; track pass.id) {
+                  <span
+                    class="rounded-full border border-border px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.12em] text-text-dim"
+                    >{{ aiVfxPassLabel(pass.id) }}
+                    {{ (pass.intensity * 100).toFixed(0) }}%</span
+                  >
+                }
+              </div>
+            }
+
+            <label class="grid gap-1">
+              <span class="text-[8px] font-black uppercase tracking-[0.16em] text-text-dim"
+                >Intensity — {{ (aiVfxIntensity() * 100).toFixed(0) }}%</span
+              >
+              <input
+                type="range"
+                min="0"
+                max="1"
+                step="0.05"
+                aria-label="AI special effects intensity"
+                [ngModel]="aiVfxIntensity()"
+                (ngModelChange)="aiVfxIntensity.set(+$event)"
+                class="w-full"
+              />
+            </label>
+
+            <div class="grid grid-cols-3 gap-1.5">
+              <button
+                type="button"
+                (click)="applyAiVfxToSelected()"
+                class="rounded-lg border border-brand-primary/40 bg-surface px-2 py-1.5 text-[8px] font-black uppercase tracking-[0.14em] text-brand-primary hover:border-brand-primary transition-all"
+              >
+                Apply
+              </button>
+              <button
+                type="button"
+                (click)="applyAiVfxToAll()"
+                class="rounded-lg border border-border bg-surface px-2 py-1.5 text-[8px] font-black uppercase tracking-[0.14em] text-text-dim hover:text-brand-primary hover:border-brand-primary/40 transition-all"
+              >
+                All Clips
+              </button>
+              <button
+                type="button"
+                (click)="clearAiVfxFromSelected()"
+                class="rounded-lg border border-border bg-surface px-2 py-1.5 text-[8px] font-black uppercase tracking-[0.14em] text-text-dim hover:text-brand-danger hover:border-brand-danger/40 transition-all"
+              >
+                Clear
+              </button>
+            </div>
+
+            @if (aiVfxSummary(); as summary) {
+              <p class="text-[8px] text-text-dim break-words">{{ summary }}</p>
+            }
+          </div>
+
+          <!--
             Visual grounding: grab the frame on the monitor and ask the
             director about it. The answer names a frame that exists —
             an unviewed frame gets no opinion at all.

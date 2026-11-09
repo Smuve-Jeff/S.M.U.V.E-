@@ -61,6 +61,8 @@ export type { ClipKeyframe, ClipTransformState, KeyframeProperty, KeyframeEasing
 export type { ChromaKeySettings } from './chroma-key';
 export { sanitizeChromaKey } from './chroma-key';
 import { sanitizeChromaKey } from './chroma-key';
+export type { AiVfxPass, AiVfxPassId, AiVfxRecipe, AiVfxSettings, AiVfxStyle } from './ai-vfx';
+import { sanitizeAiVfx, type AiVfxSettings } from './ai-vfx';
 export type { ClipMaskSettings, PipSettings, PipPreset, MaskShape } from './clip-mask';
 export { sanitizeMask, sanitizePip, pipTransform } from './clip-mask';
 import { sanitizeMask, sanitizePip } from './clip-mask';
@@ -266,6 +268,12 @@ export interface VideoClip {
     opticalFlow?: boolean;
     /** Multicam: which angle group this clip belongs to. */
     multicamAngle?: { groupId: string; angle: string };
+    /**
+     * AI special effects — a recipe of cartoon/animation/avatar/action passes
+     * rendered over the graded frame. Kept separate from the FX rack so a
+     * project saved before this existed restores unchanged.
+     */
+    aiVfx?: AiVfxSettings;
     /** Title card burnt into the feed when this clip is an overlay title. */
     title?: TitleCard;
     /** Narration line when this clip is a voiceover. */
@@ -1126,6 +1134,52 @@ export class VideoEngineService {
   }
 
   /**
+   * Apply (or clear) an AI effect recipe on one clip.
+   *
+   * Passing null removes the effect rather than disabling it, so a cleared
+   * clip saves without a recipe it will never render.
+   */
+  setClipAiVfx(clipId: string, settings: AiVfxSettings | null): boolean {
+    const sanitized = settings ? sanitizeAiVfx(settings) : null;
+    if (settings && !sanitized) return false;
+    let found = false;
+    this.tracks.update((tracks) =>
+      tracks.map((track) => ({
+        ...track,
+        clips: track.clips.map((clip) => {
+          if (clip.id !== clipId) return clip;
+          found = true;
+          return {
+            ...clip,
+            effects: { ...clip.effects, aiVfx: sanitized ?? undefined },
+          };
+        }),
+      }))
+    );
+    return found;
+  }
+
+  /** Push one AI recipe across every clip — the whole-cut look. */
+  applyAiVfxToAllClips(settings: AiVfxSettings): number {
+    const sanitized = sanitizeAiVfx(settings);
+    if (!sanitized) return 0;
+    let updated = 0;
+    this.tracks.update((tracks) =>
+      tracks.map((track) => ({
+        ...track,
+        clips: track.clips.map((clip) => {
+          updated += 1;
+          return {
+            ...clip,
+            effects: { ...clip.effects, aiVfx: sanitizeAiVfx(sanitized) ?? undefined },
+          };
+        }),
+      }))
+    );
+    return updated;
+  }
+
+  /**
    * Reposition a clip in time and/or across lanes. Start times run through the
    * beat grid when snapping is armed, and locked lanes refuse the move so a
    * finished scene can't be nudged by accident.
@@ -1751,6 +1805,7 @@ export class VideoEngineService {
           // never resolve again.
           url: isReloadableMediaUrl(clip.url) ? clip.url : '',
           effects: { ...clip.effects, fx: (clip.effects.fx ?? []).map((entry) => ({ ...entry })), keyframes: (clip.effects.keyframes ?? []).map((entry) => ({ ...entry })),
+          aiVfx: clip.effects.aiVfx ? sanitizeAiVfx(clip.effects.aiVfx) ?? undefined : undefined,
           chromaKey: clip.effects.chromaKey ? { ...clip.effects.chromaKey, keyColor: [...clip.effects.chromaKey.keyColor] } : undefined,
           mask: clip.effects.mask ? { ...clip.effects.mask } : undefined,
           pip: clip.effects.pip ? { ...clip.effects.pip } : undefined,
@@ -1834,6 +1889,7 @@ export class VideoEngineService {
             // A record written before the FX rack existed carries no array, and
             // a malformed one can carry entries that are not effects at all.
             fx: this.sanitizeEffects(effects.fx),
+            aiVfx: sanitizeAiVfx(effects.aiVfx) ?? undefined,
             keyframes: sanitizeKeyframes(effects.keyframes),
             chromaKey: sanitizeChromaKey(effects.chromaKey) ?? undefined,
             mask: sanitizeMask(effects.mask) ?? undefined,
