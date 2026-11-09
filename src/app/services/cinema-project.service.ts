@@ -83,6 +83,12 @@ export interface CinemaMediaRecord {
 
 const STORE = 'cinema_projects';
 const MEDIA_STORE = 'cinema_media';
+/**
+ * The project that was open when the page last unloaded. Kept outside the
+ * project records so a new document can ask for it before the async project
+ * list has loaded.
+ */
+const LAST_PROJECT_KEY = 'smuve_cinema_last_project';
 
 /**
  * Reserved media id for the project's audio bed.
@@ -135,6 +141,9 @@ export class CinemaProjectService {
    */
   storageState = signal<PersistenceState>('ready');
   lastError = signal<string | null>(null);
+
+  /** A resume is consumed once per document; re-entering the lab must not replay it. */
+  private resumeConsumed = false;
 
   activeProject = computed(() => {
     const id = this.activeProjectId();
@@ -193,6 +202,59 @@ export class CinemaProjectService {
       this.lastError.set('Saved projects could not be read on this device.');
       this.projects.set([]);
       return [];
+    }
+  }
+
+  /**
+   * The project to reopen after a page reload, or null when there is none.
+   *
+   * One-shot per document: the Cinema lab is a route, so it is destroyed and
+   * recreated whenever the artist visits another surface. Replaying the stored
+   * pointer there would replace an edit that has started since the reload.
+   */
+  async takeResumableProjectId(): Promise<string | null> {
+    if (this.resumeConsumed) return null;
+    this.resumeConsumed = true;
+
+    const id = this.readStoredProjectId();
+    if (!id) return null;
+
+    const projects = await this.refresh();
+    if (projects.some((project) => project.id === id)) return id;
+
+    // Deleted in another tab, or storage was cleared: forget it rather than
+    // retrying a dead pointer on every load.
+    this.writeStoredProjectId(null);
+    return null;
+  }
+
+  /** Make `id` the open project and remember it for the next page load. */
+  private setActiveProject(id: string | null): void {
+    this.activeProjectId.set(id);
+    this.writeStoredProjectId(id);
+  }
+
+  private readStoredProjectId(): string | null {
+    try {
+      return typeof localStorage === 'undefined'
+        ? null
+        : localStorage.getItem(LAST_PROJECT_KEY);
+    } catch {
+      return null;
+    }
+  }
+
+  private writeStoredProjectId(id: string | null): void {
+    try {
+      if (typeof localStorage === 'undefined') return;
+      if (id) localStorage.setItem(LAST_PROJECT_KEY, id);
+      else localStorage.removeItem(LAST_PROJECT_KEY);
+    } catch (error) {
+      // Persistence still works; only the automatic reopen is unavailable.
+      this.logger.warn(
+        'CinemaProjectService: could not remember the open project',
+        error
+      );
     }
   }
 
@@ -270,7 +332,7 @@ export class CinemaProjectService {
       );
 
       await this.storage.saveItem(STORE, record);
-      this.activeProjectId.set(record.id);
+      this.setActiveProject(record.id);
       await this.refresh();
 
       const footage =
@@ -334,7 +396,7 @@ export class CinemaProjectService {
       }
 
       const report = this.engine.restore(record.snapshot);
-      this.activeProjectId.set(record.id);
+      this.setActiveProject(record.id);
 
       const media = await this.loadMedia(
         record.id,
@@ -416,7 +478,7 @@ export class CinemaProjectService {
           await this.storage.deleteItem(MEDIA_STORE, key);
         }
       }
-      if (this.activeProjectId() === id) this.activeProjectId.set(null);
+      if (this.activeProjectId() === id) this.setActiveProject(null);
       await this.refresh();
       return true;
     } catch (error) {
@@ -430,7 +492,7 @@ export class CinemaProjectService {
 
   /** Detach the current edit from its stored project without deleting it. */
   startNew(): void {
-    this.activeProjectId.set(null);
+    this.setActiveProject(null);
     this.lastError.set(null);
   }
 

@@ -93,6 +93,8 @@ describe('CinemaProjectService', () => {
     return { service, engine, storage };
   };
 
+  beforeEach(() => localStorage.clear());
+
   it('starts with nothing saved', async () => {
     const { service } = createHarness();
 
@@ -460,6 +462,53 @@ describe('CinemaProjectService', () => {
       await service.save('Prunable Cut', saved.id, new Map());
 
       expect(mediaStored.size).toBe(0);
+    });
+  });
+
+  describe('resuming the last project', () => {
+    it('remembers the project that was open after a save', async () => {
+      const { service } = createHarness();
+      const saved = await service.save('Feature Cut');
+
+      await expect(service.takeResumableProjectId()).resolves.toBe(saved.id);
+    });
+
+    it('only offers a resume once per document', async () => {
+      const { service } = createHarness();
+      await service.save('Feature Cut');
+
+      await service.takeResumableProjectId();
+
+      await expect(service.takeResumableProjectId()).resolves.toBeNull();
+    });
+
+    it('remembers the project most recently opened, not the last saved', async () => {
+      const { service } = createHarness();
+      const first = await service.save('First Cut');
+      service.startNew();
+      await service.save('Second Cut');
+
+      await service.open(first.id!);
+
+      await expect(service.takeResumableProjectId()).resolves.toBe(first.id);
+    });
+
+    it('forgets the pointer when a new project is started', async () => {
+      const { service } = createHarness();
+      await service.save('Feature Cut');
+
+      service.startNew();
+
+      await expect(service.takeResumableProjectId()).resolves.toBeNull();
+    });
+
+    it('forgets a deleted active project', async () => {
+      const { service } = createHarness();
+      const saved = await service.save('Feature Cut');
+
+      await service.remove(saved.id!);
+
+      await expect(service.takeResumableProjectId()).resolves.toBeNull();
     });
   });
 

@@ -942,12 +942,10 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
   ];
 
   constructor() {
-    // The director keeps the last plan across reloads, so a plan can be on
-    // screen before anything is clicked. Say where it came from instead of
-    // opening the console on a shot list nobody asked for this session.
-    if (this.director.plan()) {
-      this.aiFeedback.set(this.director.plannerNote().toUpperCase());
-    }
+    // A project was open when the page last unloaded: reopen it once, with
+    // its timeline, footage and Director plans, instead of making the artist
+    // find it in the list again.
+    void this.resumeLastProject();
 
     // Track the one layout where the section disclosures apply. `matchMedia`
     // rather than a width read: it fires on exactly the boundary the stylesheet
@@ -1796,6 +1794,17 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
       return;
     }
     this.aiFeedback.set(outcome.message.toUpperCase());
+  }
+
+  /**
+   * Reopen the project that was open when the page last unloaded. The pointer
+   * is consumed once by the project service, so returning to the lab later in
+   * the same session does not replace an edit started since.
+   */
+  async resumeLastProject(): Promise<void> {
+    const id = await this.cinemaProjects.takeResumableProjectId();
+    if (!id || this.cinemaProjects.activeProjectId()) return;
+    await this.openProject(id);
   }
 
   /** Replace the current edit with a stored project. */

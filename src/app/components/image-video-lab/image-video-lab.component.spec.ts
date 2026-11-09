@@ -547,6 +547,9 @@ describe('ImageVideoLabComponent', () => {
       remove: jest.fn(async () => true),
       startNew: jest.fn(),
       refresh: jest.fn(async () => []),
+      takeResumableProjectId: jest.fn(
+        async (): Promise<string | null> => null
+      ),
     };
 
     const cinemaEngine = {
@@ -3788,6 +3791,66 @@ describe('ImageVideoLabComponent', () => {
       expect(cinemaProjects.open).toHaveBeenCalledWith('p2');
       expect(component.projectName()).toBe('Act Two');
       expect(component.aiFeedback()).toBe('PROJECT OPENED: FEATURE CUT.');
+    });
+
+    it('resumes the last project with its Director plans', async () => {
+      const { component, cinemaProjects, projectList, activeProjectId } =
+        await createComponent();
+      projectList.set([{ id: 'p2', name: 'Act Two' }]);
+      cinemaProjects.takeResumableProjectId.mockResolvedValueOnce('p2');
+      const recipe = AI_VFX_PRESETS.find(
+        (preset) => preset.id === 'neon-pulse'
+      )!.recipe;
+      cinemaProjects.open.mockImplementationOnce(async () => {
+        activeProjectId.set('p2');
+        return {
+          ok: true,
+          message: 'PROJECT OPENED: ACT TWO. Shot list restored.',
+          directorShotPlan: {
+            brief: 'Night drive',
+            plan: {
+              title: 'Night Drive',
+              logline: 'A headlight-lit cut.',
+              editorial: [],
+              origin: 'smuve',
+              shots: [
+                {
+                  index: 1,
+                  title: 'Dashboard',
+                  description: 'Wide',
+                  size: 'wide',
+                  bars: 4,
+                  startTime: 0,
+                  durationSeconds: 8,
+                  section: 'Feature',
+                },
+              ],
+            },
+          },
+          sectionVfxPlan: {
+            title: 'Saved FX',
+            brief: 'neon performance',
+            style: 'music-video',
+            origin: 'ai',
+            sections: [
+              {
+                section: 'Chorus',
+                startTime: 0,
+                endTime: 8,
+                recipe,
+                intensity: 0.9,
+              },
+            ],
+          },
+        };
+      });
+
+      await component.resumeLastProject();
+
+      expect(cinemaProjects.open).toHaveBeenCalledWith('p2');
+      expect(component.projectName()).toBe('Act Two');
+      expect(component.director.plan()?.title).toBe('Night Drive');
+      expect(component.director.sectionVfxPlan()?.title).toBe('Saved FX');
     });
 
     it('deletes without also opening the project under the pointer', async () => {
