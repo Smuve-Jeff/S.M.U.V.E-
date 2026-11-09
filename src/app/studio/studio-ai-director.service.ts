@@ -275,8 +275,8 @@ export class StudioAiDirectorService {
       case 'quick-session':
         return [
           make(1, 'Choose the fastest environment that fits the session', 'Open the Quick Session environments and pick Warm-Up, Sketch, Loop, Guide, Track, Take or Performance based on whether the artist is warming up, sketching, learning, writing, arranging or performing.', false, () => 'Guided: choose the environment in Quick Session, then confirm the selected BPM and key in the footer.', 'quick-session'),
-          make(2, 'Verify tempo and key before committing', 'Use the transport tempo and key/scale selectors; if the environment changed them, set the intended BPM and key before recording.', false, () => 'Guided: preview the loop with metronome on, then tap BPM and key controls to confirm both.', 'quick-session'),
-          make(3, 'Brief the next one-tap move', 'Use the session summary to decide whether to loop, record a take, or move to Arrangement.', false, () => 'Guided: if the loop is stable, move to Arrangement; if it is still exploratory, stay in Loop/Sketch.', 'arrangement'),
+          make(2, 'Verify tempo and key before committing', 'Read the transport tempo, project key/scale and metronome state from the live services before any further Quick Session work.', true, () => this.quickSessionReadiness()),
+          make(3, 'Brief the next one-tap move', 'Read the current track, note and clip state, then recommend the next Quick Session move that fits it.', true, () => this.quickSessionNextMove()),
         ];
       case 'arrangement':
         return [
@@ -311,7 +311,7 @@ export class StudioAiDirectorService {
       case 'mixer':
         return [
           make(1, 'Refresh the evidence-backed mix pass', 'Recompute every track-level suggestion from the current session instead of trusting an old snapshot.', true, () => this.analyzeAndApplyMix()),
-          make(2, 'Audit mute and solo state', 'Confirm muted and soloed tracks match the intended arrangement before balancing gains.', false, () => 'Guided: solo each stem family one at a time and remove unintended mutes before the next pass.', 'mixer'),
+          make(2, 'Audit mute and solo state', 'Read the live mute/solo state for every track and the selected track before balancing gains.', true, () => this.auditMixerMuteSolo()),
           make(3, 'Use the neural balance only as a rough nudge', 'The neural balance is a randomized gain nudge plus safety compression, not a measurement-based mix.', true, () => this.applyNeuralNudge()),
         ];
       case 'effects-rack':
@@ -330,7 +330,7 @@ export class StudioAiDirectorService {
         return [
           make(1, 'Make both decks audition-ready', 'Set both deck gains and the crossfader to neutral so the artist can hear either deck cleanly.', true, () => this.prepareDjDecks()),
           make(2, 'Arm key-lock and deck B loop', 'Set deck B to unity rate with pitch preservation and enable its loop so the next phrase can be cued cleanly.', true, () => this.prepareDjLoop()),
-          make(3, 'Ride the crossfader in phrase', 'Move the crossfader over four bars and keep the vocal out of the busy section.', false, () => 'Guided: prepare the next deck during the current phrase, then crossfade over four bars.', 'dj'),
+          make(3, 'Centre the crossfader in phrase', 'Set the DJ crossfader back to the phrase-neutral centre so the next move can ride either deck cleanly.', true, () => this.prepareDjCrossfade()),
         ];
       case 'performance':
         return [
@@ -342,13 +342,13 @@ export class StudioAiDirectorService {
         return [
           make(1, 'Run the genre-aware master', 'Let the AI Mix Assistant choose targets from the session composition and apply compressor, limiter and tone EQ.', true, () => this.autoMaster()),
           make(2, 'Render the offline review bounce', 'Render the full arrangement offline and read its measured peak/RMS; if the peak clips, lower the target rather than raising the limiter.', true, () => this.bounceProjectReview()),
-          make(3, 'Export a comparison master', 'Bounce a review WAV before the streaming master so the room can judge the chain.', false, () => 'Guided: export the session WAV, compare it with the streaming target, then master the final.', 'export'),
+          make(3, 'Render a comparison master', 'Render the offline comparison bounce and read its measured peak/RMS against the streaming target.', true, () => this.bounceProjectReview()),
         ];
       case 'ai-produce':
         return [
           make(1, 'Generate the full one-tap production idea', 'Run the six-stage Produce pipeline: idea, beat, lyrics, voice preview, mix/master and release checklist.', true, () => this.runAiProduce(context)),
           make(2, 'Apply the generated artifacts', 'Commit the current idea, beat, lyrics and mix handoff to the project via AiProduceService.applyToProject().', true, () => this.applyAiProduceArtifacts()),
-          make(3, 'Use the release handoff to plan delivery', 'The release checklist becomes the delivery brief; finish the vocal performance before calling the track done.', false, () => 'Guided: open the release handoff, check vocals and mastering stages, then perform and record the vocal.', 'vocal-suite'),
+          make(3, 'Use the release handoff to plan delivery', 'Read the AI Produce release handoff directly and surface the completed stages, pending stages and next step.', true, () => this.releaseHandoffStatus()),
         ];
       case 'sound-browser':
       case 'sound-pad':
@@ -372,7 +372,7 @@ export class StudioAiDirectorService {
       case 'chord-editor':
         return [
           make(1, 'Generate a chord framework', 'Create a genre-aware progression from the session key and mood; Roman numerals are interpreted as guidance, not literal notes.', true, () => this.generateChordFramework(context)),
-          make(2, 'Voicing check against the bass', 'Ensure chord roots do not collide with the bass line’s register.', false, () => 'Guided: audition the chord progression against the bass loop and move inversions if the root masks the bass.', 'chord-editor'),
+          make(2, 'Voicing check against the bass', 'Measure the bass and chord registers from the live project notes and flag any root collision.', true, () => this.chordBassRegisterCheck()),
           make(3, 'Turn the progression into parts', 'Use the framework to write a pad, bass and top line as separate lanes.', false, () => 'Guided: turn the progression into separate pad, bass and melody lanes, then return to Piano Roll.', 'piano-roll'),
         ];
       case 'sampler':
@@ -402,8 +402,8 @@ export class StudioAiDirectorService {
       case 'audio-recorder':
         return [
           make(1, 'Count the saved takes', 'Read the recorder’s saved takes so the artist knows what already exists before recording another pass.', true, () => this.recorderTakeStatus()),
-          make(2, 'Record one deliberate pass', 'Set the monitor/gain, record a complete pass, then inspect the take level before overwriting it.', false, () => 'Guided: set the input, record one complete pass, then check the take level before adding another.', 'audio-recorder'),
-          make(3, 'Move the best take into the session', 'Only promote the take that survives the full-session audition.', false, () => 'Guided: promote the strongest take into the session and audition it in context.', 'arrangement'),
+          make(2, 'Record one deliberate pass', 'Read the recorder take count and the selected track take count, then recommend a deliberate pass that does not overwrite them.', true, () => this.recorderPassStatus()),
+          make(3, 'Move the best take into the session', 'Promote the strongest captured MIDI take through TakeManagerService so playback and comping use it.', true, () => this.promoteBestTake()),
         ];
       case 'performer':
         return [
@@ -414,8 +414,8 @@ export class StudioAiDirectorService {
       case 'export':
         return [
           make(1, 'Run the final mastering pass', 'Master against the intended delivery surface before exporting.', true, () => this.autoMaster()),
-          make(2, 'Export the review bounce', 'Bounce a WAV review copy and listen for clipping, masking and dullness in the full session.', false, () => 'Guided: export the WAV review bounce and listen end-to-end for clipping or masking.', 'export'),
-          make(3, 'Prepare the delivery checklist', 'Confirm format, loudness target, artwork and release metadata before the public upload.', false, () => 'Guided: check the format, loudness, artwork and release metadata, then upload through the release flow.', 'ai-produce'),
+          make(2, 'Export the review bounce', 'Render the offline WAV review bounce and read its measured peak/RMS before delivery.', true, () => this.bounceProjectReview()),
+          make(3, 'Prepare the delivery checklist', 'Read the AI Produce release handoff and surface format, loudness target, artwork, metadata and next delivery step.', true, () => this.deliveryChecklist()),
         ];
     }
   }
@@ -725,6 +725,68 @@ export class StudioAiDirectorService {
     this.engine.setDeckGain('B', 0.8);
     this.engine.setCrossfader(0.5);
     return 'Deck A and B gains set to 80% with the crossfader centred for a neutral audition.';
+  }
+
+  private quickSessionReadiness(): string {
+    const tempo = this.engine.tempo();
+    const key = this.workspace.metadata()?.key ?? 'C';
+    const metronome = this.engine.metronomeEnabled();
+    return `Quick Session checkpoint: ${tempo} BPM · ${key} ${this.lastDetectedScale} · metronome ${metronome ? 'on' : 'off'} · transport ${this.engine.isPlaying() ? 'playing' : 'stopped'}. Confirm these before recording or arranging.`;
+  }
+
+  private quickSessionNextMove(): string {
+    const tracks = this.music.tracks();
+    const notes = tracks.reduce((sum, track) => sum + (track.notes?.length ?? 0), 0);
+    const clips = tracks.reduce((sum, track) => sum + (track.clips?.length ?? 0), 0);
+    if (tracks.length === 0) return 'Recommended next move: build a one-tap groove in Quick Session before moving to Arrangement.';
+    if (notes === 0 && clips === 0) return 'Recommended next move: add a groove or channel in Quick Session before arranging.';
+    if (notes > 0 && clips === 0) return 'Recommended next move: refine the loop, then move to Arrangement for structure.';
+    return `Recommended next move: ${tracks.length} tracks, ${notes} notes and ${clips} clips are already in the session, so move to Arrangement and shape the sections.`;
+  }
+
+  private auditMixerMuteSolo(): string {
+    const tracks = this.music.tracks();
+    const muted = tracks.filter((track) => track.muted).length;
+    const soloed = tracks.filter((track) => track.soloed).length;
+    const selected = this.music.selectedTrack();
+    return `Mute/solo audit: ${muted} of ${tracks.length} tracks muted; ${soloed} soloed; selected ${selected?.name ?? 'none'} is ${selected?.muted ? 'muted' : 'unmuted'}, ${selected?.soloed ? 'soloed' : 'not soloed'}.`;
+  }
+
+  private prepareDjCrossfade(): string {
+    this.engine.setCrossfader(0.5);
+    return 'Crossfader centred at the phrase-neutral position; prepare the next deck and ride either deck from the same hand position.';
+  }
+
+  private releaseHandoffStatus(): string {
+    const handoff = this.produce.releaseHandoff();
+    if (!handoff) return 'No AI Produce release handoff is available; run AI Produce before delivery planning.';
+    const stageSummary = handoff.stages.map((stage) => `${stage.name}: ${stage.status}`).join(', ');
+    return `${handoff.title} release handoff — ${stageSummary}. Pending: ${handoff.pending.join(', ') || 'none'}. Next step: ${handoff.nextStep}.`;
+  }
+
+  private deliveryChecklist(): string {
+    const handoff = this.produce.releaseHandoff();
+    if (!handoff) return 'Delivery checklist unavailable until AI Produce has a release handoff.';
+    return `${handoff.title} delivery checklist — ${handoff.stages.map((stage) => `${stage.name}: ${stage.status}`).join(', ')}. Next step: ${handoff.nextStep}.`;
+  }
+
+  private async recorderPassStatus(): Promise<string> {
+    const recordings = await this.audioRecorder.getOfflineRecordings();
+    const selected = this.music.selectedTrack();
+    const midiTakeCount = selected ? this.takeManager.getTakes(selected.id)().length : 0;
+    return `${recordings.length} saved recorder take${recordings.length === 1 ? '' : 's'}; ${selected?.name ?? 'no track selected'} currently has ${midiTakeCount} MIDI take${midiTakeCount === 1 ? '' : 's'}. Record one new deliberate pass without overwriting them.`;
+  }
+
+  private chordBassRegisterCheck(): string {
+    const tracks = this.music.tracks().filter((track) => (track.notes?.length ?? 0) > 0);
+    if (tracks.length === 0) throw new Error('No notes are available for a voicing check.');
+    const ranges = tracks.map((track) => {
+      const midis = (track.notes ?? []).map((note) => note.midi);
+      return { name: track.name, low: Math.min(...midis), high: Math.max(...midis) };
+    });
+    const bass = [...ranges].sort((a, b) => a.low - b.low)[0];
+    const chord = ranges.find((range) => range.name !== bass.name) ?? ranges[0];
+    return `Bass register ${bass.name} spans MIDI ${bass.low}–${bass.high}; chord register ${chord.name} spans MIDI ${chord.low}–${chord.high}; ${chord.low <= bass.high ? 'the chord enters the bass register, so raise an inversion or move the bass before committing' : 'chord roots stay clear of the bass register'}.`;
   }
 
   private performanceTakeStatus(): string {

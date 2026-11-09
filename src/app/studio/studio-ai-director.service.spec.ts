@@ -104,6 +104,15 @@ function makeDirector(overrides: Record<string, unknown> = {}) {
     error: signal(null),
     run: jest.fn().mockResolvedValue({ idea: { title: 'Idea' }, beat: { title: 'Beat' }, lyrics: {}, mixReport: [], cancelled: false }),
     applyToProject: jest.fn().mockReturnValue(['track-a']),
+    releaseHandoff: signal({
+      title: 'Test Release',
+      stages: [
+        { name: 'Master', status: 'completed' },
+        { name: 'Artwork', status: 'pending' },
+      ],
+      pending: ['Artwork'],
+      nextStep: 'Finish artwork and metadata.',
+    }),
     ...overrides.produce,
   };
   const scale = {
@@ -363,6 +372,50 @@ describe('StudioAiDirectorService', () => {
     const result = await service.runStep(plan.steps[2]);
     expect(result.message).toContain('Merged 2 takes');
     expect(music.replaceTrackNotes).toHaveBeenCalledWith('track-1', [{ id: 'n1' }, { id: 'n2' }], 'Director Take Comp');
+  });
+
+  it('audits mixer mute/solo and centres the DJ crossfader', async () => {
+    const { service, engine } = makeDirector();
+    const mixer = service.buildPlan({ surfaceId: 'mixer' });
+    const audit = await service.runStep(mixer.steps[1]);
+    expect(audit.message).toContain('Mute/solo audit');
+
+    const dj = service.buildPlan({ surfaceId: 'dj' });
+    const crossfade = await service.runStep(dj.steps[2]);
+    expect(crossfade.message).toContain('Crossfader centred');
+    expect(engine.setCrossfader).toHaveBeenCalledWith(0.5);
+  });
+
+  it('reports Quick Session tempo/key and next move from live state', async () => {
+    const { service } = makeDirector();
+    const plan = service.buildPlan({ surfaceId: 'quick-session' });
+    const readiness = await service.runStep(plan.steps[1]);
+    expect(readiness.message).toContain('120 BPM');
+    const recommendation = await service.runStep(plan.steps[2]);
+    expect(recommendation.message).toContain('Recommended next move');
+  });
+
+  it('reads the release handoff and checks chord/bass registers', async () => {
+    const { service, produce } = makeDirector();
+    expect(produce.releaseHandoff).toBeDefined();
+    const aiPlan = service.buildPlan({ surfaceId: 'ai-produce' });
+    const handoff = await service.runStep(aiPlan.steps[2]);
+    expect(handoff.message).toContain('Test Release release handoff');
+    expect(handoff.message).toContain('Next step:');
+
+    const chordPlan = service.buildPlan({ surfaceId: 'chord-editor' });
+    const voicing = await service.runStep(chordPlan.steps[1]);
+    expect(voicing.message).toContain('Bass register');
+    expect(voicing.message).toContain('chord register');
+  });
+
+  it('reports recorder pass readiness without overwriting existing takes', async () => {
+    const { service, audioRecorder } = makeDirector();
+    audioRecorder.getOfflineRecordings.mockResolvedValue([{ id: 'rec-1' }]);
+    const plan = service.buildPlan({ surfaceId: 'audio-recorder' });
+    const result = await service.runStep(plan.steps[1]);
+    expect(result.message).toContain('1 saved recorder take');
+    expect(result.message).toContain('without overwriting');
   });
 
   it('runs a mastering review bounce and reports true peak and RMS', async () => {
