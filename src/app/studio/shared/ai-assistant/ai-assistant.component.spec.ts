@@ -14,6 +14,7 @@ import { AiCopilotService } from "../../ai-copilot.service";
 import { NeuralMixerService } from "../../../services/neural-mixer.service";
 import { HapticService } from "../../../services/haptic.service";
 import { SnackbarService } from "../../../services/snackbar.service";
+import { StudioAiDirectorService } from "../../studio-ai-director.service";
 
 describe("AiAssistantComponent voice communication", () => {
   let recognition: any;
@@ -97,6 +98,22 @@ describe("AiAssistantComponent voice communication", () => {
         {
           provide: SnackbarService,
           useValue: { success: jest.fn(), error: jest.fn() },
+        },
+        {
+          provide: StudioAiDirectorService,
+          useValue: {
+            buildPlan: jest.fn(() => ({
+              surfaceId: "arrangement",
+              title: "Arrangement Director Plan",
+              mission: "Make the session coherent.",
+              successCriteria: ["Done."],
+              evidence: ["1 track"],
+              steps: [],
+            })),
+            createStudioBrief: jest.fn().mockResolvedValue("Director brief."),
+            runPlan: jest.fn().mockResolvedValue({ report: [], failed: 0 }),
+            runStep: jest.fn().mockResolvedValue({ ok: true, message: "ok" }),
+          },
         },
       ],
     }).compileComponents();

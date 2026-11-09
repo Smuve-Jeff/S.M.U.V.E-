@@ -15,7 +15,7 @@ import {
 } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
-import { RouterLink } from "@angular/router";
+import { Router, RouterLink } from "@angular/router";
 import { AiService } from "../../../services/ai.service";
 import { AiCopilotService } from "../../ai-copilot.service";
 import { MusicManagerService } from "../../../services/music-manager.service";
@@ -35,8 +35,17 @@ import { SpeechRecognitionService } from "../../../services/speech-recognition.s
 import { SpeechSynthesisService } from "../../../services/speech-synthesis.service";
 import { buildArtistMusicContext } from "../../../types/profile.types";
 import { isOfflineAiText } from "../../../../ai-manager.contract";
+import {
+  StudioAiDirectorService,
+  type StudioDirectorPlan,
+  type StudioDirectorStep,
+} from "../../studio-ai-director.service";
+import {
+  STUDIO_SURFACES,
+  isStudioSurfaceId,
+} from "../../studio-surfaces";
 
-type AssistantTab = "quick" | "chat";
+type AssistantTab = "quick" | "chat" | "director";
 
 const CHAT_STORAGE_KEY_PREFIX = "smuve.ai-assistant.messages.v1";
 const CHAT_STORAGE_MAX = 50;
@@ -108,10 +117,23 @@ export class AiAssistantComponent implements OnInit, AfterViewInit, OnDestroy {
   private caseFile = inject(SmuveMemoryService);
   private speechRecognition = inject(SpeechRecognitionService);
   private speechSynthesis = inject(SpeechSynthesisService);
+  private director = inject(StudioAiDirectorService);
+  private router = inject(Router, { optional: true });
   private replyCounter = 0;
 
   tab = signal<AssistantTab>("quick");
   userInput = signal("");
+  directorFocus = signal("");
+  directorPlan = signal<StudioDirectorPlan | null>(null);
+  directorPlanFor = signal<string>("");
+  directorBrief = signal("");
+  directorBusy = signal(false);
+  directorReport = signal<string[]>([]);
+  directorStatus = signal("");
+  directorSurfaceLabel = computed(() => {
+    const plan = this.directorPlan();
+    return STUDIO_SURFACES.find((surface) => surface.id === plan?.surfaceId)?.label ?? "Studio";
+  });
 
   /** Live AI / local fallback status shown in the header. */
   aiMode = signal<"idle" | "online" | "local">("idle");
@@ -424,6 +446,83 @@ export class AiAssistantComponent implements OnInit, AfterViewInit, OnDestroy {
   setTab(t: AssistantTab) {
     this.tab.set(t);
     this.haptic.light();
+    if (
+      t === "director" &&
+      (!this.directorPlan() || this.directorPlanFor() !== this.currentDirectorSurface())
+    ) {
+      void this.refreshDirectorPlan();
+    }
+  }
+
+  private currentDirectorSurface(): string {
+    const view = this.activeViewContext();
+    return isStudioSurfaceId(view) ? view : "arrangement";
+  }
+
+  async refreshDirectorPlan(): Promise<void> {
+    if (this.directorBusy()) return;
+    const surfaceId = this.currentDirectorSurface();
+    this.directorBusy.set(true);
+    this.directorStatus.set("Building the Director plan...");
+    try {
+      const context = { surfaceId, focusPrompt: this.directorFocus().trim() };
+      const plan = this.director.buildPlan(context);
+      const brief = await this.director.createStudioBrief(plan, context);
+      this.directorPlan.set(plan);
+      this.directorPlanFor.set(surfaceId);
+      this.directorBrief.set(brief);
+      this.directorReport.set([]);
+      this.directorStatus.set("Plan ready.");
+      this.haptic.medium();
+    } catch (error) {
+      this.directorStatus.set("Director plan failed.");
+      this.snack.error(`Director plan failed: ${(error as Error).message}`);
+    } finally {
+      this.directorBusy.set(false);
+    }
+  }
+
+  async runDirectorPlan(): Promise<void> {
+    const plan = this.directorPlan();
+    if (!plan || this.directorBusy()) return;
+    this.directorBusy.set(true);
+    this.directorStatus.set("Running the Director plan...");
+    try {
+      const result = await this.director.runPlan(plan);
+      this.directorReport.set(result.report);
+      this.directorStatus.set(
+        result.failed === 0 ? "Plan complete." : `Plan finished with ${result.failed} check${result.failed === 1 ? "" : "s"}.`,
+      );
+      if (result.failed === 0) this.snack.success("Director plan complete.");
+      else this.snack.error(`Director plan finished with ${result.failed} check${result.failed === 1 ? "" : "s"}.`);
+    } catch (error) {
+      this.directorStatus.set("Director plan failed.");
+      this.snack.error(`Director plan failed: ${(error as Error).message}`);
+    } finally {
+      this.directorBusy.set(false);
+    }
+  }
+
+  async runDirectorStep(step: StudioDirectorStep): Promise<void> {
+    if (this.directorBusy()) return;
+    this.directorBusy.set(true);
+    this.directorStatus.set(`Running ${step.label}...`);
+    try {
+      const result = await this.director.runStep(step);
+      this.directorReport.update((report) => [
+        ...report,
+        `${result.ok ? "Done" : "Check"} — ${step.label}: ${result.message}`,
+      ]);
+      this.directorStatus.set(result.ok ? `${step.label} done.` : `${step.label} needs attention.`);
+      if (result.ok) this.snack.success(`${step.label}: ${result.message}`);
+      else this.snack.error(`${step.label} failed: ${result.message}`);
+    } finally {
+      this.directorBusy.set(false);
+    }
+  }
+
+  openDirectorSurface(surfaceId: string): void {
+    void this.router?.navigate(["/studio"], { queryParams: { view: surfaceId } });
   }
 
   async runAction(a: QuickAction) {

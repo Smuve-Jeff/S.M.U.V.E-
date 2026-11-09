@@ -101,6 +101,17 @@
       <span class="material-symbols-outlined">forum</span>
       Chat
     </button>
+    <button
+      type="button"
+      role="tab"
+      class="ai-tab"
+      [class.ai-tab-active]="tab() === 'director'"
+      [attr.aria-selected]="tab() === 'director'"
+      (click)="setTab('director')"
+    >
+      <span class="material-symbols-outlined">movie</span>
+      Director
+    </button>
   </nav>
 
   <!-- ============ QUICK ACTIONS ============ -->
@@ -270,5 +281,85 @@
       {{ voiceNotice() }}
     </p>
   </div>
+
+  <!-- ============ DIRECTOR ============ -->
+  <section class="ai-body ai-director" *ngIf="tab() === 'director'" role="tabpanel" aria-label="Studio Director">
+    <p class="ai-hint">
+      The Director builds an evidence-backed plan for the surface you are in. Executable steps call real Studio services; guided steps are honest handoffs to the surface control.
+    </p>
+    <label class="ai-director-focus">
+      <span>Focus this pass</span>
+      <input
+        type="text"
+        class="ai-director-input"
+        [ngModel]="directorFocus()"
+        (ngModelChange)="directorFocus.set($event)"
+        placeholder="e.g. darker, cleaner vocal, more garage"
+        aria-label="Focus this Director pass"
+      />
+    </label>
+    <div class="ai-director-actions">
+      <button type="button" class="ai-director-primary" (click)="refreshDirectorPlan()" [disabled]="directorBusy()">
+        <span class="material-symbols-outlined">refresh</span>
+        {{ directorPlan() ? 'Rebuild plan' : 'Build plan' }}
+      </button>
+      <button type="button" class="ai-director-secondary" (click)="runDirectorPlan()" [disabled]="!directorPlan() || directorBusy()">
+        <span class="material-symbols-outlined">play_arrow</span>
+        Run plan
+      </button>
+    </div>
+    <p *ngIf="directorStatus()" class="ai-director-status" role="status" aria-live="polite">
+      {{ directorStatus() }}
+    </p>
+    <article *ngIf="directorPlan() as plan" class="ai-director-plan">
+      <header class="ai-director-head">
+        <div>
+          <p class="ai-director-kicker">DIRECTOR · {{ directorSurfaceLabel() }}</p>
+          <h2>{{ plan.title }}</h2>
+        </div>
+        <button type="button" class="ai-director-open" (click)="openDirectorSurface(plan.surfaceId)">
+          <span class="material-symbols-outlined">open_in_new</span>
+          Open surface
+        </button>
+      </header>
+      <p class="ai-director-mission">{{ plan.mission }}</p>
+      <pre *ngIf="directorBrief()" class="ai-director-brief">{{ directorBrief() }}</pre>
+      <section aria-label="Director evidence">
+        <h3>Evidence</h3>
+        <ul>
+          <li *ngFor="let item of plan.evidence">{{ item }}</li>
+        </ul>
+      </section>
+      <section aria-label="Director success criteria">
+        <h3>Done when</h3>
+        <ul>
+          <li *ngFor="let item of plan.successCriteria">{{ item }}</li>
+        </ul>
+      </section>
+      <ol class="ai-director-steps">
+        <li *ngFor="let step of plan.steps" class="ai-director-step">
+          <div class="ai-director-step-copy">
+            <p class="ai-director-step-label">
+              {{ step.label }}
+              <span [class.ai-director-live]="step.executable" class="ai-director-badge">
+                {{ step.executable ? 'EXECUTED' : 'GUIDED' }}
+              </span>
+            </p>
+            <p class="ai-director-step-detail">{{ step.detail }}</p>
+          </div>
+          <button type="button" class="ai-director-run" (click)="runDirectorStep(step)" [disabled]="directorBusy()" [attr.aria-label]="(step.executable ? 'Run' : 'Guide') + ' ' + step.label">
+            <span class="material-symbols-outlined">{{ step.executable ? 'play_arrow' : 'play_circle' }}</span>
+            {{ step.executable ? 'Run' : 'Guide' }}
+          </button>
+        </li>
+      </ol>
+      <section *ngIf="directorReport().length" class="ai-director-report" aria-label="Director results">
+        <h3>Results</h3>
+        <ul>
+          <li *ngFor="let item of directorReport()">{{ item }}</li>
+        </ul>
+      </section>
+    </article>
+  </section>
   }
 </aside>
