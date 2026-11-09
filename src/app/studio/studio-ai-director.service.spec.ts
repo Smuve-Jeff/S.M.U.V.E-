@@ -14,6 +14,7 @@ import { AiBeatGeneratorService } from '../services/ai-beat-generator.service';
 import { AiProduceService } from '../services/ai-produce.service';
 import { ScaleDetectionService } from '../services/scale-detection.service';
 import { VocalAiService } from '../services/vocal-ai.service';
+import { AutomationService } from './automation.service';
 import { VocalMasteringService } from '../services/vocal-mastering.service';
 import { PerformanceRecordingService } from './performance-recording.service';
 import { AudioImportService } from './audio-import.service';
@@ -267,6 +268,32 @@ function makeDirector(overrides: Record<string, unknown> = {}) {
     getLoadedPitches: jest.fn(() => []),
     ...overrides.samplerState,
   };
+  const automation = {
+    lanes: signal([
+      {
+        id: 'lane-1',
+        target: { trackId: 'track-1', parameter: 'volume' },
+        points: [{ time: 0, value: 0.5 }, { time: 4, value: 0.8 }],
+        enabled: true,
+        interpolation: 'linear',
+        modulationDepth: 0,
+      },
+      {
+        id: 'lane-2',
+        target: { trackId: 'track-1', parameter: 'cc_modulation' },
+        points: [],
+        enabled: false,
+        interpolation: 'smooth',
+        modulationDepth: 0,
+      },
+    ]),
+    modulationSources: signal([
+      { id: 'mod-1', type: 'lfo', enabled: true, amount: 0.2, mappedLaneIds: ['lane-1'] },
+    ]),
+    macros: signal([{ id: 'macro-1', name: 'Energy', value: 0.3, mappings: [] }]),
+    writeMode: signal('touch'),
+    ...overrides.automation,
+  };
   const tunerLive = {
     listening: signal(false),
     starting: signal(false),
@@ -356,12 +383,13 @@ function makeDirector(overrides: Record<string, unknown> = {}) {
       { provide: SessionHistoryService, useValue: sessionHistory },
       { provide: SamplerStateService, useValue: samplerState },
       { provide: TunerLiveService, useValue: tunerLive },
+      { provide: AutomationService, useValue: automation },
       { provide: VcaBusService, useValue: vcaBuses },
       { provide: ExportService, useValue: exportService },
       { provide: IdeasGeneratorService, useValue: ideas },
     ],
   });
-  return { service: TestBed.inject(StudioAiDirectorService), music, engine, ai, beat, mix, sounds, workspace, telemetry, takeManager, audioRecorder, copilot, offlineBounce, scale, produce, history, sessionHistory, samplerState, tunerLive, vcaBuses, exportService, ideas, vocal, vocalMastering, performanceRecording, audioImport, tracks };
+  return { service: TestBed.inject(StudioAiDirectorService), music, engine, ai, beat, mix, sounds, workspace, telemetry, takeManager, audioRecorder, copilot, offlineBounce, scale, produce, history, sessionHistory, samplerState, tunerLive, vcaBuses, exportService, ideas, vocal, vocalMastering, performanceRecording, audioImport, tracks, automation };
 }
 
 describe('StudioAiDirectorService', () => {
@@ -745,6 +773,7 @@ describe('StudioAiDirectorService', () => {
     expect(plan.steps.map((step) => step.label)).toContain('Export DAWproject');
     expect(plan.steps.map((step) => step.label)).toContain('Export project bundle');
     expect(plan.steps.map((step) => step.label)).toContain('Check stems readiness before exporting stems');
+    expect(plan.steps.map((step) => step.label)).toContain('Check automation coverage for export');
 
     // Stems readiness runs before the stem render and renders nothing.
     const readiness = await service.runStep(plan.steps[2]);
@@ -752,22 +781,31 @@ describe('StudioAiDirectorService', () => {
     expect(readiness.message).toContain('Stems readiness');
     expect(exportService.exportStems).not.toHaveBeenCalled();
 
-    const stems = await service.runStep(plan.steps[3]);
+    // Automation coverage runs before any render and renders nothing.
+    const automationStep = await service.runStep(plan.steps[3]);
+    expect(automationStep.ok).toBe(true);
+    expect(automationStep.message).toContain('Automation:');
+    expect(automationStep.message).toContain('Director Lead volume: 2 points');
+    expect(automationStep.message).toContain('project bundle carries the full automation snapshot');
+    expect(automationStep.message).toContain('MIDI and DAWproject interchange drop automation curves');
+    expect(exportService.exportStems).not.toHaveBeenCalled();
+
+    const stems = await service.runStep(plan.steps[4]);
     expect(stems.ok).toBe(true);
     expect(exportService.exportStems).toHaveBeenCalled();
     expect(stems.message).toContain('stems ZIP');
 
-    const midi = await service.runStep(plan.steps[4]);
+    const midi = await service.runStep(plan.steps[5]);
     expect(midi.ok).toBe(true);
     expect(exportService.exportProjectMidi).toHaveBeenCalled();
     expect(exportService.downloadBlob).toHaveBeenCalledWith(expect.any(Blob), expect.stringContaining('_Director_MIDI_'));
 
-    const dawproject = await service.runStep(plan.steps[5]);
+    const dawproject = await service.runStep(plan.steps[6]);
     expect(dawproject.ok).toBe(true);
     expect(exportService.exportDawproject).toHaveBeenCalled();
     expect(exportService.downloadBlob).toHaveBeenCalledWith(expect.any(Blob), expect.stringContaining('_Director_DAWproject_'));
 
-    const bundle = await service.runStep(plan.steps[6]);
+    const bundle = await service.runStep(plan.steps[7]);
     expect(bundle.ok).toBe(true);
     expect(workspace.downloadProjectBundle).toHaveBeenCalled();
     expect(bundle.message).toContain('Test Project');
@@ -965,6 +1003,52 @@ describe('StudioAiDirectorService', () => {
     expect(result.message).toContain('Vocal Take 1');
     expect(result.message).toContain('Vocal Take 2');
     expect(result.message).toContain('every checked take agrees');
+  });
+
+  it('reads automation lanes on the Arrangement plan and automation coverage on Export', async () => {
+    const { service } = makeDirector();
+    const arrangementStep = service.buildPlan({ surfaceId: 'arrangement' }).steps.find((s) => s.label === 'Read the automation lanes')!;
+    expect(arrangementStep.executable).toBe(true);
+    const arrangementResult = await service.runStep(arrangementStep);
+    expect(arrangementResult.ok).toBe(true);
+    expect(arrangementResult.message).toContain('1 of 2 lanes enabled');
+    expect(arrangementResult.message).toContain('Director Lead volume: 2 points, linear');
+    expect(arrangementResult.message).toContain('1 disabled, 1 empty');
+    expect(arrangementResult.message).toContain('1 of 1 modulation sources enabled');
+    expect(arrangementResult.message).toContain('1 performance macros');
+    expect(arrangementResult.message).toContain('write mode touch');
+    expect(arrangementResult.message).toContain('offline mixdowns and stems bake enabled lanes');
+  });
+
+  it('measures the selected vocal take from its recorded clip', async () => {
+    const sampleRate = 48000;
+    const data = new Float32Array(sampleRate);
+    for (let i = 0; i < sampleRate; i++) data[i] = Math.sin(2 * Math.PI * 220 * (i / sampleRate)) * 0.5;
+    const buffer = { numberOfChannels: 1, length: sampleRate, sampleRate, duration: 1, getChannelData: () => data };
+    const { service, music } = makeDirector();
+    music.selectedTrack = () => ({
+      id: 'track-1',
+      name: 'Director Lead',
+      type: 'vocal',
+      clips: [{ id: 'clip-1', name: 'Vocal Pass', type: 'audio', audioData: buffer }],
+    });
+    const step = service.buildPlan({ surfaceId: 'vocal-suite' }).steps.find((s) => s.label === 'Measure the selected vocal take')!;
+    expect(step.executable).toBe(true);
+    const result = await service.runStep(step);
+    expect(result.ok).toBe(true);
+    expect(result.message).toContain('Measured vocal take on Director Lead');
+    expect(result.message).toContain('peak');
+    expect(result.message).toContain('RMS');
+    expect(result.message).toContain('crest');
+  });
+
+  it('falls back to the latest vocal guidance when the selected track has no recorded clip', async () => {
+    const { service, vocal } = makeDirector();
+    vocal.currentAdvice.set('HIGH-PASS AT 80HZ.');
+    const step = service.buildPlan({ surfaceId: 'vocal-suite' }).steps.find((s) => s.label === 'Measure the selected vocal take')!;
+    const result = await service.runStep(step);
+    expect(result.ok).toBe(true);
+    expect(result.message).toContain('Latest Vocal AI guidance: HIGH-PASS AT 80HZ.');
   });
 
   it('deletes the selected track through the undoable command and restores it through history', async () => {

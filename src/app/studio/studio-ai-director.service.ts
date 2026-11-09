@@ -14,7 +14,8 @@ import { AudioEngineService } from '../services/audio-engine.service';
 import { AiBeatGeneratorService } from '../services/ai-beat-generator.service';
 import { AiProduceService } from '../services/ai-produce.service';
 import { ScaleDetectionService } from '../services/scale-detection.service';
-import { VocalAiService } from '../services/vocal-ai.service';
+import { VocalAiService, analyzeVocalBuffer } from '../services/vocal-ai.service';
+import { AutomationService } from './automation.service';
 import {
   VocalMasteringService,
   type MasteringParameters,
@@ -150,6 +151,7 @@ export class StudioAiDirectorService {
   private samplerState = inject(SamplerStateService);
   private tunerLive = inject(TunerLiveService);
   private vcaBuses = inject(VcaBusService);
+  private automation = inject(AutomationService);
   private telemetry = inject(StudioTelemetryService);
   private logger = inject(LoggingService);
 
@@ -539,6 +541,7 @@ export class StudioAiDirectorService {
           make(1, 'Focus the selected arrangement lane', 'Select the first track with notes so the director works on a real lane rather than an empty one.', true, () => this.selectFirstTrack()),
           make(2, 'Detect the musical key and scale', 'Run Krumhansl-Kessler key detection over the session notes and apply the result to the project key/scale.', true, () => this.detectAndApplyKey()),
           make(3, 'Apply the section energy map', 'Use the detected key and session density to place intro, verse, chorus and bridge transitions. The default AI Copilot structure is applied only when the current markers are still the stock defaults; custom sections are left alone.', true, () => this.applySongStructure()),
+          make(4, 'Read the automation lanes', 'Read every automation lane, its points and interpolation, plus modulation sources, macros and the write mode. The same readout states which export path carries each lane, so the arrangement is judged against delivery before anything renders.', true, () => this.automationCoverage(), 'arrangement'),
         ];
       case 'session':
         return [
@@ -581,7 +584,7 @@ export class StudioAiDirectorService {
         ];
       case 'vocal-suite':
         return [
-          make(1, 'Read the latest vocal performance evidence', 'Read the Vocal AI service’s current evidence note. It is a real service readout; an uploaded take remains required for a new measured performance analysis.', true, () => this.latestVocalGuidance(), 'vocal-suite'),
+          make(1, 'Measure the selected vocal take', 'Measure the selected track’s recorded audio clip directly (peak, RMS, crest, silence and clipped samples) when one exists; otherwise read the latest Vocal AI guidance note. Uploading and analyzing a new take in the Vocal Suite remains required for guidance on material that is not already in the session.', true, () => this.measureVocalTake(), 'vocal-suite'),
           make(2, 'Generate a harmony stack from the take', 'Use the take’s notes to create a harmony part; if no part is detected, the fallback is a simple third above the root.', true, () => this.generateHarmonyFromSelectedTake()),
           make(3, 'Apply the conservative vocal polish chain', 'Only after Vocal AI evidence exists, set the vocal mastering chain to a conservative de-esser, multiband, exciter, EQ and limiter profile. This changes the live vocal chain; it does not hide tuning, clipping or timing problems.', true, () => this.applyConservativeVocalPolish(), 'vocal-suite'),
         ];
@@ -680,11 +683,12 @@ export class StudioAiDirectorService {
           make(1, 'Run the final mastering pass', 'Master against the intended delivery surface before exporting.', true, () => this.autoMaster()),
           make(2, 'Complete the delivery export', 'Render the pre-master mix, apply the retained master chain, run the S.M.U.V.E polish, measure the polished buffer, encode a real WAV and download the delivery file.', true, () => this.completeDeliveryExport()),
           make(3, 'Check stems readiness before exporting stems', 'Confirm exactly which tracks become stems (every unmuted non-bus track) and which are skipped (muted tracks and buses) before spending time rendering them. No audio is rendered in this step.', true, () => this.stemsReadiness()),
-          make(4, 'Export stems', 'Render each playable track to its own WAV and download the stems ZIP.', true, () => this.exportStems()),
-          make(5, 'Export MIDI', 'Serialize the project’s note data to a Type 1 Standard MIDI File and download it.', true, () => this.exportMidi()),
-          make(6, 'Export DAWproject', 'Serialize the project with reference audio to a .dawproject ZIP and download it.', true, () => this.exportDawproject()),
-          make(7, 'Export project bundle', 'Download the open project as a portable .smuve bundle so the set can be re-imported later. Checkpoint bundles can be exported one by one from the Director checkpoint browser.', true, () => this.exportProjectBundle()),
-          make(8, 'Prepare the delivery checklist', 'Read the AI Produce release handoff and surface format, loudness target, artwork, metadata and next delivery step.', true, () => this.deliveryChecklist()),
+          make(4, 'Check automation coverage for export', 'Read the automation lanes, modulation and macros, then state the honest per-format verdict: the project bundle round-trips the full automation snapshot and offline mixdowns/stems bake enabled lanes into the audio, while MIDI and DAWproject interchange drop automation curves. No audio is rendered in this step.', true, () => this.automationCoverage()),
+          make(5, 'Export stems', 'Render each playable track to its own WAV and download the stems ZIP.', true, () => this.exportStems()),
+          make(6, 'Export MIDI', 'Serialize the project’s note data to a Type 1 Standard MIDI File and download it.', true, () => this.exportMidi()),
+          make(7, 'Export DAWproject', 'Serialize the project with reference audio to a .dawproject ZIP and download it.', true, () => this.exportDawproject()),
+          make(8, 'Export project bundle', 'Download the open project as a portable .smuve bundle so the set can be re-imported later. Checkpoint bundles can be exported one by one from the Director checkpoint browser.', true, () => this.exportProjectBundle()),
+          make(9, 'Prepare the delivery checklist', 'Read the AI Produce release handoff and surface format, loudness target, artwork, metadata and next delivery step.', true, () => this.deliveryChecklist()),
         ];
     }
   }
@@ -933,6 +937,33 @@ export class StudioAiDirectorService {
       throw new Error('No measured vocal guidance is available yet; upload a vocal take in the Vocal Suite first.');
     }
     return `Latest Vocal AI guidance: ${advice}`;
+  }
+
+  /**
+   * Measure the selected track's recorded audio clip with the same pure
+   * sample analysis the Vocal Suite uses for uploads, so the Director reports
+   * real numbers instead of only repeating a text note. When the selected
+   * track has no recorded clip, fall back to the latest guidance readout.
+   */
+  private measureVocalTake(): string {
+    const tracks = this.music.tracks();
+    const selected = this.music.selectedTrack();
+    const ordered = [selected, ...tracks.filter((track) => track.id !== selected?.id)].filter(
+      (track): track is TrackModel => !!track,
+    );
+    for (const track of ordered) {
+      if (track.type !== 'vocal' && track.type !== 'audio') continue;
+      const clip = (track.clips ?? []).find(
+        (candidate) => candidate.type === 'audio' && candidate.audioData,
+      );
+      if (!clip?.audioData) continue;
+      const analysis = analyzeVocalBuffer(clip.audioData);
+      const advice = this.vocal.currentAdvice().trim();
+      const adviceText =
+        advice && advice.length > 12 ? ` Latest guidance: ${advice}` : '';
+      return `Measured vocal take on ${track.name} (${clip.name || clip.id}): ${analysis.durationSeconds.toFixed(1)}s, peak ${analysis.peakDb} dBFS, RMS ${analysis.rmsDb} dBFS, crest ${analysis.crestDb} dB, ${Math.round(analysis.silentRatio * 100)}% silence, ${analysis.clippedSamples} clipped samples, ${analysis.channels}ch @ ${analysis.sampleRate} Hz.${adviceText}`;
+    }
+    return this.latestVocalGuidance();
   }
 
   private applyConservativeVocalPolish(): string {
@@ -1488,6 +1519,39 @@ export class StudioAiDirectorService {
     }
     const names = (list: TrackModel[]): string => (list.length > 0 ? list.map((track) => track.name).join(', ') : 'none');
     return `Stems readiness: ${ready.length} of ${tracks.length} tracks will be rendered (${names(ready)}) plus the master, at 24-bit / 44.1 kHz. Muted tracks skipped: ${names(mutedSkipped)}. Bus tracks are not stems: ${names(buses)}. Solo is ignored by the stem renderer.`;
+  }
+
+  /**
+   * Automation readout plus the honest per-format export verdict. Lanes,
+   * modulation and macros come straight from AutomationService; the verdict
+   * mirrors the real export paths: the project bundle snapshots everything
+   * for round-trip, offline mixdowns and stems bake enabled lanes (including
+   * CC curves) into the rendered audio, and MIDI/DAWproject interchange has
+   * no faithful mapping for automation curves, so those drop them.
+   */
+  private automationCoverage(): string {
+    const lanes = this.automation?.lanes?.() ?? [];
+    const modulation = this.automation?.modulationSources?.() ?? [];
+    const macros = this.automation?.macros?.() ?? [];
+    const writeMode = this.automation?.writeMode?.() ?? 'touch';
+    const trackName = (trackId: string): string => {
+      if (trackId === 'master' || trackId.startsWith('aux:') || trackId.startsWith('vca:')) return trackId;
+      return this.music.tracks().find((track) => track.id === trackId)?.name ?? trackId;
+    };
+    const enabled = lanes.filter((lane) => lane.enabled);
+    const disabled = lanes.filter((lane) => !lane.enabled);
+    const empty = lanes.filter((lane) => lane.points.length === 0);
+    const laneText =
+      lanes.length === 0
+        ? 'no automation lanes'
+        : lanes
+            .map(
+              (lane) =>
+                `${trackName(lane.target.trackId)} ${lane.target.parameter}: ${lane.points.length} points, ${lane.interpolation}${lane.enabled ? '' : ' (disabled)'}`,
+            )
+            .join('; ');
+    const modulationText = `${modulation.filter((source) => source.enabled).length} of ${modulation.length} modulation sources enabled`;
+    return `Automation: ${enabled.length} of ${lanes.length} lanes enabled (${laneText}); ${disabled.length} disabled, ${empty.length} empty; ${modulationText}; ${macros.length} performance macros; write mode ${writeMode}. Export coverage: project bundle carries the full automation snapshot (lanes, macros, modulation) for round-trip; offline mixdowns and stems bake enabled lanes into the audio including MIDI CC curves; MIDI and DAWproject interchange drop automation curves and carry notes plus level/pan/mute/solo only.`;
   }
 
   /**
