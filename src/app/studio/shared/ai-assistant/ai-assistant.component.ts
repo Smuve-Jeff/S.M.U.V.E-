@@ -40,6 +40,7 @@ import {
   type StudioDirectorPlan,
   type StudioDirectorStep,
 } from "../../studio-ai-director.service";
+import { StudioOrchestrationService } from "../../../services/studio-orchestration.service";
 import {
   STUDIO_SURFACES,
   isStudioSurfaceId,
@@ -118,6 +119,7 @@ export class AiAssistantComponent implements OnInit, AfterViewInit, OnDestroy {
   private speechRecognition = inject(SpeechRecognitionService);
   private speechSynthesis = inject(SpeechSynthesisService);
   private director = inject(StudioAiDirectorService);
+  private orchestration = inject(StudioOrchestrationService, { optional: true });
   private router = inject(Router, { optional: true });
   private replyCounter = 0;
 
@@ -522,6 +524,7 @@ export class AiAssistantComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   openDirectorSurface(surfaceId: string): void {
+    this.orchestration?.setActiveStudioView(surfaceId);
     void this.router?.navigate(["/studio"], { queryParams: { view: surfaceId } });
   }
 

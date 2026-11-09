@@ -1,4 +1,5 @@
 import { TestBed } from "@angular/core/testing";
+import { Router } from "@angular/router";
 import { AiAssistantComponent } from "./ai-assistant.component";
 import { SpeechRecognitionService } from "../../../services/speech-recognition.service";
 import { SpeechSynthesisService } from "../../../services/speech-synthesis.service";
@@ -15,11 +16,13 @@ import { NeuralMixerService } from "../../../services/neural-mixer.service";
 import { HapticService } from "../../../services/haptic.service";
 import { SnackbarService } from "../../../services/snackbar.service";
 import { StudioAiDirectorService } from "../../studio-ai-director.service";
+import { StudioOrchestrationService } from "../../../services/studio-orchestration.service";
 
 describe("AiAssistantComponent voice communication", () => {
   let recognition: any;
   let synthesis: any;
   let profileService: any;
+  let orchestration: any;
   let ai: any;
 
   beforeEach(async () => {
@@ -31,6 +34,7 @@ describe("AiAssistantComponent voice communication", () => {
       startListening: jest.fn(),
       stopListening: jest.fn(),
     };
+    orchestration = { setActiveStudioView: jest.fn() };
     profileService = {
       profile: jest.fn(() => ({
         ...initialProfile,
@@ -99,6 +103,8 @@ describe("AiAssistantComponent voice communication", () => {
           provide: SnackbarService,
           useValue: { success: jest.fn(), error: jest.fn() },
         },
+        { provide: StudioOrchestrationService, useValue: orchestration },
+        { provide: Router, useValue: { navigate: jest.fn(() => Promise.resolve(true)) } },
         {
           provide: StudioAiDirectorService,
           useValue: {
@@ -117,6 +123,13 @@ describe("AiAssistantComponent voice communication", () => {
         },
       ],
     }).compileComponents();
+  });
+
+  it("hands the Director plan off to the selected Studio surface", () => {
+    const fixture = TestBed.createComponent(AiAssistantComponent);
+    const component = fixture.componentInstance;
+    component.openDirectorSurface("mixer");
+    expect(orchestration.setActiveStudioView).toHaveBeenCalledWith("mixer");
   });
 
   it("moves recognized speech into editable chat input without sending it", () => {

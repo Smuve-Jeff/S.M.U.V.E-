@@ -18,6 +18,8 @@ import { SmartProductionFoundationsService } from './smart-production-foundation
 import { StudioTelemetryService } from './studio-telemetry.service';
 import { ProjectWorkspaceService } from './project-workspace.service';
 import { AudioRecorderService } from './audio-recorder.service';
+import { AiCopilotService } from './ai-copilot.service';
+import { OfflineBounceService } from './offline-bounce.service';
 
 function makeDirector(overrides: Record<string, unknown> = {}) {
   const tracks = signal([
@@ -49,6 +51,17 @@ function makeDirector(overrides: Record<string, unknown> = {}) {
       );
     }),
     humanizeTrack: jest.fn(),
+    structure: signal([
+      { id: 'intro', name: 'Intro', start: 0, length: 4 },
+      { id: 'verse', name: 'Verse', start: 4, length: 8 },
+      { id: 'chorus', name: 'Chorus', start: 8, length: 8 },
+      { id: 'outro', name: 'Outro', start: 16, length: 4 },
+    ]),
+    sceneColumnCount: jest.fn(() => 0),
+    sceneColumnHasContent: jest.fn(() => false),
+    launchSceneColumn: jest.fn(() => 0),
+    toggleAllInsertsBypass: jest.fn(),
+    replaceTrackNotes: jest.fn(),
     ...overrides.music,
   };
   const engine = {
@@ -57,6 +70,8 @@ function makeDirector(overrides: Record<string, unknown> = {}) {
     metronomeEnabled: signal(false),
     isPlaying: signal(false),
     setDeckGain: jest.fn(),
+    setDeckRate: jest.fn(),
+    setDeckLoop: jest.fn(),
     setCrossfader: jest.fn(),
     ...overrides.engine,
   };
@@ -88,10 +103,12 @@ function makeDirector(overrides: Record<string, unknown> = {}) {
     currentBeat: signal(null),
     error: signal(null),
     run: jest.fn().mockResolvedValue({ idea: { title: 'Idea' }, beat: { title: 'Beat' }, lyrics: {}, mixReport: [], cancelled: false }),
+    applyToProject: jest.fn().mockReturnValue(['track-a']),
     ...overrides.produce,
   };
   const scale = {
     detectKeyAndScale: jest.fn().mockReturnValue({ key: 'C', scale: 'major', confidence: 0.9 }),
+    isInScale: jest.fn().mockReturnValue(true),
     ...overrides.scale,
   };
   const mix = {
@@ -108,6 +125,11 @@ function makeDirector(overrides: Record<string, unknown> = {}) {
     isFavorite: jest.fn().mockReturnValue(false),
     toggleFavorite: jest.fn(),
     recordUsage: jest.fn(),
+    findSimilar: jest.fn().mockReturnValue([{ id: 'sound-2', name: 'Neighbour Sound' }]),
+    availablePacks: signal([
+      { id: 'pack-1', name: 'One Pack', description: 'Test description', genre: 'pop', mood: 'dark' },
+    ]),
+    installPack: jest.fn().mockResolvedValue(undefined),
     ...overrides.sounds,
   };
   const workspace = {
@@ -130,9 +152,27 @@ function makeDirector(overrides: Record<string, unknown> = {}) {
     ...overrides.foundations,
   };
   const neural = { applyNeuralMix: jest.fn(), ...overrides.neural };
-  const takeManager = { getTakes: jest.fn().mockReturnValue(signal([])), ...overrides.takeManager };
+  const takeManager = {
+    getTakes: jest.fn().mockReturnValue(signal([])),
+    compStack: jest.fn().mockReturnValue(signal([])),
+    toggleCompTake: jest.fn(),
+    applyComp: jest.fn().mockReturnValue([]),
+    setActiveTake: jest.fn(),
+    ...overrides.takeManager,
+  };
   const audioRecorder = { getOfflineRecordings: jest.fn().mockResolvedValue([]), ...overrides.audioRecorder };
   const vocal = { currentAdvice: signal(''), ...overrides.vocal };
+  const copilot = { suggestStructure: jest.fn(), ...overrides.copilot };
+  const offlineBounce = {
+    bounce: jest.fn().mockResolvedValue({
+      durationSeconds: 12.5,
+      sampleRate: 96000,
+      format: 'wav-32-float',
+      peakDb: -1.2,
+      rmsDb: -14.5,
+    }),
+    ...overrides.offlineBounce,
+  };
 
   TestBed.configureTestingModule({
     providers: [
@@ -153,9 +193,11 @@ function makeDirector(overrides: Record<string, unknown> = {}) {
       { provide: StudioTelemetryService, useValue: telemetry },
       { provide: ProjectWorkspaceService, useValue: workspace },
       { provide: AudioRecorderService, useValue: audioRecorder },
+      { provide: AiCopilotService, useValue: copilot },
+      { provide: OfflineBounceService, useValue: offlineBounce },
     ],
   });
-  return { service: TestBed.inject(StudioAiDirectorService), music, engine, ai, beat, mix, sounds, workspace, telemetry, takeManager, audioRecorder };
+  return { service: TestBed.inject(StudioAiDirectorService), music, engine, ai, beat, mix, sounds, workspace, telemetry, takeManager, audioRecorder, copilot, offlineBounce, scale, produce };
 }
 
 describe('StudioAiDirectorService', () => {
@@ -241,6 +283,95 @@ describe('StudioAiDirectorService', () => {
     const result = await service.runStep(plan.steps[0]);
     expect(result.ok).toBe(true);
     expect(result.message).toContain('1 MIDI take');
+  });
+
+  it('applies a stock song structure through the AI Copilot', async () => {
+    const { service, copilot } = makeDirector();
+    const plan = service.buildPlan({ surfaceId: 'arrangement' });
+    const step = plan.steps.find((s) => s.id === 'arrangement-3');
+    const result = await service.runStep(step!);
+    expect(result.ok).toBe(true);
+    expect(copilot.suggestStructure).toHaveBeenCalled();
+    expect(result.message).toContain('Intro → Verse → Chorus → Outro');
+  });
+
+  it('executes a scene launch only when the scene column has content', async () => {
+    const { service, music } = makeDirector({
+      music: { sceneColumnCount: jest.fn(() => 2), sceneColumnHasContent: jest.fn(() => false) },
+    });
+    const plan = service.buildPlan({ surfaceId: 'session' });
+    const result = await service.runStep(plan.steps[2]);
+    expect(result.ok).toBe(true);
+    expect(result.message).toContain('No scene column has pattern content');
+    expect(music.launchSceneColumn).not.toHaveBeenCalled();
+
+    music.sceneColumnHasContent.mockReturnValue(true);
+    music.launchSceneColumn.mockReturnValue(3);
+    const live = await service.runStep(plan.steps[2]);
+    expect(live.message).toContain('Launched scene 1');
+  });
+
+  it('toggles the selected track insert chain with the bypass command', async () => {
+    const { service, music } = makeDirector();
+    music.selectedTrack = () => ({ id: 'track-1', name: 'Director Lead', fxSlots: [{ id: 'fx-1' }] });
+    const plan = service.buildPlan({ surfaceId: 'effects-rack' });
+    const result = await service.runStep(plan.steps[2]);
+    expect(result.ok).toBe(true);
+    expect(music.toggleAllInsertsBypass).toHaveBeenCalledWith('track-1');
+  });
+
+  it('prepares DJ key-lock and loop in one action', async () => {
+    const { service, engine } = makeDirector();
+    const plan = service.buildPlan({ surfaceId: 'dj' });
+    const result = await service.runStep(plan.steps[1]);
+    expect(result.ok).toBe(true);
+    expect(engine.setDeckRate).toHaveBeenCalledWith('B', 1, true);
+    expect(engine.setDeckLoop).toHaveBeenCalledWith('B', true);
+  });
+
+  it('surfaces nearest sounds and installs the closest pack when relevant', async () => {
+    const { service, sounds } = makeDirector();
+    const browserPlan = service.buildPlan({ surfaceId: 'sound-browser' });
+    const neighbour = await service.runStep(browserPlan.steps[2]);
+    expect(neighbour.message).toContain('Neighbour Sound');
+
+    const libraryPlan = service.buildPlan({ surfaceId: 'sample-library', genre: 'pop' });
+    const install = await service.runStep(libraryPlan.steps[2]);
+    expect(install.message).toContain('One Pack');
+    expect(sounds.installPack).toHaveBeenCalledWith('pack-1');
+  });
+
+  it('promotes the best-scoring MIDI take', async () => {
+    const { service, takeManager } = makeDirector();
+    takeManager.getTakes.mockReturnValue(
+      signal([
+        { id: 'take-a', label: 'Take A', noteCount: 12 },
+        { id: 'take-b', label: 'Take B', noteCount: 24 },
+      ]),
+    );
+    const plan = service.buildPlan({ surfaceId: 'performance' });
+    const result = await service.runStep(plan.steps[2]);
+    expect(result.message).toContain('Take B');
+    expect(takeManager.setActiveTake).toHaveBeenCalledWith('track-1', 'take-b');
+  });
+
+  it('applies a take comp through the undoable note replacement', async () => {
+    const { service, takeManager, music } = makeDirector();
+    takeManager.getTakes.mockReturnValue(signal([{ id: 'take-a', noteCount: 3 }, { id: 'take-b', noteCount: 5 }]));
+    takeManager.applyComp.mockReturnValue([{ id: 'n1' }, { id: 'n2' }]);
+    const plan = service.buildPlan({ surfaceId: 'performer' });
+    const result = await service.runStep(plan.steps[2]);
+    expect(result.message).toContain('Merged 2 takes');
+    expect(music.replaceTrackNotes).toHaveBeenCalledWith('track-1', [{ id: 'n1' }, { id: 'n2' }], 'Director Take Comp');
+  });
+
+  it('runs a mastering review bounce and reports true peak and RMS', async () => {
+    const { service, offlineBounce } = makeDirector();
+    const plan = service.buildPlan({ surfaceId: 'mastering' });
+    const result = await service.runStep(plan.steps[1]);
+    expect(result.message).toContain('Offline review bounce');
+    expect(result.message).toContain('peak -1.2 dBFS');
+    expect(offlineBounce.bounce).toHaveBeenCalledWith('wav-32-float');
   });
 
   it('counts saved recorder takes', async () => {

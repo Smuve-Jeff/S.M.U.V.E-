@@ -16,6 +16,8 @@ import { NeuralMixerService } from '../services/neural-mixer.service';
 import { TakeManagerService } from '../services/take-manager.service';
 import { AudioRecorderService } from './audio-recorder.service';
 import { AiMixAssistantService } from './effects/ai-mix-assistant.service';
+import { AiCopilotService } from './ai-copilot.service';
+import { OfflineBounceService } from './offline-bounce.service';
 import { ProjectWorkspaceService } from './project-workspace.service';
 import { SmartSoundService } from './smart-sound.service';
 import { SmartProductionFoundationsService } from './smart-production-foundations.service';
@@ -95,6 +97,8 @@ export class StudioAiDirectorService {
   private beat = inject(AiBeatGeneratorService);
   private produce = inject(AiProduceService);
   private mix = inject(AiMixAssistantService);
+  private copilot = inject(AiCopilotService);
+  private offlineBounce = inject(OfflineBounceService);
   private scale = inject(ScaleDetectionService);
   private vocal = inject(VocalAiService);
   private sounds = inject(SmartSoundService);
@@ -278,13 +282,13 @@ export class StudioAiDirectorService {
         return [
           make(1, 'Focus the selected arrangement lane', 'Select the first track with notes so the director works on a real lane rather than an empty one.', true, () => this.selectFirstTrack()),
           make(2, 'Detect the musical key and scale', 'Run Krumhansl-Kessler key detection over the session notes and apply the result to the project key/scale.', true, () => this.detectAndApplyKey()),
-          make(3, 'Apply the section energy map', 'Use the detected key and session density to place intro, verse, chorus and bridge transitions without erasing existing clips.', false, () => 'Guided: in Arrangement, use section markers and the Sound Bank energy map; keep verse/chorus contrast before the first drop.', 'arrangement'),
+          make(3, 'Apply the section energy map', 'Use the detected key and session density to place intro, verse, chorus and bridge transitions. The default AI Copilot structure is applied only when the current markers are still the stock defaults; custom sections are left alone.', true, () => this.applySongStructure()),
         ];
       case 'session':
         return [
           make(1, 'Seed the clip grid with a full beat', 'Generate drums, bass, chords and melody and write them to real tracks.', true, () => this.applyBeatPackage(context)),
           make(2, 'Focus the scene’s first playable track', 'Select the first melodic track so the artist can immediately audition the generated clip.', true, () => this.selectFirstTrack()),
-          make(3, 'Launch the scene and ride the transition', 'Start the scene, then use the crossfader and scene Launch/Look controls; avoid launching all scenes at once.', false, () => 'Guided: launch the scene, wait one loop, then move scenes one at a time and listen for masking.', 'session'),
+          make(3, 'Launch the first pattern scene', 'Launch the first non-empty pattern scene and report how many channels switched. Returning to Arrangement is the reversible undo.', true, () => this.launchFirstScene()),
         ];
       case 'piano-roll':
         return [
@@ -314,7 +318,7 @@ export class StudioAiDirectorService {
         return [
           make(1, 'Run the rack analysis', 'Recompute AI mix suggestions against the selected track and current FX chain.', true, () => this.analyzeAndApplyMix()),
           make(2, 'Apply the highest-value suggestion', 'Apply the top recommendation instead of stacking unrelated effects.', true, () => this.applyTopMixSuggestion()),
-          make(3, 'A/B the rack in context', 'Bypass the changed node, confirm the difference, then keep only the move that improves clarity.', false, () => 'Guided: bypass/audition the applied effect in the full mix before moving to the next node.', 'effects-rack'),
+          make(3, 'A/B the rack in context', 'Bypass the selected track’s insert chain with one undoable Studio command, confirm the difference, then restore it if the processing hurt the mix.', true, () => this.toggleInsertBypass()),
         ];
       case 'vocal-suite':
         return [
@@ -325,25 +329,25 @@ export class StudioAiDirectorService {
       case 'dj':
         return [
           make(1, 'Make both decks audition-ready', 'Set both deck gains and the crossfader to neutral so the artist can hear either deck cleanly.', true, () => this.prepareDjDecks()),
-          make(2, 'Set key-lock and loop controls', 'Use key-lock for rate changes and enable a short loop only when the phrase is stable.', false, () => 'Guided: turn on key-lock, set the loop, then test a half-time and double-time transition in the phrase.', 'dj'),
+          make(2, 'Arm key-lock and deck B loop', 'Set deck B to unity rate with pitch preservation and enable its loop so the next phrase can be cued cleanly.', true, () => this.prepareDjLoop()),
           make(3, 'Ride the crossfader in phrase', 'Move the crossfader over four bars and keep the vocal out of the busy section.', false, () => 'Guided: prepare the next deck during the current phrase, then crossfade over four bars.', 'dj'),
         ];
       case 'performance':
         return [
           make(1, 'Count the performance takes', 'Read the current take carousel so the next instruction starts from the real take count.', true, () => this.performanceTakeStatus()),
           make(2, 'Run one clean pass before tuning it', 'Avoid overwriting a good pass; use the take carousel to compare candidates.', false, () => 'Guided: arm the take, perform the full pass once, then compare it against the previous take.', 'performance'),
-          make(3, 'Promote only the best take', 'Keep the strongest candidate and move it into the session after comparison.', false, () => 'Guided: select the strongest take, audition it end-to-end, then promote it.', 'performance'),
+          make(3, 'Promote the strongest MIDI take', 'Rank the takes by captured note count and make the strongest take the active take for playback/comping.', true, () => this.promoteBestTake()),
         ];
       case 'mastering':
         return [
           make(1, 'Run the genre-aware master', 'Let the AI Mix Assistant choose targets from the session composition and apply compressor, limiter and tone EQ.', true, () => this.autoMaster()),
-          make(2, 'Check loudness and limiting honestly', 'Read the master meter after the pass; if it clips, lower the target rather than raising the limiter.', false, () => 'Guided: confirm the master peaks below 0 dBFS and that the LUFS target matches the delivery destination.', 'mastering'),
+          make(2, 'Render the offline review bounce', 'Render the full arrangement offline and read its measured peak/RMS; if the peak clips, lower the target rather than raising the limiter.', true, () => this.bounceProjectReview()),
           make(3, 'Export a comparison master', 'Bounce a review WAV before the streaming master so the room can judge the chain.', false, () => 'Guided: export the session WAV, compare it with the streaming target, then master the final.', 'export'),
         ];
       case 'ai-produce':
         return [
           make(1, 'Generate the full one-tap production idea', 'Run the six-stage Produce pipeline: idea, beat, lyrics, voice preview, mix/master and release checklist.', true, () => this.runAiProduce(context)),
-          make(2, 'Review the generated artifacts before applying', 'Check the idea, beat, lyrics and mix report; do not apply a run that does not fit the session.', false, () => 'Guided: review the idea/chord/beat/lyrics/mix artifacts, then choose Apply only for the elements that fit.', 'ai-produce'),
+          make(2, 'Apply the generated artifacts', 'Commit the current idea, beat, lyrics and mix handoff to the project via AiProduceService.applyToProject().', true, () => this.applyAiProduceArtifacts()),
           make(3, 'Use the release handoff to plan delivery', 'The release checklist becomes the delivery brief; finish the vocal performance before calling the track done.', false, () => 'Guided: open the release handoff, check vocals and mastering stages, then perform and record the vocal.', 'vocal-suite'),
         ];
       case 'sound-browser':
@@ -351,7 +355,7 @@ export class StudioAiDirectorService {
         return [
           make(1, 'Smart-search the session’s sound family', `Use the current key, BPM and mood to search the sound library for a matching sound.`, true, () => this.smartSearchSounds(context)),
           make(2, 'Favorite the best playable result', 'Save the best match so the next session starts from a proven sound, not a blind search.', true, () => this.favoriteBestSound(context)),
-          make(3, 'Audition similar sounds once', 'Use similarity to explore neighbours after a real match is found; avoid endless replacement.', false, () => 'Guided: audition the similar sounds, then keep the one that survives a full-loop comparison.', context.surfaceId === 'sound-pad' ? 'sound-pad' : 'sound-browser'),
+          make(3, 'Surface the closest sound neighbours', 'Find the closest matches around the best search result and record the sound as used; keep the original unless a neighbour wins a full-loop audition.', true, () => this.surfaceSimilarSounds(context)),
         ];
       case 'synthesizer':
         return [
@@ -380,20 +384,20 @@ export class StudioAiDirectorService {
       case 'score':
         return [
           make(1, 'Seed the score with a playable motif', 'Add a generated four-bar motif to the selected track so the score has a real subject.', true, () => this.seedMelodicTrack()),
-          make(2, 'Notate range and rhythm before harmony', 'Check the motif’s range, then add harmony notes that stay inside the project scale.', false, () => 'Guided: notate the motif’s range and rhythm first, then add harmony that stays in the active scale.', 'score'),
+          make(2, 'Audit the score’s range and scale fit', 'Measure the selected track’s pitch range and count notes that fall outside the detected project scale; add harmony only after this audit.', true, () => this.auditScoreRange()),
           make(3, 'Humanize the printed part', 'Add micro-timing and velocity variation so the notation does not sound mechanical.', true, () => this.humanizeSelectedTrack()),
         ];
       case 'sample-library':
         return [
           make(1, 'Search the library by musical fit', 'Use key, BPM, genre and mood instead of a random browser scroll.', true, () => this.smartSearchSounds(context)),
           make(2, 'Favorite the first playable winner', 'Save the first sample that sounds correct in the full session.', true, () => this.favoriteBestSound(context)),
-          make(3, 'Install only the pack that expands the palette', 'Install a curated pack when it adds a missing family, not because the catalog is large.', false, () => 'Guided: install the pack that adds the missing family, then audition it before importing samples into the session.', 'sample-library'),
+          make(3, 'Install the closest curated pack', 'Install the not-yet-installed pack whose genre or mood matches the Director context, avoiding a duplicate install.', true, () => this.installClosestPack(context)),
         ];
       case 'plugins':
         return [
           make(1, 'Run the mix evidence pass first', 'Plugins should solve a measured problem, not become decoration.', true, () => this.analyzeAndApplyMix()),
           make(2, 'Apply the highest-value suggested plugin chain', 'Use the top mix suggestion as the plugin chain, then audition it in context.', true, () => this.applyTopMixSuggestion()),
-          make(3, 'Keep the chain reversible', 'Do not bake the plugin chain into the track until the full session survives a loop.', false, () => 'Guided: bypass the chain in the full session; only commit it after the mix survives a full loop.', 'plugins'),
+          make(3, 'Bypass the chain for a reversible comparison', 'Bypass the selected track’s inserts with one undoable command; only commit the chain after the mix survives a full loop.', true, () => this.toggleInsertBypass()),
         ];
       case 'audio-recorder':
         return [
@@ -405,7 +409,7 @@ export class StudioAiDirectorService {
         return [
           make(1, 'Read the performer’s take state', 'Open the take state and meters so the next instruction starts from the real performance, not the plan.', true, () => this.performanceTakeStatus()),
           make(2, 'Perform one pass per take slot', 'Use one take slot per complete pass; label the strongest candidate before the next attempt.', false, () => 'Guided: record one full pass per take slot and label the strongest candidate before the next attempt.', 'performer'),
-          make(3, 'Comp only after all takes exist', 'Do not comp after the first take; compare complete passes first.', false, () => 'Guided: after the passes are complete, comp the strongest fragments and audition the full performance.', 'performance'),
+          make(3, 'Merge the take comp into the track', 'Stack every take on the track, merge them through TakeManagerService, and write the comp back through MusicManagerService.replaceTrackNotes().', true, () => this.applyTakeComp()),
         ];
       case 'export':
         return [
@@ -484,6 +488,134 @@ export class StudioAiDirectorService {
     if (!track) throw new Error('No tracks in the session yet.');
     this.music.selectedTrackId.set(track.id);
     return `Selected ${track.name} (${track.notes?.length ?? 0} notes).`;
+  }
+
+  private applySongStructure(): string {
+    const sections = this.music.structure();
+    const defaultIds = ['intro', 'verse', 'chorus', 'outro'];
+    const isStockStructure =
+      sections.length === defaultIds.length &&
+      sections.every((section, index) => section.id === defaultIds[index]);
+    if (sections.length > 0 && !isStockStructure) {
+      return 'Kept the custom arrangement markers; the Director does not overwrite project structure without a lower-level undo.';
+    }
+    this.copilot.suggestStructure();
+    const applied = this.music.structure();
+    return `Applied the AI Copilot structure: ${applied.map((s) => s.name).join(' → ')}.`;
+  }
+
+  private launchFirstScene(): string {
+    const count = this.music.sceneColumnCount();
+    if (count === 0) return 'No pattern scene columns exist yet; generated notes are session clips, not scenes.';
+    for (let column = 0; column < count; column++) {
+      if (!this.music.sceneColumnHasContent(column)) continue;
+      const switched = this.music.launchSceneColumn(column);
+      return `Launched scene ${column + 1}; ${switched} channel${switched === 1 ? '' : 's'} switched. Use Back to Arrangement to reverse the launch.`;
+    }
+    return 'No scene column has pattern content yet; launch a pattern clip before using live scenes.';
+  }
+
+  private toggleInsertBypass(): string {
+    const track = this.music.selectedTrack();
+    if (!track) throw new Error('Select a track before A/B bypass.');
+    const hasChain = (track.fxSlots?.length ?? 0) > 0 || (track.pluginIds?.length ?? 0) > 0;
+    if (!hasChain) return `${track.name} has no insert chain to bypass.`;
+    this.music.toggleAllInsertsBypass(track.id);
+    return `Toggled the bypass state of the ${track.name} insert chain; the command is undoable and each slot’s saved state is preserved.`;
+  }
+
+  private prepareDjLoop(): string {
+    this.engine.setDeckRate('B', 1, true);
+    this.engine.setDeckLoop('B', true);
+    return 'Deck B is set to unity rate with key-lock active; its loop is enabled for a clean phrase cue.';
+  }
+
+  private async bounceProjectReview(): Promise<string> {
+    const result = await this.offlineBounce.bounce('wav-32-float');
+    if (!result) throw new Error('Offline review bounce did not complete.');
+    return `Offline review bounce rendered ${result.durationSeconds.toFixed(1)}s at ${Math.round(result.sampleRate / 1000)} kHz (${result.format}); measured peak ${result.peakDb} dBFS, RMS ${result.rmsDb} dBFS.`;
+  }
+
+  private applyAiProduceArtifacts(): string {
+    const trackIds = this.produce.applyToProject();
+    if (trackIds.length === 0) return 'No AI Produce artifacts were available to apply; run the production step first.';
+    return `Applied ${trackIds.length} AI Produce track${trackIds.length === 1 ? '' : 's'} to the project.`;
+  }
+
+  private surfaceSimilarSounds(context: StudioDirectorContext): string {
+    const query = this.soundQuery(context);
+    const results = this.sounds.smartSearch(query);
+    const target = results[0] ?? this.sounds.sounds()[0];
+    if (!target) throw new Error('No sound is available to compare.');
+    const similar = this.sounds.findSimilar(target.id, 6);
+    this.sounds.recordUsage(target.id);
+    if (similar.length === 0) return `${target.name} has no close neighbours in the current catalog.`;
+    return `Closest neighbours to ${target.name}: ${similar.map((s) => s.name).join(', ')}. Audition them against the favourite before replacing it.`;
+  }
+
+  private async installClosestPack(context: StudioDirectorContext): Promise<string> {
+    const available = this.sounds.availablePacks();
+    if (available.length === 0) return 'Every curated sound pack is already installed.';
+    const genre = context.genre?.toLowerCase();
+    const mood = context.mood?.toLowerCase();
+    const pack = available.find((candidate) => candidate.genre.toLowerCase() === genre || candidate.mood.toLowerCase() === mood) ?? available[0];
+    await this.sounds.installPack(pack.id);
+    return `Installed ${pack.name}: ${pack.description}`;
+  }
+
+  private promoteBestTake(): string {
+    const taken = this.tracksWithTakes();
+    if (taken.length === 0) throw new Error('No MIDI takes are available to promote.');
+    const { track, takes } = taken[0];
+    const best = takes.reduce((winner, take) => {
+      const score = take.noteCount ?? take.notes?.length ?? 0;
+      const bestScore = winner.noteCount ?? winner.notes?.length ?? 0;
+      return score > bestScore ? take : winner;
+    });
+    this.takeManager.setActiveTake(track.id, best.id);
+    this.music.selectedTrackId.set(track.id);
+    return `Promoted ${best.label ?? best.id} (${best.noteCount ?? best.notes?.length ?? 0} notes) as the active take on ${track.name}.`;
+  }
+
+  private applyTakeComp(): string {
+    const taken = this.tracksWithTakes();
+    if (taken.length === 0) throw new Error('No MIDI takes are available to comp.');
+    const { track, takes } = taken[0];
+    const stack = new Set(this.takeManager.compStack(track.id)());
+    for (const take of takes) {
+      if (!stack.has(take.id)) this.takeManager.toggleCompTake(track.id, take.id);
+    }
+    const merged = this.takeManager.applyComp(track.id);
+    if (merged.length === 0) throw new Error('The comp stack produced no notes.');
+    this.music.replaceTrackNotes(track.id, merged, 'Director Take Comp');
+    this.music.selectedTrackId.set(track.id);
+    return `Merged ${takes.length} take${takes.length === 1 ? '' : 's'} into ${merged.length} comp notes on ${track.name}; the replace is undoable.`;
+  }
+
+  private auditScoreRange(): string {
+    const track = this.music.selectedTrack() ?? this.music.tracks().find((t) => (t.notes?.length ?? 0) > 0);
+    if (!track) throw new Error('No track with notes is available to audit.');
+    const notes = track.notes ?? [];
+    if (notes.length === 0) throw new Error(`${track.name} has no notes to audit.`);
+    const midis = notes.map((n) => n.midi);
+    const low = Math.min(...midis);
+    const high = Math.max(...midis);
+    const key = this.scaleRootForAudit();
+    const scale = this.lastDetectedScale;
+    const outside = notes.filter((n) => !this.scale.isInScale(n.midi, key, scale)).length;
+    return `${track.name} spans MIDI ${low}–${high} (${high - low} semitones); ${outside} of ${notes.length} note${notes.length === 1 ? '' : 's'} fall outside ${key} ${scale}.`;
+  }
+
+  private tracksWithTakes() {
+    return this.music.tracks()
+      .map((track) => ({ track, takes: this.takeManager.getTakes(track.id)() }))
+      .filter((entry) => entry.takes.length > 0);
+  }
+
+  private scaleRootForAudit(): string {
+    const projectKey = this.workspace.metadata()?.key ?? 'C';
+    const root = projectKey.replace(/m$/i, '').trim() || 'C';
+    return ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'].includes(root) ? root : 'C';
   }
 
   private detectAndApplyKey(): string {
@@ -623,10 +755,13 @@ export class StudioAiDirectorService {
   }
 
   private smartSearchSounds(context: StudioDirectorContext): string {
-    const query = [context.genre, context.mood, context.key ?? this.workspace.metadata()?.key, context.bpm ? `${context.bpm} bpm` : ''].filter(Boolean).join(' ') || 'dark';
-    const results = this.sounds.smartSearch(query);
+    const results = this.sounds.smartSearch(this.soundQuery(context));
     if (results.length === 0) throw new Error('No sounds matched the smart search.');
     return `Smart search returned ${results.length} sounds; top match is ${results[0].name}.`;
+  }
+
+  private soundQuery(context: StudioDirectorContext): string {
+    return [context.genre, context.mood, context.key ?? this.workspace.metadata()?.key, context.bpm ? `${context.bpm} bpm` : ''].filter(Boolean).join(' ') || 'dark';
   }
 
   private favoriteBestSound(context: StudioDirectorContext): string {

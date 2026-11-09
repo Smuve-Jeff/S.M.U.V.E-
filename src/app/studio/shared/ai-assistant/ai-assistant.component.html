@@ -351,6 +351,10 @@
             <span class="material-symbols-outlined">{{ step.executable ? 'play_arrow' : 'play_circle' }}</span>
             {{ step.executable ? 'Run' : 'Guide' }}
           </button>
+          <button *ngIf="step.targetSurfaceId" type="button" class="ai-director-open" (click)="openDirectorSurface(step.targetSurfaceId!)" [attr.aria-label]="'Open the ' + step.targetSurfaceId + ' surface for ' + step.label">
+            <span class="material-symbols-outlined">open_in_new</span>
+            Open surface
+          </button>
         </li>
       </ol>
       <section *ngIf="directorReport().length" class="ai-director-report" aria-label="Director results">
