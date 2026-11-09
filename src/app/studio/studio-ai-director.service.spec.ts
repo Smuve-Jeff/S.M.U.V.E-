@@ -26,6 +26,7 @@ import { SmartProductionFoundationsService } from './smart-production-foundation
 import { StudioTelemetryService } from './studio-telemetry.service';
 import { ProjectWorkspaceService } from './project-workspace.service';
 import { TunerLiveService } from './tuner/tuner-live.service';
+import { VcaBusService } from './vca-bus.service';
 import { AudioRecorderService } from './audio-recorder.service';
 import { AiCopilotService } from './ai-copilot.service';
 import { OfflineBounceService } from './offline-bounce.service';
@@ -90,13 +91,29 @@ function makeDirector(overrides: Record<string, unknown> = {}) {
     },
     tempo: signal(120),
     masterGainValue: signal(0.8),
+    masterMuted: signal(false),
     metronomeEnabled: signal(false),
     isPlaying: signal(false),
+    outputCorrelation: signal(0.91),
+    outputLufs: signal(-9.5),
+    getTrackLevel: jest.fn(() => 0.42),
+    getTrackMomentaryLevelDb: jest.fn(() => -12.4),
+    getTrackCorrelation: jest.fn(() => 0.91),
+    getTrackBus: jest.fn(() => undefined),
     setDeckGain: jest.fn(),
     setDeckRate: jest.fn(),
     setDeckLoop: jest.fn(),
     setCrossfader: jest.fn(),
     ...overrides.engine,
+  };
+  const vcaBuses = {
+    buses: signal([
+      { id: 'vca-1', name: 'VCA 1', faderValue: 0.9, muted: false },
+    ]),
+    assignments: signal<Record<string, string | null>>({ 'track-1': 'vca-1' }),
+    trackIdsForBus: jest.fn((busId: string) => ['track-1'].filter(() => busId === 'vca-1')),
+    effectiveMultiplier: jest.fn(() => 0.9),
+    ...overrides.vcaBuses,
   };
   const ai = {
     getAIResponse: jest.fn().mockResolvedValue('Live Director brief.'),
@@ -261,6 +278,18 @@ function makeDirector(overrides: Record<string, unknown> = {}) {
     start: jest.fn().mockResolvedValue(undefined),
     stop: jest.fn(),
     toggle: jest.fn(),
+    verifyDevice: jest.fn().mockResolvedValue({
+      supported: true,
+      audioInputCount: 1,
+      audioInputLabels: ['USB Interface'],
+      permissionState: 'granted',
+      listening: false,
+      trackState: 'idle',
+      deviceLabel: 'USB Interface',
+      level: 0,
+      reading: null,
+      error: null,
+    }),
     ...overrides.tunerLive,
   };
   const history = {
@@ -327,11 +356,12 @@ function makeDirector(overrides: Record<string, unknown> = {}) {
       { provide: SessionHistoryService, useValue: sessionHistory },
       { provide: SamplerStateService, useValue: samplerState },
       { provide: TunerLiveService, useValue: tunerLive },
+      { provide: VcaBusService, useValue: vcaBuses },
       { provide: ExportService, useValue: exportService },
       { provide: IdeasGeneratorService, useValue: ideas },
     ],
   });
-  return { service: TestBed.inject(StudioAiDirectorService), music, engine, ai, beat, mix, sounds, workspace, telemetry, takeManager, audioRecorder, copilot, offlineBounce, scale, produce, history, sessionHistory, samplerState, tunerLive, exportService, ideas, vocal, vocalMastering, performanceRecording, audioImport, tracks };
+  return { service: TestBed.inject(StudioAiDirectorService), music, engine, ai, beat, mix, sounds, workspace, telemetry, takeManager, audioRecorder, copilot, offlineBounce, scale, produce, history, sessionHistory, samplerState, tunerLive, vcaBuses, exportService, ideas, vocal, vocalMastering, performanceRecording, audioImport, tracks };
 }
 
 describe('StudioAiDirectorService', () => {
@@ -714,23 +744,30 @@ describe('StudioAiDirectorService', () => {
     expect(plan.steps.map((step) => step.label)).toContain('Export MIDI');
     expect(plan.steps.map((step) => step.label)).toContain('Export DAWproject');
     expect(plan.steps.map((step) => step.label)).toContain('Export project bundle');
+    expect(plan.steps.map((step) => step.label)).toContain('Check stems readiness before exporting stems');
 
-    const stems = await service.runStep(plan.steps[2]);
+    // Stems readiness runs before the stem render and renders nothing.
+    const readiness = await service.runStep(plan.steps[2]);
+    expect(readiness.ok).toBe(true);
+    expect(readiness.message).toContain('Stems readiness');
+    expect(exportService.exportStems).not.toHaveBeenCalled();
+
+    const stems = await service.runStep(plan.steps[3]);
     expect(stems.ok).toBe(true);
     expect(exportService.exportStems).toHaveBeenCalled();
     expect(stems.message).toContain('stems ZIP');
 
-    const midi = await service.runStep(plan.steps[3]);
+    const midi = await service.runStep(plan.steps[4]);
     expect(midi.ok).toBe(true);
     expect(exportService.exportProjectMidi).toHaveBeenCalled();
     expect(exportService.downloadBlob).toHaveBeenCalledWith(expect.any(Blob), expect.stringContaining('_Director_MIDI_'));
 
-    const dawproject = await service.runStep(plan.steps[4]);
+    const dawproject = await service.runStep(plan.steps[5]);
     expect(dawproject.ok).toBe(true);
     expect(exportService.exportDawproject).toHaveBeenCalled();
     expect(exportService.downloadBlob).toHaveBeenCalledWith(expect.any(Blob), expect.stringContaining('_Director_DAWproject_'));
 
-    const bundle = await service.runStep(plan.steps[5]);
+    const bundle = await service.runStep(plan.steps[6]);
     expect(bundle.ok).toBe(true);
     expect(workspace.downloadProjectBundle).toHaveBeenCalled();
     expect(bundle.message).toContain('Test Project');
@@ -846,6 +883,88 @@ describe('StudioAiDirectorService', () => {
     expect(stopped.ok).toBe(true);
     expect(tunerLive.stop).toHaveBeenCalled();
     expect(stopped.message).toContain('stopped');
+  });
+
+  it('reads channel meters, snapshots bus/VCA state and checks stems readiness on the Mixer plan', async () => {
+    const { service, engine, vcaBuses } = makeDirector();
+    const plan = service.buildPlan({ surfaceId: 'mixer' });
+    expect(plan.steps.map((step) => step.label)).toContain('Read the channel meters');
+    expect(plan.steps.map((step) => step.label)).toContain('Snapshot the bus routing and VCA state');
+    expect(plan.steps.map((step) => step.label)).toContain('Check stems readiness for delivery');
+
+    const meters = await service.runStep(plan.steps.find((step) => step.label === 'Read the channel meters')!);
+    expect(meters.ok).toBe(true);
+    expect(engine.getTrackLevel).toHaveBeenCalledWith('track-1');
+    expect(meters.message).toContain('Director Lead peak 0.42');
+    expect(meters.message).toContain('momentary -12.4 dBFS');
+    expect(meters.message).toContain('transport stopped');
+    expect(meters.message).toContain('No channel is clipping');
+
+    engine.isPlaying.set(true);
+    const liveMeters = await service.runStep(plan.steps.find((step) => step.label === 'Read the channel meters')!);
+    expect(liveMeters.message).toContain('transport playing');
+
+    const snapshot = await service.runStep(plan.steps.find((step) => step.label === 'Snapshot the bus routing and VCA state')!);
+    expect(snapshot.ok).toBe(true);
+    expect(vcaBuses.trackIdsForBus).toHaveBeenCalledWith('vca-1');
+    expect(snapshot.message).toContain('Bus snapshot');
+    expect(snapshot.message).toContain('VCA 1 at 90%');
+    expect(snapshot.message).toContain('Master fader 80%');
+
+    const stems = await service.runStep(plan.steps.find((step) => step.label === 'Check stems readiness for delivery')!);
+    expect(stems.ok).toBe(true);
+    expect(stems.message).toContain('1 of 1 tracks will be rendered');
+  });
+
+  it('reports muted tracks as skipped by stems readiness', async () => {
+    const { service, music } = makeDirector();
+    music.tracks.set([
+      { id: 'track-1', name: 'Director Lead', type: 'midi', muted: false, soloed: false, notes: [], clips: [] },
+      { id: 'track-2', name: 'Quiet Pad', type: 'midi', muted: true, soloed: false, notes: [], clips: [] },
+      { id: 'bus-1', name: 'Group 1', type: 'bus', muted: false, soloed: false, notes: [], clips: [] },
+    ]);
+    const plan = service.buildPlan({ surfaceId: 'mixer' });
+    const stems = await service.runStep(plan.steps.find((step) => step.label === 'Check stems readiness for delivery')!);
+    expect(stems.ok).toBe(true);
+    expect(stems.message).toContain('1 of 3 tracks will be rendered');
+    expect(stems.message).toContain('Muted tracks skipped: Quiet Pad');
+    expect(stems.message).toContain('Bus tracks are not stems: Group 1');
+  });
+
+  it('verifies the live microphone on this device without opening it', async () => {
+    const { service, tunerLive } = makeDirector();
+    const step = service.buildPlan({ surfaceId: 'tuner' }).steps.find((s) => s.label === 'Verify the live microphone on this device')!;
+    expect(step.executable).toBe(true);
+    const result = await service.runStep(step);
+    expect(result.ok).toBe(true);
+    expect(tunerLive.verifyDevice).toHaveBeenCalled();
+    expect(tunerLive.start).not.toHaveBeenCalled();
+    expect(result.message).toContain('capture supported');
+    expect(result.message).toContain('1 audio input exposed');
+    expect(result.message).toContain('permission granted');
+    expect(result.message).toContain('tuner stream idle');
+  });
+
+  it('checks the same tuning reference across recorded takes', async () => {
+    const sampleRate = 48000;
+    const sine = (frequency: number) => {
+      const data = new Float32Array(sampleRate);
+      for (let i = 0; i < data.length; i++) data[i] = Math.sin(2 * Math.PI * frequency * (i / sampleRate)) * 0.5;
+      return { numberOfChannels: 1, length: sampleRate, sampleRate, duration: 1, getChannelData: () => data };
+    };
+    const { service, music } = makeDirector();
+    music.tracks.set([
+      { id: 'vo1', name: 'Vocal Take 1', type: 'audio', muted: false, soloed: false, notes: [], clips: [{ id: 'c1', name: 'Vocal 1', type: 'audio', audioData: sine(440) }] },
+      { id: 'vo2', name: 'Vocal Take 2', type: 'audio', muted: false, soloed: false, notes: [], clips: [{ id: 'c2', name: 'Vocal 2', type: 'audio', audioData: sine(440) }] },
+    ]);
+    const step = service.buildPlan({ surfaceId: 'tuner' }).steps.find((s) => s.label === 'Check the same tuning reference across takes')!;
+    expect(step.executable).toBe(true);
+    const result = await service.runStep(step);
+    expect(result.ok).toBe(true);
+    expect(result.message).toContain('Same reference across takes');
+    expect(result.message).toContain('Vocal Take 1');
+    expect(result.message).toContain('Vocal Take 2');
+    expect(result.message).toContain('every checked take agrees');
   });
 
   it('deletes the selected track through the undoable command and restores it through history', async () => {

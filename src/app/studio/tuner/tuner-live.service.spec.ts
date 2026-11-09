@@ -30,6 +30,7 @@ class MockAudioContext {
 describe("TunerLiveService", () => {
   let service: TunerLiveService;
   let getUserMedia: jest.Mock;
+  let enumerateDevices: jest.Mock;
   const stopTrack = jest.fn();
 
   beforeEach(() => {
@@ -41,9 +42,13 @@ describe("TunerLiveService", () => {
       getAudioTracks: () => [{ label: "USB Interface" }],
       getTracks: () => [{ stop: stopTrack }],
     });
+    enumerateDevices = jest.fn().mockResolvedValue([
+      { kind: "audioinput", label: "USB Interface" },
+      { kind: "audiooutput", label: "Studio Monitors" },
+    ]);
     Object.defineProperty(navigator, "mediaDevices", {
       configurable: true,
-      value: { getUserMedia },
+      value: { getUserMedia, enumerateDevices },
     });
 
     TestBed.configureTestingModule({
@@ -84,6 +89,46 @@ describe("TunerLiveService", () => {
 
     expect(service.listening()).toBe(false);
     expect(service.error()).toContain("blocked");
+  });
+
+  it("verifies the device without opening the microphone", async () => {
+    const verification = await service.verifyDevice();
+
+    expect(getUserMedia).not.toHaveBeenCalled();
+    expect(verification.supported).toBe(true);
+    expect(verification.audioInputCount).toBe(1);
+    expect(verification.audioInputLabels).toEqual(["USB Interface"]);
+    expect(verification.listening).toBe(false);
+    expect(verification.trackState).toBe("idle");
+    expect(verification.reading).toBeNull();
+  });
+
+  it("reports a live stream, level and reading while listening", async () => {
+    getUserMedia.mockResolvedValue({
+      getAudioTracks: () => [
+        { label: "USB Interface", readyState: "live", muted: false, addEventListener: jest.fn() },
+      ],
+      getTracks: () => [{ stop: stopTrack }],
+    });
+    await service.start();
+    jest.advanceTimersByTime(50);
+
+    const verification = await service.verifyDevice();
+
+    expect(verification.listening).toBe(true);
+    expect(verification.trackState).toBe("live");
+    expect(verification.deviceLabel).toBe("USB Interface");
+    expect(verification.level).toBeGreaterThan(0);
+    expect(verification.reading?.note).toBe("A");
+  });
+
+  it("reports no inputs instead of inventing one", async () => {
+    enumerateDevices.mockResolvedValue([]);
+
+    const verification = await service.verifyDevice();
+
+    expect(verification.audioInputCount).toBe(0);
+    expect(verification.audioInputLabels).toEqual([]);
   });
 
   it("releases the input on stop", async () => {

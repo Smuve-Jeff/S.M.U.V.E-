@@ -37,7 +37,8 @@ import {
   frequencyToNote,
   midiToFrequency,
 } from './tuner/tuner-pitch.util';
-import { TunerLiveService } from './tuner/tuner-live.service';
+import { TunerLiveService, type LiveInputVerification } from './tuner/tuner-live.service';
+import { VcaBusService } from './vca-bus.service';
 import {
   detectTransientFrames,
   sliceAudioBufferAtFrames,
@@ -148,6 +149,7 @@ export class StudioAiDirectorService {
   private audioImport = inject(AudioImportService);
   private samplerState = inject(SamplerStateService);
   private tunerLive = inject(TunerLiveService);
+  private vcaBuses = inject(VcaBusService);
   private telemetry = inject(StudioTelemetryService);
   private logger = inject(LoggingService);
 
@@ -566,7 +568,10 @@ export class StudioAiDirectorService {
         return [
           make(1, 'Refresh the evidence-backed mix pass', 'Recompute every track-level suggestion from the current session instead of trusting an old snapshot.', true, () => this.analyzeAndApplyMix()),
           make(2, 'Audit mute and solo state', 'Read the live mute/solo state for every track and the selected track before balancing gains.', true, () => this.auditMixerMuteSolo()),
-          make(3, 'Use the neural balance only as a rough nudge', 'The neural balance is a randomized gain nudge plus safety compression, not a measurement-based mix.', true, () => this.applyNeuralNudge()),
+          make(3, 'Read the channel meters', 'Read the post-fader peak and momentary level for every mixer channel from the audio engine taps, plus the selected channel’s mono correlation. When the transport is stopped the meters correctly read silence, so play the session to judge balance.', true, () => this.mixerChannelMeters(), 'mixer'),
+          make(4, 'Snapshot the bus routing and VCA state', 'Read every group bus with its member channels, master-routed channels, VCA buses with their assignments and fader values, and send levels — one snapshot of the whole console routing.', true, () => this.mixerBusSnapshot(), 'mixer'),
+          make(5, 'Check stems readiness for delivery', 'Confirm which tracks the stem renderer would actually write: every unmuted non-bus track becomes a stem, muted tracks are skipped and solo is ignored. No audio is rendered in this step.', true, () => this.stemsReadiness(), 'mixer'),
+          make(6, 'Use the neural balance only as a rough nudge', 'The neural balance is a randomized gain nudge plus safety compression, not a measurement-based mix.', true, () => this.applyNeuralNudge()),
         ];
       case 'effects-rack':
         return [
@@ -596,7 +601,7 @@ export class StudioAiDirectorService {
         return [
           make(1, 'Run the genre-aware master', 'Let the AI Mix Assistant choose targets from the session composition and apply compressor, limiter and tone EQ.', true, () => this.autoMaster()),
           make(2, 'Render the offline review bounce', 'Render the full arrangement offline and read its measured peak/RMS; if the peak clips, lower the target rather than raising the limiter.', true, () => this.bounceProjectReview()),
-          make(3, 'Render a comparison master', 'Render the offline comparison bounce and read its measured peak/RMS against the streaming target.', true, () => this.bounceProjectReview()),
+          make(3, 'Render the offline comparison bounce', 'Render the offline comparison bounce and read its measured peak/RMS against the streaming target.', true, () => this.bounceProjectReview()),
         ];
       case 'ai-produce':
         return [
@@ -624,8 +629,9 @@ export class StudioAiDirectorService {
           make(3, 'Read the live tuner input', 'Report the latest live needle reading from the shared tuner input, or say plainly that no stable note has been heard yet.', true, () => this.liveTunerReading(), 'tuner'),
           make(4, 'Stop the live tuner input', 'Close the shared tuner input after the instrument is in tune.', true, () => this.stopLiveTunerInput(), 'tuner'),
           make(5, 'Measure tuner reads from a recorded clip', 'Measure pitch on the selected track’s recorded audio clips and report the resulting note and cents. This is a recorded-clip reading; a live instrument still needs the Tuner input for a needle reading.', true, () => this.measureTunerReads(), 'tuner'),
-          make(6, 'Apply the same reference across takes', 'Retune strings/instruments to one reference so takes can be comped without pitch drift.', false, () => 'Guided: tune the lowest string first, then check each string against the same reference.', 'piano-roll'),
+          make(6, 'Check the same tuning reference across takes', 'Measure the recorded audio clips on every track against the one A4 reference and report each take’s deviation, so takes can be comped without pitch drift. This checks recorded material; a physical instrument still has to be tuned to the live input first.', true, () => this.tunerReferenceAcrossTakes(), 'tuner'),
           make(7, 'Recheck key after tuning', 'After tuning, run key detection again if the material was out of tune.', true, () => this.detectAndApplyKey()),
+          make(8, 'Verify the live microphone on this device', 'Verify the microphone path on the device the artist is actually using: browser capture support, the audio inputs the device exposes, the permission state, and whether the shared tuner stream is live, silent or ended. This step never opens the microphone and never claims a pitch it did not measure.', true, () => this.verifyLiveMicrophone(), 'tuner'),
         ];
       case 'chord-editor':
         return [
@@ -660,7 +666,7 @@ export class StudioAiDirectorService {
       case 'audio-recorder':
         return [
           make(1, 'Count the saved takes', 'Read the recorder’s saved takes so the artist knows what already exists before recording another pass.', true, () => this.recorderTakeStatus()),
-          make(2, 'Record one deliberate pass', 'Read the recorder take count and the selected track take count, then recommend a deliberate pass that does not overwrite them.', true, () => this.recorderPassStatus()),
+          make(2, 'Check the next record pass', 'Read the recorder take count and the selected track take count, then recommend a deliberate pass that does not overwrite them. Recording itself is a surface gesture; this step only confirms it is safe to make one.', true, () => this.recorderPassStatus()),
           make(3, 'Move the best take into the session', 'Promote the strongest captured MIDI take through TakeManagerService so playback and comping use it.', true, () => this.promoteBestTake()),
         ];
       case 'performer':
@@ -673,11 +679,12 @@ export class StudioAiDirectorService {
         return [
           make(1, 'Run the final mastering pass', 'Master against the intended delivery surface before exporting.', true, () => this.autoMaster()),
           make(2, 'Complete the delivery export', 'Render the pre-master mix, apply the retained master chain, run the S.M.U.V.E polish, measure the polished buffer, encode a real WAV and download the delivery file.', true, () => this.completeDeliveryExport()),
-          make(3, 'Export stems', 'Render each playable track to its own WAV and download the stems ZIP.', true, () => this.exportStems()),
-          make(4, 'Export MIDI', 'Serialize the project’s note data to a Type 1 Standard MIDI File and download it.', true, () => this.exportMidi()),
-          make(5, 'Export DAWproject', 'Serialize the project with reference audio to a .dawproject ZIP and download it.', true, () => this.exportDawproject()),
-          make(6, 'Export project bundle', 'Download the open project as a portable .smuve bundle so the set can be re-imported later. Checkpoint bundles can be exported one by one from the Director checkpoint browser.', true, () => this.exportProjectBundle()),
-          make(7, 'Prepare the delivery checklist', 'Read the AI Produce release handoff and surface format, loudness target, artwork, metadata and next delivery step.', true, () => this.deliveryChecklist()),
+          make(3, 'Check stems readiness before exporting stems', 'Confirm exactly which tracks become stems (every unmuted non-bus track) and which are skipped (muted tracks and buses) before spending time rendering them. No audio is rendered in this step.', true, () => this.stemsReadiness()),
+          make(4, 'Export stems', 'Render each playable track to its own WAV and download the stems ZIP.', true, () => this.exportStems()),
+          make(5, 'Export MIDI', 'Serialize the project’s note data to a Type 1 Standard MIDI File and download it.', true, () => this.exportMidi()),
+          make(6, 'Export DAWproject', 'Serialize the project with reference audio to a .dawproject ZIP and download it.', true, () => this.exportDawproject()),
+          make(7, 'Export project bundle', 'Download the open project as a portable .smuve bundle so the set can be re-imported later. Checkpoint bundles can be exported one by one from the Director checkpoint browser.', true, () => this.exportProjectBundle()),
+          make(8, 'Prepare the delivery checklist', 'Read the AI Produce release handoff and surface format, loudness target, artwork, metadata and next delivery step.', true, () => this.deliveryChecklist()),
         ];
     }
   }
@@ -1138,6 +1145,54 @@ export class StudioAiDirectorService {
     const audioClips = (track.clips ?? []).filter((clip) => clip.type === 'audio');
     if (audioClips.length === 0) throw new Error(`${track.name} has no recorded audio clips to measure.`);
 
+    const measured = this.measureTrackTunerMedian(track);
+    if (!measured) throw new Error(`${track.name} has audio clips, but none produced a stable pitch reading.`);
+    const { median, frames } = measured;
+    const sign = median.cents > 0 ? '+' : '';
+    const status = Math.abs(median.cents) <= DEFAULT_TUNER_TOLERANCE_CENTS ? 'in tune' : 'out of tune';
+    return `Tuner read on ${track.name}: ${median.note}${median.octave} at ${median.frequency.toFixed(1)} Hz (${sign}${median.cents.toFixed(1)} cents) — ${status} from ${frames} measured frame${frames === 1 ? '' : 's'}.`;
+  }
+
+  /**
+   * Check every recorded take against the one A4 reference so takes can be
+   * comped without pitch drift. Recorded material only: a physical
+   * instrument must still be tuned to the live input first.
+   */
+  private tunerReferenceAcrossTakes(): string {
+    const withAudio = this.music
+      .tracks()
+      .filter((track) => (track.clips ?? []).some((clip) => clip.type === 'audio'));
+    if (withAudio.length === 0) {
+      throw new Error('No recorded audio clips are available to check against the tuning reference. Record a take first, or tune a physical instrument with the live input.');
+    }
+    const results = withAudio
+      .map((track) => ({ track, measured: this.measureTrackTunerMedian(track) }))
+      .filter((entry): entry is { track: TrackModel; measured: { median: { note: string; octave: number; cents: number; frequency: number }; frames: number } } => entry.measured !== null);
+    if (results.length === 0) {
+      throw new Error('The recorded clips produced no stable pitch readings, so the reference cannot be compared across takes.');
+    }
+    const cents = results.map((entry) => entry.measured.median.cents);
+    const spread = Math.max(...cents) - Math.min(...cents);
+    const inTune = results.filter((entry) => Math.abs(entry.measured.median.cents) <= DEFAULT_TUNER_TOLERANCE_CENTS).length;
+    const detail = results
+      .map((entry) => {
+        const { median } = entry.measured;
+        const sign = median.cents > 0 ? '+' : '';
+        const status = Math.abs(median.cents) <= DEFAULT_TUNER_TOLERANCE_CENTS ? 'in tune' : 'out of tune';
+        return `${entry.track.name}: ${median.note}${median.octave} (${sign}${median.cents.toFixed(1)} cents, ${status})`;
+      })
+      .join('; ');
+    const verdict = inTune === results.length
+      ? 'every checked take agrees with the A4 reference'
+      : spread > 20
+        ? 'the takes disagree by more than one tolerance band, so retune the out-of-tune takes before comping'
+        : 'some takes sit outside tolerance, so check them before comping';
+    return `Same reference across takes (A4 440 Hz ±${DEFAULT_TUNER_TOLERANCE_CENTS} cents): ${detail}. Spread ${spread.toFixed(1)} cents — ${verdict}.`;
+  }
+
+  /** Median pitch reading measured from one track's recorded audio clips. */
+  private measureTrackTunerMedian(track: TrackModel): { median: { note: string; octave: number; cents: number; frequency: number }; frames: number } | null {
+    const audioClips = (track.clips ?? []).filter((clip) => clip.type === 'audio');
     const readings: Array<{ note: string; octave: number; cents: number; frequency: number }> = [];
     for (const clip of audioClips) {
       const buffer = clip.audioData ?? (clip.audioRefId ? this.music.stemAudioCache.get(clip.audioRefId) : undefined);
@@ -1164,12 +1219,10 @@ export class StudioAiDirectorService {
       if (readings.length >= 24) break;
     }
 
-    if (readings.length === 0) throw new Error(`${track.name} has audio clips, but none produced a stable pitch reading.`);
+    if (readings.length === 0) return null;
     const sorted = [...readings].sort((a, b) => a.frequency - b.frequency);
     const median = sorted[Math.floor(sorted.length / 2)];
-    const sign = median.cents > 0 ? '+' : '';
-    const status = Math.abs(median.cents) <= DEFAULT_TUNER_TOLERANCE_CENTS ? 'in tune' : 'out of tune';
-    return `Tuner read on ${track.name}: ${median.note}${median.octave} at ${median.frequency.toFixed(1)} Hz (${sign}${median.cents.toFixed(1)} cents) — ${status} from ${readings.length} measured frame${readings.length === 1 ? '' : 's'}.`;
+    return { median, frames: readings.length };
   }
 
   private detectAndApplyKey(): string {
@@ -1304,6 +1357,170 @@ export class StudioAiDirectorService {
     const soloed = tracks.filter((track) => track.soloed).length;
     const selected = this.music.selectedTrack();
     return `Mute/solo audit: ${muted} of ${tracks.length} tracks muted; ${soloed} soloed; selected ${selected?.name ?? 'none'} is ${selected?.muted ? 'muted' : 'unmuted'}, ${selected?.soloed ? 'soloed' : 'not soloed'}.`;
+  }
+
+  /**
+   * Read the post-fader channel meters from the engine taps. Meters are
+   * silence when the transport is stopped, so the report says whether the
+   * session was playing instead of inventing a balance judgement.
+   */
+  private mixerChannelMeters(): string {
+    const tracks = this.music.tracks();
+    if (tracks.length === 0) throw new Error('No mixer channels are available to meter.');
+    if (typeof this.engine.getTrackLevel !== 'function') {
+      throw new Error('The channel meter API is unavailable in this environment.');
+    }
+    const playing = this.engine.isPlaying();
+    const rows = tracks.map((track) => {
+      const peak = Math.max(0, Math.min(1, this.engine.getTrackLevel(track.id)));
+      const rmsDb =
+        typeof this.engine.getTrackMomentaryLevelDb === 'function'
+          ? this.engine.getTrackMomentaryLevelDb(track.id)
+          : null;
+      const correlation =
+        typeof this.engine.getTrackCorrelation === 'function'
+          ? this.engine.getTrackCorrelation(track.id)
+          : null;
+      return { track, peak, rmsDb, correlation };
+    });
+    const loudest = [...rows].sort((a, b) => b.peak - a.peak)[0];
+    const clipping = rows.filter((row) => row.peak >= 0.99);
+    const selected = this.music.selectedTrack();
+    const selectedRow = selected ? rows.find((row) => row.track.id === selected.id) : undefined;
+    const correlationText = (value: number | null): string =>
+      value === null ? 'no signal' : `${value > 0 ? '+' : value < 0 ? '-' : ''}${Math.abs(value).toFixed(2)}`;
+    const monoText = (value: number | null): string =>
+      value === null ? 'no signal' : value < 0 ? 'out of phase' : value < 0.3 ? 'wide' : 'mono safe';
+    const masterCorrelation =
+      typeof this.engine.outputCorrelation === 'function'
+        ? (this.engine.outputCorrelation as () => number | null)()
+        : null;
+    const masterLufs =
+      typeof this.engine.outputLufs === 'function'
+        ? (this.engine.outputLufs as () => number | null)()
+        : null;
+    const summary = rows
+      .map(
+        (row) =>
+          `${row.track.name} peak ${row.peak.toFixed(2)}${
+            row.rmsDb === null ? '' : `, momentary ${row.rmsDb.toFixed(1)} dBFS`
+          }, correlation ${correlationText(row.correlation)} (${monoText(row.correlation)})`,
+      )
+      .join('; ');
+    const masterText =
+      `Master correlation ${correlationText(masterCorrelation)}` +
+      (masterLufs === null ? '' : `, output ${masterLufs.toFixed(1)} LUFS`);
+    const verdict = clipping.length > 0
+      ? `Clipping risk: ${clipping.map((row) => row.track.name).join(', ')} reached full scale.`
+      : 'No channel is clipping.';
+    const selectedText = selectedRow
+      ? ` Selected ${selectedRow.track.name}: peak ${selectedRow.peak.toFixed(2)}.`
+      : '';
+    return `Channel meters (${playing ? 'transport playing' : 'transport stopped — meters read silence, press play to judge balance'}): ${summary}. Loudest: ${loudest.track.name} at ${loudest.peak.toFixed(2)}. ${masterText}. ${verdict}${selectedText}`;
+  }
+
+  /**
+   * One snapshot of the console routing: real audio group buses with their
+   * members, master-routed channels, VCA control buses with their
+   * assignments, and send levels. Reads project state and the engine routes.
+   */
+  private mixerBusSnapshot(): string {
+    const tracks = this.music.tracks();
+    if (tracks.length === 0) throw new Error('No mixer channels are available to snapshot.');
+    const busTracks = tracks.filter((track) => track.type === 'bus');
+    const busIdOf = (track: TrackModel): string | undefined =>
+      track.busId ??
+      (typeof this.engine.getTrackBus === 'function' ? this.engine.getTrackBus(track.id) : undefined);
+    const membersOf = (busId: string): string[] =>
+      tracks.filter((track) => track.type !== 'bus' && busIdOf(track) === busId).map((track) => track.name);
+    const masterRouted = tracks.filter((track) => track.type !== 'bus' && !busIdOf(track)).length;
+    const busText =
+      busTracks.length === 0
+        ? 'no group buses'
+        : busTracks
+            .map((bus) => {
+              const members = membersOf(bus.id);
+              return `${bus.name} → ${members.length > 0 ? members.join(', ') : 'no members'}`;
+            })
+            .join('; ');
+    const vcaBuses =
+      typeof this.vcaBuses.buses === 'function' ? this.vcaBuses.buses() : [];
+    const vcaText =
+      vcaBuses.length === 0
+        ? 'no VCA buses'
+        : vcaBuses
+            .map((bus) => {
+              const assigned =
+                typeof this.vcaBuses.trackIdsForBus === 'function'
+                  ? this.vcaBuses.trackIdsForBus(bus.id)
+                  : [];
+              const names = assigned
+                .map((id) => tracks.find((track) => track.id === id)?.name ?? id)
+                .join(', ');
+              return `${bus.name} at ${(bus.faderValue * 100).toFixed(0)}%${bus.muted ? ' (muted)' : ''} → ${names || 'no assignments'}`;
+            })
+            .join('; ');
+    const withSends = tracks.filter(
+      (track) => (track.sendA ?? 0) > 0.001 || (track.sendB ?? 0) > 0.001,
+    );
+    const sendText =
+      withSends.length === 0
+        ? 'no sends raised'
+        : `${withSends.length} channel${withSends.length === 1 ? '' : 's'} sending: ${withSends
+            .map((track) => `${track.name} A ${Math.round((track.sendA ?? 0) * 100)}% / B ${Math.round((track.sendB ?? 0) * 100)}%`)
+            .join('; ')}`;
+    return `Bus snapshot: ${busText}; ${masterRouted} channel${masterRouted === 1 ? '' : 's'} to master; VCA: ${vcaText}; ${sendText}. Master fader ${Math.round(this.engine.masterGainValue() * 100)}%${this.engine.masterMuted() ? ' (muted)' : ''}.`;
+  }
+
+  /**
+   * The stem renderer's own inclusion rule, read before rendering: Export-
+   * Service writes the master plus one WAV per unmuted non-bus track, skips
+   * muted tracks, and ignores solo. This check renders nothing.
+   */
+  private stemsReadiness(): string {
+    const tracks = this.music.tracks();
+    if (tracks.length === 0) throw new Error('No tracks are available for stems export.');
+    const ready = tracks.filter((track) => !track.muted && track.type !== 'bus');
+    const mutedSkipped = tracks.filter((track) => track.muted && track.type !== 'bus');
+    const buses = tracks.filter((track) => track.type === 'bus');
+    if (ready.length === 0) {
+      throw new Error('No tracks are ready for stems export: every track is muted or a bus, so the stem renderer would only write the master.');
+    }
+    const names = (list: TrackModel[]): string => (list.length > 0 ? list.map((track) => track.name).join(', ') : 'none');
+    return `Stems readiness: ${ready.length} of ${tracks.length} tracks will be rendered (${names(ready)}) plus the master, at 24-bit / 44.1 kHz. Muted tracks skipped: ${names(mutedSkipped)}. Bus tracks are not stems: ${names(buses)}. Solo is ignored by the stem renderer.`;
+  }
+
+  /**
+   * On-device microphone verification: support, exposed inputs, permission
+   * state, and the live stream state — without opening the microphone or
+   * claiming a pitch that was not measured.
+   */
+  private async verifyLiveMicrophone(): Promise<string> {
+    const verification: LiveInputVerification = await this.tunerLive.verifyDevice();
+    const inputText =
+      verification.audioInputCount < 0
+        ? `input enumeration unavailable${verification.error ? ` (${verification.error})` : ''}`
+        : verification.audioInputCount === 0
+          ? 'no audio input devices exposed'
+          : `${verification.audioInputCount} audio input${verification.audioInputCount === 1 ? '' : 's'} exposed${
+              verification.audioInputLabels.length > 0 ? ` (${verification.audioInputLabels.join(', ')})` : ' (labels hidden until permission)'
+            }`;
+    const permissionText =
+      verification.permissionState
+        ? `permission ${verification.permissionState}`
+        : 'permission state unknown';
+    const streamText = verification.listening
+      ? `tuner stream ${verification.trackState} on ${verification.deviceLabel} at ${Math.round(verification.level * 100)}% input level` +
+        (verification.reading
+          ? `, latest reading ${verification.reading.note}${verification.reading.octave} at ${verification.reading.frequency.toFixed(1)} Hz (${verification.reading.cents > 0 ? '+' : ''}${verification.reading.cents.toFixed(1)} cents)`
+          : ', no stable note heard yet')
+      : `tuner stream idle (${verification.trackState})`;
+    const guidance = !verification.supported
+      ? ' This browser cannot open a microphone, so live tuning is unavailable here; use the recorded-clip tuner reads instead.'
+      : verification.permissionState === 'denied'
+        ? ' Microphone permission is denied: allow it in the browser site settings, then open the live tuner input again.'
+        : '';
+    return `Microphone verification on this device: ${verification.supported ? 'capture supported' : 'capture NOT supported'}; ${inputText}; ${permissionText}; ${streamText}.${guidance}`;
   }
 
   private prepareDjCrossfade(): string {
