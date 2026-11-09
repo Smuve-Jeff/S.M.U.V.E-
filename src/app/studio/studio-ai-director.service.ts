@@ -6,6 +6,9 @@ import {
   type TrackModel,
   type TrackNote,
 } from '../services/music-manager.service';
+import { HistoryService } from '../services/history.service';
+import { ExportService } from '../services/export.service';
+import { IdeasGeneratorService } from '../services/ideas-generator.service';
 import { AudioEngineService } from '../services/audio-engine.service';
 import { AiBeatGeneratorService } from '../services/ai-beat-generator.service';
 import { AiProduceService } from '../services/ai-produce.service';
@@ -93,6 +96,9 @@ const PITCHES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'
 export class StudioAiDirectorService {
   private ai = inject(AiService);
   private music = inject(MusicManagerService);
+  private history = inject(HistoryService);
+  private exports = inject(ExportService);
+  private ideas = inject(IdeasGeneratorService);
   private engine = inject(AudioEngineService);
   private beat = inject(AiBeatGeneratorService);
   private produce = inject(AiProduceService);
@@ -176,6 +182,43 @@ export class StudioAiDirectorService {
       `Done when: ${plan.successCriteria[0] ?? 'the surface shows the intended result'}.`,
       context.focusPrompt ? `Focus on: ${context.focusPrompt}` : 'Start with the executable steps, then audit the result.',
     ].join('\n');
+  }
+
+  canUndoDirectorAction(): boolean {
+    return this.history.canUndo();
+  }
+
+  canRedoDirectorAction(): boolean {
+    return this.history.canRedo();
+  }
+
+  undoLastAction(): string {
+    if (!this.history.canUndo()) return 'Nothing to undo.';
+    const label = this.history.lastActionName();
+    this.history.undo();
+    return label ? `Undid ${label}.` : 'Undid the last action.';
+  }
+
+  redoLastAction(): string {
+    if (!this.history.canRedo()) return 'Nothing to redo.';
+    this.history.redo();
+    return 'Redid the last undone action.';
+  }
+
+  /**
+   * Delete is deliberately routed through the normal undoable track command.
+   * There is no separate "restore" state: Undo restores the exact track and
+   * its bus memberships.
+   */
+  deleteSelectedTrack(): string {
+    const track = this.music.selectedTrack();
+    if (!track) throw new Error('Select a track before deleting it.');
+    this.music.removeTrack(track.id);
+    return `Deleted ${track.name}. Use Undo to restore the exact track and its bus memberships.`;
+  }
+
+  restoreLastDeletedState(): string {
+    return this.undoLastAction();
   }
 
   /** Run one plan step and report its real outcome. */
@@ -274,7 +317,7 @@ export class StudioAiDirectorService {
     switch (surfaceId) {
       case 'quick-session':
         return [
-          make(1, 'Choose the fastest environment that fits the session', 'Open the Quick Session environments and pick Warm-Up, Sketch, Loop, Guide, Track, Take or Performance based on whether the artist is warming up, sketching, learning, writing, arranging or performing.', false, () => 'Guided: choose the environment in Quick Session, then confirm the selected BPM and key in the footer.', 'quick-session'),
+          make(1, 'Recommend the first quick-session starter', 'Use the current transport BPM to pick the closest one-tap Quick Session recipe. The recommendation is a read-only service decision; starting it remains a shell handoff so a dirty sketch is snapshotted first.', true, () => this.recommendQuickSessionRecipe()),
           make(2, 'Verify tempo and key before committing', 'Read the transport tempo, project key/scale and metronome state from the live services before any further Quick Session work.', true, () => this.quickSessionReadiness()),
           make(3, 'Brief the next one-tap move', 'Read the current track, note and clip state, then recommend the next Quick Session move that fits it.', true, () => this.quickSessionNextMove()),
         ];
@@ -300,13 +343,13 @@ export class StudioAiDirectorService {
         return [
           make(1, 'Generate a playable drum kit pattern', 'Generate a genre-aware drum pattern and write kick, snare/clap, hi-hat and percussion into a drum track.', true, () => this.applyBeatPackage(context)),
           make(2, 'Humanize the kit timing', 'Apply micro-timing and velocity variation to the selected drum track when available.', true, () => this.humanizeSelectedTrack()),
-          make(3, 'Use EVOLVE for the next variation', 'After the pattern is audible, use the drum header EVOLVE control for one variation rather than overwriting the whole kit.', false, () => 'Guided: press EVOLVE once, audition a full loop, then keep or undo.', 'drum-machine'),
+          make(3, 'Run one EVOLVE variation', 'Mutate a focused slice of the kit on a drum track: trim or retime a small number of hits and nudge some velocities, matching the surface EVOLVE behavior without claiming to press its header control.', true, () => this.evolveDrumVariation()),
         ];
       case 'channel-rack':
         return [
           make(1, 'Seed the rack with a complete groove', 'Generate the full beat package and map its layers to rack tracks.', true, () => this.applyBeatPackage(context)),
           make(2, 'Check channel headroom', 'Run the AI mix pass so channel gains are compared against the current scene before adding more sounds.', true, () => this.analyzeAndApplyMix()),
-          make(3, 'Assign steps and samples intentionally', 'Only assign a sample to a channel when the generated layer needs that sound; avoid duplicate channels.', false, () => 'Guided: assign one sample/preset per channel role, then audition the full rack before duplicating it.', 'channel-rack'),
+          make(3, 'Audit channel roles for duplicates', 'Read every Channel Rack track’s current instrument identity and flag duplicate channel roles before adding or assigning more sounds. This is an audit pass, not a silent reassignment of sample-backed sounds.', true, () => this.channelRoleAudit()),
         ];
       case 'mixer':
         return [
@@ -322,7 +365,7 @@ export class StudioAiDirectorService {
         ];
       case 'vocal-suite':
         return [
-          make(1, 'Run the vocal performance check', 'Pass an uploaded take through measured analysis: duration, peak, RMS, crest, silence and clipping.', false, () => 'Guided: upload the vocal take in the Vocal Suite and let Vocal AI analyze its measured evidence.', 'vocal-suite'),
+          make(1, 'Read the latest vocal performance evidence', 'Read the Vocal AI service’s current evidence note. It is a real service readout; an uploaded take remains required for a new measured performance analysis.', true, () => this.latestVocalGuidance(), 'vocal-suite'),
           make(2, 'Generate a harmony stack from the take', 'Use the take’s notes to create a harmony part; if no part is detected, the fallback is a simple third above the root.', true, () => this.generateHarmonyFromSelectedTake()),
           make(3, 'Apply vocal polish only after the repair plan is clear', 'Use Director Chat / Vocal Suite polish controls on the repaired take; do not use polish to hide tuning, clipping or timing problems.', false, () => 'Guided: use the Vocal Suite polish controls on the repaired take after the current advice has been applied.', 'vocal-suite'),
         ];
@@ -360,7 +403,7 @@ export class StudioAiDirectorService {
       case 'synthesizer':
         return [
           make(1, 'Seed the synth with a melodic layer', 'Add a generated melody to a track if the synth lane is empty, then use that track for sound design.', true, () => this.seedMelodicTrack()),
-          make(2, 'Match the patch to the generated key', 'Confirm the synth patch sits in the project key and does not fight the bass register.', false, () => 'Guided: set the patch register around the generated melody, then compare it with the bass loop.', 'synthesizer'),
+          make(2, 'Check the synth register against the bass', 'Measure the selected synth lane and the lowest melodic register from the live project notes and flag any root/register collision.', true, () => this.synthRegisterCheck()),
           make(3, 'Track a useful patch recipe', 'Favorite the patch once its role is proven in the full session.', true, () => this.favoriteBestSound(context)),
         ];
       case 'tuner':
@@ -414,7 +457,7 @@ export class StudioAiDirectorService {
       case 'export':
         return [
           make(1, 'Run the final mastering pass', 'Master against the intended delivery surface before exporting.', true, () => this.autoMaster()),
-          make(2, 'Export the review bounce', 'Render the offline WAV review bounce and read its measured peak/RMS before delivery.', true, () => this.bounceProjectReview()),
+          make(2, 'Complete the delivery export', 'Render the pre-master mix, apply the retained master chain, run the S.M.U.V.E polish, measure the polished buffer, encode a real WAV and download the delivery file.', true, () => this.completeDeliveryExport()),
           make(3, 'Prepare the delivery checklist', 'Read the AI Produce release handoff and surface format, loudness target, artwork, metadata and next delivery step.', true, () => this.deliveryChecklist()),
         ];
     }
@@ -534,6 +577,125 @@ export class StudioAiDirectorService {
     const result = await this.offlineBounce.bounce('wav-32-float');
     if (!result) throw new Error('Offline review bounce did not complete.');
     return `Offline review bounce rendered ${result.durationSeconds.toFixed(1)}s at ${Math.round(result.sampleRate / 1000)} kHz (${result.format}); measured peak ${result.peakDb} dBFS, RMS ${result.rmsDb} dBFS.`;
+  }
+
+  /**
+   * Full Director delivery path. The Studio Export surface intentionally
+   * pauses between rendering and encoding so the artist can review the
+   * measured master; this step carries the same real render, master, S.M.U.V.E
+   * polish, measurement, encode and download path through in one command.
+   */
+  private async completeDeliveryExport(): Promise<string> {
+    const sampleRate = 44100;
+    const preMaster = await this.exports.renderProjectOffline({
+      sampleRate,
+      preMaster: true,
+    });
+    const mastered = await this.exports.masterRetainedMix(preMaster);
+    const polished = await this.exports.applySmuvePolish(mastered);
+    const analysis = this.exports.analyzeBuffer(polished);
+    const blob = await this.exports.exportToFormat(polished, 'wav24');
+    if (!blob) throw new Error('Delivery export did not produce an audio file.');
+    const project = (this.music.projectName || 'Elite_Session').replace(/[^\w.-]/g, '_');
+    const filename = `${project}_Director_Delivery_24bit_${Date.now()}.wav`;
+    this.exports.downloadBlob(blob, filename);
+    return `Complete delivery export downloaded ${filename}: rendered ${analysis.durationSec.toFixed(1)}s at ${Math.round(sampleRate / 1000)} kHz, peak ${analysis.peakDb} dBFS, true peak ${analysis.truePeakDb} dBFS, RMS ${analysis.rmsDb} dBFS, ${analysis.lufs} LUFS.`;
+  }
+
+  private recommendQuickSessionRecipe(): string {
+    const recipe = this.ideas.recommend(this.engine.tempo());
+    return `Recommended first Quick Session starter: ${recipe.name} at ${recipe.bpm} BPM (${recipe.vibe}). Start it from Quick Session so the shell can snapshot a dirty sketch before the canvas changes.`;
+  }
+
+  private evolveDrumVariation(): string {
+    const drumTracks = this.music.tracks().filter(
+      (track) => track.type === 'drum' && (track.notes?.length ?? 0) > 0,
+    );
+    const selected = this.music.selectedTrack();
+    const track =
+      (selected && selected.type === 'drum' && (selected.notes?.length ?? 0) > 0
+        ? selected
+        : drumTracks[0]) ?? null;
+    if (!track) throw new Error('No drum track with notes is available to evolve.');
+
+    const voices = [36, 38, 39, 42, 46];
+    const evolvedNotes = (track.notes ?? [])
+      .map((note) => {
+        const roll = Math.random();
+        if (roll < 0.2) return null;
+        if (roll < 0.35) {
+          return {
+            ...note,
+            velocity: Math.max(
+              0.1,
+              Math.min(1, (note.velocity ?? 0.8) + (Math.random() - 0.5) * 0.3),
+            ),
+          } as TrackNote;
+        }
+        return note;
+      })
+      .filter((note): note is TrackNote => note !== null);
+
+    for (const midi of voices) {
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const step = Math.floor(Math.random() * 64);
+        const exists = evolvedNotes.some(
+          (note) => note.midi === midi && Math.round(note.step) === step,
+        );
+        if (!exists && Math.random() > 0.6) {
+          evolvedNotes.push({
+            id: this.nextId('evolve'),
+            midi,
+            step,
+            length: 1,
+            velocity: 0.5 + Math.random() * 0.4,
+            probability: 0.8,
+          });
+        }
+      }
+    }
+
+    this.music.replaceTrackNotes(track.id, evolvedNotes, 'Director EVOLVE variation');
+    this.music.selectedTrackId.set(track.id);
+    return `Evolved ${track.name}: mutated a focused slice of ${track.notes?.length ?? 0} hits, nudged velocities and added sparse accents; the variation is undoable.`;
+  }
+
+  private channelRoleAudit(): string {
+    const tracks = this.music.tracks().filter((track) => track.type !== 'audio');
+    if (tracks.length === 0) throw new Error('No Channel Rack channels are available to audit.');
+    const roles = new Map<string, string[]>();
+    for (const track of tracks) {
+      const role = track.instrumentId || track.type;
+      const names = roles.get(role) ?? [];
+      names.push(track.name);
+      roles.set(role, names);
+    }
+    const duplicates = [...roles.entries()].filter(([, names]) => names.length > 1);
+    if (duplicates.length === 0) {
+      return `${tracks.length} channel roles audited; no duplicate primary instrument assignments found.`;
+    }
+    return `${tracks.length} channel roles audited; duplicate assignments: ${duplicates.map(([role, names]) => `${role} (${names.join(', ')})`).join('; ')}.`;
+  }
+
+  private latestVocalGuidance(): string {
+    const advice = this.vocal.currentAdvice().trim();
+    if (!advice || advice.length <= 12) {
+      throw new Error('No measured vocal guidance is available yet; upload a vocal take in the Vocal Suite first.');
+    }
+    return `Latest Vocal AI guidance: ${advice}`;
+  }
+
+  private synthRegisterCheck(): string {
+    const tracks = this.music.tracks().filter((track) => (track.notes?.length ?? 0) > 0);
+    if (tracks.length === 0) throw new Error('No synth notes are available for a register check.');
+    const selected = this.music.selectedTrack();
+    const ranges = tracks.map((track) => {
+      const midis = (track.notes ?? []).map((note) => note.midi);
+      return { name: track.name, low: Math.min(...midis), high: Math.max(...midis) };
+    });
+    const bass = [...ranges].sort((a, b) => a.low - b.low)[0];
+    const synth = ranges.find((range) => range.name === selected?.name && range.name !== bass.name) ?? ranges.find((range) => range.name !== bass.name) ?? ranges[0];
+    return `Synth register ${synth.name} spans MIDI ${synth.low}–${synth.high}; bass register ${bass.name} spans MIDI ${bass.low}–${bass.high}; ${synth.low <= bass.high ? 'the synth enters the bass register, so raise the patch or lower the bass before committing' : 'the synth register stays clear of the bass register'}.`;
   }
 
   private applyAiProduceArtifacts(): string {

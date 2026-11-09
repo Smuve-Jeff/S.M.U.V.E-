@@ -19,6 +19,7 @@ import { Router, RouterLink } from "@angular/router";
 import { AiService } from "../../../services/ai.service";
 import { AiCopilotService } from "../../ai-copilot.service";
 import { MusicManagerService } from "../../../services/music-manager.service";
+import { HistoryService } from "../../../services/history.service";
 import { AudioEngineService } from "../../../services/audio-engine.service";
 import { NeuralMixerService } from "../../../services/neural-mixer.service";
 import { HapticService } from "../../../services/haptic.service";
@@ -107,6 +108,7 @@ export class AiAssistantComponent implements OnInit, AfterViewInit, OnDestroy {
   readonly aiLockNotice = this.ai.aiLockNotice;
   private copilot = inject(AiCopilotService);
   public musicManager = inject(MusicManagerService);
+  public history = inject(HistoryService, { optional: true });
   public audio = inject(AudioEngineService);
   private neural = inject(NeuralMixerService);
   private haptic = inject(HapticService);
@@ -481,6 +483,62 @@ export class AiAssistantComponent implements OnInit, AfterViewInit, OnDestroy {
       this.snack.error(`Director plan failed: ${(error as Error).message}`);
     } finally {
       this.directorBusy.set(false);
+    }
+  }
+
+  canUndoDirectorAction(): boolean {
+    return this.director.canUndoDirectorAction();
+  }
+
+  canRedoDirectorAction(): boolean {
+    return this.director.canRedoDirectorAction();
+  }
+
+  undoDirectorAction(): void {
+    if (this.directorBusy()) return;
+    try {
+      const message = this.director.undoLastAction();
+      this.directorReport.update((report) => [...report, `Done — Undo: ${message}`]);
+      this.directorStatus.set(message);
+      this.snack.success(message);
+      this.haptic.medium();
+    } catch (error) {
+      const message = `Undo failed: ${(error as Error).message}`;
+      this.directorStatus.set(message);
+      this.snack.error(message);
+    }
+  }
+
+  redoDirectorAction(): void {
+    if (this.directorBusy()) return;
+    try {
+      const message = this.director.redoLastAction();
+      this.directorReport.update((report) => [...report, `Done — Redo: ${message}`]);
+      this.directorStatus.set(message);
+      this.snack.success(message);
+      this.haptic.medium();
+    } catch (error) {
+      const message = `Redo failed: ${(error as Error).message}`;
+      this.directorStatus.set(message);
+      this.snack.error(message);
+    }
+  }
+
+  deleteSelectedDirectorTrack(): void {
+    if (this.directorBusy()) return;
+    const track = this.musicManager.selectedTrack();
+    if (!track) return;
+    if (!window.confirm(`Delete "${track.name}"? Undo restores it.`)) return;
+    try {
+      const message = this.director.deleteSelectedTrack();
+      this.directorReport.update((report) => [...report, `Done — Delete: ${message}`]);
+      this.directorStatus.set(message);
+      this.snack.success(message);
+      this.haptic.medium();
+    } catch (error) {
+      const message = `Delete failed: ${(error as Error).message}`;
+      this.directorStatus.set(message);
+      this.snack.error(message);
     }
   }
 

@@ -4,6 +4,9 @@ import { StudioAiDirectorService } from './studio-ai-director.service';
 import { STUDIO_SURFACES } from './studio-surfaces';
 import { AiService } from '../services/ai.service';
 import { MusicManagerService } from '../services/music-manager.service';
+import { HistoryService } from '../services/history.service';
+import { ExportService } from '../services/export.service';
+import { IdeasGeneratorService } from '../services/ideas-generator.service';
 import { AudioEngineService } from '../services/audio-engine.service';
 import { AiBeatGeneratorService } from '../services/ai-beat-generator.service';
 import { AiProduceService } from '../services/ai-produce.service';
@@ -62,6 +65,7 @@ function makeDirector(overrides: Record<string, unknown> = {}) {
     launchSceneColumn: jest.fn(() => 0),
     toggleAllInsertsBypass: jest.fn(),
     replaceTrackNotes: jest.fn(),
+    removeTrack: jest.fn(),
     ...overrides.music,
   };
   const engine = {
@@ -124,6 +128,7 @@ function makeDirector(overrides: Record<string, unknown> = {}) {
     suggestions: signal([]),
     analyzeAll: jest.fn(),
     detectGenre: jest.fn().mockReturnValue('pop'),
+    autoMaster: jest.fn().mockReturnValue(['auto-mastered']),
     applySuggestion: jest.fn().mockReturnValue({ id: 's1' }),
     ...overrides.mix,
   };
@@ -182,6 +187,37 @@ function makeDirector(overrides: Record<string, unknown> = {}) {
     }),
     ...overrides.offlineBounce,
   };
+  const history = {
+    canUndo: jest.fn(() => true),
+    canRedo: jest.fn(() => false),
+    undo: jest.fn(),
+    redo: jest.fn(),
+    lastActionName: jest.fn(() => 'Remove Track · Test Track'),
+    ...overrides.history,
+  };
+  const audioBuffer = { duration: 12.5 } as AudioBuffer;
+  const exportService = {
+    renderProjectOffline: jest.fn().mockResolvedValue(audioBuffer),
+    masterRetainedMix: jest.fn().mockResolvedValue(audioBuffer),
+    applySmuvePolish: jest.fn().mockResolvedValue(audioBuffer),
+    analyzeBuffer: jest.fn().mockReturnValue({
+      durationSec: 12.5,
+      peakDb: -1.2,
+      truePeakDb: -0.8,
+      rmsDb: -14.5,
+      lufs: -9,
+      lra: 6,
+      correlation: 0.95,
+      sampleCount: 120000,
+    }),
+    exportToFormat: jest.fn().mockResolvedValue(new Blob(['audio'])),
+    downloadBlob: jest.fn(),
+    ...overrides.exportService,
+  };
+  const ideas = {
+    recommend: jest.fn().mockReturnValue({ name: 'Neo Soul', bpm: 92, vibe: 'warm' }),
+    ...overrides.ideas,
+  };
 
   TestBed.configureTestingModule({
     providers: [
@@ -204,9 +240,12 @@ function makeDirector(overrides: Record<string, unknown> = {}) {
       { provide: AudioRecorderService, useValue: audioRecorder },
       { provide: AiCopilotService, useValue: copilot },
       { provide: OfflineBounceService, useValue: offlineBounce },
+      { provide: HistoryService, useValue: history },
+      { provide: ExportService, useValue: exportService },
+      { provide: IdeasGeneratorService, useValue: ideas },
     ],
   });
-  return { service: TestBed.inject(StudioAiDirectorService), music, engine, ai, beat, mix, sounds, workspace, telemetry, takeManager, audioRecorder, copilot, offlineBounce, scale, produce };
+  return { service: TestBed.inject(StudioAiDirectorService), music, engine, ai, beat, mix, sounds, workspace, telemetry, takeManager, audioRecorder, copilot, offlineBounce, scale, produce, history, exportService, ideas, vocal, tracks };
 }
 
 describe('StudioAiDirectorService', () => {
@@ -434,5 +473,88 @@ describe('StudioAiDirectorService', () => {
     const result = await service.runStep(plan.steps[0]);
     expect(result.ok).toBe(true);
     expect(result.message).toContain('2 saved recording takes');
+  });
+
+  it('recommends a Quick Session starter from the live BPM', async () => {
+    const { service, ideas } = makeDirector();
+    const plan = service.buildPlan({ surfaceId: 'quick-session' });
+    const result = await service.runStep(plan.steps[0]);
+    expect(result.ok).toBe(true);
+    expect(ideas.recommend).toHaveBeenCalledWith(120);
+    expect(result.message).toContain('Neo Soul');
+  });
+
+  it('runs a real EVOLVE-style mutation on a drum track', async () => {
+    const { service, music } = makeDirector({
+      music: {
+        tracks: signal([
+          {
+            id: 'drums',
+            name: 'Kit',
+            type: 'drum',
+            gain: 0.8,
+            muted: false,
+            solo: false,
+            notes: [{ id: 'n1', midi: 36, step: 0, length: 1, velocity: 0.9 }],
+            clips: [],
+          },
+        ]),
+      },
+    });
+    music.selectedTrack = () => music.tracks().find((t: any) => t.id === 'drums') ?? null;
+    const plan = service.buildPlan({ surfaceId: 'drum-machine' });
+    const result = await service.runStep(plan.steps[2]);
+    expect(result.ok).toBe(true);
+    expect(music.replaceTrackNotes).toHaveBeenCalled();
+    expect(result.message).toContain('Evolved Kit');
+  });
+
+  it('audits duplicate channel roles without silently reassigning sounds', async () => {
+    const { service } = makeDirector();
+    const plan = service.buildPlan({ surfaceId: 'channel-rack' });
+    const result = await service.runStep(plan.steps[2]);
+    expect(result.ok).toBe(true);
+    expect(result.message).toContain('channel roles audited');
+  });
+
+  it('reads vocal guidance and checks the synth register', async () => {
+    const { service, vocal } = makeDirector();
+    vocal.currentAdvice.set('Peak is safe; try a lighter breath before the chorus.');
+    const vocalPlan = service.buildPlan({ surfaceId: 'vocal-suite' });
+    const vocalResult = await service.runStep(vocalPlan.steps[0]);
+    expect(vocalResult.ok).toBe(true);
+    expect(vocalResult.message).toContain('Latest Vocal AI guidance');
+
+    const synthPlan = service.buildPlan({ surfaceId: 'synthesizer' });
+    const synthResult = await service.runStep(synthPlan.steps[1]);
+    expect(synthResult.ok).toBe(true);
+    expect(synthResult.message).toContain('Synth register');
+  });
+
+  it('completes rendering, mastering, polish, measurement, encode and download for Export', async () => {
+    const { service, exportService } = makeDirector();
+    const plan = service.buildPlan({ surfaceId: 'export' });
+    const mastering = await service.runStep(plan.steps[0]);
+    expect(mastering.ok).toBe(true);
+    const result = await service.runStep(plan.steps[1]);
+    expect(result.ok).toBe(true);
+    expect(exportService.renderProjectOffline).toHaveBeenCalledWith({ sampleRate: 44100, preMaster: true });
+    expect(exportService.masterRetainedMix).toHaveBeenCalled();
+    expect(exportService.applySmuvePolish).toHaveBeenCalled();
+    expect(exportService.analyzeBuffer).toHaveBeenCalled();
+    expect(exportService.exportToFormat).toHaveBeenCalledWith(expect.anything(), 'wav24');
+    expect(exportService.downloadBlob).toHaveBeenCalled();
+    expect(result.message).toContain('Complete delivery export downloaded');
+  });
+
+  it('deletes the selected track through the undoable command and restores it through history', async () => {
+    const { service, music, history } = makeDirector();
+    const deleted = service.deleteSelectedTrack();
+    expect(music.removeTrack).toHaveBeenCalledWith('track-1');
+    expect(deleted).toContain('Undo to restore');
+
+    const undone = service.restoreLastDeletedState();
+    expect(history.undo).toHaveBeenCalled();
+    expect(undone).toContain('Remove Track · Test Track');
   });
 });

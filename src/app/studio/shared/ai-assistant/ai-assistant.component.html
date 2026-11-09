@@ -307,6 +307,18 @@
         <span class="material-symbols-outlined">play_arrow</span>
         Run plan
       </button>
+      <button type="button" class="ai-director-secondary" (click)="undoDirectorAction()" [disabled]="directorBusy() || !canUndoDirectorAction()">
+        <span class="material-symbols-outlined">undo</span>
+        Undo
+      </button>
+      <button type="button" class="ai-director-secondary" (click)="redoDirectorAction()" [disabled]="directorBusy() || !canRedoDirectorAction()">
+        <span class="material-symbols-outlined">redo</span>
+        Redo
+      </button>
+      <button type="button" class="ai-director-secondary ai-director-danger" (click)="deleteSelectedDirectorTrack()" [disabled]="directorBusy() || !musicManager.selectedTrack()">
+        <span class="material-symbols-outlined">delete_forever</span>
+        Delete selected track
+      </button>
     </div>
     <p *ngIf="directorStatus()" class="ai-director-status" role="status" aria-live="polite">
       {{ directorStatus() }}

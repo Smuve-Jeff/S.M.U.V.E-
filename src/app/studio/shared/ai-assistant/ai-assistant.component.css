@@ -927,6 +927,11 @@
   padding: 0 12px;
 }
 
+.ai-director-danger {
+  color: #b91c1c;
+  border-color: color-mix(in srgb, #b91c1c 35%, var(--espresso-line));
+}
+
 .ai-director-primary:disabled,
 .ai-director-secondary:disabled,
 .ai-director-run:disabled {
