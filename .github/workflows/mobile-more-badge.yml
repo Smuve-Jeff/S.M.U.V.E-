@@ -1,0 +1,52 @@
+name: Mobile More Badge
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mobile-more-badge-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  badge:
+    name: More badge clears its icon
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Use project Node version
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Install Chromium with browser dependencies
+        run: npx playwright install --with-deps chromium
+
+      - name: Run mobile More badge regression
+        run: npx playwright test tests/e2e/mobile-more-badge.spec.ts
+        env:
+          CI: true
+
+      - name: Upload Playwright diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mobile-more-badge-playwright
+          path: |
+            test-results/
+            playwright-report/
+          if-no-files-found: ignore
+          retention-days: 7
