@@ -125,8 +125,14 @@ describe("AiAssistantComponent voice communication", () => {
               steps: [],
             })),
             createStudioBrief: jest.fn().mockResolvedValue("Director brief."),
+            sessionEvidence: jest.fn(() => [
+              "Transport loop: steps 1-16.",
+              "Last Director run: export 8/11 completed, 3 failed.",
+            ]),
             runPlan: jest.fn().mockResolvedValue({ report: [], failed: 0 }),
             runStep: jest.fn().mockResolvedValue({ ok: true, message: "ok" }),
+            lastDirectorRun: jest.fn(() => null),
+            exportRunReport: jest.fn(() => "Exported Director run report."),
             listCheckpoints: jest.fn(() => [
               {
                 id: "cp-2",
@@ -147,6 +153,48 @@ describe("AiAssistantComponent voice communication", () => {
         },
       ],
     }).compileComponents();
+  });
+
+  it("builds the chat prompt from live Director evidence", () => {
+    const fixture = TestBed.createComponent(AiAssistantComponent);
+    const component = fixture.componentInstance;
+    const prompt = (component as any).buildContextualPrompt("export the loop");
+    expect(prompt).toContain("Transport loop: steps 1-16.");
+    expect(prompt).toContain("Last Director run: export 8/11 completed, 3 failed.");
+    expect(director.sessionEvidence).toHaveBeenCalled();
+  });
+
+  it("runs drum and mastering quick actions through real Director steps", async () => {
+    const fixture = TestBed.createComponent(AiAssistantComponent);
+    const component = fixture.componentInstance;
+    director.buildPlan.mockReturnValue({
+      surfaceId: "drum-machine",
+      title: "Drum Machine Director Plan",
+      mission: "",
+      successCriteria: [],
+      evidence: [],
+      steps: [
+        {
+          id: "drum-machine-3",
+          surfaceId: "drum-machine",
+          label: "Run one EVOLVE variation",
+          detail: "",
+          executable: true,
+          run: jest.fn(),
+        },
+      ],
+    });
+    director.runStep.mockResolvedValue({ ok: true, message: "EVOLVE variation applied." });
+
+    const message = await (component as any).runDirectorStepFor(
+      "drum-machine",
+      "Run one EVOLVE variation",
+    );
+    expect(message).toBe("EVOLVE variation applied.");
+    expect(director.buildPlan).toHaveBeenCalledWith({ surfaceId: "drum-machine" });
+    expect(director.runStep).toHaveBeenCalledWith(
+      expect.objectContaining({ label: "Run one EVOLVE variation" }),
+    );
   });
 
   it("hands the Director plan off to the selected Studio surface", () => {

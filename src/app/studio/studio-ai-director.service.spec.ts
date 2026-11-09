@@ -418,6 +418,7 @@ function makeDirector(overrides: Record<string, unknown> = {}) {
 describe('StudioAiDirectorService', () => {
   beforeEach(() => {
     TestBed.resetTestingModule();
+    window.localStorage.clear();
   });
 
   it('normalizes unknown surfaces to arrangement', () => {
@@ -454,6 +455,36 @@ describe('StudioAiDirectorService', () => {
     const run = await service.runPlan(plan);
     expect(run.completed).toBe(plan.steps.length);
     expect(run.report.join('\n')).toContain('Done');
+  });
+
+  it('records Director runs into evidence and exports a Markdown run report', async () => {
+    const { service, workspace, exportService } = makeDirector();
+    workspace.metadata.set({ id: 'project-1', name: 'Test Project', key: 'C' });
+    const plan = service.buildPlan({ surfaceId: 'arrangement' });
+    const run = await service.runPlan(plan);
+
+    expect(service.lastDirectorRun()).toBe(run);
+    expect(service.listDirectorRuns()).toEqual([run]);
+    const evidence = service.sessionEvidence({ surfaceId: 'arrangement' }).join('\n');
+    expect(evidence).toContain('Transport loop:');
+    expect(evidence).toContain(`Last Director run: arrangement ${run.completed}/${run.results.length} completed`);
+
+    const report = service.formatRunReport();
+    expect(report).toContain('# Arrangement Director run');
+    expect(report).toContain('## Results');
+    expect(report).toContain('[done]');
+
+    const message = service.exportRunReport();
+    expect(exportService.downloadBlob).toHaveBeenCalledWith(expect.objectContaining({ type: 'text/markdown' }), expect.stringMatching(/Test_Project_Director_Run_arrangement_\d+\.md$/));
+    expect(message).toContain('Test_Project_Director_Run_arrangement_');
+
+    const persisted = JSON.parse(window.localStorage.getItem('smuve.studio.director.run-history.v1')!);
+    expect(persisted[0]).toMatchObject({ surfaceId: 'arrangement', completed: run.completed, failed: run.failed });
+
+    TestBed.resetTestingModule();
+    const restored = makeDirector().service;
+    expect(restored.lastDirectorRun()).toMatchObject({ surfaceId: 'arrangement', completed: run.completed, failed: run.failed });
+    expect(restored.sessionEvidence({ surfaceId: 'arrangement' }).join('\n')).toContain('Last Director run: arrangement');
   });
 
   it('returns an error result when a step throws', async () => {

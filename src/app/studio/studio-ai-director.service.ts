@@ -119,6 +119,8 @@ export interface DirectorCheckpointSummary {
 
 const SURFACE_LOOKUP = new Map(STUDIO_SURFACES.map((s) => [s.id, s]));
 const PITCHES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+const DIRECTOR_RUN_HISTORY_KEY = 'smuve.studio.director.run-history.v1';
+const DIRECTOR_RUN_HISTORY_MAX = 12;
 
 /**
  * Cross-surface director for the complete Studio module.
@@ -164,6 +166,8 @@ export class StudioAiDirectorService {
 
   private sequence = 0;
   private lastDetectedScale = 'major';
+  private runHistory: StudioDirectorRunResult[] = this.restoreRunHistory();
+  private lastRun: StudioDirectorRunResult | null = this.runHistory[0] ?? null;
 
   /** Normalize a host-provided surface id (or legacy alias) for the director. */
   normalizeSurfaceId(value: string | null | undefined): StudioSurfaceId {
@@ -474,7 +478,98 @@ export class StudioAiDirectorService {
       failed,
       durationMs: finishedAt - startedAt,
     });
-    return { surfaceId: plan.surfaceId, startedAt, finishedAt, results, report, completed, failed };
+    const runResult: StudioDirectorRunResult = {
+      surfaceId: plan.surfaceId,
+      startedAt,
+      finishedAt,
+      results,
+      report,
+      completed,
+      failed,
+    };
+    this.lastRun = runResult;
+    this.runHistory = [runResult, ...this.runHistory].slice(0, DIRECTOR_RUN_HISTORY_MAX);
+    this.persistRunHistory();
+    return runResult;
+  }
+
+  /** The most recent full Director plan run, when one has completed. */
+  lastDirectorRun(): StudioDirectorRunResult | null {
+    return this.lastRun;
+  }
+
+  /** Recent Director plan runs, newest first. */
+  listDirectorRuns(limit = 12): StudioDirectorRunResult[] {
+    return this.runHistory.slice(0, Math.max(1, limit));
+  }
+
+  private restoreRunHistory(): StudioDirectorRunResult[] {
+    try {
+      if (typeof localStorage === 'undefined') return [];
+      const raw = localStorage.getItem(DIRECTOR_RUN_HISTORY_KEY);
+      if (!raw) return [];
+      const parsed = JSON.parse(raw) as unknown;
+      if (!Array.isArray(parsed)) return [];
+      return parsed
+        .filter((run): run is StudioDirectorRunResult => this.isPersistedRun(run))
+        .slice(0, DIRECTOR_RUN_HISTORY_MAX);
+    } catch {
+      return [];
+    }
+  }
+
+  private persistRunHistory(): void {
+    try {
+      if (typeof localStorage === 'undefined') return;
+      localStorage.setItem(DIRECTOR_RUN_HISTORY_KEY, JSON.stringify(this.runHistory));
+    } catch {
+      // Persistence is a convenience for the loop; a failed write must not break a run.
+    }
+  }
+
+  private isPersistedRun(run: unknown): run is StudioDirectorRunResult {
+    if (!run || typeof run !== 'object') return false;
+    const candidate = run as Partial<StudioDirectorRunResult>;
+    return (
+      typeof candidate.surfaceId === 'string' &&
+      Number.isFinite(candidate.startedAt) &&
+      Number.isFinite(candidate.finishedAt) &&
+      Number.isFinite(candidate.completed) &&
+      Number.isFinite(candidate.failed) &&
+      Array.isArray(candidate.results) &&
+      Array.isArray(candidate.report)
+    );
+  }
+
+  /** Format a Director run as a Markdown report with every step outcome. */
+  formatRunReport(run: StudioDirectorRunResult | null = this.lastRun): string {
+    if (!run) throw new Error('Run a Director plan before exporting its report.');
+    const title = `${SURFACE_LOOKUP.get(run.surfaceId)?.label ?? run.surfaceId} Director run`;
+    return [
+      `# ${title}`,
+      '',
+      `Surface: ${run.surfaceId}`,
+      `Started: ${new Date(run.startedAt).toISOString()}`,
+      `Finished: ${new Date(run.finishedAt).toISOString()}`,
+      `Completed: ${run.completed}/${run.results.length} · Failed: ${run.failed}`,
+      '',
+      '## Results',
+      ...run.results.map((result) => `- ${result.ok ? '[done]' : '[check]'} ${result.step.label} (${result.durationMs}ms): ${result.message}`),
+      '',
+      '## Report lines',
+      ...run.report.map((line) => `- ${line}`),
+      '',
+    ].join('\n');
+  }
+
+  /** Download the latest Director run as a Markdown report. */
+  exportRunReport(run: StudioDirectorRunResult | null = this.lastRun): string {
+    const text = this.formatRunReport(run);
+    const project = (this.workspace.metadata()?.name || this.music.projectName || 'Elite_Session').replace(/[^\w.-]/g, '_');
+    const surface = run?.surfaceId ?? 'studio';
+    const filename = `${project}_Director_Run_${surface}_${Date.now()}.md`;
+    this.exports.downloadBlob(new Blob([text], { type: 'text/markdown' }), filename);
+    return `Exported Director run report as ${filename} (${run?.completed ?? 0}/${run?.results.length ?? 0} steps completed).`;
   }
 
   /** Compact live evidence summary for any surface. */
@@ -507,6 +602,19 @@ export class StudioAiDirectorService {
       `AI context: ${suggestions} mix suggestion${suggestions === 1 ? '' : 's'} · ${soundCount} searchable sounds · ${favorites} favorites · ${foundationsReady ? 'foundations ready' : 'foundations preparing'}.`,
     ];
 
+    const loopEnabled = this.engine.playbackLoopEnabled?.() ?? false;
+    const loopStart = this.engine.playbackLoopStart?.() ?? null;
+    const loopEnd = this.engine.playbackLoopEnd?.() ?? null;
+    const activeLoopBars = typeof this.music.activeLoopBars === 'function' ? this.music.activeLoopBars() : 4;
+    evidence.push(
+      `Transport loop: ${loopEnabled && loopStart !== null && loopEnd !== null && loopEnd > loopStart ? `steps ${loopStart + 1}-${loopEnd}` : `off (active loop ${activeLoopBars} bars)`}.`,
+    );
+    if (this.lastRun) {
+      const firstFailure = this.lastRun.results.find((result) => !result.ok);
+      evidence.push(
+        `Last Director run: ${this.lastRun.surfaceId} ${this.lastRun.completed}/${this.lastRun.results.length} completed, ${this.lastRun.failed} failed${firstFailure ? `; first failure: ${firstFailure.step.label} — ${firstFailure.message}` : ''}.`,
+      );
+    }
     if (produceBeat) {
       evidence.push(`Last produced beat: ${produceBeat.title} · ${produceBeat.genre} · ${produceBeat.bpm} BPM · ${produceBeat.key} · ${produceBeat.totalBars} bars.`);
     }

@@ -140,6 +140,9 @@ export class AiAssistantComponent implements OnInit, AfterViewInit, OnDestroy {
     const plan = this.directorPlan();
     return STUDIO_SURFACES.find((surface) => surface.id === plan?.surfaceId)?.label ?? "Studio";
   });
+  directorRunExportReady = computed(
+    () => this.directorReport().length > 0 || !!this.director.lastDirectorRun?.(),
+  );
   /** Newest-first SessionHistory checkpoints for the open project. */
   directorCheckpoints = computed<DirectorCheckpointSummary[]>(() =>
     this.director.listCheckpoints(),
@@ -243,22 +246,23 @@ export class AiAssistantComponent implements OnInit, AfterViewInit, OnDestroy {
         {
           id: "euclid",
           label: "Euclidean Beat",
-          description: "Generate a euclidean rhythm",
+          description: "Generate a playable drum kit pattern",
           icon: "auto_awesome",
           contexts: ["drum-machine"],
-          run: () => {
-            // simple proxy via existing evolveRhythm
-            return "Try the EVOLVE button in the drum header — AI is shaping your kit.";
-          },
+          run: async () =>
+            this.runDirectorStepFor(
+              "drum-machine",
+              "Generate a playable drum kit pattern",
+            ),
         },
         {
           id: "fill",
           label: "AI Fill",
-          description: "Generate a fill at end of pattern",
+          description: "Run one EVOLVE drum variation",
           icon: "auto_awesome",
           contexts: ["drum-machine"],
-          run: () =>
-            "Switch to bar 4 and press EVOLVE — focus changes will appear there.",
+          run: async () =>
+            this.runDirectorStepFor("drum-machine", "Run one EVOLVE variation"),
         },
       );
     }
@@ -280,10 +284,11 @@ export class AiAssistantComponent implements OnInit, AfterViewInit, OnDestroy {
         {
           id: "loudness",
           label: "Master Loudness",
-          description: "Hit target LUFS for streaming",
+          description: "Run the genre-aware AI master chain",
           icon: "multitrack_audio",
           contexts: ["mastering"],
-          run: () => "LUFS target set to -14 (Spotify/Apple). Limiter engaged.",
+          run: async () =>
+            this.runDirectorStepFor("mastering", "Run the genre-aware master"),
         },
       );
     }
@@ -304,18 +309,20 @@ export class AiAssistantComponent implements OnInit, AfterViewInit, OnDestroy {
       {
         id: "chords",
         label: "Generate Chords",
-        description: "Add C-minor progression to selected track",
+        description: "Write a generator-backed chord framework into pad, bass and top-line parts",
         icon: "graphic_eq",
         contexts: ["*"],
-        run: () => this.generateChords(),
+        run: async () =>
+          this.runDirectorStepFor("chord-editor", "Turn the progression into parts"),
       },
       {
         id: "melody",
         label: "Spark Melody",
-        description: "Compose a 4-bar seed melody",
+        description: "Seed a melodic layer into the selected track",
         icon: "graphic_eq",
         contexts: ["*"],
-        run: () => this.sparkMelody(),
+        run: async () =>
+          this.runDirectorStepFor("piano-roll", "Write a melodic seed into the selected track"),
       },
       {
         id: "roast",
@@ -649,6 +656,29 @@ export class AiAssistantComponent implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
+  exportDirectorRunReport(): void {
+    if (this.directorBusy()) return;
+    try {
+      const message = this.director.exportRunReport();
+      this.directorReport.update((report) => [...report, `Done — Export run report: ${message}`]);
+      this.directorStatus.set(message);
+      this.snack.success(message);
+      this.haptic.medium();
+    } catch (error) {
+      const message = `Run report export failed: ${(error as Error).message}`;
+      this.directorStatus.set(message);
+      this.snack.error(message);
+    }
+  }
+
+  private async runDirectorStepFor(surfaceId: string, label: string): Promise<string> {
+    const plan = this.director.buildPlan({ surfaceId });
+    const step = plan.steps.find((candidate) => candidate.label === label);
+    if (!step) return `Director step ${label} is unavailable on ${surfaceId}.`;
+    const result = await this.director.runStep(step);
+    return result.message;
+  }
+
   async runDirectorPlan(): Promise<void> {
     const plan = this.directorPlan();
     if (!plan || this.directorBusy()) return;
@@ -772,10 +802,7 @@ export class AiAssistantComponent implements OnInit, AfterViewInit, OnDestroy {
 
   /** Rich session-aware prompt so the AI knows exactly what you're working on. */
   private buildContextualPrompt(question: string): string {
-    const tracks = this.musicManager.tracks();
-    const sel = this.musicManager.selectedTrack();
     const meta = this.workspace.metadata();
-    const tempo = this.audio.tempo();
     const lines: string[] = [
       `You are ${this.personaName()}, S.M.U.V.E.'s sentient production intelligence for this studio session.`,
       // One shared character contract: persona, language policy, and command
@@ -799,12 +826,9 @@ export class AiAssistantComponent implements OnInit, AfterViewInit, OnDestroy {
         (meta?.genre ? ` | Genre: ${meta.genre}` : "") +
         (meta?.key ? ` | Key: ${meta.key}` : "") +
         (meta?.mood ? ` | Mood: ${meta.mood}` : ""),
-      `- Tempo: ${tempo} BPM`,
-      `- Track count: ${tracks.length}`,
-      `- Track names: ${tracks.map((t) => t.name).join(", ") || "none yet"}`,
-      `- Selected track: ${
-        sel ? `${sel.name} (${(sel as any).type || "instrument"})` : "none"
-      }`,
+      ...this.director.sessionEvidence({
+        surfaceId: this.activeViewContext(),
+      }),
       `- Current view: ${this.activeViewContext()}`,
       "",
       `ARTIST REQUEST: ${question}`,
@@ -1020,10 +1044,16 @@ export class AiAssistantComponent implements OnInit, AfterViewInit, OnDestroy {
         result = "Tempo locked to 140 BPM. Try to keep up.";
         break;
       case "chords":
-        result = this.generateChords();
+        result = await this.runDirectorStepFor(
+          "chord-editor",
+          "Turn the progression into parts",
+        );
         break;
       case "melody":
-        result = this.sparkMelody();
+        result = await this.runDirectorStepFor(
+          "piano-roll",
+          "Write a melodic seed into the selected track",
+        );
         break;
       case "structure":
         this.copilot.suggestStructure();
@@ -1072,41 +1102,6 @@ export class AiAssistantComponent implements OnInit, AfterViewInit, OnDestroy {
     ]);
     this.persistMessages();
     setTimeout(() => this.scrollDown(), 0);
-  }
-
-  /** Drop a 4-bar I–iv–V–VI progression on the selected track. */
-  private generateChords(): string {
-    const id = this.musicManager.selectedTrackId();
-    if (!id) return "Select a track first — I can't read minds.";
-    const mids = [60, 63, 67, 70];
-    mids.forEach((m, i) =>
-      this.musicManager.addNoteToTrack(id, {
-        id: "ai_chord_" + Date.now() + "_" + i,
-        midi: m,
-        step: i * 4,
-        length: 4,
-        velocity: 0.7,
-      }),
-    );
-    return "Generated I–iv–V–VI on the selected track.";
-  }
-
-  /** Spark an 8-note melodic seed on the selected track. */
-  private sparkMelody(): string {
-    const id = this.musicManager.selectedTrackId();
-    if (!id) return "Select a track first.";
-    const baseMidi = 64;
-    const pattern = [0, 4, 7, 12, 7, 4, 2, 5];
-    pattern.forEach((interval, i) =>
-      this.musicManager.addNoteToTrack(id, {
-        id: "ai_melody_" + Date.now() + "_" + i,
-        midi: baseMidi + interval,
-        step: i * 2,
-        length: 1,
-        velocity: 0.7 + (Math.random() - 0.5) * 0.2,
-      }),
-    );
-    return "Sparked an 8-note melodic seed. Voice it to taste.";
   }
 
   /** Fire a suggested chip as if the user typed it. */

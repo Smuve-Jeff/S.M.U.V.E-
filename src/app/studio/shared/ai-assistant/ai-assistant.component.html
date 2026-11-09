@@ -307,6 +307,10 @@
         <span class="material-symbols-outlined">play_arrow</span>
         Run plan
       </button>
+      <button type="button" class="ai-director-secondary" (click)="exportDirectorRunReport()" [disabled]="directorBusy() || !directorRunExportReady()">
+        <span class="material-symbols-outlined">download</span>
+        Export run report
+      </button>
       <button type="button" class="ai-director-secondary" (click)="undoDirectorAction()" [disabled]="directorBusy() || !canUndoDirectorAction()">
         <span class="material-symbols-outlined">undo</span>
         Undo
