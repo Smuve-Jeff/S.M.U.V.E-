@@ -28,7 +28,11 @@ import { AudioRecorderService } from './audio-recorder.service';
 import { AiMixAssistantService } from './effects/ai-mix-assistant.service';
 import { AiCopilotService } from './ai-copilot.service';
 import { OfflineBounceService } from './offline-bounce.service';
-import { ProjectWorkspaceService, type ProjectBundle } from './project-workspace.service';
+import {
+  ProjectWorkspaceService,
+  type DirectorBundleState,
+  type ProjectBundle,
+} from './project-workspace.service';
 import { buildProjectArchive } from './project-archive.util';
 import { SmartSoundService } from './smart-sound.service';
 import { SmartProductionFoundationsService } from './smart-production-foundations.service';
@@ -108,6 +112,12 @@ export interface StudioDirectorRunResult {
   failed: number;
 }
 
+export interface DirectorBriefRecord {
+  surfaceId: StudioSurfaceId;
+  brief: string;
+  at: number;
+}
+
 export interface DirectorCheckpointSummary {
   id: string;
   label: string;
@@ -168,6 +178,8 @@ export class StudioAiDirectorService {
   private lastDetectedScale = 'major';
   private runHistory: StudioDirectorRunResult[] = this.restoreRunHistory();
   private lastRun: StudioDirectorRunResult | null = this.runHistory[0] ?? null;
+  private briefHistory: DirectorBriefRecord[] = [];
+  private readonly bundleBridge = this.registerBundleBridge();
 
   /** Normalize a host-provided surface id (or legacy alias) for the director. */
   normalizeSurfaceId(value: string | null | undefined): StudioSurfaceId {
@@ -214,12 +226,90 @@ export class StudioAiDirectorService {
 
     try {
       const response = await this.ai.getAIResponse(prompt);
-      if (!response || isOfflineAiText(response)) return this.fallbackBrief(plan, context);
-      return response.trim();
+      const brief = !response || isOfflineAiText(response)
+        ? this.fallbackBrief(plan, context)
+        : response.trim();
+      this.recordBrief(plan.surfaceId, brief);
+      return brief;
     } catch (error) {
       this.logger.warn('Studio Director: live brief unavailable, using local brief', error);
-      return this.fallbackBrief(plan, context);
+      const brief = this.fallbackBrief(plan, context);
+      this.recordBrief(plan.surfaceId, brief);
+      return brief;
     }
+  }
+
+  private recordBrief(surfaceId: StudioSurfaceId, brief: string): void {
+    if (!brief.trim()) return;
+    this.briefHistory = [
+      { surfaceId, brief: brief.trim(), at: Date.now() },
+      ...this.briefHistory,
+    ].slice(0, 8);
+  }
+
+  /** Recent Director briefs, newest first. */
+  listDirectorBriefs(limit = 8): DirectorBriefRecord[] {
+    return this.briefHistory.slice(0, Math.max(1, limit));
+  }
+
+  private registerBundleBridge(): void {
+    this.workspace.directorStateProvider = () => this.snapshotDirectorState();
+    this.workspace.directorStateConsumer = (state) => this.restoreDirectorState(state);
+  }
+
+  /** Serializable Director evidence stored inside a project bundle. */
+  snapshotDirectorState(): DirectorBundleState {
+    return {
+      runs: this.runHistory.map((run) => ({
+        surfaceId: run.surfaceId,
+        startedAt: run.startedAt,
+        finishedAt: run.finishedAt,
+        completed: run.completed,
+        failed: run.failed,
+        report: [...run.report],
+        results: run.results.map((result) => ({
+          ok: result.ok,
+          message: result.message,
+          durationMs: result.durationMs,
+          step: {
+            id: result.step.id,
+            surfaceId: result.step.surfaceId,
+            label: result.step.label,
+            detail: result.step.detail,
+            executable: result.step.executable,
+            targetSurfaceId: result.step.targetSurfaceId,
+          },
+        })),
+      })),
+      briefs: this.briefHistory.map((record) => ({ ...record })),
+    };
+  }
+
+  /** Restore Director evidence from a project bundle. */
+  restoreDirectorState(state: DirectorBundleState | undefined): void {
+    if (!state || !Array.isArray(state.runs)) {
+      this.clearDirectorRuns();
+      this.briefHistory = [];
+      return;
+    }
+    const runs = state.runs
+      .filter((run) => this.isPersistedRun(run))
+      .map((run) => ({
+        ...run,
+        results: run.results.map((result) => ({
+          ...result,
+          step: { ...result.step, run: () => Promise.resolve(result.message) },
+        })),
+      })) as StudioDirectorRunResult[];
+    this.runHistory = runs.slice(0, DIRECTOR_RUN_HISTORY_MAX);
+    this.lastRun = this.runHistory[0] ?? null;
+    this.briefHistory = Array.isArray(state.briefs)
+      ? state.briefs
+          .filter((record) => record && typeof record.surfaceId === 'string' && typeof record.brief === 'string')
+          .map((record) => ({ surfaceId: record.surfaceId as StudioSurfaceId, brief: record.brief, at: Number.isFinite(record.at) ? record.at : 0 }))
+          .slice(0, 8)
+      : [];
+    this.persistRunHistory();
   }
 
   /** Deterministic brief used offline and as the non-LLM safety net. */
@@ -503,6 +593,37 @@ export class StudioAiDirectorService {
     return this.runHistory.slice(0, Math.max(1, limit));
   }
 
+  /** Filter recent runs by surface and/or outcome for the Director UI. */
+  listDirectorRunsFiltered(options: {
+    surfaceId?: StudioSurfaceId | string | null;
+    outcome?: 'all' | 'completed' | 'failed';
+    limit?: number;
+  } = {}): StudioDirectorRunResult[] {
+    const surfaceId = options.surfaceId ? this.normalizeSurfaceId(options.surfaceId) : null;
+    const outcome = options.outcome ?? 'all';
+    return this.runHistory
+      .filter((run) => !surfaceId || run.surfaceId === surfaceId)
+      .filter((run) => outcome === 'all' || (outcome === 'completed' ? run.failed === 0 : run.failed > 0))
+      .slice(0, Math.max(1, options.limit ?? 12));
+  }
+
+  /** Most frequent failed step label, used to focus evidence on weak spots. */
+  mostCommonFailure(): { label: string; count: number; latestMessage?: string } | null {
+    const counts = new Map<string, { count: number; latestMessage?: string }>();
+    for (const run of this.runHistory) {
+      for (const result of run.results) {
+        if (result.ok) continue;
+        const current = counts.get(result.step.label) ?? { count: 0 };
+        counts.set(result.step.label, { count: current.count + 1, latestMessage: result.message });
+      }
+    }
+    let best: { label: string; count: number; latestMessage?: string } | null = null;
+    for (const [label, data] of counts) {
+      if (!best || data.count > best.count) best = { label, ...data };
+    }
+    return best;
+  }
+
   private restoreRunHistory(): StudioDirectorRunResult[] {
     try {
       if (typeof localStorage === 'undefined') return [];
@@ -625,6 +746,16 @@ export class StudioAiDirectorService {
       evidence.push(
         `Last Director run: ${this.lastRun.surfaceId} ${this.lastRun.completed}/${this.lastRun.results.length} completed, ${this.lastRun.failed} failed${firstFailure ? `; first failure: ${firstFailure.step.label} — ${firstFailure.message}` : ''}.`,
       );
+    }
+    const commonFailure = this.mostCommonFailure();
+    if (commonFailure && commonFailure.count > 1) {
+      evidence.push(
+        `Repeated Director failure: ${commonFailure.label} failed ${commonFailure.count} times${commonFailure.latestMessage ? `; latest: ${commonFailure.latestMessage}` : ''}.`,
+      );
+    }
+    if (this.briefHistory.length > 0) {
+      const latestBrief = this.briefHistory[0];
+      evidence.push(`Latest Director brief (${latestBrief.surfaceId}): ${latestBrief.brief.split('\n')[0].slice(0, 140)}`);
     }
     if (produceBeat) {
       evidence.push(`Last produced beat: ${produceBeat.title} · ${produceBeat.genre} · ${produceBeat.bpm} BPM · ${produceBeat.key} · ${produceBeat.totalBars} bars.`);

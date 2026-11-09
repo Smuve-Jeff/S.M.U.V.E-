@@ -81,6 +81,31 @@ export interface ProjectPerformanceState {
   playback: ProjectPlaybackState;
 }
 
+export interface DirectorBundleState {
+  runs: Array<{
+    surfaceId: string;
+    startedAt: number;
+    finishedAt: number;
+    completed: number;
+    failed: number;
+    report: string[];
+    results: Array<{
+      ok: boolean;
+      message: string;
+      durationMs: number;
+      step: {
+        id: string;
+        surfaceId: string;
+        label: string;
+        detail: string;
+        executable: boolean;
+        targetSurfaceId?: string;
+      };
+    }>;
+  }>;
+  briefs?: Array<{ surfaceId: string; brief: string; at: number }>;
+}
+
 export interface ProjectBundle {
   metadata: ProjectMetadata;
   tracks: any[];
@@ -103,6 +128,8 @@ export interface ProjectBundle {
   sidechain?: SidechainRoute[];
   playback?: ProjectPlaybackState;
   master?: ProjectMasterState;
+  /** Director evidence: recent runs and briefs travel with the project. */
+  director?: DirectorBundleState;
   /** Session performance state that is not per-track. */
   session?: {
     launchQuantize?: "none" | "1bar" | "2bar" | "4bar";
@@ -313,6 +340,13 @@ export class ProjectWorkspaceService {
 
   /** Current project metadata */
   metadata = signal<ProjectMetadata | null>(null);
+  /**
+   * Bridge to the Director service without a circular injection: Director
+   * registers these on construction so snapshots and restores can carry
+   * Director evidence inside the bundle itself.
+   */
+  directorStateProvider: (() => DirectorBundleState | undefined) | null = null;
+  directorStateConsumer: ((state: DirectorBundleState | undefined) => void) | null = null;
   /** Auto-save enabled */
   autoSaveEnabled = signal(true);
   /** Auto-save interval in ms */
@@ -1271,6 +1305,7 @@ export class ProjectWorkspaceService {
         },
       },
       notes: this.projectNotes(),
+      director: this.directorStateProvider?.(),
       exportedAt: Date.now(),
     };
   }
@@ -1332,6 +1367,7 @@ export class ProjectWorkspaceService {
     this.musicManager.setSceneFollowRules(
       bundle.session?.sceneFollowRules ?? {},
     );
+    this.directorStateConsumer?.(bundle.director);
     this.isDirty.set(false);
     this.logger.info(
       "ProjectWorkspace: Restored project " +

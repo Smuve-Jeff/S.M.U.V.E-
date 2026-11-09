@@ -199,6 +199,38 @@ describe("AiAssistantComponent voice communication", () => {
     );
   });
 
+  it("routes chat intents to safe Director steps", async () => {
+    const fixture = TestBed.createComponent(AiAssistantComponent);
+    const component = fixture.componentInstance as any;
+    director.buildPlan.mockReturnValue({
+      surfaceId: "export",
+      title: "Export Director Plan",
+      mission: "",
+      successCriteria: [],
+      evidence: [],
+      steps: [
+        {
+          id: "export-9",
+          surfaceId: "export",
+          label: "Export the transport loop as WAV",
+          detail: "",
+          executable: true,
+          run: jest.fn(),
+        },
+      ],
+    });
+    director.runStep.mockResolvedValue({ ok: true, message: "Loop WAV exported." });
+
+    const actions = component.suggestActionsFor("export the loop as wav");
+    expect(actions).toContainEqual({ id: "director-loop-wav", label: "Export loop WAV" });
+    await component.runAssistantAction(actions[0]);
+    expect(director.buildPlan).toHaveBeenCalledWith({ surfaceId: "export" });
+    expect(director.runStep).toHaveBeenCalledWith(
+      expect.objectContaining({ label: "Export the transport loop as WAV" }),
+    );
+    expect(component.messages().at(-1).text).toBe("Loop WAV exported.");
+  });
+
   it("hands the Director plan off to the selected Studio surface", () => {
     const fixture = TestBed.createComponent(AiAssistantComponent);
     const component = fixture.componentInstance;

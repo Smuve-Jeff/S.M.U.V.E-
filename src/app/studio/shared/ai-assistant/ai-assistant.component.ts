@@ -65,7 +65,14 @@ type AssistantActionId =
   | "neural-mix"
   | "humanize"
   | "session-report"
-  | "tips";
+  | "tips"
+  | "director-loop-wav"
+  | "director-loop-mp3"
+  | "director-stems"
+  | "director-stems-readiness"
+  | "director-master"
+  | "director-tuner-reading"
+  | "director-restore-checkpoint";
 
 interface AssistantAction {
   id: AssistantActionId;
@@ -1037,6 +1044,26 @@ export class AiAssistantComponent implements OnInit, AfterViewInit, OnDestroy {
     if (/(tips|critique|roast|advice)/.test(lower)) {
       add({ id: "tips", label: "Producer tips" });
     }
+    if (/(loop|export).*(wav|mp3)|mp3.*loop|wav.*loop/.test(lower)) {
+      add({
+        id: lower.includes("mp3") ? "director-loop-mp3" : "director-loop-wav",
+        label: lower.includes("mp3") ? "Export loop MP3" : "Export loop WAV",
+      });
+    }
+    if (/(stems? readiness|ready.*stems?)/.test(lower)) {
+      add({ id: "director-stems-readiness", label: "Check stems readiness" });
+    } else if (/(stems?|stem export)/.test(lower)) {
+      add({ id: "director-stems", label: "Export stems" });
+    }
+    if (/(master|lufs|loudness|streaming)/.test(lower)) {
+      add({ id: "director-master", label: "Run master" });
+    }
+    if (/(tuner|pitch|tune|a4)/.test(lower)) {
+      add({ id: "director-tuner-reading", label: "Read tuner" });
+    }
+    if (/(restore|rewind).*(checkpoint|version)|checkpoint/.test(lower)) {
+      add({ id: "director-restore-checkpoint", label: "Restore checkpoint" });
+    }
     return actions.slice(0, 3);
   }
 
@@ -1107,6 +1134,42 @@ export class AiAssistantComponent implements OnInit, AfterViewInit, OnDestroy {
         result = advice || "Mix is balanced. Shocking. Keep it that way.";
         break;
       }
+      case "director-loop-wav":
+        result = await this.runDirectorStepFor(
+          "export",
+          "Export the transport loop as WAV",
+        );
+        break;
+      case "director-loop-mp3":
+        result = await this.runDirectorStepFor(
+          "export",
+          "Export the transport loop as MP3",
+        );
+        break;
+      case "director-stems":
+        result = await this.runDirectorStepFor("export", "Export stems");
+        break;
+      case "director-stems-readiness":
+        result = await this.runDirectorStepFor(
+          "export",
+          "Check stems readiness before exporting stems",
+        );
+        break;
+      case "director-master":
+        result = await this.runDirectorStepFor(
+          "mastering",
+          "Run the genre-aware master",
+        );
+        break;
+      case "director-tuner-reading":
+        result = await this.runDirectorStepFor(
+          "tuner",
+          "Read the live tuner input",
+        );
+        break;
+      case "director-restore-checkpoint":
+        result = await this.director.restoreCheckpoint();
+        break;
       default:
         return;
     }

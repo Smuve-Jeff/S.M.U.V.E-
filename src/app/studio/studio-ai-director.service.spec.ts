@@ -493,6 +493,70 @@ describe('StudioAiDirectorService', () => {
     expect(restored.sessionEvidence({ surfaceId: 'arrangement' }).join('\n')).not.toContain('Last Director run:');
   });
 
+  it('round-trips Director briefs and runs through the project bundle bridge', async () => {
+    const { service, workspace } = makeDirector();
+    workspace.metadata.set({ id: 'project-1', name: 'Test Project', key: 'C' });
+    const plan = service.buildPlan({ surfaceId: 'arrangement' });
+    const brief = await service.createStudioBrief(plan, { surfaceId: 'arrangement' });
+    const run = await service.runPlan(plan);
+
+    const state = service.snapshotDirectorState();
+    expect(state.briefs?.[0]).toMatchObject({ surfaceId: 'arrangement', brief });
+    expect(state.runs[0]).toMatchObject({ surfaceId: 'arrangement', completed: run.completed });
+
+    service.clearDirectorRuns();
+    service.restoreDirectorState(state);
+    expect(service.lastDirectorRun()).toMatchObject({ surfaceId: 'arrangement', completed: run.completed });
+    expect(service.listDirectorBriefs()[0]).toMatchObject({ surfaceId: 'arrangement', brief });
+    expect(service.sessionEvidence({ surfaceId: 'arrangement' }).join('\n')).toContain('Latest Director brief (arrangement):');
+
+    expect(workspace.directorStateProvider).toBeTruthy();
+    expect(workspace.directorStateConsumer).toBeTruthy();
+  });
+
+  it('filters run history and surfaces repeated failures in evidence', async () => {
+    const { service } = makeDirector();
+    const failedRun = (startedAt: number) => ({
+      surfaceId: 'export',
+      startedAt,
+      finishedAt: startedAt + 1,
+      completed: 0,
+      failed: 1,
+      report: ['Check — Export the transport loop as WAV: render failed'],
+      results: [{
+        ok: false,
+        message: 'render failed',
+        durationMs: 1,
+        step: { id: 'export-9', surfaceId: 'export', label: 'Export the transport loop as WAV', detail: 'throw', executable: true },
+      }],
+    });
+    service.restoreDirectorState({
+      runs: [
+        failedRun(2),
+        failedRun(1),
+        {
+          surfaceId: 'arrangement',
+          startedAt: 3,
+          finishedAt: 4,
+          completed: 1,
+          failed: 0,
+          report: ['Done — ok: ok'],
+          results: [{
+            ok: true,
+            message: 'ok',
+            durationMs: 1,
+            step: { id: 'arrangement-1', surfaceId: 'arrangement', label: 'ok', detail: '', executable: true },
+          }],
+        },
+      ],
+      briefs: [],
+    } as any);
+
+    expect(service.listDirectorRunsFiltered({ outcome: 'completed' }).map((run) => run.surfaceId)).toEqual(['arrangement']);
+    expect(service.listDirectorRunsFiltered({ surfaceId: 'export', outcome: 'failed' }).length).toBe(2);
+    expect(service.mostCommonFailure()).toEqual({ label: 'Export the transport loop as WAV', count: 2, latestMessage: 'render failed' });
+  });
+
   it('returns an error result when a step throws', async () => {
     const { service } = makeDirector();
     const step = {
