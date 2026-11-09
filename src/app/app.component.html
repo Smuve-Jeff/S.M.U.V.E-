@@ -902,25 +902,94 @@
       *ngIf="isMobileWorkspaceTrayOpen()"
       class="fixed inset-x-4 bottom-24 z-50 rounded-3xl border border-border bg-surface/95 shadow-v42-xl p-4 max-h-[55vh] overflow-y-auto"
     >
-      <button
-        *ngIf="mobileNextMove() as move"
-        type="button"
-        class="mobile-next-move mb-4 flex w-full items-start gap-3 rounded-2xl border border-brand-primary/40 bg-brand-primary/10 px-4 py-3 text-left"
-        (click)="openMobileNextMove()"
+      <div
+        class="mb-4 rounded-2xl border border-brand-primary/40 bg-brand-primary/10 p-3"
       >
-        <span class="material-symbols-outlined text-brand-primary">flag</span>
-        <div class="min-w-0">
+        <div class="flex items-center justify-between gap-3">
           <div
             class="text-[9px] font-bold uppercase tracking-[0.25em] text-brand-primary"
           >
-            Do this next
+            Next best moves
           </div>
-          <div class="text-[11px] font-bold text-text-main mt-1">
-            {{ move.title }}
-          </div>
-          <div class="text-[10px] text-text-dim mt-1">{{ move.action }}</div>
+          <span
+            class="text-[8px] font-bold uppercase tracking-[0.16em] text-text-dim"
+          >
+            {{ mobileMoveQueue().length }} open
+          </span>
         </div>
-      </button>
+
+        <div
+          *ngIf="mobileMoveQueue().length; else noMobileMoves"
+          class="mt-2 space-y-2"
+        >
+          <div
+            *ngFor="let move of mobileMoveQueue(); trackBy: trackMobileQueueItem"
+            class="flex items-start gap-2 rounded-xl border border-border/70 bg-surface/70 px-3 py-2"
+          >
+            <button
+              type="button"
+              class="min-w-0 flex-1 text-left"
+              (click)="openMobileQueueMove(move)"
+            >
+              <div
+                class="flex flex-wrap items-center gap-x-2 gap-y-1 text-[8px] font-bold uppercase tracking-[0.12em] text-text-dim"
+              >
+                <span
+                  class="rounded-full border border-border px-1.5 py-0.5 text-brand-primary"
+                  >{{ move.sourceLabel }}</span
+                >
+                <span>{{ move.phase }}</span>
+                <span>{{ move.meta }}</span>
+              </div>
+              <div class="mt-1 text-[11px] font-bold text-text-main">
+                {{ move.title }}
+              </div>
+              <div class="mt-0.5 text-[10px] text-text-dim">
+                {{ move.detail }}
+              </div>
+              <div
+                class="mt-1 text-[8px] font-bold uppercase tracking-[0.16em] text-brand-primary"
+              >
+                {{ move.actionLabel }}
+              </div>
+            </button>
+            <button
+              *ngIf="move.source !== 'pathway'"
+              type="button"
+              class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-brand-primary/30 text-brand-primary"
+              (click)="completeMobileQueueMove(move)"
+              [attr.aria-label]="'Mark ' + move.title + ' complete'"
+              title="Mark complete"
+            >
+              <span class="material-symbols-outlined text-[16px]"
+                >check</span
+              >
+            </button>
+          </div>
+        </div>
+        <ng-template #noMobileMoves>
+          <p class="mt-2 text-[10px] leading-relaxed text-text-dim">
+            The pathway, release runway, and rights checklist are clear.
+          </p>
+        </ng-template>
+
+        <div
+          class="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-border pt-2"
+        >
+          <span
+            class="text-[8px] font-bold uppercase tracking-[0.12em] text-text-dim"
+            >{{ mobileQueueSummary() }}</span
+          >
+          <button
+            type="button"
+            class="text-[8px] font-bold uppercase tracking-[0.16em] text-brand-primary"
+            (click)="openMobileToolkit()"
+          >
+            Open Toolkit
+          </button>
+        </div>
+      </div>
+
 
       <div class="flex items-center justify-between gap-3 mb-4">
         <div>
@@ -989,11 +1058,22 @@
         type="button"
         (click)="toggleMobileWorkspaceTray()"
         class="mobile-nav-button"
-        aria-label="Open more workspaces"
+        [attr.aria-label]="
+          'Open more workspaces' +
+          (mobileMoveQueue().length
+            ? ' (' + mobileMoveQueue().length + ' open moves)'
+            : '')
+        "
         [class.text-brand-primary]="isMobileWorkspaceTrayOpen()"
         [class.text-text-dim]="!isMobileWorkspaceTrayOpen()"
       >
         <span class="material-symbols-outlined">more_horiz</span>
+        <span
+          *ngIf="mobileMoveQueue().length"
+          class="mobile-nav-badge"
+          aria-hidden="true"
+          >{{ mobileMoveQueue().length > 9 ? '9+' : mobileMoveQueue().length }}</span
+        >
         <span class="text-[8px] font-bold uppercase">More</span>
       </button>
     </nav>

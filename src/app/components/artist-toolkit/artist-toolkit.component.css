@@ -1,0 +1,112 @@
+:host {
+  display: block;
+  height: 100%;
+}
+
+.toolkit-shell {
+  background:
+    radial-gradient(circle at 15% -10%, rgba(16, 185, 129, 0.12), transparent 40%),
+    radial-gradient(circle at 90% 0%, rgba(56, 189, 248, 0.08), transparent 35%),
+    #020617;
+}
+
+.toolkit-input {
+  width: 100%;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.35);
+  padding: 0.55rem 0.75rem;
+  font-size: 0.75rem;
+  color: #e2e8f0;
+  outline: none;
+  transition:
+    border-color 160ms ease,
+    background 160ms ease;
+}
+
+.toolkit-input:focus {
+  border-color: rgba(16, 185, 129, 0.65);
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.toolkit-input::placeholder {
+  color: #64748b;
+}
+
+.toolkit-label {
+  display: block;
+  margin-bottom: 0.35rem;
+  font-size: 0.55rem;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+.toolkit-card {
+  border-radius: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(14px);
+}
+
+.toolkit-tab {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  border-radius: 0.85rem;
+  border: 1px solid transparent;
+  padding: 0.65rem 0.85rem;
+  color: #94a3b8;
+  transition:
+    color 160ms ease,
+    border-color 160ms ease,
+    background 160ms ease;
+  white-space: nowrap;
+}
+
+.toolkit-tab:hover {
+  color: #e2e8f0;
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.toolkit-tab-active {
+  color: #10b981;
+  border-color: rgba(16, 185, 129, 0.35);
+  background: rgba(16, 185, 129, 0.08);
+}
+
+.toolkit-check {
+  width: 1.05rem;
+  height: 1.05rem;
+  accent-color: #10b981;
+}
+
+.toolkit-pre {
+  max-height: 18rem;
+  overflow: auto;
+  white-space: pre-wrap;
+  border-radius: 0.85rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(0, 0, 0, 0.45);
+  padding: 1rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.7rem;
+  line-height: 1.6;
+  color: #cbd5e1;
+}
+
+.toolkit-progress {
+  height: 0.35rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  overflow: hidden;
+}
+
+.toolkit-progress > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #10b981, #38bdf8);
+  transition: width 300ms ease;
+}

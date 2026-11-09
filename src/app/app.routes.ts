@@ -178,6 +178,13 @@ const protectedRoutes: Routes = [
       ),
   },
   {
+    path: 'toolkit',
+    loadComponent: () =>
+      import('./components/artist-toolkit/artist-toolkit.component').then(
+        (m) => m.ArtistToolkitComponent
+      ),
+  },
+  {
     path: 'business-pipeline/:id',
     loadComponent: () =>
       import('./components/business-pipeline-detail/business-pipeline-detail.component').then(

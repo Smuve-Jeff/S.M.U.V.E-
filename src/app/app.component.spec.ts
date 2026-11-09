@@ -18,11 +18,13 @@ import { AutoSaveService } from './services/auto-save.service';
 import { CommandPaletteService } from './services/command-palette.service';
 import { UserProfileService } from './services/user-profile.service';
 import { ArtistPathwayService } from './services/artist-pathway.service';
+import { ArtistToolkitService } from './services/artist-toolkit.service';
 import { OfflineSyncService } from './services/offline-sync.service';
 import { InteractionDialogService } from './services/interaction-dialog.service';
 
 describe('AppComponent', () => {
   const createComponent = async (routerUrl = '/hub', swUpdate?: unknown) => {
+    localStorage.clear();
     const routerEvents$ = new Subject<any>();
     const uiService = {
       mainViewMode: signal<'hub' | 'strategy'>('hub'),
@@ -249,26 +251,61 @@ describe('AppComponent', () => {
     expect(uiService.toggleChatbot).toHaveBeenCalled();
   });
 
-  it('offers the pathway next move as a mobile quick action', async () => {
-    const { component, uiService } = await createComponent();
+  it('offers the combined pathway, release, and rights queue in the mobile tray', async () => {
+    const { component } = await createComponent();
+    const queue = component.mobileMoveQueue();
 
-    // Same move the Hub and palette offer — the pathway's first open step,
-    // not a mobile-specific pick.
-    const move = component.mobileNextMove();
-    expect(move).not.toBeNull();
-    expect(move!.title.length).toBeGreaterThan(0);
-
+    // The pathway still leads, exactly as it does in the Hub and palette.
     const ranked = TestBed.inject(ArtistPathwayService).readout(
       TestBed.inject(UserProfileService).profile()
     ).nextAction?.step;
-    expect(move!.id).toBe(ranked?.id);
+    expect(queue[0].source).toBe('pathway');
+    expect(queue[0].title).toBe(ranked?.title);
+    expect(queue.some((move) => move.source === 'release')).toBe(true);
+    expect(queue.some((move) => move.source === 'rights')).toBe(true);
+    expect(component.mobileQueueSummary()).toContain('release milestones');
+  });
+
+  it('opens pathway and toolkit items from the mobile tray', async () => {
+    const { component, router, uiService } = await createComponent();
+    const queue = component.mobileMoveQueue();
 
     component.isMobile.set(true);
     component.isMobileWorkspaceTrayOpen.set(true);
-    component.openMobileNextMove();
+    component.openMobileQueueMove(queue[0]);
 
     expect(uiService.navigateToView).toHaveBeenCalledWith('artist-development');
     expect(component.isMobileWorkspaceTrayOpen()).toBe(false);
+
+    const release = queue.find((move) => move.source === 'release')!;
+    component.isMobileWorkspaceTrayOpen.set(true);
+    component.openMobileQueueMove(release);
+
+    expect(router.navigateByUrl).toHaveBeenCalledWith('/toolkit?tab=blueprint');
+    expect(component.isMobileWorkspaceTrayOpen()).toBe(false);
+
+    const rights = queue.find((move) => move.source === 'rights')!;
+    component.isMobileWorkspaceTrayOpen.set(true);
+    component.openMobileQueueMove(rights);
+
+    expect(router.navigateByUrl).toHaveBeenCalledWith('/toolkit?tab=rights');
+  });
+
+  it('completes a toolkit step from the mobile tray', async () => {
+    const { component } = await createComponent();
+    const toolkit = TestBed.inject(ArtistToolkitService);
+    const firstRightsMove = component
+      .mobileMoveQueue()
+      .find((move) => move.source === 'rights')!;
+
+    component.completeMobileQueueMove(firstRightsMove);
+
+    expect(toolkit.isRightsTaskDone(firstRightsMove.toolkitId!)).toBe(true);
+    expect(
+      component
+        .mobileMoveQueue()
+        .find((move) => move.source === 'rights')?.toolkitId
+    ).not.toBe(firstRightsMove.toolkitId);
   });
 
   it('returns directly to the Hub and closes workspace overlays from any route', async () => {

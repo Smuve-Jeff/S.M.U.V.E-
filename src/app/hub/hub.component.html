@@ -172,6 +172,73 @@
       </div>
     </section>
 
+    <section class="hub-move-queue" aria-labelledby="hub-move-queue-heading">
+      <div class="move-queue-heading">
+        <div>
+          <p class="hub-kicker">PATHWAY // RELEASE // RIGHTS</p>
+          <h2 id="hub-move-queue-heading">Next best moves</h2>
+          <p>
+            The pathway leads. The release runway and rights checklist join it
+            with real dates and next steps, so the business work stays visible
+            before it becomes urgent.
+          </p>
+        </div>
+        <div class="move-queue-count">
+          <strong>{{ moveQueue().length }}</strong>
+          <span>open</span>
+        </div>
+      </div>
+
+      @if (moveQueue().length) {
+        <ol class="move-queue-list">
+          @for (move of moveQueue(); track move.id; let index = $index) {
+            <li class="move-queue-item" [class.is-primary]="index === 0">
+              <span class="move-queue-index" aria-hidden="true">
+                {{ (index + 1).toString().padStart(2, '0') }}
+              </span>
+              <div class="move-queue-body">
+                <div class="move-queue-meta">
+                  <span class="move-source" [attr.data-source]="move.source">{{ move.sourceLabel }}</span>
+                  <span>{{ move.phase }}</span>
+                  <span class="move-queue-date">{{ move.meta }}</span>
+                </div>
+                <strong>{{ move.title }}</strong>
+                <p>{{ move.detail }}</p>
+              </div>
+              <div class="move-queue-actions">
+                @if (move.source !== 'pathway') {
+                  <button
+                    type="button"
+                    class="move-queue-check"
+                    (click)="completeQueueMove(move)"
+                    [attr.aria-label]="'Mark ' + move.title + ' complete'"
+                    title="Mark complete"
+                  >
+                    <span class="material-symbols-outlined">check</span>
+                  </button>
+                }
+                <button type="button" class="mini-link" (click)="openQueueMove(move)">
+                  {{ move.actionLabel }} <span class="material-symbols-outlined">north_east</span>
+                </button>
+              </div>
+            </li>
+          }
+        </ol>
+      } @else {
+        <p class="move-queue-empty">
+          Nothing is queued. The pathway, release runway and rights checklist are
+          all clear — keep the record current as the next release takes shape.
+        </p>
+      }
+
+      <div class="move-queue-footer">
+        <span>{{ toolkitQueueSummary() }}</span>
+        <button type="button" class="hub-text-button" (click)="openToolkit()">
+          Open Artist Toolkit <span class="material-symbols-outlined">north_east</span>
+        </button>
+      </div>
+    </section>
+
     <section class="hub-lifecycle-board" aria-label="Artist lifecycle phase health">
       <div class="lifecycle-board-heading">
         <div>

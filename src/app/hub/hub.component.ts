@@ -31,6 +31,10 @@ import {
   LifecycleAlert,
 } from '../services/artist-lifecycle-alert.service';
 import { ArtistLifecycleSnapshot } from '../types/artist-lifecycle.types';
+import {
+  NextBestMoveQueueItem,
+  NextBestMoveQueueService,
+} from '../services/next-best-move-queue.service';
 
 interface LandingFeature {
   route: MainViewMode;
@@ -82,6 +86,7 @@ export class HubComponent implements OnInit, OnDestroy, AfterViewInit {
   public projectService = inject(ProjectService);
   private lifecycleService = inject(ArtistLifecycleService);
   private lifecycleAlertService = inject(ArtistLifecycleAlertService);
+  private moveQueueService = inject(NextBestMoveQueueService);
 
   quickProfile = signal({ artistName: '', primaryGenre: 'Hip Hop' });
   projectList = signal<Project[]>([]);
@@ -307,6 +312,31 @@ export class HubComponent implements OnInit, OnDestroy, AfterViewInit {
 
   lifecycleMove() {
     return this.lifecycle().nextBestMove;
+  }
+
+  /** The shared ranked queue: pathway first, then release and rights work. */
+  readonly moveQueue = computed<NextBestMoveQueueItem[]>(() =>
+    this.moveQueueService.build(this.lifecycle())
+  );
+
+  readonly toolkitQueueSummary = this.moveQueueService.toolkitSummary;
+
+  completeQueueMove(move: NextBestMoveQueueItem): void {
+    this.moveQueueService.complete(move);
+  }
+
+  openQueueMove(move: NextBestMoveQueueItem): void {
+    if (move.source === 'pathway') {
+      void this.router.navigateByUrl('/artist-development');
+      return;
+    }
+    void this.router.navigate(['/toolkit'], {
+      queryParams: move.queryParams ?? {},
+    });
+  }
+
+  openToolkit(): void {
+    void this.router.navigate(['/toolkit']);
   }
 
   /** Changes the lifecycle observed since the app opened, newest first. */

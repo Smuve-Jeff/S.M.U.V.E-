@@ -1,0 +1,700 @@
+<div class="toolkit-shell h-full overflow-y-auto text-slate-100">
+  <div class="mx-auto max-w-7xl px-4 py-6 md:px-8 md:py-8">
+    <header class="mb-8 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+      <div>
+        <div class="mb-2 flex items-center gap-3">
+          <span class="size-1.5 animate-pulse rounded-full bg-emerald-400"></span>
+          <span class="text-[9px] font-black uppercase tracking-[0.35em] text-slate-500">
+            Independent Artist Toolkit
+          </span>
+        </div>
+        <h1 class="text-3xl font-black uppercase italic leading-none tracking-tighter text-white md:text-4xl">
+          BUILD THE<span class="text-emerald-400">CAREER</span>
+        </h1>
+        <p class="mt-3 max-w-2xl text-xs leading-relaxed text-slate-400">
+          One workspace for the business around the music: a dated release runway,
+          a signable split sheet, honest royalty arithmetic, and the registrations
+          that make sure the money finds you.
+        </p>
+      </div>
+      <div class="flex flex-wrap items-center gap-2 text-[9px] font-black uppercase tracking-[0.2em] text-slate-500">
+        <span class="rounded-full border border-emerald-400/30 bg-emerald-400/10 px-3 py-1.5 text-emerald-300">
+          Saved on this device
+        </span>
+        <span class="rounded-full border border-white/10 px-3 py-1.5">
+          Not legal advice
+        </span>
+      </div>
+    </header>
+
+    <div class="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div class="toolkit-card p-4">
+        <div class="text-[8px] font-black uppercase tracking-[0.22em] text-slate-500">
+          Next release move
+        </div>
+        @if (toolkit.nextMilestone(); as milestone) {
+          <div class="mt-2 text-sm font-bold leading-snug text-white">
+            {{ milestone.title }}
+          </div>
+          <div class="mt-1 text-[10px] font-mono text-emerald-300">
+            {{ formatDay(milestone.dueDate) }}
+          </div>
+        } @else {
+          <div class="mt-2 text-sm font-bold text-slate-400">All steps checked</div>
+          <div class="mt-1 text-[10px] text-slate-500">Keep the receipts.</div>
+        }
+      </div>
+      <div class="toolkit-card p-4">
+        <div class="text-[8px] font-black uppercase tracking-[0.22em] text-slate-500">
+          Split sheet
+        </div>
+        <div class="mt-2 text-2xl font-black italic text-white">
+          {{ toolkit.splitTotal() }}%
+        </div>
+        <div
+          class="mt-1 text-[10px] font-bold uppercase tracking-wider"
+          [class.text-emerald-300]="toolkit.splitValid()"
+          [class.text-amber-300]="!toolkit.splitValid()"
+        >
+          {{ toolkit.splitValid() ? 'Ready to sign' : 'Needs attention' }}
+        </div>
+      </div>
+      <div class="toolkit-card p-4">
+        <div class="text-[8px] font-black uppercase tracking-[0.22em] text-slate-500">
+          Rights checklist
+        </div>
+        <div class="mt-2 text-2xl font-black italic text-white">
+          {{ toolkit.rightsCompletion().percent }}%
+        </div>
+        <div class="mt-1 text-[10px] text-slate-500">
+          {{ toolkit.rightsCompletion().done }} of {{ toolkit.rightsCompletion().total }} steps
+        </div>
+      </div>
+      <div class="toolkit-card p-4">
+        <div class="text-[8px] font-black uppercase tracking-[0.22em] text-slate-500">
+          Estimated net
+        </div>
+        <div class="mt-2 text-2xl font-black italic text-white">
+          {{ money(toolkit.royaltyEstimate().net) }}
+        </div>
+        <div class="mt-1 text-[10px] text-slate-500">From your own figures</div>
+      </div>
+    </div>
+
+    @if (toolkit.persistenceError(); as error) {
+      <p class="mb-5 rounded-xl border border-amber-400/30 bg-amber-400/10 px-4 py-3 text-[11px] leading-relaxed text-amber-200">
+        {{ error }}
+      </p>
+    }
+
+    <nav
+      class="mb-6 flex gap-2 overflow-x-auto pb-1 no-scrollbar"
+      role="tablist"
+      aria-label="Artist toolkit sections"
+    >
+      @for (tab of tabs; track tab.id) {
+        <button
+          type="button"
+          role="tab"
+          class="toolkit-tab"
+          [class.toolkit-tab-active]="activeTab() === tab.id"
+          [attr.aria-selected]="activeTab() === tab.id"
+          (click)="setTab(tab.id)"
+        >
+          <span class="material-symbols-outlined text-lg" aria-hidden="true">{{ tab.icon }}</span>
+          <span class="text-[10px] font-black uppercase tracking-[0.15em]">{{ tab.label }}</span>
+        </button>
+      }
+    </nav>
+
+    @switch (activeTab()) {
+      @case ('blueprint') {
+        <div class="grid grid-cols-1 gap-6 xl:grid-cols-3">
+          <section class="toolkit-card p-5 md:p-6 xl:col-span-1">
+            <h2 class="text-sm font-bold uppercase tracking-tight text-white">Release setup</h2>
+            <p class="mt-1 text-[10px] leading-relaxed text-slate-500">
+              Every date below is generated from this release day. Move the day and
+              the runway moves with it.
+            </p>
+
+            <div class="mt-5 space-y-4">
+              <div>
+                <label class="toolkit-label" for="blueprint-title">Release title</label>
+                <input
+                  id="blueprint-title"
+                  class="toolkit-input"
+                  type="text"
+                  placeholder="Title of the single, EP or album"
+                  [ngModel]="toolkit.blueprint().title"
+                  (ngModelChange)="toolkit.setReleaseMeta({ title: $event })"
+                />
+              </div>
+              <div>
+                <label class="toolkit-label" for="blueprint-date">Release day</label>
+                <input
+                  id="blueprint-date"
+                  class="toolkit-input"
+                  type="date"
+                  [ngModel]="toolkit.blueprint().releaseDate"
+                  (ngModelChange)="toolkit.setReleaseMeta({ releaseDate: $event })"
+                />
+              </div>
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="toolkit-label" for="blueprint-type">Format</label>
+                  <select
+                    id="blueprint-type"
+                    class="toolkit-input"
+                    [ngModel]="toolkit.blueprint().releaseType"
+                    (ngModelChange)="setReleaseType($event)"
+                  >
+                    @for (type of toolkit.releaseTypes; track type) {
+                      <option [value]="type">{{ type }}</option>
+                    }
+                  </select>
+                </div>
+                <div>
+                  <label class="toolkit-label" for="blueprint-distributor">Distributor</label>
+                  <input
+                    id="blueprint-distributor"
+                    class="toolkit-input"
+                    type="text"
+                    placeholder="Your distributor"
+                    [ngModel]="toolkit.blueprint().distributor"
+                    (ngModelChange)="toolkit.setReleaseMeta({ distributor: $event })"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div class="mt-6 rounded-xl border border-emerald-400/20 bg-emerald-400/5 p-4">
+              <div class="flex items-center justify-between text-[9px] font-black uppercase tracking-[0.2em] text-emerald-300">
+                <span>Runway progress</span>
+                <span>{{ toolkit.blueprintProgress().percent }}%</span>
+              </div>
+              <div class="toolkit-progress mt-3">
+                <span [style.width.%]="toolkit.blueprintProgress().percent"></span>
+              </div>
+              <p class="mt-3 text-[10px] leading-relaxed text-slate-400">
+                {{ toolkit.blueprintProgress().done }} of
+                {{ toolkit.blueprintProgress().total }} milestones checked.
+                Delivery at least four weeks early is the common playlist window.
+              </p>
+            </div>
+
+            <p class="mt-5 text-[9px] leading-relaxed text-slate-600">
+              Planning aid only. Distributor lead times, store ingestion and playlist
+              deadlines vary; confirm the real dates with your distributor.
+            </p>
+          </section>
+
+          <section class="space-y-3 xl:col-span-2">
+            @if (toolkit.blueprint().milestones.length === 0) {
+              <div class="toolkit-card p-6 text-xs text-slate-400">
+                Choose a valid release day to generate the runway.
+              </div>
+            }
+            @for (milestone of toolkit.blueprint().milestones; track milestone.id) {
+              <article
+                class="toolkit-card flex items-start gap-4 p-4 md:p-5"
+                [class.opacity-60]="milestone.done"
+              >
+                <input
+                  type="checkbox"
+                  class="toolkit-check mt-1 shrink-0"
+                  [checked]="milestone.done"
+                  (change)="toolkit.toggleMilestone(milestone.id)"
+                  [attr.aria-label]="'Mark ' + milestone.title + ' complete'"
+                />
+                <div class="min-w-0 flex-1">
+                  <div class="flex flex-wrap items-center gap-2">
+                    <span
+                      class="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.18em] text-slate-400"
+                    >
+                      {{ milestone.phase }}
+                    </span>
+                    <span class="text-[10px] font-mono font-bold text-emerald-300">
+                      {{ formatDay(milestone.dueDate) }}
+                    </span>
+                  </div>
+                  <h3 class="mt-2 text-sm font-bold text-white">
+                    {{ milestone.title }}
+                  </h3>
+                  <p class="mt-1 text-[11px] leading-relaxed text-slate-400">
+                    {{ milestone.detail }}
+                  </p>
+                </div>
+              </article>
+            }
+          </section>
+        </div>
+      }
+
+      @case ('splits') {
+        <div class="grid grid-cols-1 gap-6 xl:grid-cols-3">
+          <section class="toolkit-card p-5 md:p-6 xl:col-span-2">
+            <div class="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h2 class="text-sm font-bold uppercase tracking-tight text-white">Split sheet</h2>
+                <p class="mt-1 text-[10px] leading-relaxed text-slate-500">
+                  Record every writer, producer and featured artist before the
+                  release. Shares must total exactly 100%.
+                </p>
+              </div>
+              <button
+                type="button"
+                class="rounded-lg border border-white/10 px-3 py-2 text-[9px] font-black uppercase tracking-[0.15em] text-slate-300 hover:border-emerald-400/40 hover:text-emerald-300"
+                (click)="toolkit.useReleaseTitleForSplit()"
+              >
+                Use release title
+              </button>
+            </div>
+
+            <div class="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div>
+                <label class="toolkit-label" for="split-title">Track title</label>
+                <input
+                  id="split-title"
+                  class="toolkit-input"
+                  type="text"
+                  placeholder="Track title"
+                  [ngModel]="toolkit.splitSheet().title"
+                  (ngModelChange)="toolkit.setSplitField('title', $event)"
+                />
+              </div>
+              <div>
+                <label class="toolkit-label" for="split-iswc">ISWC (optional)</label>
+                <input
+                  id="split-iswc"
+                  class="toolkit-input"
+                  type="text"
+                  placeholder="T-123456789-0"
+                  [ngModel]="toolkit.splitSheet().iswc"
+                  (ngModelChange)="toolkit.setSplitField('iswc', $event)"
+                />
+              </div>
+            </div>
+
+            <div class="mt-6 space-y-4">
+              @for (contributor of toolkit.splitSheet().contributors; track contributor.id; let index = $index) {
+                <div class="rounded-xl border border-white/10 bg-black/20 p-4">
+                  <div class="mb-3 flex items-center justify-between gap-3">
+                    <span class="text-[9px] font-black uppercase tracking-[0.2em] text-slate-500">
+                      Contributor {{ index + 1 }}
+                    </span>
+                    <button
+                      type="button"
+                      class="text-[9px] font-black uppercase tracking-wider text-slate-500 hover:text-red-400"
+                      (click)="toolkit.removeContributor(contributor.id)"
+                      [attr.aria-label]="'Remove contributor ' + (index + 1)"
+                    >
+                      Remove
+                    </button>
+                  </div>
+
+                  <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                    <div class="lg:col-span-2">
+                      <label class="toolkit-label" [for]="'contributor-name-' + contributor.id">Legal name</label>
+                      <input
+                        [id]="'contributor-name-' + contributor.id"
+                        class="toolkit-input"
+                        type="text"
+                        placeholder="Writer or rights holder"
+                        [ngModel]="contributor.name"
+                        (ngModelChange)="toolkit.updateContributor(contributor.id, { name: $event })"
+                      />
+                    </div>
+                    <div>
+                      <label class="toolkit-label" [for]="'contributor-share-' + contributor.id">Share %</label>
+                      <input
+                        [id]="'contributor-share-' + contributor.id"
+                        class="toolkit-input"
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="0.5"
+                        [ngModel]="contributor.share"
+                        (ngModelChange)="setShare(contributor.id, $event)"
+                      />
+                    </div>
+                    <div>
+                      <label class="toolkit-label" [for]="'contributor-role-' + contributor.id">Role</label>
+                      <select
+                        [id]="'contributor-role-' + contributor.id"
+                        class="toolkit-input"
+                        [ngModel]="contributor.role"
+                        (ngModelChange)="setContributorRole(contributor.id, $event)"
+                      >
+                        @for (role of toolkit.roles; track role) {
+                          <option [value]="role">{{ role }}</option>
+                        }
+                      </select>
+                    </div>
+                    <div>
+                      <label class="toolkit-label" [for]="'contributor-ipi-' + contributor.id">IPI / CAE</label>
+                      <input
+                        [id]="'contributor-ipi-' + contributor.id"
+                        class="toolkit-input"
+                        type="text"
+                        placeholder="Optional"
+                        [ngModel]="contributor.ipi"
+                        (ngModelChange)="toolkit.updateContributor(contributor.id, { ipi: $event })"
+                      />
+                    </div>
+                    <div>
+                      <label class="toolkit-label" [for]="'contributor-publisher-' + contributor.id">Publisher</label>
+                      <input
+                        [id]="'contributor-publisher-' + contributor.id"
+                        class="toolkit-input"
+                        type="text"
+                        placeholder="Optional"
+                        [ngModel]="contributor.publisher"
+                        (ngModelChange)="toolkit.updateContributor(contributor.id, { publisher: $event })"
+                      />
+                    </div>
+                    <div class="lg:col-span-3">
+                      <label class="toolkit-label" [for]="'contributor-email-' + contributor.id">Contact email</label>
+                      <input
+                        [id]="'contributor-email-' + contributor.id"
+                        class="toolkit-input"
+                        type="email"
+                        placeholder="For signatures and statements"
+                        [ngModel]="contributor.email"
+                        (ngModelChange)="toolkit.updateContributor(contributor.id, { email: $event })"
+                      />
+                    </div>
+                  </div>
+                </div>
+              }
+            </div>
+
+            <div class="mt-4 flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                class="rounded-lg border border-emerald-400/30 bg-emerald-400/10 px-4 py-2.5 text-[9px] font-black uppercase tracking-[0.15em] text-emerald-300 hover:bg-emerald-400/20"
+                (click)="toolkit.addContributor()"
+              >
+                + Add contributor
+              </button>
+              <span class="text-[10px] text-slate-500">{{ totalShareHint() }}</span>
+            </div>
+
+            <div class="toolkit-progress mt-3">
+              <span
+                [style.width.%]="toolkit.splitTotal() > 100 ? 100 : toolkit.splitTotal()"
+                [style.background]="toolkit.splitTotal() === 100 ? 'linear-gradient(90deg,#10b981,#38bdf8)' : 'linear-gradient(90deg,#f59e0b,#ef4444)'"
+              ></span>
+            </div>
+
+            @if (toolkit.splitWarnings().length) {
+              <ul class="mt-4 space-y-2">
+                @for (warning of toolkit.splitWarnings(); track warning) {
+                  <li class="flex items-start gap-2 text-[10px] leading-relaxed text-amber-300">
+                    <span class="material-symbols-outlined mt-0.5 text-sm" aria-hidden="true">warning</span>
+                    {{ warning }}
+                  </li>
+                }
+              </ul>
+            } @else {
+              <p class="mt-4 flex items-start gap-2 text-[10px] leading-relaxed text-emerald-300">
+                <span class="material-symbols-outlined mt-0.5 text-sm" aria-hidden="true">verified</span>
+                Shares total 100% and every contributor has a distinct name.
+              </p>
+            }
+
+            <p class="mt-5 text-[9px] leading-relaxed text-slate-600">
+              A split sheet records an agreement between collaborators. It is not
+              legal advice and it does not replace a publishing or distribution
+              contract. Have a music lawyer review anything involving a label,
+              publisher or catalogue sale.
+            </p>
+          </section>
+
+          <section class="toolkit-card p-5 md:p-6">
+            <div class="flex items-center justify-between gap-3">
+              <h2 class="text-sm font-bold uppercase tracking-tight text-white">Generated sheet</h2>
+              @if (copyState() === 'copied') {
+                <span class="text-[9px] font-black uppercase tracking-wider text-emerald-300">Copied</span>
+              }
+              @if (copyState() === 'failed') {
+                <span class="text-[9px] font-black uppercase tracking-wider text-amber-300">Copy blocked</span>
+              }
+            </div>
+            <pre class="toolkit-pre mt-4">{{ toolkit.splitSheetText() }}</pre>
+            @if (copyState() === 'failed') {
+              <p class="mt-2 text-[10px] leading-relaxed text-amber-300">
+                The browser refused clipboard access. Select the text above and
+                copy it manually.
+              </p>
+            }
+            <div class="mt-4 grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                class="rounded-lg border border-white/10 px-3 py-2.5 text-[9px] font-black uppercase tracking-[0.15em] text-slate-200 hover:border-emerald-400/40 hover:text-emerald-300"
+                (click)="copySplitSheet()"
+              >
+                Copy sheet
+              </button>
+              <button
+                type="button"
+                class="rounded-lg border border-white/10 px-3 py-2.5 text-[9px] font-black uppercase tracking-[0.15em] text-slate-200 hover:border-emerald-400/40 hover:text-emerald-300"
+                (click)="downloadSplitSheet()"
+              >
+                Download .txt
+              </button>
+            </div>
+          </section>
+        </div>
+      }
+
+      @case ('royalties') {
+        <div class="grid grid-cols-1 gap-6 xl:grid-cols-3">
+          <section class="toolkit-card p-5 md:p-6 xl:col-span-2">
+            <h2 class="text-sm font-bold uppercase tracking-tight text-white">Royalty estimator</h2>
+            <p class="mt-1 text-[10px] leading-relaxed text-slate-500">
+              Enter the streams and per-stream rate from your own statements. The
+              arithmetic is real; the rates are yours to verify — they differ by
+              country, plan, market and distributor.
+            </p>
+
+            <div class="mt-5 space-y-3">
+              @for (line of toolkit.royalty().lines; track line.id) {
+                <div class="grid grid-cols-1 items-end gap-3 rounded-xl border border-white/10 bg-black/20 p-3 sm:grid-cols-12">
+                  <div class="sm:col-span-4">
+                    <label class="toolkit-label" [for]="'platform-' + line.id">Platform</label>
+                    <input
+                      [id]="'platform-' + line.id"
+                      class="toolkit-input"
+                      type="text"
+                      [ngModel]="line.platform"
+                      (ngModelChange)="toolkit.updateRoyaltyLine(line.id, { platform: $event })"
+                    />
+                  </div>
+                  <div class="sm:col-span-3">
+                    <label class="toolkit-label" [for]="'streams-' + line.id">Streams</label>
+                    <input
+                      [id]="'streams-' + line.id"
+                      class="toolkit-input"
+                      type="number"
+                      min="0"
+                      step="1"
+                      [ngModel]="line.streams"
+                      (ngModelChange)="setStreams(line.id, $event)"
+                    />
+                  </div>
+                  <div class="sm:col-span-3">
+                    <label class="toolkit-label" [for]="'rate-' + line.id">Rate / stream</label>
+                    <input
+                      [id]="'rate-' + line.id"
+                      class="toolkit-input"
+                      type="number"
+                      min="0"
+                      step="0.0001"
+                      [ngModel]="line.ratePerStream"
+                      (ngModelChange)="setRate(line.id, $event)"
+                    />
+                  </div>
+                  <div class="sm:col-span-2 sm:text-right">
+                    <div class="toolkit-label">Line total</div>
+                    <div class="pb-2 font-mono text-sm font-bold text-white">
+                      {{ money(lineGross(line)) }}
+                    </div>
+                  </div>
+                </div>
+              }
+            </div>
+
+            <div class="mt-4 flex flex-wrap items-center gap-4">
+              <button
+                type="button"
+                class="rounded-lg border border-emerald-400/30 bg-emerald-400/10 px-4 py-2.5 text-[9px] font-black uppercase tracking-[0.15em] text-emerald-300 hover:bg-emerald-400/20"
+                (click)="toolkit.addRoyaltyLine()"
+              >
+                + Add platform
+              </button>
+              @if (toolkit.royalty().lines.length > 1) {
+                <span class="text-[10px] text-slate-500">Remove a line with its trash button.</span>
+              }
+            </div>
+
+            <div class="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div>
+                <label class="toolkit-label" for="distributor-fee">Distributor / admin fee %</label>
+                <input
+                  id="distributor-fee"
+                  class="toolkit-input"
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="0.5"
+                  [ngModel]="toolkit.royalty().distributorFeePercent"
+                  (ngModelChange)="setFee($event)"
+                />
+              </div>
+              <div class="rounded-xl border border-white/10 bg-black/20 p-3 text-[10px] leading-relaxed text-slate-400">
+                This estimate does not include publishing mechanicals, PRO
+                performance royalties or neighbouring rights. It is the
+                recording-side arithmetic you feed it.
+              </div>
+            </div>
+          </section>
+
+          <section class="space-y-4">
+            <div class="toolkit-card p-5">
+              <h2 class="text-sm font-bold uppercase tracking-tight text-white">The math</h2>
+              <dl class="mt-4 space-y-3 text-[11px]">
+                <div class="flex items-center justify-between gap-3">
+                  <dt class="text-slate-500">Streams</dt>
+                  <dd class="font-mono font-bold text-white">{{ toolkit.royaltyEstimate().totalStreams | number }}</dd>
+                </div>
+                <div class="flex items-center justify-between gap-3">
+                  <dt class="text-slate-500">Gross</dt>
+                  <dd class="font-mono font-bold text-white">{{ money(toolkit.royaltyEstimate().gross) }}</dd>
+                </div>
+                <div class="flex items-center justify-between gap-3">
+                  <dt class="text-slate-500">Distributor fee</dt>
+                  <dd class="font-mono font-bold text-amber-300">−{{ money(toolkit.royaltyEstimate().distributorFee) }}</dd>
+                </div>
+                <div class="flex items-center justify-between gap-3 border-t border-white/10 pt-3">
+                  <dt class="text-slate-300">Net to split</dt>
+                  <dd class="font-mono text-base font-black text-emerald-300">{{ money(toolkit.royaltyEstimate().net) }}</dd>
+                </div>
+              </dl>
+              <p class="mt-4 text-[9px] leading-relaxed text-slate-600">
+                Illustration only. DSP rates, currency conversion, withholding tax
+                and distributor deductions all change the real payout.
+              </p>
+            </div>
+
+            <div class="toolkit-card p-5">
+              <h2 class="text-sm font-bold uppercase tracking-tight text-white">Split payouts</h2>
+              <p class="mt-1 text-[10px] leading-relaxed text-slate-500">
+                The net above applied to the split sheet on the previous tab.
+              </p>
+              @if (toolkit.royaltyPayouts().length) {
+                <ul class="mt-4 space-y-2">
+                  @for (payout of toolkit.royaltyPayouts(); track payout.contributorId) {
+                    <li class="flex items-center justify-between gap-3 rounded-lg border border-white/5 bg-black/20 px-3 py-2">
+                      <span class="min-w-0 truncate text-[11px] text-slate-300">{{ payout.name }}</span>
+                      <span class="shrink-0 font-mono text-[11px] font-bold text-white">{{ money(payout.amount) }}</span>
+                      <span class="w-10 shrink-0 text-right font-mono text-[9px] text-slate-500">{{ payout.share }}%</span>
+                    </li>
+                  }
+                </ul>
+              } @else {
+                <p class="mt-4 text-[10px] leading-relaxed text-amber-300">
+                  Add named contributors with shares on the split sheet tab to see
+                  each payout.
+                </p>
+              }
+            </div>
+          </section>
+        </div>
+      }
+
+      @case ('rights') {
+        <div class="space-y-6">
+          <section class="toolkit-card flex flex-col gap-4 p-5 md:flex-row md:items-center md:justify-between md:p-6">
+            <div>
+              <h2 class="text-sm font-bold uppercase tracking-tight text-white">Rights & money checklist</h2>
+              <p class="mt-1 max-w-3xl text-[10px] leading-relaxed text-slate-500">
+                US-first because BMI, ASCAP, SESAC, The MLC and SoundExchange are
+                US organisations. Outside the US, use your local collecting
+                society and neighbouring-rights body. Every link opens the
+                official site; nothing here registers anything for you.
+              </p>
+            </div>
+            <div class="min-w-[11rem]">
+              <div class="flex items-center justify-between text-[9px] font-black uppercase tracking-[0.2em] text-emerald-300">
+                <span>Complete</span>
+                <span>{{ toolkit.rightsCompletion().percent }}%</span>
+              </div>
+              <div class="toolkit-progress mt-2">
+                <span [style.width.%]="toolkit.rightsCompletion().percent"></span>
+              </div>
+            </div>
+          </section>
+
+          <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            @for (category of toolkit.rightsCategories; track category) {
+              <section class="toolkit-card p-5">
+                <div class="flex items-center justify-between gap-3">
+                  <h3 class="text-[11px] font-black uppercase tracking-[0.18em] text-white">{{ category }}</h3>
+                  <span class="rounded-full border border-white/10 px-2 py-0.5 text-[9px] font-bold text-slate-500">
+                    {{ toolkit.completedIn(category) }}/{{ toolkit.tasksFor(category).length }}
+                  </span>
+                </div>
+                <ul class="mt-4 space-y-4">
+                  @for (task of toolkit.tasksFor(category); track task.id) {
+                    <li class="flex items-start gap-3">
+                      <input
+                        type="checkbox"
+                        class="toolkit-check mt-0.5 shrink-0"
+                        [checked]="toolkit.isRightsTaskDone(task.id)"
+                        (change)="toolkit.toggleRightsTask(task.id)"
+                        [attr.aria-label]="'Mark ' + task.title + ' complete'"
+                      />
+                      <div class="min-w-0">
+                        <div
+                          class="text-[11px] font-bold leading-snug"
+                          [class.text-slate-400]="toolkit.isRightsTaskDone(task.id)"
+                          [class.text-white]="!toolkit.isRightsTaskDone(task.id)"
+                        >
+                          {{ task.title }}
+                        </div>
+                        <p class="mt-1 text-[10px] leading-relaxed text-slate-500">{{ task.detail }}</p>
+                        @if (task.links?.length) {
+                          <div class="mt-2 flex flex-wrap gap-2">
+                            @for (link of task.links; track link.url) {
+                              <a
+                                class="rounded border border-emerald-400/20 px-2 py-1 text-[8px] font-black uppercase tracking-wider text-emerald-300 hover:border-emerald-400/60"
+                                [href]="link.url"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                              >
+                                {{ link.label }} ↗
+                              </a>
+                            }
+                          </div>
+                        }
+                      </div>
+                    </li>
+                  }
+                </ul>
+              </section>
+            }
+          </div>
+
+          <section>
+            <div class="mb-4 flex items-center gap-3">
+              <span class="material-symbols-outlined text-emerald-400" aria-hidden="true">explore</span>
+              <h2 class="text-sm font-black uppercase tracking-tight text-white">Journey guides</h2>
+            </div>
+            <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+              @for (guide of toolkit.guides; track guide.id) {
+                <article class="toolkit-card p-5">
+                  <h3 class="text-[12px] font-bold leading-snug text-white">{{ guide.title }}</h3>
+                  <p class="mt-1 text-[10px] leading-relaxed text-slate-500">{{ guide.summary }}</p>
+                  <ol class="mt-3 space-y-2">
+                    @for (step of guide.steps; track $index) {
+                      <li class="flex items-start gap-2 text-[10px] leading-relaxed text-slate-400">
+                        <span class="mt-0.5 shrink-0 font-mono text-[9px] font-black text-emerald-400">{{ $index + 1 }}</span>
+                        {{ step }}
+                      </li>
+                    }
+                  </ol>
+                </article>
+              }
+            </div>
+          </section>
+
+          <p class="text-[9px] leading-relaxed text-slate-600">
+            Educational information, not legal, tax or financial advice. Rules and
+            fees change; verify current requirements with the official body and a
+            qualified professional in your jurisdiction.
+          </p>
+        </div>
+      }
+    }
+  </div>
+</div>

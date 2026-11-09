@@ -264,6 +264,16 @@ export const WORKSPACE_REGISTRY: WorkspaceConfig[] = [
     related: ['release-pipeline', 'career', 'strategy'],
   },
   {
+    mode: 'toolkit',
+    routePath: '/toolkit',
+    label: 'Artist Toolkit',
+    description:
+      'Plan a release, agree splits, estimate royalties, and work the rights checklist.',
+    icon: 'handyman',
+    category: 'STRATEGY',
+    related: ['business-suite', 'release-pipeline', 'career', 'academy'],
+  },
+  {
     mode: 'business-pipeline',
     routePath: '/business-suite',
     label: 'Business Pipeline',

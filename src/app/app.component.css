@@ -243,6 +243,7 @@
 }
 
 .mobile-nav-button {
+  position: relative;
   flex: 1 1 0;
   min-width: 0;
   min-height: 48px;
@@ -259,6 +260,29 @@
     transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
     background-color 0.2s ease,
     color 0.2s ease;
+}
+
+.mobile-nav-badge {
+  position: absolute;
+  top: 3px;
+  /* Narrow docks can shrink a tab below 48px; sit in the nav's outer padding
+     so the count clears the icon instead of covering it. */
+  right: -7px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: #10b981;
+  color: #04100d;
+  font-size: 9px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: 0;
+  box-shadow: 0 0 0 2px #07060d;
+  pointer-events: none;
 }
 
 .mobile-nav-button .material-symbols-outlined {

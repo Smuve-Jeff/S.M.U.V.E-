@@ -14,6 +14,7 @@ describe('strategy workspace wiring', () => {
     { mode: 'command-center', component: 'CommandCenterComponent' },
     { mode: 'neural-foundry', component: 'NeuralFoundryComponent' },
     { mode: 'journey', component: 'JourneyComponent' },
+    { mode: 'toolkit', component: 'ArtistToolkitComponent' },
   ];
 
   it.each(wired)('registers $mode as a lazy protected route', ({ mode }) => {

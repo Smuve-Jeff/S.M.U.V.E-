@@ -26,6 +26,10 @@ import { CommandPaletteComponent } from './components/command-palette/command-pa
 import { ArtistCoachCommandIntegrationService } from './services/artist-coach-command-integration.service';
 import { ArtistLifecycleCommandIntegrationService } from './services/artist-lifecycle-command-integration.service';
 import { ArtistLifecycleService } from './services/artist-lifecycle.service';
+import {
+  NextBestMoveQueueItem,
+  NextBestMoveQueueService,
+} from './services/next-best-move-queue.service';
 import { CommandPaletteService } from './services/command-palette.service';
 import { StudioSurfaceCommandsService } from './studio/studio-surface-commands.service';
 import { UserProfileService } from './services/user-profile.service';
@@ -112,6 +116,7 @@ export class AppComponent {
   // Publishes the pathway's next move and blocked phases into the palette.
   private lifecycleCommands = inject(ArtistLifecycleCommandIntegrationService);
   private lifecycleService = inject(ArtistLifecycleService);
+  private moveQueueService = inject(NextBestMoveQueueService);
   profileService = inject(UserProfileService);
   offlineSync = inject(OfflineSyncService);
   location = inject(Location);
@@ -829,20 +834,44 @@ export class AppComponent {
   }
 
   /**
-   * The single move the pathway ranks first, surfaced in the mobile workspace
-   * tray so the next action is reachable from any workspace on a phone. It is
-   * the same move the Hub and the command palette offer, never a separate pick.
+   * The same pathway-first queue the Hub shows, surfaced in the mobile workspace
+   * tray. Toolkit items can be completed here, and every item keeps its own
+   * destination so the tray never becomes a list of dead labels.
    */
-  mobileNextMove = computed(() => {
+  readonly mobileMoveQueue = computed<NextBestMoveQueueItem[]>(() => {
     const profile = this.profileService.profile();
-    return this.lifecycleService.snapshot(
-      profile,
-      (profile.knowledgeBase as any)?.currentRelease ?? null
-    ).nextBestMove;
+    return this.moveQueueService.build(
+      this.lifecycleService.snapshot(
+        profile,
+        (profile.knowledgeBase as any)?.currentRelease ?? null
+      )
+    );
   });
 
-  openMobileNextMove(): void {
-    this.navigateToView('artist-development');
+  readonly mobileQueueSummary = this.moveQueueService.toolkitSummary;
+
+  openMobileQueueMove(move: NextBestMoveQueueItem): void {
+    if (move.source === 'pathway') {
+      this.navigateToView('artist-development');
+      return;
+    }
+    this.isMobileWorkspaceTrayOpen.set(false);
+    void this.router.navigateByUrl(
+      move.source === 'rights' ? '/toolkit?tab=rights' : '/toolkit?tab=blueprint'
+    );
+  }
+
+  completeMobileQueueMove(move: NextBestMoveQueueItem): void {
+    this.moveQueueService.complete(move);
+  }
+
+  openMobileToolkit(): void {
+    this.isMobileWorkspaceTrayOpen.set(false);
+    void this.router.navigateByUrl('/toolkit');
+  }
+
+  trackMobileQueueItem(_index: number, move: NextBestMoveQueueItem): string {
+    return move.id;
   }
 
   togglePinnedView(mode: MainViewMode) {

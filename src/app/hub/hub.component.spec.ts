@@ -11,6 +11,7 @@ import {
   ArtistLifecycleAlertService,
   LifecycleAlert,
 } from '../services/artist-lifecycle-alert.service';
+import { ArtistToolkitService } from '../services/artist-toolkit.service';
 
 describe('HubComponent', () => {
   let component: HubComponent;
@@ -18,6 +19,8 @@ describe('HubComponent', () => {
   let alertService: { alerts: WritableSignal<LifecycleAlert[]>; dismiss: jest.Mock };
 
   beforeEach(async () => {
+    localStorage.clear();
+
     // Mock AudioContext
     const mockAudioParam = {
       value: 0,
@@ -291,6 +294,60 @@ describe('HubComponent', () => {
     const dismiss = rail!.querySelector<HTMLButtonElement>('.hub-text-button');
     dismiss!.click();
     expect(alertService.dismiss).toHaveBeenCalledWith('lifecycle-alert-1');
+  });
+
+  it('queues the next release milestone and rights step behind the pathway move', () => {
+    const toolkit = TestBed.inject(ArtistToolkitService);
+    const queue = component.moveQueue();
+
+    expect(queue[0].source).toBe('pathway');
+    expect(queue.map((move) => move.source)).toEqual(
+      expect.arrayContaining(['release', 'rights'])
+    );
+
+    const release = queue.find((move) => move.source === 'release')!;
+    expect(release.title).toBe(toolkit.nextMilestone()!.title);
+    expect(release.queryParams).toEqual({ tab: 'blueprint' });
+
+    const rights = queue.find((move) => move.source === 'rights')!;
+    const expectedRights = toolkit.rightsTasks.find(
+      (task) => !toolkit.isRightsTaskDone(task.id)
+    )!;
+    expect(rights.title).toBe(expectedRights.title);
+    expect(rights.queryParams).toEqual({ tab: 'rights' });
+    expect(component.toolkitQueueSummary()).toContain('release milestones');
+  });
+
+  it('marks a queued toolkit step complete without leaving the Hub', () => {
+    const toolkit = TestBed.inject(ArtistToolkitService);
+    const firstRightsMove = component
+      .moveQueue()
+      .find((move) => move.source === 'rights')!;
+
+    component.completeQueueMove(firstRightsMove);
+
+    expect(toolkit.isRightsTaskDone(firstRightsMove.toolkitId!)).toBe(true);
+    expect(
+      component.moveQueue().find((move) => move.source === 'rights')?.toolkitId
+    ).not.toBe(firstRightsMove.toolkitId);
+  });
+
+  it('deep-links queued toolkit moves to the matching tab', () => {
+    const router = TestBed.inject(Router);
+    const navigateSpy = jest
+      .spyOn(router, 'navigate')
+      .mockResolvedValue(true as never);
+    const queue = component.moveQueue();
+
+    component.openQueueMove(queue.find((move) => move.source === 'release')!);
+    expect(navigateSpy).toHaveBeenCalledWith(['/toolkit'], {
+      queryParams: { tab: 'blueprint' },
+    });
+
+    component.openQueueMove(queue.find((move) => move.source === 'rights')!);
+    expect(navigateSpy).toHaveBeenCalledWith(['/toolkit'], {
+      queryParams: { tab: 'rights' },
+    });
   });
 
   it('renders the dynamic command-center surfaces', () => {

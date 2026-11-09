@@ -42,6 +42,7 @@ export type MainViewMode =
   | 'knowledge-base'
   | 'business-suite'
   | 'business-pipeline'
+  | 'toolkit'
   | 'mixer'
   | 'drum-machine'
   | 'mastering'
