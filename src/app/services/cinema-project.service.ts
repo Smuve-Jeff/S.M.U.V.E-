@@ -13,6 +13,10 @@ import {
   sanitizeAiVfxSectionPlan,
   type AiVfxSectionPlan,
 } from './ai-vfx';
+import {
+  sanitizeDirectorShotPlan,
+  type DirectorShotPlan,
+} from './director-shot-plan';
 
 /**
  * A saved project as the project list needs it. The edit itself is deliberately
@@ -62,6 +66,8 @@ export interface CinemaOpenOutcome {
   audioBed?: { blob: Blob; name: string } | null;
   /** The Director's saved section effect plan, when the project carried one. */
   sectionVfxPlan?: AiVfxSectionPlan | null;
+  /** The Director's saved shot list and brief, when the project carried one. */
+  directorShotPlan?: DirectorShotPlan | null;
 }
 
 /** Stored footage, addressed by `projectId::mediaId`. */
@@ -198,7 +204,8 @@ export class CinemaProjectService {
     name: string,
     id: string | null = this.activeProjectId(),
     media?: Map<string, Blob>,
-    sectionVfxPlan?: AiVfxSectionPlan | null
+    sectionVfxPlan?: AiVfxSectionPlan | null,
+    directorShotPlan?: DirectorShotPlan | null
   ): Promise<CinemaSaveOutcome> {
     if (this.isBusy()) {
       return { ok: false, id, message: 'A save is already in progress.' };
@@ -225,6 +232,11 @@ export class CinemaProjectService {
       // carry a plan its own console can render.
       const savedSectionVfx = sanitizeAiVfxSectionPlan(sectionVfxPlan);
       if (savedSectionVfx) snapshot.sectionVfxPlan = savedSectionVfx;
+      // The shot list and its brief live on the Director, so they ride in on the
+      // save call. Validate before writing so a project can only carry a list
+      // its own console can render.
+      const savedShotPlan = sanitizeDirectorShotPlan(directorShotPlan);
+      if (savedShotPlan) snapshot.directorShotPlan = savedShotPlan;
       // Read the overwrite target back from storage instead of trusting the
       // in-memory list: after a failed refresh that list is empty while the
       // record is still on disk, and minting a fresh id there would fork a
@@ -363,13 +375,20 @@ export class CinemaProjectService {
         record.snapshot.sectionVfxPlan
       );
       const vfxNote = sectionVfxPlan ? ' Section effects restored.' : '';
+      // Older projects simply lack this field. A malformed one opens as no shot
+      // list instead of a console that cannot stage what it shows.
+      const directorShotPlan = sanitizeDirectorShotPlan(
+        record.snapshot.directorShotPlan
+      );
+      const shotNote = directorShotPlan ? ' Shot list restored.' : '';
       return {
         ok: true,
         report,
         media,
         audioBed,
         sectionVfxPlan,
-        message: `PROJECT OPENED: ${record.name.toUpperCase()} · ${report.clips} CLIP(S), ${report.markers} MARKER(S).${footage}${missing}${bedNote}${vfxNote}`,
+        directorShotPlan,
+        message: `PROJECT OPENED: ${record.name.toUpperCase()} · ${report.clips} CLIP(S), ${report.markers} MARKER(S).${footage}${missing}${bedNote}${vfxNote}${shotNote}`,
       };
     } catch (error) {
       this.logger.error('CinemaProjectService: open failed', error);

@@ -3540,6 +3540,7 @@ describe('ImageVideoLabComponent', () => {
         'Feature Cut',
         null,
         expect.any(Map),
+        null,
         null
       );
       expect(component.aiFeedback()).toBe('PROJECT SAVED: FEATURE CUT.');
@@ -3656,6 +3657,112 @@ describe('ImageVideoLabComponent', () => {
 
       expect(component.director.sectionVfxPlan()?.title).toBe('Saved FX');
       expect(component.director.sectionVfxPlan()?.sections).toHaveLength(1);
+    });
+
+    it('saves the Director shot list with the project', async () => {
+      const { component, cinemaProjects } = await createComponent();
+      component.director.restoreShotPlan({
+        brief: 'A night drive',
+        plan: {
+          title: 'Night Drive',
+          logline: 'A headlight-lit cut.',
+          editorial: [],
+          origin: 'smuve',
+          shots: [
+            {
+              index: 1,
+              title: 'Dashboard',
+              description: 'Wide',
+              size: 'wide',
+              bars: 4,
+              startTime: 0,
+              durationSeconds: 8,
+              section: 'Feature',
+            },
+          ],
+        },
+      });
+
+      await component.saveProject();
+
+      const [, , , , savedShotPlan] = cinemaProjects.save.mock.calls.at(-1) as [
+        string,
+        string | null,
+        Map<string, Blob>,
+        unknown,
+        { brief: string; plan: { title: string; shots: unknown[] } },
+      ];
+      expect(savedShotPlan.brief).toBe('A night drive');
+      expect(savedShotPlan.plan.title).toBe('Night Drive');
+      expect(savedShotPlan.plan.shots).toHaveLength(1);
+    });
+
+    it('restores the Director shot list when a project opens', async () => {
+      const { component, cinemaProjects } = await createComponent();
+      cinemaProjects.open.mockResolvedValueOnce({
+        ok: true,
+        message: 'PROJECT OPENED: FEATURE CUT. Shot list restored.',
+        directorShotPlan: {
+          brief: 'A night drive',
+          plan: {
+            title: 'Night Drive',
+            logline: 'A headlight-lit cut.',
+            editorial: [],
+            origin: 'smuve',
+            shots: [
+              {
+                index: 1,
+                title: 'Dashboard',
+                description: 'Wide',
+                size: 'wide',
+                bars: 4,
+                startTime: 0,
+                durationSeconds: 8,
+                section: 'Feature',
+              },
+            ],
+          },
+        },
+      });
+
+      await component.openProject('p1');
+
+      expect(component.director.plan()?.title).toBe('Night Drive');
+      expect(component.director.brief()).toBe('A night drive');
+    });
+
+    it('clears the closed project shot list when the opened one has none', async () => {
+      const { component, cinemaProjects } = await createComponent();
+      component.director.restoreShotPlan({
+        brief: 'Previous project',
+        plan: {
+          title: 'Previous Cut',
+          logline: 'A cut from another project.',
+          editorial: [],
+          origin: 'local',
+          shots: [
+            {
+              index: 1,
+              title: 'Old setup',
+              description: 'Wide',
+              size: 'wide',
+              bars: 2,
+              startTime: 0,
+              durationSeconds: 4,
+              section: 'Feature',
+            },
+          ],
+        },
+      });
+      cinemaProjects.open.mockResolvedValueOnce({
+        ok: true,
+        message: 'PROJECT OPENED: FEATURE CUT.',
+      });
+
+      await component.openProject('p2');
+
+      expect(component.director.plan()).toBeNull();
+      expect(component.director.brief()).toBe('');
     });
 
     it('seeds the name field from the project that was actually saved', async () => {
@@ -4502,10 +4609,12 @@ describe('ImageVideoLabComponent', () => {
       expect(component.aiFeedback()).toContain('PREVIOUS CARD(S) RESTAGED');
     });
 
-    it('opens on a stored plan and says it was restored', async () => {
-      localStorage.setItem(
-        'smuve_cinema_director_plan',
-        JSON.stringify({
+    it('opens on the project shot list and says it was restored', async () => {
+      const { component, cinemaProjects } = await createComponent();
+      cinemaProjects.open.mockResolvedValueOnce({
+        ok: true,
+        message: 'PROJECT OPENED: NIGHT DRIVE. Shot list restored.',
+        directorShotPlan: {
           brief: 'Night drive',
           plan: {
             title: 'Night Drive',
@@ -4525,14 +4634,13 @@ describe('ImageVideoLabComponent', () => {
               },
             ],
           },
-        })
-      );
+        },
+      });
 
-      const { component } = await createComponent();
+      await component.openProject('p1');
 
       expect(component.aiFeedback()).toContain('RESTORED');
       expect(component.director.plan()?.title).toBe('Night Drive');
-      localStorage.clear();
     });
 
     it('lists every planned shot with whether its card is on the lane', async () => {
@@ -4632,72 +4740,64 @@ describe('ImageVideoLabComponent', () => {
       expect(component.aiFeedback()).toContain('NO SHOT CARDS');
     });
 
-    it('still names the model that answered after a reload', async () => {
-      localStorage.setItem(
-        'smuve_cinema_director_plan',
-        JSON.stringify({
-          brief: 'Night drive',
-          plan: {
-            title: 'Night Drive',
-            logline: 'A headlight-lit cut.',
-            editorial: [],
-            origin: 'smuve',
-            call: { model: 'gemini-2.5-flash', attempts: 2, latencyMs: 1400 },
-            shots: [
-              {
-                index: 1,
-                title: 'Dashboard',
-                description: 'Wide',
-                size: 'wide',
-                bars: 4,
-                startTime: 0,
-                durationSeconds: 8,
-                section: 'Feature',
-              },
-            ],
-          },
-        })
-      );
-
+    it('still names the model that answered in a restored shot list', async () => {
       const { component } = await createComponent();
+      component.director.restoreShotPlan({
+        brief: 'Night drive',
+        plan: {
+          title: 'Night Drive',
+          logline: 'A headlight-lit cut.',
+          editorial: [],
+          origin: 'smuve',
+          call: { model: 'gemini-2.5-flash', attempts: 2, latencyMs: 1400 },
+          shots: [
+            {
+              index: 1,
+              title: 'Dashboard',
+              description: 'Wide',
+              size: 'wide',
+              bars: 4,
+              startTime: 0,
+              durationSeconds: 8,
+              section: 'Feature',
+            },
+          ],
+        },
+      });
 
       expect(component.planAttribution()).toBe(
         'AI DIRECTED · gemini-2.5-flash · 1.4s · 2 TRIES'
       );
-      localStorage.clear();
     });
 
-    it('clears a restored plan out of storage, not just off the screen', async () => {
-      localStorage.setItem(
-        'smuve_cinema_director_plan',
-        JSON.stringify({
-          brief: 'Night drive',
-          plan: {
-            title: 'Night Drive',
-            logline: 'A headlight-lit cut.',
-            editorial: [],
-            origin: 'local',
-            shots: [
-              {
-                index: 1,
-                title: 'Dashboard',
-                description: 'Wide',
-                size: 'wide',
-                bars: 4,
-                startTime: 0,
-                durationSeconds: 8,
-                section: 'Feature',
-              },
-            ],
-          },
-        })
-      );
+    it('clears a restored plan and the record the next save carries', async () => {
       const { component } = await createComponent();
+      component.director.restoreShotPlan({
+        brief: 'Night drive',
+        plan: {
+          title: 'Night Drive',
+          logline: 'A headlight-lit cut.',
+          editorial: [],
+          origin: 'local',
+          shots: [
+            {
+              index: 1,
+              title: 'Dashboard',
+              description: 'Wide',
+              size: 'wide',
+              bars: 4,
+              startTime: 0,
+              durationSeconds: 8,
+              section: 'Feature',
+            },
+          ],
+        },
+      });
 
       component.clearShotPlan();
 
       expect(component.director.plan()).toBeNull();
-      expect(localStorage.getItem('smuve_cinema_director_plan')).toBeNull();
+      expect(component.director.shotPlanRecord()).toBeNull();
       expect(component.aiFeedback()).toContain('CLEARED');
     });
 

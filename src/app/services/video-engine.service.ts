@@ -70,6 +70,7 @@ import {
   type AiVfxTransientTrack,
 } from './ai-vfx';
 import { analyzeAudioTransients, type TransientMap } from './audio-transients';
+import type { DirectorShotPlan } from './director-shot-plan';
 export type { ClipMaskSettings, PipSettings, PipPreset, MaskShape } from './clip-mask';
 export { sanitizeMask, sanitizePip, pipTransform } from './clip-mask';
 import { sanitizeMask, sanitizePip } from './clip-mask';
@@ -350,6 +351,8 @@ export interface CinemaSnapshot {
   audioOverlay: CinemaAudioBedMeta | null;
   /** The Director's per-section effect plan, saved with the cut. */
   sectionVfxPlan?: AiVfxSectionPlan | null;
+  /** The Director's shot list and brief, saved with this cut. */
+  directorShotPlan?: DirectorShotPlan | null;
 }
 
 /** What a restore could, and could not, bring back. */

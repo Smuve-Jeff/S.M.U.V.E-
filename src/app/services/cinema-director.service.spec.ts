@@ -45,8 +45,6 @@ describe('CinemaDirectorService', () => {
     existingMarkers: [{ label: 'Hook', time: 4, kind: 'section' as const }],
   };
 
-  beforeEach(() => localStorage.clear());
-
   it('includes existing coverage and markers in the AI prompt', () => {
     const service = createService();
 
@@ -67,7 +65,7 @@ describe('CinemaDirectorService', () => {
     expect(service.isPlanning()).toBe(false);
   });
 
-  it('opens the next session on the plan the last one cut', async () => {
+  it('restores a shot list and its brief with the project that saved it', async () => {
     const first = createService(
       JSON.stringify({
         title: 'Night Drive',
@@ -77,9 +75,11 @@ describe('CinemaDirectorService', () => {
       })
     );
     await first.generateShotPlan(request);
+    const saved = first.shotPlanRecord();
 
     TestBed.resetTestingModule();
     const second = createService();
+    second.restoreShotPlan(saved);
 
     expect(second.plan()?.title).toBe('Night Drive');
     expect(second.plan()?.editorial).toEqual(['Open on the dashboard.']);
@@ -102,9 +102,11 @@ describe('CinemaDirectorService', () => {
       at: 1,
     });
     await first.generateShotPlan(request);
+    const saved = first.shotPlanRecord();
 
     TestBed.resetTestingModule();
     const second = createService();
+    second.restoreShotPlan(saved);
 
     expect(second.plan()?.call).toEqual({
       model: 'gemini-2.5-flash',
@@ -113,63 +115,79 @@ describe('CinemaDirectorService', () => {
     });
   });
 
-  it('drops a stored call that is not shaped like one', () => {
-    localStorage.setItem(
-      'smuve_cinema_director_plan',
-      JSON.stringify({
-        brief: 'Night drive',
-        plan: {
-          title: 'Night Drive',
-          logline: 'A headlight-lit cut.',
-          shots: [
-            {
-              index: 1,
-              title: 'Dashboard',
-              description: 'Wide',
-              size: 'wide',
-              bars: 4,
-              startTime: 0,
-              durationSeconds: 8,
-              section: 'Feature',
-            },
-          ],
-          origin: 'smuve',
-          call: { model: 'gemini-2.5-flash', latencyMs: 'fast' },
-        },
-      })
-    );
-
+  it('drops a saved call that is not shaped like one', () => {
     const service = createService();
+
+    service.restoreShotPlan({
+      brief: 'Night drive',
+      plan: {
+        title: 'Night Drive',
+        logline: 'A headlight-lit cut.',
+        shots: [
+          {
+            index: 1,
+            title: 'Dashboard',
+            description: 'Wide',
+            size: 'wide',
+            bars: 4,
+            startTime: 0,
+            durationSeconds: 8,
+            section: 'Feature',
+          },
+        ],
+        origin: 'smuve',
+        call: { model: 'gemini-2.5-flash', latencyMs: 'fast' },
+      },
+    } as any);
 
     expect(service.plan()?.title).toBe('Night Drive');
     expect(service.plan()?.call).toBeUndefined();
   });
 
-  it('forgets the stored plan when the shot list is cleared', async () => {
-    const first = createService(
+  it('clears the shot list and the record handed to project save', async () => {
+    const service = createService(
       JSON.stringify({
         title: 'Night Drive',
         logline: 'A headlight-lit performance cut.',
         shots: [{ title: 'Dashboard', description: 'Wide', size: 'wide', bars: 4 }],
       })
     );
-    await first.generateShotPlan(request);
-    first.clearPlan();
+    await service.generateShotPlan(request);
 
-    TestBed.resetTestingModule();
-    const second = createService();
-
-    expect(second.plan()).toBeNull();
-    expect(localStorage.getItem('smuve_cinema_director_plan')).toBeNull();
-    expect(second.plannerNote()).toContain('stands ready');
-  });
-
-  it('ignores a corrupted stored plan instead of crashing the console', () => {
-    localStorage.setItem('smuve_cinema_director_plan', '{"plan":');
-
-    const service = createService();
+    service.clearPlan();
 
     expect(service.plan()).toBeNull();
+    expect(service.shotPlanRecord()).toBeNull();
+    expect(service.plannerNote()).toContain('Shot list cleared');
+  });
+
+  it('clears the previous shot list for a project that carries none', async () => {
+    const service = createService(
+      JSON.stringify({
+        title: 'Night Drive',
+        logline: 'A headlight-lit performance cut.',
+        shots: [{ title: 'Dashboard', description: 'Wide', size: 'wide', bars: 4 }],
+      })
+    );
+    await service.generateShotPlan(request);
+
+    service.restoreShotPlan(null);
+
+    expect(service.plan()).toBeNull();
+    expect(service.brief()).toBe('');
+    expect(service.plannerNote()).toContain('no shot list');
+  });
+
+  it('ignores a corrupted saved plan instead of crashing the console', () => {
+    const service = createService();
+
+    service.restoreShotPlan({
+      brief: 'Night drive',
+      plan: { title: 'Night Drive', logline: 'A cut.', shots: 'not-a-list' },
+    } as any);
+
+    expect(service.plan()).toBeNull();
+    expect(service.plannerNote()).toContain('no shot list');
   });
 
   it('names the provider limit instead of blaming the connection', async () => {
@@ -255,7 +273,7 @@ describe('CinemaDirectorService', () => {
     expect(service.shotMediaBusy()).toBeNull();
   });
 
-  it('persists a styled shot into the stored plan', async () => {
+  it('keeps a styled shot in the plan handed to the project', async () => {
     const service = createService(
       JSON.stringify({
         title: 'Night Drive',
@@ -266,10 +284,8 @@ describe('CinemaDirectorService', () => {
     const plan = await service.generateShotPlan(request);
     await service.generateShotConcept(plan.shots[0]);
 
-    const stored = JSON.parse(
-      localStorage.getItem('smuve_cinema_director_plan') ?? ''
-    );
-    expect(stored.plan.shots[0].conceptImageUrl).toBe(
+    const saved = service.shotPlanRecord();
+    expect(saved?.plan.shots[0].conceptImageUrl).toBe(
       'https://cdn.example.test/still.png'
     );
   });

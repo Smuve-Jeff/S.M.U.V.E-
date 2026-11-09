@@ -1786,7 +1786,8 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
       this.projectName(),
       this.cinemaProjects.activeProjectId(),
       footage,
-      this.director.sectionVfxPlan()
+      this.director.sectionVfxPlan(),
+      this.director.shotPlanRecord()
     );
     if (outcome.ok) {
       const saved = this.cinemaProjects.activeProject();
@@ -1803,10 +1804,11 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     if (outcome.ok) {
       const opened = this.cinemaProjects.activeProject();
       if (opened) this.projectName.set(opened.name);
-      // The section list is part of the edit, so it comes back with it. Passing
-      // null for a project that carried none also clears the closed project's
-      // plan instead of leaving it on screen.
+      // The section list and shot list are part of the edit, so they come back
+      // with it. Passing null for a project that carried none also clears the
+      // closed project's plans instead of leaving them on screen.
       this.director.restoreSectionVfxPlan(outcome.sectionVfxPlan ?? null);
+      this.director.restoreShotPlan(outcome.directorShotPlan ?? null);
       // Opening a project replaces the entire timeline, so everything decoded
       // for the project being closed is now dead weight.
       this.evictUnusedMedia();

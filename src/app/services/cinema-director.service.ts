@@ -16,61 +16,24 @@ import {
   type AiVfxSectionRange,
   type AiVfxStyle,
 } from './ai-vfx';
+import {
+  SHOT_SIZES,
+  sanitizeDirectorShotPlan,
+  type DirectorShotPlan,
+  type ShotPlan,
+  type ShotPlanCall,
+  type ShotPlanShot,
+  type ShotSize,
+} from './director-shot-plan';
 
-/** Shot sizes the director knows how to stage. */
-export const SHOT_SIZES = [
-  'establishing',
-  'wide',
-  'medium',
-  'close',
-  'insert',
-  'b-roll',
-  'performance',
-  'lip-sync',
-  'transition',
-] as const;
-export type ShotSize = (typeof SHOT_SIZES)[number];
-
-/** One planned shot in a S.M.U.V.E shot list. */
-export interface ShotPlanShot {
-  index: number;
-  title: string;
-  description: string;
-  size: ShotSize;
-  /** Length expressed in bars — the unit a music-video cut is built in. */
-  bars: number;
-  /** Resolved timeline placement, derived from the section map. */
-  startTime: number;
-  durationSeconds: number;
-  /** Section or act this shot belongs to. */
-  section: string;
-  /** Director v2: the styled concept still for this shot, once generated. */
-  conceptImageUrl?: string;
-  /** Director v2: the animated video for this shot, once rendered. */
-  videoUrl?: string;
-}
-
-/**
- * What the answering call actually was. The console read this from the last AI
- * call in memory, so a restored plan could only say "AI DIRECTED" — the model
- * and latency vanished with the page even though the plan itself came back.
- */
-export interface ShotPlanCall {
-  model: string;
-  attempts: number;
-  latencyMs: number;
-}
-
-export interface ShotPlan {
-  title: string;
-  logline: string;
-  editorial: string[];
-  shots: ShotPlanShot[];
-  /** Where the plan actually came from — never claim S.M.U.V.E authored a local plan. */
-  origin: 'smuve' | 'local';
-  /** The call that produced a directed plan, carried with it for attribution. */
-  call?: ShotPlanCall;
-}
+export { SHOT_SIZES };
+export type {
+  DirectorShotPlan,
+  ShotPlan,
+  ShotPlanCall,
+  ShotPlanShot,
+  ShotSize,
+};
 
 export interface ShotPlanRequest {
   brief: string;
@@ -196,13 +159,6 @@ const PLAN_SCHEMA_HINT =
 
 const MAX_PLAN_SHOTS = 60;
 
-/**
- * Where the current plan lives between sessions. The lab held the plan only in
- * this service's signal, so a reload — or a trip to another surface and back —
- * silently threw away a shot list the artist had just been given.
- */
-const PLAN_STORAGE_KEY = 'smuve_cinema_director_plan';
-
 @Injectable({ providedIn: 'root' })
 export class CinemaDirectorService {
   private logger = inject(LoggingService);
@@ -222,17 +178,6 @@ export class CinemaDirectorService {
   sectionVfxNote = signal(
     'Assign a beat-locked effect look to every section of the cut.'
   );
-
-  constructor() {
-    const stored = this.readStoredPlan();
-    if (stored) {
-      this.plan.set(stored.plan);
-      this.brief.set(stored.brief);
-      this.plannerNote.set(
-        `Shot list restored from your last session — "${stored.plan.logline}"`
-      );
-    }
-  }
 
   readonly shotCount = computed(() => this.plan()?.shots.length ?? 0);
   readonly plannedRuntime = computed(() => {
@@ -312,8 +257,8 @@ export class CinemaDirectorService {
   }
 
   /**
-   * Write generated media onto one shot and persist it with the plan, so a
-   * styled storyboard is still there when the session returns.
+   * Write generated media onto one shot so a saved project carries the styled
+   * storyboard, not just the shot descriptions.
    */
   private setShotMedia(
     index: number,
@@ -326,7 +271,6 @@ export class CinemaDirectorService {
     );
     const updated = { ...plan, shots };
     this.plan.set(updated);
-    this.storePlan(updated, this.brief());
   }
 
   /**
@@ -339,6 +283,9 @@ export class CinemaDirectorService {
   async generateShotPlan(request: ShotPlanRequest): Promise<ShotPlan> {
     this.isPlanning.set(true);
     const brief = request.brief.trim();
+    // Keep the service's brief in step with the plan it is about to cut: the
+    // project record saves the pair together.
+    this.brief.set(brief);
     try {
       const prompt = this.buildPrompt({ ...request, brief });
       let response = '';
@@ -359,7 +306,6 @@ export class CinemaDirectorService {
           };
         }
         this.plan.set(parsed);
-        this.storePlan(parsed, brief);
         this.plannerNote.set(
           `S.M.U.V.E staged ${parsed.shots.length} shots — "${parsed.logline}"`
         );
@@ -368,86 +314,10 @@ export class CinemaDirectorService {
 
       const local = this.buildLocalPlan(brief, request);
       this.plan.set(local);
-      this.storePlan(local, brief);
       this.plannerNote.set(this.localPlanNote(response));
       return local;
     } finally {
       this.isPlanning.set(false);
-    }
-  }
-
-  /**
-   * Keep the plan and the brief it came from, so the next session opens on the
-   * shot list instead of a blank console. A blocked or full storage leaves the
-   * plan in memory, which still works for this session.
-   */
-  private storePlan(plan: ShotPlan, brief: string): void {
-    try {
-      localStorage.setItem(PLAN_STORAGE_KEY, JSON.stringify({ brief, plan }));
-    } catch {
-      this.logger.warn('Cinema director: could not persist the shot plan');
-    }
-  }
-
-  private forgetStoredPlan(): void {
-    try {
-      localStorage.removeItem(PLAN_STORAGE_KEY);
-    } catch {
-      this.logger.warn('Cinema director: could not clear the stored shot plan');
-    }
-  }
-
-  /**
-   * Read the last plan back, rejecting anything that is not a shot list the
-   * console can render — a stale or hand-edited entry must not reach the UI.
-   */
-  private readStoredPlan(): { plan: ShotPlan; brief: string } | null {
-    try {
-      const raw = localStorage.getItem(PLAN_STORAGE_KEY);
-      if (!raw) return null;
-      const parsed = JSON.parse(raw) as { brief?: unknown; plan?: Partial<ShotPlan> };
-      const plan = parsed?.plan;
-      if (!plan || typeof plan.title !== 'string' || typeof plan.logline !== 'string') {
-        return null;
-      }
-      const shots = Array.isArray(plan.shots)
-        ? plan.shots.filter(
-            (shot) =>
-              !!shot &&
-              typeof shot.title === 'string' &&
-              typeof shot.description === 'string' &&
-              typeof shot.startTime === 'number' &&
-              typeof shot.durationSeconds === 'number'
-          )
-        : [];
-      if (shots.length === 0) return null;
-      const storedCall = (plan as { call?: Partial<ShotPlanCall> }).call;
-      const call: ShotPlanCall | undefined =
-        storedCall &&
-        typeof storedCall.model === 'string' &&
-        typeof storedCall.latencyMs === 'number' &&
-        typeof storedCall.attempts === 'number'
-          ? {
-              model: storedCall.model,
-              latencyMs: Math.max(0, storedCall.latencyMs),
-              attempts: Math.max(1, Math.round(storedCall.attempts)),
-            }
-          : undefined;
-      return {
-        brief: typeof parsed.brief === 'string' ? parsed.brief : '',
-        plan: {
-          title: plan.title,
-          logline: plan.logline,
-          editorial: Array.isArray(plan.editorial)
-            ? plan.editorial.filter((line): line is string => typeof line === 'string')
-            : [],
-          origin: plan.origin === 'smuve' ? 'smuve' : 'local',
-          shots,
-          ...(call ? { call } : {}),
-        },
-      };
-    } catch {
-      return null;
     }
   }
 
@@ -528,6 +398,31 @@ export class CinemaDirectorService {
     );
   }
 
+  /**
+   * The shot list and brief to save with the current project. Returns null when
+   * there is no valid plan, so a project without one does not carry a stale
+   * list from a previous cut.
+   */
+  shotPlanRecord(): DirectorShotPlan | null {
+    return sanitizeDirectorShotPlan({ brief: this.brief(), plan: this.plan() });
+  }
+
+  /**
+   * Put a project's saved shot list back, or clear the console for a project
+   * that carried none. Restoration is explicit precisely so two projects can
+   * never share whichever plan happened to be used last.
+   */
+  restoreShotPlan(record: DirectorShotPlan | null | undefined): void {
+    const restored = sanitizeDirectorShotPlan(record);
+    this.plan.set(restored?.plan ?? null);
+    this.brief.set(restored?.brief ?? '');
+    this.plannerNote.set(
+      restored
+        ? `Shot list restored with the project — "${restored.plan.logline}"`
+        : 'This project carries no shot list.'
+    );
+  }
+
   /** Put a saved section plan back when its project is opened. */
   restoreSectionVfxPlan(plan: AiVfxSectionPlan | null | undefined): void {
     const sanitized = sanitizeAiVfxSectionPlan(plan);
@@ -582,7 +477,6 @@ export class CinemaDirectorService {
 
   clearPlan(): void {
     this.plan.set(null);
-    this.forgetStoredPlan();
     this.plannerNote.set(
       'Shot list cleared. Describe the piece and S.M.U.V.E will cut a new one.'
     );

@@ -303,6 +303,56 @@ describe('CinemaProjectService', () => {
       expect(opened.message).not.toContain('Section effects restored');
     });
 
+    it('stores the Director shot list and its brief for open', async () => {
+      const { service } = createHarness();
+      const saved = await service.save('Directed Cut', null, new Map(), null, {
+        brief: 'A night drive',
+        plan: {
+          title: 'Night Drive',
+          logline: 'A headlight-lit cut.',
+          editorial: ['Open on the dashboard.'],
+          origin: 'smuve',
+          shots: [
+            {
+              index: 1,
+              title: 'Dashboard',
+              description: 'Wide',
+              size: 'wide',
+              bars: 4,
+              startTime: 0,
+              durationSeconds: 8,
+              section: 'Feature',
+            },
+          ],
+        },
+      });
+
+      const opened = await service.open(saved.id!);
+
+      expect(opened.ok).toBe(true);
+      expect(opened.directorShotPlan?.brief).toBe('A night drive');
+      expect(opened.directorShotPlan?.plan.title).toBe('Night Drive');
+      expect(opened.directorShotPlan?.plan.shots[0].title).toBe('Dashboard');
+      expect(opened.message).toContain('Shot list restored');
+    });
+
+    it('drops a saved shot list that no longer validates', async () => {
+      const { service } = createHarness();
+      const saved = await service.save('Bare Cut');
+      const record = stored.get(saved.id!);
+      record.snapshot.directorShotPlan = {
+        brief: 'Night drive',
+        plan: { title: 'Night Drive', logline: '', shots: [] },
+      } as any;
+      stored.set(saved.id!, record);
+
+      const opened = await service.open(saved.id!);
+
+      expect(opened.ok).toBe(true);
+      expect(opened.directorShotPlan).toBeNull();
+      expect(opened.message).not.toContain('Shot list restored');
+    });
+
     it('fails cleanly when the record is gone', async () => {
       const { service } = createHarness();
 
