@@ -69,6 +69,7 @@
         </select>
       </label>
       <span class="export-summary">{{ exportSummary() }}</span>
+      <span class="export-summary">{{ watermarkStatus() }}</span>
       <button
         (click)="videoEngine.togglePlay()"
         class="w-11 h-11 md:w-12 md:h-12 rounded-xl flex items-center justify-center transition-all shadow-lg border border-border active:scale-95"

@@ -16,6 +16,11 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AiService } from '../../services/ai.service';
 import type { AiQuotaStatus } from '../../services/ai.service';
+import {
+  WatermarkPolicyService,
+  drawWatermarkOnCanvas,
+  watermarkImageBlob,
+} from '../../services/watermark-policy';
 import { UserContextService } from '../../services/user-context.service';
 import {
   BeatTick,
@@ -269,6 +274,7 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
   private cinemaEngine = inject(CinemaEngineService);
   private aiService = inject(AiService);
   private userContext = inject(UserContextService);
+  private watermarkService = inject(WatermarkPolicyService);
   public videoEngine = inject(VideoEngineService);
   private exportService = inject(ExportService);
   private ffmpegExport = inject(FfmpegVideoExportService, { optional: true });
@@ -341,6 +347,14 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
 
   /** The account's AI media budget, as last read from the backend ledger. */
   aiQuota = signal<AiQuotaStatus | null>(null);
+
+  /** Whether the current account is on the free tier and must carry the brand watermark. */
+  watermarkRequired = this.watermarkService.shouldWatermark;
+  watermarkStatus = computed(() =>
+    this.watermarkService.shouldWatermark()
+      ? 'FREE-TIER WATERMARK ON'
+      : 'PREMIUM - WATERMARK OFF'
+  );
 
   /** Auto-Direct: the one-job music-video pipeline (null = idle). */
   autoDirectProgress = signal<{ label: string; done: number; total: number } | null>(
@@ -2693,18 +2707,34 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     this.captures.update((list) => [...list]);
   }
 
-  /** Save a capture at its captured quality — the original bytes, not a copy. */
-  downloadCapture(capture: CinemaCapture): void {
+  /**
+   * Save a capture. Stills are watermarked on the way out for free-tier
+   * accounts; video masters already carry the badge from `paintFrame`, and
+   * raw takes without bytes are handed to the browser as the source file.
+   */
+  async downloadCapture(capture: CinemaCapture): Promise<void> {
     if (capture.blob) {
-      this.exportService.downloadBlob(capture.blob, capture.fileName);
+      const deliverable =
+        capture.kind === 'photo'
+          ? await watermarkImageBlob(
+              capture.blob,
+              this.watermarkService.policy()
+            )
+          : capture.blob;
+      this.exportService.downloadBlob(deliverable, capture.fileName);
     } else {
       this.triggerDownload(capture.url, capture.fileName);
     }
+    const watermarkNote =
+      capture.kind === 'photo' && this.watermarkService.shouldWatermark()
+        ? ' - FREE-TIER WATERMARK APPLIED.'
+        : '';
     this.aiFeedback.set(
       capture.name.toUpperCase() +
         ' DOWNLOAD STARTED (' +
         capture.fileName +
-        ').'
+        ').' +
+        watermarkNote
     );
   }
 
@@ -2956,6 +2986,14 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     if (!clean) {
       this.drawDiagnostics(ctx, canvas);
       this.drawCameraDiagnostic(ctx, canvas, liveFeed);
+    }
+    if (this.watermarkService.shouldWatermark()) {
+      drawWatermarkOnCanvas(
+        ctx,
+        canvas.width,
+        canvas.height,
+        this.watermarkService.policy()
+      );
     }
   }
 

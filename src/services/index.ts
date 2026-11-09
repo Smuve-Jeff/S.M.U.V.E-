@@ -7,6 +7,7 @@ export * from "./storage.service";
 export * from "./music-master.service";
 export * from "./ai-proxy.service";
 export * from "./ai-quota.service";
+export * from "./commercial-policy.service";
 export * from "./project.service";
 export * from "./game-invite.service";
 export * from "./live-stream.service";

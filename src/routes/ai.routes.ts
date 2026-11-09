@@ -12,6 +12,7 @@ import {
   MAX_IMAGE_SOURCE_LENGTH,
   AiProviderUnavailableError,
 } from "@/services";
+import { watermarkPolicyForRole } from "@/services/commercial-policy.service";
 // Deep import: the ledger guard runs during route registration, so it must
 // not wait on the services barrel's own load order.
 import { aiQuotaGuard, quotaStatus } from "@/services/ai-quota.service";
@@ -69,7 +70,10 @@ router.post("/concept-art", authenticate, imageLimiter, aiQuotaGuard("image"), a
   }
 
   try {
-    return res.json(await generateConceptArt(prompt));
+    return res.json({
+      ...(await generateConceptArt(prompt)),
+      watermark: watermarkPolicyForRole((req as any).user?.role),
+    });
   } catch (error) {
     if (error instanceof AiProviderUnavailableError) {
       return res.status(503).json({
@@ -125,7 +129,10 @@ router.post("/photo/enhance", authenticate, imageLimiter, aiQuotaGuard("image"),
   }
 
   try {
-    return res.json(await enhancePhoto({ image, mimeType, upscaleFactor }));
+    return res.json({
+      ...(await enhancePhoto({ image, mimeType, upscaleFactor })),
+      watermark: watermarkPolicyForRole((req as any).user?.role),
+    });
   } catch (error) {
     if (error instanceof AiProviderUnavailableError) {
       return mediaUnavailable(res, "photo tools");
@@ -146,7 +153,10 @@ router.post("/photo/cutout", authenticate, imageLimiter, aiQuotaGuard("image"), 
   }
 
   try {
-    return res.json(await cutoutPhoto({ image, mimeType }));
+    return res.json({
+      ...(await cutoutPhoto({ image, mimeType })),
+      watermark: watermarkPolicyForRole((req as any).user?.role),
+    });
   } catch (error) {
     if (error instanceof AiProviderUnavailableError) {
       return mediaUnavailable(res, "photo tools");
@@ -183,9 +193,10 @@ router.post("/shot-video", authenticate, videoLimiter, aiQuotaGuard("video"), as
   }
 
   try {
-    return res.json(
-      await generateShotVideo({ image, mimeType, prompt, durationSeconds }),
-    );
+    return res.json({
+      ...(await generateShotVideo({ image, mimeType, prompt, durationSeconds })),
+      watermark: watermarkPolicyForRole((req as any).user?.role),
+    });
   } catch (error) {
     if (error instanceof AiProviderUnavailableError) {
       return mediaUnavailable(res, "video generation");
@@ -219,9 +230,10 @@ router.post("/lip-sync", authenticate, videoLimiter, aiQuotaGuard("video"), asyn
   }
 
   try {
-    return res.json(
-      await generateLipSync({ image, mimeType, audio, durationSeconds }),
-    );
+    return res.json({
+      ...(await generateLipSync({ image, mimeType, audio, durationSeconds })),
+      watermark: watermarkPolicyForRole((req as any).user?.role),
+    });
   } catch (error) {
     if (error instanceof AiProviderUnavailableError) {
       return mediaUnavailable(res, "lip-sync");

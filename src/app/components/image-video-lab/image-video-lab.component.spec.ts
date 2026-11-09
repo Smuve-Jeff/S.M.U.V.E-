@@ -2068,20 +2068,21 @@ describe('ImageVideoLabComponent', () => {
       await component.toggleCamera();
       await component.captureCameraPhoto();
 
-      component.downloadCapture(component.deckCaptures()[0]);
+      await component.downloadCapture(component.deckCaptures()[0]);
 
       expect(exportService.downloadBlob).toHaveBeenCalledWith(
         expect.any(Blob),
         'Camera_Photo_1.jpg'
       );
       expect(component.aiFeedback()).toContain('DOWNLOAD STARTED');
+      expect(component.aiFeedback()).toContain('WATERMARK APPLIED');
     });
 
     it('downloads a take through the url its clip carries', async () => {
       const { component, videoEngine, exportService } = await createComponent();
       setTracks(videoEngine, [cameraTrack()]);
 
-      component.downloadCapture(component.deckCaptures()[0]);
+      await component.downloadCapture(component.deckCaptures()[0]);
 
       expect(exportService.downloadBlob).not.toHaveBeenCalled();
       expect(component.aiFeedback()).toContain('Camera_Take_1.webm');
@@ -2626,6 +2627,19 @@ describe('ImageVideoLabComponent', () => {
       // Authorized but frame-less is a distinct state from "permission denied".
       expect(ctxStub.fillText).toHaveBeenCalledWith(
         'LIVE FEED AUTHORIZED BUT NO FRAMES YET',
+        expect.any(Number),
+        expect.any(Number)
+      );
+    });
+
+    it('draws the free-tier brand watermark onto the program frame', async () => {
+      const { renderFrame } = await createComponent();
+      (ctxStub.fillText as jest.Mock).mockClear();
+
+      renderFrame();
+
+      expect(ctxStub.fillText).toHaveBeenCalledWith(
+        '©️ Smuve Jeff Presents',
         expect.any(Number),
         expect.any(Number)
       );
