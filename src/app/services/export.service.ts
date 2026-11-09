@@ -75,6 +75,37 @@ const VIDEO_MIME_CANDIDATES = [
  * Supported export formats. `ext` drives the download filename; `mime` the
  * blob type; `webCodecs` the AudioEncoder codec string (when available).
  */
+export interface LoopExportMetadata {
+  projectName: string;
+  filename: string;
+  format: string;
+  extension: string;
+  bitrate: number;
+  sampleRate: number;
+  startStep: number;
+  endStep: number;
+  startBar: number;
+  endBar: number;
+  startSeconds: number;
+  endSeconds: number;
+  durationSec: number;
+  bpm: number;
+  exportedAt: string;
+}
+
+export interface LoopExportResult {
+  blob: Blob;
+  filename: string;
+  format: string;
+  extension: string;
+  bitrate: number;
+  startStep: number;
+  endStep: number;
+  durationSec: number;
+  sampleRate: number;
+  metadata: LoopExportMetadata;
+}
+
 export interface ExportFormatInfo {
   id: string;
   label: string;
@@ -173,6 +204,101 @@ export class ExportService {
     const rateTag = Math.round(sampleRate) === 44100 ? '' : `_${Math.round(sampleRate / 1000)}k`;
     this.downloadBlob(blob, `${(this.musicManager.projectName || 'Elite_Session').replace(/[^\w.-]/g, '_')}${depthTag}${rateTag}_${Date.now()}.wav`);
     return blob;
+  }
+
+  /**
+   * Export the transport loop as a standalone 24-bit WAV.
+   *
+   * When an A/B transport loop is enabled, that exact region is exported.
+   * Otherwise the active loop length is exported from step 0. The renderer
+   * still runs from the session start through the loop end so clips and
+   * notes land on their real timing; the returned buffer is then sliced to
+   * the requested loop. Rendering a partial offline context and shifting
+   * every event would put reverb-heavy material at the wrong timestamps.
+   */
+  async exportLoopWav(
+    options: {
+      sampleRate?: number;
+      /** One of EXPORT_FORMATS ids; defaults to 24-bit WAV. */
+      format?: string;
+      /** Requested bitrate for MP3/AAC/Opus; clamped to the codec default when invalid. */
+      bitrate?: number;
+      onProgress?: (percent: number) => void;
+      signal?: AbortSignal;
+    } = {},
+  ): Promise<LoopExportResult> {
+    const sampleRate = options.sampleRate ?? 44100;
+    const formatInfo = EXPORT_FORMATS.find((format) => format.id === options.format) ?? EXPORT_FORMATS[1];
+    const loopStartStep = this.engine.playbackLoopStart?.() ?? null;
+    const loopEndStep = this.engine.playbackLoopEnd?.() ?? null;
+    const loopEnabled = this.engine.playbackLoopEnabled?.() ?? false;
+    const hasAbLoop = loopEnabled && Number.isFinite(loopStartStep) && Number.isFinite(loopEndStep) && (loopEndStep as number) > (loopStartStep as number);
+    const startStep = hasAbLoop ? Math.max(0, Math.floor(loopStartStep as number)) : 0;
+    const fallbackEndStep = this.stepAtBar(this.musicManager.activeLoopBars());
+    const endStep = hasAbLoop ? Math.floor(loopEndStep as number) : fallbackEndStep;
+    if (!Number.isFinite(startStep) || !Number.isFinite(endStep) || endStep <= startStep) {
+      throw new Error('Set a valid transport loop before exporting it.');
+    }
+
+    const rendered = await this.renderProjectOffline({
+      sampleRate,
+      durationBars: this.barCountForStep(endStep),
+      tailSeconds: 0,
+      ...(options.onProgress ? { onProgress: options.onProgress } : {}),
+      ...(options.signal ? { signal: options.signal } : {}),
+    });
+    const timing = this.buildTempoTimeline();
+    const startSeconds = timing.timeAtStep(startStep);
+    const endSeconds = timing.timeAtStep(endStep);
+    const loopBuffer = this.sliceAudioBuffer(rendered, startSeconds, endSeconds);
+    const bitrate = options.bitrate ?? defaultExportBitrate(formatInfo.id);
+    const blob = await this.exportToFormat(loopBuffer, formatInfo.id, bitrate || 16);
+    const extension = blob.type.includes('wav') ? 'wav' : formatInfo.ext;
+    const projectName = (this.musicManager.projectName || 'Elite_Session').replace(/[^\w.-]/g, '_');
+    const filename = `${projectName}_Director_Loop_${startStep + 1}-${endStep}_${formatInfo.id}_${Date.now()}.${extension}`;
+    const metadata: LoopExportMetadata = {
+      projectName: this.musicManager.projectName || 'Elite Session',
+      filename,
+      format: formatInfo.id,
+      extension,
+      bitrate,
+      sampleRate: loopBuffer.sampleRate,
+      startStep,
+      endStep,
+      startBar: Math.floor(startStep / 16) + 1,
+      endBar: Math.ceil(endStep / 16),
+      startSeconds,
+      endSeconds,
+      durationSec: loopBuffer.duration,
+      bpm: this.engine.tempo(),
+      exportedAt: new Date().toISOString(),
+    };
+    this.downloadBlob(blob, filename);
+    return {
+      blob,
+      filename,
+      format: formatInfo.id,
+      extension,
+      bitrate,
+      startStep,
+      endStep,
+      durationSec: loopBuffer.duration,
+      sampleRate: loopBuffer.sampleRate,
+      metadata,
+    };
+  }
+
+  private sliceAudioBuffer(buffer: AudioBuffer, startSeconds: number, endSeconds: number): AudioBuffer {
+    const sampleRate = Math.max(1, Math.round(buffer.sampleRate));
+    const startFrame = Math.max(0, Math.min(buffer.length - 1, Math.floor(Math.max(0, startSeconds) * sampleRate)));
+    const endFrame = Math.max(startFrame + 1, Math.min(buffer.length, Math.ceil(Math.max(startSeconds, endSeconds) * sampleRate)));
+    const length = endFrame - startFrame;
+    const context = new OfflineAudioContext(1, 1, sampleRate);
+    const sliced = context.createBuffer(buffer.numberOfChannels, length, sampleRate);
+    for (let channel = 0; channel < buffer.numberOfChannels; channel++) {
+      sliced.getChannelData(channel).set(buffer.getChannelData(channel).subarray(startFrame, endFrame));
+    }
+    return sliced;
   }
 
   /**

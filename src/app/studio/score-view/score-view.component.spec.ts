@@ -304,6 +304,13 @@ describe("ScoreViewComponent", () => {
       }
     });
 
+    it("opens the browser print dialog for the score", () => {
+      const print = jest.fn();
+      Object.defineProperty(window, "print", { value: print, configurable: true });
+      component.printScorePdf();
+      expect(print).toHaveBeenCalledTimes(1);
+    });
+
     it("does not write an empty chart", () => {
       tracks.set([{ id: "audio-1", name: "Audio", type: "audio", notes: [] }]);
       expect(component.totalNotes()).toBe(0);

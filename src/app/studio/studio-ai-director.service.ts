@@ -16,6 +16,7 @@ import { AiProduceService } from '../services/ai-produce.service';
 import { ScaleDetectionService } from '../services/scale-detection.service';
 import { VocalAiService, analyzeVocalBuffer } from '../services/vocal-ai.service';
 import { AutomationService } from './automation.service';
+import { RecordingStatusService } from './recording-status.service';
 import {
   VocalMasteringService,
   type MasteringParameters,
@@ -52,6 +53,11 @@ import {
   isStudioSurfaceId,
   type StudioSurfaceId,
 } from './studio-surfaces';
+import {
+  buildMusicXml,
+  musicXmlFileName,
+  type MusicXmlPart,
+} from './score-view/score-musicxml.util';
 
 export interface StudioDirectorContext {
   surfaceId: string;
@@ -152,6 +158,7 @@ export class StudioAiDirectorService {
   private tunerLive = inject(TunerLiveService);
   private vcaBuses = inject(VcaBusService);
   private automation = inject(AutomationService);
+  private recordingStatus = inject(RecordingStatusService);
   private telemetry = inject(StudioTelemetryService);
   private logger = inject(LoggingService);
 
@@ -532,9 +539,9 @@ export class StudioAiDirectorService {
     switch (surfaceId) {
       case 'quick-session':
         return [
-          make(1, 'Recommend the first quick-session starter', 'Use the current transport BPM to pick the closest one-tap Quick Session recipe. The recommendation is a read-only service decision; starting it remains a shell handoff so a dirty sketch is snapshotted first.', true, () => this.recommendQuickSessionRecipe()),
-          make(2, 'Verify tempo and key before committing', 'Read the transport tempo, project key/scale and metronome state from the live services before any further Quick Session work.', true, () => this.quickSessionReadiness()),
-          make(3, 'Brief the next one-tap move', 'Read the current track, note and clip state, then recommend the next Quick Session move that fits it.', true, () => this.quickSessionNextMove()),
+          make(1, 'Apply the closest Quick Session starter', 'Pick the one-tap Quick Session recipe closest to the transport BPM and write it to real tracks via MusicManagerService.applyGeneratedRecipe, which is undoable. A dirty sketch is never replaced: when the session is dirty the step reports the recommendation and preserves the canvas.', true, () => this.applyQuickSessionStarter()),
+          make(2, 'Sync tempo and verify key', 'Sync the engine tempo to the project tempo when they differ, then read the key/scale and metronome state from the live services. Syncing the tempo is a service-backed write; the key readout stays a measurement.', true, () => this.quickSessionReadiness()),
+          make(3, 'Select the next one-tap move', 'Focus the first playable track with notes so the artist can act on the recommended next move immediately. When nothing is playable yet, the step reports building a groove first.', true, () => this.quickSessionNextMove()),
         ];
       case 'arrangement':
         return [
@@ -596,7 +603,7 @@ export class StudioAiDirectorService {
         ];
       case 'performance':
         return [
-          make(1, 'Count the performance takes', 'Read the current take carousel so the next instruction starts from the real take count.', true, () => this.performanceTakeStatus()),
+          make(1, 'Select the strongest performance take', 'Rank the PerformanceRecordingService takes by captured notes then peak level, select the strongest in the carousel, and report the MIDI take count. Selecting is reversible; no take is overwritten.', true, () => this.selectStrongestPerformanceTake()),
           make(2, 'Arm the next clean performance take', 'Arm the next PerformanceRecordingService take slot for the selected track, then perform the full pass and stop the take from the performance surface to capture it.', true, () => this.armNextPerformanceTake(), 'performance'),
           make(3, 'Promote the strongest MIDI take', 'Rank the takes by captured note count and make the strongest take the active take for playback/comping.', true, () => this.promoteBestTake()),
         ];
@@ -653,6 +660,8 @@ export class StudioAiDirectorService {
           make(1, 'Seed the score with a playable motif', 'Add a generated four-bar motif to the selected track so the score has a real subject.', true, () => this.seedMelodicTrack()),
           make(2, 'Audit the score’s range and scale fit', 'Measure the selected track’s pitch range and count notes that fall outside the detected project scale; add harmony only after this audit.', true, () => this.auditScoreRange()),
           make(3, 'Humanize the printed part', 'Add micro-timing and velocity variation so the notation does not sound mechanical.', true, () => this.humanizeSelectedTrack()),
+          make(4, 'Export the score as MusicXML', 'Serialize every notation part into a MusicXML chart through the score utility and download it for MuseScore, Sibelius or Dorico.', true, () => this.exportScoreMusicXml(), 'score'),
+          make(5, 'Open the score print/PDF dialog', 'Open the browser print dialog from the Score surface so the chart can be printed or saved as PDF.', true, () => this.printScorePdf(), 'score'),
         ];
       case 'sample-library':
         return [
@@ -668,13 +677,13 @@ export class StudioAiDirectorService {
         ];
       case 'audio-recorder':
         return [
-          make(1, 'Count the saved takes', 'Read the recorder’s saved takes so the artist knows what already exists before recording another pass.', true, () => this.recorderTakeStatus()),
-          make(2, 'Check the next record pass', 'Read the recorder take count and the selected track take count, then recommend a deliberate pass that does not overwrite them. Recording itself is a surface gesture; this step only confirms it is safe to make one.', true, () => this.recorderPassStatus()),
+          make(1, 'Audit the saved takes', 'Read the recorder saved takes from persistence, including each take duration and measured level when stored, so the artist knows what already exists before recording another pass.', true, () => this.recorderTakeStatus()),
+          make(2, 'Arm the selected track for the next record pass', 'Arm the selected track in RecordingStatusService so the next record press lands on it, then report the recorder take count and the track take counts without overwriting them. Arming is reversible from the mixer; capturing audio itself remains a surface gesture.', true, () => this.armRecorderTrack()),
           make(3, 'Move the best take into the session', 'Promote the strongest captured MIDI take through TakeManagerService so playback and comping use it.', true, () => this.promoteBestTake()),
         ];
       case 'performer':
         return [
-          make(1, 'Read the performer’s take state', 'Open the take state and meters so the next instruction starts from the real performance, not the plan.', true, () => this.performanceTakeStatus()),
+          make(1, 'Select the strongest performance take', 'Rank the PerformanceRecordingService takes by captured notes then peak level, select the strongest in the carousel, and report the MIDI take count. Selecting is reversible; no take is overwritten.', true, () => this.selectStrongestPerformanceTake()),
           make(2, 'Arm the performer’s next take slot', 'Arm the next PerformanceRecordingService take slot for the selected track, then perform one complete pass and stop the take from the performer surface.', true, () => this.armNextPerformanceTake(), 'performer'),
           make(3, 'Merge the take comp into the track', 'Stack every take on the track, merge them through TakeManagerService, and write the comp back through MusicManagerService.replaceTrackNotes().', true, () => this.applyTakeComp()),
         ];
@@ -688,7 +697,9 @@ export class StudioAiDirectorService {
           make(6, 'Export MIDI', 'Serialize the project’s note data to a Type 1 Standard MIDI File and download it.', true, () => this.exportMidi()),
           make(7, 'Export DAWproject', 'Serialize the project with reference audio to a .dawproject ZIP and download it.', true, () => this.exportDawproject()),
           make(8, 'Export project bundle', 'Download the open project as a portable .smuve bundle so the set can be re-imported later. Checkpoint bundles can be exported one by one from the Director checkpoint browser.', true, () => this.exportProjectBundle()),
-          make(9, 'Prepare the delivery checklist', 'Read the AI Produce release handoff and surface format, loudness target, artwork, metadata and next delivery step.', true, () => this.deliveryChecklist()),
+          make(9, 'Export the transport loop as WAV', 'Render the current A/B loop region, or the active loop length from step 0 when no A/B region is set, and download it as a standalone 24-bit WAV.', true, () => this.exportTransportLoop('wav24')),
+          make(10, 'Export the transport loop as MP3', 'Render the same loop region as a shareable MP3; the filename and result metadata carry the loop start/end steps.', true, () => this.exportTransportLoop('mp3')),
+          make(11, 'Prepare the delivery checklist', 'Read the AI Produce release handoff and surface format, loudness target, artwork, metadata and next delivery step.', true, () => this.deliveryChecklist()),
         ];
     }
   }
@@ -856,9 +867,55 @@ export class StudioAiDirectorService {
     return `Exported DAWproject as ${filename} (${blob.size} bytes).`;
   }
 
-  private recommendQuickSessionRecipe(): string {
+  private async exportTransportLoop(format: string = 'wav24'): Promise<string> {
+    const result = await this.exports.exportLoopWav({ format });
+    const formatLabel = result.format ?? format;
+    return `Exported the transport loop (${formatLabel}) as ${result.filename}: steps ${result.startStep + 1}-${result.endStep}, ${result.durationSec.toFixed(2)}s at ${result.sampleRate} Hz.`;
+  }
+
+  private exportScoreMusicXml(): string {
+    const tracks = this.music.tracks().filter((track) => track.type !== 'audio' && track.type !== 'bus');
+    const parts: MusicXmlPart[] = tracks
+      .map((track) => ({
+        name: track.name || 'Untitled track',
+        notes: (track.notes ?? []).map((note) => ({
+          midi: note.midi,
+          step: note.step,
+          length: note.length,
+          velocity: note.velocity,
+        })),
+      }))
+      .filter((part) => part.notes.length > 0);
+    const noteCount = parts.reduce((total, part) => total + part.notes.length, 0);
+    if (noteCount === 0) throw new Error('Add notes before exporting a score chart.');
+    const xml = buildMusicXml(parts, {
+      title: this.music.projectName,
+      bpm: this.engine.tempo(),
+    });
+    const blob = new Blob([xml], { type: 'application/vnd.recordare.musicxml+xml' });
+    const filename = musicXmlFileName(this.music.projectName);
+    this.exports.downloadBlob(blob, filename);
+    return `Exported the score as ${filename} (${parts.length} parts, ${noteCount} notes) for MuseScore, Sibelius or Dorico.`;
+  }
+
+  private printScorePdf(): string {
+    const noteCount = this.music.tracks().reduce((total, track) => total + ((track.type === 'audio' || track.type === 'bus') ? 0 : track.notes?.length ?? 0), 0);
+    if (noteCount === 0) throw new Error('Add notes before printing a score chart.');
+    window.print();
+    return 'Opened the browser print dialog for the Score view; choose Save as PDF to create the score PDF.';
+  }
+
+  private applyQuickSessionStarter(): string {
     const recipe = this.ideas.recommend(this.engine.tempo());
-    return `Recommended first Quick Session starter: ${recipe.name} at ${recipe.bpm} BPM (${recipe.vibe}). Start it from Quick Session so the shell can snapshot a dirty sketch before the canvas changes.`;
+    // applyGeneratedRecipe is undoable via History, but replacing a dirty
+    // canvas (including a guest sketch with no autosave) would still be a
+    // destructive default. Preserve the sketch and report instead.
+    const dirty = typeof this.workspace.isDirty === 'function' ? this.workspace.isDirty() : false;
+    if (dirty) {
+      return `Recommended first Quick Session starter: ${recipe.name} at ${recipe.bpm} BPM (${recipe.vibe}). The open sketch is dirty, so it was preserved and nothing was replaced. Save it first, then apply the starter.`;
+    }
+    this.music.applyGeneratedRecipe(recipe as never);
+    return `Applied the closest Quick Session starter: ${recipe.name} at ${recipe.bpm} BPM (${recipe.vibe}) via MusicManagerService.applyGeneratedRecipe. The change is undoable.`;
   }
 
   private evolveDrumVariation(): string {
@@ -1366,10 +1423,19 @@ export class StudioAiDirectorService {
   }
 
   private quickSessionReadiness(): string {
-    const tempo = this.engine.tempo();
-    const key = this.workspace.metadata()?.key ?? 'C';
+    const metadata = this.workspace.metadata() as { bpm?: unknown; key?: unknown } | null;
+    const projectBpm = typeof metadata?.bpm === 'number' && Number.isFinite(metadata.bpm) && metadata.bpm > 0 ? metadata.bpm : null;
+    let tempo = this.engine.tempo();
+    let synced = false;
+    if (projectBpm !== null && projectBpm !== tempo) {
+      this.engine.tempo.set(projectBpm);
+      tempo = projectBpm;
+      synced = true;
+    }
+    const key = typeof metadata?.key === 'string' && metadata.key ? metadata.key : 'C';
     const metronome = this.engine.metronomeEnabled();
-    return `Quick Session checkpoint: ${tempo} BPM · ${key} ${this.lastDetectedScale} · metronome ${metronome ? 'on' : 'off'} · transport ${this.engine.isPlaying() ? 'playing' : 'stopped'}. Confirm these before recording or arranging.`;
+    const syncText = synced ? ` Synced the engine tempo to the project tempo ${projectBpm} BPM.` : projectBpm !== null ? ' Engine tempo already matches the project tempo.' : ' No project tempo is stored, so the engine tempo was left alone.';
+    return `Quick Session checkpoint: ${tempo} BPM · ${key} ${this.lastDetectedScale} · metronome ${metronome ? 'on' : 'off'} · transport ${this.engine.isPlaying() ? 'playing' : 'stopped'}.${syncText} Confirm these before recording or arranging.`;
   }
 
   private quickSessionNextMove(): string {
@@ -1378,8 +1444,11 @@ export class StudioAiDirectorService {
     const clips = tracks.reduce((sum, track) => sum + (track.clips?.length ?? 0), 0);
     if (tracks.length === 0) return 'Recommended next move: build a one-tap groove in Quick Session before moving to Arrangement.';
     if (notes === 0 && clips === 0) return 'Recommended next move: add a groove or channel in Quick Session before arranging.';
-    if (notes > 0 && clips === 0) return 'Recommended next move: refine the loop, then move to Arrangement for structure.';
-    return `Recommended next move: ${tracks.length} tracks, ${notes} notes and ${clips} clips are already in the session, so move to Arrangement and shape the sections.`;
+    const playable = tracks.find((track) => (track.notes?.length ?? 0) > 0) ?? tracks[0];
+    if (playable) this.music.selectedTrackId.set(playable.id);
+    const focus = playable ? ` Selected ${playable.name} as the focus track.` : '';
+    if (notes > 0 && clips === 0) return `Recommended next move: refine the loop on the focused track, then move to Arrangement for structure.${focus}`;
+    return `Recommended next move: ${tracks.length} tracks, ${notes} notes and ${clips} clips are already in the session, so move to Arrangement and shape the sections.${focus}`;
   }
 
   private auditMixerMuteSolo(): string {
@@ -1605,11 +1674,14 @@ export class StudioAiDirectorService {
     return `${handoff.title} delivery checklist — ${handoff.stages.map((stage) => `${stage.name}: ${stage.status}`).join(', ')}. Next step: ${handoff.nextStep}.`;
   }
 
-  private async recorderPassStatus(): Promise<string> {
+  private async armRecorderTrack(): Promise<string> {
     const recordings = await this.audioRecorder.getOfflineRecordings();
     const selected = this.music.selectedTrack();
-    const midiTakeCount = selected ? this.takeManager.getTakes(selected.id)().length : 0;
-    return `${recordings.length} saved recorder take${recordings.length === 1 ? '' : 's'}; ${selected?.name ?? 'no track selected'} currently has ${midiTakeCount} MIDI take${midiTakeCount === 1 ? '' : 's'}. Record one new deliberate pass without overwriting them.`;
+    if (!selected) throw new Error('Select a track before arming the next record pass.');
+    const midiTakeCount = this.takeManager.getTakes(selected.id)().length;
+    this.recordingStatus.armTrack(selected.id);
+    const stillArmed = this.recordingStatus.isTrackArmed ? this.recordingStatus.isTrackArmed(selected.id) : true;
+    return `${recordings.length} saved recorder take${recordings.length === 1 ? '' : 's'}; armed ${selected.name} for the next record pass (${midiTakeCount} MIDI take${midiTakeCount === 1 ? '' : 's'} on that track)${stillArmed ? '' : ' (arm failed)'}. Record one new deliberate pass without overwriting them; recording itself remains a surface gesture.`;
   }
 
   private chordBassRegisterCheck(): string {
@@ -1624,17 +1696,43 @@ export class StudioAiDirectorService {
     return `Bass register ${bass.name} spans MIDI ${bass.low}–${bass.high}; chord register ${chord.name} spans MIDI ${chord.low}–${chord.high}; ${chord.low <= bass.high ? 'the chord enters the bass register, so raise an inversion or move the bass before committing' : 'chord roots stay clear of the bass register'}.`;
   }
 
-  private performanceTakeStatus(): string {
-    const count = this.music.tracks().reduce(
+  private selectStrongestPerformanceTake(): string {
+    const midiCount = this.music.tracks().reduce(
       (sum, track) => sum + this.takeManager.getTakes(track.id)().length,
       0,
     );
-    return `${count} MIDI take${count === 1 ? '' : 's'} currently available.`;
+    const takes = typeof this.performanceRecording.takes === 'function' ? this.performanceRecording.takes() : [];
+    if (takes.length === 0) {
+      return `No performance takes are available yet; ${midiCount} MIDI take${midiCount === 1 ? '' : 's'} currently available.`;
+    }
+    const score = (take: { notes?: unknown[]; peakDbL?: unknown; peakDbR?: unknown }): number => {
+      const notes = Array.isArray(take.notes) ? take.notes.length : 0;
+      const peakL = typeof take.peakDbL === 'number' && Number.isFinite(take.peakDbL) ? take.peakDbL : -60;
+      const peakR = typeof take.peakDbR === 'number' && Number.isFinite(take.peakDbR) ? take.peakDbR : -60;
+      // Notes dominate; peak breaks the tie without hiding a note-less take.
+      return notes * 1000 + Math.max(peakL, peakR);
+    };
+    const strongest = takes.reduce((winner, take) => (score(take) > score(winner) ? take : winner));
+    if (typeof this.performanceRecording.selectedTakeId === 'function') {
+      this.performanceRecording.selectedTakeId.set(strongest.id);
+    } else if (this.performanceRecording.selectedTakeId && typeof (this.performanceRecording.selectedTakeId as unknown as { set?: unknown }).set === 'function') {
+      (this.performanceRecording.selectedTakeId as unknown as { set: (v: string) => void }).set(strongest.id);
+    }
+    const notes = Array.isArray((strongest as { notes?: unknown[] }).notes) ? (strongest as { notes?: unknown[] }).notes!.length : 0;
+    return `Selected strongest performance take ${strongest.name ?? strongest.id} (${notes} notes) in the carousel; ${midiCount} MIDI take${midiCount === 1 ? '' : 's'} currently available.`;
   }
 
   private async recorderTakeStatus(): Promise<string> {
     const recordings = await this.audioRecorder.getOfflineRecordings();
-    return `${recordings.length} saved recording take${recordings.length === 1 ? '' : 's'} currently available.`;
+    let detail = '';
+    if (recordings.length > 0) {
+      const items = recordings as Array<{ name?: string; timestamp?: number; settings?: { durationSec?: unknown; level?: unknown } }>;
+      const newest = items.reduce((a, b) => ((b?.timestamp ?? 0) > (a?.timestamp ?? 0) ? b : a), items[0]);
+      const dur = typeof newest?.settings?.durationSec === 'number' && Number.isFinite(newest.settings.durationSec) ? `${newest.settings.durationSec}s` : 'unknown duration';
+      const level = typeof newest?.settings?.level === 'string' ? `, level ${newest.settings.level}` : '';
+      detail = ` Newest: ${newest?.name ?? 'untitled'} (${dur}${level}).`;
+    }
+    return `${recordings.length} saved recording take${recordings.length === 1 ? '' : 's'} currently available.${detail}`;
   }
 
   private async runAiProduce(context: StudioDirectorContext): Promise<string> {

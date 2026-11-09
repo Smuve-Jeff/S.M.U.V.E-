@@ -14,6 +14,12 @@ describe('ExportService (Sprint A6)', () => {
 
   const mockEngine = {
     tempo: () => 120,
+    playbackLoopEnabled: () => true,
+    playbackLoopStart: () => 0,
+    playbackLoopEnd: () => 16,
+    getTempoMap: () => [],
+    stepAtBar: (bar: number) => bar * 16,
+    barCountForStep: (step: number) => Math.ceil(step / 16),
     ctx: { createMediaStreamDestination: () => ({ stream: {} }) },
     masterGain: { connect: () => {} },
     isPlaying: () => false,
@@ -79,6 +85,74 @@ describe('ExportService (Sprint A6)', () => {
     expect(blob.type).toBe('audio/wav');
     expect(blob.size).toBeGreaterThan(44);
     expect(download).toHaveBeenCalledWith(blob, expect.stringMatching(/\.wav$/));
+  });
+
+  it('exports the A/B transport loop as a sliced 24-bit WAV', async () => {
+    const render = jest.spyOn(svc, 'renderProjectOffline').mockResolvedValueOnce(fakeBuffer);
+    const encode = jest.spyOn(svc, 'exportToFormat').mockResolvedValueOnce(new Blob(['loop']));
+    const download = jest.spyOn(svc, 'downloadBlob').mockImplementation(() => {});
+    const previousOfflineAudioContext = (globalThis as any).OfflineAudioContext;
+    (globalThis as any).OfflineAudioContext = jest.fn().mockImplementation((_channels, _length, sampleRate) => ({
+      createBuffer: (channels: number, length: number, rate: number) => ({
+        numberOfChannels: channels,
+        length,
+        sampleRate: rate,
+        duration: length / rate,
+        getChannelData: () => new Float32Array(length),
+      }),
+    }));
+
+    try {
+      const result = await svc.exportLoopWav();
+
+      expect(render).toHaveBeenCalledWith(expect.objectContaining({ sampleRate: 44100, durationBars: 1, tailSeconds: 0 }));
+      expect(encode).toHaveBeenCalledWith(expect.objectContaining({ length: 44100, duration: 1, sampleRate: 44100 }), 'wav24', expect.any(Number));
+      expect(download).toHaveBeenCalledWith(expect.any(Blob), expect.stringMatching(/_Director_Loop_1-16_wav24_\d+\.wav$/));
+      expect(result).toMatchObject({
+        startStep: 0,
+        endStep: 16,
+        durationSec: 1,
+        sampleRate: 44100,
+        format: 'wav24',
+        extension: 'wav',
+        metadata: { startStep: 0, endStep: 16, startBar: 1, endBar: 1, bpm: 120, format: 'wav24' },
+      });
+    } finally {
+      if (previousOfflineAudioContext === undefined) delete (globalThis as any).OfflineAudioContext;
+      else (globalThis as any).OfflineAudioContext = previousOfflineAudioContext;
+    }
+  });
+
+  it('exports the transport loop as MP3 with loop metadata in the result', async () => {
+    jest.spyOn(svc, 'renderProjectOffline').mockResolvedValueOnce(fakeBuffer);
+    const encode = jest.spyOn(svc, 'exportToFormat').mockResolvedValueOnce(new Blob(['loop'], { type: 'audio/mpeg' }));
+    const download = jest.spyOn(svc, 'downloadBlob').mockImplementation(() => {});
+    const previousOfflineAudioContext = (globalThis as any).OfflineAudioContext;
+    (globalThis as any).OfflineAudioContext = jest.fn().mockImplementation((_channels, _length, sampleRate) => ({
+      createBuffer: (channels: number, length: number, rate: number) => ({
+        numberOfChannels: channels,
+        length,
+        sampleRate: rate,
+        duration: length / rate,
+        getChannelData: () => new Float32Array(length),
+      }),
+    }));
+
+    try {
+      const result = await svc.exportLoopWav({ format: 'mp3', bitrate: 192_000 });
+
+      expect(encode).toHaveBeenCalledWith(expect.objectContaining({ length: 44100, duration: 1 }), 'mp3', 192_000);
+      expect(download).toHaveBeenCalledWith(expect.any(Blob), expect.stringMatching(/_Director_Loop_1-16_mp3_\d+\.mp3$/));
+      expect(result).toMatchObject({
+        format: 'mp3',
+        extension: 'mp3',
+        bitrate: 192_000,
+        metadata: { startStep: 0, endStep: 16, startBar: 1, endBar: 1, bpm: 120, format: 'mp3' },
+      });
+    } finally {
+      if (previousOfflineAudioContext === undefined) delete (globalThis as any).OfflineAudioContext;
+      else (globalThis as any).OfflineAudioContext = previousOfflineAudioContext;
+    }
   });
 
   it('uses a WAV extension when the requested share codec falls back to PCM', async () => {

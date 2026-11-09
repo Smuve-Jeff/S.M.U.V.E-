@@ -691,7 +691,7 @@ export class TransportBarComponent {
       this.haptic.medium();
       return;
     }
-    this.audioSession.togglePlay();
+    await this.audioSession.togglePlay();
   }
   toggleRecord(): void {
     // Priming capture is async; the session owns the in-flight guard. The

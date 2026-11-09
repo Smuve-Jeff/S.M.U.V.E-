@@ -400,6 +400,12 @@ export class ScoreViewComponent {
     });
   }
 
+  /** Open the browser print dialog; the user can save the chart as PDF. */
+  printScorePdf(): void {
+    if (this.totalNotes() === 0) return;
+    window.print();
+  }
+
   /** Download the score as a .musicxml file. */
   exportMusicXml(): void {
     if (this.totalNotes() === 0) return;

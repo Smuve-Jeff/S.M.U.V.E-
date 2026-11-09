@@ -345,15 +345,29 @@ export class AudioSessionService {
     }
   }
 
-  togglePlay(): void {
+  private playToggleInFlight = false;
+
+  async togglePlay(): Promise<void> {
+    if (this.playToggleInFlight) return;
     if (this.engine.isPlaying()) {
       this.engine.stop();
       void this.nativePlayback.stop();
       this.playbackState.set("stopped");
-    } else {
-      this.engine.start();
+      return;
+    }
+    this.playToggleInFlight = true;
+    try {
+      await this.engine.start();
+      // Mirror the engine: a blocked AudioContext resume keeps the shell
+      // stopped instead of showing "playing" over a frozen playhead.
+      if (!this.engine.isPlaying()) {
+        this.playbackState.set("stopped");
+        return;
+      }
       void this.nativePlayback.start();
       this.playbackState.set("playing");
+    } finally {
+      this.playToggleInFlight = false;
     }
   }
 
