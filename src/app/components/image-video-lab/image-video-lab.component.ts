@@ -15,6 +15,7 @@ import {
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AiService } from '../../services/ai.service';
+import type { AiQuotaStatus } from '../../services/ai.service';
 import { UserContextService } from '../../services/user-context.service';
 import {
   BeatTick,
@@ -337,6 +338,9 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
   /** Director Coach: the latest narration and the busy flag for the ask. */
   coachReport = signal<CoachReport | null>(null);
   coachBusy = signal(false);
+
+  /** The account's AI media budget, as last read from the backend ledger. */
+  aiQuota = signal<AiQuotaStatus | null>(null);
 
   /** Auto-Direct: the one-job music-video pipeline (null = idle). */
   autoDirectProgress = signal<{ label: string; done: number; total: number } | null>(
@@ -5792,6 +5796,7 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
       retryPrompt ?? `Tech-noir aesthetic for ${this.activePreset().target}, ${prompt}`;
     try {
       const url = await this.aiService.generateImage(fullPrompt);
+      void this.refreshQuota();
       this.generatedImageUrl.set(url);
       this.failedImagePrompt.set(null);
       const aiClipDuration =
@@ -5921,6 +5926,7 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
       const url = await this.aiService.enhancePhoto(source, 2);
       this.enhancedPhotoUrl.set(url);
       this.aiFeedback.set('PHOTO ENHANCED — UPSCALED AND RECOVERED.');
+      await this.refreshQuota();
     } catch (error: any) {
       this.logger.error('Photo Enhance Error:', error);
       this.aiFeedback.set(
@@ -5942,6 +5948,7 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
       const url = await this.aiService.cutoutPhoto(source);
       this.cutoutPhotoUrl.set(url);
       this.aiFeedback.set('CUTOUT READY — BACKGROUND REMOVED.');
+      await this.refreshQuota();
     } catch (error: any) {
       this.logger.error('Photo Cutout Error:', error);
       this.aiFeedback.set(
@@ -5995,6 +6002,7 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
         cameraAngle: angle,
       });
       this.placeShotMedia(shot, url, 'image', shot.durationSeconds);
+      void this.refreshQuota();
       this.aiFeedback.set(
         `SHOT ${shot.index} CONCEPT STYLED — STILL CUT TO THE LANE.`
       );
@@ -6021,6 +6029,7 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
         'video',
         Math.min(shot.durationSeconds, result.duration)
       );
+      void this.refreshQuota();
       this.aiFeedback.set(`SHOT ${shot.index} ANIMATED — VIDEO CUT TO THE LANE.`);
     } catch (error: any) {
       this.logger.error('Shot Animation Error:', error);
@@ -6110,6 +6119,7 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
       this.aiFeedback.set(
         `TALKING HEAD RENDERED — ${segment.durationSeconds.toFixed(0)}S CUT TO THE LANE.`
       );
+      void this.refreshQuota();
     } catch (error: any) {
       this.logger.error('Talking Head Error:', error);
       this.aiFeedback.set(
@@ -6271,6 +6281,18 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     };
   }
 
+  /**
+   * Read the account's AI budget from the ledger. Fails silently — an
+   * unknown budget is hidden, never guessed.
+   */
+  async refreshQuota(): Promise<void> {
+    try {
+      this.aiQuota.set(await this.aiService.getQuota());
+    } catch {
+      this.aiQuota.set(null);
+    }
+  }
+
   /** Ask the coach over the live state; the ladder alone is the fallback. */
   async askCoach(): Promise<void> {
     if (this.coachBusy()) return;
@@ -6278,6 +6300,7 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     try {
       const report = await this.coach.coach(this.buildCoachState());
       this.coachReport.set(report);
+      await this.refreshQuota();
       this.aiFeedback.set(
         `COACHED — ${report.headline.toUpperCase()}.`
       );

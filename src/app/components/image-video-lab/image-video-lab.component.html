@@ -1946,6 +1946,14 @@
                 <p class="m-0 text-[10px] font-black uppercase text-text-main break-words">
                   → {{ report.nextAction }}
                 </p>
+                @if (aiQuota(); as quota) {
+                  <p class="m-0 text-[8px] font-black uppercase tracking-[0.18em] text-text-dim">
+                    AI budget today — images {{ quota.image.used }}/{{
+                      quota.image.limit
+                    }}
+                    · video {{ quota.video.used }}/{{ quota.video.limit }}
+                  </p>
+                }
                 <button
                   type="button"
                   (click)="hearCoach()"

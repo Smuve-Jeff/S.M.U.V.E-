@@ -12,6 +12,9 @@ import {
   MAX_IMAGE_SOURCE_LENGTH,
   AiProviderUnavailableError,
 } from "@/services";
+// Deep import: the ledger guard runs during route registration, so it must
+// not wait on the services barrel's own load order.
+import { aiQuotaGuard, quotaStatus } from "@/services/ai-quota.service";
 import { authenticate } from "@/middleware/auth";
 
 const router = Router();
@@ -57,7 +60,7 @@ router.post("/analyze", authenticate, textLimiter, async (req, res) => {
 });
 
 // POST /api/ai/concept-art — optional fal.ai concept frame generation.
-router.post("/concept-art", authenticate, imageLimiter, async (req, res) => {
+router.post("/concept-art", authenticate, imageLimiter, aiQuotaGuard("image"), async (req, res) => {
   const prompt =
     typeof req.body?.prompt === "string" ? req.body.prompt.trim() : undefined;
   if (!prompt) return res.status(400).json({ error: "prompt is required" });
@@ -81,7 +84,7 @@ router.post("/concept-art", authenticate, imageLimiter, async (req, res) => {
 // The image is the frame's base64 (or a data URL); the question is what the
 // artist wants to know about it. Vision never answers offline: a guess about
 // an unviewed frame is worse than a 503.
-router.post("/vision", authenticate, imageLimiter, async (req, res) => {
+router.post("/vision", authenticate, imageLimiter, aiQuotaGuard("image"), async (req, res) => {
   const image =
     typeof req.body?.image === "string" ? req.body.image : undefined;
   const mimeType =
@@ -107,7 +110,7 @@ router.post("/vision", authenticate, imageLimiter, async (req, res) => {
 });
 
 // POST /api/ai/photo/enhance — Photo Studio upscale/enhance (Topaz).
-router.post("/photo/enhance", authenticate, imageLimiter, async (req, res) => {
+router.post("/photo/enhance", authenticate, imageLimiter, aiQuotaGuard("image"), async (req, res) => {
   const image =
     typeof req.body?.image === "string" ? req.body.image : undefined;
   const mimeType =
@@ -132,7 +135,7 @@ router.post("/photo/enhance", authenticate, imageLimiter, async (req, res) => {
 });
 
 // POST /api/ai/photo/cutout — Photo Studio AI background removal (BiRefNet).
-router.post("/photo/cutout", authenticate, imageLimiter, async (req, res) => {
+router.post("/photo/cutout", authenticate, imageLimiter, aiQuotaGuard("image"), async (req, res) => {
   const image =
     typeof req.body?.image === "string" ? req.body.image : undefined;
   const mimeType =
@@ -155,7 +158,7 @@ router.post("/photo/cutout", authenticate, imageLimiter, async (req, res) => {
 // POST /api/ai/shot-video — Director v2: animate one still frame (Pika).
 // `image` (base64 / data URL) and `imageUrl` (a hosted frame URL, e.g. a
 // just-generated concept still) are interchangeable here.
-router.post("/shot-video", authenticate, videoLimiter, async (req, res) => {
+router.post("/shot-video", authenticate, videoLimiter, aiQuotaGuard("video"), async (req, res) => {
   const image =
     typeof req.body?.image === "string"
       ? req.body.image
@@ -195,7 +198,7 @@ router.post("/shot-video", authenticate, videoLimiter, async (req, res) => {
 // The audio travels as a data-URL WAV (the client's blob: overlay URL is
 // meaningless to fal); the client caps the slice at 60 s, and
 // `durationSeconds` echoes it for lane placement.
-router.post("/lip-sync", authenticate, videoLimiter, async (req, res) => {
+router.post("/lip-sync", authenticate, videoLimiter, aiQuotaGuard("video"), async (req, res) => {
   const image =
     typeof req.body?.image === "string" ? req.body.image : undefined;
   const mimeType =
@@ -225,6 +228,17 @@ router.post("/lip-sync", authenticate, videoLimiter, async (req, res) => {
     }
     throw error;
   }
+});
+
+// GET /api/ai/quota — the account's AI media budget for the day. Private,
+// per-account, and read-only; the Lab's coach card shows it verbatim.
+router.get("/quota", authenticate, async (req, res) => {
+  const userId = Number((req as any).user?.userId);
+  res.setHeader("Cache-Control", "private, no-store");
+  if (!Number.isInteger(userId) || userId <= 0) {
+    return res.status(401).json({ error: "authentication required" });
+  }
+  res.json(await quotaStatus(userId));
 });
 
 export default router;

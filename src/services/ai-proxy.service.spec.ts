@@ -8,6 +8,14 @@ import {
   withProviderRetry,
 } from "./ai-proxy.service";
 
+/** Gemini image generation is exercised against a captured generateContent. */
+const mockGenerateContent = jest.fn();
+jest.mock("@google/genai", () => ({
+  GoogleGenAI: jest.fn(() => ({
+    models: { generateContent: mockGenerateContent },
+  })),
+}));
+
 describe("AI provider error taxonomy", () => {
   it("reads the status a provider SDK actually attaches", () => {
     expect(providerErrorStatus({ status: 429 })).toBe(429);
@@ -539,5 +547,105 @@ describe("fal queue polling + lip-sync", () => {
       })
     ).rejects.toMatchObject({ statusCode: 400 });
     expect(fetchSpy).not.toHaveBeenCalled();
+  });
+});
+
+describe("parseGeminiImageResponse", () => {
+  it("pulls the first inline image out as a data URL", () => {
+    const { parseGeminiImageResponse } = require("./ai-proxy.service");
+    const url = parseGeminiImageResponse({
+      candidates: [
+        {
+          content: {
+            parts: [
+              { text: "something" },
+              { inlineData: { mimeType: "image/png", data: "AAA" } },
+            ],
+          },
+        },
+      ],
+    });
+    expect(url).toBe("data:image/png;base64,AAA");
+  });
+
+  it("defaults the MIME type and finds nothing in a text reply", () => {
+    const { parseGeminiImageResponse } = require("./ai-proxy.service");
+    expect(
+      parseGeminiImageResponse({
+        candidates: [{ content: { parts: [{ inlineData: { data: "BBB" } }] } }],
+      }),
+    ).toBe("data:image/png;base64,BBB");
+    expect(parseGeminiImageResponse({ candidates: [] })).toBeUndefined();
+    expect(parseGeminiImageResponse(undefined)).toBeUndefined();
+  });
+});
+
+describe("concept art Gemini fallback", () => {
+  const originalGemini = process.env.GEMINI_API_KEY;
+  const originalFal = process.env.FAL_KEY;
+
+  afterEach(() => {
+    if (originalGemini === undefined) delete process.env.GEMINI_API_KEY;
+    else process.env.GEMINI_API_KEY = originalGemini;
+    if (originalFal === undefined) delete process.env.FAL_KEY;
+    else process.env.FAL_KEY = originalFal;
+    jest.restoreAllMocks();
+  });
+
+  const load = async (falResponse: unknown) => {
+    process.env.GEMINI_API_KEY = "test-gemini-key";
+    delete process.env.FAL_KEY;
+    jest.resetModules();
+    mockGenerateContent.mockReset();
+    jest.spyOn(globalThis, "fetch").mockResolvedValue(falResponse as never);
+    const proxy = await import("./ai-proxy.service");
+    return { proxy };
+  };
+
+  it("keeps the concept still coming when fal is down", async () => {
+    const { proxy } = await load({ ok: false, status: 503 });
+    mockGenerateContent.mockResolvedValue({
+      candidates: [
+        {
+          content: {
+            parts: [{ inlineData: { mimeType: "image/png", data: "GEMINI" } }],
+          },
+        },
+      ],
+    });
+
+    const result = await proxy.generateConceptArt("neon alley at night");
+
+    expect(result).toEqual({
+      type: "image",
+      url: "data:image/png;base64,GEMINI",
+      provider: "gemini",
+    });
+    expect(mockGenerateContent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        model: "gemini-2.5-flash-image",
+        contents: "neon alley at night",
+      }),
+    );
+  });
+
+  it("reports the fal diagnosis when Gemini returns no image either", async () => {
+    const { proxy } = await load({ ok: false, status: 503 });
+    mockGenerateContent.mockResolvedValue({ candidates: [] });
+
+    await expect(proxy.generateConceptArt("a poster")).rejects.toMatchObject({
+      statusCode: 502,
+    });
+  });
+
+  it("surfaces the configuration error when neither provider is set", async () => {
+    delete process.env.GEMINI_API_KEY;
+    delete process.env.FAL_KEY;
+    jest.resetModules();
+    const proxy = await import("./ai-proxy.service");
+
+    await expect(proxy.generateConceptArt("a poster")).rejects.toBeInstanceOf(
+      proxy.AiProviderUnavailableError,
+    );
   });
 });

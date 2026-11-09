@@ -697,6 +697,30 @@ describe('AiService', () => {
     await expect(requestPromise).rejects.toThrow('returned no video');
   });
 
+  it('should read the AI media quota from the backend ledger', async () => {
+    const requestPromise = service.getQuota();
+
+    const req = httpMock.expectOne('http://localhost:4000/api/ai/quota');
+    expect(req.request.method).toBe('GET');
+    req.flush({
+      image: { used: 3, limit: 100, remaining: 97, resetsAt: '2026-11-10T00:00:00.000Z' },
+      video: { used: 1, limit: 20, remaining: 19, resetsAt: '2026-11-10T00:00:00.000Z' },
+    });
+
+    const quota = await requestPromise;
+    expect(quota.image.used).toBe(3);
+    expect(quota.video.remaining).toBe(19);
+  });
+
+  it('rejects partial quota responses', async () => {
+    const requestPromise = service.getQuota();
+
+    const req = httpMock.expectOne('http://localhost:4000/api/ai/quota');
+    req.flush({ image: { used: 0, limit: 100, remaining: 100, resetsAt: null } });
+
+    await expect(requestPromise).rejects.toThrow('AI quota is unavailable');
+  });
+
   it('should handle getAIResponse when backend fails', async () => {
     const requestPromise = service.getAIResponse('Analyze this');
     const req = httpMock.expectOne('http://localhost:4000/api/ai/analyze');

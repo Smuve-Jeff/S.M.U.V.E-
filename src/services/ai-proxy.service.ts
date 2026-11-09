@@ -244,25 +244,88 @@ export const analyzePrompt = async (
  */
 export const generateConceptArt = async (
   prompt: string,
-): Promise<{ type: "image"; url: string }> => {
-  if (!FAL_KEY) throw new AiProviderUnavailableError();
-
-  const response = await fetch("https://fal.run/fal-ai/flux/dev", {
-    method: "POST",
-    headers: {
-      Authorization: `Key ${FAL_KEY}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ prompt }),
-  });
-  if (!response.ok) {
-    throw new AppError(502, "AI image provider unavailable");
+): Promise<{ type: "image"; url: string; provider: "fal" | "gemini" }> => {
+  try {
+    if (!FAL_KEY) throw new AiProviderUnavailableError();
+    const response = await fetch("https://fal.run/fal-ai/flux/dev", {
+      method: "POST",
+      headers: {
+        Authorization: `Key ${FAL_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ prompt }),
+    });
+    if (!response.ok) {
+      throw new AppError(502, "AI image provider unavailable");
+    }
+    const payload = (await response.json()) as {
+      images?: Array<{ url?: string }>;
+    };
+    const url = payload.images?.[0]?.url;
+    if (!url) throw new AppError(502, "AI image provider returned no image");
+    return { type: "image", url, provider: "fal" };
+  } catch (falError) {
+    // fal is down, unconfigured, or out of budget: the key already paid for
+    // the Google key too, so a Gemini image keeps the console alive. When
+    // both are missing the fal diagnosis is the honest one to surface.
+    if (!GEMINI_API_KEY) throw falError;
+    const image = await generateImageWithGemini(prompt);
+    return { ...image, provider: "gemini" };
   }
+};
 
-  const payload = (await response.json()) as {
-    images?: Array<{ url?: string }>;
-  };
-  const url = payload.images?.[0]?.url;
+/** Gemini image model, overridable. Defaults to the current Flash tier. */
+const GEMINI_IMAGE_MODEL =
+  process.env.GEMINI_IMAGE_MODEL || "gemini-2.5-flash-image";
+
+/**
+ * Pull the first inline image out of a Gemini generateContent response as
+ * a data URL, or undefined when the reply carried no image bytes.
+ */
+export function parseGeminiImageResponse(response: unknown): string | undefined {
+  const candidates = (response as {
+    candidates?: Array<{
+      content?: { parts?: Array<{ inlineData?: { mimeType?: string; data?: string } }> };
+    }>;
+  })?.candidates;
+  for (const candidate of candidates ?? []) {
+    for (const part of candidate.content?.parts ?? []) {
+      const data = part.inlineData?.data;
+      if (typeof data === "string" && data) {
+        return `data:${part.inlineData?.mimeType ?? "image/png"};base64,${data}`;
+      }
+    }
+  }
+  return undefined;
+}
+
+/**
+ * Concept stills without fal: Gemini image generation on the already-wired
+ * GEMINI_API_KEY. The data URL is returned as-is — the client places it
+ * exactly like a fal URL.
+ */
+export const generateImageWithGemini = async (
+  prompt: string,
+): Promise<{ type: "image"; url: string }> => {
+  if (!GEMINI_API_KEY) {
+    throw new AiProviderUnavailableError("AI image generation is not configured");
+  }
+  const { GoogleGenAI } = await import("@google/genai");
+  const ai = new GoogleGenAI({
+    apiKey: GEMINI_API_KEY,
+    httpOptions: { timeout: 60_000 },
+  });
+  const result = await withProviderRetry(() =>
+    ai.models.generateContent({
+      model: GEMINI_IMAGE_MODEL,
+      contents: prompt,
+      config: {
+        responseModalities: ["TEXT", "IMAGE"],
+        imageConfig: { aspectRatio: "16:9" },
+      },
+    }),
+  ).then(({ value }) => value);
+  const url = parseGeminiImageResponse(result);
   if (!url) throw new AppError(502, "AI image provider returned no image");
   return { type: "image", url };
 };

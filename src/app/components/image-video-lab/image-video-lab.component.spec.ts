@@ -597,6 +597,10 @@ describe('ImageVideoLabComponent', () => {
             url: 'https://cdn.example.test/talking-head.mp4',
             duration: 8,
           }),
+          getQuota: jest.fn().mockResolvedValue({
+            image: { used: 3, limit: 100, remaining: 97, resetsAt: '2026-11-10T00:00:00.000Z' },
+            video: { used: 1, limit: 20, remaining: 19, resetsAt: '2026-11-10T00:00:00.000Z' },
+          }),
           isFailureNotice: jest.fn(() => false),
           lastAiCall: jest.fn(() => null),
         } },
@@ -5231,6 +5235,38 @@ describe('ImageVideoLabComponent', () => {
       expect(component.aiFeedback()).toContain('1 FAILED');
       expect(component.aiFeedback()).toContain('1 ANIMATED');
       expect(component.autoDirectProgress()).toBeNull();
+    });
+
+    it('refreshes the AI budget after spending it', async () => {
+      const { component } = await createComponent();
+      const ai = TestBed.inject(AiService) as unknown as {
+        enhancePhoto: jest.Mock;
+        getQuota: jest.Mock;
+      };
+      ai.enhancePhoto.mockResolvedValue('https://cdn.example.test/enhanced.png');
+      component.photoSource.set('data:image/png;base64,PHOTO');
+
+      await component.enhancePhoto();
+
+      expect(ai.getQuota).toHaveBeenCalled();
+      expect(component.aiQuota()?.image.used).toBe(3);
+      expect(component.aiQuota()?.video.remaining).toBe(19);
+    });
+
+    it('hides an unreadable budget instead of guessing it', async () => {
+      const { component } = await createComponent();
+      const ai = TestBed.inject(AiService) as unknown as {
+        getQuota: jest.Mock;
+      };
+      ai.getQuota.mockRejectedValue(new Error('ledger down'));
+      component.aiQuota.set({
+        image: { used: 1, limit: 100, remaining: 99, resetsAt: null },
+        video: { used: 0, limit: 20, remaining: 20, resetsAt: null },
+      });
+
+      await component.refreshQuota();
+
+      expect(component.aiQuota()).toBeNull();
     });
 
     it('pauses between shots when cancelled', async () => {

@@ -57,6 +57,18 @@ export type { UpgradeRecommendation } from '../types/ai.types';
  */
 const SHOT_VIDEO_REQUEST_TIMEOUT_MS = 600_000;
 
+export interface AiQuotaEntry {
+  used: number;
+  limit: number;
+  remaining: number;
+  resetsAt: string | null;
+}
+
+export interface AiQuotaStatus {
+  image: AiQuotaEntry;
+  video: AiQuotaEntry;
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -1242,6 +1254,43 @@ Remember: sharpen the artist's decisions, sign the work with a GOD's signature, 
         })
       )
     );
+  }
+
+  /**
+   * The account's AI media budget for the day (images / videos used,
+   * limits, reset time) from the backend ledger.
+   */
+  async getQuota(): Promise<AiQuotaStatus> {
+    if (!this.aiAccess()) {
+      throw new Error(this.aiLockNotice);
+    }
+    const token = this.tokenService.jwtToken();
+    const headers =
+      token && this.tokenService.isApiToken()
+        ? { Authorization: 'Bearer ' + token }
+        : {};
+    const response = await firstValueFrom(
+      this.http
+        .get<AiQuotaStatus>(`${APP_SECURITY_CONFIG.auth_api_url}/ai/quota`, {
+          headers,
+        })
+        .pipe(
+          timeout(10_000),
+          catchError((error: any) => {
+            const message =
+              error?.name === 'TimeoutError'
+                ? 'The quota ledger took too long to answer.'
+                : error?.error?.error ||
+                  error?.message ||
+                  'AI quota is unavailable.';
+            throw new Error(String(message));
+          })
+        )
+    );
+    if (!response?.image || !response?.video) {
+      throw new Error('AI quota is unavailable.');
+    }
+    return response;
   }
 
   // ── Session musician transport ──────────────────────────────────────
