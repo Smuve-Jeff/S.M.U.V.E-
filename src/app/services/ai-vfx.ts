@@ -546,6 +546,57 @@ export function sanitizeAiVfx(value: unknown): AiVfxSettings | null {
   };
 }
 
+/**
+ * Validate a saved section plan before it reaches the console. A project can
+ * outlive the build that wrote it, so every section, recipe and range is
+ * rebuilt from checked fields — one unusable entry is dropped, not the cut.
+ */
+export function sanitizeAiVfxSectionPlan(value: unknown): AiVfxSectionPlan | null {
+  if (!value || typeof value !== 'object') return null;
+  const raw = value as Partial<AiVfxSectionPlan>;
+  if (!isAiVfxStyle(raw.style)) return null;
+  if (!Array.isArray(raw.sections) || raw.sections.length === 0) return null;
+
+  const sections: AiVfxSectionAssignment[] = [];
+  raw.sections.forEach((entry, index) => {
+    if (!entry || typeof entry !== 'object') return;
+    const section = entry as Partial<AiVfxSectionAssignment>;
+    const recipe = sanitizeAiVfxRecipe(section.recipe);
+    // A plan is one family by construction; a mixed record is a hand-edit or
+    // a corrupted write, and must not smuggle in another look.
+    if (!recipe || recipe.style !== raw.style) return;
+    const start = Number(section.startTime);
+    const end = Number(section.endTime);
+    if (!Number.isFinite(start) || !Number.isFinite(end)) return;
+    const startTime = Math.max(0, start);
+    sections.push({
+      section:
+        typeof section.section === 'string' && section.section.trim()
+          ? section.section.trim().slice(0, 80)
+          : `Section ${index + 1}`,
+      startTime,
+      endTime: Math.max(startTime + 0.01, end),
+      recipe,
+      intensity: clamp01(section.intensity, 0.7),
+    });
+  });
+  if (!sections.length) return null;
+  sections.sort((a, b) => a.startTime - b.startTime);
+
+  const label =
+    AI_VFX_STYLES.find((entry) => entry.id === raw.style)?.label ?? raw.style;
+  return {
+    title:
+      typeof raw.title === 'string' && raw.title.trim()
+        ? raw.title.trim().slice(0, 60)
+        : `${label} Section FX`,
+    brief: typeof raw.brief === 'string' ? raw.brief.slice(0, 400) : '',
+    style: raw.style,
+    sections,
+    origin: raw.origin === 'ai' ? 'ai' : 'preset',
+  };
+}
+
 /** Deep copy so two clips never share one recipe's pass array. */
 export function copyAiVfxSettings(settings: AiVfxSettings): AiVfxSettings {
   return {

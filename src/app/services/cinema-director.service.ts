@@ -11,6 +11,7 @@ import {
   buildLocalSectionVfxPlan,
   inferAiVfxStyle,
   parseAiVfxSectionPlan,
+  sanitizeAiVfxSectionPlan,
   type AiVfxSectionPlan,
   type AiVfxSectionRange,
   type AiVfxStyle,
@@ -524,6 +525,17 @@ export class CinemaDirectorService {
     this.sectionVfxPlan.set(null);
     this.sectionVfxNote.set(
       'Section effects cleared. The cut is back to its own look.'
+    );
+  }
+
+  /** Put a saved section plan back when its project is opened. */
+  restoreSectionVfxPlan(plan: AiVfxSectionPlan | null | undefined): void {
+    const sanitized = sanitizeAiVfxSectionPlan(plan);
+    this.sectionVfxPlan.set(sanitized);
+    this.sectionVfxNote.set(
+      sanitized
+        ? `Section effects restored with the project — ${sanitized.sections.length} sections.`
+        : 'This project carries no section effects.'
     );
   }
 

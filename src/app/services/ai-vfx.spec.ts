@@ -10,6 +10,7 @@ import {
   parseAiVfxRecipe,
   parseAiVfxSectionPlan,
   presetRecipe,
+  sanitizeAiVfxSectionPlan,
   renderAiVfx,
   transientEnvelope,
   sanitizeAiVfx,
@@ -341,5 +342,39 @@ describe('AI VFX section plans', () => {
     expect(plan.sections.every((entry) => entry.recipe.style === 'animation')).toBe(
       true
     );
+  });
+});
+
+describe('saved AI VFX section plans', () => {
+  it('rebuilds a stored plan, clamps intensity and drops unusable entries', () => {
+    const neon = AI_VFX_PRESETS.find((preset) => preset.id === 'neon-pulse')!.recipe;
+    const action = AI_VFX_PRESETS.find(
+      (preset) => preset.id === 'explosion-shockwave'
+    )!.recipe;
+
+    const plan = sanitizeAiVfxSectionPlan({
+      title: 'Saved FX',
+      brief: 'neon performance',
+      style: 'music-video',
+      origin: 'ai',
+      sections: [
+        { section: 'Chorus', startTime: 4, endTime: 12, intensity: 4, recipe: neon },
+        { section: 'Broken', startTime: 0, endTime: 1, intensity: 0.5, recipe: {} },
+        { section: 'Wrong family', startTime: 0, endTime: 1, intensity: 0.5, recipe: action },
+      ],
+    });
+
+    expect(plan?.sections).toHaveLength(1);
+    expect(plan?.sections[0].section).toBe('Chorus');
+    expect(plan?.sections[0].intensity).toBe(1);
+    expect(plan?.title).toBe('Saved FX');
+  });
+
+  it('returns null when a stored plan has no usable section', () => {
+    expect(sanitizeAiVfxSectionPlan(null)).toBeNull();
+    expect(sanitizeAiVfxSectionPlan({ style: 'music-video', sections: [] })).toBeNull();
+    expect(
+      sanitizeAiVfxSectionPlan({ style: 'not-a-family', sections: [{}] })
+    ).toBeNull();
   });
 });

@@ -9,6 +9,10 @@ import {
 } from './video-engine.service';
 import { LocalStorageService, PersistenceState } from './local-storage.service';
 import { LoggingService } from './logging.service';
+import {
+  sanitizeAiVfxSectionPlan,
+  type AiVfxSectionPlan,
+} from './ai-vfx';
 
 /**
  * A saved project as the project list needs it. The edit itself is deliberately
@@ -56,6 +60,8 @@ export interface CinemaOpenOutcome {
    * not by clip.
    */
   audioBed?: { blob: Blob; name: string } | null;
+  /** The Director's saved section effect plan, when the project carried one. */
+  sectionVfxPlan?: AiVfxSectionPlan | null;
 }
 
 /** Stored footage, addressed by `projectId::mediaId`. */
@@ -191,7 +197,8 @@ export class CinemaProjectService {
   async save(
     name: string,
     id: string | null = this.activeProjectId(),
-    media?: Map<string, Blob>
+    media?: Map<string, Blob>,
+    sectionVfxPlan?: AiVfxSectionPlan | null
   ): Promise<CinemaSaveOutcome> {
     if (this.isBusy()) {
       return { ok: false, id, message: 'A save is already in progress.' };
@@ -213,6 +220,11 @@ export class CinemaProjectService {
       }
 
       const snapshot = this.engine.snapshot();
+      // The section plan belongs to the Director, not the engine, so it rides in
+      // on the save call. Validate before writing: a project must only ever
+      // carry a plan its own console can render.
+      const savedSectionVfx = sanitizeAiVfxSectionPlan(sectionVfxPlan);
+      if (savedSectionVfx) snapshot.sectionVfxPlan = savedSectionVfx;
       // Read the overwrite target back from storage instead of trusting the
       // in-memory list: after a failed refresh that list is empty while the
       // record is still on disk, and minting a fresh id there would fork a
@@ -345,12 +357,19 @@ export class CinemaProjectService {
         : record.snapshot.audioOverlay
           ? ' The audio bed needs re-attaching.'
           : '';
+      // A plan written by an older build, or one that lost its sections, opens
+      // as no plan rather than as a list the console cannot apply.
+      const sectionVfxPlan = sanitizeAiVfxSectionPlan(
+        record.snapshot.sectionVfxPlan
+      );
+      const vfxNote = sectionVfxPlan ? ' Section effects restored.' : '';
       return {
         ok: true,
         report,
         media,
         audioBed,
-        message: `PROJECT OPENED: ${record.name.toUpperCase()} · ${report.clips} CLIP(S), ${report.markers} MARKER(S).${footage}${missing}${bedNote}`,
+        sectionVfxPlan,
+        message: `PROJECT OPENED: ${record.name.toUpperCase()} · ${report.clips} CLIP(S), ${report.markers} MARKER(S).${footage}${missing}${bedNote}${vfxNote}`,
       };
     } catch (error) {
       this.logger.error('CinemaProjectService: open failed', error);

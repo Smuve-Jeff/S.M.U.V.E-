@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { TestBed } from '@angular/core/testing';
+import { AI_VFX_PRESETS } from '../../services/ai-vfx';
 import { DirectorCoachService } from '../../services/director-coach.service';
 import { computed, signal } from '@angular/core';
 
@@ -3538,7 +3539,8 @@ describe('ImageVideoLabComponent', () => {
       expect(cinemaProjects.save).toHaveBeenCalledWith(
         'Feature Cut',
         null,
-        expect.any(Map)
+        expect.any(Map),
+        null
       );
       expect(component.aiFeedback()).toBe('PROJECT SAVED: FEATURE CUT.');
     });
@@ -3603,6 +3605,57 @@ describe('ImageVideoLabComponent', () => {
       const file = videoEngine.loadAudioOverlay.mock.calls[0][0] as File;
       expect(file.name).toBe('score.mp3');
       expect(file.type).toBe('audio/mpeg');
+    });
+
+    it('saves the Director section plan with the project', async () => {
+      const { component, cinemaProjects } = await createComponent();
+      const recipe = AI_VFX_PRESETS.find(
+        (preset) => preset.id === 'neon-pulse'
+      )!.recipe;
+      component.director.restoreSectionVfxPlan({
+        title: 'Saved FX',
+        brief: 'neon performance',
+        style: 'music-video',
+        origin: 'ai',
+        sections: [
+          { section: 'Chorus', startTime: 0, endTime: 8, recipe, intensity: 0.9 },
+        ],
+      });
+
+      await component.saveProject();
+
+      const [, , , savedPlan] = cinemaProjects.save.mock.calls.at(-1) as [
+        string,
+        string | null,
+        Map<string, Blob>,
+        { title: string },
+      ];
+      expect(savedPlan.title).toBe('Saved FX');
+    });
+
+    it('restores the Director section plan when a project opens', async () => {
+      const { component, cinemaProjects } = await createComponent();
+      const recipe = AI_VFX_PRESETS.find(
+        (preset) => preset.id === 'neon-pulse'
+      )!.recipe;
+      cinemaProjects.open.mockResolvedValueOnce({
+        ok: true,
+        message: 'PROJECT OPENED: FEATURE CUT. Section effects restored.',
+        sectionVfxPlan: {
+          title: 'Saved FX',
+          brief: 'neon performance',
+          style: 'music-video',
+          origin: 'ai',
+          sections: [
+            { section: 'Chorus', startTime: 0, endTime: 8, recipe, intensity: 0.9 },
+          ],
+        },
+      });
+
+      await component.openProject('p1');
+
+      expect(component.director.sectionVfxPlan()?.title).toBe('Saved FX');
+      expect(component.director.sectionVfxPlan()?.sections).toHaveLength(1);
     });
 
     it('seeds the name field from the project that was actually saved', async () => {

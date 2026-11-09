@@ -65,6 +65,7 @@ export type { AiVfxPass, AiVfxPassId, AiVfxRecipe, AiVfxSettings, AiVfxStyle } f
 import {
   sanitizeAiVfx,
   type AiVfxSectionAssignment,
+  type AiVfxSectionPlan,
   type AiVfxSettings,
   type AiVfxTransientTrack,
 } from './ai-vfx';
@@ -347,6 +348,8 @@ export interface CinemaSnapshot {
   tracks: VideoTrack[];
   /** The imported music/voice bed, or null when the cut plays bare. */
   audioOverlay: CinemaAudioBedMeta | null;
+  /** The Director's per-section effect plan, saved with the cut. */
+  sectionVfxPlan?: AiVfxSectionPlan | null;
 }
 
 /** What a restore could, and could not, bring back. */

@@ -2,6 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { AiService } from './ai.service';
 import { CinemaDirectorService } from './cinema-director.service';
 import { LoggingService } from './logging.service';
+import { buildLocalSectionVfxPlan } from './ai-vfx';
 
 describe('CinemaDirectorService', () => {
   let ai: {
@@ -444,5 +445,22 @@ describe('CinemaDirectorService', () => {
     expect(plan.sections.some((section) => section.recipe.name === 'Comic Impact')).toBe(
       true
     );
+  });
+
+  it('restores a saved section plan and clears it for a project without one', () => {
+    const service = createService();
+    const plan = buildLocalSectionVfxPlan('neon performance', 'music-video', [
+      { section: 'Chorus', startTime: 0, endTime: 8 },
+    ]);
+
+    service.restoreSectionVfxPlan(plan);
+
+    expect(service.sectionVfxPlan()?.sections).toHaveLength(1);
+    expect(service.sectionVfxNote()).toContain('restored');
+
+    service.restoreSectionVfxPlan(null);
+
+    expect(service.sectionVfxPlan()).toBeNull();
+    expect(service.sectionVfxNote()).toContain('no section effects');
   });
 });

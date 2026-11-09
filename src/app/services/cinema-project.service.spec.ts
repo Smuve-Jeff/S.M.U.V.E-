@@ -7,6 +7,7 @@ import {
 import { LocalStorageService } from './local-storage.service';
 import { LoggingService } from './logging.service';
 import { VideoEngineService, VideoClip } from './video-engine.service';
+import { AI_VFX_PRESETS } from './ai-vfx';
 
 /** A playable still, so a clip has media that survives a reload. */
 const STILL = 'data:image/jpeg;base64,AAAA';
@@ -261,6 +262,45 @@ describe('CinemaProjectService', () => {
         engine.tracks().find((track) => track.id === 't1')!.clips
       ).toHaveLength(2);
       expect(service.activeProjectId()).toBe(saved.id);
+    });
+
+    it('stores the Director section plan and hands it back on open', async () => {
+      const { service } = createHarness();
+      const recipe = AI_VFX_PRESETS.find(
+        (preset) => preset.id === 'neon-pulse'
+      )!.recipe;
+      const plan = {
+        title: 'Saved FX',
+        brief: 'neon performance',
+        style: 'music-video' as const,
+        origin: 'ai' as const,
+        sections: [
+          { section: 'Chorus', startTime: 0, endTime: 8, recipe, intensity: 0.9 },
+        ],
+      };
+
+      const saved = await service.save('Scored Cut', null, new Map(), plan);
+      const opened = await service.open(saved.id!);
+
+      expect(opened.ok).toBe(true);
+      expect(opened.sectionVfxPlan?.sections).toHaveLength(1);
+      expect(opened.sectionVfxPlan?.sections[0].recipe.name).toBe('Neon Pulse');
+      expect(opened.sectionVfxPlan?.sections[0].intensity).toBe(0.9);
+      expect(opened.message).toContain('Section effects restored');
+    });
+
+    it('drops a saved section plan that no longer validates', async () => {
+      const { service } = createHarness();
+      const saved = await service.save('Bare Cut');
+      const record = stored.get(saved.id!);
+      record.snapshot.sectionVfxPlan = { style: 'cartoon', sections: [] };
+      stored.set(saved.id!, record);
+
+      const opened = await service.open(saved.id!);
+
+      expect(opened.ok).toBe(true);
+      expect(opened.sectionVfxPlan).toBeNull();
+      expect(opened.message).not.toContain('Section effects restored');
     });
 
     it('fails cleanly when the record is gone', async () => {
