@@ -14,6 +14,10 @@ import { AiBeatGeneratorService } from '../services/ai-beat-generator.service';
 import { AiProduceService } from '../services/ai-produce.service';
 import { ScaleDetectionService } from '../services/scale-detection.service';
 import { VocalAiService } from '../services/vocal-ai.service';
+import {
+  VocalMasteringService,
+  type MasteringParameters,
+} from '../services/vocal-mastering.service';
 import { LoggingService } from '../services/logging.service';
 import { NeuralMixerService } from '../services/neural-mixer.service';
 import { TakeManagerService } from '../services/take-manager.service';
@@ -24,6 +28,16 @@ import { OfflineBounceService } from './offline-bounce.service';
 import { ProjectWorkspaceService } from './project-workspace.service';
 import { SmartSoundService } from './smart-sound.service';
 import { SmartProductionFoundationsService } from './smart-production-foundations.service';
+import { PerformanceRecordingService } from './performance-recording.service';
+import { AudioImportService } from './audio-import.service';
+import {
+  DEFAULT_TUNER_TOLERANCE_CENTS,
+  midiToFrequency,
+} from './tuner/tuner-pitch.util';
+import {
+  detectTransientFrames,
+  sliceAudioBufferAtFrames,
+} from './sampler-slice.util';
 import { StudioTelemetryService } from './studio-telemetry.service';
 import {
   STUDIO_SURFACES,
@@ -107,12 +121,15 @@ export class StudioAiDirectorService {
   private offlineBounce = inject(OfflineBounceService);
   private scale = inject(ScaleDetectionService);
   private vocal = inject(VocalAiService);
+  private vocalMastering = inject(VocalMasteringService);
   private sounds = inject(SmartSoundService);
   private neural = inject(NeuralMixerService);
   private takeManager = inject(TakeManagerService);
   private audioRecorder = inject(AudioRecorderService);
   private workspace = inject(ProjectWorkspaceService);
   private foundations = inject(SmartProductionFoundationsService);
+  private performanceRecording = inject(PerformanceRecordingService);
+  private audioImport = inject(AudioImportService);
   private telemetry = inject(StudioTelemetryService);
   private logger = inject(LoggingService);
 
@@ -367,7 +384,7 @@ export class StudioAiDirectorService {
         return [
           make(1, 'Read the latest vocal performance evidence', 'Read the Vocal AI service’s current evidence note. It is a real service readout; an uploaded take remains required for a new measured performance analysis.', true, () => this.latestVocalGuidance(), 'vocal-suite'),
           make(2, 'Generate a harmony stack from the take', 'Use the take’s notes to create a harmony part; if no part is detected, the fallback is a simple third above the root.', true, () => this.generateHarmonyFromSelectedTake()),
-          make(3, 'Apply vocal polish only after the repair plan is clear', 'Use Director Chat / Vocal Suite polish controls on the repaired take; do not use polish to hide tuning, clipping or timing problems.', false, () => 'Guided: use the Vocal Suite polish controls on the repaired take after the current advice has been applied.', 'vocal-suite'),
+          make(3, 'Apply the conservative vocal polish chain', 'Only after Vocal AI evidence exists, set the vocal mastering chain to a conservative de-esser, multiband, exciter, EQ and limiter profile. This changes the live vocal chain; it does not hide tuning, clipping or timing problems.', true, () => this.applyConservativeVocalPolish(), 'vocal-suite'),
         ];
       case 'dj':
         return [
@@ -378,7 +395,7 @@ export class StudioAiDirectorService {
       case 'performance':
         return [
           make(1, 'Count the performance takes', 'Read the current take carousel so the next instruction starts from the real take count.', true, () => this.performanceTakeStatus()),
-          make(2, 'Run one clean pass before tuning it', 'Avoid overwriting a good pass; use the take carousel to compare candidates.', false, () => 'Guided: arm the take, perform the full pass once, then compare it against the previous take.', 'performance'),
+          make(2, 'Arm the next clean performance take', 'Arm the next PerformanceRecordingService take slot for the selected track, then perform the full pass and stop the take from the performance surface to capture it.', true, () => this.armNextPerformanceTake(), 'performance'),
           make(3, 'Promote the strongest MIDI take', 'Rank the takes by captured note count and make the strongest take the active take for playback/comping.', true, () => this.promoteBestTake()),
         ];
       case 'mastering':
@@ -408,7 +425,7 @@ export class StudioAiDirectorService {
         ];
       case 'tuner':
         return [
-          make(1, 'Open the tuning field', 'The tuner needs a microphone or a played reference; use live input rather than guessing from the session BPM.', false, () => 'Guided: enable the microphone or play the reference note and watch the nearest cents needle.', 'tuner'),
+          make(1, 'Report the tuning reference', 'Read the shared A4 concert-pitch reference and tolerance from the tuner pitch utilities, then compare it with the project key. The live needle still needs the artist or line input to play or sing the reference.', true, () => this.tunerReferenceStatus(), 'tuner'),
           make(2, 'Apply the same reference across takes', 'Retune strings/instruments to one reference so takes can be comped without pitch drift.', false, () => 'Guided: tune the lowest string first, then check each string against the same reference.', 'piano-roll'),
           make(3, 'Recheck key after tuning', 'After tuning, run key detection again if the material was out of tune.', true, () => this.detectAndApplyKey()),
         ];
@@ -416,12 +433,12 @@ export class StudioAiDirectorService {
         return [
           make(1, 'Generate a chord framework', 'Create a genre-aware progression from the session key and mood; Roman numerals are interpreted as guidance, not literal notes.', true, () => this.generateChordFramework(context)),
           make(2, 'Voicing check against the bass', 'Measure the bass and chord registers from the live project notes and flag any root collision.', true, () => this.chordBassRegisterCheck()),
-          make(3, 'Turn the progression into parts', 'Use the framework to write a pad, bass and top line as separate lanes.', false, () => 'Guided: turn the progression into separate pad, bass and melody lanes, then return to Piano Roll.', 'piano-roll'),
+          make(3, 'Turn the progression into parts', 'Generate a generator-backed chord framework, then write pad, bass and top-line notes into separate undoable tracks.', true, () => this.turnProgressionIntoParts(context), 'piano-roll'),
         ];
       case 'sampler':
         return [
           make(1, 'Find a sample that fits the key and tempo', 'Search the sound library by the session key/BPM and favorite only the sample that loops cleanly.', true, () => this.smartSearchSounds(context)),
-          make(2, 'Slice on phrase boundaries', 'Place slices on downbeats and phrase endings; avoid random micro-slices that fight the groove.', false, () => 'Guided: slice on the phrase boundaries, audition the loop, then keep only slices that return to the downbeat cleanly.', 'sampler'),
+          make(2, 'Slice the selected sample on phrase boundaries', 'Use transient detection and the sampler-slice utility to cut the selected imported sample on measured phrase boundaries, then place the resulting AudioBuffers as arrangement audio clips for audition.', true, () => this.sliceSelectedSampleOnPhraseBoundaries(), 'sampler'),
           make(3, 'Chop against the generated groove', 'Use the generated drum pattern as the timing reference for the chop.', true, () => this.applyBeatPackage(context)),
         ];
       case 'score':
@@ -451,7 +468,7 @@ export class StudioAiDirectorService {
       case 'performer':
         return [
           make(1, 'Read the performer’s take state', 'Open the take state and meters so the next instruction starts from the real performance, not the plan.', true, () => this.performanceTakeStatus()),
-          make(2, 'Perform one pass per take slot', 'Use one take slot per complete pass; label the strongest candidate before the next attempt.', false, () => 'Guided: record one full pass per take slot and label the strongest candidate before the next attempt.', 'performer'),
+          make(2, 'Arm the performer’s next take slot', 'Arm the next PerformanceRecordingService take slot for the selected track, then perform one complete pass and stop the take from the performer surface.', true, () => this.armNextPerformanceTake(), 'performer'),
           make(3, 'Merge the take comp into the track', 'Stack every take on the track, merge them through TakeManagerService, and write the comp back through MusicManagerService.replaceTrackNotes().', true, () => this.applyTakeComp()),
         ];
       case 'export':
@@ -685,6 +702,70 @@ export class StudioAiDirectorService {
     return `Latest Vocal AI guidance: ${advice}`;
   }
 
+  private applyConservativeVocalPolish(): string {
+    const advice = this.vocal.currentAdvice().trim();
+    if (!advice || advice.length <= 12) {
+      throw new Error('No measured vocal guidance is available yet; upload and analyze a vocal take before applying polish.');
+    }
+
+    const current = this.vocalMastering.params();
+    const patch: Partial<MasteringParameters> = {
+      deesser: {
+        ...current.deesser,
+        threshold: -24,
+        frequency: 6500,
+        bypass: false,
+      },
+      multiband: {
+        low: {
+          ...current.multiband.low,
+          threshold: -20,
+          ratio: 4,
+          frequency: 320,
+          bypass: false,
+        },
+        mid: {
+          ...current.multiband.mid,
+          threshold: -18,
+          ratio: 2.5,
+          bypass: false,
+        },
+        high: {
+          ...current.multiband.high,
+          threshold: -16,
+          ratio: 2,
+          frequency: 2500,
+          bypass: false,
+        },
+      },
+      exciter: {
+        ...current.exciter,
+        amount: Math.min(Math.max(0, current.exciter.amount), 0.12),
+        frequency: 8000,
+        bypass: false,
+      },
+      eq: { low: 0, mid: 0, high: 0, bypass: false },
+      limiter: {
+        ...current.limiter,
+        ceiling: -0.5,
+        release: 0.12,
+        bypass: false,
+      },
+    };
+    this.vocalMastering.updateParams(patch);
+    return `Applied conservative vocal polish after existing Vocal AI guidance: de-esser at 6.5 kHz, multiband low/mid/high enabled, exciter capped at ${patch.exciter!.amount.toFixed(2)}, flat EQ and limiter ceiling -0.5 dB.`;
+  }
+
+  private armNextPerformanceTake(): string {
+    if (this.performanceRecording.isRecording()) {
+      throw new Error('A performance take is already recording; stop it before arming another pass.');
+    }
+    const selected = this.music.selectedTrack();
+    const nextTake = Math.max(1, this.performanceRecording.takes().length + 1);
+    this.performanceRecording.arm(nextTake);
+    return `Armed take ${nextTake}${selected ? ` for ${selected.name}` : ''}; perform the complete pass now and stop the take from the performance surface to capture it.`;
+  }
+
   private synthRegisterCheck(): string {
     const tracks = this.music.tracks().filter((track) => (track.notes?.length ?? 0) > 0);
     if (tracks.length === 0) throw new Error('No synth notes are available for a register check.');
@@ -778,6 +859,14 @@ export class StudioAiDirectorService {
     const projectKey = this.workspace.metadata()?.key ?? 'C';
     const root = projectKey.replace(/m$/i, '').trim() || 'C';
     return ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'].includes(root) ? root : 'C';
+  }
+
+  private tunerReferenceStatus(): string {
+    const root = this.scaleRootForAudit();
+    const rootMidi = 60 + PITCHES.indexOf(root);
+    const frequency = midiToFrequency(rootMidi);
+    const key = this.workspace.metadata()?.key ?? 'C';
+    return `Tuning reference: A4 440 Hz with ±${DEFAULT_TUNER_TOLERANCE_CENTS} cents tolerance; project key is ${key} ${this.lastDetectedScale}, so use ${root}4 around ${frequency.toFixed(1)} Hz as the shared reference before opening the tuner input.`;
   }
 
   private detectAndApplyKey(): string {
@@ -1005,7 +1094,123 @@ export class StudioAiDirectorService {
     return `${beat.title}: ${beat.chords.map((c) => c.chord).join(' | ')} at ${beat.bpm} BPM in ${beat.key}.`;
   }
 
-  private ensureTrack(name: string, instrumentId: string, type: 'midi' | 'drum'): TrackModel {
+  private turnProgressionIntoParts(context: StudioDirectorContext): string {
+    const style = context.style ?? context.genre ?? 'pop';
+    const beat = this.beat.generateBeat(style, `${style} | Chord parts`, context.bpm);
+    const chordStabs = beat.chords.length > 0 ? beat.chords : [{ chord: 'I', position: 0, duration: 4, velocity: 0.8, inversion: 'root' }];
+    const keyRoot = context.key
+      ? context.key.replace(/m$/i, '').trim() || 'C'
+      : this.workspace.metadata()?.key
+        ? this.scaleRootForAudit()
+        : (beat.key || 'C').replace(/m$/i, '').trim() || 'C';
+    const padTrack = this.ensureTrack('Director Chord Pad', 'grand-piano', 'midi');
+    const bassTrack = this.ensureTrack('Director Chord Bass', 'grand-piano', 'midi');
+    const topTrack = this.ensureTrack('Director Chord Top', 'grand-piano', 'midi');
+    const majorScale = [0, 2, 4, 5, 7, 9, 11];
+    const padNotes: TrackNote[] = [];
+    const bassNotes: TrackNote[] = [];
+
+    chordStabs.forEach((stab, index) => {
+      const parsed = this.parseRomanChord(stab.chord, keyRoot);
+      const start = Number.isFinite(stab.position) ? Math.max(0, Math.floor(stab.position)) : index * 4;
+      const rootMidi = 60 + parsed.pitchClass;
+      for (const interval of parsed.intervals) {
+        padNotes.push({
+          id: this.nextId('chord-pad'),
+          midi: rootMidi + interval,
+          step: start,
+          length: 4,
+          velocity: Math.max(0.05, Math.min(1, stab.velocity ?? 0.75)),
+        });
+      }
+      bassNotes.push({
+        id: this.nextId('chord-bass'),
+        midi: 36 + parsed.pitchClass,
+        step: start,
+        length: 4,
+        velocity: Math.max(0.05, Math.min(1, stab.velocity ?? 0.8)),
+      });
+    });
+
+    const topNotes = beat.melody.flatMap((phrase) =>
+      phrase.notes.map((n) => this.noteFromPitch(n.pitch, n.octave, n.position, n.duration, n.velocity)),
+    );
+    this.music.replaceTrackNotes(padTrack.id, padNotes, 'Director Chord Parts');
+    this.music.replaceTrackNotes(bassTrack.id, bassNotes, 'Director Chord Parts');
+    this.music.replaceTrackNotes(topTrack.id, topNotes, 'Director Chord Parts');
+    return `${beat.title}: wrote ${padNotes.length} pad notes to ${padTrack.name}, ${bassNotes.length} bass notes to ${bassTrack.name}, and ${topNotes.length} top-line notes to ${topTrack.name}; each replacement is undoable.`;
+  }
+
+  private parseRomanChord(symbol: string, keyRoot: string): { pitchClass: number; intervals: number[] } {
+    const match = symbol.match(/^([ivIV]+)(.*)$/);
+    const numerals: Record<string, number> = {
+      i: 1,
+      ii: 2,
+      iii: 3,
+      iv: 4,
+      v: 5,
+      vi: 6,
+      vii: 7,
+    };
+    const numeral = match?.[1]?.toLowerCase() ?? 'i';
+    const degree = numerals[numeral] ?? 1;
+    const suffix = match?.[2] ?? '';
+    const majorScale = [0, 2, 4, 5, 7, 9, 11];
+    const rootPc = PITCHES.indexOf(keyRoot);
+    const pitchClass = ((rootPc >= 0 ? rootPc : 0) + majorScale[degree - 1]) % 12;
+    const minor = match?.[1] ? /^[ivx]+$/.test(match[1]) && match[1] === match[1].toLowerCase() : false;
+    if (/dim/i.test(suffix)) return { pitchClass, intervals: [0, 3, 6] };
+    if (/aug/i.test(suffix)) return { pitchClass, intervals: [0, 4, 8] };
+    if (/7/.test(suffix)) return { pitchClass, intervals: minor ? [0, 3, 7, 10] : [0, 4, 7, 10] };
+    if (/sus/i.test(suffix)) return { pitchClass, intervals: [0, 5, 7] };
+    return { pitchClass, intervals: minor ? [0, 3, 7] : [0, 4, 7] };
+  }
+
+  private sliceSelectedSampleOnPhraseBoundaries(): string {
+    const imported = this.audioImport.selectedAudio() ?? this.audioImport.importedAudio()[0];
+    const streamedBuffer = (imported?.sampleStreamer as unknown as { getResidentBuffer?: () => AudioBuffer | null } | null)?.getResidentBuffer?.() ?? null;
+    const buffer = imported?.buffer ?? streamedBuffer;
+    if (!imported || !buffer) {
+      throw new Error('Import a sample in Sampler first; no decoded buffer is available to slice.');
+    }
+    const ctx = this.engine.ctx as unknown as { createBuffer?: (channels: number, length: number, sampleRate: number) => AudioBuffer };
+    if (!ctx?.createBuffer) {
+      throw new Error('The audio context cannot create sliced AudioBuffers in this environment.');
+    }
+    const onsets = detectTransientFrames(buffer, { sensitivity: 0.55, maxSlices: 16 });
+    if (onsets.length === 0) {
+      throw new Error(`${imported.name} has no transient onsets; use equal slicing or a more percussive sample.`);
+    }
+    const starts = [0, ...onsets.map((onset) => onset.frame)];
+    const slices = sliceAudioBufferAtFrames(ctx as BaseAudioContext, buffer, starts);
+    if (slices.length <= 1) {
+      throw new Error(`${imported.name} is too short or too steady to produce useful phrase-boundary slices.`);
+    }
+    const track = this.ensureTrack('Director Sample Slices', 'grand-piano', 'audio');
+    if ((track.clips?.length ?? 0) > 0) {
+      return `Kept the existing ${track.clips.length} phrase-boundary slices on ${track.name}; run a different sample to reslice.`;
+    }
+    const beatSeconds = 60 / Math.max(20, this.engine.tempo() || 120) / 4;
+    let startStep = 0;
+    slices.forEach((slice, index) => {
+      const clipId = this.nextId('director-slice').replace(/[^\w-]/g, '-');
+      this.music.stemAudioCache.set(clipId, slice);
+      const lengthSteps = Math.max(1, Math.round(slice.duration / beatSeconds));
+      this.music.addClipToTrack(track.id, {
+        id: clipId,
+        name: `${imported.name} slice ${index + 1}`,
+        start: startStep,
+        length: lengthSteps,
+        type: 'audio',
+        audioRefId: clipId,
+        clipGain: 1,
+      });
+      startStep += lengthSteps;
+    });
+    return `Sliced ${imported.name} into ${slices.length} phrase-boundary audio clips on ${track.name}; ${onsets.length} transient onsets were measured at ${onsets.map((o) => `${o.time.toFixed(2)}s`).join(', ')}.`;
+  }
+
+  private ensureTrack(name: string, instrumentId: string, type: TrackModel['type']): TrackModel {
     const existing = this.music.tracks().find((t) => t.type === type && t.name === name);
     if (existing) return existing;
     const id = this.music.addTrack(name, instrumentId, type);

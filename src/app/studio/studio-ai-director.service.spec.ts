@@ -12,6 +12,9 @@ import { AiBeatGeneratorService } from '../services/ai-beat-generator.service';
 import { AiProduceService } from '../services/ai-produce.service';
 import { ScaleDetectionService } from '../services/scale-detection.service';
 import { VocalAiService } from '../services/vocal-ai.service';
+import { VocalMasteringService } from '../services/vocal-mastering.service';
+import { PerformanceRecordingService } from './performance-recording.service';
+import { AudioImportService } from './audio-import.service';
 import { LoggingService } from '../services/logging.service';
 import { NeuralMixerService } from '../services/neural-mixer.service';
 import { TakeManagerService } from '../services/take-manager.service';
@@ -48,6 +51,8 @@ function makeDirector(overrides: Record<string, unknown> = {}) {
       selectedTrackId.set(id);
       return id;
     }),
+    stemAudioCache: new Map<string, AudioBuffer>(),
+    addClipToTrack: jest.fn(),
     addNoteToTrack: jest.fn((trackId: string, note: unknown) => {
       tracks.update((current) =>
         current.map((t) => (t.id === trackId ? { ...t, notes: [...t.notes, note] } : t)),
@@ -69,6 +74,16 @@ function makeDirector(overrides: Record<string, unknown> = {}) {
     ...overrides.music,
   };
   const engine = {
+    ctx: {
+      createBuffer: jest.fn((channels: number, length: number, sampleRate: number) => ({
+        numberOfChannels: channels,
+        length,
+        sampleRate,
+        duration: length / sampleRate,
+        getChannelData: () => new Float32Array(length),
+      })),
+      destination: {},
+    },
     tempo: signal(120),
     masterGainValue: signal(0.8),
     metronomeEnabled: signal(false),
@@ -176,6 +191,32 @@ function makeDirector(overrides: Record<string, unknown> = {}) {
   };
   const audioRecorder = { getOfflineRecordings: jest.fn().mockResolvedValue([]), ...overrides.audioRecorder };
   const vocal = { currentAdvice: signal(''), ...overrides.vocal };
+  const vocalMastering = {
+    params: signal({
+      deesser: { threshold: -24, frequency: 6500, bypass: false },
+      multiband: {
+        low: { threshold: -20, ratio: 4, bypass: false, frequency: 320 },
+        mid: { threshold: -18, ratio: 2.5, bypass: false },
+        high: { threshold: -16, ratio: 2, bypass: false, frequency: 2500 },
+      },
+      exciter: { amount: 0.1, frequency: 8000, bypass: false },
+      eq: { low: 0, mid: 0, high: 0, bypass: false },
+      limiter: { ceiling: -0.1, release: 0.1, bypass: false },
+    }),
+    updateParams: jest.fn(),
+    ...overrides.vocalMastering,
+  };
+  const performanceRecording = {
+    takes: signal([]),
+    isRecording: signal(false),
+    arm: jest.fn(),
+    ...overrides.performanceRecording,
+  };
+  const audioImport = {
+    selectedAudio: signal(null),
+    importedAudio: signal([]),
+    ...overrides.audioImport,
+  };
   const copilot = { suggestStructure: jest.fn(), ...overrides.copilot };
   const offlineBounce = {
     bounce: jest.fn().mockResolvedValue({
@@ -229,6 +270,9 @@ function makeDirector(overrides: Record<string, unknown> = {}) {
       { provide: AiProduceService, useValue: produce },
       { provide: ScaleDetectionService, useValue: scale },
       { provide: VocalAiService, useValue: vocal },
+      { provide: VocalMasteringService, useValue: vocalMastering },
+      { provide: PerformanceRecordingService, useValue: performanceRecording },
+      { provide: AudioImportService, useValue: audioImport },
       { provide: LoggingService, useValue: logger },
       { provide: NeuralMixerService, useValue: neural },
       { provide: TakeManagerService, useValue: takeManager },
@@ -245,7 +289,7 @@ function makeDirector(overrides: Record<string, unknown> = {}) {
       { provide: IdeasGeneratorService, useValue: ideas },
     ],
   });
-  return { service: TestBed.inject(StudioAiDirectorService), music, engine, ai, beat, mix, sounds, workspace, telemetry, takeManager, audioRecorder, copilot, offlineBounce, scale, produce, history, exportService, ideas, vocal, tracks };
+  return { service: TestBed.inject(StudioAiDirectorService), music, engine, ai, beat, mix, sounds, workspace, telemetry, takeManager, audioRecorder, copilot, offlineBounce, scale, produce, history, exportService, ideas, vocal, vocalMastering, performanceRecording, audioImport, tracks };
 }
 
 describe('StudioAiDirectorService', () => {
@@ -545,6 +589,78 @@ describe('StudioAiDirectorService', () => {
     expect(exportService.exportToFormat).toHaveBeenCalledWith(expect.anything(), 'wav24');
     expect(exportService.downloadBlob).toHaveBeenCalled();
     expect(result.message).toContain('Complete delivery export downloaded');
+  });
+
+  it('applies vocal polish only after real vocal guidance exists', async () => {
+    const { service, vocal, vocalMastering } = makeDirector();
+    const blocked = await service.runStep(service.buildPlan({ surfaceId: 'vocal-suite' }).steps[2]);
+    expect(blocked.ok).toBe(false);
+    expect(vocalMastering.updateParams).not.toHaveBeenCalled();
+
+    vocal.currentAdvice.set('The take is clean; polish the vocal chain now.');
+    const result = await service.runStep(service.buildPlan({ surfaceId: 'vocal-suite' }).steps[2]);
+    expect(result.ok).toBe(true);
+    expect(vocalMastering.updateParams).toHaveBeenCalledWith(expect.objectContaining({
+      deesser: expect.objectContaining({ bypass: false, frequency: 6500 }),
+      limiter: expect.objectContaining({ ceiling: -0.5, bypass: false }),
+    }));
+    expect(result.message).toContain('conservative vocal polish');
+  });
+
+  it('reports the tuner reference from the pitch utilities', async () => {
+    const { service } = makeDirector();
+    const result = await service.runStep(service.buildPlan({ surfaceId: 'tuner' }).steps[0]);
+    expect(result.ok).toBe(true);
+    expect(result.message).toContain('A4 440 Hz');
+    expect(result.message).toContain('±5 cents');
+    expect(result.message).toContain('C4 around 261.6 Hz');
+  });
+
+  it('arms the next performance take and performer slot', async () => {
+    const { service, performanceRecording } = makeDirector();
+    performanceRecording.takes.set([{ id: 'take-1' }]);
+    const performance = await service.runStep(service.buildPlan({ surfaceId: 'performance' }).steps[1]);
+    expect(performance.ok).toBe(true);
+    expect(performanceRecording.arm).toHaveBeenCalledWith(2);
+    const performer = await service.runStep(service.buildPlan({ surfaceId: 'performer' }).steps[1]);
+    expect(performer.ok).toBe(true);
+    expect(performer.message).toContain('Armed take 2');
+  });
+
+  it('writes chord pad, bass and top-line parts from the generator framework', async () => {
+    const { service, music } = makeDirector();
+    const result = await service.runStep(service.buildPlan({ surfaceId: 'chord-editor' }).steps[2]);
+    expect(result.ok).toBe(true);
+    expect(music.replaceTrackNotes).toHaveBeenCalledTimes(3);
+    expect(music.replaceTrackNotes.mock.calls.map((call) => call[2])).toEqual([
+      'Director Chord Parts',
+      'Director Chord Parts',
+      'Director Chord Parts',
+    ]);
+    expect(result.message).toContain('top-line notes');
+  });
+
+  it('slices a selected imported sample on measured transients', async () => {
+    const sampleRate = 48000;
+    const data = new Float32Array(sampleRate);
+    for (let i = 0; i < data.length; i++) {
+      const t = i / sampleRate;
+      data[i] = (t >= 0.4 && t < 0.6) || (t >= 0.8 && t < 0.95) ? 0.8 : 0;
+    }
+    const fakeBuffer = {
+      numberOfChannels: 1,
+      length: sampleRate,
+      sampleRate,
+      duration: 1,
+      getChannelData: () => data,
+    };
+    const { service, music, audioImport } = makeDirector();
+    audioImport.selectedAudio.set({ name: 'break', buffer: fakeBuffer });
+    const result = await service.runStep(service.buildPlan({ surfaceId: 'sampler' }).steps[1]);
+    expect(result.ok).toBe(true);
+    expect(music.addClipToTrack).toHaveBeenCalled();
+    expect(music.stemAudioCache.size).toBeGreaterThan(1);
+    expect(result.message).toContain('phrase-boundary audio clips');
   });
 
   it('deletes the selected track through the undoable command and restores it through history', async () => {
