@@ -20,8 +20,6 @@ import { MidiWriter } from "./midi-writer.util";
 import { UserProfileService } from "../services/user-profile.service";
 import { AiCopilotService } from "./ai-copilot.service";
 import { HapticService } from "../services/haptic.service";
-import { TouchGestureService } from "../services/touch-gesture.service";
-import { SequencerService } from "./sequencer.service";
 import { InteractionDialogService } from "../services/interaction-dialog.service";
 import { ProjectTemplateService } from "../services/project-template.service";
 import { IdeasGeneratorService } from "../services/ideas-generator.service";
@@ -316,8 +314,6 @@ describe("StudioComponent", () => {
         { provide: UserProfileService, useValue: mockUserProfileService },
         { provide: AiCopilotService, useValue: {} },
         { provide: HapticService, useValue: mockHaptic },
-        { provide: TouchGestureService, useValue: {} },
-        { provide: SequencerService, useValue: {} },
         {
           provide: InteractionDialogService,
           useValue: (mockDialog = {
