@@ -4282,3 +4282,19 @@
   font-weight: 600;
   color: rgba(255, 255, 255, 0.7);
 }
+
+/* Mission briefing: keep the gradient title inside the fixed overlay. */
+.launch-mission-page { overflow-x: hidden; }
+.mission-header { width: 100%; text-align: center; }
+.mission-title { text-align: center; max-width: 100%; overflow-wrap: anywhere; }
+
+/* Solid fill: the clipped gradient left most of the briefing title invisible. */
+.mission-title {
+  background: none !important;
+  -webkit-background-clip: border-box !important;
+  background-clip: border-box !important;
+  -webkit-text-fill-color: #f1f5f9 !important;
+  color: #f1f5f9 !important;
+  filter: none;
+  width: 100%;
+}

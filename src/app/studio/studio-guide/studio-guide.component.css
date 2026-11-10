@@ -92,6 +92,40 @@
   line-height: 1.5;
 }
 
+/* S.M.U.V.E. Prime is the instructor, not a cheerful tooltip. Keep the voice
+   in the guide without replacing the deliberately plain lesson copy. */
+.sg-instructor {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  max-width: 680px;
+  margin: 10px 0 0;
+  padding: 8px 10px;
+  border-left: 2px solid #ffb800;
+  border-radius: 0 8px 8px 0;
+  color: #c7d0e2;
+  background: rgba(255, 184, 0, 0.06);
+  font-size: 0.76rem;
+  font-style: italic;
+  line-height: 1.45;
+}
+
+.sg-instructor .material-symbols-outlined {
+  flex: 0 0 auto;
+  color: #ffb800;
+  font-size: 16px;
+}
+
+.sg-instructor strong {
+  margin-right: 4px;
+  color: #ffd77a;
+  font-size: 9px;
+  font-style: normal;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
 .sg-head-side {
   display: flex;
   align-items: center;
@@ -176,6 +210,8 @@
 
 .sg-tab {
   display: inline-flex;
+  flex: 0 0 auto;
+  min-width: max-content;
   align-items: center;
   gap: 7px;
   min-height: 40px;

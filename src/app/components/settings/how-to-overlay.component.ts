@@ -1,277 +1,245 @@
-import { Component, EventEmitter, HostListener, Output, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import {
+  AfterViewInit,
+  Component,
+  ElementRef,
+  EventEmitter,
+  HostListener,
+  OnDestroy,
+  Output,
+  ViewChild,
+  inject,
+  signal,
+} from '@angular/core';
+import { CommonModule, DOCUMENT } from '@angular/common';
+import { Router } from '@angular/router';
+import {
+  COMPLETE_GUIDE_LESSONS,
+  COMPLETE_GUIDE_PROGRESS_KEY,
+  COMPLETE_GUIDE_SRC,
+  CompleteGuideLesson,
+} from './complete-app-guide.lessons';
 
-interface Guide {
-  id: string;
-  title: string;
-  icon: string;
-  content: string[];
-}
-
+/**
+ * The complete application guide.
+ *
+ * The old Help Center was four static cards. This surface is a chaptered
+ * walkthrough of the shipped application: the bundled video, the same chapter
+ * metadata, a real route into every workspace, and progress that stays local.
+ */
 @Component({
   selector: 'app-how-to-overlay',
   standalone: true,
   imports: [CommonModule],
-  template: `
-    <div
-      class="fixed inset-0 z-[12000] flex items-center justify-center p-4 md:p-8 animate-fade-in"
-    >
-      <!-- Backdrop -->
-      <div
-        class="absolute inset-0 bg-background/80 backdrop-blur-md"
-        (click)="close.emit()"
-      ></div>
-
-      <!-- Content -->
-      <div
-        class="relative w-full max-w-4xl bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col md:flex-row h-[85vh] border border-gray-100 text-gray-900"
-      >
-        <!-- Sidebar -->
-        <div
-          class="w-full md:w-64 bg-gray-50 border-r border-gray-100 p-6 flex flex-col gap-2"
-        >
-          <div class="mb-6">
-            <h2
-              class="text-xl font-black text-gray-900 uppercase tracking-tight"
-            >
-              Help_Center
-            </h2>
-            <p
-              class="text-[9px] text-gray-500 font-bold uppercase tracking-widest mt-1"
-            >
-              System Documentation
-            </p>
-          </div>
-
-          <button
-            *ngFor="let guide of guides"
-            (click)="selectedGuideId.set(guide.id); updateCurrentGuide()"
-            [class.bg-white]="selectedGuideId() === guide.id"
-            [class.shadow-sm]="selectedGuideId() === guide.id"
-            [class.text-brand-primary]="selectedGuideId() === guide.id"
-            class="flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold text-gray-600 hover:bg-white hover:shadow-sm transition-all text-left"
-          >
-            <span class="text-lg">{{ guide.icon }}</span>
-            {{ guide.title }}
-          </button>
-
-          <div class="mt-auto pt-6 border-t border-gray-200">
-            <button
-              (click)="startWalkthrough()"
-              class="w-full px-4 py-3 bg-brand-primary text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:opacity-90 transition-all shadow-md"
-            >
-              Start Walkthrough
-            </button>
-          </div>
-        </div>
-
-        <!-- Main Content -->
-        <div class="flex-1 flex flex-col overflow-hidden bg-white">
-          <div
-            class="p-8 border-b border-gray-50 flex justify-between items-center"
-          >
-            <div>
-              <h3
-                class="text-2xl font-black text-gray-900 uppercase tracking-tight"
-              >
-                {{ currentGuide()?.title }}
-              </h3>
-              <p
-                class="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1"
-              >
-                Step-by-Step Instructions
-              </p>
-            </div>
-            <button
-              (click)="close.emit()"
-              class="text-gray-400 hover:text-gray-900 transition-colors"
-            >
-              <svg
-                class="w-6 h-6"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M6 18L18 6M6 6l12 12"
-                ></path>
-              </svg>
-            </button>
-          </div>
-
-          <div class="flex-1 overflow-y-auto p-8 custom-scrollbar">
-            <div class="flex flex-col gap-8">
-              <div
-                *ngFor="let step of currentGuide()?.content; let i = index"
-                class="flex gap-6"
-              >
-                <div
-                  class="flex-shrink-0 w-8 h-8 rounded-full bg-gray-900 text-white flex items-center justify-center text-xs font-black"
-                >
-                  {{ i + 1 }}
-                </div>
-                <div class="pt-1">
-                  <p class="text-sm text-gray-700 leading-relaxed font-medium">
-                    {{ step }}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Interactive Walkthrough Overlay -->
-      <div
-        *ngIf="walkthroughActive()"
-        class="fixed inset-0 z-[13000] pointer-events-none"
-      >
-        <div
-          class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 p-6 bg-white rounded-2xl shadow-2xl border-4 border-brand-primary pointer-events-auto animate-bounce-in text-gray-900"
-        >
-          <h4 class="text-sm font-black text-gray-900 uppercase mb-2">
-            Walkthrough Active
-          </h4>            <p class="text-xs text-gray-600 mb-4">
-            Follow the selected guide one step at a time. Nothing is changed until you choose an action in the destination workspace.
-          </p>
-          <div class="flex items-center justify-between gap-2 mb-3">
-            <button (click)="previousStep()" [disabled]="walkthroughStep() === 0" class="px-3 py-2 rounded-lg bg-gray-100 text-[10px] font-black uppercase disabled:opacity-40">Back</button>
-            <span class="text-[10px] font-bold text-gray-500">Step {{ walkthroughStep() + 1 }} / {{ currentGuide()?.content?.length || 0 }}</span>
-            <button (click)="nextStep()" class="px-3 py-2 rounded-lg bg-gray-900 text-white text-[10px] font-black uppercase">{{ isLastStep() ? 'Finish' : 'Next' }}</button>
-          </div>
-          <button (click)="walkthroughActive.set(false)" class="w-full py-2 border border-gray-200 text-gray-700 rounded-lg text-[10px] font-black uppercase tracking-widest">End Tour</button>
-        </div>
-      </div>
-    </div>
-  `,
-  styles: [
-    `
-      .animate-fade-in {
-        animation: fadeIn 0.3s ease-out;
-      }
-      .animate-bounce-in {
-        animation: bounceIn 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-      }
-      @keyframes fadeIn {
-        from {
-          opacity: 0;
-        }
-        to {
-          opacity: 1;
-        }
-      }
-      @keyframes bounceIn {
-        0% {
-          transform: translate(-50%, -50%) scale(0.3);
-          opacity: 0;
-        }
-        50% {
-          transform: translate(-50%, -50%) scale(1.05);
-          opacity: 1;
-        }
-        70% {
-          transform: translate(-50%, -50%) scale(0.9);
-        }
-        100% {
-          transform: translate(-50%, -50%) scale(1);
-        }
-      }
-    `,
-  ],
+  templateUrl: './how-to-overlay.component.html',
+  styleUrls: ['./how-to-overlay.component.css'],
 })
-export class HowToOverlayComponent {
+export class HowToOverlayComponent implements AfterViewInit, OnDestroy {
+  private readonly router = inject(Router);
+  private readonly host = inject(ElementRef) as ElementRef<HTMLElement>;
+  private readonly document = inject(DOCUMENT);
+
   @Output() close = new EventEmitter<void>();
+  @ViewChild('tutorialVideo')
+  private tutorialVideo?: ElementRef<HTMLVideoElement>;
 
-  selectedGuideId = signal('studio');
-  walkthroughActive = signal(false);
-  walkthroughStep = signal(0);
+  readonly lessons = COMPLETE_GUIDE_LESSONS;
+  readonly videoSrc = COMPLETE_GUIDE_SRC;
+  readonly selectedLesson = signal<CompleteGuideLesson>(this.lessons[0]);
+  readonly completed = signal<ReadonlySet<string>>(this.loadCompleted());
+  private pendingSeekTarget: number | null = null;
+  private seekToken = 0;
 
-  guides: Guide[] = [
-    {
-      id: 'studio',
-      title: 'Studio Pro',
-      icon: '🎙️',
-      content: [
-        'Open the Studio component from the main navigation.',
-        'Use the Channel Rack to program drum patterns or melodic sequences.',
-        'Adjust individual track parameters like Volume, Pan, and FX in the Mixer.',
-        'Utilize the Master Controls to apply global saturation and limiting for a polished sound.',
-        'Export your final creation using the Render button in high-fidelity WAV format.',
-      ],
-    },
-    {
-      id: 'dj',
-      title: 'DJ Deck Matrix',
-      icon: '💿',
-      content: [
-        'Load tracks into Deck A and Deck B from your catalog.',
-        'Use the Crossfader to transition between tracks smoothly.',
-        'Apply real-time filters and EQ adjustments to shape the transition.',
-        'Enable Vinyl Mode for realistic scratching and platter physics.',
-        'Use Hot Cues to jump to specific points in your tracks instantly.',
-      ],
-    },
-    {
-      id: 'ai',
-      title: 'AI Intelligence',
-      icon: '🤖',
-      content: [
-        'Access the S.M.U.V.E. Intelligence section to see Strategic Decrees.',
-        'Use the Chatbot to ask questions about your career or production techniques.',
-        'Enable AI Mimicry to have the system learn and adapt to your unique style.',
-        'Set the AI Persona intensity to match your preferred level of feedback.',
-        'Review Market Intel to identify trending genres and marketing opportunities.',
-      ],
-    },
-    {
-      id: 'career',
-      title: 'Career Hub',
-      icon: '📈',
-      content: [
-        'Monitor your Reputation XP and Strategic Health Score.',
-        'Manage your Catalog and track the status of your releases.',
-        'Review Financials to see revenue projections and pending payouts.',
-        'Set long-term Career Goals to receive tailored recommendations.',
-        'Analyze Market Readiness signals to optimize your release schedule.',
-      ],
-    },
-  ];
-
-  currentGuide = signal<Guide | undefined>(this.guides[0]);
-
-  updateCurrentGuide() {
-    this.currentGuide.set(this.guides.find((g) => g.id === this.selectedGuideId()));
-    this.walkthroughStep.set(0);
+  selectLesson(lesson: CompleteGuideLesson, autoplay = false): void {
+    this.selectedLesson.set(lesson);
+    this.markCompleted(lesson.id);
+    this.seekToLesson(lesson.tutorialAt, autoplay);
   }
 
-  startWalkthrough() {
-    this.walkthroughStep.set(0);
-    this.walkthroughActive.set(true);
+  playChapter(): void {
+    this.seekToLesson(this.selectedLesson().tutorialAt, true);
   }
 
-  nextStep() {
-    const last = (this.currentGuide()?.content.length ?? 1) - 1;
-    if (this.walkthroughStep() >= last) {
-      this.walkthroughActive.set(false);
-      return;
+  nextChapter(): void {
+    const index = this.chapterIndex();
+    const next = this.lessons[index + 1];
+    if (next) {
+      this.selectLesson(next, true);
+    } else {
+      this.selectLesson(this.lessons[this.lessons.length - 1]);
     }
-    this.walkthroughStep.update((step) => step + 1);
   }
 
-  previousStep() {
-    this.walkthroughStep.update((step) => Math.max(0, step - 1));
+  previousChapter(): void {
+    const index = this.chapterIndex();
+    const previous = this.lessons[index - 1];
+    if (previous) this.selectLesson(previous, true);
   }
 
-  isLastStep() {
-    return this.walkthroughStep() >= (this.currentGuide()?.content.length ?? 1) - 1;
+  chapterIndex(): number {
+    return this.lessons.findIndex(
+      (lesson) => lesson.id === this.selectedLesson().id
+    );
+  }
+
+  isFirst(): boolean {
+    return this.chapterIndex() === 0;
+  }
+
+  isLast(): boolean {
+    return this.chapterIndex() === this.lessons.length - 1;
+  }
+
+  completedCount(): number {
+    return this.completed().size;
+  }
+
+  progressPercent(): number {
+    return Math.round((this.completedCount() / this.lessons.length) * 100);
+  }
+
+  isComplete(lesson: CompleteGuideLesson): boolean {
+    return this.completed().has(lesson.id);
+  }
+
+  onTimeUpdate(): void {
+    if (this.pendingSeekTarget !== null) return;
+    const video = this.tutorialVideo?.nativeElement;
+    if (!video) return;
+    let current = this.lessons[0];
+    for (const lesson of this.lessons) {
+      if (video.currentTime + 0.05 >= lesson.tutorialAt) current = lesson;
+    }
+    if (current.id !== this.selectedLesson().id) {
+      this.selectedLesson.set(current);
+      this.markCompleted(current.id);
+    }
+  }
+
+  openWorkspace(): void {
+    this.pauseVideo();
+    this.close.emit();
+    void this.router.navigateByUrl(this.selectedLesson().route);
+  }
+
+  closeGuide(): void {
+    this.pauseVideo();
+    this.close.emit();
+  }
+
+  ngAfterViewInit(): void {
+    // The Settings card uses backdrop-filter, which becomes the containing
+    // block for a fixed overlay. Move the host out so the guide covers the
+    // viewport instead of only the card.
+    const host = this.host.nativeElement;
+    if (host.parentElement !== this.document.body) {
+      this.document.body.appendChild(host);
+    }
+  }
+
+  ngOnDestroy(): void {
+    this.pauseVideo();
   }
 
   @HostListener('document:keydown.escape')
-  onEscape() {
-    this.walkthroughActive.set(false);
-    this.close.emit();
+  onEscape(): void {
+    this.closeGuide();
+  }
+
+  trackByLesson(_index: number, lesson: CompleteGuideLesson): string {
+    return lesson.id;
+  }
+
+  private seekToLesson(target: number, autoplay: boolean): void {
+    const video = this.tutorialVideo?.nativeElement;
+    if (!video) return;
+
+    const token = ++this.seekToken;
+    const seek = () => {
+      if (token !== this.seekToken) return;
+      try {
+        video.currentTime = target;
+      } catch {
+        this.pendingSeekTarget = null;
+        if (autoplay) this.playVideo();
+      }
+    };
+
+    if (video.readyState >= 1 && Math.abs(video.currentTime - target) < 0.05) {
+      this.pendingSeekTarget = null;
+      if (autoplay) this.playVideo();
+      return;
+    }
+
+    // Do not start playback until the seek lands. Starting from zero while the
+    // seek is pending lets timeupdate move the selection back to chapter one.
+    this.pendingSeekTarget = target;
+    video.pause();
+
+    const onSeeked = () => {
+      video.removeEventListener('seeked', onSeeked);
+      if (token !== this.seekToken) return;
+      this.pendingSeekTarget = null;
+      if (autoplay) this.playVideo();
+    };
+    video.addEventListener('seeked', onSeeked, { once: true });
+
+    if (video.readyState >= 1) {
+      seek();
+    } else {
+      video.addEventListener('loadedmetadata', seek, { once: true });
+    }
+  }
+
+  private playVideo(): void {
+    const video = this.tutorialVideo?.nativeElement;
+    if (!video) return;
+    try {
+      const attempt = video.play();
+      if (attempt && typeof attempt.catch === 'function') {
+        attempt.catch(() => {
+          // Autoplay can be refused; the native controls remain available.
+        });
+      }
+    } catch {
+      // No media error needs to be surfaced here; the controls still work.
+    }
+  }
+
+  private pauseVideo(): void {
+    try {
+      this.tutorialVideo?.nativeElement.pause();
+    } catch {
+      // The element may already be gone during route teardown.
+    }
+  }
+
+  private markCompleted(id: string): void {
+    if (this.completed().has(id)) return;
+    const next = new Set(this.completed());
+    next.add(id);
+    this.completed.set(next);
+    try {
+      localStorage.setItem(
+        COMPLETE_GUIDE_PROGRESS_KEY,
+        JSON.stringify([...next])
+      );
+    } catch {
+      // Private browsing can refuse storage; progress remains in memory.
+    }
+  }
+
+  private loadCompleted(): ReadonlySet<string> {
+    try {
+      const raw = localStorage.getItem(COMPLETE_GUIDE_PROGRESS_KEY);
+      if (!raw) return new Set<string>();
+      const parsed = JSON.parse(raw);
+      return new Set<string>(
+        Array.isArray(parsed)
+          ? parsed.filter((value): value is string => typeof value === 'string')
+          : []
+      );
+    } catch {
+      return new Set<string>();
+    }
   }
 }

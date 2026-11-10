@@ -2847,3 +2847,507 @@ canvas {
     animation: none;
   }
 }
+
+/* ---------------------------------------------------------------------------
+   Cinema Academy — guided lessons and tutorial
+   A fixed overlay so opening a lesson never unmounts an edit in progress.
+--------------------------------------------------------------------------- */
+.learn-launch {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  height: 2.75rem;
+  padding: 0 0.9rem;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(16, 185, 129, 0.45);
+  background: rgba(16, 185, 129, 0.1);
+  color: #6ee7b7;
+  font-size: 0.62rem;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+
+.learn-launch:hover {
+  background: rgba(16, 185, 129, 0.2);
+  border-color: #10b981;
+  transform: translateY(-1px);
+}
+
+.learn-launch .material-symbols-outlined {
+  font-size: 1.1rem;
+}
+
+.learn-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgba(2, 6, 23, 0.88);
+  backdrop-filter: blur(14px);
+}
+
+.learn-shell {
+  display: flex;
+  flex-direction: column;
+  width: min(1320px, 100%);
+  max-height: calc(100vh - 2rem);
+  overflow: hidden;
+  border: 1px solid rgba(16, 185, 129, 0.28);
+  border-radius: 1.25rem;
+  background:
+    radial-gradient(circle at 12% 0%, rgba(16, 185, 129, 0.16), transparent 42%),
+    #070d18;
+  box-shadow: 0 40px 120px rgba(0, 0, 0, 0.65);
+  color: #e2e8f0;
+}
+
+.learn-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding: 1.25rem 1.5rem 1rem;
+}
+
+.learn-head-copy {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.learn-eyebrow,
+.learn-kicker,
+.learn-progress-label,
+.learn-player-caption,
+.learn-goal > span,
+.learn-mistake > span {
+  font-size: 0.62rem;
+  font-weight: 900;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #34d399;
+}
+
+.learn-head h2 {
+  margin: 0;
+  font-size: clamp(1.35rem, 2.4vw, 2rem);
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  text-transform: uppercase;
+  font-style: italic;
+  color: #f8fafc;
+}
+
+.learn-head p {
+  max-width: 46rem;
+  margin: 0;
+  font-size: 0.8rem;
+  line-height: 1.55;
+  color: #94a3b8;
+}
+
+.learn-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-shrink: 0;
+}
+
+.learn-progress-label {
+  white-space: nowrap;
+  color: #94a3b8;
+}
+
+.learn-close {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  height: 2.35rem;
+  padding: 0 0.85rem;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 0.65rem;
+  background: rgba(255, 255, 255, 0.04);
+  color: #e2e8f0;
+  font-size: 0.65rem;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.learn-close span {
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.learn-close:hover {
+  border-color: #10b981;
+  color: #6ee7b7;
+}
+
+.learn-progress-track {
+  height: 3px;
+  margin: 0 1.5rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.18);
+}
+
+.learn-progress-track span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #10b981, #22d3ee);
+  transition: width 0.3s ease;
+}
+
+.learn-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+  gap: 1.25rem;
+  min-height: 0;
+  padding: 1.25rem 1.5rem 1.5rem;
+  overflow: hidden;
+}
+
+.learn-player,
+.learn-detail {
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 0.35rem;
+}
+
+.learn-player {
+  display: grid;
+  align-content: start;
+  gap: 0.75rem;
+}
+
+.learn-video {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: 0.85rem;
+  background: #000;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.45);
+}
+
+.learn-player-caption {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  color: #64748b;
+}
+
+.learn-chapters {
+  display: grid;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.learn-chapter {
+  display: grid;
+  grid-template-columns: 2.1rem minmax(0, 1fr) 1.4rem;
+  align-items: center;
+  gap: 0.65rem;
+  width: 100%;
+  padding: 0.6rem 0.7rem;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 0.7rem;
+  background: rgba(15, 23, 42, 0.6);
+  text-align: left;
+  color: #cbd5e1;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.learn-chapter:hover,
+.learn-chapter.active {
+  border-color: rgba(16, 185, 129, 0.5);
+  background: rgba(16, 185, 129, 0.09);
+}
+
+.learn-chapter-num {
+  display: grid;
+  place-items: center;
+  width: 1.9rem;
+  height: 1.9rem;
+  border-radius: 0.5rem;
+  background: rgba(16, 185, 129, 0.12);
+  color: #34d399;
+  font-family: var(--font-mono, monospace);
+  font-size: 0.66rem;
+  font-weight: 900;
+}
+
+.learn-chapter-copy {
+  display: grid;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.learn-chapter-copy strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: #f1f5f9;
+}
+
+.learn-chapter-copy span {
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+.learn-check {
+  display: grid;
+  place-items: center;
+  width: 1.3rem;
+  height: 1.3rem;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+  color: #052e1b;
+  font-size: 0.7rem;
+  font-weight: 900;
+}
+
+.learn-check.done {
+  border-color: #10b981;
+  background: #10b981;
+}
+
+.learn-detail {
+  display: grid;
+  align-content: start;
+  gap: 0.8rem;
+  padding: 1.1rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0.9rem;
+  background: rgba(15, 23, 42, 0.55);
+}
+
+.learn-detail h3 {
+  margin: 0;
+  font-size: clamp(1.2rem, 2vw, 1.6rem);
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  color: #f8fafc;
+}
+
+.learn-summary {
+  margin: 0;
+  font-size: 0.83rem;
+  line-height: 1.6;
+  color: #a8b4c7;
+}
+
+.learn-goal,
+.learn-mistake {
+  display: grid;
+  gap: 0.3rem;
+  padding: 0.7rem 0.8rem;
+  border-radius: 0.7rem;
+  background: rgba(2, 6, 23, 0.55);
+}
+
+.learn-goal {
+  border-left: 3px solid #10b981;
+}
+
+.learn-mistake {
+  border-left: 3px solid #f59e0b;
+}
+
+.learn-goal > span {
+  color: #34d399;
+}
+
+.learn-mistake > span {
+  color: #fbbf24;
+}
+
+.learn-goal p,
+.learn-mistake p {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.55;
+  color: #cbd5e1;
+}
+
+.learn-steps {
+  display: grid;
+  gap: 0.55rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.learn-steps li {
+  display: grid;
+  grid-template-columns: 1.45rem minmax(0, 1fr);
+  gap: 0.65rem;
+  align-items: start;
+}
+
+.learn-steps li > span {
+  display: grid;
+  place-items: center;
+  width: 1.45rem;
+  height: 1.45rem;
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  border-radius: 999px;
+  color: #34d399;
+  font-family: var(--font-mono, monospace);
+  font-size: 0.62rem;
+  font-weight: 900;
+}
+
+.learn-steps p {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.55;
+  color: #d7dee9;
+}
+
+.learn-detail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  padding-top: 0.2rem;
+}
+
+.learn-show,
+.learn-master {
+  min-height: 2.5rem;
+  padding: 0 0.9rem;
+  border-radius: 0.65rem;
+  font-size: 0.64rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  transition: all 0.2s ease;
+}
+
+.learn-show {
+  border: 1px solid #10b981;
+  background: #10b981;
+  color: #04251a;
+}
+
+.learn-show:hover {
+  background: #34d399;
+}
+
+.learn-master {
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: transparent;
+  color: #cbd5e1;
+}
+
+.learn-master:hover {
+  border-color: #10b981;
+  color: #6ee7b7;
+}
+
+.learn-master.done {
+  border-color: rgba(16, 185, 129, 0.5);
+  background: rgba(16, 185, 129, 0.12);
+  color: #6ee7b7;
+}
+
+.learn-note {
+  margin: 0.15rem 0 0;
+  font-size: 0.62rem;
+  line-height: 1.5;
+  color: #64748b;
+}
+
+/* The target of SHOW ME gets a temporary ring so the eye can find it after
+   the overlay closes and the page scrolls. */
+.learn-spotlight {
+  animation: learn-spotlight-pulse 2.4s ease-out;
+  outline: 2px solid #10b981;
+  outline-offset: 4px;
+  border-radius: 0.75rem;
+}
+
+@keyframes learn-spotlight-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+  }
+  45% {
+    box-shadow: 0 0 0 12px rgba(16, 185, 129, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+  }
+}
+
+@media (max-width: 900px) {
+  .learn-overlay {
+    padding: 0;
+    place-items: stretch;
+  }
+
+  .learn-shell {
+    width: 100%;
+    max-height: 100vh;
+    border-radius: 0;
+  }
+
+  .learn-head {
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 1rem;
+  }
+
+  .learn-head-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .learn-progress-track {
+    margin: 0 1rem;
+  }
+
+  .learn-body {
+    /* Block flow, not a constrained grid: a fixed-height auto row lets the
+       player overflow underneath the lesson detail and steals its taps. */
+    display: block;
+    padding: 1rem;
+    overflow-y: auto;
+  }
+
+  .learn-player {
+    margin-bottom: 1rem;
+  }
+
+  .learn-player,
+  .learn-detail {
+    overflow: visible;
+    padding-right: 0;
+  }
+
+  .learn-video {
+    max-height: 46vh;
+    object-fit: contain;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .learn-launch,
+  .learn-progress-track span,
+  .learn-chapter {
+    transition: none;
+  }
+
+  .learn-spotlight {
+    animation: none;
+  }
+}

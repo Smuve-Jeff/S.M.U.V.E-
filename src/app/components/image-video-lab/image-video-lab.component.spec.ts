@@ -798,6 +798,35 @@ describe('ImageVideoLabComponent', () => {
     );
   });
 
+  it('uses the still hold for images and leaves video ingest length alone', async () => {
+    const { component, videoEngine } = await createComponent();
+    component.selectProductionMode('vlog');
+    component.stillHold.set(5);
+
+    await component.onFileUpload({
+      target: {
+        files: [{ name: 'still.png', type: 'image/png' }],
+      },
+    });
+
+    expect(videoEngine.addClip).toHaveBeenCalledWith(
+      't2',
+      expect.objectContaining({ name: 'still.png', duration: 5 })
+    );
+    videoEngine.addClip.mockClear();
+
+    await component.onFileUpload({
+      target: {
+        files: [{ name: 'take.mp4', type: 'video/mp4' }],
+      },
+    });
+
+    expect(videoEngine.addClip).toHaveBeenCalledWith(
+      't1',
+      expect.objectContaining({ name: 'take.mp4', duration: 8 })
+    );
+  });
+
   it('places a phone video on the visual lane', async () => {
     const { component, videoEngine } = await createComponent();
 
@@ -4002,6 +4031,13 @@ describe('ImageVideoLabComponent', () => {
       };
     };
 
+    it('offers a two-minute capture window for long tutorials', async () => {
+      const { component } = await createComponent();
+      expect(component.exportWindowOptions).toContain(120);
+      component.exportWindow.set(120);
+      expect(component.exportWindow()).toBe(120);
+    });
+
     it('records the user-selected capture window off the master canvas', async () => {
       const { component, videoEngine, exportService } =
         await createComponent();
@@ -4021,7 +4057,7 @@ describe('ImageVideoLabComponent', () => {
       expect(videoEngine.play).toHaveBeenCalledTimes(1);
       expect(component.isExporting()).toBe(true);
 
-      jest.advanceTimersByTime(5000);
+      jest.advanceTimersByTime(5250);
       expect(recorderStop).toHaveBeenCalledTimes(1);
       // Paused once to rewind to 0, then again when the window closed. A capture
       // that ends before this window is handed back by ExportService instead.
@@ -4037,6 +4073,27 @@ describe('ImageVideoLabComponent', () => {
       expect(component.exportProgress()).toBe(100);
       expect(component.isExporting()).toBe(false);
       expect(component.aiFeedback()).toContain('VIDEO EXPORT COMPLETE');
+    });
+
+    it('skips the MP4 pass when the fast WebM codec is selected', async () => {
+      const { component, exportService, ffmpegExport } = await createComponent();
+      const { complete } = installRecorder(exportService);
+      jest.useFakeTimers();
+      component.exportCodec.set('webm');
+
+      const run = component.exportVideo();
+      await Promise.resolve();
+      await Promise.resolve();
+      jest.advanceTimersByTime(component.exportWindow() * 1000 + 250);
+      complete(new Blob(['webm-bytes'], { type: 'video/webm' }));
+      await run;
+
+      expect(ffmpegExport.transcodeToMp4).not.toHaveBeenCalled();
+      expect(exportService.downloadBlob).toHaveBeenCalledWith(
+        expect.any(Blob),
+        expect.stringMatching(/\.webm$/)
+      );
+      expect(component.aiFeedback()).toContain('WEBM MASTER');
     });
 
     it('captures a clean master at the preset raster, not the preview cap', async () => {
@@ -4185,7 +4242,7 @@ describe('ImageVideoLabComponent', () => {
       const run = component.exportVideo();
       await Promise.resolve();
       await Promise.resolve();
-      jest.advanceTimersByTime(component.exportWindow() * 1000);
+      jest.advanceTimersByTime(component.exportWindow() * 1000 + 250);
       complete(new Blob(['video-bytes'], { type: 'video/webm' }));
       await run;
 

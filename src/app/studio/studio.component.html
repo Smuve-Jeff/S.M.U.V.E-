@@ -1048,7 +1048,7 @@
         title="Go back to the main hub"
       >
         <span class="material-symbols-outlined">home</span>
-        <span class="comp-rail-label">Home</span>
+        <span class="comp-rail-label" *ngIf="!railCollapsed()">Home</span>
       </button>
       <!-- Music Map: one-tap explanation of how surfaces + document + engine
            relate, for anyone stuck at "how do I make a beat?" -->
@@ -1060,7 +1060,7 @@
         title="How the Studio makes music — the four layers and the beat path"
       >
         <span class="material-symbols-outlined">menu_book</span>
-        <span class="comp-rail-label">Music Map</span>
+        <span class="comp-rail-label" *ngIf="!railCollapsed()">Music Map</span>
       </button>
       <!-- Studio Masterclass: guided paths for beginners and pros, plus a
            searchable atlas of every surface and gesture. -->
@@ -1072,7 +1072,7 @@
         title="Learn the whole Studio — beginner loop, full song and pro mastery paths"
       >
         <span class="material-symbols-outlined">school</span>
-        <span class="comp-rail-label">Studio Guide</span>
+        <span class="comp-rail-label" *ngIf="!railCollapsed()">Studio Guide</span>
       </button>
       <!-- Grouped, scrollable view list — every stage stays reachable even
            when the window is short (the flat list used to clip below fold). -->
@@ -1093,10 +1093,11 @@
             [class.comp-rail-active]="activeView() === item.id"
             (click)="setActiveView(item.id)"
             [attr.aria-label]="'Switch to ' + item.label + ' view'"
+            [attr.title]="item.label + ' view'"
             [attr.aria-pressed]="activeView() === item.id"
           >
             <span class="material-symbols-outlined">{{ item.icon }}</span>
-            <span class="comp-rail-label">{{ item.label }}</span>
+            <span class="comp-rail-label" *ngIf="!railCollapsed()">{{ item.label }}</span>
           </button>
         </section>
         <!-- MIDI Input Widget -->
@@ -1117,7 +1118,7 @@
         <span class="material-symbols-outlined">{{
           railCollapsed() ? 'chevron_right' : 'chevron_left'
         }}</span>
-        <span class="comp-rail-label">{{
+        <span class="comp-rail-label" *ngIf="!railCollapsed()">{{
           railCollapsed() ? 'Expand' : 'Collapse'
         }}</span>
       </button>

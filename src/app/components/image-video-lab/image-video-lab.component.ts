@@ -73,6 +73,12 @@ import {
 } from '../../services/director-coach.service';
 import { CinemaEngineService } from '../../services/cinema-engine.service';
 import {
+  LAB_LESSONS,
+  LAB_TUTORIAL_SRC,
+  type LabLesson,
+  type LabLessonTarget,
+} from './image-video-lab.lessons';
+import {
   AI_VFX_PASSES,
   AI_VFX_PRESETS,
   AI_VFX_STYLES,
@@ -145,8 +151,14 @@ const HUD_FX_LINE_Y = 60;
 const AI_CLIP_DURATION_MOVIE = 10;
 const AI_CLIP_DURATION_OTHER = 6;
 /** Real-time capture windows offered for the canvas video export. */
-const EXPORT_WINDOW_OPTIONS = [5, 10, 30, 60];
+const EXPORT_WINDOW_OPTIONS = [5, 10, 30, 60, 90, 120];
 const DEFAULT_EXPORT_WINDOW = 10;
+/**
+ * MediaRecorder closes a fraction of a frame late; without a small tail guard
+ * a requested 120s master can land at 119.83s and miss a two-minute delivery
+ * floor. The guard is invisible in the UI and only pads the capture window.
+ */
+const EXPORT_TAIL_GUARD_MS = 250;
 
 /**
  * Raster the master is captured at. The program monitor is capped at
@@ -390,6 +402,32 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
   coachReport = signal<CoachReport | null>(null);
   coachBusy = signal(false);
 
+  /**
+   * Guided lessons. Every chapter maps to a real control the component can
+   * scroll to and highlight. Completion is local and resumable.
+   */
+  readonly labLessons = LAB_LESSONS;
+  readonly tutorialSrc = LAB_TUTORIAL_SRC;
+  learnOpen = signal(false);
+  activeLessonId = signal<string>(LAB_LESSONS[0].id);
+  completedLessons = signal<ReadonlySet<string>>(loadLabLessonProgress());
+  activeLesson = computed(
+    () =>
+      this.labLessons.find((lesson) => lesson.id === this.activeLessonId()) ??
+      this.labLessons[0]
+  );
+  learnProgress = computed(() => {
+    const done = this.labLessons.filter((lesson) =>
+      this.completedLessons().has(lesson.id)
+    );
+    return {
+      done: done.length,
+      total: this.labLessons.length,
+      percent: Math.round((done.length / this.labLessons.length) * 100),
+    };
+  });
+  @ViewChild('tutorialVideo') tutorialVideo?: ElementRef<HTMLVideoElement>;
+
   /** The account's AI media budget, as last read from the backend ledger. */
   aiQuota = signal<AiQuotaStatus | null>(null);
 
@@ -515,6 +553,19 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
   exportScale = signal<ExportScale>('auto');
   /** Capture frame rate for the master. */
   exportFps = signal<number>(30);
+  /**
+   * MP4 is the delivery master, but FFmpeg.wasm is a slow second pass. WebM
+   * lets an operator get the take off the timeline immediately and transcode
+   * outside the browser when a long tutorial cannot wait.
+   */
+  exportCodec = signal<'mp4' | 'webm'>('mp4');
+  readonly exportCodecs = [
+    { id: 'mp4' as const, label: 'MP4' },
+    { id: 'webm' as const, label: 'WebM' },
+  ];
+  /** Default hold for imported stills; videos replace this with their metadata. */
+  stillHold = signal(8);
+  readonly stillHoldOptions = [4, 5, 8, 10];
   cameraTakeCount = signal(0);
   /**
    * True while the on-screen burst is showing. The torch itself is invisible to
@@ -2318,6 +2369,11 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
         this.centerOnPlayhead();
         return;
       case 'Escape':
+        if (this.learnOpen()) {
+          event.preventDefault();
+          this.closeLearn();
+          return;
+        }
         this.clearSelection();
         return;
       default:
@@ -3561,8 +3617,13 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
   ): void {
     if (!title.text.trim()) return;
     const centerX = canvas.width / 2;
-    const baseY =
-      title.position === 'top'
+    // "Lower third" is a placement promise, not just a font treatment. The old
+    // renderer let Lower Third + Centre put a full-width scrim across the
+    // middle of the picture, covering the very control the lesson was showing.
+    const isLowerThird = title.style === 'lower-third';
+    const baseY = isLowerThird
+      ? canvas.height * 0.82
+      : title.position === 'top'
         ? canvas.height * 0.28
         : title.position === 'bottom'
           ? canvas.height * 0.72
@@ -3571,7 +3632,7 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
       title.style === 'title-card' || title.style === 'centered';
     const titleSize = Math.max(
       28,
-      Math.round(canvas.height * (isFullCard ? 0.16 : 0.09))
+      Math.round(canvas.height * (isFullCard ? 0.16 : isLowerThird ? 0.072 : 0.09))
     );
 
     ctx.save();
@@ -3580,7 +3641,8 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
       ctx.fillRect(0, 0, canvas.width, canvas.height);
     } else {
       ctx.fillStyle = 'rgba(2, 6, 23, 0.78)';
-      ctx.fillRect(0, baseY - titleSize, canvas.width, titleSize * 1.9);
+      const scrimTop = baseY - titleSize * 0.9;
+      ctx.fillRect(0, scrimTop, canvas.width, titleSize * (isLowerThird ? 2.1 : 1.9));
     }
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
@@ -5345,6 +5407,7 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     const seconds = this.exportWindow();
     const { width, height } = this.exportDimensions();
     const fps = this.exportFps();
+    const wantsMp4 = this.exportCodec() === 'mp4';
 
     const master = this.ensureExportCanvas(width, height);
     if (!master) {
@@ -5361,7 +5424,7 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     this.isExporting.set(true);
     this.exportProgress.set(0);
     this.aiFeedback.set(
-      `INITIALIZING ${seconds}s EXPORT AT ${width}x${height} ${fps}FPS. STAND BY FOR ELITE CAPTURE.`
+      `INITIALIZING ${seconds}s ${this.exportCodec().toUpperCase()} EXPORT AT ${width}x${height} ${fps}FPS. STAND BY FOR ELITE CAPTURE.`
     );
 
     const wasPlaying = this.videoEngine.isPlaying();
@@ -5412,7 +5475,7 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
       clearInterval(ticker);
       this.videoEngine.pause();
       if (wasPlaying) this.videoEngine.play();
-    }, seconds * 1000);
+    }, seconds * 1000 + EXPORT_TAIL_GUARD_MS);
 
     try {
       const blob = await session.result;
@@ -5433,7 +5496,7 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
       // original capture rather than losing the take.
       let deliverable = blob;
       let transcoded = false;
-      if (this.ffmpegExport) {
+      if (this.ffmpegExport && wantsMp4) {
         this.aiFeedback.set(
           `CAPTURE COMPLETE - ENCODING ${width}x${height} ${fps}FPS H.264 MP4. STAND BY.`
         );
@@ -5461,7 +5524,9 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
       this.aiFeedback.set(
         transcoded
           ? `VIDEO EXPORT COMPLETE - ${width}x${height} ${fps}FPS MP4/H.264 MASTER IS READY FOR DEPLOYMENT.`
-          : `VIDEO EXPORT COMPLETE - ${width}x${height} ${fps}FPS ${extension.toUpperCase()} MASTER IS READY FOR DEPLOYMENT. MP4 ENCODER UNAVAILABLE, KEPT THE ORIGINAL CAPTURE.`
+          : wantsMp4
+            ? `VIDEO EXPORT COMPLETE - ${width}x${height} ${fps}FPS ${extension.toUpperCase()} MASTER IS READY FOR DEPLOYMENT. MP4 ENCODER UNAVAILABLE, KEPT THE ORIGINAL CAPTURE.`
+            : `VIDEO EXPORT COMPLETE - ${width}x${height} ${fps}FPS WEBM MASTER IS READY. FAST CODEC SELECTED; TRANSCODE OUTSIDE THE BROWSER IF YOU NEED MP4.`
       );
     } catch (error: any) {
       clearTimeout(stopTimer);
@@ -5561,7 +5626,8 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
 
     const targetTrackId = kind === 'image' ? 't2' : 't1';
     const clipType: VideoClip['type'] = kind;
-    const duration = this.resolveIngestDuration();
+    const duration =
+      kind === 'image' ? this.stillHold() : this.resolveIngestDuration();
 
     const url = URL.createObjectURL(file);
     try {
@@ -6562,6 +6628,105 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     );
   }
 
+  /** Open the lesson player, resuming the first unfinished chapter. */
+  openLearn(): void {
+    const next = this.labLessons.find(
+      (lesson) => !this.completedLessons().has(lesson.id)
+    );
+    const lesson = next ?? this.labLessons[0];
+    this.activeLessonId.set(lesson.id);
+    this.learnOpen.set(true);
+    this.pauseLabPreview();
+    // The player is created by the @if block. Position it on the lesson the
+    // panel is about to describe, without autoplaying narration on open.
+    setTimeout(() => this.seekTutorial(lesson.tutorialAt, false), 120);
+  }
+
+  closeLearn(): void {
+    this.learnOpen.set(false);
+    this.pauseTutorial();
+  }
+
+  /** Follow a chapter: select it and seek the shipped tutorial to its start. */
+  selectLesson(lesson: LabLesson): void {
+    this.activeLessonId.set(lesson.id);
+    this.seekTutorial(lesson.tutorialAt);
+  }
+
+  seekTutorial(seconds: number, autoplay = true): void {
+    const video = this.tutorialVideo?.nativeElement;
+    if (!video) return;
+    try {
+      video.currentTime = Math.max(0, seconds);
+    } catch {
+      // Metadata can still be landing on a cold open; the click can retry.
+    }
+    if (autoplay) void video.play().catch(() => {});
+  }
+
+  isLessonComplete(id: string): boolean {
+    return this.completedLessons().has(id);
+  }
+
+  toggleLessonComplete(id: string, event?: Event): void {
+    event?.stopPropagation();
+    const next = new Set(this.completedLessons());
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    this.completedLessons.set(next);
+    try {
+      localStorage.setItem(
+        'smuve.cinema.learn.progress.v1',
+        JSON.stringify([...next])
+      );
+    } catch {
+      // Private-mode storage can reject writes; the session still works.
+    }
+  }
+
+  /** Leave the player and drive the console to the control being taught. */
+  showLesson(lesson: LabLesson): void {
+    this.closeLearn();
+    if (lesson.target === 'camera') this.monitorSource.set('camera');
+    // On a stacked layout these panels start folded. Unfold before scrolling,
+    // or the spotlight lands on a control that is not rendered.
+    const section =
+      lesson.target === 'ingest' ? 'assets' : lesson.target === 'fx' ? 'fx' : null;
+    if (section && this.isSectionCollapsed(section)) this.toggleSection(section);
+    setTimeout(() => this.focusLessonTarget(lesson.target), 180);
+  }
+
+  private focusLessonTarget(target: LabLessonTarget): void {
+    if (typeof document === 'undefined') return;
+    const selectors: Record<LabLessonTarget, string> = {
+      modes: '.production-upgrade-bar',
+      ingest: 'input[aria-label="Upload a video or image from this device"]',
+      timeline: '.timeline-section',
+      titles: '#title-editor-title',
+      audio: 'input[aria-label="Add a music or voice bed from this device"]',
+      fx: '.fx-rack',
+      camera: '.monitor-tabs',
+      projects: '.project-console',
+      export: '.export-window',
+    };
+    const raw = document.querySelector(selectors[target]);
+    const el = raw instanceof HTMLElement ? raw : raw?.parentElement ?? null;
+    if (!el) return;
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    el.classList.add('learn-spotlight');
+    window.setTimeout(() => el.classList.remove('learn-spotlight'), 2400);
+  }
+
+  private pauseTutorial(): void {
+    const video = this.tutorialVideo?.nativeElement;
+    if (video && !video.paused) video.pause();
+  }
+
+  /** The lab transport must not play under the tutorial narration. */
+  pauseLabPreview(): void {
+    if (this.videoEngine.isPlaying()) this.videoEngine.togglePlay();
+  }
+
   /**
    * Verified console state for the Director Coach. Everything the coach
    * may claim comes from here — what the plan holds, what the lanes hold,
@@ -6816,6 +6981,19 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     this.mediaCache.clear();
     this.ownedObjectUrls.forEach((url) => URL.revokeObjectURL(url));
     this.ownedObjectUrls.clear();
+  }
+}
+
+/** Lesson progress is local; a corrupt or absent record simply starts empty. */
+function loadLabLessonProgress(): ReadonlySet<string> {
+  if (typeof localStorage === 'undefined') return new Set<string>();
+  try {
+    const raw = localStorage.getItem('smuve.cinema.learn.progress.v1');
+    const parsed: unknown = raw ? JSON.parse(raw) : [];
+    if (!Array.isArray(parsed)) return new Set<string>();
+    return new Set(parsed.filter((id): id is string => typeof id === 'string'));
+  } catch {
+    return new Set<string>();
   }
 }
 

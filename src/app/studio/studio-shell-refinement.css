@@ -839,6 +839,18 @@
     --studio-rail-width: 68px;
   }
 
+  /* This tier keeps the compact 68px rail. The labels cannot fit, and leaving
+     them in flow is what produced "SYNTHESIZE" and "PERFORMANCE" clipped
+     mid-word. Icons + aria-label + title are the navigation here. */
+  .comp-rail-label {
+    display: none;
+  }
+
+  .comp-rail-item {
+    justify-content: center;
+    padding-inline: 0;
+  }
+
   .comp-topbar {
     padding-inline: 10px;
     gap: 8px;

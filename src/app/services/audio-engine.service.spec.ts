@@ -728,6 +728,20 @@ describe('AudioEngineService · Sprint A4 (Song Mode)', () => {
       expect((engine as any).trackPluginInserts.get('t1').node).toBe(node);
     });
 
+    it('splices before the channel filter when the track has one', () => {
+      const { engine, rack } = makeTrackEngine();
+      const filter = { connect: jest.fn(), disconnect: jest.fn() };
+      (engine as any).trackFilterNodes = new Map([['t1', filter]]);
+
+      engine.installTrackPluginInsert('t1', ['smuve.saturation.v2']);
+
+      const node = FakeWorkletNode.instances[0];
+      expect(rack.output.disconnect).toHaveBeenCalledWith(filter);
+      expect(rack.output.connect).toHaveBeenCalledWith(node);
+      expect(node.connect).toHaveBeenCalledWith(filter);
+      expect((engine as any).trackPluginInserts.get('t1').node).toBe(node);
+    });
+
     it('posts the resolved chain — kernel name plus params — to the audio thread', () => {
       const { engine } = makeTrackEngine();
       const params = new Float32Array([0.4, 1, 0]);

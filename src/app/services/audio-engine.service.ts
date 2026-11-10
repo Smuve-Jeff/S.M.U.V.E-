@@ -5052,11 +5052,15 @@ export class AudioEngineService {
     const insert = this.trackPluginInserts.get(trackId);
     if (!rack || !width) return;
 
+    // The rack feeds the channel filter, not the width node directly. Splice
+    // the insert at the real destination so the filter is never bypassed.
+    const destination = this.trackFilterNodes?.get(trackId) ?? width;
+
     // Empty chain → remove any existing insert and restore direct routing.
     if (pluginIds.length === 0) {
       if (insert) {
         this.releaseTrackPluginInsert(trackId);
-        rack.output.connect(width);
+        rack.output.connect(destination);
       }
       return;
     }
@@ -5086,9 +5090,14 @@ export class AudioEngineService {
     );
     if (!next) return;
 
-    rack.output.disconnect(width);
+    try {
+      rack.output.disconnect(destination);
+    } catch {
+      // The rack may already have been rewired by a failed install; the
+      // insert still needs to be attached to the live destination.
+    }
     rack.output.connect(next.node);
-    next.node.connect(width);
+    next.node.connect(destination);
     this.trackPluginInserts.set(trackId, next);
   }
 

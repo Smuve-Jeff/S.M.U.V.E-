@@ -1263,6 +1263,28 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     return resolveGameArt(game);
   }
 
+  /**
+   * Feed records occasionally carry list fields as a single string. Binding
+   * that straight into *ngFor throws NG0900 and aborts the rest of the
+   * mission page's update block, leaving every interpolation blank.
+   */
+  asList<T>(value: T[] | string | null | undefined): (T | string)[] {
+    if (Array.isArray(value)) return value;
+    if (typeof value === "string" && value.trim()) return [value];
+    return [];
+  }
+
+  /**
+   * CSS-safe mission backdrop. The art fallback is an inline SVG data URI;
+   * pasting that into `url(...)` unquoted makes the style parser throw NG0900,
+   * which aborts the rest of the mission template's update block.
+   */
+  missionBackdrop(game: Game | null | undefined): string {
+    const art = this.getGameImage(game);
+    if (!art || art.startsWith("data:")) return "none";
+    return `url(${JSON.stringify(art)})`;
+  }
+
   onGameImageError(event: Event, game?: Game): void {
     const image = event.target as HTMLImageElement | null;
     if (!image) return;
@@ -1459,9 +1481,9 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   private readonly RECENT_GAMES_KEY = "tha_spot_recent_games";
 
   // Social & Streaming Signals
-  activeHubTab = signal<"room" | "dm" | "stream" | "friends" | "party" | "ai">(
-    "room",
-  );
+  activeHubTab = signal<
+    "room" | "dm" | "stream" | "friends" | "party" | "ai" | "ops"
+  >("room");
   dmTargetUserId = signal<string | null>(null);
   chatInput = signal<string>("");
   /** Dedicated composer for in-lobby chat so it never bleeds into the
@@ -3196,7 +3218,8 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
    * Public helper used by the template to decide whether a selected game
    * will launch inline or externally.
    */
-  getLaunchMode(game: Game): "inline" | "external" {
+  getLaunchMode(game: Game | null): "inline" | "external" {
+    if (!game) return "inline";
     return this.resolveLaunchMode(game);
   }
 
@@ -3341,8 +3364,8 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     };
   }
 
-  launchActionLabel(game: Game): string {
-    return game.launchConfig?.embedMode === "external-only"
+  launchActionLabel(game: Game | null): string {
+    return game?.launchConfig?.embedMode === "external-only"
       ? "LAUNCH MISSION"
       : "PLAY NOW";
   }
@@ -3621,8 +3644,17 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     });
   }
 
-  setHubTab(tab: "room" | "dm" | "stream" | "friends" | "party" | "ai") {
+  setHubTab(
+    tab: "room" | "dm" | "stream" | "friends" | "party" | "ai" | "ops",
+  ) {
     this.activeHubTab.set(tab);
+    if (tab === "ops") {
+      // Ops is a card stack, not a chat log: scrolling to the bottom hides the
+      // streak header and the first contract.
+      const scroller = this.scrollContainer?.nativeElement;
+      if (scroller) scroller.scrollTop = 0;
+      return;
+    }
     if (
       tab === "dm" &&
       !this.dmTargetUserId() &&

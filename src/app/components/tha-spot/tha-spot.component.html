@@ -123,7 +123,7 @@
   </div>
 
   <!-- ════════════ DAILY OPS PANEL (rival-hub sidebar tab) ════════════ -->
-  <ng-container *ngIf="rivalHubOpen() && hubTab() === 'ops'">
+  <ng-template #dailyOpsPanel>
     <div class="daily-ops-panel">
       <div class="daily-ops-header">
         <span class="daily-ops-glyph">⚡</span>
@@ -178,7 +178,7 @@
         </div>
       </div>
     </div>
-  </ng-container>
+  </ng-template>
 
   <!-- ════════════ POST-PLAY RATING MODAL ════════════ -->
   <div
@@ -1622,6 +1622,13 @@
         >
           🤖
         </button>
+        <button
+          [class.active]="activeHubTab() === 'ops'"
+          (click)="setHubTab('ops')"
+          title="Daily Ops"
+        >
+          ⚡
+        </button>
       </div>
       <button
         type="button"
@@ -1634,6 +1641,9 @@
     </header>
 
     <div class="sidebar-content custom-scrollbar" #scrollContainer>
+      <ng-container *ngIf="activeHubTab() === 'ops'">
+        <ng-container *ngTemplateOutlet="dailyOpsPanel"></ng-container>
+      </ng-container>
       <ng-container *ngIf="canInteract()">
         <!-- Room Chat View -->
         <div class="chat-view" *ngIf="activeHubTab() === 'room'">
@@ -2932,61 +2942,58 @@
   <!-- Full-Screen Launch Mission Page -->
   <div
     class="launch-mission-page"
-    *ngIf="selectedGame() as selected"
-    [class.active]="selected"
+    [class.active]="!!selectedGame()"
+    [style.display]="selectedGame() ? null : 'none'"
   >
-    <div
-      class="mission-background"
-      [style.backgroundImage]="
-        'url(' + getGameImage(selected) + ')'
-      "
-    ></div>
+    <div class="mission-background"></div>
     <div class="mission-content animate-enter-mission fit-screen">
       <div class="mission-header">
         <div class="mission-id">
-          SYS_UPLINK_READY // {{ selected.id | uppercase }}
+          SYS_UPLINK_READY // {{ selectedGame()?.id | uppercase }}
         </div>
-        <h1 class="mission-title">{{ selected.name }}</h1>
+        <h1 class="mission-title">
+          {{ selectedGame()?.name }}
+        </h1>
         <div class="mission-badges">
-          <span class="tag elite" *ngIf="selected.badgeIds?.includes('elite')"
+          <span class="tag elite" *ngIf="selectedGame()?.badgeIds?.includes('elite')"
             >ELITE</span
           >
           <span
             class="tag next-gen"
-            *ngIf="selected.badgeIds?.includes('next-gen')"
+            *ngIf="selectedGame()?.badgeIds?.includes('next-gen')"
             >NEXT-GEN</span
           >
-          <span class="tag modern" *ngIf="selected.badgeIds?.includes('modern')"
+          <span class="tag modern" *ngIf="selectedGame()?.badgeIds?.includes('modern')"
             >MODERN</span
           >
           <span
             class="tag featured"
-            *ngIf="selected.badgeIds?.includes('featured')"
+            *ngIf="selectedGame()?.badgeIds?.includes('featured')"
             >FEATURED</span
           >
           <span
             class="tag trending"
-            *ngIf="selected.badgeIds?.includes('trending')"
+            *ngIf="selectedGame()?.badgeIds?.includes('trending')"
             >TRENDING</span
           >
           <span
             class="tag new-drop"
-            *ngIf="selected.badgeIds?.includes('new-drop')"
+            *ngIf="selectedGame()?.badgeIds?.includes('new-drop')"
             >NEW DROP</span
           >
           <span
             class="tag tournament-live"
-            *ngIf="selected.badgeIds?.includes('tournament-live')"
+            *ngIf="selectedGame()?.badgeIds?.includes('tournament-live')"
             >LIVE</span
           >
           <span
             class="tag staff-pick"
-            *ngIf="selected.badgeIds?.includes('staff-pick')"
+            *ngIf="selectedGame()?.badgeIds?.includes('staff-pick')"
             >STAFF PICK</span
           >
           <span
             class="tag classic"
-            *ngIf="selected.badgeIds?.includes('classic')"
+            *ngIf="selectedGame()?.badgeIds?.includes('classic')"
             >CLASSIC</span
           >
         </div>
@@ -2996,9 +3003,9 @@
         <div class="mission-hero-visual-compact">
           <div class="hero-frame-compact glass-v42-pro">
             <img
-              [src]="getGameImage(selected)"
-              (error)="onGameImageError($event, selected)"
-              [alt]="selected.name"
+              [src]="getGameImage(selectedGame())"
+              (error)="onGameImageError($event, selectedGame())"
+              [alt]="selectedGame()?.name"
             />
             <div class="scan-overlay"></div>
           </div>
@@ -3014,10 +3021,10 @@
             <span class="material-symbols-outlined btn-icon-giant"
               >play_circle</span
             >
-            <span class="btn-text-main">{{ launchActionLabel(selected) }}</span>
+            <span class="btn-text-main">{{ launchActionLabel(selectedGame()) }}</span>
             <span class="btn-subtext-status">
               {{
-                getLaunchMode(selected) === 'external'
+                getLaunchMode(selectedGame()) === 'external'
                   ? 'OPENS IN NEW TAB'
                   : 'INLINE CABINET'
               }}
@@ -3033,39 +3040,39 @@
       <div class="mission-info-footer glass-v42">
         <div class="info-cluster">
           <label>BRIEFING</label>
-          <p class="truncate-2">{{ selected.description }}</p>
+          <p class="truncate-2">{{ selectedGame()?.description }}</p>
         </div>
         <div class="meta-cluster">
           <div class="meta-tag">
-            <span class="m-label">GENRE:</span> {{ selected.genre }}
+            <span class="m-label">GENRE:</span> {{ selectedGame()?.genre }}
           </div>
           <div class="meta-tag">
-            <span class="m-label">RATING:</span> {{ selected.rating }}
+            <span class="m-label">RATING:</span> {{ selectedGame()?.rating }}
           </div>
           <div
             class="meta-tag"
             *ngIf="
-              selected.multiplayerType && selected.multiplayerType !== 'None'
+              selectedGame()?.multiplayerType && selectedGame()?.multiplayerType !== 'None'
             "
           >
-            <span class="m-label">MODE:</span> {{ selected.multiplayerType }}
+            <span class="m-label">MODE:</span> {{ selectedGame()?.multiplayerType }}
           </div>
-          <div class="meta-tag" *ngIf="selected.availability">
-            <span class="m-label">STATUS:</span> {{ selected.availability }}
+          <div class="meta-tag" *ngIf="selectedGame()?.availability">
+            <span class="m-label">STATUS:</span> {{ selectedGame()?.availability }}
           </div>
         </div>
       </div>
 
       <!-- Session Objectives -->
       <div
-        *ngIf="selected.sessionObjectives?.length"
+        *ngIf="selectedGame()?.sessionObjectives?.length"
         class="mission-info-footer glass-v42"
         style="margin-top: 0.5rem"
       >
         <div class="info-cluster">
           <label>SESSION OBJECTIVES</label>
           <div
-            *ngFor="let obj of selected.sessionObjectives"
+            *ngFor="let obj of asList(selectedGame()?.sessionObjectives)"
             style="
               font-size: 0.7rem;
               color: rgba(255, 255, 255, 0.7);
@@ -3079,21 +3086,21 @@
 
       <!-- AI Briefing -->
       <div
-        *ngIf="selected.aiBriefing"
+        *ngIf="selectedGame()?.aiBriefing"
         class="mission-info-footer glass-v42"
         style="margin-top: 0.5rem"
       >
         <div class="info-cluster">
           <label>AI INTEL BRIEFING</label>
           <p style="font-size: 0.7rem; color: rgba(255, 255, 255, 0.6)">
-            {{ selected.aiBriefing }}
+            {{ selectedGame()?.aiBriefing }}
           </p>
         </div>
       </div>
 
       <!-- Controls Hint -->
       <div
-        *ngIf="selected.controlHints?.length"
+        *ngIf="selectedGame()?.controlHints?.length"
         class="mission-info-footer glass-v42"
         style="margin-top: 0.5rem"
       >
@@ -3101,7 +3108,7 @@
           <label>CONTROLS</label>
           <div style="display: flex; flex-wrap: wrap; gap: 0.35rem">
             <span
-              *ngFor="let hint of selected.controlHints"
+              *ngFor="let hint of asList(selectedGame()?.controlHints)"
               style="
                 font-size: 0.65rem;
                 padding: 0.2rem 0.5rem;

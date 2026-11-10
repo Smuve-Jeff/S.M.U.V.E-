@@ -1,0 +1,162 @@
+<div
+  class="guide-overlay"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="complete-guide-title"
+>
+  <div class="guide-backdrop" (click)="closeGuide()" aria-hidden="true"></div>
+
+  <section class="guide-shell">
+    <header class="guide-head">
+      <div class="guide-head-copy">
+        <p class="guide-eyebrow">
+          S.M.U.V.E 2.0 <span>//</span> Complete application
+        </p>
+        <h1 id="complete-guide-title">The whole system, one walkthrough.</h1>
+        <p class="guide-sub">
+          Thirteen chapters across the real workspaces. Start at the beginning
+          or jump to the room you need.
+        </p>
+      </div>
+      <div class="guide-head-actions">
+        <div class="guide-progress" aria-live="polite">
+          <span>{{ completedCount() }} / {{ lessons.length }} explored</span>
+          <div class="guide-progress-track" aria-hidden="true">
+            <span [style.width.%]="progressPercent()"></span>
+          </div>
+        </div>
+        <button
+          type="button"
+          class="guide-close"
+          (click)="closeGuide()"
+          aria-label="Close the complete application guide"
+        >
+          <span class="material-symbols-outlined" aria-hidden="true">close</span>
+        </button>
+      </div>
+    </header>
+
+    <div class="guide-body">
+      <aside class="guide-rail" aria-label="Complete application chapters">
+        <div class="guide-rail-head">
+          <span>Chapters</span>
+          <span>{{ lessons.length }}</span>
+        </div>
+        <div class="guide-rail-list">
+          <button
+            *ngFor="let lesson of lessons; trackBy: trackByLesson"
+            type="button"
+            class="guide-chapter"
+            [class.is-active]="selectedLesson().id === lesson.id"
+            (click)="selectLesson(lesson, true)"
+          >
+            <span class="guide-chapter-number">{{ lesson.number }}</span>
+            <span class="guide-chapter-copy">
+              <strong>{{ lesson.title }}</strong>
+              <small>{{ lesson.kicker }}</small>
+            </span>
+            <span
+              class="guide-chapter-check"
+              *ngIf="isComplete(lesson)"
+              aria-label="Explored"
+              >✓</span
+            >
+          </button>
+        </div>
+      </aside>
+
+      <main class="guide-main">
+        <div class="guide-player">
+          <video
+            #tutorialVideo
+            class="guide-video"
+            [src]="videoSrc"
+            controls
+            playsinline
+            preload="metadata"
+            (timeupdate)="onTimeUpdate()"
+          ></video>
+          <div class="guide-player-bar">
+            <button
+              type="button"
+              class="guide-control guide-control-primary"
+              (click)="playChapter()"
+            >
+              <span class="material-symbols-outlined" aria-hidden="true"
+                >play_arrow</span
+              >
+              Play chapter
+            </button>
+            <button
+              type="button"
+              class="guide-control"
+              (click)="previousChapter()"
+              [disabled]="isFirst()"
+            >
+              Previous
+            </button>
+            <button
+              type="button"
+              class="guide-control"
+              (click)="nextChapter()"
+              [disabled]="isLast()"
+            >
+              Next
+            </button>
+            <span class="guide-timecode">
+              Chapter {{ selectedLesson().number }} / {{ lessons.length }}
+            </span>
+          </div>
+        </div>
+
+        <article class="guide-detail">
+          <div class="guide-detail-head">
+            <span>{{ selectedLesson().kicker }}</span>
+            <span>{{ selectedLesson().number }}</span>
+          </div>
+          <h2>{{ selectedLesson().title }}</h2>
+          <p class="guide-summary">{{ selectedLesson().summary }}</p>
+
+          <div class="guide-features" aria-label="What this chapter covers">
+            <span *ngFor="let feature of selectedLesson().features">{{
+              feature
+            }}</span>
+          </div>
+
+          <div class="guide-detail-grid">
+            <section class="guide-do">
+              <h3>Do this</h3>
+              <ol>
+                <li *ngFor="let step of selectedLesson().steps">{{ step }}</li>
+              </ol>
+            </section>
+            <section class="guide-mistake">
+              <h3>Common mistake</h3>
+              <p>{{ selectedLesson().mistake }}</p>
+            </section>
+          </div>
+
+          <div class="guide-detail-actions">
+            <button
+              type="button"
+              class="guide-control guide-control-primary"
+              (click)="openWorkspace()"
+            >
+              Open {{ selectedLesson().workspaceLabel }}
+              <span class="material-symbols-outlined" aria-hidden="true"
+                >arrow_forward</span
+              >
+            </button>
+            <button
+              type="button"
+              class="guide-control"
+              (click)="playChapter()"
+            >
+              Play from chapter start
+            </button>
+          </div>
+        </article>
+      </main>
+    </div>
+  </section>
+</div>

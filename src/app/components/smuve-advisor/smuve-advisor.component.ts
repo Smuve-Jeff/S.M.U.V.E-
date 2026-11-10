@@ -84,7 +84,7 @@ export class SmuveAdvisorComponent implements OnInit {
     }
   });
 
-  /** Speaks this room's read in a randomly selected voice for that room. */
+  /** Speaks this room's read through the shared full-catalog shuffle. */
   announceRoom(): void {
     try {
       this.careerDirector?.announce();

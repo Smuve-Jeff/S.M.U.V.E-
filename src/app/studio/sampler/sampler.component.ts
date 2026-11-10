@@ -272,6 +272,9 @@ export class SamplerComponent implements AfterViewInit, OnDestroy {
 
           const pitch = this.findFreePitch();
           this.sampler.loadSample(pitch, buffer);
+          // Select the imported zone so Slice, Auto Chop and the waveform
+          // controls become usable immediately after a file import.
+          this.selectZone(pitch);
         } catch (e) {
           console.warn("Failed to import:", file.name, e);
         }

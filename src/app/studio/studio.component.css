@@ -460,6 +460,17 @@
   width: 56px;
 }
 
+/* A 56px rail cannot hold a word. Previously the labels stayed in flow and
+   were clipped mid-word ("SYNTHESIZE", "PERFORMANCE"). Hide them and let the
+   icon + title/aria-label carry the view. */
+.comp-rail.comp-rail-collapsed .comp-rail-label {
+  display: none;
+}
+.comp-rail.comp-rail-collapsed .comp-rail-item {
+  justify-content: center;
+  padding-inline: 0;
+}
+
 /* Scrollable view list — the flat 22-item rail used to overflow a
    non-scrolling container, so every stage below the fold was clipped and
    unreachable on short desktop/tablet windows. */
