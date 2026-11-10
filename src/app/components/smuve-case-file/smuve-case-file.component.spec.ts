@@ -268,7 +268,7 @@ describe('SmuveCaseFileComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('Nothing on record yet.');
   });
 
-  it('speaks the file in a room voice and shows what was said', () => {
+  it('speaks the file through the full catalog and shows what was said', () => {
     component.hearIt();
     fixture.detectChanges();
 
@@ -276,9 +276,7 @@ describe('SmuveCaseFileComponent', () => {
     expect(fixture.nativeElement.textContent).toContain(
       'A file is not nostalgia. It is evidence.'
     );
-    expect(fixture.nativeElement.textContent).toContain(
-      'Baritone Authority (Male)'
-    );
+    expect(fixture.nativeElement.textContent).toContain('FULL CATALOG');
   });
 
   it('jumps back to the room that produced the entry', () => {

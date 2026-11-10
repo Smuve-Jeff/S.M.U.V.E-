@@ -86,13 +86,14 @@ describe('SmuveCareerDirectorService', () => {
     expect(service.homeRouteFor('community')).toBe('/networking');
   });
 
-  it('announces a room in one of that room’s voices, with shape-shifting on', () => {
+  it('announces a room through the shared full-catalog shuffle', () => {
     const presence = service.announce('legal');
 
     expect(speech.speak).toHaveBeenCalledTimes(1);
     const [line, options] = speech.speak.mock.calls[0];
     expect(line).toBe(presence.line);
     expect(options.shapeShift).toBe(true);
+    expect(options).not.toHaveProperty('forceArchetype');
     expect([
       'Baritone Authority (Male)',
       'Androgynous Oracle',

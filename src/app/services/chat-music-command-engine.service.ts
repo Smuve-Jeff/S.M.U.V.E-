@@ -2130,10 +2130,10 @@ export class ChatMusicCommandEngineService {
 
   private announce(text: string) {
     try {
-      this.speech.speak(text, {
-        shapeShift: false,
-        forceArchetype: 'Ominous Protocol',
-      });
+      // Confirmations use the same full-catalog shuffle as conversation. They
+      // used to pin one stable archetype, which made command acknowledgements
+      // the one place in the app where the voice never changed.
+      this.speech.speak(text, { shapeShift: true });
     } catch {
       // Voice layer is optional — the chat reply still renders.
     }

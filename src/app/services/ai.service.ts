@@ -424,9 +424,8 @@ Remember: sharpen the artist's decisions, sign the work with a GOD's signature, 
   }
 
   /**
-   * Speaks the room's line in a random voice belonging to that room. Every
-   * third call releases the archetype pin so the full spectrum runs, which is
-   * how the voice keeps changing across the whole application.
+   * Speaks the room's line through the shared full-catalog shuffle, so the
+   * voice changes sentence by sentence on every surface of the application.
    */
   announceSurface(surface?: SmuveSurfaceId): SmuvePresence {
     return this.careerDirector.announce(surface);

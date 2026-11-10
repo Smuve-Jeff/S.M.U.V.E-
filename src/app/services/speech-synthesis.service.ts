@@ -120,12 +120,10 @@ export class SpeechSynthesisService {
   /** Bumped per `speak()` so a reply superseded while voices load never plays. */
   private speakGeneration = 0;
 
-  // Identity anchor: the first default sentence of a session opens in the
-  // Ominous Protocol persona (whose own range already spans deep bass to
-  // soprano). Every sentence after it rolls the full spectrum — unless the
-  // caller forces one archetype, which is how mimic/profile-register mode
-  // pins the tone.
-  public defaultToOminous = true;
+  // The full catalog is the default performance. Every archetype is dealt from
+  // one shuffled deck and every installed browser voice from another, so no
+  // sentence repeats the previous persona or voice. Explicit pins still win
+  // for mimic/register mode and the Voice Lab.
 
   // 13 Elite S.M.U.V.E. Vocal Archetypes — Full Spectrum
   private readonly SMUVE_ARCHETYPES: SmuveArchetype[] = [
@@ -274,13 +272,13 @@ export class SpeechSynthesisService {
   ];
 
   private currentArchetype: SmuveArchetype | null = null;
-  private lastUsedVoice: SpeechSynthesisVoice | null = null;
-  private lastPitchBand: PitchBand | null = null;
+  private lastUsedVoiceKey: string | null = null;
   private archetypeHistory: number[] = [];
   /** Full-spectrum deck — one vocal tone per sentence, no tone twice until all are used. */
   private spectrumDeck: SmuveArchetype[] = [];
-  /** True until the opening sentence of the current reply has taken the anchor. */
-  private replyAnchorPending = false;
+  /** Browser voices in shuffled order; rebuilt when the engine's catalog changes. */
+  private voiceDeck: SpeechSynthesisVoice[] = [];
+  private voiceDeckSignature = '';
   /** Last breath gesture, so consecutive sentences never breathe the same way. */
   private lastBreathGesture: string | null = null;
 
@@ -392,11 +390,11 @@ export class SpeechSynthesisService {
    * Speaks text with per-sentence shape-shifting.
    * EVERY sentence is spoken as its own utterance with a fresh vocal tone from
    * the complete archetype table (deep bass male → baritone → tenor → alto →
-   * mezzo → soprano and the non-human voices), a full-spectrum pitch band, and
-   * a rotated browser voice. No tone repeats until every other tone has been
-   * used, so the full pitch range and every vocal tone in between are heard in
-   * normal speech. State only holds when the caller passes shapeShift: false
-   * or pins one archetype with forceArchetype.
+   * mezzo → soprano and the non-human voices) and a fresh installed browser
+   * voice. No archetype or browser voice repeats until every one in its deck
+   * has been used, so the full pitch range and both genders are heard in normal
+   * speech. State only holds when the caller passes shapeShift: false or pins
+   * one archetype with forceArchetype.
    */
   speak(text: string, options?: SpeakOptions): void {
     if (!text || typeof window === 'undefined' || !window.speechSynthesis)
@@ -448,12 +446,6 @@ export class SpeechSynthesisService {
 
     this.cancel();
 
-    // The signature persona reasserts itself on the opening sentence of every
-    // reply (see `takeReplyAnchor`). A forced archetype — mimic / register mode
-    // — replaces the anchor instead of competing with it.
-    this.replyAnchorPending =
-      this.defaultToOminous && options?.forceArchetype === undefined;
-
     // Build one utterance per sentence (queued by the platform in order),
     // each carrying its own voice meta for the live readout. The archetype is
     // drawn BEFORE the line is finished, because the delivery texture belongs
@@ -478,8 +470,6 @@ export class SpeechSynthesisService {
         return { utterance, meta };
       })
       .filter((u): u is { utterance: SpeechSynthesisUtterance; meta: VoiceReadout } => u !== null);
-
-    this.replyAnchorPending = false;
 
     utterances.forEach(({ utterance, meta }, index) => {
       utterance.onstart = () => {
@@ -532,7 +522,7 @@ export class SpeechSynthesisService {
     utterance.volume =
       this.currentArchetype.baseVolume * (0.85 + Math.random() * 0.15);
 
-    const voice = this.pickVoiceForBand('mid') ?? this.defaultVoice();
+    const voice = this.pickNextBrowserVoice() ?? this.defaultVoice();
     this.applyVoiceToUtterance(utterance, voice);
 
     const meta: VoiceReadout = {
@@ -589,28 +579,11 @@ export class SpeechSynthesisService {
         return forced;
       }
     }
-    return this.nextSpectrumArchetype(this.takeReplyAnchor());
+    return this.nextSpectrumArchetype();
   }
 
   /** Archetype pinned for the next reply (Voice Lab / artist override). */
   private pinnedArchetype: VoiceArchetype | null = null;
-
-  /**
-   * True exactly once per reply, for the sentence that carries the signature
-   * persona. Skipped when the previous sentence already spoke it: the
-   * change-every-sentence promise outranks the reassertion.
-   */
-  private takeReplyAnchor(): boolean {
-    if (!this.replyAnchorPending) return false;
-    this.replyAnchorPending = false;
-    const ominous = this.ominousArchetype();
-    return !!ominous && this.lastSpokenName() !== ominous.name;
-  }
-
-  /** The signature persona that anchors every reply. */
-  private ominousArchetype(): SmuveArchetype | null {
-    return this.findArchetype('Ominous Protocol');
-  }
 
   /** One archetype from the table by name. */
   private findArchetype(name: VoiceArchetype): SmuveArchetype | null {
@@ -624,28 +597,26 @@ export class SpeechSynthesisService {
     return this.SMUVE_ARCHETYPES[index]?.name ?? null;
   }
 
-  /**
-   * One card off the spectrum deck.
-   *
-   * `anchorIdentity` hands the signature Ominous Protocol persona to the first
-   * sentence of a reply — its own range already spans [0.15, 1.7], so the
-   * identity opens every answer instead of only the first answer of a session.
-   * Every sentence after it is a fresh tone from the shuffled remainder of the
-   * complete table.
-   */
-  private nextSpectrumArchetype(anchorIdentity = false): SmuveArchetype {
-    const ominous = this.ominousArchetype();
-    if (anchorIdentity && ominous) {
-      // Reserved out of the deck, so the sentence AFTER the anchor must differ.
-      this.spectrumDeck = this.spectrumDeck.filter(
-        (archetype) => archetype.name !== ominous.name
-      );
-      this.rememberArchetype(ominous);
-      return ominous;
-    }
-
+  /** One card off the shuffled full-catalog deck. */
+  private nextSpectrumArchetype(): SmuveArchetype {
     if (this.spectrumDeck.length === 0) {
       this.spectrumDeck = this.buildSpectrumDeck();
+    }
+    // A forced/pinned reply can leave the same tone sitting at the top of the
+    // deck. Rotate past it so the next default sentence still changes voice.
+    const last = this.lastSpokenName();
+    if (
+      last &&
+      this.spectrumDeck.length > 1 &&
+      this.spectrumDeck[0]?.name === last
+    ) {
+      const different = this.spectrumDeck.findIndex(
+        (archetype) => archetype.name !== last
+      );
+      [this.spectrumDeck[0], this.spectrumDeck[different]] = [
+        this.spectrumDeck[different],
+        this.spectrumDeck[0],
+      ];
     }
     const next = this.spectrumDeck.shift() ?? this.SMUVE_ARCHETYPES[0];
     this.rememberArchetype(next);
@@ -665,33 +636,27 @@ export class SpeechSynthesisService {
   }
 
   /**
-   * A shuffled deck over the full spectrum. `spoken` cards are removed from the
-   * deck so every tone is used before any tone repeats, and the deck never
-   * opens with one of the two most recent tones (so a refill cannot produce a
-   * back-to-back repeat at the boundary).
+   * A shuffled deck containing every distinct tone, including the signature
+   * persona. All cards are used before any repeat; a refill never opens on the
+   * tone that just spoke, so the change-every-sentence rule survives the
+   * boundary between full cycles.
    */
-  private buildSpectrumDeck(spoken: SmuveArchetype[] = []): SmuveArchetype[] {
-    const spokenNames = new Set(spoken.map((archetype) => archetype.name));
-    const deck = this.uniqueArchetypes().filter(
-      (archetype) =>
-        !spokenNames.has(archetype.name) &&
-        // The signature persona is delivered by the per-reply anchor rather
-        // than the deck, so it can never surface twice inside one reply.
-        !(this.defaultToOminous && archetype.name === 'Ominous Protocol')
-    );
-    for (let i = deck.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [deck[i], deck[j]] = [deck[j], deck[i]];
-    }
-    const recent = new Set(
-      this.archetypeHistory
-        .slice(-2)
-        .map((index) => this.SMUVE_ARCHETYPES[index]?.name)
-    );
-    if (deck.length > 1 && recent.has(deck[0].name)) {
-      deck.push(deck.shift() as SmuveArchetype);
+  private buildSpectrumDeck(): SmuveArchetype[] {
+    const deck = this.shuffle(this.uniqueArchetypes());
+    const last = this.lastSpokenName();
+    if (deck.length > 1 && last && deck[0].name === last) {
+      const different = deck.findIndex((archetype) => archetype.name !== last);
+      [deck[0], deck[different]] = [deck[different], deck[0]];
     }
     return deck;
+  }
+
+  private shuffle<T>(values: T[]): T[] {
+    for (let i = values.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [values[i], values[j]] = [values[j], values[i]];
+    }
+    return values;
   }
 
   /** Records a tone as spoken so the deck can avoid immediate repeats. */
@@ -789,9 +754,9 @@ export class SpeechSynthesisService {
 
   /**
    * Configures a single sentence's utterance with SHAPE-SHIFTING:
-   *  - fresh archetype roll
-   *  - pitch band biased AWAY from the previous band (deep bass ↔ soprano)
-   *  - voice rotated by band/gender so consecutive sentences differ
+   *  - a fresh archetype from the shuffled full-catalog deck
+   *  - pitch inside that archetype's own register (deep bass ↔ soprano)
+   *  - a fresh installed browser voice from the shuffled voice deck
    */
   private configureSentenceUtterance(
     utterance: SpeechSynthesisUtterance,
@@ -814,20 +779,13 @@ export class SpeechSynthesisService {
 
     const [minRate, maxRate] = this.currentArchetype.rateRange;
 
-    // 1) Full-spectrum pitch band — always change away from the previous band
-    // to ensure constant vocal-range shifting as requested.
-    const band = this.nextPitchBand();
-    if (band === 'low') {
-      // Deep male bass territory
-      utterance.pitch = 0.15 + Math.random() * 0.3;
-    } else if (band === 'high') {
-      // High female soprano territory
-      utterance.pitch = 1.45 + Math.random() * 0.55;
-    } else {
-      const [minPitch, maxPitch] = this.currentArchetype.pitchRange;
-      utterance.pitch = minPitch + Math.random() * (maxPitch - minPitch);
-    }
+    // 1) Pitch stays inside the archetype's register. The archetype deck is
+    // shuffled, so consecutive sentences still travel the full spectrum — from
+    // deep bass to soprano — without distorting the tone that owns the line.
+    const [minPitch, maxPitch] = this.currentArchetype.pitchRange;
+    utterance.pitch = minPitch + Math.random() * (maxPitch - minPitch);
     utterance.pitch = Math.max(0.1, Math.min(2.0, utterance.pitch));
+    const band = this.bandForArchetype(this.currentArchetype);
 
     // 2) Rate + volume jitter within the archetype.
     // Short phrases can be delivered with more urgency; longer sentences stay
@@ -840,9 +798,9 @@ export class SpeechSynthesisService {
     utterance.volume =
       this.currentArchetype.baseVolume * (0.85 + Math.random() * 0.15);
 
-    // 3) Voice rotation matched to the band's gender, falling back to the
-    // engine's own default voice so a sentence is never voiced by nothing.
-    const voice = this.pickVoiceForBand(band) ?? this.defaultVoice();
+    // 3) Every installed voice is dealt from a separate shuffled deck, so the
+    // reader changes sentence by sentence alongside the archetype.
+    const voice = this.pickNextBrowserVoice() ?? this.defaultVoice();
     this.applyVoiceToUtterance(utterance, voice);
 
     return {
@@ -863,85 +821,67 @@ export class SpeechSynthesisService {
     return 'conversational';
   }
 
-  /** Picks low / mid / high, NEVER repeats the previous band to create a
-   *  constantly changing vocal range across sentences. */
-  private nextPitchBand(): PitchBand {
-    const bands: PitchBand[] = ['low', 'mid', 'high'];
-    if (!this.lastPitchBand) {
-      this.lastPitchBand = bands[Math.floor(Math.random() * bands.length)];
-      return this.lastPitchBand;
-    }
-    const others = bands.filter((b) => b !== this.lastPitchBand);
-    this.lastPitchBand = others[Math.floor(Math.random() * others.length)];
-    return this.lastPitchBand;
+  /** The band the archetype's own register occupies, for the live readout. */
+  private bandForArchetype(archetype: SmuveArchetype): PitchBand {
+    const center = (archetype.pitchRange[0] + archetype.pitchRange[1]) / 2;
+    if (center < 0.72) return 'low';
+    if (center > 1.15) return 'high';
+    return 'mid';
   }
 
-  /** Rotates voices by band/gender, avoiding the previously used voice. */
-  private pickVoiceForBand(band: PitchBand): SpeechSynthesisVoice | null {
-    const voices = window.speechSynthesis.getVoices();
-    const english = voices.filter((v) =>
-      v.lang?.toLowerCase().startsWith('en')
+  /** Published English voices, or the full list when there is no English voice. */
+  private engineVoices(): SpeechSynthesisVoice[] {
+    let voices: SpeechSynthesisVoice[] = [];
+    if (typeof window !== 'undefined') {
+      try {
+        voices = window.speechSynthesis?.getVoices() ?? [];
+      } catch {
+        voices = [];
+      }
+    }
+    if (voices.length === 0) voices = this.voices;
+    const english = voices.filter((voice) =>
+      voice.lang?.toLowerCase().startsWith('en')
     );
-    const pool = english.length > 0 ? english : voices;
-    if (pool.length === 0) return null;
-
-    const gender =
-      band === 'low'
-        ? 'male'
-        : band === 'high'
-          ? 'female'
-          : Math.random() > 0.5
-            ? 'male'
-            : 'female';
-
-    let preferred = this.findVoiceByGender(pool, gender);
-
-    if (!preferred) {
-      // Rotate to avoid the same voice twice in a row.
-      const candidates = pool.filter((v) => v !== this.lastUsedVoice);
-      preferred =
-        candidates.length > 0
-          ? candidates[Math.floor(Math.random() * candidates.length)]
-          : pool[Math.floor(Math.random() * pool.length)];
-    }
-
-    if (preferred && preferred !== this.lastUsedVoice) {
-      this.lastUsedVoice = preferred;
-    }
-    return preferred;
+    return english.length > 0 ? english : voices;
   }
 
-  private findVoiceByGender(
-    voices: SpeechSynthesisVoice[],
-    gender: string
-  ): SpeechSynthesisVoice | null {
-    if (gender === 'male') {
-      const matches = voices.filter(
-        (v) =>
-          v.name.toLowerCase().includes('male') ||
-          v.name.toLowerCase().includes('guy') ||
-          v.name.toLowerCase().includes('david') ||
-          v.name.toLowerCase().includes('james') ||
-          v.name.toLowerCase().includes('daniel')
-      );
-      return matches.length
-        ? matches[Math.floor(Math.random() * matches.length)]
-        : null;
+  private voiceKey(voice: SpeechSynthesisVoice): string {
+    return voice.voiceURI || `${voice.name}::${voice.lang}`;
+  }
+
+  /**
+   * Draws one installed browser voice from a shuffled deck. Every voice is used
+   * before the deck refills, and a refill rotates away from the voice that just
+   * spoke, so the reader changes every sentence and both genders appear in each
+   * full cycle instead of a fixed male-low / female-high mapping.
+   */
+  private pickNextBrowserVoice(): SpeechSynthesisVoice | null {
+    const voices = this.engineVoices();
+    if (voices.length === 0) return null;
+
+    const signature = voices.map((voice) => this.voiceKey(voice)).join('|');
+    if (signature !== this.voiceDeckSignature) {
+      this.voiceDeck = this.shuffle([...voices]);
+      this.voiceDeckSignature = signature;
     }
-    if (gender === 'female') {
-      const matches = voices.filter(
-        (v) =>
-          v.name.toLowerCase().includes('female') ||
-          v.name.toLowerCase().includes('girl') ||
-          v.name.toLowerCase().includes('woman') ||
-          v.name.toLowerCase().includes('samantha') ||
-          v.name.toLowerCase().includes('zoe')
-      );
-      return matches.length
-        ? matches[Math.floor(Math.random() * matches.length)]
-        : null;
+
+    if (this.voiceDeck.length === 0) {
+      this.voiceDeck = this.shuffle([...voices]);
     }
-    return null;
+
+    let voice = this.voiceDeck.shift() as SpeechSynthesisVoice;
+    if (
+      this.lastUsedVoiceKey &&
+      this.voiceKey(voice) === this.lastUsedVoiceKey &&
+      this.voiceDeck.length > 0
+    ) {
+      this.voiceDeck.push(voice);
+      voice = this.voiceDeck.shift() as SpeechSynthesisVoice;
+    }
+
+    this.lastUsedVoiceKey = this.voiceKey(voice);
+    return voice;
   }
 
   /**
@@ -949,8 +889,8 @@ export class SpeechSynthesisService {
    *
    * This used to only push an entry into `archetypeHistory`, which the spectrum
    * deck ignored on the very next draw — so the call changed nothing. An
-   * explicit pin now outranks the deck for one reply (the pitch bands keep
-   * moving inside the pinned register) and then clears itself.
+   * explicit pin now outranks the deck for one reply (the installed browser
+   * voices keep rotating inside the pinned register) and then clears itself.
    */
   setArchetype(archetype: VoiceArchetype): void {
     this.pinnedArchetype = this.findArchetype(archetype)?.name ?? null;
@@ -986,7 +926,7 @@ export class SpeechSynthesisService {
 
   /** Browser voices the engine has published, for the Voice Lab readout. */
   availableVoiceNames(): string[] {
-    return this.voices.map((voice) => voice.name);
+    return this.engineVoices().map((voice) => voice.name);
   }
 
   cancel(): void {

@@ -288,14 +288,14 @@ export class SmuveCaseFileComponent {
     this.flash('Case file cleared. New evidence only.');
   }
 
-  /** Speaks the vault in a randomly selected voice for this room. */
+  /** Speaks the vault through the shared full-catalog shuffle. */
   hearIt(): void {
     try {
       const presence = this.director?.announce('case-file');
       if (!presence) return;
       this.spoken.set({
         line: presence.line,
-        archetype: presence.archetype,
+        archetype: 'FULL CATALOG',
       });
     } catch {
       // A host without a speech engine still gets the on-demand button.

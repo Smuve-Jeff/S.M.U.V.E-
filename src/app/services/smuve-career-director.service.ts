@@ -657,7 +657,7 @@ const ROUTE_SURFACE_MAP: Array<[string, SmuveSurfaceId]> = [
   ['/hub', 'overview'],
 ];
 
-/** Styles of voice that own each room — still rolled at random inside the set. */
+/** Room voice metadata; spoken announcements use the global shuffled catalog. */
 const SURFACE_VOICES: Record<SmuveSurfaceId, VoiceArchetype[]> = {
   overview: ['Ominous Protocol', 'Choir (Layered)', 'Androgynous Oracle'],
   chat: ['Ominous Protocol', 'Baritone Authority (Male)', 'Mezzo Strategist (Female)'],
@@ -817,6 +817,7 @@ export class SmuveCareerDirectorService {
   private router = inject(Router, { optional: true });
   private destroyRef = inject(DestroyRef);
 
+  /** Rotates the printed room claims; voice selection is handled globally. */
   private presenceRoll = 0;
 
   /**
@@ -974,6 +975,7 @@ export class SmuveCareerDirectorService {
   presenceLine(surface?: SmuveSurfaceId): SmuvePresence {
     const resolved = surface ?? this.currentSurface();
     const lens = SURFACE_LENSES[resolved] ?? SURFACE_LENSES.overview;
+    this.presenceRoll = (this.presenceRoll + 1) % 1_000_000;
     return this.composePresence(
       resolved,
       lens,
@@ -983,20 +985,19 @@ export class SmuveCareerDirectorService {
   }
 
   /**
-   * Speaks the room's presence line in a randomly chosen voice belonging to
-   * that room, then returns what was said so the UI can print it.
+   * Speaks the room's presence line through the shared full-catalog shuffle,
+   * then returns what was said so the UI can print it.
    *
-   * Every third announcement deliberately releases the pin and lets the
-   * full-spectrum morph run, so the app never settles into one voice.
+   * The room still owns its printed presence and suggested prompts, but it no
+   * longer pins the announcement to one archetype. Every S.M.U.V.E. surface
+   * now changes persona and browser voice sentence by sentence.
    */
   announce(surface?: SmuveSurfaceId): SmuvePresence {
     const presence = this.presenceLine(surface);
-    const spectrumRoll = ++this.presenceRoll % 3 === 0;
     try {
       this.speech.speak(presence.line, {
         conversationId: `surface:${presence.surface}`,
         shapeShift: true,
-        ...(spectrumRoll ? {} : { forceArchetype: presence.archetype }),
       });
     } catch {
       // A device without a speech engine still gets the printed line.

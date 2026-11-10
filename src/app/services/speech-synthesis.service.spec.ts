@@ -48,7 +48,7 @@ describe('SpeechSynthesisService', () => {
   /**
    * The utterance text with the trailing breath gesture removed — i.e. the line
    * the artist actually gets read back. The gesture is the separate per-sentence
-   * delivery layer asserted in 'signature persona and delivery texture'.
+   * delivery layer asserted in 'full catalog shuffle and delivery texture'.
    */
   const transcriptOf = (index = 0) =>
     (
@@ -73,7 +73,9 @@ describe('SpeechSynthesisService', () => {
   });
 
   it('should replace S.M.U.V.E 2.0 with Smooth', () => {
-    service.speak('S.M.U.V.E 2.0 INITIALIZED. ROOM DOMINANCE COMMENCING.');
+    service.speak('S.M.U.V.E 2.0 INITIALIZED. ROOM DOMINANCE COMMENCING.', {
+      forceArchetype: 'Baritone Authority (Male)',
+    });
 
     expect(transcriptOf(0)).toBe('Welcome to Smooth');
   });
@@ -96,15 +98,26 @@ describe('SpeechSynthesisService', () => {
     });
   });
 
-  it('should sweep pitch from deep male bass to high female soprano', () => {
-    randomSpy.mockReturnValue(0);
-    service.speak('Low bass sentence.');
+  it('should use both male and female archetypes in a full catalog cycle', () => {
+    randomSpy.mockReturnValue(0.35);
 
-    randomSpy.mockReturnValue(0.99);
-    service.speak('High soprano sentence.');
+    service.speak(
+      'One. Two! Three? Four. Five! Six? Seven. Eight! Nine. Ten. Eleven?'
+    );
 
-    expect(mockUtterances[0].pitch).toBeLessThan(0.5);
-    expect(mockUtterances[1].pitch).toBeGreaterThan(1.5);
+    const catalog = service.archetypeCatalog();
+    const tones: string[] = [];
+    mockUtterances.forEach((u) => {
+      u.onstart();
+      tones.push(service.liveVoice()!.archetype);
+    });
+    const genders = new Set(
+      tones.map((tone) => catalog.find((row) => row.name === tone)?.gender)
+    );
+
+    expect(genders.has('male')).toBe(true);
+    expect(genders.has('female')).toBe(true);
+    expect(new Set(tones).size).toBe(11);
   });
 
   it('should shift to a different voice on every sentence', () => {
@@ -132,8 +145,10 @@ describe('SpeechSynthesisService', () => {
     service.speak('First', { conversationId: 'conv-stable' });
     service.speak('Second', { conversationId: 'conv-stable' });
 
-    expect(mockUtterances[0].voice).toEqual({ name: 'Voice A', lang: 'en-US' });
-    expect(mockUtterances[1].voice).toEqual({ name: 'Voice B', lang: 'en-US' });
+    expect(mockUtterances[0].voice.name).not.toBe(mockUtterances[1].voice.name);
+    expect(
+      new Set([mockUtterances[0].voice.name, mockUtterances[1].voice.name])
+    ).toEqual(new Set(['Voice A', 'Voice B']));
   });
 
   it('should speak as a single stable voice when shape-shift is disabled', () => {
@@ -155,23 +170,22 @@ describe('SpeechSynthesisService', () => {
 
     expect(service.liveVoice()).toBeNull();
     mockUtterances[0].onstart();
-    expect(service.liveVoice()).toMatchObject({
-      archetype: 'Ominous Protocol',
-      band: 'low',
-      voiceName: 'Microsoft David',
-    });
+    expect(service.liveVoice()?.archetype).toBeTruthy();
+    expect(service.liveVoice()?.archetype).not.toBe('Unknown');
+    expect(['low', 'mid', 'high']).toContain(service.liveVoice()?.band);
+    expect(service.liveVoice()?.voiceName).toBeTruthy();
     expect(typeof service.liveVoice()?.pitch).toBe('number');
     mockUtterances[0].onend();
     expect(service.liveVoice()).toBeNull();
     expect(service.isSpeaking()).toBe(false);
   });
 
-  it('should default to the Ominous Protocol persona unless an archetype is forced', () => {
+  it('should draw the default tone from the full catalog and still honor a forced archetype', () => {
     randomSpy.mockReturnValue(0);
 
     service.speak('Test sentence.');
     mockUtterances[0].onstart();
-    expect(service.liveVoice()?.archetype).toBe('Ominous Protocol');
+    expect(service.getArchetypeNames()).toContain(service.liveVoice()?.archetype);
 
     service.speak('Forced deep bass.', { forceArchetype: 'Deep Bass (Male)' });
     mockUtterances[1].onstart();
@@ -217,18 +231,11 @@ describe('SpeechSynthesisService', () => {
     );
   });
 
-  it('should walk the whole pitch range inside one message', () => {
-    // A deterministic cycle keeps the run reproducible while still moving the
-    // band picker through every branch.
-    const cycle = [
-      0, 0.9, 0.4, 0.7, 0.1, 0.6, 0.95, 0.2, 0.8, 0.35, 0.55, 0.05, 0.65,
-      0.85, 0.15, 0.45,
-    ];
-    let cursor = 0;
-    randomSpy.mockImplementation(() => cycle[cursor++ % cycle.length]);
+  it('should walk the whole pitch range inside one full catalog cycle', () => {
+    randomSpy.mockReturnValue(0.5);
 
     service.speak(
-      'Alpha. Beta! Gamma? Delta. Epsilon! Zeta? Eta. Theta! Iota. Kappa. Lambda! Mu?'
+      'Alpha. Beta! Gamma? Delta. Epsilon! Zeta? Eta. Theta! Iota. Kappa. Lambda!'
     );
 
     const pitches = mockUtterances.map((u) => u.pitch);
@@ -238,13 +245,10 @@ describe('SpeechSynthesisService', () => {
       bands.push(service.liveVoice()!.band);
     });
 
-    expect(mockUtterances.length).toBeGreaterThanOrEqual(12);
+    expect(mockUtterances).toHaveLength(11);
     expect(Math.min(...pitches)).toBeLessThan(0.5);
     expect(Math.max(...pitches)).toBeGreaterThan(1.4);
     expect(new Set(bands)).toEqual(new Set(['low', 'mid', 'high']));
-    bands.forEach((band, i) => {
-      if (i > 0) expect(band).not.toBe(bands[i - 1]);
-    });
   });
 
   it('should keep forcing one archetype when a caller pins the register (mimic mode)', () => {
@@ -258,19 +262,22 @@ describe('SpeechSynthesisService', () => {
     });
   });
 
-  it('should never repeat the same pitch band on consecutive sentences', () => {
-    randomSpy.mockReturnValue(0.99);
+  it('should use every installed browser voice before repeating one', () => {
+    mockSpeechSynthesis.getVoices.mockReturnValue([
+      { name: 'Fake Male Voice A', lang: 'en-US' },
+      { name: 'Fake Male Voice B', lang: 'en-GB' },
+      { name: 'Fake Female Voice A', lang: 'en-US' },
+      { name: 'Fake Female Voice B', lang: 'en-AU' },
+    ]);
+    randomSpy.mockReturnValue(0.4);
 
-    service.speak('One. Two! Three?');
+    service.speak('One. Two! Three? Four.');
 
-    const readouts: string[] = [];
-    mockUtterances.forEach((u) => {
-      u.onstart();
-      readouts.push(service.liveVoice()!.band);
-    });
-    expect(readouts).toHaveLength(3);
-    readouts.forEach((band, i) => {
-      if (i > 0) expect(band).not.toBe(readouts[i - 1]);
+    const voiceNames = mockUtterances.map((u) => u.voice.name);
+    expect(voiceNames).toHaveLength(4);
+    expect(new Set(voiceNames).size).toBe(4);
+    voiceNames.forEach((voice, i) => {
+      if (i > 0) expect(voice).not.toBe(voiceNames[i - 1]);
     });
   });
 
@@ -432,41 +439,41 @@ describe('SpeechSynthesisService', () => {
   });
 
   /**
-   * The identity contract: the signature persona reasserts itself on every
-   * reply, every sentence still changes voice, and the non-human personas get a
-   * delivery of their own instead of being the same reader one octave apart.
+   * The full-catalog contract: every reply is dealt from a shuffled deck of all
+   * 11 archetypes and every installed browser voice, no sentence repeats the
+   * last, and the non-human personas get a delivery of their own.
    */
-  describe('signature persona and delivery texture', () => {
+  describe('full catalog shuffle and delivery texture', () => {
     const spokenTexts = () =>
       (global.SpeechSynthesisUtterance as jest.Mock).mock.calls.map(
         (call) => call[0] as string
       );
 
-    it('opens every reply in the signature persona', () => {
+    it('does not open every reply with a fixed signature persona', () => {
       randomSpy.mockReturnValue(0.5);
+      const openers = new Set<string>();
 
-      service.speak('First reply. A second sentence follows.');
-      service.speak('Another reply. Its second sentence too.');
+      for (let i = 0; i < 6; i++) {
+        service.speak(`Reply ${i + 1}.`);
+        mockUtterances[i].onstart();
+        openers.add(service.liveVoice()!.archetype);
+      }
 
-      mockUtterances[0].onstart();
-      expect(service.liveVoice()?.archetype).toBe('Ominous Protocol');
-      mockUtterances[2].onstart();
-      expect(service.liveVoice()?.archetype).toBe('Ominous Protocol');
+      expect(openers.size).toBe(6);
     });
 
-    it('still never repeats the previous tone when a reply opens', () => {
+    it('never repeats the previous tone when a reply opens', () => {
       randomSpy.mockReturnValue(0.5);
 
       service.speak('One sentence reply.');
       service.speak('Next reply opener.');
 
       mockUtterances[0].onstart();
-      const anchor = service.liveVoice()?.archetype;
+      const previous = service.liveVoice()?.archetype;
       mockUtterances[1].onstart();
       const next = service.liveVoice()?.archetype;
 
-      expect(anchor).toBe('Ominous Protocol');
-      expect(next).not.toBe(anchor);
+      expect(next).not.toBe(previous);
     });
 
     it('gives the non-human personas a delivery texture of their own', () => {

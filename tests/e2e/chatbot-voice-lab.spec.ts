@@ -242,7 +242,7 @@ test.describe('S.M.U.V.E Voice Lab (runtime)', () => {
     const tones = spectrum.map(
       (line) => line.replace(/^VOICE \/\/ /, '').split(' · ')[0]
     );
-    expect(tones[0]).toBe('Ominous Protocol');
+    expect(tones[0]).not.toBe('Creature');
     expect(new Set(tones).size).toBeGreaterThan(1);
   });
 });

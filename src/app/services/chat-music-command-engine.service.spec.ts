@@ -621,12 +621,13 @@ describe('ChatMusicCommandEngineService', () => {
     expect((service as any).music.selectedTrackId()).toBeNull();
   });
 
-  it('speaks confirmations in the Ominous Protocol archetype when asked', () => {
+  it('speaks confirmations through the full-catalog shuffle when asked', () => {
     service.tryExecute('stop', { speak: true });
     expect(speak).toHaveBeenCalledWith(
       expect.stringContaining('Playback halted'),
-      expect.objectContaining({ forceArchetype: 'Ominous Protocol' })
+      expect.objectContaining({ shapeShift: true })
     );
+    expect(speak.mock.calls[0][1]).not.toHaveProperty('forceArchetype');
   });
   it.each(['How do I mix bass?', 'Explain chord progressions', 'What is melody?', 'Should I add drums?', "Don't add bass", 'My bass sounds muddy', 'play bowling'])('never mutates for discussion: %s', (question) => {
     expect(service.tryExecute(question)).toBeNull();
