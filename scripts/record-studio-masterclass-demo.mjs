@@ -33,6 +33,16 @@
  *   (`espeak-ng`, `espeak`, macOS `say`, `pico2wave`, or `flite`). ffmpeg muxes
  *   the voice track into the MP4; without ffmpeg the WebM stays silent.
  *
+ * Prime voice rotation:
+ *   PRIME_VOICE_ROTATION=1 uses Edge TTS to give each sentence a different
+ *   Prime-capable voice. Set PRIME_VOICE_SEED for a repeatable rotation:
+ *
+ *   PRIME_VOICE_ROTATION=1 PRIME_VOICE_SEED=20261110 \
+ *   node scripts/record-studio-masterclass-demo.mjs
+ *
+ *   Raise DEMO_HOLD (default 1.5 wide / 1 Short) if a custom narration is
+ *   longer than the cut; ffmpeg would otherwise stop at the last video frame.
+ *
  * YouTube upload (opt-in; unlisted by default):
  *   YOUTUBE_UPLOAD=1 \
  *   YOUTUBE_CLIENT_ID=... \
@@ -126,7 +136,8 @@ const NARRATION = SHORT
 
 // The wide narration carries more words than the Short. Give each beat room
 // to land instead of letting ffmpeg cut the voice off at the last frame.
-const HOLD = SHORT ? 1 : 1.5;
+const HOLD =
+  Number.parseFloat(process.env.DEMO_HOLD || "") || (SHORT ? 1 : 1.5);
 
 function prettyPath(file) {
   return path.relative(ROOT, file) || file;
@@ -606,6 +617,39 @@ function findTts() {
 function makeNarration() {
   fs.writeFileSync(NARRATION_TXT, `${NARRATION}\n`, "utf8");
   console.log(`Narration script: ${prettyPath(NARRATION_TXT)}`);
+
+  if (process.env.PRIME_VOICE_ROTATION === "1") {
+    const rotated = path.join(
+      OUT_DIR,
+      SHORT
+        ? "studio-masterclass-narration-rotated-short.mp3"
+        : "studio-masterclass-narration-rotated.mp3",
+    );
+    const rotation = spawnSync(
+      process.execPath,
+      [
+        path.join(ROOT, "scripts", "prime-voice-rotation.mjs"),
+        "--text-file",
+        NARRATION_TXT,
+        "--out",
+        rotated,
+      ],
+      { cwd: ROOT, env: process.env, stdio: "inherit" },
+    );
+    if (
+      rotation.status === 0 &&
+      fs.existsSync(rotated) &&
+      fs.statSync(rotated).size
+    ) {
+      console.log(
+        `Narration audio: ${prettyPath(rotated)} (Prime voice rotation)`,
+      );
+      return rotated;
+    }
+    console.warn(
+      "Prime voice rotation failed; falling back to the supplied or local narrator.",
+    );
+  }
 
   const narration = findTts();
   if (!narration.file) {
