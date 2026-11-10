@@ -4,6 +4,7 @@
   class="chatbot-container h-full flex flex-col glass-v42 shadow-v42-xl border-none selection:bg-brand-primary/20 animate-enter no-scrollbar overflow-hidden"
 >
   <header
+    data-chat-target="launch"
     class="h-20 shrink-0 border-b border-white/5 px-8 flex items-center justify-between bg-black/40"
   >
     <div class="flex items-center gap-4">
@@ -100,6 +101,7 @@
       </button>
       <button
         (click)="toggleTotalControl()"
+        data-chat-target="control"
         class="p-2 rounded-xl transition-all relative"
         [class.text-yellow-400]="profile().settings.ai.aiTotalControlEnabled"
         [class.text-slate-600]="!profile().settings.ai.aiTotalControlEnabled"
@@ -137,6 +139,17 @@
       </button>
       <button
         type="button"
+        (click)="openLearn()"
+        class="chat-learn-launch"
+        aria-label="Open the S.M.U.V.E. Field Guide"
+        aria-haspopup="dialog"
+        title="Field Guide: the full video and nine guided lessons"
+      >
+        <span class="material-symbols-outlined text-base">school</span>
+        <span>Learn</span>
+      </button>
+      <button
+        type="button"
         (click)="close.emit()"
         aria-label="Close S.M.U.V.E assistant chat"
         title="Close assistant"
@@ -148,7 +161,10 @@
   </header>
 
   <!-- Category shortcut tabs -->
-  <div class="shrink-0 px-4 pt-3 pb-1 flex gap-2 border-b border-white/5">
+  <div
+    data-chat-target="commands"
+    class="shrink-0 px-4 pt-3 pb-1 flex gap-2 border-b border-white/5"
+  >
     <button
       *ngFor="let group of commandGroups"
       (click)="toggleCommandCategory(group.category)"
@@ -162,7 +178,7 @@
     >
       {{ group.label }}
     </button>
-    <div class="ml-auto flex items-center gap-2">
+    <div data-chat-target="memory" class="ml-auto flex items-center gap-2">
       <span class="text-[7px] font-black text-slate-600 uppercase tracking-widest"
         >{{ messages().length }} in memory</span
       >
@@ -188,6 +204,7 @@
        is holding the artist to, for the workspace the artist is standing in. -->
   <div
     *ngIf="roomIntel() as room"
+    data-chat-target="context"
     class="shrink-0 px-4 py-1.5 border-b border-white/5 bg-black/20 flex flex-wrap items-center gap-x-3 gap-y-1"
     role="status"
     aria-label="S.M.U.V.E. career read for this workspace"
@@ -252,6 +269,7 @@
        roster, the full spectrum on demand, and a pin for the next reply. -->
   <div
     *ngIf="voiceLabOpen()"
+    data-chat-target="voice"
     class="shrink-0 px-4 py-3 border-b border-white/5 bg-black/30 studio-module-scroll max-h-72 overflow-y-auto"
     role="region"
     aria-label="Voice Lab"
@@ -286,7 +304,7 @@
         type="button"
         (click)="runVoiceSpectrumDemo()"
         class="px-2.5 py-1 rounded-lg bg-brand-primary/15 border border-brand-primary/40 text-[7px] font-black text-brand-primary uppercase tracking-widest hover:bg-brand-primary/25 transition-all"
-        title="Hear the identity anchor the first sentence and every sentence after it change voice"
+        title="Hear every sentence draw a different archetype and browser voice from the full catalog"
       >
         ▶ Run the full spectrum
       </button>
@@ -346,6 +364,7 @@
   <!-- Contextual command drawer -->
   <div
     *ngIf="activeCommandCategory()"
+    data-chat-target="command-drawer"
     class="shrink-0 px-4 py-2 bg-black/20 border-b border-white/5 flex flex-wrap gap-2"
   >
     <ng-container *ngFor="let group of commandGroups">
@@ -493,6 +512,7 @@
          next move on record, instead of the same chips for every artist. -->
     <div
       *ngIf="careerPrompts().length"
+      data-chat-target="context-fallback"
       class="flex flex-wrap items-center gap-1.5 mb-1.5"
       aria-label="Career-specific prompts for this artist"
     >
@@ -520,4 +540,125 @@
       </button>
     </div>
   </footer>
+
+  <!-- The Field Guide is a native dialog: the drawer clips its own content, but
+       the browser's top layer does not. It stays inside this component so every
+       SHOW ME action can point at a real drawer control. -->
+  <dialog
+    #learnDialog
+    class="chat-learn-dialog"
+    aria-labelledby="chat-learn-title"
+    (close)="onLearnDialogClose()"
+  >
+    <div class="chat-learn-shell">
+      <div class="chat-learn-head">
+        <div class="chat-learn-heading">
+          <span class="chat-learn-eyebrow"
+            ><span class="chat-learn-dot"></span> S.M.U.V.E 2.0 // FIELD
+            GUIDE</span
+          >
+          <h2 id="chat-learn-title" class="chat-learn-title">
+            Run the manager in nine cuts
+          </h2>
+          <p class="chat-learn-sub">
+            A narrated walkthrough of the real assistant, then nine lessons you
+            can drive yourself.
+          </p>
+        </div>
+        <div class="chat-learn-head-actions">
+          <span class="chat-learn-progress"
+            >{{ completedCount() }} / {{ chatLessons.length }} MASTERED</span
+          >
+          <button
+            type="button"
+            class="chat-learn-close"
+            (click)="closeLearn()"
+            aria-label="Close the Field Guide"
+            autofocus
+          >
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="chat-learn-body">
+        <section class="chat-learn-player">
+          <video
+            #tutorialVideo
+            class="chat-learn-video"
+            [src]="chatTutorialSrc"
+            controls
+            preload="metadata"
+            (timeupdate)="syncLessonToVideo($event)"
+          ></video>
+          <div class="chat-learn-chapter-scroll">
+            <button
+              *ngFor="let lesson of chatLessons"
+              type="button"
+              class="chat-learn-chapter"
+              [class.active]="activeLesson().id === lesson.id"
+              [attr.aria-current]="activeLesson().id === lesson.id ? 'true' : null"
+              (click)="selectLesson(lesson, true)"
+            >
+              <span class="chat-learn-num">{{ lesson.number }}</span>
+              <span class="chat-learn-chapter-copy">
+                <strong>{{ lesson.title }}</strong>
+                <small>{{ lesson.kicker }}</small>
+              </span>
+              <span
+                class="chat-learn-check"
+                [class.done]="completedLessons().has(lesson.id)"
+                >{{ completedLessons().has(lesson.id) ? '✓' : '' }}</span
+              >
+            </button>
+          </div>
+        </section>
+
+        <section class="chat-learn-detail">
+          <div class="chat-learn-detail-kicker">
+            {{ activeLesson().number }} // {{ activeLesson().kicker }}
+          </div>
+          <h3>{{ activeLesson().title }}</h3>
+          <p class="chat-learn-summary">{{ activeLesson().summary }}</p>
+          <div class="chat-learn-goal">
+            <span>THE WIN</span>
+            <p>{{ activeLesson().goal }}</p>
+          </div>
+          <ol class="chat-learn-steps">
+            <li *ngFor="let step of activeLesson().steps">{{ step }}</li>
+          </ol>
+          <div class="chat-learn-miss">
+            <span>COMMON MISS</span>
+            <p>{{ activeLesson().mistake }}</p>
+          </div>
+          <div class="chat-learn-actions">
+            <button
+              type="button"
+              class="chat-learn-show"
+              (click)="showActiveLesson()"
+            >
+              SHOW ME <span class="material-symbols-outlined">arrow_forward</span>
+            </button>
+            <button
+              type="button"
+              class="chat-learn-master"
+              [class.done]="completedLessons().has(activeLesson().id)"
+              [attr.aria-pressed]="completedLessons().has(activeLesson().id)"
+              (click)="toggleLessonMastered()"
+            >
+              {{
+                completedLessons().has(activeLesson().id)
+                  ? 'MASTERED ✓'
+                  : 'MARK MASTERED'
+              }}
+            </button>
+          </div>
+          <p class="chat-learn-note">
+            Progress stays in this browser. The tutorial ships with the app; no
+            lesson data is uploaded.
+          </p>
+        </section>
+      </div>
+    </div>
+  </dialog>
 </div>

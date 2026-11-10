@@ -11,7 +11,9 @@
   <!-- Deferred: the advisor is a floating action button, so its component (and
        everything it pulls in) never needs to be in the boot bundle. -->
   @defer (on idle) {
-    <app-smuve-advisor *ngIf="!isAuthRoute() && showAdvisorFab()"></app-smuve-advisor>
+    <app-smuve-advisor
+      *ngIf="!isAuthRoute() && showAdvisorFab() && !uiService.isChatbotOpen()"
+    ></app-smuve-advisor>
   }
   <app-smuve-tv-persistent-player *ngIf="!isAuthRoute()"></app-smuve-tv-persistent-player>
   <app-command-palette *ngIf="!isAuthRoute()"></app-command-palette>

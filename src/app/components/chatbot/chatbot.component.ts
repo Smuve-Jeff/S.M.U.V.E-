@@ -70,6 +70,12 @@ import {
   SmuveSurfaceIntel,
 } from '../../services/smuve-career-director.service';
 import { SmuveMemoryService } from '../../services/smuve-memory.service';
+import {
+  CHAT_LESSONS,
+  CHAT_PROGRESS_KEY,
+  CHAT_TUTORIAL_SRC,
+  ChatLesson,
+} from './chatbot.lessons';
 
 /** Voice Lab: one line per archetype, and a multi-sentence spectrum demo. */
 const VOICE_LAB_SAMPLE =
@@ -170,6 +176,7 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
    * runtime. Any of these may be unavailable in a bare test bed.
    */
   private injector = inject(Injector);
+  private host = inject(ElementRef) as ElementRef<HTMLElement>;
   private get music(): MusicManagerService | null {
     return this.injector.get(MusicManagerService, null);
   }
@@ -248,6 +255,8 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
   }
 
   @ViewChild('messageViewport') private scrollContainer!: ElementRef;
+  @ViewChild('learnDialog') private learnDialog?: ElementRef<HTMLDialogElement>;
+  @ViewChild('tutorialVideo') private tutorialVideo?: ElementRef<HTMLVideoElement>;
 
   close = output<void>();
   messages = signal<ChatMessage[]>([]);
@@ -380,6 +389,21 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
   }
 
   activeCommandCategory = signal<CommandCategory | null>(null);
+
+  /** Field Guide: a native modal so the drawer's overflow cannot clip it. */
+  readonly chatLessons = CHAT_LESSONS;
+  readonly chatTutorialSrc = CHAT_TUTORIAL_SRC;
+  learnOpen = signal(false);
+  activeLessonId = signal(CHAT_LESSONS[0].id);
+  completedLessons = signal<ReadonlySet<string>>(new Set());
+  activeLesson = computed<ChatLesson>(
+    () =>
+      CHAT_LESSONS.find((lesson) => lesson.id === this.activeLessonId()) ??
+      CHAT_LESSONS[0],
+  );
+  completedCount = computed(() => this.completedLessons().size);
+  private pendingLearnSeek: number | null = null;
+  private spotlightTimer: number | null = null;
   private conversationCounter = 0;
   private messageCounter = 0;
   private replyGeneration = 0;
@@ -525,13 +549,13 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
       shapeShift: true,
     });
     this.voiceLabNotice.set(
-      'Running the spectrum: the identity anchors the first sentence, every sentence after it changes voice.'
+      'Running the spectrum: every sentence draws a different archetype and browser voice from the full catalog.'
     );
   }
 
   /**
-   * Pin a tone for the next reply. The register holds and the pitch bands keep
-   * moving inside it; the pin releases itself once the reply has been spoken.
+   * Pin a tone for the next reply. The register holds while the installed
+   * browser voices keep rotating; the pin releases once the reply is spoken.
    */
   pinArchetype(archetype: VoiceArchetype): void {
     this.speechSynthesisService.setArchetype(archetype);
@@ -539,7 +563,7 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
       this.speechSynthesisService.pinnedArchetypeName?.() ?? archetype
     );
     this.voiceLabNotice.set(
-      `Next reply speaks as ${archetype}. The bands still shift; the register holds.`
+      `Next reply speaks as ${archetype}. The browser voices still rotate; the register holds.`
     );
   }
 
@@ -643,6 +667,7 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
 
   ngOnInit() {
     this.owner = this.injector.get(UserStoreService).user()?.id || this.profile()?.id || null;
+    this.loadLearnProgress();
     if (!this.restoreMessages()) this.setWelcomeGreeting();
     this.chatReady.set(true);
     this.consumeQueuedPrompt();
@@ -1336,6 +1361,7 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
     this.cancelReply();
     this.speechRecognition?.stopListening();
     this.speechSynthesisService.cancel();
+    if (this.spotlightTimer !== null) window.clearTimeout(this.spotlightTimer);
   }
 
   /**
@@ -1406,6 +1432,187 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
     this.activeCommandCategory.update((c) =>
       c === category ? null : category
     );
+  }
+
+  // ── Field Guide ────────────────────────────────────────────────────────
+
+  openLearn(): void {
+    this.learnOpen.set(true);
+    const dialog = this.learnDialog?.nativeElement;
+    if (dialog && !dialog.open) dialog.showModal();
+    const next =
+      CHAT_LESSONS.find((lesson) => !this.completedLessons().has(lesson.id)) ??
+      CHAT_LESSONS[0];
+    this.selectLesson(next, false);
+    window.setTimeout(() => this.seekTutorial(next.tutorialAt, false), 80);
+  }
+
+  closeLearn(): void {
+    const dialog = this.learnDialog?.nativeElement;
+    if (dialog?.open) dialog.close();
+    else this.learnOpen.set(false);
+  }
+
+  onLearnDialogClose(): void {
+    this.learnOpen.set(false);
+    this.tutorialVideo?.nativeElement.pause();
+  }
+
+  selectLesson(lesson: ChatLesson, seek = true): void {
+    this.activeLessonId.set(lesson.id);
+    if (seek) this.seekTutorial(lesson.tutorialAt, true);
+  }
+
+  /** Seek after metadata is ready, or queue the seek until it is. */
+  seekTutorial(seconds: number, autoplay = false): void {
+    const video = this.tutorialVideo?.nativeElement;
+    if (!video) return;
+    const apply = () => {
+      try {
+        video.currentTime = seconds;
+      } catch {
+        // Metadata can still be settling; the next chapter click retries.
+      }
+      if (autoplay) void video.play().catch(() => {});
+      else video.pause();
+    };
+    if (video.readyState >= 1) {
+      apply();
+      return;
+    }
+    this.pendingLearnSeek = seconds;
+    video.addEventListener(
+      'loadedmetadata',
+      () => {
+        const pending = this.pendingLearnSeek;
+        this.pendingLearnSeek = null;
+        if (pending !== null) {
+          try {
+            video.currentTime = pending;
+          } catch {
+            // A failed seek leaves the player at its current position.
+          }
+        }
+      },
+      { once: true },
+    );
+  }
+
+  /** Keep the chapter list honest while the artist scrubs the video. */
+  syncLessonToVideo(event: Event): void {
+    const video = event.target as HTMLVideoElement;
+    let current = CHAT_LESSONS[0];
+    for (const lesson of CHAT_LESSONS) {
+      if (video.currentTime + 0.05 >= lesson.tutorialAt) current = lesson;
+    }
+    if (current.id !== this.activeLessonId()) {
+      this.activeLessonId.set(current.id);
+    }
+  }
+
+  toggleLessonMastered(): void {
+    const lesson = this.activeLesson();
+    const next = new Set(this.completedLessons());
+    if (next.has(lesson.id)) next.delete(lesson.id);
+    else next.add(lesson.id);
+    this.completedLessons.set(next);
+    this.persistLearnProgress();
+  }
+
+  private loadLearnProgress(): void {
+    if (typeof window === 'undefined') return;
+    try {
+      const raw = window.localStorage.getItem(CHAT_PROGRESS_KEY);
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as unknown;
+      if (!Array.isArray(parsed)) return;
+      const valid = parsed.filter(
+        (id): id is string =>
+          typeof id === 'string' &&
+          CHAT_LESSONS.some((lesson) => lesson.id === id),
+      );
+      this.completedLessons.set(new Set(valid));
+    } catch {
+      // A corrupt guide state must never block the assistant.
+    }
+  }
+
+  private persistLearnProgress(): void {
+    if (typeof window === 'undefined') return;
+    try {
+      window.localStorage.setItem(
+        CHAT_PROGRESS_KEY,
+        JSON.stringify([...this.completedLessons()]),
+      );
+    } catch {
+      // Private browsing can reject storage; mastery stays in memory.
+    }
+  }
+
+  /** Close the guide and point at the real control for this lesson. */
+  async showActiveLesson(): Promise<void> {
+    const lesson = this.activeLesson();
+    this.closeLearn();
+    await new Promise<void>((resolve) => window.setTimeout(resolve, 320));
+
+    if (lesson.target !== 'voice') this.voiceLabOpen.set(false);
+    if (
+      lesson.target === 'commands' ||
+      lesson.target === 'produce' ||
+      lesson.target === 'marketing' ||
+      lesson.target === 'business'
+    ) {
+      this.activeCommandCategory.set(
+        lesson.target === 'produce'
+          ? 'production'
+          : lesson.target === 'business'
+            ? 'business'
+            : 'marketing',
+      );
+    } else {
+      this.activeCommandCategory.set(null);
+    }
+    if (lesson.target === 'voice') this.voiceLabOpen.set(true);
+
+    await new Promise<void>((resolve) => window.setTimeout(resolve, 180));
+    let element = this.host.nativeElement.querySelector(
+      this.learnTargetSelector(lesson.target),
+    ) as HTMLElement | null;
+    if (!element && lesson.target === 'context') {
+      element = this.host.nativeElement.querySelector(
+        '[data-chat-target="context-fallback"]',
+      ) as HTMLElement | null;
+    }
+    if (!element) return;
+    element.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
+    element.classList.add('chat-learn-spotlight');
+    if (this.spotlightTimer !== null) window.clearTimeout(this.spotlightTimer);
+    this.spotlightTimer = window.setTimeout(() => {
+      element?.classList.remove('chat-learn-spotlight');
+      this.spotlightTimer = null;
+    }, 4200);
+  }
+
+  private learnTargetSelector(target: ChatLesson['target']): string {
+    switch (target) {
+      case 'launch':
+        return '[data-chat-target="launch"]';
+      case 'context':
+        return '[data-chat-target="context"]';
+      case 'commands':
+      case 'produce':
+      case 'marketing':
+      case 'business':
+        return '[data-chat-target="command-drawer"]';
+      case 'voice':
+        return '[data-chat-target="voice"]';
+      case 'control':
+        return '[data-chat-target="control"]';
+      case 'memory':
+        return '[data-chat-target="memory"]';
+      default:
+        return '.chatbot-container';
+    }
   }
 
   toggleTotalControl() {
@@ -1502,8 +1709,8 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
    * The register S.M.U.V.E. reads from the artist's own profile.
    *
    * Only active while mimic mode is enabled — the artist opted in to being
-   * mirrored. Returns null otherwise so the default Ominous Protocol is never
-   * silently replaced.
+   * mirrored. Returns null otherwise so the full-catalog shuffle is never
+   * silently replaced by a profile voice.
    */
   private profileVoiceArchetype(): VoiceArchetype | null {
     const profile = this.profile();
@@ -1545,7 +1752,7 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
     return this.archetypeForGenre(profile?.primaryGenre);
   }
 
-  /** Genre-level voice fallback; returns null to keep the Ominous default. */
+  /** Genre-level voice fallback; returns null to keep the full-catalog shuffle. */
   private archetypeForGenre(genre?: string): VoiceArchetype | null {
     const g = String(genre || '').toLowerCase();
     if (!g) return null;

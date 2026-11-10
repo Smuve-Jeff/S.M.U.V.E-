@@ -522,7 +522,7 @@ describe('ChatbotComponent', () => {
     };
     userProfileServiceMock.profile.set(completed);
 
-    // Mimic off — the default Ominous Protocol must never be replaced silently.
+    // Mimic off — the full-catalog shuffle must never be replaced silently.
     expect((component as any).profileVoiceArchetype()).toBeNull();
 
     userProfileServiceMock.profile.set({
