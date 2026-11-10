@@ -22,6 +22,7 @@
     "audit:links": "node scripts/audit-links.mjs",
     "audit:tha-spot-artwork": "node scripts/audit-tha-spot-artwork.cjs",
     "check:tv-feeds": "node scripts/check-smuve-tv-feeds.mjs",
+    "youtube:oauth": "node scripts/youtube-oauth.mjs",
     "predeploy": "npm run check:tv-feeds",
     "lint": "eslint src setup-jest.ts",
     "format": "prettier --write .",

@@ -24,6 +24,7 @@
  *   artifacts/studio-masterclass-first-loop.mp4       (with ffmpeg)
  *   artifacts/studio-masterclass-first-loop-short.webm
  *   artifacts/studio-masterclass-first-loop-short.mp4 (with ffmpeg)
+ *   artifacts/studio-masterclass-first-loop-short.srt  (Short captions)
  *
  * Narration:
  *   The persona voiceover is written to
@@ -40,8 +41,12 @@
  *   node scripts/record-studio-masterclass-demo.mjs
  *
  * The OAuth client needs the YouTube Data API v3 and the
- * `https://www.googleapis.com/auth/youtube.upload` scope. Set
- * YOUTUBE_PRIVACY=public only when the cut has been reviewed.
+ * `https://www.googleapis.com/auth/youtube.upload` scope. Mint a refresh token
+ * without writing it to disk:
+ *
+ *   YOUTUBE_CLIENT_ID=... YOUTUBE_CLIENT_SECRET=... node scripts/youtube-oauth.mjs
+ *
+ * Set YOUTUBE_PRIVACY=public only when the cut has been reviewed.
  */
 import { spawn, spawnSync } from "node:child_process";
 import fs from "node:fs";
@@ -79,6 +84,7 @@ const NARRATION_TXT = path.join(
     ? "studio-masterclass-narration-short.txt"
     : "studio-masterclass-narration.txt",
 );
+const SRT = path.join(OUT_DIR, `${STEM}.srt`);
 const DEV_LOG = path.join(OUT_DIR, "studio-masterclass-dev.log");
 
 fs.mkdirSync(OUT_DIR, { recursive: true });
@@ -117,6 +123,10 @@ const CAPTIONS = SHORT
 const NARRATION = SHORT
   ? "S.M.U.V.E. Prime. First Loop, in one take. Shared link. Quick Session. Starter groove. Lesson complete. Next move: build the beat. That is how an idea becomes a record."
   : "S.M.U.V.E. Prime. Studio Masterclass. First Loop, end to end. A shared link opens the exact lesson. No maze. One tap into Quick Session. Load the starter groove. Study the layers. Then make them yours. Lesson complete. The next move is already waiting. Build the beat. That is how an idea becomes a record.";
+
+// The wide narration carries more words than the Short. Give each beat room
+// to land instead of letting ffmpeg cut the voice off at the last frame.
+const HOLD = SHORT ? 1 : 1.5;
 
 function prettyPath(file) {
   return path.relative(ROOT, file) || file;
@@ -260,6 +270,52 @@ async function hideTitle(page) {
     const node = document.getElementById("demo-title");
     if (node) node.style.display = "none";
   });
+}
+
+function srtTime(seconds) {
+  const total = Math.max(0, Math.round(seconds * 1000));
+  const milliseconds = total % 1000;
+  const wholeSeconds = Math.floor(total / 1000);
+  const hours = Math.floor(wholeSeconds / 3600);
+  const minutes = Math.floor((wholeSeconds % 3600) / 60);
+  const remainingSeconds = wholeSeconds % 60;
+  return [
+    String(hours).padStart(2, "0"),
+    String(minutes).padStart(2, "0"),
+    `${String(remainingSeconds).padStart(2, "0")},${String(
+      milliseconds,
+    ).padStart(3, "0")}`,
+  ].join(":");
+}
+
+function writeShortSrt(cueStarts, finalTitleAt) {
+  if (!SHORT) return null;
+  const starts = cueStarts.filter((value) => Number.isFinite(value));
+  if (starts.length === 0) return null;
+
+  const lastStart = starts[starts.length - 1];
+  const end = Math.max(
+    lastStart + 1,
+    Number.isFinite(finalTitleAt) ? finalTitleAt : lastStart + 2.6,
+  );
+  const cues = CAPTIONS.map((text, index) => {
+    const start = starts[index] ?? index * (end / CAPTIONS.length);
+    const next = starts[index + 1] ?? end;
+    return {
+      start,
+      end: Math.max(start + 0.9, next - 0.12),
+    };
+  });
+  const body = cues
+    .map(
+      (cue, index) =>
+        `${index + 1}\n${srtTime(cue.start)} --> ${srtTime(cue.end)}\n${CAPTIONS[index]}\n`,
+    )
+    .join("\n");
+
+  fs.writeFileSync(SRT, body, "utf8");
+  console.log(`Captions: ${prettyPath(SRT)}`);
+  return SRT;
 }
 
 function thumbnailHtml() {
@@ -566,7 +622,7 @@ function makeNarration() {
   return narration.file;
 }
 
-function renderMedia(webm, narration) {
+function renderMedia(webm, narration, srt) {
   const ffmpeg = process.env.FFMPEG_PATH || "ffmpeg";
   const available = spawnSync(ffmpeg, ["-version"], { stdio: "ignore" });
   if (available.status !== 0) {
@@ -578,28 +634,75 @@ function renderMedia(webm, narration) {
         "The WebM has no narration track; the voiceover file is separate.",
       );
     }
-    return { file: webm, hasNarration: false };
+    return { file: webm, hasNarration: false, hasCaptions: false };
   }
 
-  const args = ["-y", "-i", webm];
-  if (narration) args.push("-i", narration);
-  if (SHORT) args.push("-vf", "scale=1080:1920:flags=lanczos");
-  args.push("-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "20");
-  if (narration) {
-    args.push("-c:a", "aac", "-b:a", "160k", "-af", "apad", "-shortest");
-  }
-  args.push("-movflags", "+faststart", MP4);
+  const relativeSrt = srt ? path.relative(ROOT, srt).replace(/\\/g, "/") : null;
+  const captionStyle =
+    "FontName=DejaVu Sans,FontSize=8,PrimaryColour=&H00FFFFFF," +
+    "OutlineColour=&H00000000,BorderStyle=1,Outline=2,Shadow=1," +
+    "Alignment=2,MarginV=8,Bold=1";
 
-  const converted = spawnSync(ffmpeg, args, { stdio: "inherit" });
+  const buildArgs = (withCaptions) => {
+    const args = ["-y", "-i", webm];
+    if (narration) args.push("-i", narration);
+    args.push("-map", "0:v:0");
+    if (narration) args.push("-map", "1:a:0");
+
+    const filters = [];
+    if (SHORT) filters.push("scale=1080:1920:flags=lanczos");
+    if (withCaptions && relativeSrt) {
+      const escapedSrt = relativeSrt.replace(/'/g, "\\'");
+      filters.push(
+        `subtitles=filename='${escapedSrt}':force_style='${captionStyle}'`,
+      );
+    }
+    if (filters.length) args.push("-vf", filters.join(","));
+
+    args.push(
+      "-c:v",
+      "libx264",
+      "-preset",
+      "veryfast",
+      "-pix_fmt",
+      "yuv420p",
+      "-crf",
+      "20",
+    );
+    if (narration) {
+      args.push("-c:a", "aac", "-b:a", "160k", "-af", "apad", "-shortest");
+    }
+    args.push("-movflags", "+faststart", MP4);
+    return args;
+  };
+
+  let withCaptions = Boolean(SHORT && srt && fs.existsSync(srt));
+  let converted = spawnSync(ffmpeg, buildArgs(withCaptions), {
+    stdio: "inherit",
+  });
+  if (converted.status !== 0 && withCaptions) {
+    console.warn(
+      "Caption burn-in failed; rendering the cut without burned captions.",
+    );
+    withCaptions = false;
+    converted = spawnSync(ffmpeg, buildArgs(false), { stdio: "inherit" });
+  }
+
   if (converted.status === 0 && fs.existsSync(MP4)) {
     console.log(
-      `Video: ${prettyPath(MP4)}${narration ? " (with narration)" : ""}`,
+      `Video: ${prettyPath(MP4)}${narration ? " (with narration)" : ""}${
+        withCaptions ? " + burned captions" : ""
+      }`,
     );
-    return { file: MP4, hasNarration: Boolean(narration) };
+    return {
+      file: MP4,
+      hasNarration: Boolean(narration),
+      hasCaptions: withCaptions,
+    };
   }
 
   console.warn("MP4 render failed; leaving the WebM as-is.");
-  return { file: webm, hasNarration: false };
+  return { file: webm, hasNarration: false, hasCaptions: false };
 }
 
 async function getYouTubeAccessToken() {
@@ -751,6 +854,9 @@ async function uploadToYouTube(file, thumbnail) {
 }
 
 async function recordWalkthrough(browser) {
+  const recordingStartedAt = Date.now();
+  const cueStarts = [];
+  let finalTitleAt = null;
   const context = await browser.newContext({
     baseURL: BASE_URL,
     viewport: VIEWPORT,
@@ -789,10 +895,11 @@ async function recordWalkthrough(browser) {
     });
     await guide.waitFor({ state: "visible", timeout: 45_000 });
     await showTitle(page, TITLE.kicker, TITLE.title, TITLE.subtitle);
-    await sleep(2_800);
+    await sleep(2_800 * HOLD);
     await hideTitle(page);
     await showCaption(page, 1, CAPTIONS[0]);
-    await sleep(2_000);
+    cueStarts.push((Date.now() - recordingStartedAt) / 1000);
+    await sleep(2_000 * HOLD);
 
     // 2. Open Quick Session.
     await guide
@@ -800,7 +907,8 @@ async function recordWalkthrough(browser) {
       .click();
     await page.locator(".qs-shell").waitFor({ state: "visible" });
     await showCaption(page, 2, CAPTIONS[1]);
-    await sleep(2_400);
+    cueStarts.push((Date.now() - recordingStartedAt) / 1000);
+    await sleep(2_400 * HOLD);
 
     // 3. Starter groove and auto-check.
     await page.goto("/studio?guide=first-loop&lesson=loop-groove", {
@@ -808,13 +916,15 @@ async function recordWalkthrough(browser) {
     });
     await guide.waitFor({ state: "visible", timeout: 45_000 });
     await showCaption(page, 3, CAPTIONS[2]);
-    await sleep(2_000);
+    cueStarts.push((Date.now() - recordingStartedAt) / 1000);
+    await sleep(2_000 * HOLD);
     await guide
       .getByRole("button", { name: "Load a starter groove", exact: true })
       .click();
     await celebration.waitFor({ state: "visible", timeout: 30_000 });
     await showCaption(page, 4, CAPTIONS[3]);
-    await sleep(3_000);
+    cueStarts.push((Date.now() - recordingStartedAt) / 1000);
+    await sleep(3_000 * HOLD);
 
     // 4. Next lesson.
     await celebration
@@ -823,14 +933,16 @@ async function recordWalkthrough(browser) {
     await page.waitForURL(/lesson=loop-drums/, { timeout: 30_000 });
     await guide.waitFor({ state: "visible", timeout: 30_000 });
     await showCaption(page, 5, CAPTIONS[4]);
-    await sleep(2_600);
+    cueStarts.push((Date.now() - recordingStartedAt) / 1000);
+    await sleep(2_600 * HOLD);
+    finalTitleAt = (Date.now() - recordingStartedAt) / 1000;
     await showTitle(
       page,
       "First Loop",
       "Start with a groove.",
       "Then make it yours. I will be watching.",
     );
-    await sleep(2_600);
+    await sleep(2_600 * HOLD);
   } finally {
     await context.close();
   }
@@ -839,7 +951,7 @@ async function recordWalkthrough(browser) {
   const rawPath = await video.path();
   fs.copyFileSync(rawPath, WEBM);
   console.log(`WebM: ${prettyPath(WEBM)}`);
-  return WEBM;
+  return { webm: WEBM, cueStarts, finalTitleAt };
 }
 
 async function main() {
@@ -853,6 +965,7 @@ async function main() {
     browser = await chromium.launch({
       headless: process.env.DEMO_HEADLESS !== "0",
       slowMo: 140,
+      args: ["--no-sandbox", "--disable-dev-shm-usage"],
     });
 
     let thumbnail = null;
@@ -863,8 +976,9 @@ async function main() {
     }
 
     const narration = makeNarration();
-    const webm = await recordWalkthrough(browser);
-    const media = renderMedia(webm, narration);
+    const recording = await recordWalkthrough(browser);
+    const srt = writeShortSrt(recording.cueStarts, recording.finalTitleAt);
+    const media = renderMedia(recording.webm, narration, srt);
     const uploadedId = await uploadToYouTube(media.file, thumbnail);
 
     if (uploadedId) {
@@ -878,6 +992,11 @@ async function main() {
 
 if (process.env.DEMO_PRINT_THUMBNAIL === "1") {
   process.stdout.write(thumbnailHtml());
+  process.exit(0);
+}
+
+if (process.env.DEMO_PRINT_NARRATION === "1") {
+  process.stdout.write(`${NARRATION}\n`);
   process.exit(0);
 }
 
