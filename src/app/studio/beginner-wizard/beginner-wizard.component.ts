@@ -57,6 +57,11 @@ export type { WizardStep } from "./beginner-path.service";
           Step {{ currentStep().id }} of {{ steps.length }} ·
           {{ completedCount() }} done
         </span>
+        <button type="button" class="wizard-guide-link" (click)="openGuide.emit()">
+          <span class="material-symbols-outlined" aria-hidden="true">school</span>
+          Want the full tour? Open the Studio Masterclass
+          <span class="material-symbols-outlined" aria-hidden="true">arrow_forward</span>
+        </button>
       </header>
 
       <!-- From-scratch or a complete groove: a beginner should not have to
@@ -245,6 +250,8 @@ export type { WizardStep } from "./beginner-path.service";
 export class BeginnerWizardComponent {
   @Output() navigateToView = new EventEmitter<string>();
   @Output() switchToPro = new EventEmitter<void>();
+  /** Open the full Studio Masterclass without leaving the beginner path. */
+  @Output() openGuide = new EventEmitter<void>();
   @Output() launchWithPreset = new EventEmitter<{
     view: string;
     preset: string;

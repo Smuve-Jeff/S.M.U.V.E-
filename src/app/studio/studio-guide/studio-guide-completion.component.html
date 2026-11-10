@@ -1,0 +1,37 @@
+<aside class="gc-toast" role="status" aria-live="polite" aria-labelledby="gc-title">
+  <div class="gc-confetti" aria-hidden="true">
+    <span></span><span></span><span></span><span></span><span></span><span></span>
+  </div>
+
+  <button
+    type="button"
+    class="gc-close"
+    (click)="dismiss.emit()"
+    aria-label="Dismiss lesson celebration"
+  >
+    <span class="material-symbols-outlined" aria-hidden="true">close</span>
+  </button>
+
+  <div class="gc-top">
+    <span class="gc-check material-symbols-outlined" aria-hidden="true">task_alt</span>
+    <div class="gc-copy">
+      <p class="gc-eyebrow">{{ completion().trackLabel }} · Lesson complete</p>
+      <h2 id="gc-title">{{ completion().title }}</h2>
+      @if (completion().nextLessonTitle; as nextTitle) {
+        <p class="gc-next">Next up: <strong>{{ nextTitle }}</strong></p>
+      } @else {
+        <p class="gc-next">You reached the end of this path. Replay any lesson whenever you like.</p>
+      }
+    </div>
+  </div>
+
+  <div class="gc-actions">
+    <button type="button" class="gc-btn gc-btn-primary" (click)="openNext.emit(completion())">
+      {{ completion().nextLessonId ? 'Next lesson' : 'Open the guide' }}
+      <span class="material-symbols-outlined" aria-hidden="true">arrow_forward</span>
+    </button>
+    <button type="button" class="gc-btn gc-btn-ghost" (click)="dismiss.emit()">
+      Keep working
+    </button>
+  </div>
+</aside>

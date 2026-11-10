@@ -19,6 +19,8 @@ export type StudioTelemetryEventName =
   | "sets_browser_opened"
   | "music_map_opened"
   | "music_map_quick_session"
+  | "music_map_guide"
+  | "studio_guide_opened"
   | "set_opened"
   | "set_deleted"
   | "mobile_quick_start"

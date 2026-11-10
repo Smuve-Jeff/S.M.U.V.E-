@@ -347,6 +347,36 @@ export class UserProfileService {
   }
 
   /**
+   * Persist Masterclass progress with the rest of the artist's settings.
+   *
+   * The local guide store is the offline cache, so this write only runs after
+   * profile hydration and never blocks a lesson tick. `updateProfile` keys the
+   * save to the active account and sends it through the existing cloud sync.
+   */
+  async saveStudioGuideProgress(
+    lessonIds: readonly string[],
+  ): Promise<boolean> {
+    const current = this.profile();
+    const settings = current.settings ?? initialProfile.settings;
+    const unique = [
+      ...new Set(
+        lessonIds.filter(
+          (id): id is string => typeof id === 'string' && id.trim().length > 0,
+        ),
+      ),
+    ];
+    return this.updateProfile({
+      settings: {
+        ...settings,
+        studio: {
+          ...settings.studio,
+          guideCompletedLessonIds: unique,
+        },
+      },
+    });
+  }
+
+  /**
    * The account a loaded profile belongs to, or `null` when it carries no
    * stamp (a stock profile that has never been saved).
    */

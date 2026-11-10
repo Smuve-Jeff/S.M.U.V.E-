@@ -73,6 +73,11 @@ export interface AppSettings {
      *  last. Mirrored to localStorage so a pre-auth session still re-arms, and
      *  stored on the profile so the choice follows the artist between devices. */
     smartSheet?: SmartSheetMemory;
+    /**
+     * Finished Studio Masterclass lesson ids. Local storage stays the offline
+     * cache; the profile is the cross-device copy. Absent on older profiles.
+     */
+    guideCompletedLessonIds?: string[];
   };
   dj: {
     crossfaderCurve: 'linear' | 'power' | 'exp' | 'cut';
@@ -600,6 +605,7 @@ export const initialProfile: UserProfile = {
       highFidelityExport: true,
       stageFxEnabled: true,
       smartSheet: {},
+      guideCompletedLessonIds: [],
     },
     dj: {
       crossfaderCurve: 'power',

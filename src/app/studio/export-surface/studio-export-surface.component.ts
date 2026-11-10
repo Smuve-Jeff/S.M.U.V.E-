@@ -121,6 +121,13 @@ export class StudioExportSurfaceComponent {
   /** The shell owns navigation; the chosen target rides with the request. */
   @Output() openMastering = new EventEmitter<string>();
 
+  /**
+   * A real file finished leaving the Studio. The shell forwards audio
+   * deliveries to the Masterclass auto-checker, so "export a WAV" ticks only
+   * after the download/share actually completed.
+   */
+  @Output() delivered = new EventEmitter<string>();
+
   private readonly exportService = inject(ExportService);
   private readonly projectWorkspace = inject(ProjectWorkspaceService);
   private readonly exportReview = inject(ExportReviewService);
@@ -448,6 +455,7 @@ export class StudioExportSurfaceComponent {
       }
       this.releaseFiling.set(null);
       this.finish("ok", `Downloaded ${filename}`);
+      this.delivered.emit("mixdown");
     } catch (error) {
       // The reviewed file was never delivered; its measurements no longer
       // describe anything the artist has.
@@ -544,6 +552,7 @@ export class StudioExportSurfaceComponent {
           ? "Share sheet opened with the reviewed master"
           : "Reviewed master share finished",
       );
+      this.delivered.emit("share");
     } catch (error) {
       this.fail("Share export failed", error);
     }
@@ -617,6 +626,7 @@ export class StudioExportSurfaceComponent {
         "ok",
         `Stems exported · master + ${this.stemBitDepth()}-bit WAV per track (.zip) at ${this.rateLabel(this.sampleRate())}`,
       );
+      this.delivered.emit("stems");
     } catch (error) {
       this.fail("Stem export failed", error);
     }
@@ -630,6 +640,7 @@ export class StudioExportSurfaceComponent {
         tone: "ok",
         text: "Project bundle exported (.smuve)",
       });
+      this.delivered.emit("project");
     } catch (error) {
       this.fail("Project export failed", error);
     }
@@ -647,6 +658,7 @@ export class StudioExportSurfaceComponent {
         tone: "ok",
         text: "MIDI arrangement exported (.mid)",
       });
+      this.delivered.emit("midi");
     } catch (error) {
       this.fail("MIDI export failed", error);
     }
@@ -669,6 +681,7 @@ export class StudioExportSurfaceComponent {
         "ok",
         `Downloaded ${filename} — notes, audio and mixer levels for another DAW`,
       );
+      this.delivered.emit("dawproject");
     } catch (error) {
       this.fail("DAWproject export failed", error);
     }
@@ -700,6 +713,7 @@ export class StudioExportSurfaceComponent {
           ? "Share sheet opened with the mixdown"
           : "Mixdown downloaded and share link copied",
       );
+      this.delivered.emit("mixdown");
     } catch (error) {
       this.fail("Share failed", error);
     }

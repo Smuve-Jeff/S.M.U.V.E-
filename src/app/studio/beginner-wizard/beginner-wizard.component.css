@@ -911,3 +911,35 @@
   line-height: 1.4;
   letter-spacing: 0.04em;
 }
+
+/* Direct line into the full Masterclass from the beginner path. */
+.wizard-guide-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  align-self: flex-start;
+  margin-top: 9px;
+  padding: 6px 10px;
+  border: 1px solid rgba(93, 196, 194, 0.28);
+  border-radius: 9px;
+  color: #7dd8d2;
+  background: rgba(93, 196, 194, 0.07);
+  font-family: inherit;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-align: left;
+  cursor: pointer;
+}
+
+.wizard-guide-link:hover {
+  border-color: rgba(93, 196, 194, 0.55);
+  color: #b8fffa;
+  background: rgba(93, 196, 194, 0.13);
+}
+
+.wizard-guide-link .material-symbols-outlined {
+  font-size: 15px;
+  line-height: 1;
+}

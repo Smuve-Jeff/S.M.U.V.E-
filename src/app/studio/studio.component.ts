@@ -62,6 +62,22 @@ import { DrumMachineComponent } from "./drum-machine/drum-machine.component";
 import { PerformerComponent } from "./performer/performer.component";
 import { SnackbarComponent } from "./shared/snackbar/snackbar.component";
 import { ArchitectureMapComponent } from "./shared/architecture-map/architecture-map.component";
+import {
+  StudioGuideComponent,
+  type GuideStateChange,
+  type GuideTab,
+} from "./studio-guide/studio-guide.component";
+import {
+  StudioGuideAutoCheckService,
+  type GuideLessonCompletion,
+} from "./studio-guide/studio-guide.auto-check.service";
+import { StudioGuideCompletionComponent } from "./studio-guide/studio-guide-completion.component";
+import {
+  guideDeepLinkParams,
+  guideLessonById,
+  parseGuideDeepLink,
+} from "./studio-guide/studio-guide-deep-link";
+import type { GuideTrackId } from "./studio-guide/studio-guide.data";
 import { SearchOverlayComponent } from "./shared/search-overlay/search-overlay.component";
 import { AiAssistantComponent } from "./shared/ai-assistant/ai-assistant.component";
 import { AiProduceComponent } from "../components/ai-produce/ai-produce.component";
@@ -324,6 +340,8 @@ const SELF_HOSTING_VIEWS = new Set<string>([
     SmartCreationSheetComponent,
     AudioRepairComponent,
     ArchitectureMapComponent,
+    StudioGuideComponent,
+    StudioGuideCompletionComponent,
   ],
   providers: [
     StemCacheService,
@@ -688,6 +706,13 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   showSmartCreationSheet = signal(false);
   /** One-tap "how does this machine make music?" sheet, opened from the rail. */
   showArchitectureMap = signal(false);
+  /** Full-screen Masterclass: guided paths plus the every-surface atlas. */
+  showStudioGuide = signal(false);
+  /** Shell-owned deep-link landing request; the guide mirrors user changes. */
+  readonly guideTabRequest = signal<GuideTab | null>(null);
+  readonly guideTrackRequest = signal<GuideTrackId | null>(null);
+  readonly guideLessonRequest = signal<string | null>(null);
+  readonly guideAutoCheck = inject(StudioGuideAutoCheckService);
   mobilePanel = signal<MobileStudioPanel | null>(null);
   showAiAssistant = signal(false);
   showAiMixAssistant = signal(false);
@@ -1203,7 +1228,10 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   /** Navigate to a view from the beginner wizard */
-  onWizardNavigate(view: string) {
+  onWizardNavigate(
+    view: string,
+    options: { clearGuideQuery?: boolean } = {},
+  ) {
     if (!isStudioView(view)) return;
     // The wizard owns the arrangement slot in Beginner Mode, so steps that
     // genuinely need the arrangement canvas (takes & comp, export/share)
@@ -1216,7 +1244,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
         "FULL ARRANGEMENT OPEN — tap GUIDED START to come back to the steps",
       );
     }
-    this.setActiveView(view);
+    this.setActiveView(view, options);
   }
 
   /**
@@ -1260,6 +1288,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
 
     const view = isStudioView(payload.view) ? payload.view : "drum-machine";
     this.setActiveView(view);
+    if (recipe) this.guideAutoCheck.noteAction("starter-loaded");
     this.snackbarService.success(
       recipe
         ? `${recipe.name} · ${recipe.bpm} BPM — every part is yours to change.`
@@ -1570,6 +1599,146 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     this.setActiveView("quick-session");
   }
 
+  /** Studio Masterclass — the complete guided path plus surface atlas. */
+  openStudioGuide(
+    options: {
+      tab?: GuideTab;
+      track?: GuideTrackId;
+      lessonId?: string | null;
+    } = {},
+  ): void {
+    this.guideAutoCheck.dismissCelebration();
+    const requestedLesson = guideLessonById(options.lessonId ?? null);
+    const track =
+      requestedLesson?.track ??
+      options.track ??
+      this.guideTrackRequest() ??
+      "first-loop";
+    this.guideTabRequest.set(options.tab ?? "learn");
+    this.guideTrackRequest.set(track);
+    this.guideLessonRequest.set(requestedLesson?.id ?? null);
+
+    if (!this.showStudioGuide()) {
+      this.showStudioGuide.set(true);
+      this.haptic.light();
+      this.studioTelemetry.trackEvent("studio_guide_opened", {}, true);
+    }
+    this.guideAutoCheck.noteActiveView(this.activeView());
+    this.writeGuideQueryParams();
+  }
+
+  closeStudioGuide(): void {
+    if (!this.showStudioGuide()) return;
+    this.showStudioGuide.set(false);
+    this.guideTabRequest.set(null);
+    this.guideTrackRequest.set(null);
+    this.guideLessonRequest.set(null);
+    this.writeGuideQueryParams();
+  }
+
+  /** The Beginner Wizard's direct line into the full Masterclass. */
+  openGuideFromWizard(): void {
+    this.openStudioGuide({ track: "first-loop" });
+  }
+
+  /** The Music Map's hand-off: close the map, open the deeper tutorial. */
+  openGuideFromMusicMap(): void {
+    this.showArchitectureMap.set(false);
+    this.studioTelemetry.trackEvent("music_map_guide", {}, true);
+    this.openStudioGuide();
+  }
+
+  /** Keep the URL shareable while the artist moves inside the Masterclass. */
+  onGuideStateChange(state: GuideStateChange): void {
+    this.guideTabRequest.set(state.tab);
+    this.guideTrackRequest.set(state.track);
+    this.guideLessonRequest.set(state.lessonId);
+    this.writeGuideQueryParams();
+  }
+
+  /** The guide's "open the real tool" hand-off; the shell owns navigation. */
+  onGuideOpenSurface(view: StudioSurfaceId): void {
+    this.closeStudioGuide();
+    this.onWizardNavigate(view, { clearGuideQuery: true });
+  }
+
+  /** The guide's starter-groove hand-off; the shell owns the snapshot guard. */
+  onGuideStartRecipe(recipeId: string): void {
+    this.closeStudioGuide();
+    void this.quickStartRecipe(recipeId, { clearGuideQuery: true });
+  }
+
+  /** The celebration's next-lesson hand-off. */
+  openGuideFromCompletion(completion: GuideLessonCompletion): void {
+    this.guideAutoCheck.dismissCelebration();
+    this.openStudioGuide({
+      track: completion.trackId,
+      lessonId: completion.nextLessonId ?? completion.lessonId,
+    });
+  }
+
+  /** Export surface reports a real file delivery; only audio ticks the lesson. */
+  onExportDelivered(kind: string): void {
+    if (kind === "mixdown" || kind === "share" || kind === "stems") {
+      this.guideAutoCheck.noteAction("audio-exported");
+    }
+  }
+
+  /**
+   * Mirror the open guide into the URL with replaceUrl: moving between
+   * lessons should update a shareable link, not bury the back button.
+   */
+  private writeGuideQueryParams(): void {
+    const open = this.showStudioGuide();
+    const params = open
+      ? guideDeepLinkParams(
+          this.guideTabRequest() ?? "learn",
+          this.guideTrackRequest() ?? "first-loop",
+          this.guideLessonRequest(),
+        )
+      : { guide: null, lesson: null };
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: params,
+      queryParamsHandling: "merge",
+      replaceUrl: true,
+    });
+  }
+
+  /**
+   * Apply ?guide= and ?lesson=. A missing guide param never opens the overlay;
+   * an explicit but invalid one closes it rather than showing stale content.
+   */
+  private applyGuideQuery(
+    guide: string | null,
+    lesson: string | null,
+  ): void {
+    const state = parseGuideDeepLink(guide, lesson);
+    if (!state) {
+      if (guide) {
+        this.showStudioGuide.set(false);
+        this.guideTabRequest.set(null);
+        this.guideTrackRequest.set(null);
+        this.guideLessonRequest.set(null);
+      }
+      return;
+    }
+
+    this.guideTabRequest.set(state.tab);
+    this.guideTrackRequest.set(state.track);
+    this.guideLessonRequest.set(state.lessonId);
+    if (!this.showStudioGuide()) {
+      this.showStudioGuide.set(true);
+      this.guideAutoCheck.dismissCelebration();
+      this.studioTelemetry.trackEvent(
+        "studio_guide_opened",
+        { source: "link" },
+        true,
+      );
+    }
+    this.guideAutoCheck.noteActiveView(this.activeView());
+  }
+
   /** Restore the quick-start lane choice (stored → collapsed). */
   private initialMobileStartExpanded(): boolean {
     return this.hasLocalStorageKey(MOBILE_START_STORAGE_KEY, "open");
@@ -1673,6 +1842,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
       const view = params.get("view");
       const surface = view ? studioViewForParam(view) : null;
       if (surface) this.activeView.set(surface);
+      this.applyGuideQuery(params.get("guide"), params.get("lesson"));
     });
 
     effect(() => {
@@ -1685,6 +1855,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     // effect — no signal writes, so no effect-loop hazard.
     effect(() => {
       const openCount = [
+        this.showStudioGuide(),
         this.showSmartCreationSheet(),
         this.showShortcuts(),
         this.showProjectMenu(),
@@ -2059,6 +2230,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   /** True when any dismissible surface is open. Mirrors dismissTopOverlay(). */
   hasOpenOverlay(): boolean {
     return !!(
+      this.showStudioGuide() ||
       this.showSmartCreationSheet() ||
       this.showShortcuts() ||
       this.showProjectMenu() ||
@@ -2373,6 +2545,10 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
    * popovers/menus first, then right-slide panels, then the mobile drawer.
    */
   dismissTopOverlay(): boolean {
+    if (this.showStudioGuide()) {
+      this.closeStudioGuide();
+      return true;
+    }
     if (this.showSmartCreationSheet()) {
       this.showSmartCreationSheet.set(false);
       return true;
@@ -2450,7 +2626,10 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     this.setActiveView("mastering");
   }
 
-  setActiveView(view: StudioView) {
+  setActiveView(
+    view: StudioView,
+    options: { clearGuideQuery?: boolean } = {},
+  ) {
     // Publish the editor surface that is actually on screen, not the raw view
     // name. The arrangement is the *ngSwitchDefault body, so it stays visible
     // for every view that does not render its own screen; a view that hosts
@@ -2488,6 +2667,8 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
       );
     }
     this.activeView.set(view);
+    // Auto-check compares the lesson's target with the surface on screen.
+    this.guideAutoCheck.noteActiveView(view);
     this.mobilePanel.set(null);
     this.haptic.light();
     this.studioTelemetry.trackEvent("view_changed", { view }, true);
@@ -2496,7 +2677,12 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     }
     this.router.navigate([], {
       relativeTo: this.route,
-      queryParams: { view },
+      // Closing the guide and opening its target are two navigations in the
+      // same turn. The second one must carry the cleared params too, or it
+      // merges against the old URL and re-opens the overlay from the query.
+      queryParams: options.clearGuideQuery
+        ? { view, guide: null, lesson: null }
+        : { view },
       queryParamsHandling: "merge",
     });
   }
@@ -2721,7 +2907,10 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
    * previous sketch to local Sets so nothing is lost, and land on the
    * arrangement ready to play.
    */
-  async quickStartRecipe(recipeId: string): Promise<void> {
+  async quickStartRecipe(
+    recipeId: string,
+    options: { clearGuideQuery?: boolean } = {},
+  ): Promise<void> {
     const recipe = this.ideasGenerator.recipes.find((r) => r.id === recipeId);
     if (!recipe) return;
     this.haptic.medium();
@@ -2740,7 +2929,8 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     } catch {
       // The AudioContext arms on the next user gesture.
     }
-    this.setActiveView("arrangement");
+    this.setActiveView("arrangement", options);
+    this.guideAutoCheck.noteAction("starter-loaded");
     this.snackbarService.success(
       `${recipe.name} · ${recipe.bpm} BPM — loaded. Add your own layers.`,
     );

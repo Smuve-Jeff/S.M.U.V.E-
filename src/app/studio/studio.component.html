@@ -616,6 +616,15 @@
           <button
             type="button"
             class="comp-tools-sheet-btn"
+            (click)="openStudioGuide(); toggleMobileToolsSheet(false)"
+          >
+            <span class="material-symbols-outlined">school</span>
+            <strong>Studio Guide</strong>
+            <small>Step-by-step masterclass</small>
+          </button>
+          <button
+            type="button"
+            class="comp-tools-sheet-btn"
             [class.comp-tools-sheet-on]="isBeginnerMode()"
             (click)="toggleBeginnerMode(); toggleMobileToolsSheet(false)"
           >
@@ -1053,6 +1062,18 @@
         <span class="material-symbols-outlined">menu_book</span>
         <span class="comp-rail-label">Music Map</span>
       </button>
+      <!-- Studio Masterclass: guided paths for beginners and pros, plus a
+           searchable atlas of every surface and gesture. -->
+      <button
+        type="button"
+        class="comp-rail-item"
+        (click)="openStudioGuide()"
+        aria-label="Open the Studio Masterclass tutorial"
+        title="Learn the whole Studio — beginner loop, full song and pro mastery paths"
+      >
+        <span class="material-symbols-outlined">school</span>
+        <span class="comp-rail-label">Studio Guide</span>
+      </button>
       <!-- Grouped, scrollable view list — every stage stays reachable even
            when the window is short (the flat list used to clip below fold). -->
       <div class="comp-rail-scroll">
@@ -1130,6 +1151,7 @@
             (navigateToView)="onWizardNavigate($event)"
             (launchWithPreset)="onWizardLaunchWithPreset($event)"
             (switchToPro)="openArrangementGate()"
+            (openGuide)="openGuideFromWizard()"
           ></app-beginner-wizard>
         </div>
         <!-- Inspector split: the timeline stays the canvas, the channel strip
@@ -1244,6 +1266,7 @@
         @defer (on viewport; prefetch on idle) {
           <app-studio-export-surface
             (openMastering)="openMasteringWithTarget($event)"
+            (delivered)="onExportDelivered($event)"
           ></app-studio-export-surface>
         } @placeholder (minimum 150ms) {
           <div class="comp-view-loading" aria-live="polite">
@@ -3781,10 +3804,30 @@
     (navigateToView)="setActiveView($any($event))"
   ></app-smart-creation-sheet>
 
+  <app-studio-guide
+    *ngIf="showStudioGuide()"
+    [tab]="guideTabRequest()"
+    [track]="guideTrackRequest()"
+    [lesson]="guideLessonRequest()"
+    (close)="closeStudioGuide()"
+    (openSurface)="onGuideOpenSurface($event)"
+    (startRecipe)="onGuideStartRecipe($event)"
+    (stateChange)="onGuideStateChange($event)"
+  ></app-studio-guide>
+
+  @if (guideAutoCheck.celebration(); as completedLesson) {
+    <app-guide-completion
+      [completion]="completedLesson"
+      (openNext)="openGuideFromCompletion($event)"
+      (dismiss)="guideAutoCheck.dismissCelebration()"
+    ></app-guide-completion>
+  }
+
   <app-architecture-map
     *ngIf="showArchitectureMap()"
     (close)="closeArchitectureMap()"
     (onQuickSession)="musicMapQuickSession()"
+    (onStudioGuide)="openGuideFromMusicMap()"
   ></app-architecture-map>
   <app-search-overlay></app-search-overlay>
   <app-snackbar></app-snackbar>

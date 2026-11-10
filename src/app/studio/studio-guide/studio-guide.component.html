@@ -1,0 +1,463 @@
+<div class="sg-backdrop" (click)="close.emit()">
+  <section
+    class="sg-shell"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="sg-title"
+    (click)="$event.stopPropagation()"
+  >
+    <header class="sg-header">
+      <div class="sg-brand">
+        <span class="sg-brand-icon material-symbols-outlined" aria-hidden="true">school</span>
+        <div class="sg-brand-copy">
+          <p class="sg-eyebrow">S.M.U.V.E. · Studio Masterclass</p>
+          <h1 id="sg-title">Learn the whole Studio, one move at a time.</h1>
+          <p class="sg-lede">
+            Three guided paths: a first loop for beginners, a complete song from
+            empty project to delivery, and the pro surfaces for mastery. Every
+            step opens the real tool it teaches.
+          </p>
+        </div>
+      </div>
+
+      <div class="sg-head-side">
+        <span
+          class="sg-sync"
+          [class.is-synced]="sync.state() === 'synced'"
+          [class.is-error]="sync.state() === 'error'"
+          [attr.title]="syncTitle()"
+          [attr.aria-label]="syncTitle()"
+        >
+          <span class="material-symbols-outlined" aria-hidden="true">{{ syncIcon() }}</span>
+          <span class="sg-sync-label">{{ syncLabel() }}</span>
+        </span>
+        <div class="sg-total" [attr.aria-label]="guide.completedCount() + ' of ' + guide.totalLessons + ' lessons complete'">
+          <span class="sg-total-value">{{ guide.completedCount() }}<small>/{{ guide.totalLessons }}</small></span>
+          <span class="sg-total-label">lessons done</span>
+        </div>
+        <button
+          type="button"
+          class="sg-copy-link"
+          (click)="copyLink()"
+          [attr.aria-label]="linkCopied() ? 'Lesson link copied' : 'Copy a link to this lesson'"
+        >
+          <span class="material-symbols-outlined" aria-hidden="true">{{ linkCopied() ? 'check' : 'link' }}</span>
+          <span class="sg-copy-label">{{ linkCopied() ? 'Copied' : 'Copy link' }}</span>
+        </button>
+        <button type="button" class="sg-close" (click)="close.emit()" aria-label="Close the Studio Masterclass">
+          <span class="material-symbols-outlined" aria-hidden="true">close</span>
+        </button>
+      </div>
+    </header>
+
+    <div class="sg-progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" [attr.aria-valuenow]="guide.totalPercent()" aria-label="Masterclass progress">
+      <span class="sg-progress-fill" [style.width.%]="guide.totalPercent()"></span>
+    </div>
+
+    <nav class="sg-tabs" role="tablist" aria-label="Masterclass sections">
+      <button
+        type="button"
+        role="tab"
+        class="sg-tab"
+        [class.is-active]="tab() === 'learn'"
+        [attr.aria-selected]="tab() === 'learn'"
+        (click)="selectTab('learn')"
+      >
+        <span class="material-symbols-outlined" aria-hidden="true">route</span>
+        Learn step by step
+      </button>
+      <button
+        type="button"
+        role="tab"
+        class="sg-tab"
+        [class.is-active]="tab() === 'atlas'"
+        [attr.aria-selected]="tab() === 'atlas'"
+        (click)="selectTab('atlas')"
+      >
+        <span class="material-symbols-outlined" aria-hidden="true">apps</span>
+        Every control
+        <span class="sg-tab-count">{{ atlas.length }}</span>
+      </button>
+      <button
+        type="button"
+        role="tab"
+        class="sg-tab"
+        [class.is-active]="tab() === 'words'"
+        [attr.aria-selected]="tab() === 'words'"
+        (click)="selectTab('words')"
+      >
+        <span class="material-symbols-outlined" aria-hidden="true">menu_book</span>
+        Words &amp; shortcuts
+      </button>
+    </nav>
+
+    @if (guide.storageError(); as storageError) {
+      <p class="sg-storage-warning" role="status">
+        <span class="material-symbols-outlined" aria-hidden="true">warning</span>
+        {{ storageError }}
+      </p>
+    }
+
+    @if (autoCheck.lastAutoCompleted(); as recent) {
+      <div class="sg-auto-banner" role="status">
+        <span class="material-symbols-outlined" aria-hidden="true">task_alt</span>
+        <span><strong>Checked off automatically:</strong> {{ recent.title }}</span>
+        <button type="button" (click)="autoCheck.dismissRecent()" aria-label="Dismiss automatic check notification">
+          <span class="material-symbols-outlined" aria-hidden="true">close</span>
+        </button>
+      </div>
+    }
+
+    <div class="sg-scroll">
+      @if (tab() === 'learn') {
+        <section class="sg-learn" aria-label="Guided learning paths">
+          <div class="sg-track-tabs" role="tablist" aria-label="Choose a learning path">
+            @for (track of tracks; track track.id) {
+              <button
+                type="button"
+                role="tab"
+                class="sg-track-tab"
+                [class.is-active]="selectedTrackId() === track.id"
+                [attr.aria-selected]="selectedTrackId() === track.id"
+                (click)="selectTrack(track.id)"
+                [style.--sg-accent]="track.accent"
+              >
+                <span class="sg-track-icon material-symbols-outlined" aria-hidden="true">{{ track.icon }}</span>
+                <span class="sg-track-copy">
+                  <strong>{{ track.label }}</strong>
+                  <small>{{ track.tagline }}</small>
+                </span>
+                <span class="sg-track-percent">{{ trackProgress(track).percent }}%</span>
+              </button>
+            }
+          </div>
+
+          @if (selectedTrack(); as track) {
+            <article class="sg-track-hero" [style.--sg-accent]="track.accent">
+              <div class="sg-track-hero-main">
+                <p class="sg-kicker">{{ track.forWho }}</p>
+                <h2>{{ track.label }}</h2>
+                <p class="sg-track-tagline">{{ track.tagline }}</p>
+                <p class="sg-track-outcome">
+                  <span class="material-symbols-outlined" aria-hidden="true">flag</span>
+                  <span><strong>You finish with:</strong> {{ track.outcome }}</span>
+                </p>
+                <div class="sg-track-meta">
+                  <span class="sg-chip">{{ track.minutes }} min total</span>
+                  <span class="sg-chip">{{ track.lessons.length }} lessons</span>
+                  <span class="sg-chip">{{ trackProgress(track).done }} done</span>
+                </div>
+              </div>
+
+              <div class="sg-track-side">
+                <div class="sg-track-ring" [attr.aria-label]="trackProgress(track).percent + ' percent complete'">
+                  <span class="sg-track-ring-value">{{ trackProgress(track).percent }}<small>%</small></span>
+                  <span class="sg-track-ring-label">path complete</span>
+                </div>
+                <div class="sg-track-actions">
+                  <button type="button" class="sg-btn sg-btn-primary" (click)="startFirstLesson()">
+                    <span class="material-symbols-outlined" aria-hidden="true">play_arrow</span>
+                    Continue path
+                  </button>
+                  @if (track.id === 'first-loop') {
+                    <button type="button" class="sg-btn" (click)="startGroove()">
+                      <span class="material-symbols-outlined" aria-hidden="true">bolt</span>
+                      Load a starter groove
+                    </button>
+                  }
+                  <button type="button" class="sg-btn sg-btn-ghost" (click)="resetTrack(track)">
+                    <span class="material-symbols-outlined" aria-hidden="true">restart_alt</span>
+                    Reset path
+                  </button>
+                </div>
+              </div>
+            </article>
+
+            <div class="sg-lesson-list">
+              @for (lesson of track.lessons; track lesson.id; let i = $index) {
+                <article class="sg-lesson" [class.is-open]="isLessonOpen(lesson.id)" [class.is-done]="lessonDone(lesson)">
+                  <button
+                    type="button"
+                    class="sg-lesson-head"
+                    (click)="toggleLesson(lesson.id)"
+                    [attr.aria-expanded]="isLessonOpen(lesson.id)"
+                    [attr.aria-controls]="'sg-lesson-body-' + lesson.id"
+                  >
+                    <span class="sg-lesson-num" [class.is-done]="lessonDone(lesson)" aria-hidden="true">
+                      {{ lessonDone(lesson) ? '✓' : i + 1 }}
+                    </span>
+                    <span class="sg-lesson-summary">
+                      <span class="sg-lesson-meta">
+                        {{ lesson.kicker }} · {{ lesson.minutes }} MIN
+                        @if (lesson.autoCheck) {
+                          <span class="sg-auto-chip" [title]="autoCheckLabel(lesson)">AUTO</span>
+                        }
+                      </span>
+                      <strong>{{ lesson.title }}</strong>
+                      <span class="sg-lesson-goal">{{ lesson.goal }}</span>
+                    </span>
+                    <span class="sg-lesson-toggle material-symbols-outlined" aria-hidden="true">
+                      {{ isLessonOpen(lesson.id) ? 'expand_less' : 'expand_more' }}
+                    </span>
+                  </button>
+
+                  @if (isLessonOpen(lesson.id)) {
+                    <div class="sg-lesson-body" [id]="'sg-lesson-body-' + lesson.id">
+                      <p class="sg-plain">
+                        <span class="sg-label">In plain words</span>
+                        {{ lesson.plain }}
+                      </p>
+
+                      <div class="sg-lesson-grid">
+                        <div class="sg-block">
+                          <h4>
+                            <span class="material-symbols-outlined" aria-hidden="true">checklist</span>
+                            Do this
+                          </h4>
+                          <ol class="sg-steps">
+                            @for (step of lesson.steps; track step; let n = $index) {
+                              <li>
+                                <span class="sg-step-num" aria-hidden="true">{{ n + 1 }}</span>
+                                <span>{{ step }}</span>
+                              </li>
+                            }
+                          </ol>
+                        </div>
+                        <div class="sg-block">
+                          <h4>
+                            <span class="material-symbols-outlined" aria-hidden="true">touch_app</span>
+                            Controls you'll touch
+                          </h4>
+                          <ul class="sg-controls">
+                            @for (control of lesson.controls; track control) {
+                              <li>{{ control }}</li>
+                            }
+                          </ul>
+                        </div>
+                      </div>
+
+                      @if (lesson.heard) {
+                        <p class="sg-heard">
+                          <span class="material-symbols-outlined" aria-hidden="true">hearing</span>
+                          <span><strong>Sounds like:</strong> {{ lesson.heard }}</span>
+                        </p>
+                      }
+
+                      <p class="sg-tip">
+                        <span class="material-symbols-outlined" aria-hidden="true">lightbulb</span>
+                        <span><strong>Pro move:</strong> {{ lesson.proTip }}</span>
+                      </p>
+
+                      @if (lesson.autoCheck) {
+                        <p class="sg-auto-note">
+                          <span class="material-symbols-outlined" aria-hidden="true">bolt</span>
+                          {{ autoCheckLabel(lesson) }}
+                        </p>
+                      }
+
+                      <div class="sg-lesson-actions">
+                        <button type="button" class="sg-btn sg-btn-primary" (click)="openTarget(lesson.target, lesson)">
+                          <span class="material-symbols-outlined" aria-hidden="true">arrow_outward</span>
+                          {{ lesson.action }}
+                        </button>
+                        <button
+                          type="button"
+                          class="sg-btn"
+                          (click)="completeAndNext(lesson)"
+                          [disabled]="lessonDone(lesson)"
+                        >
+                          <span class="material-symbols-outlined" aria-hidden="true">task_alt</span>
+                          {{ lessonDone(lesson) ? 'Lesson complete' : 'Mark done & next' }}
+                        </button>
+                        <button type="button" class="sg-btn sg-btn-ghost" (click)="toggleDone(lesson)">
+                          {{ lessonDone(lesson) ? 'Mark not done' : 'Mark done only' }}
+                        </button>
+                      </div>
+                    </div>
+                  }
+                </article>
+              }
+            </div>
+          }
+        </section>
+      }
+
+      @if (tab() === 'atlas') {
+        <section class="sg-atlas" aria-label="Every Studio control">
+          <header class="sg-atlas-head">
+            <div>
+              <p class="sg-kicker">Reference</p>
+              <h2>Every control, explained</h2>
+              <p>
+                All {{ atlas.length }} Studio surfaces: what each one is, the
+                capabilities worth knowing, and how you actually touch it.
+                Search by name, feature or problem.
+              </p>
+            </div>
+            <label class="sg-search">
+              <span class="material-symbols-outlined" aria-hidden="true">search</span>
+              <input
+                type="search"
+                placeholder="Search controls, features, gestures…"
+                [value]="atlasQuery()"
+                (input)="onAtlasSearch($event)"
+                aria-label="Search the Studio control atlas"
+              />
+            </label>
+          </header>
+
+          <div class="sg-atlas-groups" role="group" aria-label="Filter by Studio stage">
+            @for (group of atlasGroups(); track group.id) {
+              <button
+                type="button"
+                class="sg-group-chip"
+                [class.is-active]="atlasGroup() === group.id"
+                [attr.aria-pressed]="atlasGroup() === group.id"
+                (click)="setAtlasGroup(group.id)"
+              >
+                {{ group.label }}
+                <span>{{ group.count }}</span>
+              </button>
+            }
+          </div>
+
+          <div class="sg-atlas-grid">
+            @for (entry of filteredAtlas(); track entry.id) {
+              <article class="sg-atlas-card" [class.is-open]="isSurfaceOpen(entry.id)">
+                <button
+                  type="button"
+                  class="sg-atlas-card-head"
+                  (click)="toggleSurface(entry.id)"
+                  [attr.aria-expanded]="isSurfaceOpen(entry.id)"
+                  [attr.aria-controls]="'sg-atlas-body-' + entry.id"
+                >
+                  <span class="sg-atlas-icon material-symbols-outlined" aria-hidden="true">{{ surfaceIcon(entry.id) }}</span>
+                  <span class="sg-atlas-title">
+                    <span class="sg-atlas-group">{{ entry.group }}</span>
+                    <strong>{{ surfaceLabel(entry.id) }}</strong>
+                  </span>
+                  <span class="material-symbols-outlined sg-atlas-chevron" aria-hidden="true">
+                    {{ isSurfaceOpen(entry.id) ? 'expand_less' : 'expand_more' }}
+                  </span>
+                </button>
+
+                <p class="sg-atlas-what">{{ entry.what }}</p>
+
+                @if (isSurfaceOpen(entry.id)) {
+                  <div class="sg-atlas-body" [id]="'sg-atlas-body-' + entry.id">
+                    <h4>
+                      <span class="material-symbols-outlined" aria-hidden="true">auto_awesome</span>
+                      What it can do
+                    </h4>
+                    <ul class="sg-feature-list">
+                      @for (feature of entry.features; track feature) {
+                        <li>{{ feature }}</li>
+                      }
+                    </ul>
+
+                    <h4>
+                      <span class="material-symbols-outlined" aria-hidden="true">touch_app</span>
+                      How you use it
+                    </h4>
+                    <ul class="sg-gesture-list">
+                      @for (gesture of entry.gestures; track gesture) {
+                        <li>{{ gesture }}</li>
+                      }
+                    </ul>
+
+                    <p class="sg-tip">
+                      <span class="material-symbols-outlined" aria-hidden="true">lightbulb</span>
+                      <span><strong>Pro move:</strong> {{ entry.proTip }}</span>
+                    </p>
+
+                    <button type="button" class="sg-btn sg-btn-primary" (click)="openTarget(entry.id)">
+                      <span class="material-symbols-outlined" aria-hidden="true">arrow_outward</span>
+                      Open {{ surfaceLabel(entry.id) }}
+                    </button>
+                  </div>
+                }
+              </article>
+            } @empty {
+              <p class="sg-empty">
+                No control matches “{{ atlasQuery() }}”. Try a plain word like
+                “drums”, “vocal” or “export”.
+              </p>
+            }
+          </div>
+        </section>
+      }
+
+      @if (tab() === 'words') {
+        <section class="sg-words" aria-label="Glossary, shortcuts and rules">
+          <header class="sg-words-head">
+            <p class="sg-kicker">Language of the studio</p>
+            <h2>Words, keys and five rules that beat plugins</h2>
+            <p>
+              Jargon is only useful when everyone agrees what it means. Learn
+              these once and every tutorial, YouTube video and engineer
+              conversation gets easier.
+            </p>
+          </header>
+
+          <div class="sg-words-grid">
+            <section class="sg-panel" aria-labelledby="sg-shortcuts-title">
+              <h3 id="sg-shortcuts-title">
+                <span class="material-symbols-outlined" aria-hidden="true">keyboard</span>
+                Keyboard shortcuts
+              </h3>
+              <dl class="sg-shortcuts">
+                @for (shortcut of shortcuts; track shortcut.keys) {
+                  <div class="sg-shortcut-row">
+                    <dt><kbd>{{ shortcut.keys }}</kbd></dt>
+                    <dd>{{ shortcut.action }}</dd>
+                  </div>
+                }
+              </dl>
+              <p class="sg-panel-note">Ctrl = Cmd on Mac. Shortcuts work anywhere in the Studio except while typing in a field.</p>
+            </section>
+
+            <section class="sg-panel" aria-labelledby="sg-rules-title">
+              <h3 id="sg-rules-title">
+                <span class="material-symbols-outlined" aria-hidden="true">workspace_premium</span>
+                Five rules that beat plugins
+              </h3>
+              <ol class="sg-rules">
+                <li><strong>Finish one loop before starting another.</strong> A finished rough idea teaches more than ten perfect openings.</li>
+                <li><strong>Mix quiet.</strong> Balance at conversation volume; loudness hides bad decisions.</li>
+                <li><strong>Cut low end from everything that is not kick or bass.</strong> Mud is the most common amateur signature.</li>
+                <li><strong>Check on more than one speaker.</strong> Phone, headphones, car. If it works in all three, it works.</li>
+                <li><strong>Sleep before mastering.</strong> Fresh ears catch what excitement cannot.</li>
+              </ol>
+            </section>
+          </div>
+
+          <section class="sg-panel sg-glossary-panel" aria-labelledby="sg-glossary-title">
+            <h3 id="sg-glossary-title">
+              <span class="material-symbols-outlined" aria-hidden="true">menu_book</span>
+              Plain-word glossary
+            </h3>
+            <dl class="sg-glossary">
+              @for (entry of glossary; track entry.term) {
+                <div class="sg-glossary-row">
+                  <dt>{{ entry.term }}</dt>
+                  <dd>{{ entry.plain }}</dd>
+                </div>
+              }
+            </dl>
+          </section>
+
+          <footer class="sg-words-foot">
+            <p>
+              <strong>Still stuck?</strong> Open the Music Map for the four-layer
+              mental model, or tap the AI assistant and ask what to do next.
+            </p>
+            <button type="button" class="sg-btn sg-btn-primary" (click)="close.emit()">
+              <span class="material-symbols-outlined" aria-hidden="true">arrow_back</span>
+              Back to the Studio
+            </button>
+          </footer>
+        </section>
+      }
+    </div>
+  </section>
+</div>

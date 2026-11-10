@@ -88,6 +88,10 @@ import { CommonModule } from "@angular/common";
             <span class="material-symbols-outlined">bolt</span>
             Start a beat in Quick Session
           </button>
+          <button type="button" class="arch-map-cta arch-map-cta-secondary" (click)="onStudioGuide.emit()">
+            <span class="material-symbols-outlined">school</span>
+            Open the Studio Masterclass
+          </button>
           <span class="arch-map-hint">Quick Session thinks the way this map does — one screen over one document.</span>
         </footer>
       </div>
@@ -274,6 +278,17 @@ import { CommonModule } from "@angular/common";
       .arch-map-cta:hover {
         filter: brightness(1.08);
       }
+      .arch-map-cta-secondary {
+        border: 1px solid rgba(93, 196, 194, 0.42);
+        background: rgba(93, 196, 194, 0.09);
+        color: #8ee7e1;
+      }
+      .arch-map-cta-secondary:hover {
+        filter: none;
+        border-color: rgba(93, 196, 194, 0.7);
+        background: rgba(93, 196, 194, 0.16);
+        color: #d4fffc;
+      }
       .arch-map-hint {
         font-size: 0.68rem;
         color: #6b7ba3;
@@ -293,6 +308,9 @@ export class ArchitectureMapComponent {
    * navigation to the shell.
    */
   @Output() onQuickSession = new EventEmitter<void>();
+
+  /** Open the full guided Masterclass; the shell owns the overlay state. */
+  @Output() onStudioGuide = new EventEmitter<void>();
 
   @HostListener("document:keydown.escape")
   onEscape(): void {

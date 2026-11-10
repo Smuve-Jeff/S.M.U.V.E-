@@ -73,6 +73,7 @@ describe("StudioComponent", () => {
     replaceTrackNotes: jest.fn(),
     crossLinkRequest: signal(null),
     launchQuantize: signal<"none" | "1bar" | "2bar" | "4bar">("none"),
+    scenePlaybackActive: signal(false),
     sceneFollowEnabled: signal(false),
     sceneFollowBars: signal(4),
     sceneFollowRules: signal<Record<string, any>>({}),
@@ -264,6 +265,7 @@ describe("StudioComponent", () => {
     jest.clearAllMocks();
     mockMusicManager.tracks.set([]);
     mockMusicManager.launchQuantize.set("none");
+    mockMusicManager.scenePlaybackActive.set(false);
     mockMusicManager.sceneFollowEnabled.set(false);
     mockMusicManager.sceneFollowBars.set(4);
     mockMusicManager.sceneFollowRules.set({});
@@ -2152,6 +2154,45 @@ describe("StudioComponent", () => {
       expect(component.smartProductionDetail(cap("bpmDetection"))).toBe("~96 BPM");
 
       expect(component.smartProductionDetail(cap("stemSeparation"))).toBe("Ready");
+    });
+  });
+
+  describe("studio masterclass deep links", () => {
+    it("opens a shared lesson and mirrors tab changes into the URL", () => {
+      mockRouter.navigate.mockClear();
+
+      component.openStudioGuide({ lessonId: "song-export" });
+
+      expect(component.showStudioGuide()).toBe(true);
+      expect(component.guideTrackRequest()).toBe("full-song");
+      expect(component.guideLessonRequest()).toBe("song-export");
+      expect(mockRouter.navigate).toHaveBeenCalledWith(
+        [],
+        expect.objectContaining({
+          queryParams: { guide: "full-song", lesson: "song-export" },
+        }),
+      );
+
+      component.onGuideStateChange({
+        tab: "atlas",
+        track: "full-song",
+        lessonId: "song-export",
+      });
+      expect(mockRouter.navigate).toHaveBeenLastCalledWith(
+        [],
+        expect.objectContaining({
+          queryParams: { guide: "atlas", lesson: null },
+        }),
+      );
+
+      component.closeStudioGuide();
+      expect(component.showStudioGuide()).toBe(false);
+      expect(mockRouter.navigate).toHaveBeenLastCalledWith(
+        [],
+        expect.objectContaining({
+          queryParams: { guide: null, lesson: null },
+        }),
+      );
     });
   });
 
