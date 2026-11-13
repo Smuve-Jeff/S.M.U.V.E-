@@ -297,6 +297,40 @@
   }
 }
 
+/* Phones keep the shell controls (menu, collapse, arm, AI) on one row. Drop
+   the two-line wordmark at the phone tier so the audio arm can remain a
+   full-size thumb target instead of flexing down to its icon width. */
+@media (max-width: 390px) {
+  :host .comp-shell .comp-topbar .comp-brand-text {
+    display: none;
+  }
+
+  :host .comp-shell .comp-topbar .comp-arm-audio {
+    width: 44px;
+    min-width: 44px;
+    padding: 0;
+    justify-content: center;
+  }
+}
+
+/* Seven tabs on a 320–360px phone need every available pixel to keep the
+   10px labels intact. Reclaim the dock's side padding and per-tab gutters
+   rather than shrinking the type below the readable mobile tier. */
+@media (max-width: 360px) {
+  :host .comp-shell .comp-bottombar {
+    padding-inline: 0;
+  }
+
+  :host .comp-shell .comp-bottombar .comp-tab {
+    margin-inline: 0;
+    padding-inline: 0;
+  }
+
+  :host .comp-shell .comp-bottombar .comp-tab-label {
+    letter-spacing: 0;
+  }
+}
+
 .comp-brand {
   display: flex;
   align-items: center;

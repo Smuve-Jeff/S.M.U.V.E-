@@ -894,7 +894,11 @@
   flex: 0 1 auto;
   flex-wrap: nowrap;
   gap: 8px;
-  overflow: visible;
+  /* Keep every control reachable once the row is wider than the topbar.
+     The `overflow: visible` override defeated the shared horizontal-rail
+     class at 1024px, clipping Pitch, Mod and Volume past the shell edge. */
+  overflow-x: auto;
+  overflow-y: hidden;
   padding: 2px;
 }
 
