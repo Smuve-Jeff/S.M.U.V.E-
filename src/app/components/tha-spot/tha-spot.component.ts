@@ -478,16 +478,27 @@ const FEED_REFRESH_INTERVAL_MS = 300000;
           opacity: 1;
           pointer-events: auto;
         }
+        /*
+         * The phone header wraps to ~160px (logo row, control row, mode
+         * switch row) plus the 48px sticky search bar, not the 64px assumed
+         * here, so pinning these tabs at 64px put them on top of the header's
+         * last icon. Start them under the search bar and give the intel tab
+         * its own row.
+         */
         .rival-hub-toggle,
         .rival-hub-toggle.panel-open,
         .intel-toggle,
         .intel-toggle.panel-open {
-          top: calc(64px + env(safe-area-inset-top, 0px) + 0.5rem);
+          top: calc(env(safe-area-inset-top, 0px) + 216px);
           right: 0;
           transform: none;
           border-right: 0;
           border-left: 1px solid rgba(var(--neon-cyan-rgb), 0.35);
           border-radius: 10px 0 0 10px;
+        }
+        .intel-toggle,
+        .intel-toggle.panel-open {
+          top: calc(env(safe-area-inset-top, 0px) + 264px);
         }
         .rival-hub-toggle-label,
         .intel-toggle-label {
@@ -552,6 +563,15 @@ const FEED_REFRESH_INTERVAL_MS = 300000;
         .back-to-top-btn {
           bottom: 12px;
           right: 12px;
+        }
+        /* 52px header + 48px search bar; keep the tabs below both. */
+        .rival-hub-toggle,
+        .rival-hub-toggle.panel-open {
+          top: calc(env(safe-area-inset-top, 0px) + 108px);
+        }
+        .intel-toggle,
+        .intel-toggle.panel-open {
+          top: calc(env(safe-area-inset-top, 0px) + 156px);
         }
         .mobile-search-bar {
           display: flex;
