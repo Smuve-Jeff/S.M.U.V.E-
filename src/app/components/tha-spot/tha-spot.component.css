@@ -3106,9 +3106,9 @@
 
 .spectator-chat-drawer {
   position: absolute;
-  right: 12px;
+  right: 56px;
   bottom: 60px;
-  width: 280px;
+  width: min(280px, calc(100vw - 76px));
   max-height: 50%;
   display: flex;
   flex-direction: column;
@@ -3119,8 +3119,17 @@
   border: 1px solid var(--glass-border-active);
   box-shadow: -8px 0 24px rgba(0, 0, 0, 0.6);
   z-index: 11;
-  transform: translateX(120%);
-  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: spec-drawer-in 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes spec-drawer-in {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 .spectator-chat-drawer.open {
   transform: translateX(0);
@@ -4548,4 +4557,379 @@
     opacity: 1;
     transform: scale(1.04);
   }
+}
+
+/* ════════════════════════════════════════════════════════════
+   POST-RUN RATING DIALOG
+   The modal markup shipped with no rules at all, so it stacked as a
+   bare list in the page corner. It is a centred dialog over a backdrop.
+   ════════════════════════════════════════════════════════════ */
+.rating-modal-wrap {
+  position: fixed;
+  inset: 0;
+  z-index: 12000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+.rating-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(2, 4, 10, 0.72);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+.rating-modal-card {
+  position: relative;
+  z-index: 1;
+  width: min(360px, 100%);
+  max-height: calc(100vh - 2rem);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  padding: 1.15rem 1.2rem 1.25rem;
+  border-radius: 16px;
+  border: 1px solid rgba(0, 229, 255, 0.28);
+  background: linear-gradient(
+    180deg,
+    rgba(18, 24, 44, 0.97),
+    rgba(8, 11, 22, 0.98)
+  );
+  box-shadow:
+    0 24px 60px rgba(0, 0, 0, 0.65),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  animation: rating-card-in 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes rating-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.rating-close {
+  position: absolute;
+  top: 0.55rem;
+  right: 0.55rem;
+  display: grid;
+  place-items: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.55);
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+.rating-close:hover {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: var(--glass-border);
+  color: #fff;
+}
+.rating-close .material-symbols-outlined {
+  font-size: 1rem;
+}
+.rating-modal-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding-right: 1.9rem;
+}
+.rating-glyph {
+  font-size: 1.05rem;
+  filter: drop-shadow(0 0 10px rgba(255, 209, 102, 0.45));
+}
+.rating-title {
+  font-family: var(--elite-font);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #fff;
+}
+.rating-game-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+.rating-game-name {
+  font-family: var(--elite-font);
+  font-size: 1rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--neon-cyan);
+}
+.rating-game-meta {
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+.rating-stars-row {
+  display: flex;
+  justify-content: center;
+  gap: 0.3rem;
+}
+.rating-star-btn {
+  background: transparent;
+  border: 0;
+  padding: 0 0.1rem;
+  font-size: 1.7rem;
+  line-height: 1;
+  color: rgba(255, 255, 255, 0.26);
+  cursor: pointer;
+  transition:
+    transform 0.15s ease,
+    color 0.15s ease,
+    text-shadow 0.15s ease;
+}
+.rating-star-btn:hover,
+.rating-star-btn:focus-visible {
+  color: #ffd166;
+  transform: translateY(-2px) scale(1.08);
+  text-shadow: 0 0 14px rgba(255, 209, 102, 0.6);
+  outline: none;
+}
+.rating-result-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.4rem;
+}
+.rating-result-btn {
+  padding: 0.55rem 0.4rem;
+  border-radius: 10px;
+  border: 1px solid var(--glass-border);
+  background: rgba(255, 255, 255, 0.03);
+  color: rgba(255, 255, 255, 0.82);
+  font-family: var(--elite-font);
+  font-size: 0.56rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.rating-result-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+.rating-result-btn.win {
+  border-color: rgba(34, 197, 94, 0.35);
+  background: rgba(34, 197, 94, 0.12);
+  color: #4ade80;
+}
+.rating-result-btn.win:hover {
+  background: rgba(34, 197, 94, 0.22);
+}
+.rating-result-btn.loss {
+  border-color: rgba(239, 68, 68, 0.35);
+  background: rgba(239, 68, 68, 0.12);
+  color: #f87171;
+}
+.rating-result-btn.loss:hover {
+  background: rgba(239, 68, 68, 0.22);
+}
+.rating-result-btn.draw {
+  border-color: rgba(0, 229, 255, 0.35);
+  background: rgba(0, 229, 255, 0.1);
+  color: var(--neon-cyan);
+}
+.rating-result-btn.draw:hover {
+  background: rgba(0, 229, 255, 0.2);
+}
+.rating-result-btn.skip {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+/* ════════════════════════════════════════════════════════════
+   SPECTATOR RAIL — reactions and stop control, pinned on screen
+   The rail had no rules either and sat a full viewport to the left,
+   so its buttons could not be reached at all.
+   ════════════════════════════════════════════════════════════ */
+.spectator-rail {
+  position: fixed;
+  top: 50%;
+  right: 0.6rem;
+  transform: translateY(-50%);
+  z-index: 12;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  max-width: 6rem;
+  padding: 0.55rem 0.45rem;
+  border-radius: 14px;
+  border: 1px solid var(--glass-border);
+  background: rgba(5, 8, 15, 0.82);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.55);
+}
+.spectator-bubbles {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  max-height: 36vh;
+  overflow: hidden;
+}
+.spectator-bubble {
+  font-size: 1.35rem;
+  line-height: 1;
+  filter: drop-shadow(0 0 8px rgba(0, 229, 255, 0.4));
+  animation: spectator-bubble-in 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes spectator-bubble-in {
+  from {
+    opacity: 0;
+    transform: translateX(10px) scale(0.6);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.spectator-picker {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.28rem;
+}
+.spectator-emoji-btn {
+  display: grid;
+  place-items: center;
+  width: 1.9rem;
+  height: 1.9rem;
+  font-size: 0.95rem;
+  border-radius: 9px;
+  border: 1px solid var(--glass-border);
+  background: rgba(255, 255, 255, 0.04);
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+.spectator-emoji-btn:hover,
+.spectator-emoji-btn:focus-visible {
+  background: rgba(0, 229, 255, 0.14);
+  border-color: rgba(0, 229, 255, 0.4);
+  transform: translateY(-1px);
+  outline: none;
+}
+.spectator-stop {
+  width: 100%;
+  padding: 0.35rem 0.25rem;
+  border-radius: 8px;
+  border: 1px solid rgba(239, 68, 68, 0.22);
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+  font-family: var(--elite-font);
+  font-size: 0.42rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  line-height: 1.2;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.spectator-stop:hover {
+  background: rgba(239, 68, 68, 0.2);
+}
+.spectator-stop .material-symbols-outlined {
+  font-size: 0.8rem;
+  display: block;
+  margin: 0 auto 0.15rem;
+}
+
+/* ── Spectator chat drawer internals ──────────────── */
+.spec-chat-header {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.55rem 0.75rem;
+  border-bottom: 1px solid var(--glass-border);
+  flex-shrink: 0;
+}
+.spec-chat-header .material-symbols-outlined {
+  font-size: 0.9rem;
+  color: var(--neon-cyan);
+}
+.spec-chat-title {
+  font-family: var(--elite-font);
+  font-size: 0.55rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #fff;
+}
+.spec-chat-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding: 0.55rem 0.75rem;
+}
+.spec-chat-line {
+  font-size: 0.62rem;
+  line-height: 1.35;
+  color: rgba(255, 255, 255, 0.82);
+}
+.spec-chat-name {
+  color: var(--neon-cyan);
+  font-weight: 700;
+  margin-right: 0.25rem;
+}
+.spec-chat-empty {
+  font-size: 0.6rem;
+  font-style: italic;
+  color: rgba(255, 255, 255, 0.42);
+}
+.spec-chat-input-row {
+  display: flex;
+  gap: 0.35rem;
+  padding: 0.5rem 0.6rem;
+  border-top: 1px solid var(--glass-border);
+  flex-shrink: 0;
+}
+.spec-chat-input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.4rem 0.55rem;
+  border-radius: 8px;
+  border: 1px solid var(--glass-border);
+  background: rgba(255, 255, 255, 0.05);
+  color: #fff;
+  font-size: 0.62rem;
+  outline: none;
+  transition: border-color 0.18s ease;
+}
+.spec-chat-input::placeholder {
+  color: rgba(255, 255, 255, 0.32);
+}
+.spec-chat-input:focus {
+  border-color: rgba(0, 229, 255, 0.45);
+}
+.spec-chat-send {
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  flex-shrink: 0;
+  border-radius: 8px;
+  border: 1px solid rgba(0, 229, 255, 0.3);
+  background: rgba(0, 229, 255, 0.12);
+  color: var(--neon-cyan);
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+.spec-chat-send:hover {
+  background: rgba(0, 229, 255, 0.24);
+}
+.spec-chat-send .material-symbols-outlined {
+  font-size: 0.95rem;
 }
