@@ -68,6 +68,14 @@ interface NavigationGroup {
   items: ViewConfig[];
 }
 
+/** The dock has seven tabs; full navigation labels truncate on tablets. */
+const MOBILE_NAV_SHORT_LABELS: Record<string, string> = {
+  'Label Hub': 'Hub',
+  'Adaptive Profile': 'Adaptive',
+  'Artist Coach': 'Coach',
+  'Intel Lab': 'Intel',
+};
+
 @Component({
   selector: 'app-root',
   standalone: true,
@@ -208,6 +216,11 @@ export class AppComponent {
   mobilePrimaryViews = computed(() =>
     this.allowViews(this.uiService.getPrimaryMobileViewConfigs())
   );
+
+  mobileNavLabel(label: string): string {
+    return MOBILE_NAV_SHORT_LABELS[label] ?? label;
+  }
+
   mobileOverflowViews = computed(() =>
     this.allowViews(this.uiService.getOverflowMobileViewConfigs())
   );

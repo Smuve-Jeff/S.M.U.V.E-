@@ -9,3 +9,18 @@
     padding: 0.875rem;
   }
 }
+
+/* Touch surfaces: the desktop card can stay compact, but tablet and phone
+   actions need a full finger target. */
+@media (max-width: 1024px) {
+  .casefile-touch {
+    min-height: 44px;
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+
+  .casefile-touch-icon {
+    min-width: 44px;
+    min-height: 44px;
+  }
+}

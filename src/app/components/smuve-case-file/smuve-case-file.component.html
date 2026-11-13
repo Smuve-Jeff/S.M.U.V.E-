@@ -35,7 +35,7 @@
         <button
           type="button"
           (click)="hearIt()"
-          class="px-3 py-1.5 rounded-lg border border-brand-primary/30 bg-brand-primary/10 text-[9px] font-black uppercase tracking-widest text-brand-primary hover:bg-brand-primary/20 transition-colors flex items-center gap-1.5"
+          class="casefile-touch px-3 py-1.5 rounded-lg border border-brand-primary/30 bg-brand-primary/10 text-[9px] font-black uppercase tracking-widest text-brand-primary hover:bg-brand-primary/20 transition-colors flex items-center gap-1.5"
           title="Hear this room in a randomly chosen S.M.U.V.E. voice"
         >
           <span class="material-symbols-outlined text-sm">campaign</span>
@@ -45,7 +45,7 @@
           *ngIf="hasEntries()"
           type="button"
           (click)="clearAll()"
-          class="px-3 py-1.5 rounded-lg border text-[9px] font-black uppercase tracking-widest transition-colors"
+          class="casefile-touch px-3 py-1.5 rounded-lg border text-[9px] font-black uppercase tracking-widest transition-colors"
           [class.border-red-400/40]="!confirmingClear()"
           [class.text-red-300]="!confirmingClear()"
           [class.bg-red-400/10]="!confirmingClear()"
@@ -183,7 +183,7 @@
           *ngFor="let filter of filters"
           type="button"
           (click)="setFilter(filter.id)"
-          class="px-3 py-1.5 rounded-lg border text-[9px] font-black uppercase tracking-widest transition-colors"
+          class="casefile-touch px-3 py-1.5 rounded-lg border text-[9px] font-black uppercase tracking-widest transition-colors"
           [class.bg-brand-primary]="activeFilter() === filter.id"
           [class.text-white]="activeFilter() === filter.id"
           [class.border-brand-primary]="activeFilter() === filter.id"
@@ -255,7 +255,7 @@
               *ngIf="room.route as route"
               type="button"
               (click)="openRoom(room.surface)"
-              class="px-2 py-1 rounded border border-white/10 bg-white/5 text-[8px] font-black uppercase tracking-widest text-slate-300 hover:border-brand-primary/40 hover:text-brand-primary transition-colors flex items-center gap-1"
+              class="casefile-touch px-2 py-1 rounded border border-white/10 bg-white/5 text-[8px] font-black uppercase tracking-widest text-slate-300 hover:border-brand-primary/40 hover:text-brand-primary transition-colors flex items-center gap-1"
               [title]="'Open ' + room.label + ' (' + route + ')'"
               [attr.aria-label]="'Open the ' + room.label + ' workspace'"
             >
@@ -265,7 +265,7 @@
             <button
               type="button"
               (click)="askRoom(room)"
-              class="px-2 py-1 rounded border border-brand-primary/25 bg-brand-primary/10 text-[8px] font-black uppercase tracking-widest text-brand-primary hover:bg-brand-primary/20 transition-colors flex items-center gap-1"
+              class="casefile-touch px-2 py-1 rounded border border-brand-primary/25 bg-brand-primary/10 text-[8px] font-black uppercase tracking-widest text-brand-primary hover:bg-brand-primary/20 transition-colors flex items-center gap-1"
               [title]="'Ask S.M.U.V.E. about ' + room.label + ' with this record in hand'"
               [attr.aria-label]="'Ask S.M.U.V.E. about the ' + room.label + ' room'"
             >
@@ -333,7 +333,7 @@
                   *ngIf="isOpenLoop(entry)"
                   type="button"
                   (click)="resolve(entry)"
-                  class="px-2 py-1 rounded border border-emerald-400/30 bg-emerald-400/10 text-[8px] font-black uppercase tracking-widest text-emerald-300 hover:bg-emerald-400/20 transition-colors"
+                  class="casefile-touch px-2 py-1 rounded border border-emerald-400/30 bg-emerald-400/10 text-[8px] font-black uppercase tracking-widest text-emerald-300 hover:bg-emerald-400/20 transition-colors"
                   [attr.aria-label]="'Mark done: ' + entryLabel(entry)"
                 >
                   Done
@@ -342,7 +342,7 @@
                   *ngIf="isClosedLoop(entry)"
                   type="button"
                   (click)="reopen(entry)"
-                  class="px-2 py-1 rounded border border-sky-400/30 bg-sky-400/10 text-[8px] font-black uppercase tracking-widest text-sky-300 hover:bg-sky-400/20 transition-colors"
+                  class="casefile-touch px-2 py-1 rounded border border-sky-400/30 bg-sky-400/10 text-[8px] font-black uppercase tracking-widest text-sky-300 hover:bg-sky-400/20 transition-colors"
                   [attr.aria-label]="'Reopen: ' + entryLabel(entry)"
                   title="Put this loop back on the record"
                 >
@@ -351,7 +351,7 @@
                 <button
                   type="button"
                   (click)="forget(entry)"
-                  class="w-6 h-6 rounded-full flex items-center justify-center hover:bg-white/10 hover:text-red-300 transition-colors"
+                  class="casefile-touch-icon w-6 h-6 rounded-full flex items-center justify-center hover:bg-white/10 hover:text-red-300 transition-colors"
                   [class.text-slate-500]="confirmingForgetId() !== entry.id"
                   [class.bg-red-500]="confirmingForgetId() === entry.id"
                   [class.text-white]="confirmingForgetId() === entry.id"
@@ -413,7 +413,7 @@
           <button
             type="button"
             (click)="openProfile()"
-            class="px-2 py-1 rounded border border-white/10 bg-white/5 text-[8px] font-black uppercase tracking-widest text-slate-300 hover:border-brand-primary/40 hover:text-brand-primary transition-colors flex items-center gap-1"
+            class="casefile-touch px-2 py-1 rounded border border-white/10 bg-white/5 text-[8px] font-black uppercase tracking-widest text-slate-300 hover:border-brand-primary/40 hover:text-brand-primary transition-colors flex items-center gap-1"
             title="Open the Artist Profile"
           >
             <span class="material-symbols-outlined text-xs">badge</span>
@@ -521,7 +521,7 @@
             *ngIf="hasEntries()"
             type="button"
             (click)="setFilter('all'); clearSearch()"
-            class="px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-[9px] font-black uppercase tracking-widest text-slate-300 hover:bg-white/10 transition-colors"
+            class="casefile-touch px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-[9px] font-black uppercase tracking-widest text-slate-300 hover:bg-white/10 transition-colors"
           >
             Show everything
           </button>
@@ -529,7 +529,7 @@
             *ngIf="!hasEntries()"
             type="button"
             (click)="openConsole()"
-            class="px-4 py-2 rounded-lg bg-brand-primary text-white text-[9px] font-black uppercase tracking-widest hover:bg-brand-primary/90 transition-colors"
+            class="casefile-touch px-4 py-2 rounded-lg bg-brand-primary text-white text-[9px] font-black uppercase tracking-widest hover:bg-brand-primary/90 transition-colors"
           >
             Open S.M.U.V.E.
           </button>

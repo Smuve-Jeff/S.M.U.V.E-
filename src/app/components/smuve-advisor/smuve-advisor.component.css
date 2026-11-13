@@ -25,3 +25,14 @@
     right: 0.75rem !important;
   }
 }
+
+/* The mobile dock owns the bottom edge on tablet and phone. Lift the advisor
+   clear of it so the FAB is neither clipped nor sitting on a nav tab. */
+@media (max-width: 1024px) {
+  :host > div:first-child {
+    right: 1rem;
+    bottom: calc(
+      var(--mobile-dock-height, 92px) + env(safe-area-inset-bottom, 0px) + 0.75rem
+    );
+  }
+}

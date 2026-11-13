@@ -750,3 +750,46 @@
     width: 100%;
   }
 }
+
+/* 320px phones: keep the progress stats above the fixed dock instead of
+   starting the page with the lede and losing the scorecards below it. */
+@media (max-width: 380px) {
+  .academy {
+    padding: 18px 14px 52px;
+    gap: 16px;
+  }
+
+  .hero {
+    gap: 14px;
+    padding: 18px;
+  }
+
+  .hero h1 {
+    font-size: 24px;
+  }
+
+  .lede {
+    font-size: 12px;
+    line-height: 1.5;
+  }
+
+  .hero-chips {
+    margin-top: 10px;
+  }
+
+  .hero-stats {
+    gap: 6px;
+  }
+
+  .stat {
+    padding: 9px 8px;
+  }
+
+  .value {
+    font-size: 20px;
+  }
+
+  .key {
+    font-size: 9px;
+  }
+}

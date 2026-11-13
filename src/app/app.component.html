@@ -446,7 +446,7 @@
             >
               {{ activeViewConfig().label }}
             </h2>
-            <span class="text-[11px] text-text-dim truncate hidden lg:block">
+            <span class="text-[11px] text-text-dim truncate hidden xl:block">
               {{ activeViewConfig().description }}
             </span>
           </div>
@@ -455,7 +455,7 @@
 
       <div class="flex items-center gap-2 md:gap-3 lg:gap-4 shrink-0">
         <div
-          class="hidden sm:flex items-center gap-3 md:gap-4 bg-background-alt/50 rounded-lg px-3 md:px-4 py-1.5 border border-border"
+          class="shell-connectivity-status hidden sm:flex items-center gap-3 md:gap-4 bg-background-alt/50 rounded-lg px-3 md:px-4 py-1.5 border border-border"
         >
           <div class="flex items-center gap-2">
             <div
@@ -525,7 +525,7 @@
         </button>
 
         <div
-          class="shell-appearance-group hidden lg:flex items-center gap-2 rounded-2xl border border-border bg-background-alt/40 px-2 py-2"
+          class="shell-appearance-group hidden xl:flex items-center gap-2 rounded-2xl border border-border bg-background-alt/40 px-2 py-2"
         >
           <div class="shell-appearance-status px-2">
             <span class="shell-appearance-label">Appearance</span>
@@ -1050,16 +1050,18 @@
         (click)="navigateToView(view.mode)"
         class="mobile-nav-button"
         [attr.aria-label]="'Open ' + view.label"
+        [title]="view.label"
         [class.text-brand-primary]="uiService.mainViewMode() === view.mode"
         [class.text-text-dim]="uiService.mainViewMode() !== view.mode"
       >
         <span class="material-symbols-outlined">{{ view.icon }}</span>
-        <span class="text-[8px] font-bold uppercase">{{ view.label }}</span>
+        <span class="text-[8px] font-bold uppercase">{{ mobileNavLabel(view.label) }}</span>
       </button>
       <button
         type="button"
         (click)="toggleMobileWorkspaceTray()"
         class="mobile-nav-button"
+        title="More workspaces"
         [attr.aria-label]="
           'Open more workspaces' +
           (mobileMoveQueue().length
