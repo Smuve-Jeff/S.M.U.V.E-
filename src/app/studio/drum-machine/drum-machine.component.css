@@ -56,14 +56,17 @@
   gap: 10px;
 }
 
-/* Tablet header owns Home so the floating shortcut no longer covers the
-   rightmost step cells. Phones keep the floating shortcut. */
+/* The header owns Home so the floating shortcut never covers the rightmost
+   step cells. Phones get an icon-only 44px target; tablets restore the label. */
 .dm-home-link {
-  display: none;
+  display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
-  height: 40px;
-  padding: 0 12px;
+  width: 44px;
+  min-width: 44px;
+  height: 44px;
+  padding: 0;
   border: 1px solid var(--ivory-line);
   border-radius: 999px;
   background: var(--ivory-paper);
@@ -84,10 +87,18 @@
   border-color: var(--teal-500);
   color: var(--teal-500);
 }
+.dm-home-label {
+  display: none;
+}
 
 @media (min-width: 768px) {
   .dm-home-link {
-    display: inline-flex;
+    width: auto;
+    height: 40px;
+    padding: 0 12px;
+  }
+  .dm-home-label {
+    display: inline;
   }
 }
 .dm-ai-chip {
@@ -2173,6 +2184,27 @@ which pushed the sequencer 426px below the fold on a 390px phone. They are a
   .dm-pattern-actions {
     width: 100%;
     margin-left: 0;
+  }
+}
+
+@media (max-width: 340px) {
+  /* Four header actions at 320px: tighten the row rather than dropping the
+     Home target or clipping Randomize. */
+  .dm-header {
+    padding-inline: 6px;
+  }
+  .dm-header-icons {
+    gap: 4px;
+  }
+  .dm-header-icons .btn-pro,
+  .dm-header-icons .dm-ai-chip,
+  .dm-header-icons .dm-phone-tools {
+    gap: 3px;
+    padding-inline: 4px;
+    font-size: 9px;
+  }
+  .dm-header-icons .material-symbols-outlined {
+    font-size: 16px;
   }
 }
 

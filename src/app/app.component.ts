@@ -790,10 +790,9 @@ export class AppComponent {
   }
 
   /**
-   * Drum Machine and Performance put a Home pill in their own headers on
-   * tablet, so the floating pill must not sit over the rightmost grid steps
-   * or rack controls. Phones keep the floating pill because those headers have
-   * no spare row at that width.
+   * Drum Machine and Performance put a Home pill in their own headers, so the
+   * floating pill must not sit over grid steps or rack controls. Their headers
+   * keep the action reachable on phones as a compact icon-only control.
    */
   usesInlineHomeLink(): boolean {
     return ['drum-machine', 'performance'].includes(this.routeAnimState());

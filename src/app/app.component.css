@@ -23,11 +23,9 @@
   outline-offset: 3px;
 }
 
-@media (min-width: 768px) {
-  /* These immersive surfaces carry Home in their own header at tablet width. */
-  .universal-home-link.universal-home-link--route-inline {
-    display: none;
-  }
+/* These immersive surfaces carry Home in their own header at every width. */
+.universal-home-link.universal-home-link--route-inline {
+  display: none;
 }
 
 :host {

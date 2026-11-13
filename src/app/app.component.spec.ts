@@ -527,13 +527,13 @@ describe('AppComponent', () => {
     });
   });
 
-  it('moves the floating Home shortcut into the drum-machine header on tablet', async () => {
+  it('moves the floating Home shortcut into the drum-machine header', async () => {
     const { component } = await createComponent('/drum-machine');
 
     expect(component.usesInlineHomeLink()).toBe(true);
   });
 
-  it('moves the floating Home shortcut into the performance header on tablet', async () => {
+  it('moves the floating Home shortcut into the performance header', async () => {
     const { component } = await createComponent('/performance');
 
     expect(component.usesInlineHomeLink()).toBe(true);

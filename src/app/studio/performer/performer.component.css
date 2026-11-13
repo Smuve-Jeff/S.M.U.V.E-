@@ -41,14 +41,18 @@
   flex-wrap: wrap;
 }
 
-/* Tablet header owns Home so the floating shortcut no longer covers the
-   right-hand rack and limiter controls. Phones keep the floating shortcut. */
+/* The header owns Home so the floating shortcut never covers the right-hand
+   rack and limiter controls. Phones get an icon-only 44px target; tablets
+   restore the label. */
 .perf-home-link {
-  display: none;
+  display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 5px;
-  min-height: 40px;
-  padding: 0 10px;
+  width: 44px;
+  min-width: 44px;
+  height: 44px;
+  padding: 0;
   border: 1px solid rgba(0, 229, 255, 0.32);
   border-radius: 9px;
   background: rgba(8, 16, 26, 0.9);
@@ -70,10 +74,18 @@
   background: rgba(0, 229, 255, 0.18);
   color: #eafcff;
 }
+.perf-home-label {
+  display: none;
+}
 
 @media (min-width: 768px) {
   .perf-home-link {
-    display: inline-flex;
+    width: auto;
+    height: 40px;
+    padding: 0 10px;
+  }
+  .perf-home-label {
+    display: inline;
   }
 }
 
@@ -3983,6 +3995,13 @@ disclosure. Record arm, monitor and phantom stay visible. */
     padding: 0 7px;
   }
   .perf-phone-tools span:not(.material-symbols-outlined) {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  /* The decorative spectrum strip yields to the Home target on phones. */
+  .performer-header .spectrum-strip {
     display: none;
   }
 }
