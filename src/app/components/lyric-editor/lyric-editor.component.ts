@@ -1,7 +1,9 @@
 import { Component, OnDestroy, computed, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { ReleasePipelineService } from '../../services/release-pipeline.service';
+import { SongwritingHandoffService } from '../../services/songwriting-handoff.service';
 
 const LYRIC_DRAFT_KEY = 'smuve_lyric_draft';
 const WRITER_PAGES_KEY = 'smuve_writer_pages_v1';
@@ -28,6 +30,8 @@ interface StoredWriterPages {
 })
 export class LyricEditorComponent implements OnDestroy {
   private releaseService = inject(ReleasePipelineService);
+  private handoff = inject(SongwritingHandoffService);
+  private router = inject(Router);
 
   /** The active page. These two signals remain the editor's live buffers. */
   lyrics = signal<string>('');
@@ -68,8 +72,52 @@ export class LyricEditorComponent implements OnDestroy {
 
   private pageSequence = 1;
 
+  /** Confirmation that lyrics arrived from the Co-Write room. */
+  importedNotice = signal('');
+
   constructor() {
     this.restoreWriterState();
+    this.claimHandoff();
+  }
+
+  /**
+   * Takes lyrics the Co-Write room handed over and files them as their own
+   * page, so importing never overwrites what is already on the pad.
+   */
+  private claimHandoff(): void {
+    const draft = this.handoff.claim('pad');
+    if (!draft) return;
+
+    this.flushActivePage();
+    this.pageSequence += 1;
+    const page: WriterPage = {
+      id: `page-${Date.now()}-${this.pageSequence}`,
+      title: draft.title.trim() || 'Imported lyrics',
+      body: draft.body,
+      updatedAt: Date.now(),
+    };
+    this.pages.update((pages) => [...pages, page]);
+    this.openPage(page);
+    this.savedAt.set(null);
+    this.importedNotice.set(
+      `Imported \u201c${this.pageLabel(page)}\u201d from the Co-Write room.`
+    );
+  }
+
+  /**
+   * Hands this page to the Co-Write room as its starting material. An empty
+   * page is not a handoff, so the button does nothing useful without words.
+   */
+  sendToCoWrite(): void {
+    const body = this.lyrics();
+    if (!body.trim()) return;
+    this.handoff.handOff({
+      title: this.trackTitle(),
+      body,
+      from: 'pad',
+      to: 'cowrite',
+    });
+    void this.router.navigate(['/songwriting', 'cowrite']);
   }
 
   /**

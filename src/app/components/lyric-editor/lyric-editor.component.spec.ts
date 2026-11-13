@@ -1,6 +1,8 @@
 import { TestBed } from '@angular/core/testing';
+import { provideRouter, Router } from '@angular/router';
 import { LyricEditorComponent } from './lyric-editor.component';
 import { ReleasePipelineService } from '../../services/release-pipeline.service';
+import { SongwritingHandoffService } from '../../services/songwriting-handoff.service';
 
 describe('LyricEditorComponent', () => {
   const draftKey = 'smuve_lyric_draft';
@@ -14,7 +16,11 @@ describe('LyricEditorComponent', () => {
     localStorage.clear();
     await TestBed.configureTestingModule({
       imports: [LyricEditorComponent],
-      providers: [{ provide: ReleasePipelineService, useValue: {} }],
+      providers: [
+        provideRouter([]),
+        SongwritingHandoffService,
+        { provide: ReleasePipelineService, useValue: {} },
+      ],
     }).compileComponents();
   });
 
@@ -84,6 +90,53 @@ describe('LyricEditorComponent', () => {
     expect(text).toContain('S.M.U.V.E. Book Lab');
     expect(text).toContain('Publishing is a business choice');
     expect(text).toContain('New Page');
+  });
+
+  it('hands the current page to the Co-Write room', () => {
+    const { component } = create();
+    component.updatePageTitle('Hook');
+    component.updatePageBody('a line I wrote');
+    const navigate = jest
+      .spyOn(TestBed.inject(Router), 'navigate')
+      .mockResolvedValue(true);
+
+    component.sendToCoWrite();
+
+    expect(TestBed.inject(SongwritingHandoffService).pendingFor('cowrite')).toEqual({
+      title: 'Hook',
+      body: 'a line I wrote',
+      from: 'pad',
+      to: 'cowrite',
+    });
+    expect(navigate).toHaveBeenCalledWith(['/songwriting', 'cowrite']);
+  });
+
+  it('does not hand an empty page to the Co-Write room', () => {
+    const { component } = create();
+    const navigate = jest.spyOn(TestBed.inject(Router), 'navigate');
+
+    component.sendToCoWrite();
+
+    expect(TestBed.inject(SongwritingHandoffService).pendingFor('cowrite')).toBeNull();
+    expect(navigate).not.toHaveBeenCalled();
+  });
+
+  it('files lyrics handed over from the Co-Write room as a new page', () => {
+    TestBed.inject(SongwritingHandoffService).handOff({
+      title: 'First Session',
+      body: 'imported words',
+      from: 'cowrite',
+      to: 'pad',
+    });
+
+    const { component } = create();
+
+    // The existing page is kept; the import becomes its own page.
+    expect(component.pageCount()).toBe(2);
+    expect(component.trackTitle()).toBe('First Session');
+    expect(component.lyrics()).toBe('imported words');
+    expect(component.importedNotice()).toContain('First Session');
+    expect(TestBed.inject(SongwritingHandoffService).pendingFor('pad')).toBeNull();
   });
 
   it('labels its prompts as fixed starters, not generated lines', () => {

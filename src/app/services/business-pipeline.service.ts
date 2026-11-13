@@ -135,6 +135,38 @@ export class BusinessPipelineService {
     return true;
   }
 
+  /**
+   * Renames a pathway. Business infrastructure is named after the real thing —
+   * an entity, a label, a website — so the generated default cannot be the only
+   * name a pathway ever has. An empty name is refused rather than saved.
+   */
+  async renamePipeline(pipelineId: string, name: string): Promise<boolean> {
+    const trimmed = (name ?? '').trim().slice(0, 80);
+    if (!trimmed) {
+      this.logger.warn(
+        `BusinessPipeline: Refused to rename ${pipelineId} to an empty name`
+      );
+      return false;
+    }
+
+    const pipelines = this.activePipelines();
+    const target = pipelines.find((pipeline) => pipeline.id === pipelineId);
+    if (!target) return false;
+    if (target.name === trimmed) return true;
+
+    const updated = pipelines.map((pipeline) =>
+      pipeline.id === pipelineId
+        ? { ...pipeline, name: trimmed, updatedAt: Date.now() }
+        : pipeline
+    );
+    this.activePipelines.set(updated);
+    await this.saveToProfile(updated);
+    this.logger.info(
+      `BusinessPipeline: Renamed ${pipelineId} from "${target.name}" to "${trimmed}"`
+    );
+    return true;
+  }
+
   /** Hides a completed pipeline from the hub without losing its evidence. */
   async archivePipeline(pipelineId: string): Promise<boolean> {
     return this.setFinishedStatus(pipelineId, 'Completed', 'Archived');

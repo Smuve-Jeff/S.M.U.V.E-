@@ -1,6 +1,8 @@
 import { Component, signal, inject, computed, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
+import { SongwritingHandoffService } from '../../services/songwriting-handoff.service';
 import {
   CoWriteService,
   CoWriteTurn,
@@ -27,6 +29,12 @@ export class CowriteStudioComponent implements OnInit {
   private styleMimic = inject(SmuveStyleMimicService);
   private ai = inject(AiService);
   private snackbar = inject(SnackbarService);
+  private handoff = inject(SongwritingHandoffService);
+  private router = inject(Router);
+
+  /** Lyrics handed over by the Writer's Pad, opened as the first turn. */
+  seededBody = signal('');
+  seedNotice = signal('');
 
   // Session state
   currentSession = this.cowrite.currentSession;
@@ -127,6 +135,44 @@ export class CowriteStudioComponent implements OnInit {
     });
     // Load saved projects from localStorage on init
     this.cowrite.loadProjects();
+    this.claimHandoff();
+  }
+
+  /**
+   * Opens a page handed over from the Writer's Pad: its title becomes the
+   * topic and its words become the artist's first contribution, so the session
+   * starts from the page the artist was already writing.
+   */
+  private claimHandoff(): void {
+    const draft = this.handoff.claim('cowrite');
+    if (!draft) return;
+
+    const title = draft.title.trim();
+    this.setupConfig.update((config) => ({
+      ...config,
+      topic: title || config.topic,
+    }));
+    this.seededBody.set(draft.body);
+    this.seedNotice.set(
+      `Starting from \u201c${title || 'the Writer\u2019s Pad page'}\u201d \u2014 ` +
+        'your words go in as the first turn when you start.'
+    );
+  }
+
+  /** Hands the compiled lyrics to the Writer's Pad as their own page. */
+  sendLyricsToPad(): void {
+    const lyrics = this.getCompiledLyrics();
+    if (!lyrics.trim()) {
+      this.snackbar.info('There are no lyrics to hand to the Writer\u2019s Pad yet.');
+      return;
+    }
+    this.handoff.handOff({
+      title: this.currentSession()?.title || 'Co-Write session',
+      body: lyrics,
+      from: 'cowrite',
+      to: 'pad',
+    });
+    void this.router.navigate(['/songwriting', 'pad']);
   }
 
   toggleArtist(artist: string) {
@@ -323,6 +369,14 @@ export class CowriteStudioComponent implements OnInit {
 
     this.showSetup.set(false);
     this.showLyrics.set(true);
+
+    // Words carried in from the Writer's Pad are the artist's opening turn.
+    const seeded = this.seededBody();
+    if (seeded) {
+      this.cowrite.addUserContribution(seeded);
+      this.seededBody.set('');
+      this.seedNotice.set('');
+    }
 
     this.cowrite.generateSmuveContribution();
     this.suggestions.set([this.cowrite.getSuggestion('start')]);

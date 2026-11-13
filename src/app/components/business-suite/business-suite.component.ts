@@ -492,8 +492,31 @@ export class BusinessSuiteComponent implements OnInit {
     this.userContext.setMainViewMode('business-suite');
   }
 
+  /**
+   * Starts a pathway, asking for its name first. Business infrastructure is
+   * named after something real — a label, an entity, a site — so a generated
+   * default is a starting point, not the only name it can ever have.
+   */
   async startModule(type: BusinessPipelineType) {
-    const name = `Official ${type} Pathway`;
+    const open = this.activePipelineFor(type);
+    if (open) {
+      this.router.navigate(['/business-pipeline', open.id]);
+      return;
+    }
+
+    const suggested = `Official ${type} Pathway`;
+    const answer = await this.dialog.prompt({
+      title: `Name the ${type} pathway`,
+      message:
+        'This is how the pathway is listed on your record. You can rename it later.',
+      initialValue: suggested,
+      placeholder: suggested,
+      confirmLabel: 'Create pathway',
+      cancelLabel: 'Cancel',
+    });
+    if (answer === null) return;
+
+    const name = answer.trim() || suggested;
     const id = await this.bizService.initializeModule(type, name);
     this.router.navigate(['/business-pipeline', id]);
   }
@@ -550,6 +573,27 @@ export class BusinessSuiteComponent implements OnInit {
    */
   progress(pipeline: BusinessPipeline): number {
     return pipelineProgress(pipeline);
+  }
+
+  /** Renames a pathway from its hub card without opening it. */
+  async renamePipeline(pipeline: BusinessPipeline, event?: Event) {
+    event?.stopPropagation();
+    const answer = await this.dialog.prompt({
+      title: `Rename ${pipeline.name}`,
+      message:
+        'The name appears on this hub and in your career record. Empty names are refused.',
+      initialValue: pipeline.name,
+      confirmLabel: 'Save name',
+      cancelLabel: 'Cancel',
+    });
+    if (answer === null) return;
+    if (!(await this.bizService.renamePipeline(pipeline.id, answer))) {
+      await this.dialog.alert({
+        title: 'Pathway not renamed',
+        message: 'A pathway needs a name. Nothing was changed.',
+        confirmLabel: 'Got it',
+      });
+    }
   }
 
   /**

@@ -11,6 +11,15 @@
     <div class="writer-save">
       <button
         type="button"
+        class="writer-handoff"
+        (click)="sendToCoWrite()"
+        [disabled]="!lyrics().trim()"
+        title="Send this page to the Co-Write room as its starting material."
+      >
+        Co-write this page
+      </button>
+      <button
+        type="button"
         (click)="saveLyrics()"
         [title]="
           saveError() ||
@@ -19,6 +28,9 @@
       >
         {{ saveError() ? 'Save Failed' : savedAt() ? 'Pages Saved' : 'Save Pages' }}
       </button>
+      <small class="writer-import" *ngIf="importedNotice()">
+        {{ importedNotice() }}
+      </small>
       <small [class.is-error]="saveError()">
         {{
           saveError() ||

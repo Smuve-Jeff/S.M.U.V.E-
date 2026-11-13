@@ -191,6 +191,31 @@ export class BusinessPipelineDetailComponent implements OnInit {
     }
   }
 
+  /**
+   * Renames this pathway. The name is the entity's name on the artist's record,
+   * so it has to be editable after the pathway exists.
+   */
+  async renamePipeline(): Promise<void> {
+    const pipeline = this.pipeline();
+    if (!pipeline) return;
+    const answer = await this.dialog.prompt({
+      title: 'Rename pathway',
+      message:
+        'The name appears on the Business Hub and in your career record. Empty names are refused.',
+      initialValue: pipeline.name,
+      confirmLabel: 'Save name',
+      cancelLabel: 'Cancel',
+    });
+    if (answer === null) return;
+    if (!(await this.bizService.renamePipeline(pipeline.id, answer))) {
+      await this.dialog.alert({
+        title: 'Pathway not renamed',
+        message: 'A pathway needs a name. Nothing was changed.',
+        confirmLabel: 'Got it',
+      });
+    }
+  }
+
   /** Hand the artist to the coach surface rather than faking advice here. */
   askForGuidance() {
     void this.router.navigate(['/artist-coach']);

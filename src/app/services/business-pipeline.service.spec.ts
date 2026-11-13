@@ -7,7 +7,10 @@ import {
 import { LoggingService } from './logging.service';
 import { UserProfileService, initialProfile } from './user-profile.service';
 import type { UserProfile } from '../types/profile.types';
-import type { BusinessPipeline } from '../types/business.types';
+import {
+  BUSINESS_PIPELINE_TYPES,
+  type BusinessPipeline,
+} from '../types/business.types';
 
 describe('BusinessPipelineService', () => {
   let service: BusinessPipelineService;
@@ -161,6 +164,54 @@ describe('BusinessPipelineService', () => {
 
     expect(await service.removePipeline(completedPipeline.id)).toBe(true);
     expect(service.activePipelines()).toEqual([]);
+  });
+
+  it('builds a real stage plan for every pathway type', async () => {
+    load(profile());
+
+    for (const type of BUSINESS_PIPELINE_TYPES) {
+      const id = await service.initializeModule(type, `Named ${type} pathway`);
+      const pipeline = service
+        .activePipelines()
+        .find((candidate) => candidate.id === id)!;
+
+      // An empty plan would sit at a permanent 0% with nothing to act on.
+      expect(pipeline.stages.length).toBeGreaterThan(0);
+      expect(pipeline.stages.every((stage) => stage.steps.length > 0)).toBe(
+        true
+      );
+    }
+  });
+
+  it('renames a pathway and keeps the new name on the profile', async () => {
+    load(profile());
+    const id = await service.initializeModule(
+      'Record Label',
+      'Official Record Label Pathway'
+    );
+
+    expect(await service.renamePipeline(id, '  Night Shift Records  ')).toBe(
+      true
+    );
+
+    // The entity's real name is what belongs on the record.
+    expect(service.activePipelines()[0].name).toBe('Night Shift Records');
+    expect((profileSignal() as any).businessPipelines[0].name).toBe(
+      'Night Shift Records'
+    );
+  });
+
+  it('refuses to rename a pathway to nothing', async () => {
+    load(profile());
+    const id = await service.initializeModule(
+      'Record Label',
+      'Official Record Label Pathway'
+    );
+
+    expect(await service.renamePipeline(id, '   ')).toBe(false);
+    expect(service.activePipelines()[0].name).toBe(
+      'Official Record Label Pathway'
+    );
   });
 
   it('removes a completed pipeline from the profile', async () => {

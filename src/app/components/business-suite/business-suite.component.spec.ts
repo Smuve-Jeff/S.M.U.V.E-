@@ -28,7 +28,7 @@ describe('BusinessSuiteComponent', () => {
     archivePipeline: jest.Mock;
     restorePipeline: jest.Mock;
   };
-  let dialogMock: { confirm: jest.Mock; alert: jest.Mock };
+  let dialogMock: { confirm: jest.Mock; alert: jest.Mock; prompt: jest.Mock };
 
   const profile = (overrides: Partial<UserProfile> = {}): UserProfile =>
     JSON.parse(JSON.stringify({ ...initialProfile, ...overrides })) as UserProfile;
@@ -59,10 +59,12 @@ describe('BusinessSuiteComponent', () => {
       removePipeline: jest.fn().mockResolvedValue(true),
       archivePipeline: jest.fn().mockResolvedValue(true),
       restorePipeline: jest.fn().mockResolvedValue(true),
+      renamePipeline: jest.fn().mockResolvedValue(true),
     };
     dialogMock = {
       confirm: jest.fn().mockResolvedValue(false),
       alert: jest.fn().mockResolvedValue(undefined),
+      prompt: jest.fn().mockResolvedValue('Official Merch Pathway'),
     };
     await TestBed.configureTestingModule({
       imports: [BusinessSuiteComponent],
@@ -175,13 +177,61 @@ describe('BusinessSuiteComponent', () => {
     expect(navigate).toHaveBeenCalledWith(['/business-pipeline', 'biz-new']);
   });
 
+  it('asks for the pathway name instead of forcing the generated one', async () => {
+    await create(profile());
+    const navigate = jest
+      .spyOn(TestBed.inject(Router), 'navigate')
+      .mockResolvedValue(true);
+    dialogMock.prompt.mockResolvedValueOnce('Night Shift Records');
+
+    await component.startModule('Record Label');
+
+    expect(dialogMock.prompt).toHaveBeenCalledWith(
+      expect.objectContaining({
+        initialValue: 'Official Record Label Pathway',
+      })
+    );
+    expect(bizMock.initializeModule).toHaveBeenCalledWith(
+      'Record Label',
+      'Night Shift Records'
+    );
+    expect(navigate).toHaveBeenCalledWith(['/business-pipeline', 'biz-new']);
+  });
+
+  it('creates nothing when the artist cancels the naming prompt', async () => {
+    await create(profile());
+    const navigate = jest.spyOn(TestBed.inject(Router), 'navigate');
+    dialogMock.prompt.mockResolvedValueOnce(null);
+
+    await component.startModule('Website');
+
+    expect(bizMock.initializeModule).not.toHaveBeenCalled();
+    expect(navigate).not.toHaveBeenCalled();
+  });
+
+  it('renames a pathway from its card without opening it', async () => {
+    await create(profile());
+    bizMock.activePipelines.set([pipeline({ name: 'Official Merch Pathway' })]);
+    fixture.detectChanges();
+    const navigate = jest.spyOn(TestBed.inject(Router), 'navigate');
+    dialogMock.prompt.mockResolvedValueOnce('Tour Merch 2026');
+
+    await component.renamePipeline(bizMock.activePipelines()[0]);
+
+    expect(bizMock.renamePipeline).toHaveBeenCalledWith(
+      'biz-1',
+      'Tour Merch 2026'
+    );
+    expect(navigate).not.toHaveBeenCalled();
+  });
+
   it('offers to resume a module that already has an open pipeline', async () => {
     const nativeElement = await create(profile());
     bizMock.activePipelines.set([pipeline({ type: 'Merch' })]);
     fixture.detectChanges();
 
     const cards = Array.from(
-      nativeElement.querySelectorAll('.glass-v42')
+      nativeElement.querySelectorAll('.biz-module-card')
     ) as HTMLElement[];
     const card = (label: string) =>
       cards.find((candidate) => candidate.textContent?.includes(label))!;
@@ -200,7 +250,7 @@ describe('BusinessSuiteComponent', () => {
     fixture.detectChanges();
 
     const cards = Array.from(
-      nativeElement.querySelectorAll('.glass-v42')
+      nativeElement.querySelectorAll('.biz-module-card')
     ) as HTMLElement[];
     const card = cards.find((candidate) =>
       candidate.textContent?.includes('Merch')
@@ -252,12 +302,17 @@ describe('BusinessSuiteComponent', () => {
     const card = (label: string) =>
       cards.find((candidate) => candidate.textContent?.includes(label))!;
 
-    expect(card('Open Merch Pathway').querySelector('button')).toBeNull();
+    // An open pathway can be renamed; only a finished one can be retired.
+    expect(
+      Array.from(card('Open Merch Pathway').querySelectorAll('button')).map(
+        (button) => button.textContent?.trim()
+      )
+    ).toEqual(['Rename']);
     expect(
       Array.from(card('Finished Merch Pathway').querySelectorAll('button')).map(
         (button) => button.textContent?.trim()
       )
-    ).toEqual(['Archive pathway', 'Remove pathway']);
+    ).toEqual(['Rename', 'Archive pathway', 'Remove pathway']);
   });
 
   it('removes a completed pipeline only after confirmation', async () => {
@@ -337,7 +392,7 @@ describe('BusinessSuiteComponent', () => {
     const nativeElement = await create(profile());
     const icons = Array.from(
       nativeElement.querySelectorAll(
-        '.glass-v42 .material-symbols-outlined'
+        '.biz-module-card .material-symbols-outlined'
       )
     ).map((icon) => icon.textContent?.trim());
 

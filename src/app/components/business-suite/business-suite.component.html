@@ -359,12 +359,17 @@
               }}</span
             >
           </div>
-          <div
-            *ngIf="pipeline.status === 'Completed'"
-            class="mt-4 flex items-center gap-4"
-          >
+          <div class="mt-4 flex flex-wrap items-center gap-4">
             <button
               type="button"
+              (click)="renamePipeline(pipeline, $event)"
+              class="text-[9px] font-black uppercase tracking-widest text-text-dim hover:text-white transition-colors"
+            >
+              Rename
+            </button>
+            <button
+              type="button"
+              *ngIf="pipeline.status === 'Completed'"
               (click)="archivePipeline(pipeline, $event)"
               class="text-[9px] font-black uppercase tracking-widest text-brand-primary hover:text-brand-primary/80 transition-colors"
             >
@@ -372,6 +377,7 @@
             </button>
             <button
               type="button"
+              *ngIf="pipeline.status === 'Completed'"
               (click)="removePipeline(pipeline, $event)"
               class="text-[9px] font-black uppercase tracking-widest text-red-400/80 hover:text-red-400 transition-colors"
             >
@@ -451,7 +457,7 @@
         (keydown.space)="$event.preventDefault(); startModule(module.type)"
         role="button"
         tabindex="0"
-        class="glass-v42 rounded-2xl p-6 border border-border hover:border-secondary transition-all cursor-pointer flex flex-col items-center text-center group bg-surface/10"
+        class="biz-module-card glass-v42 rounded-2xl p-6 border border-border hover:border-secondary transition-all cursor-pointer flex flex-col items-center text-center group bg-surface/10"
       >
         <div
           class="w-16 h-16 rounded-full bg-background flex items-center justify-center border border-border mb-6 group-hover:scale-110 transition-transform"

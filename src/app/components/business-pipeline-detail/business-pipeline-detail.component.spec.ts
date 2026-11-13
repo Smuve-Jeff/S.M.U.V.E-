@@ -68,7 +68,10 @@ describe('BusinessPipelineDetailComponent', () => {
         { provide: UserContextService, useValue: { setMainViewMode: jest.fn() } },
         {
           provide: InteractionDialogService,
-          useValue: { alert: jest.fn().mockResolvedValue(undefined) },
+          useValue: {
+            alert: jest.fn().mockResolvedValue(undefined),
+            prompt: jest.fn().mockResolvedValue(null),
+          },
         },
         { provide: UserProfileService, useValue: { profile: profileSignal } },
       ],
@@ -186,6 +189,20 @@ describe('BusinessPipelineDetailComponent', () => {
       'a',
       'Pending'
     );
+  });
+
+  it('renames the pathway from its own header', async () => {
+    const rename = jest.fn().mockResolvedValue(true);
+    (TestBed.inject(BusinessPipelineService) as any).renamePipeline = rename;
+    const dialog = TestBed.inject(InteractionDialogService) as any;
+    dialog.prompt.mockResolvedValueOnce('Night Shift Records');
+
+    await component.renamePipeline();
+
+    expect(dialog.prompt).toHaveBeenCalledWith(
+      expect.objectContaining({ initialValue: 'Official Merch Pathway' })
+    );
+    expect(rename).toHaveBeenCalledWith('biz-1', 'Night Shift Records');
   });
 
   it('quotes counted progress and evidence instead of invented percentages', () => {

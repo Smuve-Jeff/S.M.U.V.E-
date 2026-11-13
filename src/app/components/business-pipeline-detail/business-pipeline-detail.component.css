@@ -223,3 +223,24 @@
     overflow-wrap: anywhere;
   }
 }
+
+.pipeline-rename {
+  margin-top: 0.5rem;
+  padding: 0.3rem 0.6rem;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-dim, #94a3b8);
+  font: inherit;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.pipeline-rename:hover,
+.pipeline-rename:focus-visible {
+  border-color: var(--brand-primary, #5dc4c2);
+  color: var(--brand-primary, #5dc4c2);
+}
