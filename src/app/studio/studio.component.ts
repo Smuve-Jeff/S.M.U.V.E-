@@ -100,6 +100,7 @@ import {
   type LocalProjectSummary,
   type LocalProjectVersion,
   type LocalStorageUsage,
+  type DeviceStorageQuota,
   type ProjectBundle,
 } from "./project-workspace.service";
 import {
@@ -775,6 +776,13 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   /** Room each set (and its device versions) takes, keyed by project id. */
   setsUsage = signal<Record<string, LocalStorageUsage>>({});
   setsUsageTotal = signal(0);
+  /** Versions past the newest one per set — what clearing would remove. */
+  staleVersionBytes = signal(0);
+  staleVersionCount = signal(0);
+  /** Device storage; null until the estimate is read. */
+  storageQuota = signal<DeviceStorageQuota | null>(null);
+  /** The shelf warns at this share of the device's quota. */
+  private readonly storageWarnPercent = 80;
 
   /**
    * Saved mix state shown in Project Details. Each of these is a real field on
@@ -3901,6 +3909,11 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
           Object.fromEntries(usage.sets.map((item) => [item.projectId, item])),
         );
         this.setsUsageTotal.set(usage.totalBytes);
+        this.staleVersionBytes.set(usage.staleVersionBytes);
+        this.staleVersionCount.set(usage.staleVersionCount);
+      }
+      if (typeof this.projectWorkspace.deviceStorageQuota === 'function') {
+        this.storageQuota.set(await this.projectWorkspace.deviceStorageQuota());
       }
     } catch (error) {
       this.logger.warn("Studio: Could not read local sets", error);
@@ -3916,6 +3929,61 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   /** Compact "saved 5 min ago" label for a set row. */
+  /** True when the device is close enough to full to warn about it. */
+  storageTight(): boolean {
+    const quota = this.storageQuota();
+    if (!quota || quota.totalBytes <= 0) return false;
+    return quota.percentUsed >= this.storageWarnPercent;
+  }
+
+  storageQuotaPercent(): number {
+    return Math.round(this.storageQuota()?.percentUsed ?? 0);
+  }
+
+  /**
+   * Free room by dropping every version but the newest per set. Guarded by a
+   * confirm because versions cannot be recovered once gone.
+   */
+  async clearOldVersions(): Promise<void> {
+    const count = this.staleVersionCount();
+    if (this.setsBusy()) return;
+    if (count === 0) {
+      this.snackbarService.info('Only the newest version of each set is left.');
+      return;
+    }
+    const noun = count === 1 ? 'version' : 'versions';
+    const confirmed = await this.dialog.confirm({
+      title: `Delete ${count} older ${noun}?`,
+      message:
+        `Keeps the newest version of each set and frees about ` +
+        `${this.formatSetBytes(this.staleVersionBytes())}. Old versions ` +
+        `cannot be recovered once deleted.`,
+      confirmLabel: 'Delete versions',
+      cancelLabel: 'Keep them',
+      tone: 'danger',
+    });
+    if (!confirmed) return;
+
+    this.setsBusy.set(true);
+    try {
+      const result = await this.projectWorkspace.clearOldLocalVersions();
+      if (this.setsVersionsFor()) {
+        this.setsVersions.set(
+          await this.projectWorkspace.listLocalVersions(this.setsVersionsFor()),
+        );
+      }
+      await this.refreshLocalSets();
+      this.snackbarService.success(
+        result.removed
+          ? `Cleared ${result.removed} old ${result.removed === 1 ? 'version' : 'versions'} · ` +
+              `${this.formatSetBytes(result.freedBytes)} freed`
+          : 'No old versions to clear.',
+      );
+    } finally {
+      this.setsBusy.set(false);
+    }
+  }
+
   /** "1.4 MB", "812 KB" — the shelf's size labels. */
   formatSetBytes(bytes: number): string {
     if (!Number.isFinite(bytes) || bytes <= 0) return '—';

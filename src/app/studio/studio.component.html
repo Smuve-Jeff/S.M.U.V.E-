@@ -3731,6 +3731,27 @@
         current session is only replaced after you confirm.
       </p>
 
+      <div class="comp-sets-storage-warning" *ngIf="storageTight()" role="alert">
+        <span class="material-symbols-outlined" aria-hidden="true">warning</span>
+        <div class="comp-sets-storage-copy">
+          <strong>This device is {{ storageQuotaPercent() }}% full</strong>
+          <small>
+            {{ formatSetBytes(storageQuota()?.usedBytes ?? 0) }} of
+            {{ formatSetBytes(storageQuota()?.totalBytes ?? 0) }} used · sets and
+            their versions share it.
+          </small>
+        </div>
+        <button
+          type="button"
+          class="comp-sets-storage-clear"
+          [disabled]="setsBusy() || staleVersionCount() === 0"
+          (click)="clearOldVersions()"
+        >
+          Clear {{ staleVersionCount() }} old
+          {{ staleVersionCount() === 1 ? 'version' : 'versions' }}
+        </button>
+      </div>
+
       <p class="comp-sets-empty" *ngIf="setsBusy() && localSets().length === 0">
         Reading this device…
       </p>

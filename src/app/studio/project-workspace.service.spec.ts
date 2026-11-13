@@ -653,6 +653,55 @@ describe("ProjectWorkspaceService", () => {
     expect((service as any).captureStateSignature()).toBe(saved);
   });
 
+  it('counts the versions that clearing would remove', async () => {
+    const id = service.metadata()!.id;
+    const payload = { id: `project_${id}`, metadata: { id, name: 'Sized' }, tracks: [] };
+    getAllItems.mockImplementation((store: string) =>
+      Promise.resolve(
+        store === 'projects'
+          ? []
+          : [3, 2, 1].map((n) => ({
+              id: `version_${id}_${n}`,
+              projectId: id,
+              savedAt: n,
+              title: 'Sized',
+              version: n,
+              payload,
+            })),
+      ),
+    );
+
+    const usage = await service.measureStorageUsage();
+
+    expect(usage.sets[0].versionCount).toBe(3);
+    expect(usage.staleVersionCount).toBe(2);
+    expect(usage.staleVersionBytes).toBeGreaterThan(0);
+  });
+
+  it('clears every version but the newest one per set', async () => {
+    const id = service.metadata()!.id;
+    const payload = { id: `project_${id}`, metadata: { id, name: 'Sized' }, tracks: [] };
+    getAllItems.mockResolvedValue(
+      [3, 2, 1].map((n) => ({
+        id: `version_${id}_${n}`,
+        projectId: id,
+        savedAt: n,
+        title: 'Sized',
+        version: n,
+        payload,
+      })),
+    );
+
+    const result = await service.clearOldLocalVersions();
+
+    expect(result.removed).toBe(2);
+    expect(result.freedBytes).toBeGreaterThan(0);
+    expect(deleteItems).toHaveBeenCalledWith('offline_local_cache', [
+      `version_${id}_2`,
+      `version_${id}_1`,
+    ]);
+  });
+
   it('measures the room a set and its device versions take', async () => {
     const id = service.metadata()!.id;
     const record = {

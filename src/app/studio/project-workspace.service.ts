@@ -222,6 +222,15 @@ export interface LocalStorageUsage {
   /** Bytes taken by the device versions kept for it. */
   versionBytes: number;
   versionCount: number;
+  /** Versions past the newest one, which clearing would remove. */
+  staleVersionBytes: number;
+  staleVersionCount: number;
+}
+
+export interface DeviceStorageQuota {
+  usedBytes: number;
+  totalBytes: number;
+  percentUsed: number;
 }
 
 export interface LocalProjectVersion {
@@ -1308,6 +1317,8 @@ export class ProjectWorkspaceService {
   async measureStorageUsage(): Promise<{
     sets: LocalStorageUsage[];
     totalBytes: number;
+    staleVersionBytes: number;
+    staleVersionCount: number;
   }> {
     const usage = new Map<string, LocalStorageUsage>();
     const entryFor = (projectId: string): LocalStorageUsage => {
@@ -1318,10 +1329,14 @@ export class ProjectWorkspaceService {
         setBytes: 0,
         versionBytes: 0,
         versionCount: 0,
+        staleVersionBytes: 0,
+        staleVersionCount: 0,
       };
       usage.set(projectId, created);
       return created;
     };
+    let staleVersionBytes = 0;
+    let staleVersionCount = 0;
 
     try {
       for (const record of await this.readStoredProjects()) {
@@ -1329,10 +1344,22 @@ export class ProjectWorkspaceService {
         if (!projectId) continue;
         entryFor(projectId).setBytes += this.estimateBundleBytes(record);
       }
+      // Newest first, so the first version seen for a set is the one clearing
+      // would keep.
+      const kept = new Set<string>();
       for (const version of await this.readLocalVersions()) {
         const target = entryFor(version.projectId);
-        target.versionBytes += this.estimateBundleBytes(version.payload);
+        const bytes = this.estimateBundleBytes(version.payload);
+        target.versionBytes += bytes;
         target.versionCount += 1;
+        if (!kept.has(version.projectId)) {
+          kept.add(version.projectId);
+          continue;
+        }
+        target.staleVersionBytes += bytes;
+        target.staleVersionCount += 1;
+        staleVersionBytes += bytes;
+        staleVersionCount += 1;
       }
     } catch (error) {
       this.logger.warn("ProjectWorkspace: Storage measurement failed", error);
@@ -1345,7 +1372,60 @@ export class ProjectWorkspaceService {
         (total, item) => total + item.setBytes + item.versionBytes,
         0,
       ),
+      staleVersionBytes,
+      staleVersionCount,
     };
+  }
+
+  /** How full the device's storage is, for the shelf's warning. */
+  async deviceStorageQuota(): Promise<DeviceStorageQuota> {
+    try {
+      const stats = await this.storage.getStorageStats();
+      return {
+        usedBytes: stats.usedBytes,
+        totalBytes: stats.totalBytes,
+        percentUsed: stats.percentUsed,
+      };
+    } catch (error) {
+      this.logger.warn("ProjectWorkspace: Storage quota read failed", error);
+      return { usedBytes: 0, totalBytes: 0, percentUsed: 0 };
+    }
+  }
+
+  /**
+   * Drop every version except the newest one per set. Returns what went, so
+   * the shelf can say what it freed instead of silently shrinking.
+   */
+  async clearOldLocalVersions(): Promise<{
+    removed: number;
+    freedBytes: number;
+  }> {
+    const versions = await this.readLocalVersions();
+    const kept = new Set<string>();
+    const stale: LocalProjectVersion[] = [];
+    for (const version of versions) {
+      if (!kept.has(version.projectId)) {
+        kept.add(version.projectId);
+        continue;
+      }
+      stale.push(version);
+    }
+    if (!stale.length) return { removed: 0, freedBytes: 0 };
+
+    const freedBytes = stale.reduce(
+      (total, version) => total + this.estimateBundleBytes(version.payload),
+      0,
+    );
+    try {
+      await this.storage.deleteItems(
+        LOCAL_VERSION_STORE,
+        stale.map((version) => version.id),
+      );
+      return { removed: stale.length, freedBytes };
+    } catch (error) {
+      this.logger.warn("ProjectWorkspace: Clearing old versions failed", error);
+      return { removed: 0, freedBytes: 0 };
+    }
   }
 
   /** Rough IndexedDB footprint of one stored bundle, samples included. */
