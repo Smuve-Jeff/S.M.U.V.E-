@@ -127,6 +127,33 @@
 .sp-label {
   position: relative;
   z-index: 1;
+  min-width: 0;
+  padding: 0 2px;
+  line-height: 1.15;
+  text-align: center;
+}
+
+/* Four columns on a phone leave each pad about 62px wide. The desktop label
+   settings overflow that face; shrink and wrap the label inside the pad. */
+@media (max-width: 700px) {
+  .sp-label {
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    overflow-wrap: anywhere;
+  }
+}
+
+@media (max-width: 380px) {
+  .sp-label {
+    font-size: 10px;
+    letter-spacing: 0.04em;
+  }
+}
+
+@media (max-width: 340px) {
+  .sp-label {
+    font-size: 9px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -81,3 +81,26 @@ canvas {
   display: block;
   cursor: crosshair;
 }
+
+/* On a phone the title and transport controls cannot share one row. Put the
+   title on its own line so Delete Note remains inside the toolbar. */
+@media (max-width: 480px) {
+  .toolbar {
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 8px 10px;
+  }
+
+  .title {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+
+  .controls {
+    width: 100%;
+    flex-wrap: wrap;
+    gap: 8px;
+    min-width: 0;
+  }
+}
