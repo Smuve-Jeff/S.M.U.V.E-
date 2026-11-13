@@ -351,6 +351,7 @@ const FEED_REFRESH_INTERVAL_MS = 300000;
         cursor: pointer;
         transform: translateY(-50%);
         transition:
+          top 0.28s cubic-bezier(0.16, 1, 0.3, 1),
           right 0.35s ease,
           background 0.2s ease,
           color 0.2s ease;
@@ -409,6 +410,7 @@ const FEED_REFRESH_INTERVAL_MS = 300000;
         cursor: pointer;
         transform: translateY(-50%);
         transition:
+          top 0.28s cubic-bezier(0.16, 1, 0.3, 1),
           right 0.35s ease,
           background 0.2s ease,
           color 0.2s ease;

@@ -2081,6 +2081,12 @@
   .hud-overlay-scanner::before {
     animation: none !important;
   }
+
+  /* The edge tabs glide when a sheet opens; skip that when motion is reduced. */
+  .rival-hub-toggle,
+  .intel-toggle {
+    transition: none !important;
+  }
 }
 
 /* ── Matchmaking Overlay ───────────────────────────── */
