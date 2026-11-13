@@ -1242,6 +1242,22 @@ export class ProjectWorkspaceService {
     );
   }
 
+  /**
+   * Make a device-kept version the open workspace, the way opening a set does.
+   * The record was stored with the same shape a saved set has, so the normal
+   * restore path applies and the workspace comes back clean.
+   */
+  restoreLocalVersion(version: LocalProjectVersion): boolean {
+    if (!version?.payload) return false;
+    try {
+      this.restoreStoredRecord(version.payload);
+      return true;
+    } catch (error) {
+      this.logger.warn("ProjectWorkspace: Local version restore failed", error);
+      return false;
+    }
+  }
+
   private async listAllLocalVersions(
     projectId: string,
   ): Promise<LocalProjectVersion[]> {

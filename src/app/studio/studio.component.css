@@ -4657,6 +4657,8 @@ button.comp-meta-state-pill:focus-visible {
   display: flex;
   align-items: stretch;
   gap: 6px;
+  /* The version strip below a row is a full-width line of its own. */
+  flex-wrap: wrap;
 }
 .comp-sets-open {
   flex: 1 1 auto;
@@ -4737,8 +4739,70 @@ button.comp-meta-state-pill:focus-visible {
   background: rgba(255, 255, 255, 0.55);
   color: #b42318;
 }
+.comp-sets-versions-toggle {
+  color: var(--espresso-text);
+}
+.comp-sets-versions {
+  flex: 1 0 100%;
+  margin: 0;
+  padding: 4px 0 2px 16px;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border-left: 2px solid var(--espresso-line);
+}
+.comp-sets-version {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.comp-sets-version-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.comp-sets-version-title {
+  font-size: 11.5px;
+  color: var(--espresso-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.comp-sets-version-stamp,
+.comp-sets-versions-empty {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--espresso-muted);
+}
+.comp-sets-versions-empty {
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 11px;
+}
+.comp-sets-version-restore {
+  flex: 0 0 auto;
+  padding: 6px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--espresso-line);
+  background: rgba(255, 255, 255, 0.55);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--espresso-text);
+}
+.comp-sets-version-restore:disabled {
+  opacity: 0.55;
+}
 .comp-sets-open:disabled,
 .comp-sets-delete:disabled,
+.comp-sets-version-restore:disabled,
 .comp-sets-action:disabled {
   opacity: 0.55;
 }

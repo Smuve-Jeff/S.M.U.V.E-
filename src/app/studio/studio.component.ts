@@ -98,6 +98,7 @@ import {
 import {
   ProjectWorkspaceService,
   type LocalProjectSummary,
+  type LocalProjectVersion,
   type ProjectBundle,
 } from "./project-workspace.service";
 import {
@@ -767,6 +768,9 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   localSets = signal<LocalProjectSummary[]>([]);
   setsBusy = signal(false);
   setsError = signal('');
+  /** Set whose device-kept versions are expanded in the Sets browser. */
+  setsVersionsFor = signal('');
+  setsVersions = signal<LocalProjectVersion[]>([]);
 
   /**
    * Saved mix state shown in Project Details. Each of these is a real field on
@@ -3848,6 +3852,9 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
 
   setTrack = (_: number, set: LocalProjectSummary): string => set.projectId;
 
+  setVersionTrack = (_: number, version: LocalProjectVersion): string =>
+    version.id;
+
   // ── Sets browser (local project workspaces) ────────────
 
   toggleSetsBrowser(): void {
@@ -3930,6 +3937,61 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   /** Open a set from the browser, guarding an unsaved session. */
+  /**
+   * Expand the versions this device kept for one set, right in the browser —
+   * an artist can roll back without opening the set first.
+   */
+  async toggleSetVersions(set: LocalProjectSummary): Promise<void> {
+    if (this.setsVersionsFor() === set.projectId) {
+      this.setsVersionsFor.set('');
+      this.setsVersions.set([]);
+      return;
+    }
+    this.haptic.light();
+    this.setsVersionsFor.set(set.projectId);
+    this.setsVersions.set(
+      await this.projectWorkspace.listLocalVersions(set.projectId),
+    );
+  }
+
+  async restoreStoredVersion(version: LocalProjectVersion): Promise<void> {
+    if (this.setsBusy()) return;
+    const confirmed = await this.dialog.confirm({
+      title: `Restore version v${version.version}?`,
+      message:
+        `Replace the open session with “${version.title}” from ` +
+        `${this.formatSetSavedAt(version.savedAt)}? The current state stays ` +
+        `in the set\u2019s autosave.`,
+      confirmLabel: 'Restore version',
+      cancelLabel: 'Keep current',
+      tone: 'danger',
+    });
+    if (!confirmed) return;
+    // Restoring replaces the open sketch just as opening another set does.
+    if (!(await this.preserveOpenSketch('set_version', true))) return;
+    this.setsBusy.set(true);
+    this.setsError.set('');
+    try {
+      if (!this.projectWorkspace.restoreLocalVersion(version)) {
+        this.setsError.set('That version could not be restored.');
+        return;
+      }
+      this.projectWorkspace.autoSaveEnabled.set(true);
+      this.history.clear();
+      this.showSetsBrowser.set(false);
+      this.setsVersionsFor.set('');
+      this.setsVersions.set([]);
+      this.setActiveView('arrangement');
+      this.snackbarService.success(
+        `Restored “${version.title}” v${version.version}` +
+          this.restoredMonitorSuffix(),
+      );
+      await this.refreshLocalSets();
+    } finally {
+      this.setsBusy.set(false);
+    }
+  }
+
   async openStoredSet(set: LocalProjectSummary): Promise<void> {
     if (this.isCurrentSet(set)) {
       this.snackbarService.info("That set is already open");

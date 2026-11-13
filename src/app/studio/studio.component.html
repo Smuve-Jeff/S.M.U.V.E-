@@ -3790,6 +3790,17 @@
           </button>
           <button
             type="button"
+            class="comp-sets-delete comp-sets-versions-toggle"
+            [disabled]="setsBusy()"
+            (click)="toggleSetVersions(set)"
+            [attr.aria-expanded]="setsVersionsFor() === set.projectId"
+            [attr.aria-label]="'Show versions of ' + set.name"
+            title="Versions saved on this device"
+          >
+            <span class="material-symbols-outlined">history</span>
+          </button>
+          <button
+            type="button"
             class="comp-sets-delete"
             [disabled]="setsBusy()"
             (click)="deleteStoredSet(set)"
@@ -3798,6 +3809,41 @@
           >
             <span class="material-symbols-outlined">delete</span>
           </button>
+          <ul
+            class="comp-sets-versions"
+            *ngIf="setsVersionsFor() === set.projectId"
+          >
+            <li
+              class="comp-sets-version"
+              *ngFor="let version of setsVersions(); trackBy: setVersionTrack"
+            >
+              <span class="comp-sets-version-meta">
+                <span class="comp-sets-version-title"
+                  >v{{ version.version }} · {{ version.title }}</span
+                >
+                <small class="comp-sets-version-stamp">{{
+                  formatSetSavedAt(version.savedAt)
+                }}</small>
+              </span>
+              <button
+                type="button"
+                class="comp-sets-version-restore"
+                [disabled]="setsBusy()"
+                (click)="restoreStoredVersion(version)"
+                [attr.aria-label]="
+                  'Restore version ' + version.version + ' of ' + version.title
+                "
+              >
+                Restore
+              </button>
+            </li>
+            <li
+              class="comp-sets-versions-empty"
+              *ngIf="setsVersions().length === 0"
+            >
+              No versions saved on this device yet.
+            </li>
+          </ul>
         </li>
       </ul>
     </div>
