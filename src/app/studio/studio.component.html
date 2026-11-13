@@ -3870,6 +3870,18 @@
               >
                 Restore
               </button>
+              <button
+                type="button"
+                class="comp-sets-version-delete"
+                [disabled]="setsBusy()"
+                (click)="deleteSetVersion(set, version)"
+                [attr.aria-label]="
+                  'Delete version ' + version.version + ' of ' + version.title
+                "
+                title="Delete this version from this device"
+              >
+                <span class="material-symbols-outlined">delete</span>
+              </button>
             </li>
             <li
               class="comp-sets-versions-empty"

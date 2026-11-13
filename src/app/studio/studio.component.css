@@ -4867,6 +4867,23 @@ button.comp-meta-state-pill:focus-visible {
   color: var(--espresso-muted);
   text-align: right;
 }
+.comp-sets-version-delete {
+  flex: 0 0 auto;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 9px;
+  border: 1px solid var(--espresso-line);
+  background: rgba(255, 255, 255, 0.55);
+  color: #b42318;
+}
+.comp-sets-version-delete .material-symbols-outlined {
+  font-size: 16px;
+}
+.comp-sets-version-delete:disabled {
+  opacity: 0.5;
+}
 .comp-sets-version-restore {
   flex: 0 0 auto;
   padding: 6px 12px;

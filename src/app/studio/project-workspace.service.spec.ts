@@ -678,6 +678,17 @@ describe("ProjectWorkspaceService", () => {
     expect(usage.staleVersionBytes).toBeGreaterThan(0);
   });
 
+  it('deletes exactly one version by its record id', async () => {
+    const id = service.metadata()!.id;
+    const versionId = `version_${id}_7`;
+
+    await expect(service.deleteLocalVersion(versionId)).resolves.toBe(true);
+
+    expect(deleteItems).toHaveBeenCalledTimes(1);
+    expect(deleteItems).toHaveBeenCalledWith('offline_local_cache', [versionId]);
+    await expect(service.deleteLocalVersion('')).resolves.toBe(false);
+  });
+
   it('clears only the set it is asked about', async () => {
     const id = service.metadata()!.id;
     const payloadFor = (projectId: string) => ({

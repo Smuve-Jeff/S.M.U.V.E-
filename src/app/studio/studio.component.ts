@@ -3940,6 +3940,44 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     return Math.round(this.storageQuota()?.percentUsed ?? 0);
   }
 
+  /** Delete a single kept version from a set's history strip. */
+  async deleteSetVersion(
+    set: LocalProjectSummary,
+    version: LocalProjectVersion,
+  ): Promise<void> {
+    if (this.setsBusy()) return;
+    const confirmed = await this.dialog.confirm({
+      title: `Delete version v${version.version} of “${set.name}”?`,
+      message:
+        `This removes that version from this device for good. The set itself ` +
+        `and its other versions stay.`,
+      confirmLabel: 'Delete version',
+      cancelLabel: 'Keep it',
+      tone: 'danger',
+    });
+    if (!confirmed) return;
+
+    this.setsBusy.set(true);
+    try {
+      const deleted = await this.projectWorkspace.deleteLocalVersion(version.id);
+      if (!deleted) {
+        this.setsError.set('That version could not be deleted.');
+        return;
+      }
+      if (this.setsVersionsFor() === set.projectId) {
+        this.setsVersions.set(
+          await this.projectWorkspace.listLocalVersions(set.projectId),
+        );
+      }
+      await this.refreshLocalSets();
+      this.snackbarService.success(
+        `Deleted version v${version.version} of “${set.name}”`,
+      );
+    } finally {
+      this.setsBusy.set(false);
+    }
+  }
+
   /** Old versions the strip for one set would remove. */
   setStaleVersionCount(set: LocalProjectSummary): number {
     return this.setsUsage()[set.projectId]?.staleVersionCount ?? 0;

@@ -1392,6 +1392,18 @@ export class ProjectWorkspaceService {
     }
   }
 
+  /** Delete exactly one kept version, by its record id. */
+  async deleteLocalVersion(versionId: string): Promise<boolean> {
+    if (!versionId) return false;
+    try {
+      await this.storage.deleteItems(LOCAL_VERSION_STORE, [versionId]);
+      return true;
+    } catch (error) {
+      this.logger.warn("ProjectWorkspace: Version delete failed", error);
+      return false;
+    }
+  }
+
   /**
    * Drop every version except the newest one per set — or, given a project id,
    * just that set's. Returns what went, so the shelf can say what it freed
