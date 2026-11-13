@@ -463,10 +463,11 @@ const FEED_REFRESH_INTERVAL_MS = 300000;
           position: fixed;
           /*
            * The phone header wraps to ~160px, not the 64px used here, so these
-           * sheets started over its control rows. Start them under the header;
-           * the short landscape block below keeps its own 52px offset.
+           * sheets started over its control rows. They now begin under the
+           * header *and* the 48px sticky search bar, so search stays usable
+           * while a sheet is open; the short landscape block below matches.
            */
-          inset: calc(160px + env(safe-area-inset-top, 0px)) 0 0 0;
+          inset: calc(208px + env(safe-area-inset-top, 0px)) 0 0 0;
           width: 100%;
           max-width: none;
           height: auto;
@@ -509,6 +510,11 @@ const FEED_REFRESH_INTERVAL_MS = 300000;
         .intel-toggle-label {
           display: none;
         }
+        /* Keep the sheet's own controls (tab strip and close button) clear of
+           the edge tabs, which sit over the sheet's top band. */
+        .sidebar-header {
+          padding-right: 3rem;
+        }
         .sidebar-content {
           min-height: 0;
           overflow-y: auto;
@@ -536,8 +542,8 @@ const FEED_REFRESH_INTERVAL_MS = 300000;
         }
         .executive-sidebar,
         .rival-hub {
-          top: 56px;
-          inset: 56px 0 0 0;
+          top: 104px;
+          inset: 104px 0 0 0;
           width: min(420px, 100%);
         }
         .content-section {
