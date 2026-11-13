@@ -236,11 +236,14 @@ test('phone one-tap instrumental loads a full loop and exposes the finishing pat
   );
 
   // The seeded session opens in beginner mode; the quick-start lane is Pro.
+  // The lane also starts collapsed on a phone, so expand it before asking for
+  // the instrumentals it holds.
   await page.evaluate(() => {
     const studio = (window as any).ng.getComponent(
       document.querySelector('app-studio'),
     );
     studio.uiService.beginnerMode.set(false);
+    studio.mobileStartExpanded.set(true);
   });
 
   const lane = page.locator('.comp-mobile-start');
@@ -328,4 +331,199 @@ test('desktop rail keeps every workflow stage reachable and scrollable', async (
     'data-studio-workspace',
     'plugins',
   );
+});
+
+// ── Device-kept versions ────────────────────────────────────────────────────
+// These records only appear when a set is actually saved, so these tests save
+// through the Studio instead of seeding IndexedDB: the version a save leaves
+// behind is part of what is under test.
+
+const VERSION_SET = 'Version QA';
+
+/** Save the open set `times` over, which leaves one version per save. */
+async function saveVersions(page: Page, times: number): Promise<string> {
+  return page.evaluate(
+    async ({ times, name }) => {
+      const studio = (window as any).ng.getComponent(
+        document.querySelector('app-studio'),
+      );
+      studio.projectWorkspace.updateMetadata({ name });
+      for (let save = 0; save < times; save++) {
+        await studio.saveProject();
+      }
+      return studio.projectWorkspace.metadata().id as string;
+    },
+    { times, name: VERSION_SET },
+  );
+}
+
+/** Open the browser and expand one set's history strip. */
+async function openVersions(page: Page, name: string) {
+  await page.locator('.comp-sets-btn').click();
+  await expect(page.locator('.comp-sets-panel')).toHaveClass(/comp-panel-open/);
+  const row = page.locator('.comp-sets-row', { hasText: name });
+  await row.getByRole('button', { name: `Show versions of ${name}` }).click();
+  const strip = row.locator('.comp-sets-versions');
+  await expect(strip).toBeVisible();
+  return strip;
+}
+
+/** Version numbers this device still keeps for one set, newest first. */
+async function keptVersions(page: Page, projectId: string): Promise<number[]> {
+  return page.evaluate(async (id) => {
+    const studio = (window as any).ng.getComponent(
+      document.querySelector('app-studio'),
+    );
+    const versions = await studio.projectWorkspace.listLocalVersions(id);
+    return versions.map((version: { version: number }) => version.version);
+  }, projectId);
+}
+
+async function openStudio(page: Page): Promise<void> {
+  await page.goto('/studio-classic?view=arrangement');
+  await expect(page.locator('[data-studio-workspace]')).toHaveAttribute(
+    'data-studio-workspace',
+    'arrangement',
+  );
+}
+
+test('a set history strip clears its own old versions and keeps the newest', async ({
+  page,
+}) => {
+  test.setTimeout(120_000);
+  await openStudio(page);
+
+  const projectId = await saveVersions(page, 3);
+  const strip = await openVersions(page, VERSION_SET);
+  await expect(strip.locator('.comp-sets-version')).toHaveCount(3);
+
+  const clear = strip.getByRole('button', {
+    name: `Delete older versions of ${VERSION_SET}`,
+  });
+  await expect(clear).toHaveText('Clear 2');
+  await clear.click();
+
+  const dialog = page.locator('app-interaction-dialog');
+  await expect(dialog).toContainText(
+    `Delete 2 older versions of \u201c${VERSION_SET}\u201d`,
+  );
+  await dialog.getByRole('button', { name: 'Delete versions' }).click();
+
+  await expect(strip.locator('.comp-sets-version')).toHaveCount(1);
+  await expect(clear).toBeDisabled();
+  // Durable, not just redrawn: the store kept exactly the newest version.
+  expect(await keptVersions(page, projectId)).toEqual([4]);
+});
+
+test('deleting a single version can be undone', async ({ page }) => {
+  test.setTimeout(120_000);
+  await openStudio(page);
+
+  const projectId = await saveVersions(page, 3);
+  const strip = await openVersions(page, VERSION_SET);
+  const rows = strip.locator('.comp-sets-version');
+  await expect(rows).toHaveCount(3);
+
+  // v3 is the middle row: v4 newest, v2 oldest.
+  await rows
+    .nth(1)
+    .getByRole('button', { name: `Delete version 3 of ${VERSION_SET}` })
+    .click();
+  const dialog = page.locator('app-interaction-dialog');
+  await expect(dialog).toContainText(
+    `Delete version v3 of \u201c${VERSION_SET}\u201d`,
+  );
+  await dialog.getByRole('button', { name: 'Delete version' }).click();
+
+  await expect(rows).toHaveCount(2);
+  expect(await keptVersions(page, projectId)).toEqual([4, 2]);
+
+  const undoRow = strip.locator('.comp-sets-version-undo');
+  await expect(undoRow).toContainText('v3 deleted');
+  await undoRow
+    .getByRole('button', { name: 'Undo deleting version 3' })
+    .click();
+
+  await expect(rows).toHaveCount(3);
+  await expect(strip.locator('.comp-sets-version-title').nth(1)).toContainText(
+    'v3',
+  );
+  await expect(undoRow).toHaveCount(0);
+  expect(await keptVersions(page, projectId)).toEqual([4, 3, 2]);
+});
+
+test('the undo offer lapses and the version stays deleted', async ({ page }) => {
+  test.setTimeout(120_000);
+  await openStudio(page);
+
+  const projectId = await saveVersions(page, 3);
+  const strip = await openVersions(page, VERSION_SET);
+  const rows = strip.locator('.comp-sets-version');
+  await rows
+    .nth(1)
+    .getByRole('button', { name: `Delete version 3 of ${VERSION_SET}` })
+    .click();
+  await page
+    .locator('app-interaction-dialog')
+    .getByRole('button', { name: 'Delete version' })
+    .click();
+
+  const undoRow = strip.locator('.comp-sets-version-undo');
+  await expect(undoRow).toBeVisible();
+
+  // The offer is short-lived on purpose; after it lapses the delete stands.
+  await expect(undoRow).toHaveCount(0, { timeout: 15_000 });
+  await expect(rows).toHaveCount(2);
+  expect(await keptVersions(page, projectId)).toEqual([4, 2]);
+});
+
+test('the near-full warning clears old versions across the shelf', async ({
+  page,
+}) => {
+  test.setTimeout(120_000);
+  await openStudio(page);
+
+  const projectId = await saveVersions(page, 3);
+  await page.locator('.comp-sets-btn').click();
+  await expect(page.locator('.comp-sets-panel')).toHaveClass(/comp-panel-open/);
+  await expect(page.locator('.comp-sets-row').first()).toBeVisible();
+
+  // The panel reads the real quota when it opens. Wait for that read to land,
+  // then force a full device: forcing it mid-read gets overwritten and the
+  // warning vanishes under the click.
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () =>
+          (window as any).ng.getComponent(
+            document.querySelector('app-studio'),
+          ).storageQuota() !== null,
+      ),
+    )
+    .toBe(true);
+  await page.evaluate(() => {
+    const studio = (window as any).ng.getComponent(
+      document.querySelector('app-studio'),
+    );
+    studio.storageQuota.set({
+      usedBytes: 9_500_000,
+      totalBytes: 10_000_000,
+      percentUsed: 95,
+    });
+  });
+
+  const warning = page.locator('.comp-sets-storage-warning');
+  await expect(warning).toBeVisible();
+  await expect(warning).toContainText('95% full');
+
+  await warning.getByRole('button', { name: 'Clear 2 old versions' }).click();
+  const dialog = page.locator('app-interaction-dialog');
+  await expect(dialog).toContainText('Delete 2 older versions');
+  await dialog.getByRole('button', { name: 'Delete versions' }).click();
+
+  // The delete finishes after the confirm resolves, so poll the store instead
+  // of reading it the instant the click returns.
+  await expect
+    .poll(() => keptVersions(page, projectId), { timeout: 10_000 })
+    .toEqual([4]);
 });
