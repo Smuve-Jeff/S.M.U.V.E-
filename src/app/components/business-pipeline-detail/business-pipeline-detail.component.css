@@ -211,3 +211,15 @@
   line-height: 1.5;
   color: var(--text-dim, #94a3b8);
 }
+
+/* Keep the phase heading clear of the floating advisor button on phones. */
+@media (max-width: 520px) {
+  .pipeline-stage-heading {
+    padding-right: 4.5rem;
+  }
+
+  .pipeline-stage-heading h2 {
+    font-size: 1.35rem;
+    overflow-wrap: anywhere;
+  }
+}

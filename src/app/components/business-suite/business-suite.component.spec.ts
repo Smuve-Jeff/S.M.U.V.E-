@@ -7,7 +7,10 @@ import { UserContextService } from '../../services/user-context.service';
 import { UserProfileService, initialProfile } from '../../services/user-profile.service';
 import { InteractionDialogService } from '../../services/interaction-dialog.service';
 import type { UserProfile } from '../../types/profile.types';
-import type { BusinessPipeline } from '../../types/business.types';
+import {
+  BUSINESS_PIPELINE_TYPES,
+  type BusinessPipeline,
+} from '../../types/business.types';
 
 /**
  * The Business Suite now reports the lifecycle's own business evidence. These
@@ -341,6 +344,35 @@ describe('BusinessSuiteComponent', () => {
     expect(icons).toHaveLength(component.availableModules.length);
     expect(new Set(icons).size).toBe(icons.length);
     expect(icons).not.toContain('rocket_launch');
+  });
+
+  it('reports a counted pathway status instead of claiming OPERATIONAL', async () => {
+    const nativeElement = await create(profile());
+
+    expect(nativeElement.textContent).not.toContain('OPERATIONAL');
+    expect(nativeElement.textContent).toContain('NONE STARTED');
+    expect(nativeElement.textContent).toContain('Recorded pathways');
+
+    bizMock.activePipelines.set([
+      pipeline({ id: 'biz-a', name: 'A', status: 'Active' }),
+      pipeline({ id: 'biz-b', name: 'B', status: 'Active' }),
+    ]);
+    fixture.detectChanges();
+
+    expect(component.pathwayStatus()).toBe('2 IN PROGRESS');
+  });
+
+  it('offers every pathway type the engine can build', () => {
+    expect(new Set(component.availableModules.map((m) => m.type))).toEqual(
+      new Set(BUSINESS_PIPELINE_TYPES)
+    );
+    // The lane panel and the module grid must describe the same catalog.
+    expect(
+      new Set([
+        ...component.availableModules.map((m) => m.type),
+        ...component.expansionLanes.map((l) => l.type),
+      ])
+    ).toEqual(new Set(BUSINESS_PIPELINE_TYPES));
   });
 
   it('explains what a pathway is before anything is started', async () => {

@@ -424,7 +424,69 @@ export class BusinessSuiteComponent implements OnInit {
       icon: 'gavel',
       description: 'Contract and split-sheet templates you fill in yourself.',
     },
+    {
+      type: 'Film & TV',
+      icon: 'movie',
+      description: 'Reel, credits and self-tapes for screen work.',
+    },
+    {
+      type: 'Publishing',
+      icon: 'menu_book',
+      description: 'Manuscript, ISBN and distribution decisions.',
+    },
+    {
+      type: 'Brand Deals',
+      icon: 'handshake',
+      description: 'Media kit, deliverables and disclosure.',
+    },
+    {
+      type: 'Podcasting',
+      icon: 'podcasts',
+      description: 'Show format, RSS feed and banked episodes.',
+    },
+    {
+      type: 'Live Experiences',
+      icon: 'stadium',
+      description: 'EPK, stage plot and settlement terms.',
+    },
+    {
+      type: 'Sync Licensing',
+      icon: 'library_music',
+      description: 'Cleared instrumentals, stems and metadata.',
+    },
   ];
+
+  /**
+   * Header status counted from saved pathways. It used to read a hard-coded
+   * "OPERATIONAL", which claimed a system state the app never measured.
+   */
+  pathwayStatus = computed(() => {
+    const open = this.activePipelines().filter(
+      (pipeline) => pipeline.status === 'Draft' || pipeline.status === 'Active'
+    ).length;
+    const finished = this.activePipelines().filter(
+      (pipeline) => pipeline.status === 'Completed'
+    ).length;
+    if (open) return `${open} IN PROGRESS`;
+    if (finished) return `${finished} COMPLETE`;
+    return 'NONE STARTED';
+  });
+
+  /** Every step marked complete across the pathways on this record. */
+  evidencedStepCount = computed(() =>
+    this.activePipelines().reduce(
+      (total, pipeline) => total + this.stepCounts(pipeline).done,
+      0
+    )
+  );
+
+  pathwayStatusDetail = computed(() => {
+    const archived = this.archivedPipelines().length;
+    const count = this.evidencedStepCount();
+    const steps = `${count} STEP${count === 1 ? '' : 'S'} EVIDENCED`;
+    if (!archived) return steps;
+    return `${steps} \u00b7 ${archived} ARCHIVED`;
+  });
 
   ngOnInit() {
     this.userContext.setMainViewMode('business-suite');

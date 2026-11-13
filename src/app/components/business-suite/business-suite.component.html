@@ -32,10 +32,15 @@
         <div
           class="text-[8px] md:text-[10px] font-black text-text-dim uppercase tracking-widest mb-1"
         >
-          System Status
+          Recorded pathways
         </div>
         <div class="text-sm md:text-xl font-black text-brand-primary italic">
-          OPERATIONAL
+          {{ pathwayStatus() }}
+        </div>
+        <div
+          class="text-[8px] font-bold text-text-dim uppercase tracking-widest mt-0.5"
+        >
+          {{ pathwayStatusDetail() }}
         </div>
       </div>
     </div>

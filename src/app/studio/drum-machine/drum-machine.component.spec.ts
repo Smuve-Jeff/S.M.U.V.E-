@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from "@angular/core/testing";
+import { provideRouter } from "@angular/router";
 import { DrumMachineComponent } from "./drum-machine.component";
 import { MusicManagerService } from "../../services/music-manager.service";
 import { AudioSessionService } from "../audio-session.service";
@@ -90,6 +91,10 @@ describe("DrumMachineComponent", () => {
     await TestBed.configureTestingModule({
       imports: [DrumMachineComponent, CommonModule, FormsModule],
       providers: [
+        // The component reads its view from the route; without a router the
+        // standalone component cannot resolve ActivatedRoute and every test
+        // in this suite dies in construct.
+        provideRouter([]),
         { provide: AudioSessionService, useValue: mockAudioSession },
         { provide: MusicManagerService, useValue: mockMusicManager },
         { provide: AudioEngineService, useValue: mockAudioEngine },

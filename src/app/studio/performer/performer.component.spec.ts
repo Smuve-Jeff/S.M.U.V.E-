@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from "@angular/core/testing";
+import { provideRouter } from "@angular/router";
 import { PerformerComponent } from "./performer.component";
 import { AudioSessionService } from "../audio-session.service";
 import { MusicManagerService } from "../../services/music-manager.service";
@@ -51,6 +52,9 @@ describe("PerformerComponent", () => {
     await TestBed.configureTestingModule({
       imports: [PerformerComponent, FormsModule, StubPerformanceGridComponent],
       providers: [
+        // Query params drive this surface, so the standalone component needs a
+        // router to resolve ActivatedRoute during creation.
+        provideRouter([]),
         {
           provide: MusicManagerService,
           useValue: {

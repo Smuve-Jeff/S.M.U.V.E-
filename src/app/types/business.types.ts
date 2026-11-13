@@ -11,18 +11,25 @@ export const BUSINESS_SPINE_PHASES: LifecyclePhaseId[] = [
   'money',
 ];
 
-export type BusinessPipelineType =
-  | 'Merch'
-  | 'Record Label'
-  | 'Website'
-  | 'PRO'
-  | 'Legal'
-  | 'Film & TV'
-  | 'Publishing'
-  | 'Brand Deals'
-  | 'Podcasting'
-  | 'Live Experiences'
-  | 'Sync Licensing';
+/**
+ * Every pathway the engine can build, as a runtime list so the hub can be
+ * checked for coverage instead of quietly offering a subset.
+ */
+export const BUSINESS_PIPELINE_TYPES = [
+  'Merch',
+  'Record Label',
+  'Website',
+  'PRO',
+  'Legal',
+  'Film & TV',
+  'Publishing',
+  'Brand Deals',
+  'Podcasting',
+  'Live Experiences',
+  'Sync Licensing',
+] as const;
+
+export type BusinessPipelineType = (typeof BUSINESS_PIPELINE_TYPES)[number];
 
 export type BusinessStageStatus =
   | 'Locked'
