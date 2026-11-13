@@ -41,7 +41,9 @@
 
 .tha-spot-container {
   /* Space the pinned spectator rail needs, reserved only while spectating. */
-  --spectator-rail-space: calc(5.4rem + 0.6rem + 0.75rem);
+  /* rail width + its right offset + breathing gap (px, so a scaled root font
+     size cannot make the reserve drift from the rail's real width) */
+  --spectator-rail-space: calc(86px + 10px + 12px);
   display: flex;
   flex-direction: column;
   min-height: 100vh;
@@ -4759,9 +4761,9 @@
 .spectator-rail {
   position: fixed;
   top: 50%;
-  right: 0.6rem;
+  right: 10px;
   /* Fixed width keeps the column the page reserves in sync with the rail. */
-  width: 5.4rem;
+  width: 86px;
   box-sizing: border-box;
   transform: translateY(-50%);
   z-index: 12;
@@ -4949,7 +4951,7 @@
 }
 @media (max-width: 420px) {
   .tha-spot-container.spectating {
-    padding-right: calc(5.4rem + 0.6rem + 0.5rem);
+    padding-right: calc(86px + 10px + 8px);
   }
 }
 
@@ -4986,6 +4988,22 @@
 }
 .tha-spot-container.spectating .mode-toggle-group {
   flex-wrap: wrap;
+}
+/* On wider screens the shell's floating Home / teach controls sit in a wide
+   band along the right edge, so the drawer starts clear of that band. */
+@media (min-width: 720px) {
+  .spectator-chat-drawer {
+    right: calc(var(--spectator-rail-space) + 6rem);
+  }
+}
+/* The CHAT / INTEL edge tabs are pinned to the right edge at the vertical
+   centre, which is exactly where the rail sits; drop them below it while
+   spectating so the rail stays readable and the tabs stay reachable. */
+.tha-spot-container.spectating .rival-hub-toggle {
+  top: calc(50% + 120px);
+}
+.tha-spot-container.spectating .intel-toggle {
+  top: calc(50% + 148px);
 }
 /* On narrow screens the wrapped header needs smaller controls to stay in the
    column; wider viewports keep the standard sizes. */
