@@ -3836,7 +3836,16 @@
             *ngIf="setsVersionsFor() === set.projectId"
           >
             <li class="comp-sets-versions-stamp">
-              Versions on this device · {{ setVersionsSizeLabel(set) }}
+              <span>Versions on this device · {{ setVersionsSizeLabel(set) }}</span>
+              <button
+                type="button"
+                class="comp-sets-versions-clear"
+                [disabled]="setsBusy() || setStaleVersionCount(set) === 0"
+                (click)="clearSetVersions(set)"
+                [attr.aria-label]="'Delete older versions of ' + set.name"
+              >
+                Clear {{ setStaleVersionCount(set) }}
+              </button>
             </li>
             <li
               class="comp-sets-version"

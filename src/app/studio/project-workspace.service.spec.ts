@@ -678,6 +678,40 @@ describe("ProjectWorkspaceService", () => {
     expect(usage.staleVersionBytes).toBeGreaterThan(0);
   });
 
+  it('clears only the set it is asked about', async () => {
+    const id = service.metadata()!.id;
+    const payloadFor = (projectId: string) => ({
+      id: `project_${projectId}`,
+      metadata: { id: projectId, name: projectId },
+      tracks: [],
+    });
+    getAllItems.mockResolvedValue([
+      ...[2, 1].map((n) => ({
+        id: `version_${id}_${n}`,
+        projectId: id,
+        savedAt: n,
+        title: id,
+        version: n,
+        payload: payloadFor(id),
+      })),
+      ...[5, 4].map((n) => ({
+        id: `version_proj_other_${n}`,
+        projectId: 'proj_other',
+        savedAt: n,
+        title: 'other',
+        version: n,
+        payload: payloadFor('proj_other'),
+      })),
+    ]);
+
+    const result = await service.clearOldLocalVersions(id);
+
+    expect(result.removed).toBe(1);
+    expect(deleteItems).toHaveBeenCalledWith('offline_local_cache', [
+      `version_${id}_1`,
+    ]);
+  });
+
   it('clears every version but the newest one per set', async () => {
     const id = service.metadata()!.id;
     const payload = { id: `project_${id}`, metadata: { id, name: 'Sized' }, tracks: [] };

@@ -3940,6 +3940,58 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     return Math.round(this.storageQuota()?.percentUsed ?? 0);
   }
 
+  /** Old versions the strip for one set would remove. */
+  setStaleVersionCount(set: LocalProjectSummary): number {
+    return this.setsUsage()[set.projectId]?.staleVersionCount ?? 0;
+  }
+
+  /**
+   * Clear old versions for one set only, from that set's history strip.
+   * Same rule as the shelf-wide action: the newest version always stays.
+   */
+  async clearSetVersions(set: LocalProjectSummary): Promise<void> {
+    if (this.setsBusy()) return;
+    const count = this.setStaleVersionCount(set);
+    if (count === 0) {
+      this.snackbarService.info(`“${set.name}” has no older versions.`);
+      return;
+    }
+    const usage = this.setsUsage()[set.projectId];
+    const noun = count === 1 ? 'version' : 'versions';
+    const confirmed = await this.dialog.confirm({
+      title: `Delete ${count} older ${noun} of “${set.name}”?`,
+      message:
+        `Keeps the newest version of this set and frees about ` +
+        `${this.formatSetBytes(usage?.staleVersionBytes ?? 0)}. Old versions ` +
+        `cannot be recovered once deleted.`,
+      confirmLabel: 'Delete versions',
+      cancelLabel: 'Keep them',
+      tone: 'danger',
+    });
+    if (!confirmed) return;
+
+    this.setsBusy.set(true);
+    try {
+      const result = await this.projectWorkspace.clearOldLocalVersions(
+        set.projectId,
+      );
+      if (this.setsVersionsFor() === set.projectId) {
+        this.setsVersions.set(
+          await this.projectWorkspace.listLocalVersions(set.projectId),
+        );
+      }
+      await this.refreshLocalSets();
+      this.snackbarService.success(
+        result.removed
+          ? `Cleared ${result.removed} old ${result.removed === 1 ? 'version' : 'versions'} of “${set.name}” · ` +
+              `${this.formatSetBytes(result.freedBytes)} freed`
+          : 'No old versions to clear.',
+      );
+    } finally {
+      this.setsBusy.set(false);
+    }
+  }
+
   /**
    * Free room by dropping every version but the newest per set. Guarded by a
    * confirm because versions cannot be recovered once gone.

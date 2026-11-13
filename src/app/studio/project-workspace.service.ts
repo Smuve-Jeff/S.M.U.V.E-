@@ -1393,14 +1393,17 @@ export class ProjectWorkspaceService {
   }
 
   /**
-   * Drop every version except the newest one per set. Returns what went, so
-   * the shelf can say what it freed instead of silently shrinking.
+   * Drop every version except the newest one per set — or, given a project id,
+   * just that set's. Returns what went, so the shelf can say what it freed
+   * instead of silently shrinking.
    */
-  async clearOldLocalVersions(): Promise<{
+  async clearOldLocalVersions(projectId?: string): Promise<{
     removed: number;
     freedBytes: number;
   }> {
-    const versions = await this.readLocalVersions();
+    const versions = (await this.readLocalVersions()).filter(
+      (version) => !projectId || version.projectId === projectId,
+    );
     const kept = new Set<string>();
     const stale: LocalProjectVersion[] = [];
     for (const version of versions) {
