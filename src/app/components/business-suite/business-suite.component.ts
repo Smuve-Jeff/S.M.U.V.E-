@@ -16,6 +16,22 @@ import { UserProfileService } from '../../services/user-profile.service';
 import { InteractionDialogService } from '../../services/interaction-dialog.service';
 import { ArtistLifecyclePhase } from '../../types/artist-lifecycle.types';
 
+interface ExpansionResource {
+  label: string;
+  url: string;
+}
+
+interface ExpansionLane {
+  type: BusinessPipelineType;
+  label: string;
+  kicker: string;
+  icon: string;
+  description: string;
+  assets: string[];
+  firstMove: string;
+  resources: ExpansionResource[];
+}
+
 @Component({
   selector: 'app-business-suite',
   standalone: true,
@@ -108,6 +124,173 @@ export class BusinessSuiteComponent implements OnInit {
   );
 
   showArchived = signal(false);
+
+  /**
+   * Expansion lanes turn a music catalog into a portfolio of adjacent work.
+   * Each lane packages assets the artist can evidence, not projected reach or
+   * income, and hands off to the same persisted business-pipeline engine.
+   */
+  expansionLanes: ExpansionLane[] = [
+    {
+      type: 'Film & TV',
+      label: 'Film & TV',
+      kicker: 'ACTING · DIRECTING · SCORING',
+      icon: 'movie',
+      description:
+        'Move performance and story onto screen: acting, directing, scoring, or self-produced video.',
+      assets: [
+        'A 60–90 second screen reel',
+        'Headshots and a reliable self-tape setup',
+        'An accurate credits and representation list',
+      ],
+      firstMove:
+        'Cut a tight reel from footage you have rights to use, then put the same credits on IMDbPro and a casting profile.',
+      resources: [
+        { label: 'SAG-AFTRA', url: 'https://www.sagaftra.org/' },
+        { label: 'IMDbPro', url: 'https://pro.imdb.com/' },
+        { label: 'Actors Access', url: 'https://actorsaccess.com/' },
+        { label: 'Backstage', url: 'https://www.backstage.com/' },
+      ],
+    },
+    {
+      type: 'Publishing',
+      label: 'Books & Publishing',
+      kicker: 'AUTHOR · EDITOR · PUBLISHER',
+      icon: 'menu_book',
+      description:
+        'Turn lyrics, lore, and lived expertise into books, workbooks, essays, or audiobooks.',
+      assets: [
+        'A finished manuscript or detailed outline',
+        'A sample chapter, synopsis, and author bio',
+        'A cover, ISBN, and metadata plan',
+      ],
+      firstMove:
+        'Write one chapter that can stand alone, then compare traditional querying with independent publishing before buying an ISBN or cover.',
+      resources: [
+        {
+          label: 'Alliance of Independent Authors',
+          url: 'https://www.allianceindependentauthors.org/',
+        },
+        { label: 'Amazon KDP', url: 'https://kdp.amazon.com/' },
+        { label: 'IngramSpark', url: 'https://www.ingramspark.com/' },
+        {
+          label: 'U.S. ISBN Agency',
+          url: 'https://www.myidentifiers.com/',
+        },
+        { label: 'QueryTracker', url: 'https://querytracker.net/' },
+      ],
+    },
+    {
+      type: 'Brand Deals',
+      label: 'Brand Deals',
+      kicker: 'PARTNERSHIPS · ENDORSEMENTS',
+      icon: 'handshake',
+      description:
+        'Convert a real audience into paid partnerships, with clear deliverables, usage rights, and disclosure.',
+      assets: [
+        'A media kit built from verified audience data',
+        'A deliverables list and rate floor',
+        'Disclosure-ready creative and approval workflow',
+      ],
+      firstMove:
+        'Build a one-page media kit from screenshots you can verify, then write down the categories and exclusivity you will not accept.',
+      resources: [
+        {
+          label: 'FTC Endorsement Guides',
+          url: 'https://www.ftc.gov/business-guidance/resources/ftcs-endorsement-guides-what-people-are-asking',
+        },
+        {
+          label: 'FTC Disclosures 101',
+          url: 'https://www.ftc.gov/business-guidance/resources/disclosures-101-social-media-influencers',
+        },
+        { label: 'SAG-AFTRA', url: 'https://www.sagaftra.org/' },
+      ],
+    },
+    {
+      type: 'Podcasting',
+      label: 'Podcasting',
+      kicker: 'HOST · PRODUCER · PUBLISHER',
+      icon: 'podcasts',
+      description:
+        'Host an owned audio show that gives fans a reason to return between releases and live dates.',
+      assets: [
+        'A repeatable episode format and show promise',
+        'Cover art, a trailer, and a valid RSS feed',
+        'At least three banked episodes',
+      ],
+      firstMove:
+        'Record a trailer and one full episode before choosing a host; the RSS feed, not the platform, is the asset you own.',
+      resources: [
+        {
+          label: 'Spotify for Creators',
+          url: 'https://creators.spotify.com/',
+        },
+        {
+          label: 'Apple Podcasts for Creators',
+          url: 'https://podcasters.apple.com/',
+        },
+        { label: 'Podcast Index', url: 'https://podcastindex.org/' },
+      ],
+    },
+    {
+      type: 'Live Experiences',
+      label: 'Live Experiences',
+      kicker: 'PERFORMANCE · HOSTING · TOURING',
+      icon: 'stadium',
+      description:
+        'Build a repeatable show package for venues, promoters, festivals, and independent dates.',
+      assets: [
+        'An EPK with live video and performance photos',
+        'A stage plot, tech rider, and set list',
+        'Draw evidence and clear settlement terms',
+      ],
+      firstMove:
+        'Film one full set with clean audio, then package the strongest three songs with a stage plot and a short promoter pitch.',
+      resources: [
+        {
+          label: 'Bandsintown for Artists',
+          url: 'https://www.bandsintown.com/for-artists',
+        },
+        { label: 'Eventbrite', url: 'https://www.eventbrite.com/' },
+      ],
+    },
+    {
+      type: 'Sync Licensing',
+      label: 'Sync Licensing',
+      kicker: 'FILM · TV · GAMES · ADS',
+      icon: 'library_music',
+      description:
+        'Package cleared instrumentals, edits, and stems so a music supervisor can license the catalog without a chase.',
+      assets: [
+        'Instrumentals, clean edits, and stems',
+        'One-stop clearance and signed split sheets',
+        'Searchable mood, tempo, and instrumentation metadata',
+      ],
+      firstMove:
+        'Pick five strongest tracks and make each one sync-ready: instrumental, clean edit, 30-second cut, stems, and complete metadata.',
+      resources: [
+        {
+          label: 'Guild of Music Supervisors',
+          url: 'https://www.guildofmusicsupervisors.com/',
+        },
+        { label: 'Musicbed', url: 'https://www.musicbed.com/' },
+        { label: 'Songtradr', url: 'https://www.songtradr.com/' },
+      ],
+    },
+  ];
+
+  selectedExpansion = signal<BusinessPipelineType>('Film & TV');
+
+  selectedExpansionLane = computed(
+    () =>
+      this.expansionLanes.find(
+        (lane) => lane.type === this.selectedExpansion()
+      ) ?? this.expansionLanes[0]
+  );
+
+  selectExpansion(type: BusinessPipelineType): void {
+    this.selectedExpansion.set(type);
+  }
 
   openPathway(): void {
     this.router.navigate(['/artist-development']);

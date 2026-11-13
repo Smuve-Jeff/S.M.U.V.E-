@@ -1,11 +1,11 @@
 <div
-  class="p-8 h-full bg-brand-dark overflow-y-auto animate-enter"
+  class="pipeline-detail-page p-8 h-full bg-brand-dark overflow-y-auto animate-enter"
   *ngIf="pipeline() as p"
 >
   <!-- Header -->
-  <div class="flex justify-between items-end mb-12">
-    <div>
-      <div class="flex items-center gap-3 mb-2">
+  <div class="pipeline-detail-header flex justify-between items-end mb-12">
+    <div class="pipeline-title-block">
+      <div class="pipeline-kicker-row flex items-center gap-3 mb-2">
         <span
           class="px-2 py-0.5 bg-brand-primary/10 text-brand-primary text-[10px] font-black uppercase tracking-widest rounded border border-brand-primary/20"
         >
@@ -19,13 +19,13 @@
         </button>
       </div>
       <h1
-        class="text-5xl font-black text-white uppercase italic tracking-tighter"
+        class="pipeline-detail-title text-5xl font-black text-white uppercase italic tracking-tighter"
       >
         {{ p.name }}
       </h1>
     </div>
 
-    <div class="text-right">
+    <div class="pipeline-detail-status text-right">
       <div
         class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1"
       >
@@ -37,7 +37,7 @@
     </div>
   </div>
 
-  <div class="grid grid-cols-12 gap-8">
+  <div class="pipeline-detail-grid grid grid-cols-12 gap-8">
     <!-- Main Pipeline Flow -->
     <div class="col-span-12 lg:col-span-8 space-y-8">
       <!-- Progression Timeline -->
@@ -86,7 +86,7 @@
 
       <!-- Current Stage Details -->
       <div class="space-y-6" *ngIf="currentStage() as stage">
-        <div class="flex justify-between items-center mb-6">
+        <div class="pipeline-stage-heading flex justify-between items-center mb-6">
           <h2
             class="text-2xl font-black text-white uppercase italic tracking-tighter"
           >
@@ -121,8 +121,8 @@
               'border-white/5': step.status === 'Completed',
             }"
           >
-            <div class="p-8">
-              <div class="flex justify-between items-start mb-4">
+            <div class="pipeline-step-body p-8">
+              <div class="pipeline-step-heading flex justify-between items-start mb-4">
                 <div>
                   <h3
                     class="text-xl font-black text-white uppercase tracking-tight mb-2 flex items-center gap-3 italic"
@@ -140,7 +140,7 @@
                   </p>
                 </div>
 
-                <div class="flex gap-3">
+                <div class="pipeline-step-actions flex gap-3">
                   <button
                     *ngIf="step.actionType"
                     (click)="performAction(step)"
@@ -160,7 +160,7 @@
 
               <!-- AI Guidance -->
               <div
-                class="mt-6 bg-black/40 rounded-2xl p-6 border-l-2 border-brand-primary/50 relative overflow-hidden"
+                class="pipeline-guidance mt-6 bg-black/40 rounded-2xl p-6 border-l-2 border-brand-primary/50 relative overflow-hidden"
               >
                 <div
                   class="absolute top-0 right-0 p-4 opacity-5 pointer-events-none"

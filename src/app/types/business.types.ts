@@ -16,7 +16,13 @@ export type BusinessPipelineType =
   | 'Record Label'
   | 'Website'
   | 'PRO'
-  | 'Legal';
+  | 'Legal'
+  | 'Film & TV'
+  | 'Publishing'
+  | 'Brand Deals'
+  | 'Podcasting'
+  | 'Live Experiences'
+  | 'Sync Licensing';
 
 export type BusinessStageStatus =
   | 'Locked'

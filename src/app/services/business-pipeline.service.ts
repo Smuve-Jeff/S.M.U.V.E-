@@ -463,6 +463,480 @@ export class BusinessPipelineService {
           },
         ];
 
+      case 'Film & TV':
+        return [
+          {
+            id: 'stg-1',
+            name: 'Performance Assets',
+            status: 'In Progress',
+            steps: [
+              {
+                id: 'step-1',
+                title: 'Cut a Screen Reel',
+                description:
+                  'Build a 60–90 second reel with two contrasting scenes, a slate, and footage you have rights to use.',
+                status: 'Pending',
+                aiGuidance:
+                  'Casting looks for range and clarity in the first ten seconds. Use finished footage or a self-produced scene — never someone else’s film without written permission.',
+              },
+              {
+                id: 'step-2',
+                title: 'Set the Self-Tape Kit',
+                description:
+                  'Standardize your phone or camera, tripod, light, clean audio, neutral background, and reader setup.',
+                status: 'Pending',
+                aiGuidance:
+                  'A reliable self-tape beats a perfect one you cannot repeat. Test framing, sound, and file naming before a casting request arrives.',
+              },
+            ],
+          },
+          {
+            id: 'stg-2',
+            name: 'Industry Access',
+            status: 'Locked',
+            steps: [
+              {
+                id: 'step-3',
+                title: 'Build Casting Profiles',
+                description:
+                  'Create accurate profiles on IMDbPro and a casting site, with matching credits, headshots, and reel links.',
+                status: 'Pending',
+                aiGuidance:
+                  'Compare IMDbPro, Actors Access, and Backstage for your market. Keep every credit truthful and consistent — casting verifies it.',
+              },
+              {
+                id: 'step-4',
+                title: 'Map Union and Representation',
+                description:
+                  'Read union eligibility rules and build a short, targeted list of agents or managers who work your type.',
+                status: 'Pending',
+                aiGuidance:
+                  'Start at sagaftra.org for eligibility and contract rules. Avoid any representative who guarantees work or charges a large upfront fee.',
+              },
+            ],
+          },
+          {
+            id: 'stg-3',
+            name: 'On-Set Business',
+            status: 'Locked',
+            steps: [
+              {
+                id: 'step-5',
+                title: 'Paper the Booking',
+                description:
+                  'Confirm rate, dates, credit, usage, cancellation, and who owns the footage before you arrive.',
+                status: 'Pending',
+                aiGuidance:
+                  'A booking text is not a contract. Put the deal points in writing and keep a copy with the call sheet.',
+              },
+              {
+                id: 'step-6',
+                title: 'Deliver and Archive',
+                description:
+                  'Complete the shoot, collect approved footage for your reel, and update your credits and portfolio.',
+                status: 'Pending',
+                aiGuidance:
+                  'Ask for footage rights in advance. Archive the call sheet, contract, and final cut so the credit is easy to verify later.',
+              },
+            ],
+          },
+        ];
+
+      case 'Publishing':
+        return [
+          {
+            id: 'stg-1',
+            name: 'Manuscript Ready',
+            status: 'In Progress',
+            steps: [
+              {
+                id: 'step-1',
+                title: 'Finish the Core Draft',
+                description:
+                  'Complete the manuscript or a detailed outline, then get structural feedback from trusted readers.',
+                status: 'Pending',
+                aiGuidance:
+                  'A finished, edited sample is more useful than a perfect outline. Write the chapter you would read aloud at a show.',
+              },
+              {
+                id: 'step-2',
+                title: 'Protect the Work',
+                description:
+                  'Keep dated drafts, register the copyright where applicable, and document any collaborators.',
+                status: 'Pending',
+                aiGuidance:
+                  'Registration is not the same as a publisher. Check your local copyright office and keep proof of authorship before sharing full files.',
+              },
+            ],
+          },
+          {
+            id: 'stg-2',
+            name: 'Publishing Route',
+            status: 'Locked',
+            steps: [
+              {
+                id: 'step-3',
+                title: 'Choose the Route',
+                description:
+                  'Compare traditional querying with independent publishing on rights, royalties, timeline, and control.',
+                status: 'Pending',
+                aiGuidance:
+                  'QueryTracker can organize agent research, while the Alliance of Independent Authors covers the independent route. Do not pay a publisher to read your book.',
+              },
+              {
+                id: 'step-4',
+                title: 'Package the Edition',
+                description:
+                  'Prepare the cover, ISBN, description, categories, and print or ebook files for your chosen route.',
+                status: 'Pending',
+                aiGuidance:
+                  'Compare Amazon KDP, IngramSpark, and Draft2Digital before committing. In the U.S., buy your own ISBN through the official Bowker agency if you are the publisher.',
+              },
+            ],
+          },
+          {
+            id: 'stg-3',
+            name: 'Launch and Rights',
+            status: 'Locked',
+            steps: [
+              {
+                id: 'step-5',
+                title: 'Launch to Your Audience',
+                description:
+                  'Plan preorders, advance readers, a launch page, and a direct email or fan-list announcement.',
+                status: 'Pending',
+                aiGuidance:
+                  'Your existing fans are the first market. Tie the book to a release, live show, or podcast episode instead of buying a generic launch list.',
+              },
+              {
+                id: 'step-6',
+                title: 'Map Subsidiary Rights',
+                description:
+                  'Decide who controls audiobook, translation, serial, and screen rights, and record the terms.',
+                status: 'Pending',
+                aiGuidance:
+                  'Do not give away audiobook or screen rights by default. Get contract review before signing an exclusive publishing deal.',
+              },
+            ],
+          },
+        ];
+
+      case 'Brand Deals':
+        return [
+          {
+            id: 'stg-1',
+            name: 'Proof and Positioning',
+            status: 'In Progress',
+            steps: [
+              {
+                id: 'step-1',
+                title: 'Build a Verified Media Kit',
+                description:
+                  'Assemble actual audience data, past campaign results, audience fit, and examples of your creative work.',
+                status: 'Pending',
+                aiGuidance:
+                  'Use screenshots and platform exports you can verify. Never present projected reach or bought followers as audience evidence.',
+              },
+              {
+                id: 'step-2',
+                title: 'Set Your Boundaries',
+                description:
+                  'List categories you will not promote, exclusivity limits, usage limits, and the minimum rate you can accept.',
+                status: 'Pending',
+                aiGuidance:
+                  'Decide before the pitch. A clear boundary protects your audience and makes negotiation faster.',
+              },
+            ],
+          },
+          {
+            id: 'stg-2',
+            name: 'Deal Terms',
+            status: 'Locked',
+            steps: [
+              {
+                id: 'step-3',
+                title: 'Pitch the Fit',
+                description:
+                  'Send a short, specific pitch with the audience match, deliverables, timing, and a measurable outcome.',
+                status: 'Pending',
+                aiGuidance:
+                  'Lead with why the brand fits your audience, not a generic follower count. Offer two clear packages instead of a long menu.',
+              },
+              {
+                id: 'step-4',
+                title: 'Review the Contract',
+                description:
+                  'Check deliverables, approval, exclusivity, usage rights, payment schedule, and disclosure obligations.',
+                status: 'Pending',
+                aiGuidance:
+                  'Read the FTC Endorsement Guides and Disclosures 101 before posting. Perpetual usage, broad exclusivity, and unpaid revisions are negotiation points, not defaults.',
+              },
+            ],
+          },
+          {
+            id: 'stg-3',
+            name: 'Deliver and Report',
+            status: 'Locked',
+            steps: [
+              {
+                id: 'step-5',
+                title: 'Produce with Disclosure',
+                description:
+                  'Deliver the approved assets with a clear, unavoidable paid-partnership disclosure.',
+                status: 'Pending',
+                aiGuidance:
+                  'Use the platform’s paid-partnership label and a plain-language disclosure in the post itself. A hashtag buried among thirty others is not clear disclosure.',
+              },
+              {
+                id: 'step-6',
+                title: 'Report and Invoice',
+                description:
+                  'Send the agreed screenshots or insights, invoice on time, and archive the final terms and assets.',
+                status: 'Pending',
+                aiGuidance:
+                  'Report only the metrics the campaign actually produced. Save the contract, invoices, and delivery proof for your records.',
+              },
+            ],
+          },
+        ];
+
+      case 'Podcasting':
+        return [
+          {
+            id: 'stg-1',
+            name: 'Show Design',
+            status: 'In Progress',
+            steps: [
+              {
+                id: 'step-1',
+                title: 'Define the Show Promise',
+                description:
+                  'Name the audience, episode format, length, cadence, and the reason someone returns every week.',
+                status: 'Pending',
+                aiGuidance:
+                  'Audio is a habit. Bank three episodes before launch so the show does not disappear after the first week.',
+              },
+              {
+                id: 'step-2',
+                title: 'Build the Show Kit',
+                description:
+                  'Create cover art, a trailer, a show description, and a consistent intro and outro.',
+                status: 'Pending',
+                aiGuidance:
+                  'Keep the cover readable at thumbnail size and make the trailer a complete 60–90 second story, not a list of guests.',
+              },
+            ],
+          },
+          {
+            id: 'stg-2',
+            name: 'Produce and Publish',
+            status: 'Locked',
+            steps: [
+              {
+                id: 'step-3',
+                title: 'Record a Repeatable Episode',
+                description:
+                  'Set up local or remote recording, backup tracks, transcript workflow, and a release checklist.',
+                status: 'Pending',
+                aiGuidance:
+                  'Record a local backup even when the platform records remotely. Clean speech and a repeatable edit template matter more than an expensive microphone.',
+              },
+              {
+                id: 'step-4',
+                title: 'Own the RSS Feed',
+                description:
+                  'Publish through a host that gives you a valid RSS feed, then submit the show to the major directories.',
+                status: 'Pending',
+                aiGuidance:
+                  'Spotify for Creators and Apple Podcasts for Creators both accept RSS feeds. Keep the feed URL and episode files exportable so the show can move with you.',
+              },
+            ],
+          },
+          {
+            id: 'stg-3',
+            name: 'Grow and Monetize',
+            status: 'Locked',
+            steps: [
+              {
+                id: 'step-5',
+                title: 'Build the Audience Loop',
+                description:
+                  'Use guest swaps, short clips, an email list, and live episode recordings to bring listeners back.',
+                status: 'Pending',
+                aiGuidance:
+                  'Turn every episode into one clip, one email, and one invitation. Do not rely on a single directory to distribute for you.',
+              },
+              {
+                id: 'step-6',
+                title: 'Choose a Revenue Model',
+                description:
+                  'Compare sponsorships, memberships, live shows, and paid bonus episodes using real audience evidence.',
+                status: 'Pending',
+                aiGuidance:
+                  'Price from actual downloads and audience engagement, not a projected listener count. Disclose paid reads and keep sponsor terms in writing.',
+              },
+            ],
+          },
+        ];
+
+      case 'Live Experiences':
+        return [
+          {
+            id: 'stg-1',
+            name: 'Show Package',
+            status: 'In Progress',
+            steps: [
+              {
+                id: 'step-1',
+                title: 'Build the EPK',
+                description:
+                  'Collect a short bio, performance photos, live video, press quotes, stage plot, and tech rider.',
+                status: 'Pending',
+                aiGuidance:
+                  'Promoters need to picture the show in ten seconds. Lead with live video and a clear draw story, not a full discography.',
+              },
+              {
+                id: 'step-2',
+                title: 'Design the Set',
+                description:
+                  'Build a 30, 45, or 60-minute set with transitions, a closer, and a plan for encores or technical issues.',
+                status: 'Pending',
+                aiGuidance:
+                  'Rehearse the show without backing tracks once. If the laptop dies, the performance still needs to work.',
+              },
+            ],
+          },
+          {
+            id: 'stg-2',
+            name: 'Booking and Terms',
+            status: 'Locked',
+            steps: [
+              {
+                id: 'step-3',
+                title: 'Pitch Real Rooms',
+                description:
+                  'Build a targeted venue and promoter list with a personalized pitch, links, and evidence of local draw.',
+                status: 'Pending',
+                aiGuidance:
+                  'Use Bandsintown for Artists to organize dates and fan demand, and only claim draw you can document from past shows or ticket data.',
+              },
+              {
+                id: 'step-4',
+                title: 'Agree the Deal',
+                description:
+                  'Put guarantee or door split, deposit, hospitality, cancellation, curfew, and settlement terms in writing.',
+                status: 'Pending',
+                aiGuidance:
+                  'A sold-out room means nothing if the settlement is unclear. Confirm who counts the door and when you get paid before announcing.',
+              },
+            ],
+          },
+          {
+            id: 'stg-3',
+            name: 'Show Day',
+            status: 'Locked',
+            steps: [
+              {
+                id: 'step-5',
+                title: 'Advance the Date',
+                description:
+                  'Confirm load-in, soundcheck, parking, merch setup, guest list, and the content capture plan.',
+                status: 'Pending',
+                aiGuidance:
+                  'Send the tech rider and stage plot a week ahead. Assign one person to capture photo and video so the show becomes next season’s evidence.',
+              },
+              {
+                id: 'step-6',
+                title: 'Settle and Follow Up',
+                description:
+                  'Collect payment, reconcile expenses, archive footage, thank the room, and pitch the next market.',
+                status: 'Pending',
+                aiGuidance:
+                  'Update your draw notes immediately after the show. The next promoter will ask what the room actually did.',
+              },
+            ],
+          },
+        ];
+
+      case 'Sync Licensing':
+        return [
+          {
+            id: 'stg-1',
+            name: 'Sync-Ready Assets',
+            status: 'In Progress',
+            steps: [
+              {
+                id: 'step-1',
+                title: 'Prepare the Versions',
+                description:
+                  'Create instrumentals, clean edits, 30- and 60-second cuts, and stems for each priority track.',
+                status: 'Pending',
+                aiGuidance:
+                  'A supervisor should not have to email you for an instrumental. Deliver the full set in one organized folder with consistent file names.',
+              },
+              {
+                id: 'step-2',
+                title: 'Clear the Rights',
+                description:
+                  'Confirm one-stop control or identify every rights holder, and collect signed split sheets and sample clearances.',
+                status: 'Pending',
+                aiGuidance:
+                  'If you cannot clear a sample, prepare an alternate version. A great track with an uncleared loop is not licensable.',
+              },
+            ],
+          },
+          {
+            id: 'stg-2',
+            name: 'Catalog and Pitch',
+            status: 'Locked',
+            steps: [
+              {
+                id: 'step-3',
+                title: 'Make the Catalog Searchable',
+                description:
+                  'Tag each track with mood, tempo, key, instrumentation, vocals, and clean or explicit status.',
+                status: 'Pending',
+                aiGuidance:
+                  'Describe the feeling and the arrangement, not just the genre. Supervisors search for “tense minimal pulse,” not “my new single.”',
+              },
+              {
+                id: 'step-4',
+                title: 'Pitch Specific Briefs',
+                description:
+                  'Build a supervisor and library target list and track every submission against the brief it answers.',
+                status: 'Pending',
+                aiGuidance:
+                  'Start with the Guild of Music Supervisors to understand the role, then compare libraries such as Musicbed or Songtradr on exclusivity and commission terms.',
+              },
+            ],
+          },
+          {
+            id: 'stg-3',
+            name: 'License and Deliver',
+            status: 'Locked',
+            steps: [
+              {
+                id: 'step-5',
+                title: 'Negotiate the License',
+                description:
+                  'Confirm fee, term, territory, media, exclusivity, credit, and whether the license covers trailers or advertising.',
+                status: 'Pending',
+                aiGuidance:
+                  'A low fee can still be a win, but only if the usage is defined. Do not grant perpetual worldwide rights by accident.',
+              },
+              {
+                id: 'step-6',
+                title: 'Deliver the Package',
+                description:
+                  'Send the licensed master, stems, cue sheet, invoice, and signed confirmation, then archive the deal.',
+                status: 'Pending',
+                aiGuidance:
+                  'Deliver exactly the sample rate and stems the license names. Keep the cue sheet and contract together for royalty tracking.',
+              },
+            ],
+          },
+        ];
+
       default:
         return [];
     }

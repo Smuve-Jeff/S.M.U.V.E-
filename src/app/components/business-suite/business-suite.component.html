@@ -97,6 +97,117 @@
     </p>
   </section>
 
+  <!-- Portfolio expansion: adjacent lanes, resources, and one-click pipelines -->
+  <section
+    class="expansion-suite"
+    aria-label="Portfolio expansion pathways"
+  >
+    <div class="expansion-heading">
+      <div>
+        <div class="spine-kicker">MULTI-LANE CAREER // BEYOND THE RECORD</div>
+        <h2>Portfolio expansion</h2>
+        <p>
+          One audience, multiple lanes. Inspect the package, first move, and
+          starting resources for each lane, then build a pathway from evidence
+          you can actually point to.
+        </p>
+      </div>
+      <div class="expansion-count">
+        <strong>{{ expansionLanes.length }}</strong>
+        <span>expansion lanes</span>
+      </div>
+    </div>
+
+    <div class="expansion-lanes" role="tablist" aria-label="Expansion lanes">
+      <button
+        *ngFor="let lane of expansionLanes"
+        type="button"
+        role="tab"
+        class="expansion-lane"
+        [class.is-selected]="selectedExpansion() === lane.type"
+        [attr.aria-selected]="selectedExpansion() === lane.type"
+        [attr.aria-controls]="'expansion-detail'"
+        (click)="selectExpansion(lane.type)"
+      >
+        <span class="material-symbols-outlined" aria-hidden="true">{{ lane.icon }}</span>
+        <span class="expansion-lane-copy">
+          <strong>{{ lane.label }}</strong>
+          <small>{{ lane.kicker }}</small>
+        </span>
+      </button>
+    </div>
+
+    <article
+      id="expansion-detail"
+      class="expansion-detail"
+      role="tabpanel"
+      *ngIf="selectedExpansionLane() as lane"
+    >
+      <div class="expansion-copy">
+        <div class="spine-kicker">{{ lane.kicker }}</div>
+        <h3>{{ lane.label }}</h3>
+        <p class="expansion-description">{{ lane.description }}</p>
+
+        <div class="expansion-grid">
+          <div class="expansion-block">
+            <div class="expansion-label">What you package</div>
+            <ul>
+              <li *ngFor="let asset of lane.assets">{{ asset }}</li>
+            </ul>
+          </div>
+          <div class="expansion-block">
+            <div class="expansion-label">First move</div>
+            <p>{{ lane.firstMove }}</p>
+          </div>
+        </div>
+
+        <div class="expansion-resources">
+          <div class="expansion-label">Starting resources</div>
+          <div class="resource-links">
+            <a
+              *ngFor="let resource of lane.resources"
+              [href]="resource.url"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              {{ resource.label }} <span aria-hidden="true">↗</span>
+            </a>
+          </div>
+          <p class="expansion-note">
+            Starting points, not endorsements or legal advice. Check current
+            terms, fees, and local requirements before signing or paying.
+          </p>
+        </div>
+      </div>
+
+      <aside class="expansion-action">
+        <div class="expansion-label">
+          {{ activePipelineFor(lane.type) ? 'Pathway open' : 'Next pathway' }}
+        </div>
+        <strong>
+          {{
+            activePipelineFor(lane.type)?.name ||
+              'Build the evidence, one stage at a time'
+          }}
+        </strong>
+        <p>
+          {{
+            activePipelineFor(lane.type)
+              ? 'Pick up where you left off. Completed steps stay on your record.'
+              : 'Three stages. Every step is marked from work you can prove, not projected reach.'
+          }}
+        </p>
+        <button
+          type="button"
+          class="btn-pro btn-pro-outline w-full text-[9px] font-black uppercase tracking-widest"
+          (click)="startModule(lane.type)"
+        >
+          {{ activePipelineFor(lane.type) ? 'RESUME PATHWAY' : 'BUILD PATHWAY' }}
+        </button>
+      </aside>
+    </article>
+  </section>
+
   <!-- Active Pipelines Section -->
   <section
     *ngIf="activePipelines().length > 0 || archivedPipelines().length > 0"

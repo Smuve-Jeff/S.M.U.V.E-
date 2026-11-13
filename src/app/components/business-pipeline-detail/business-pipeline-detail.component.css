@@ -22,3 +22,91 @@
 .btn-elegant {
   @apply bg-primary text-black font-black uppercase tracking-tighter italic text-sm py-4 rounded-xl hover:scale-105 transition-all shadow-[0_0_30px_rgba(16,185,129,0.2)];
 }
+
+/* ── Phone layout ────────────────────────────────────────────────── */
+.pipeline-detail-page {
+  min-width: 0;
+  overflow-x: hidden;
+}
+
+@media (max-width: 640px) {
+  .pipeline-detail-page {
+    padding: 1rem;
+  }
+
+  .pipeline-detail-header {
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 1rem;
+    margin-bottom: 2rem;
+  }
+
+  .pipeline-title-block {
+    min-width: 0;
+  }
+
+  .pipeline-kicker-row {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .pipeline-detail-title {
+    font-size: 2rem;
+    line-height: 1.05;
+    overflow-wrap: anywhere;
+  }
+
+  .pipeline-detail-status {
+    text-align: left;
+  }
+
+  .pipeline-stage-heading {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .pipeline-stage-heading h2 {
+    font-size: 1.35rem;
+    line-height: 1.1;
+  }
+
+  .pipeline-step-body {
+    padding: 1rem;
+  }
+
+  .pipeline-step-heading {
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  .pipeline-step-heading > div:first-child {
+    min-width: 0;
+  }
+
+  .pipeline-step-actions {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .pipeline-step-actions button {
+    flex: 1 1 auto;
+    min-height: 40px;
+  }
+
+  .pipeline-guidance {
+    padding: 1rem;
+    margin-top: 1rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .pipeline-detail-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1rem;
+  }
+
+  .pipeline-detail-grid > * {
+    grid-column: 1 / -1;
+    min-width: 0;
+  }
+}
