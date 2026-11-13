@@ -75,7 +75,14 @@ jest.mock("@/database/data-source", () => ({
   },
 }));
 
-import { startLiveStream, endLiveStream, resolveViewerJoin, redeemViewerJoin, generateShareToken } from "./live-stream.service";
+import {
+  startLiveStream,
+  endLiveStream,
+  getCurrentLiveStream,
+  resolveViewerJoin,
+  redeemViewerJoin,
+  generateShareToken,
+} from "./live-stream.service";
 
 const tokenA = "tokA";
 describe("live-stream service", () => {
@@ -121,6 +128,13 @@ describe("live-stream service", () => {
       expect(row.shareUrl).toMatch(/lobby=split_xyz/);
       expect(row.shareUrl).toMatch(/live=/);
       expect(row.active).toBe(true);
+    });
+
+    it("accepts the native smuve destination", async () => {
+      const row = await startLiveStream({ hostId: "42", platform: "smuve" });
+      expect(row.platform).toBe("smuve");
+      expect(row.active).toBe(true);
+      expect(row.shareUrl).toContain(`live=${row.shareToken}`);
     });
 
     it("rejects unsupported platforms with a 400", async () => {
@@ -206,6 +220,55 @@ describe("live-stream service", () => {
       await expect(redeemViewerJoin(issued.shareToken)).rejects.toMatchObject({
         statusCode: 410,
       });
+    });
+  });
+
+  describe("getCurrentLiveStream", () => {
+    it("prefers the active row over a newer ended row", async () => {
+      mockStreamStore.push({
+        id: 100,
+        shareToken: "ended",
+        hostId: "h",
+        platform: "twitch",
+        active: false,
+        startedAt: new Date(Date.now() + 1000),
+        endedAt: new Date(),
+        viewerJoins: 0,
+      });
+      mockStreamStore.push({
+        id: 101,
+        shareToken: "live",
+        hostId: "h",
+        platform: "smuve",
+        active: true,
+        startedAt: new Date(),
+        viewerJoins: 3,
+      });
+      nextInsertId = 102;
+
+      const row = await getCurrentLiveStream("h");
+
+      expect(row?.shareToken).toBe("live");
+      expect(row?.active).toBe(true);
+    });
+
+    it("falls back to the most recent row when nothing is active", async () => {
+      mockStreamStore.push({
+        id: 200,
+        shareToken: "last",
+        hostId: "h",
+        platform: "twitch",
+        active: false,
+        startedAt: new Date(),
+        endedAt: new Date(),
+        viewerJoins: 1,
+      });
+      nextInsertId = 201;
+
+      const row = await getCurrentLiveStream("h");
+
+      expect(row?.shareToken).toBe("last");
+      expect(row?.active).toBe(false);
     });
   });
 

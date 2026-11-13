@@ -11,6 +11,10 @@ import { LoggingService } from '../../services/logging.service';
 import { AiService } from '../../services/ai.service';
 import { UserContextService } from '../../services/user-context.service';
 import {
+  VIEWER_HEALTH_STORAGE_KEY,
+  VIEWER_HEALTH_UNDO_STORAGE_KEY,
+} from '../../services/viewer-health-settings.service';
+import {
   VideoClip,
   VideoEngineService,
 } from '../../services/video-engine.service';
@@ -134,6 +138,12 @@ describe('ImageVideoLabComponent', () => {
         target: 'Full-Length Film',
         description:
           'Built for long-form scenes, theatrical pacing, and soundtrack-driven storytelling.',
+        health: {
+          rttFairMs: 150,
+          rttPoorMs: 300,
+          kbpsFair: 4000,
+          kbpsPoor: 1200,
+        },
       }),
       tracks: signal([
         {
@@ -769,6 +779,139 @@ describe('ImageVideoLabComponent', () => {
     expect(videoEngine.setProductionMode).toHaveBeenCalledWith('stream');
     expect(component.aiFeedback()).toContain('STREAM PRODUCTION MODE ACTIVE');
     expect(component.activePreset().name).toBe('Live Stream Landscape');
+  });
+
+  it('applies, scopes, and persists per-preset viewer health limits', async () => {
+    if (typeof localStorage !== 'undefined') {
+      localStorage.removeItem(VIEWER_HEALTH_STORAGE_KEY);
+    }
+    if (typeof sessionStorage !== 'undefined') {
+      sessionStorage.removeItem(VIEWER_HEALTH_UNDO_STORAGE_KEY);
+    }
+    const { component, videoEngine, fixture } = await createComponent();
+    expect(component.liveVideo.viewerHealthThresholds()).toEqual({
+      rttFairMs: 150,
+      rttPoorMs: 300,
+      kbpsFair: 4000,
+      kbpsPoor: 1200,
+    });
+    expect(component.liveVideo.viewerHealthLabel()).toBe('CinemaScope 4K');
+
+    const vertical = {
+      id: 'stream-vertical-social',
+      mode: 'stream',
+      name: 'Live Vertical Social',
+      aspectRatio: '9:16',
+      width: 1080,
+      height: 1920,
+      duration: 1800,
+      target: 'Vertical Live',
+      description: 'Vertical social broadcast.',
+      health: { rttFairMs: 100, rttPoorMs: 200, kbpsFair: 1000, kbpsPoor: 350 },
+    };
+    videoEngine.deliveryPreset.set(vertical as any);
+    fixture.detectChanges();
+    expect(component.liveVideo.viewerHealthThresholds()).toEqual(
+      vertical.health
+    );
+    expect(component.liveVideo.viewerHealthLabel()).toBe('Live Vertical Social');
+
+    component.updateViewerHealthLimit('rttFairMs', 140);
+    fixture.detectChanges();
+    expect(component.liveVideo.viewerHealthThresholds().rttFairMs).toBe(140);
+    expect(component.viewerHealthCustomized()).toBe(true);
+    expect(component.viewerHealthAnnouncement()).toContain('updated');
+    expect(component.liveVideo.viewerHealthLabel()).toBe(
+      'Live Vertical Social · custom'
+    );
+    const stored = JSON.parse(
+      localStorage.getItem(VIEWER_HEALTH_STORAGE_KEY) ?? '{}'
+    );
+    expect(stored['stream-vertical-social']).toEqual({
+      rttFairMs: 140,
+      rttPoorMs: 200,
+      kbpsFair: 1000,
+      kbpsPoor: 350,
+    });
+
+    // The override is scoped to that preset: another preset keeps its own
+    // limits, and switching back brings the tuned values with it.
+    const landscape = {
+      ...vertical,
+      id: 'stream-live-landscape',
+      name: 'Live Stream Landscape',
+      aspectRatio: '16:9',
+      health: {
+        rttFairMs: 100,
+        rttPoorMs: 200,
+        kbpsFair: 1500,
+        kbpsPoor: 500,
+      },
+    };
+    videoEngine.deliveryPreset.set(landscape as any);
+    fixture.detectChanges();
+    expect(component.liveVideo.viewerHealthThresholds()).toEqual(
+      landscape.health
+    );
+    expect(component.viewerHealthCustomized()).toBe(false);
+    expect(component.viewerHealthCustomizedFor(vertical.id)).toBe(true);
+    expect(component.viewerHealthCustomizedFor(landscape.id)).toBe(false);
+
+    videoEngine.deliveryPreset.set(vertical as any);
+    fixture.detectChanges();
+    expect(component.liveVideo.viewerHealthThresholds().rttFairMs).toBe(140);
+
+    component.resetViewerHealthLimits();
+    fixture.detectChanges();
+    expect(component.liveVideo.viewerHealthThresholds()).toEqual(
+      vertical.health
+    );
+    expect(component.liveVideo.viewerHealthLabel()).toBe('Live Vertical Social');
+    expect(component.viewerHealthCustomized()).toBe(false);
+    expect(component.viewerHealthCustomizedFor(vertical.id)).toBe(false);
+
+    component.updateViewerHealthLimit('rttFairMs', 140);
+    fixture.detectChanges();
+    expect(component.viewerHealthHasOverrides()).toBe(true);
+    expect(component.viewerHealthOverrideCount()).toBe(1);
+    expect(component.viewerHealthBadgeNote(vertical)).toContain('140 ms');
+    expect(component.viewerHealthBadgeNote(vertical)).toContain(
+      'poor above 200 ms'
+    );
+    expect(component.viewerHealthBadgeDetail(vertical)).toContain('140 ms');
+
+    component.resetAllViewerHealthLimits();
+    fixture.detectChanges();
+    expect(component.liveVideo.viewerHealthThresholds()).toEqual(
+      vertical.health
+    );
+    expect(component.viewerHealthHasOverrides()).toBe(false);
+    expect(component.viewerHealthOverrideCount()).toBe(0);
+    expect(component.viewerHealthUndoAvailable()).toBe(true);
+    expect(component.viewerHealthAnnouncement()).toContain(
+      'All viewer health overrides cleared'
+    );
+
+    component.undoResetAllViewerHealthLimits();
+    fixture.detectChanges();
+    expect(component.viewerHealthOverrideCount()).toBe(1);
+    expect(component.liveVideo.viewerHealthThresholds().rttFairMs).toBe(140);
+    expect(component.viewerHealthCustomizedFor(vertical.id)).toBe(true);
+    expect(component.viewerHealthUndoAvailable()).toBe(false);
+    expect(component.viewerHealthAnnouncement()).toContain('restored');
+
+    component.resetViewerHealthLimits();
+    fixture.detectChanges();
+    expect(component.viewerHealthOverrideCount()).toBe(0);
+    expect(component.viewerHealthAnnouncement()).toContain(
+      'reset to the preset values'
+    );
+    expect(
+      JSON.parse(localStorage.getItem(VIEWER_HEALTH_STORAGE_KEY) ?? '{}')
+    ).toEqual({});
+    expect(
+      sessionStorage.getItem(VIEWER_HEALTH_UNDO_STORAGE_KEY)
+    ).toBeNull();
   });
 
   it('routes uploaded images into overlays with mode-aware duration', async () => {

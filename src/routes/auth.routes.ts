@@ -165,12 +165,39 @@ router.get("/me", authenticate, async (req, res) => {
   res.json(await getUserById(req.user.userId));
 });
 
+/**
+ * Platforms the popup contract answers for. `:platform` is reflected into the
+ * popup's HTML and its postMessage payload, so the list is also the only
+ * thing keeping that reflection from becoming script injection. `smuve` is
+ * deliberately absent: S.M.U.V.E Live has no third-party OAuth step.
+ */
+const CONNECT_PLATFORMS = [
+  "twitch",
+  "kick",
+  "youtube",
+  "instagram",
+  "discord",
+  "x",
+] as const;
+
 // GET /api/auth/:platform — OAuth popup page. The frontend opens this in a
 // popup window and listens for a `*_AUTH_SUCCESS` postMessage. A full OAuth
 // flow would redirect to the provider here; for now we complete the popup
 // contract so the stream/connect UI can proceed (simulated success).
 router.get("/:platform", (req, res) => {
-  const platform = (req.params.platform || "").toUpperCase();
+  const key = String(req.params.platform || "").toLowerCase();
+  if (!(CONNECT_PLATFORMS as readonly string[]).includes(key)) {
+    res
+      .status(404)
+      .type("html")
+      .send(
+        "<!doctype html><title>Unknown platform</title>" +
+          '<body style="background:#020617;color:#f1f5ff;font-family:monospace;display:grid;place-items:center;height:100vh;margin:0">' +
+          "<p>Unknown platform.</p></body>",
+      );
+    return;
+  }
+  const platform = key.toUpperCase();
   res.type("html").send(`<!doctype html>
 <html><head><title>${platform} Connect</title></head>
 <body style="background:#020617;color:#f1f5ff;font-family:monospace;display:grid;place-items:center;height:100vh;margin:0">

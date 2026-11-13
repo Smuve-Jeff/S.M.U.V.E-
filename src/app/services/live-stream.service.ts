@@ -9,12 +9,13 @@ import { HapticService } from './haptic.service';
 import { SocialNetworkingService } from './social-networking.service';
 
 /**
- * Mirrors backend LiveStreamPlatform ("twitch" | "kick" | "youtube").
- * Used to assert UI inputs without importing the backend barrel.
+ * Mirrors backend LiveStreamPlatform. `smuve` is the native S.M.U.V.E Live
+ * destination (share link only, no OAuth popup).
  */
-export type LiveStreamPlatform = 'twitch' | 'kick' | 'youtube';
+export type LiveStreamPlatform = 'smuve' | 'twitch' | 'kick' | 'youtube';
 
 export const LIVE_STREAM_PLATFORMS: LiveStreamPlatform[] = [
+  'smuve',
   'twitch',
   'kick',
   'youtube',
@@ -40,10 +41,14 @@ export interface LiveStreamRecord {
  * Backed by:
  *  - REST endpoints under `/api/users/:userId/live-streams/*` (host)
  *  - REST endpoints under `/api/live-streams/join/:token` (viewer)
- *  - socket events `live_stream_started | ended | resolved | redeem_ok | failed`
  *
  * The OAuth popup contract page lives at `/api/auth/:platform` and posts
  * back `{ type: '<PLATFORM>_AUTH_SUCCESS', platform: '<lower>' }`.
+ *
+ * S.M.U.V.E Live (`smuve`) is the native destination and skips the popup
+ * entirely; the share link is the broadcast. Every active session is
+ * re-read from the server while it runs so the host pill shows real viewer
+ * joins and a stream ended elsewhere stops advertising itself locally.
  */
 @Injectable({ providedIn: 'root' })
 export class LiveStreamService {
@@ -63,7 +68,10 @@ export class LiveStreamService {
   /** Convenience computed — used by the inbound prompt. */
   readonly inboundHasLink = computed(() => !!this.inboundPreview());
 
-  /** True while waiting for OAuth popup success. */
+  /**
+   * Round currently starting: the issue POST for every platform, then the
+   * OAuth popup for provider platforms. Null once live, cancelled or failed.
+   */
   readonly pendingGolive = signal<LiveStreamPlatform | null>(null);
 
   // ── Host-side lifecycle ────────────────────────────────────────────────
@@ -119,10 +127,7 @@ export class LiveStreamService {
         )
       );
       this.currentStream.set({ ...issued, active: true });
-      // 2. Open the OAuth popup. The backend's /auth/:platform stub
-      //    posts back *_AUTH_SUCCESS — we capture it and finalize.
-      this.openOAuthPopup(opts.platform, issued.shareUrl);
-      // 3. Start local camera + mic capture so the host preview, quality
+      // 2. Start local camera + mic capture so the host preview, quality
       //    tiers, and camera/mic toggles are live the moment the stream
       //    row is issued (capture fails gracefully into simulation mode).
       void this.social.startStream(opts.platform);
@@ -134,7 +139,32 @@ export class LiveStreamService {
         liveShareToken: issued.shareToken,
         liveGameId: opts.gameId ?? undefined,
       });
+      // Re-read the row while it is live so viewer joins and a stream ended
+      // elsewhere reach this session instead of leaving a stale live pill.
+      this.startStreamPoll();
       this.haptic.medium();
+
+      if (opts.platform === 'smuve') {
+        // Native S.M.U.V.E Live: there is no third-party popup — the share
+        // link IS the broadcast, so the session is live as soon as the row
+        // exists. No wedgeable AUTH PENDING state.
+        this.pendingGolive.set(null);
+        const copied = await this.copyShareUrl(true);
+        this.notify.show(
+          copied
+            ? 'SMUVE_LIVE_STARTED — SHARE LINK COPIED'
+            : 'SMUVE_LIVE_STARTED — COPY THE SHARE LINK',
+          'success'
+        );
+        return issued;
+      }
+
+      // 4. Open the provider popup. The backend's /auth/:platform stub posts
+      //    back *_AUTH_SUCCESS — we capture it and finalize.
+      if (!this.openOAuthPopup(opts.platform)) {
+        await this.abortGoliveRound('POPUP BLOCKED — ALLOW POPUPS TO GO LIVE');
+        return null;
+      }
       return issued;
     } catch (e: any) {
       console.error('[LiveStream] golive failed', e);
@@ -142,7 +172,15 @@ export class LiveStreamService {
         e?.status === 401 ? 'LOGIN EXPIRED' : 'GO_LIVE_FAILED',
         'warning'
       );
+      // A failure after the row was issued (popup, capture, presence) must
+      // not leave a ghost live row or a running camera behind.
       this.pendingGolive.set(null);
+      this.clearPopupWatch();
+      this.clearStreamPoll();
+      this.social.stopStream();
+      this.currentStream.set(null);
+      this.social.updateStatus({ live: false });
+      await this.endServerStreamQuietly();
       return null;
     }
   }
@@ -154,8 +192,44 @@ export class LiveStreamService {
    * can never swallow the auth callback of a later round on platform B.
    */
   private goLiveListenerCleanup: (() => void) | null = null;
+  /** Monotonic id so an abandoned round can never act on a newer one. */
+  private goliveRound = 0;
+  private popupWatch: ReturnType<typeof setInterval> | null = null;
+  private streamPoll: ReturnType<typeof setInterval> | null = null;
 
-  private openOAuthPopup(platform: LiveStreamPlatform, _shareUrl: string): void {
+  private clearPopupWatch(): void {
+    if (this.popupWatch !== null) {
+      clearInterval(this.popupWatch);
+      this.popupWatch = null;
+    }
+  }
+
+  private clearStreamPoll(): void {
+    if (this.streamPoll !== null) {
+      clearInterval(this.streamPoll);
+      this.streamPoll = null;
+    }
+  }
+
+  /**
+   * Poll the host's own row while live. This is what turns a viewer redeem
+   * into a moving count in the LIVE pill, and what notices a stream ended by
+   * the server (admin sweep, last socket disconnect) when no socket event is
+   * subscribed on this surface.
+   */
+  private startStreamPoll(): void {
+    this.clearStreamPoll();
+    this.streamPoll = setInterval(() => {
+      void this.refreshCurrentStream();
+    }, 12_000);
+  }
+
+  /**
+   * Open the provider popup and install its one-shot auth listener.
+   * Returns false when the browser refused the popup so the caller can roll
+   * the whole round back instead of leaving AUTH PENDING forever.
+   */
+  private openOAuthPopup(platform: LiveStreamPlatform): boolean {
     const width = 500;
     const height = 640;
     const left =
@@ -171,19 +245,14 @@ export class LiveStreamService {
       `${platform} Auth`,
       `width=${width},height=${height},left=${left},top=${top}`
     );
-    if (!popup) {
-      this.notify.show('POPUP BLOCKED — allow popups to go live', 'warning');
-      // A blocked popup can never deliver the auth callback — release the
-      // caller from the stuck "AUTH PENDING…" state immediately and stop
-      // the camera capture that was started for this round.
-      this.pendingGolive.set(null);
-      this.social.stopStream();
-      return;
-    }
+    if (!popup) return false;
 
+    const round = ++this.goliveRound;
     // A previous round's listener (if the user abandoned that auth) must
     // not linger and capture this round's callback with the wrong platform.
     this.goLiveListenerCleanup?.();
+    this.goLiveListenerCleanup = null;
+    this.clearPopupWatch();
     let apiOrigin = '';
     try {
       apiOrigin = new URL(APP_SECURITY_CONFIG.api_url).origin;
@@ -192,7 +261,15 @@ export class LiveStreamService {
       apiOrigin = window.location.origin;
     }
 
+    const finishRound = () => {
+      this.clearPopupWatch();
+      this.pendingGolive.set(null);
+      this.goLiveListenerCleanup?.();
+      this.goLiveListenerCleanup = null;
+    };
+
     const handler = (event: MessageEvent) => {
+      if (this.goliveRound !== round) return;
       if (event.origin !== apiOrigin && event.origin !== window.location.origin) {
         return;
       }
@@ -203,24 +280,79 @@ export class LiveStreamService {
         typeof t === 'string' &&
         t === `${platform.toUpperCase()}_AUTH_SUCCESS`
       ) {
-        // Finalize — flip the local stream flag, leave server row
+        // Finalize — flip the local stream flag, leave the server row
         // untouched (it was already issued).
         const cur = this.currentStream();
         if (cur) {
           this.currentStream.set({ ...cur, active: true });
-          this.notify.show(
-            `GO_LIVE_ON_${platform.toUpperCase()} — share link copied!`,
-            'success'
-          );
-          this.copyShareUrl(true);
+          void this.copyShareUrl(true).then((copied) => {
+            this.notify.show(
+              copied
+                ? `GO_LIVE_ON_${platform.toUpperCase()} — SHARE LINK COPIED`
+                : `GO_LIVE_ON_${platform.toUpperCase()} — COPY THE SHARE LINK`,
+              'success'
+            );
+          });
         }
-        this.pendingGolive.set(null);
-        this.goLiveListenerCleanup?.();
+        finishRound();
       }
     };
     const removeListener = () => window.removeEventListener('message', handler);
     window.addEventListener('message', handler);
     this.goLiveListenerCleanup = removeListener;
+
+    // Closing the popup without authorizing used to leave AUTH PENDING and a
+    // ghost live row (plus a running camera) on the server. Watch the popup
+    // and roll the round back if it disappears before success.
+    this.popupWatch = setInterval(() => {
+      if (this.goliveRound !== round) {
+        this.clearPopupWatch();
+        return;
+      }
+      if (!popup.closed) return;
+      this.clearPopupWatch();
+      void this.abortGoliveRound('AUTH CANCELLED — NOT LIVE');
+    }, 700);
+    return true;
+  }
+
+  /**
+   * Undo a Go-Live round that never got provider authorization: drop the
+   * local session, release the camera/mic, and end the server row so the
+   * share link cannot point at a stream that was never authorized.
+   */
+  private async abortGoliveRound(reason: string): Promise<void> {
+    if (!this.pendingGolive()) return;
+    this.goliveRound++;
+    this.pendingGolive.set(null);
+    this.clearPopupWatch();
+    this.clearStreamPoll();
+    this.goLiveListenerCleanup?.();
+    this.goLiveListenerCleanup = null;
+    this.social.stopStream();
+    this.currentStream.set(null);
+    this.social.updateStatus({ live: false });
+    await this.endServerStreamQuietly();
+    this.notify.show(reason, 'warning');
+  }
+
+  /** Best-effort end used by rollback paths where a toast is not wanted. */
+  private async endServerStreamQuietly(): Promise<void> {
+    const id = this.profileService.profile().id;
+    if (!id) return;
+    try {
+      await firstValueFrom(
+        this.http.post(
+          `${APP_SECURITY_CONFIG.api_url}/users/${encodeURIComponent(
+            id
+          )}/live-streams/end`,
+          {},
+          { headers: this.authHeaders() }
+        )
+      );
+    } catch {
+      /* rollback is best-effort — the socket disconnect sweep is the net */
+    }
   }
 
   /**
@@ -228,15 +360,22 @@ export class LiveStreamService {
    * REST, and updates socket presence so peers drop the LIVE indicator.
    */
   async endStream(): Promise<boolean> {
-    // An auth popup that was abandoned must not wedge the picker in
-    // "AUTH PENDING…" — ending/resetting the stream releases it too.
+    // Any popup round still in flight is abandoned by an explicit STOP.
+    this.goliveRound++;
+    this.clearPopupWatch();
+    this.clearStreamPoll();
     this.pendingGolive.set(null);
     this.goLiveListenerCleanup?.();
+    this.goLiveListenerCleanup = null;
     // Release camera + mic and stop telemetry regardless of REST outcome
     // so the host is never left with a live capture after ending.
     this.social.stopStream();
+    this.currentStream.set(null);
     const id = this.profileService.profile().id;
-    if (!id) return false;
+    if (!id) {
+      this.social.updateStatus({ live: false });
+      return false;
+    }
     try {
       const result = await firstValueFrom(
         this.http.post<{ success: boolean; streamId: number | null }>(
@@ -246,10 +385,7 @@ export class LiveStreamService {
         )
       );
       const confirmed = !!result?.success;
-      this.currentStream.set(null);
-      if (!this.pendingGolive()) {
-        this.social.updateStatus({ live: false });
-      }
+      this.social.updateStatus({ live: false });
       this.notify.show(
         confirmed
           ? 'LIVE_STREAM_ENDED'
@@ -258,14 +394,18 @@ export class LiveStreamService {
       );
       this.haptic.light();
       return confirmed;
-    } catch (e) {
+    } catch (e: any) {
+      // 404 means the row was already ended (last socket disconnect, admin
+      // sweep, another tab). That is the desired end state, not a failure.
+      if (e?.status === 404) {
+        this.social.updateStatus({ live: false });
+        this.notify.show('LIVE_STREAM_ALREADY_ENDED', 'info');
+        return true;
+      }
       console.error('[LiveStream] endStream failed', e);
       // Capture and presence are already stopped above. Keep the local state
       // consistent with that instead of still advertising a live stream.
-      this.currentStream.set(null);
-      if (!this.pendingGolive()) {
-        this.social.updateStatus({ live: false });
-      }
+      this.social.updateStatus({ live: false });
       this.notify.show(
         'STREAM ENDED LOCALLY — SERVER COULD NOT CONFIRM',
         'warning',
@@ -276,10 +416,10 @@ export class LiveStreamService {
 
   // ── Viewer-side: tap-to-join paths ──────────────────────────────
 
-  /** Pull a fresh stream record on demand. */
-  async refreshCurrentStream(): Promise<void> {
+  /** Pull a fresh stream record on demand. Returns only an ACTIVE row. */
+  async refreshCurrentStream(): Promise<LiveStreamRecord | null> {
     const id = this.profileService.profile().id;
-    if (!id) return;
+    if (!id) return null;
     try {
       const row = await firstValueFrom(
         this.http.get<LiveStreamRecord | null>(
@@ -289,10 +429,39 @@ export class LiveStreamService {
           { headers: this.authHeaders() }
         )
       );
-      this.currentStream.set(row ?? null);
+      const active = row && row.active ? row : null;
+      if (active) {
+        this.currentStream.set(active);
+        return active;
+      }
+      // The server no longer has an active row. If this session thought it was
+      // live (for example the last socket disconnected on another device),
+      // stop advertising it locally and release the camera.
+      if (this.currentStream()) {
+        this.currentStream.set(null);
+        this.clearStreamPoll();
+        this.social.stopStream();
+        this.social.updateStatus({ live: false });
+        this.notify.show('LIVE STREAM ENDED', 'info');
+      }
+      return null;
     } catch {
-      // Soft-fail: leave whatever the user sees intact.
+      // Soft-fail: a transient request error must not tear down a live UI.
+      return this.currentStream();
     }
+  }
+
+  /**
+   * Restore a live session after a reload. Without this a host who refreshes
+   * the page loses the LIVE pill, the share link, and the only STOP control
+   * while their server row keeps advertising the broadcast.
+   */
+  async restoreActiveStream(): Promise<void> {
+    if (this.currentStream()) return;
+    const row = await this.refreshCurrentStream();
+    if (!row?.active) return;
+    void this.social.startStream(row.platform);
+    this.startStreamPoll();
   }
 
   /**

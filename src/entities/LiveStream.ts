@@ -38,7 +38,7 @@ export class LiveStream {
   hostDisplayName: string | null;
 
   @Column({ type: "varchar", length: 32 })
-  platform: string; // 'twitch' | 'kick' | 'youtube'
+  platform: string; // 'smuve' | 'twitch' | 'kick' | 'youtube'
 
   @Column({ type: "varchar", name: "game_id", nullable: true })
   gameId: string | null;

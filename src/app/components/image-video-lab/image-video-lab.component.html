@@ -239,13 +239,27 @@
           [attr.aria-pressed]="activePreset().id === preset.id"
           (click)="selectDeliveryPreset(preset.id)"
         >
-          <span class="delivery-preset-name">{{ preset.name }}</span>
+          <span class="delivery-preset-title">
+            <span class="delivery-preset-name">{{ preset.name }}</span>
+            @if (viewerHealthCustomizedFor(preset.id)) {
+              <span
+                class="delivery-preset-health"
+                [attr.title]="viewerHealthBadgeNote(preset)"
+                >CUSTOM HEALTH</span
+              >
+            }
+          </span>
           <span class="delivery-preset-meta"
             >{{ preset.aspectRatio }} · {{ preset.width }}×{{
               preset.height
             }}</span
           >
           <span class="delivery-preset-copy">{{ preset.description }}</span>
+          @if (viewerHealthCustomizedFor(preset.id)) {
+            <span class="delivery-preset-health-detail">{{
+              viewerHealthBadgeDetail(preset)
+            }}</span>
+          }
         </button>
       }
     </div>
@@ -1653,7 +1667,7 @@
                 [disabled]="!!broadcastStream() || !!liveStream.pendingGolive()"
                 (click)="goLive()"
               >
-                {{ liveStream.pendingGolive() ? 'AUTHORIZING…' : 'GO LIVE' }}
+                {{ liveStream.pendingGolive() ? (livePlatform() === 'smuve' ? 'STARTING…' : 'AUTHORIZING…') : 'GO LIVE' }}
               </button>
               <button
                 type="button"
@@ -1674,6 +1688,118 @@
             </div>
 
             <!--
+              Per-preset viewer health. The shared strip applies these limits
+              to every viewer and shows the active values beside the routes.
+            -->
+            <div class="viewer-health-editor">
+              <div class="director-console-heading">
+                <div>
+                  <span class="upgrade-eyebrow">Viewer Link</span>
+                  <h4 class="director-console-title">Health Thresholds</h4>
+                </div>
+                <span class="director-state">{{
+                  viewerHealthCustomized() ? 'CUSTOM' : 'PRESET'
+                }}</span>
+              </div>
+              <p
+                class="viewer-health-announcement"
+                role="status"
+                aria-live="polite"
+                aria-atomic="true"
+              >
+                {{ viewerHealthAnnouncement() }}
+              </p>
+              <p class="viewer-health-caption">
+                <strong>{{ activePreset().name }}</strong>
+                · {{ viewerHealthExplanation() }}
+              </p>
+              <div class="viewer-health-grid">
+                <label class="director-field">
+                  <span>RTT fair (ms)</span>
+                  <input
+                    type="number"
+                    min="1"
+                    step="10"
+                    inputmode="numeric"
+                    [ngModel]="viewerHealthLimits().rttFairMs"
+                    (ngModelChange)="
+                      updateViewerHealthLimit('rttFairMs', $event)
+                    "
+                  />
+                </label>
+                <label class="director-field">
+                  <span>RTT poor (ms)</span>
+                  <input
+                    type="number"
+                    min="1"
+                    step="10"
+                    inputmode="numeric"
+                    [ngModel]="viewerHealthLimits().rttPoorMs"
+                    (ngModelChange)="
+                      updateViewerHealthLimit('rttPoorMs', $event)
+                    "
+                  />
+                </label>
+                <label class="director-field">
+                  <span>Bitrate fair (kbps)</span>
+                  <input
+                    type="number"
+                    min="1"
+                    step="100"
+                    inputmode="numeric"
+                    [ngModel]="viewerHealthLimits().kbpsFair"
+                    (ngModelChange)="
+                      updateViewerHealthLimit('kbpsFair', $event)
+                    "
+                  />
+                </label>
+                <label class="director-field">
+                  <span>Bitrate poor (kbps)</span>
+                  <input
+                    type="number"
+                    min="1"
+                    step="100"
+                    inputmode="numeric"
+                    [ngModel]="viewerHealthLimits().kbpsPoor"
+                    (ngModelChange)="
+                      updateViewerHealthLimit('kbpsPoor', $event)
+                    "
+                  />
+                </label>
+              </div>
+              <div class="director-actions director-actions-compact">
+                <button
+                  type="button"
+                  class="director-button"
+                  [disabled]="!viewerHealthCustomized()"
+                  (click)="resetViewerHealthLimits()"
+                >
+                  RESET TO PRESET
+                </button>
+                <button
+                  type="button"
+                  class="director-button"
+                  [disabled]="!viewerHealthHasOverrides()"
+                  (click)="resetAllViewerHealthLimits()"
+                >
+                  RESET ALL HEALTH
+                  @if (viewerHealthOverrideCount()) {
+                    ({{ viewerHealthOverrideCount() }})
+                  }
+                </button>
+                @if (viewerHealthUndoAvailable()) {
+                  <button
+                    type="button"
+                    class="director-button"
+                    (click)="undoResetAllViewerHealthLimits()"
+                  >
+                    UNDO RESET
+                  </button>
+                }
+              </div>
+            </div>
+
+            <!--
               Live status + the viewer link. The service issues the share URL
               when the broadcast row is created, so it exists as soon as the
               stream does — but nothing in this console used to show or copy it.
@@ -1687,6 +1813,9 @@
                 · {{ stream.platform | uppercase }} ·
                 <span class="text-text-main normal-case">{{ stream.shareUrl }}</span>
               </p>
+
+              <!-- Shared relay health + per-viewer media path. -->
+              <app-live-relay-strip />
             } @else {
               <p class="text-[9px] font-black uppercase tracking-[0.18em] text-text-dim">
                 OFFLINE — GO LIVE TO ISSUE A VIEWER LINK

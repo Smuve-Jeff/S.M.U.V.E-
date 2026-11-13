@@ -47,6 +47,24 @@ const httpStub = {
   }),
 };
 
+/** One canonical wire row so new lifecycle tests stay readable. */
+const makeRow = (over: Record<string, unknown> = {}) => ({
+  id: 1,
+  shareToken: 'tok',
+  hostId: '77',
+  hostDisplayName: 'JEFF',
+  platform: 'twitch',
+  gameId: null,
+  lobbyId: null,
+  payload: {},
+  active: true,
+  startedAt: new Date().toISOString(),
+  endedAt: null,
+  viewerJoins: 0,
+  shareUrl: 'https://x',
+  ...over,
+});
+
 beforeEach(() => {
   TestBed.resetTestingModule();
   clipboardWrite = jest.fn(async (_t: string) => undefined);
@@ -507,6 +525,112 @@ describe('LiveStreamService', () => {
       });
       const ok = await service.copyShareUrl(true);
       expect(ok).toBe(true);
+    });
+  });
+
+  describe('smuve native broadcast', () => {
+    it('starts without an OAuth popup and stays live', async () => {
+      service = TestBed.inject(LiveStreamService);
+      tokenRef = { value: 'TKN' };
+      profileRef = { value: { id: '77', artistName: 'JEFF' } };
+      httpResponses.push(makeRow({ platform: 'smuve', gameId: 'halo' }));
+      const social = TestBed.inject(SocialNetworkingService);
+
+      const result = await service.golive({ platform: 'smuve', gameId: 'halo' });
+
+      expect(result).not.toBeNull();
+      expect(openedPopups).toEqual([]);
+      expect(messageListeners).toEqual([]);
+      expect(service.pendingGolive()).toBeNull();
+      expect(service.currentStream()?.active).toBe(true);
+      expect(social.startStream).toHaveBeenCalledWith('smuve');
+      expect(updateStatusCalls.at(-1)).toEqual(
+        expect.objectContaining({ live: true, livePlatform: 'smuve' })
+      );
+    });
+  });
+
+  describe('abandoned auth popup', () => {
+    it('rolls back the round when the popup closes without authorizing', async () => {
+      jest.useFakeTimers();
+      try {
+        service = TestBed.inject(LiveStreamService);
+        tokenRef = { value: 'TKN' };
+        profileRef = { value: { id: '77', artistName: 'JEFF' } };
+        const popup: any = { closed: false, focus: jest.fn() };
+        (window.open as jest.Mock).mockReturnValueOnce(popup);
+        httpResponses.push(makeRow());
+
+        await service.golive({ platform: 'twitch' });
+        expect(service.pendingGolive()).toBe('twitch');
+        expect(service.currentStream()).not.toBeNull();
+
+        popup.closed = true;
+        jest.advanceTimersByTime(800);
+        await Promise.resolve();
+        await Promise.resolve();
+
+        expect(service.pendingGolive()).toBeNull();
+        expect(service.currentStream()).toBeNull();
+        expect(
+          TestBed.inject(SocialNetworkingService).stopStream
+        ).toHaveBeenCalled();
+        // The issued row must be ended on the server too — otherwise the share
+        // link keeps pointing at a broadcast that never got authorized.
+        expect(
+          httpCalls.some(
+            (call) =>
+              call.method === 'POST' && call.url.includes('/live-streams/end')
+          )
+        ).toBe(true);
+      } finally {
+        jest.useRealTimers();
+      }
+    });
+  });
+
+  describe('restoreActiveStream', () => {
+    it('restores an active row after a reload and restarts capture', async () => {
+      service = TestBed.inject(LiveStreamService);
+      tokenRef = { value: 'TKN' };
+      profileRef = { value: { id: '77', artistName: 'JEFF' } };
+      httpResponses.push(makeRow({ platform: 'smuve' }));
+
+      await service.restoreActiveStream();
+
+      expect(service.currentStream()?.platform).toBe('smuve');
+      expect(
+        TestBed.inject(SocialNetworkingService).startStream
+      ).toHaveBeenCalledWith('smuve');
+    });
+
+    it('ignores a row the server has already ended', async () => {
+      service = TestBed.inject(LiveStreamService);
+      tokenRef = { value: 'TKN' };
+      profileRef = { value: { id: '77', artistName: 'JEFF' } };
+      httpResponses.push(makeRow({ active: false }));
+
+      await service.restoreActiveStream();
+
+      expect(service.currentStream()).toBeNull();
+      expect(
+        TestBed.inject(SocialNetworkingService).startStream
+      ).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('endStream when the server row is already gone', () => {
+    it('treats a 404 as already ended instead of a failure', async () => {
+      service = TestBed.inject(LiveStreamService);
+      tokenRef = { value: 'TKN' };
+      profileRef = { value: { id: '77', artistName: 'JEFF' } };
+      service.currentStream.set(makeRow());
+      httpStub.post.mockReturnValueOnce(throwError(() => ({ status: 404 })));
+
+      const ok = await service.endStream();
+
+      expect(ok).toBe(true);
+      expect(service.currentStream()).toBeNull();
     });
   });
 });

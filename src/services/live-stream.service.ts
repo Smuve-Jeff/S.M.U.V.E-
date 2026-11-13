@@ -4,11 +4,19 @@ import { AppError } from "@/lib";
 import { randomBytes } from "node:crypto";
 
 /**
- * Allowed platforms mirror the OAuth popup stub in
- * routes/auth.routes.ts — extending the popup contract goes hand-in-hand
- * with extending this service.
+ * Broadcast destinations.
+ *
+ * `smuve` is the native S.M.U.V.E Live surface: there is no third-party
+ * OAuth popup because the share link itself is the broadcast. The other
+ * three mirror the OAuth popup stub in routes/auth.routes.ts — extending
+ * one contract goes hand-in-hand with extending the other.
  */
-export const LIVE_STREAM_PLATFORMS = ["twitch", "kick", "youtube"] as const;
+export const LIVE_STREAM_PLATFORMS = [
+  "smuve",
+  "twitch",
+  "kick",
+  "youtube",
+] as const;
 export type LiveStreamPlatform = (typeof LIVE_STREAM_PLATFORMS)[number];
 
 export interface StartLiveStreamInput {
@@ -137,18 +145,24 @@ export const startLiveStream = async (
 };
 
 /**
- * Return the host's most recently active row regardless of `active` flag.
- * The UI uses this to render a "your last stream" pill and to confirm
- * end-of-stream on graceful shutdown.
+ * Return the host's active row when one exists, otherwise their most recent
+ * row. The UI restores a live session from the active row (so a page reload
+ * does not strand a broadcast) and uses the fallback for the "last stream"
+ * summary.
  */
 export const getCurrentLiveStream = async (
   hostId: string
 ): Promise<LiveStreamRow | null> => {
-  const row = await repo().streams.findOne({
+  const active = await repo().streams.findOne({
+    where: { hostId, active: true },
+    order: { startedAt: "DESC" },
+  });
+  if (active) return rowToWire(active);
+  const latest = await repo().streams.findOne({
     where: { hostId },
     order: { startedAt: "DESC" },
   });
-  return row ? rowToWire(row) : null;
+  return latest ? rowToWire(latest) : null;
 };
 
 /**

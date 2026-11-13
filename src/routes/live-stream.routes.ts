@@ -9,6 +9,7 @@ import {
   resolveViewerJoin,
   redeemViewerJoin,
 } from "@/services/live-stream.service";
+import { getIceConfig } from "@/services/turn.service";
 import type { AuthUser } from "@/types";
 
 /**
@@ -45,7 +46,10 @@ router.post(
       const actor = lookupActor(req);
       if (!actor) return res.status(401).json({ error: "auth required" });
       // Ownership check (admin bypasses so admin tools can start on behalf of test users).
-      if (actor.role !== "admin" && String(actor.userId) !== req.params.userId) {
+      if (
+        actor.role !== "admin" &&
+        String(actor.userId) !== req.params.userId
+      ) {
         return res.status(403).json({ error: "Access denied" });
       }
       const platform = sanitizePlatform(req.body?.platform);
@@ -54,8 +58,12 @@ router.post(
           error: `platform must be one of: ${LIVE_STREAM_PLATFORMS.join(", ")}`,
         });
       }
+      // Admins act on behalf of the :userId in the path; everyone else is
+      // already proven to be that user by the ownership check above.
+      const hostId =
+        actor.role === "admin" ? req.params.userId : String(actor.userId);
       const row = await issueStart({
-        hostId: String(actor.userId),
+        hostId,
         hostDisplayName:
           typeof req.body?.hostDisplayName === "string"
             ? req.body.hostDisplayName
@@ -66,7 +74,9 @@ router.post(
         lobbyId:
           typeof req.body?.lobbyId === "string" ? req.body.lobbyId : undefined,
         payload:
-          req.body && typeof req.body.payload === "object" && req.body.payload !== null
+          req.body &&
+          typeof req.body.payload === "object" &&
+          req.body.payload !== null
             ? (req.body.payload as Record<string, unknown>)
             : null,
       });
@@ -74,7 +84,7 @@ router.post(
     } catch (err) {
       return next(err);
     }
-  }
+  },
 );
 
 // GET /api/users/:userId/live-streams/current
@@ -86,7 +96,10 @@ router.get(
       const actor = lookupActor(req);
       if (!actor) return res.status(401).json({ error: "auth required" });
       // Ownership: the caller can only fetch their own row (admin bypasses).
-      if (actor.role !== "admin" && String(actor.userId) !== req.params.userId) {
+      if (
+        actor.role !== "admin" &&
+        String(actor.userId) !== req.params.userId
+      ) {
         return res.status(403).json({ error: "Access denied" });
       }
       const row = await getCurrentLiveStream(req.params.userId);
@@ -94,7 +107,7 @@ router.get(
     } catch (err) {
       return next(err);
     }
-  }
+  },
 );
 
 // POST /api/users/:userId/live-streams/end
@@ -106,20 +119,44 @@ router.post(
     try {
       const actor = lookupActor(req);
       if (!actor) return res.status(401).json({ error: "auth required" });
-      if (actor.role !== "admin" && String(actor.userId) !== req.params.userId) {
+      if (
+        actor.role !== "admin" &&
+        String(actor.userId) !== req.params.userId
+      ) {
         return res.status(403).json({ error: "Access denied" });
       }
       const sweepAll = actor.role === "admin" && !!req.body?.all;
-      const result = await endLiveStream(
-        req.params.userId,
-        actor.role === "admin"
-      );
+      // `isAdmin` makes the service ignore hostId and end EVERY active row,
+      // so it must only be set for an explicit sweep. Passing the admin role
+      // here used to end every artist's stream when one was targeted.
+      const result = await endLiveStream(req.params.userId, sweepAll);
       return res.json(sweepAll ? { success: true, sweep: "all" } : result);
     } catch (err) {
       return next(err);
     }
-  }
+  },
 );
+
+// GET /api/live-streams/ice — ICE servers for the WebRTC broadcast.
+// STUN is enough on most home networks; a relay is required when both peers
+// sit behind symmetric NATs. Managed Cloudflare TURN credentials are minted
+// server-side and cached; static TURN/STUN env remains the fallback. Requires
+// a live share token so relay credentials are never minted for anonymous
+// traffic; only the short-lived values ever reach the client.
+router.get("/live-streams/ice", async (req, res, next) => {
+  const token = typeof req.query.token === "string" ? req.query.token : "";
+  if (!token) return res.status(400).json({ error: "token is required" });
+  try {
+    // Minting relay credentials is not open to anonymous traffic: the caller
+    // must hold a live stream token.
+    await resolveViewerJoin(token);
+    const { iceServers, turn } = await getIceConfig();
+    res.set("Cache-Control", "private, max-age=300");
+    return res.json({ iceServers, turn });
+  } catch (err) {
+    return next(err);
+  }
+});
 
 // GET /api/live-streams/join/:token  — public preview
 router.get("/live-streams/join/:token", async (req, res, next) => {

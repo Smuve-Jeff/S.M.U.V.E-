@@ -666,28 +666,73 @@ export class SocialNetworkingService {
     this.startOAuthFlow('twitch');
   }
 
+  /** Platforms the `/api/auth/:platform` popup contract answers for. */
+  private static readonly CONNECT_PLATFORMS = new Set([
+    'twitch',
+    'kick',
+    'youtube',
+    'instagram',
+    'discord',
+    'x',
+  ]);
+
   startOAuthFlow(platform: string) {
+    const key = (platform || '').toLowerCase();
+    if (!SocialNetworkingService.CONNECT_PLATFORMS.has(key)) {
+      this.notifications?.show?.(
+        `CONNECT NOT SUPPORTED FOR ${key.toUpperCase() || 'PLATFORM'}`,
+        'warning'
+      );
+      return;
+    }
     const width = 500,
       height = 600;
     const left = window.screen.width / 2 - width / 2;
     const top = window.screen.height / 2 - height / 2;
-    const url = `${APP_SECURITY_CONFIG.api_url}/auth/${platform}`;
+    const url = `${APP_SECURITY_CONFIG.api_url}/auth/${key}`;
 
-    const _popup = window.open(
+    const popup = window.open(
       url,
-      `${platform} Auth`,
+      `${key} Auth`,
       `width=${width},height=${height},left=${left},top=${top}`
     );
+    if (!popup) {
+      this.notifications?.show?.(
+        'POPUP BLOCKED — ALLOW POPUPS TO CONNECT',
+        'warning'
+      );
+      return;
+    }
 
-    window.addEventListener(
-      'message',
-      (event) => {
-        if (event.data.type === `${platform.toUpperCase()}_AUTH_SUCCESS`) {
-          this.currentPlatform.set(`${platform} (Connected)`);
-        }
-      },
-      { once: true }
-    );
+    // Match the Go-Live listener contract: only accept a callback from our
+    // own origins, and only the platform this round was opened for.
+    let apiOrigin = '';
+    try {
+      apiOrigin = new URL(APP_SECURITY_CONFIG.api_url).origin;
+    } catch {
+      apiOrigin = window.location.origin;
+    }
+
+    const handler = (event: MessageEvent) => {
+      if (event.origin !== apiOrigin && event.origin !== window.location.origin) {
+        return;
+      }
+      if (!event.data || typeof event.data !== 'object') return;
+      const type = (event.data as { type?: string }).type;
+      if (type !== `${key.toUpperCase()}_AUTH_SUCCESS`) return;
+      this.currentPlatform.set(`${key} (Connected)`);
+      window.removeEventListener('message', handler);
+      clearInterval(watch);
+    };
+    window.addEventListener('message', handler);
+
+    // An abandoned popup must not leave a listener behind to swallow a
+    // later connect callback from a different platform.
+    const watch = setInterval(() => {
+      if (!popup.closed) return;
+      window.removeEventListener('message', handler);
+      clearInterval(watch);
+    }, 700);
   }
   /**
    * Start a live stream: acquires real camera + mic via getUserMedia,

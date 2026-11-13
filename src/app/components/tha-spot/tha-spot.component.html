@@ -846,7 +846,7 @@
                   liveStream.currentStream()
                     ? 'STOP LIVE STREAM ON ' +
                       (liveStream.currentStream()?.platform | uppercase)
-                    : 'GO LIVE ON TWITCH / KICK / YOUTUBE'
+                    : 'GO LIVE ON SMUVE LIVE / TWITCH / KICK / YOUTUBE'
                 "
                 aria-label="Go live"
               >
@@ -1359,8 +1359,9 @@
       </header>
       <div class="share-tray-body">
         <p class="share-tray-label">
-          Pick a platform. The OAuth popup opens immediately and your viewer
-          share link copies to the clipboard on success.
+          Pick a platform. SMUVE LIVE starts instantly; Twitch, Kick and
+          YouTube open their connect popup first. Your viewer share link is
+          copied as soon as the stream is live.
         </p>
         <div class="platform-picker" role="radiogroup" aria-label="Live platform">
           <button
@@ -1373,11 +1374,13 @@
           >
             <span class="material-symbols-outlined" style="font-size: 0.85rem"
               >{{
-                p === 'twitch'
-                  ? 'live_tv'
-                  : p === 'kick'
-                    ? 'flash_on'
-                    : 'smart_display'
+                p === 'smuve'
+                  ? 'graphic_eq'
+                  : p === 'twitch'
+                    ? 'live_tv'
+                    : p === 'kick'
+                      ? 'flash_on'
+                      : 'smart_display'
               }}</span
             >
             {{ p | uppercase }}
@@ -1393,10 +1396,14 @@
         >
           {{
             pendingGolive()
-              ? 'AUTH PENDING…'
-              : 'OPEN ' +
-                (selectedGoLivePlatform() | uppercase) +
-                ' AUTH &amp; GO LIVE'
+              ? selectedGoLivePlatform() === 'smuve'
+                ? 'STARTING…'
+                : 'AUTH PENDING…'
+              : selectedGoLivePlatform() === 'smuve'
+                ? 'START SMUVE LIVE'
+                : 'OPEN ' +
+                  (selectedGoLivePlatform() | uppercase) +
+                  ' AUTH &amp; GO LIVE'
           }}
         </button>
         <button
@@ -1454,7 +1461,8 @@
     class="join-live-overlay"
     role="dialog"
     aria-label="Tap to join live stream"
-  >          <div class="join-live-card glass-v42">
+  >
+    <div class="join-live-card glass-v42">
       <div class="live-platform">
         <span class="material-symbols-outlined">live_tv</span>
         {{ livePreview.platform | uppercase }} · LIVE STREAM
@@ -1476,25 +1484,76 @@
       <p class="host" *ngIf="!livePreview.gameId">
         A friend wants you to drop into their broadcast.
       </p>
+
+      <!-- The host's camera/mic, delivered peer-to-peer over WebRTC. -->
+      <div class="live-feed" [class.live-feed-live]="liveVideo.status() === 'live'">
+        <video
+          *ngIf="liveVideo.remoteStream() as feed"
+          class="live-feed-video"
+          [srcObject]="feed"
+          autoplay
+          playsinline
+          [muted]="liveVideo.isMuted()"
+          aria-label="Host live video feed"
+        ></video>
+        <div class="live-feed-empty" *ngIf="!liveVideo.remoteStream()">
+          <span class="material-symbols-outlined">sensors</span>
+          <p>{{ liveFeedLabel() }}</p>
+          <p class="live-feed-error" *ngIf="liveVideo.feedError()">
+            {{ liveVideo.feedError() }}
+          </p>
+          <button
+            type="button"
+            class="action-btn"
+            *ngIf="
+              liveVideo.status() === 'error' ||
+              liveVideo.status() === 'unavailable'
+            "
+            (click)="retryInboundLiveFeed()"
+          >
+            RETRY FEED
+          </button>
+        </div>
+        <div class="live-feed-badge" *ngIf="liveVideo.status() === 'live'">
+          <span class="live-dot"></span> LIVE FEED
+        </div>
+      </div>
+
+      <div class="live-feed-controls">
+        <button
+          type="button"
+          class="action-btn"
+          (click)="liveVideo.toggleMute()"
+          [attr.aria-pressed]="!liveVideo.isMuted()"
+        >
+          <span class="material-symbols-outlined">{{
+            liveVideo.isMuted() ? 'volume_off' : 'volume_up'
+          }}</span>
+          {{ liveVideo.isMuted() ? 'UNMUTE' : 'MUTE' }}
+        </button>
+        <span class="live-feed-status">{{ liveFeedLabel() }}</span>
+      </div>
+
       <p class="host" style="opacity: 0.6">
-        Tapping JOIN records your visit (the host sees the viewer count),
-        and if there's a co-op lobby attached you'll be bridged straight
-        into the split-screen session.
+        The host's camera and mic play here. Tapping JOIN records your visit
+        (the host sees the viewer count), and if there's a co-op lobby attached
+        you'll be bridged straight into the split-screen session.
       </p>
       <div class="actions">
         <button
           type="button"
           class="action-btn primary"
           (click)="redeemInboundLiveToken()"
+          [disabled]="liveJoined()"
         >
-          JOIN LIVE
+          {{ liveJoined() ? 'JOINED ✓' : 'JOIN LIVE' }}
         </button>
         <button
           type="button"
           class="action-btn"
           (click)="declineInboundLiveToken()"
         >
-          DECLINE
+          CLOSE
         </button>
       </div>
     </div>
@@ -2799,11 +2858,8 @@
               </button>
             </div>
             <div class="platform-grid">
-              <button
-                class="platform-btn twitch"
-                (click)="socialService.startOAuthFlow('twitch')"
-              >
-                TWITCH (CONNECT)
+              <button class="platform-btn twitch" (click)="goLive('Twitch')">
+                TWITCH
               </button>
               <button class="platform-btn youtube" (click)="goLive('YouTube')">
                 YOUTUBE
@@ -2829,11 +2885,8 @@
               >
                 DISCORD (CONNECT)
               </button>
-              <button
-                class="platform-btn kick"
-                (click)="socialService.startOAuthFlow('kick')"
-              >
-                KICK (CONNECT)
+              <button class="platform-btn kick" (click)="goLive('Kick')">
+                KICK
               </button>
               <button
                 class="platform-btn x-corp"
@@ -2885,10 +2938,18 @@
               muted
               playsinline
             ></video>
+            <p class="stream-error" *ngIf="socialService.streamError()">
+              {{ socialService.streamError() }}
+            </p>
             <div class="telemetry-grid">
               <div class="telemetry-item">
                 <label>VIEWERS</label>
-                <span>{{ socialService.streamTelemetry().viewers }}</span>
+                <!-- Server-counted joins, not the simulated audience: the
+                     LIVE pill above reads the same number. -->
+                <span>{{
+                  liveStream.currentStream()?.viewerJoins ??
+                    socialService.streamTelemetry().viewers
+                }}</span>
               </div>
               <div class="telemetry-item">
                 <label>HEALTH</label>
@@ -2902,6 +2963,9 @@
                 <span>{{ socialService.streamTelemetry().bitrate }}</span>
               </div>
             </div>
+
+            <!-- Shared relay health + per-viewer media path. -->
+            <app-live-relay-strip />
           </div>
         </div>
       </ng-container>

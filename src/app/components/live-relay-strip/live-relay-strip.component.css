@@ -1,0 +1,116 @@
+:host {
+  display: block;
+  --relay-accent: #00e5ff;
+  --relay-ok: #22c55e;
+  --relay-warn: #ffd54f;
+  --relay-poor: #ff1a6b;
+  --relay-off: rgba(255, 255, 255, 0.45);
+  --relay-label: rgba(255, 255, 255, 0.45);
+  --relay-border: rgba(0, 229, 255, 0.14);
+  --relay-bg: rgba(0, 229, 255, 0.04);
+  --relay-chip-border: rgba(255, 255, 255, 0.12);
+  --relay-chip-text: rgba(255, 255, 255, 0.6);
+  --relay-font: "Geist Mono", ui-monospace, monospace;
+}
+
+.relay-strip {
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.55rem 0.6rem;
+  border: 1px solid var(--relay-border);
+  border-radius: 0.6rem;
+  background: var(--relay-bg);
+}
+
+.relay-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.relay-label {
+  color: var(--relay-label);
+  font-size: 0.52rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.relay-value {
+  font-family: var(--relay-font);
+  color: var(--relay-accent);
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  text-align: right;
+  text-transform: uppercase;
+}
+.relay-value.ok {
+  color: var(--relay-ok);
+}
+.relay-value.warn {
+  color: var(--relay-warn);
+}
+.relay-value.off {
+  color: var(--relay-off);
+}
+.relay-value.pending {
+  color: var(--relay-accent);
+}
+
+.relay-viewers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  padding-top: 0.35rem;
+  border-top: 1px solid var(--relay-chip-border);
+}
+
+.relay-chip {
+  max-width: 100%;
+  overflow: hidden;
+  padding: 0.16rem 0.38rem;
+  border: 1px solid var(--relay-chip-border);
+  border-radius: 999px;
+  color: var(--relay-chip-text);
+  font-size: 0.47rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.relay-metric {
+  margin-left: 0.25rem;
+  padding-left: 0.25rem;
+  border-left: 1px solid var(--relay-chip-border);
+  color: var(--relay-label);
+  font-weight: 700;
+}
+.relay-chip.direct {
+  border-color: var(--relay-ok);
+  color: var(--relay-ok);
+}
+.relay-chip.relay {
+  border-color: var(--relay-warn);
+  color: var(--relay-warn);
+}
+.relay-chip.poor {
+  border-color: var(--relay-poor);
+  color: var(--relay-poor);
+}
+.relay-chip.poor .relay-metric {
+  color: var(--relay-poor);
+}
+.relay-chip .relay-metric {
+  color: var(--relay-chip-text);
+}
+.relay-flag {
+  margin-left: 0.25rem;
+  padding-left: 0.25rem;
+  border-left: 1px solid var(--relay-poor);
+  color: var(--relay-poor);
+  font-weight: 900;
+  letter-spacing: 0.08em;
+}

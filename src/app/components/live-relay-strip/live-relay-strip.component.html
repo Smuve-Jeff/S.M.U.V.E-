@@ -1,0 +1,50 @@
+<div class="relay-strip" aria-label="Relay health and viewer routes">
+  <div class="relay-row">
+    <span class="relay-label">Turn Relay</span>
+    <span
+      class="relay-value"
+      [class.ok]="healthTone() === 'ok'"
+      [class.warn]="healthTone() === 'warn'"
+      [class.off]="healthTone() === 'off'"
+      [class.pending]="healthTone() === 'pending'"
+      >{{ healthLabel() }}</span
+    >
+  </div>
+  <div class="relay-row">
+    <span class="relay-label">Feed Route</span>
+    <span class="relay-value">{{ routeSummary() }}</span>
+  </div>
+  <div class="relay-row">
+    <span class="relay-label">Health Preset</span>
+    <span class="relay-value" [attr.title]="healthExplainer()">{{
+      viewerHealthLabel()
+    }}</span>
+  </div>
+  <div class="relay-row">
+    <span class="relay-label">Health Limits</span>
+    <span class="relay-value" [attr.title]="healthExplainer()">{{
+      limitsLabel()
+    }}</span>
+  </div>
+  @if (viewers().length) {
+    <div class="relay-viewers">
+      @for (viewer of viewers(); track viewer.socketId; let i = $index) {
+        <span
+          class="relay-chip"
+          [class.direct]="viewer.state === 'direct'"
+          [class.relay]="viewer.state === 'relay'"
+          [class.poor]="connectionHealth(viewer, thresholds()) === 'poor'"
+          [attr.title]="healthNote(viewer, thresholds())"
+        >
+          {{ viewer.name || "Viewer " + (i + 1) }} · {{ viewer.state }}
+          @if (metricsLabel(viewer); as metrics) {
+            <span class="relay-metric">{{ metrics }}</span>
+          }
+          @if (connectionHealth(viewer, thresholds()) === "poor") {
+            <span class="relay-flag">POOR</span>
+          }
+        </span>
+      }
+    </div>
+  }
+</div>

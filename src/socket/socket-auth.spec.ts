@@ -8,7 +8,11 @@ import {
   listRoomMessages,
   persistRoomMessage,
 } from "@/services";
-import { endLiveStream } from "@/services/live-stream.service";
+import {
+  endLiveStream,
+  findStreamByToken,
+  resolveViewerJoin,
+} from "@/services/live-stream.service";
 import { provisionChallengeLobby, setupSocketIO } from "./index";
 
 // The socket server only touches the database inside handlers (presence sync,
@@ -1300,5 +1304,201 @@ describe("resolved-match lobby provisioning + in-match relays", () => {
     await waitFor(() => ended2.length >= 1);
     expect(ended2[0].partyId).toBe(partyId2);
     expect(ended2[0].reason).toBe("disconnected");
+  });
+
+  describe("live video signaling (WebRTC relay over Socket.IO)", () => {
+    const liveRow = (over: Record<string, unknown> = {}) => ({
+      id: 5,
+      shareToken: "tok_live",
+      hostId: "301",
+      hostDisplayName: "HOST",
+      platform: "smuve",
+      gameId: null,
+      lobbyId: null,
+      payload: {},
+      active: true,
+      startedAt: new Date().toISOString(),
+      endedAt: null,
+      viewerJoins: 0,
+      shareUrl: "https://smuvejeffpresents.com/tha-spot?live=tok_live",
+      ...over,
+    });
+    const joined: ReturnType<typeof mk>[] = [];
+    const pair = (hostId: number, viewerId: number) => {
+      // The server notifies the host through the live row's hostId, so each
+      // pair must own a row that points at that host's user room.
+      const row = liveRow({ hostId: String(hostId) });
+      (findStreamByToken as jest.Mock).mockResolvedValue(row);
+      (resolveViewerJoin as jest.Mock).mockResolvedValue(row);
+      const host = mk(hostId);
+      const viewer = mk(viewerId);
+      joined.push(host, viewer);
+      return [host, viewer] as const;
+    };
+    const once = <T>(
+      client: ReturnType<typeof mk>,
+      event: string,
+    ): Promise<T> =>
+      new Promise<T>((resolve, reject) => {
+        let timer: ReturnType<typeof setTimeout>;
+        const handler = (data: T) => {
+          clearTimeout(timer);
+          client.off(event, handler);
+          resolve(data);
+        };
+        timer = setTimeout(() => {
+          client.off(event, handler);
+          reject(new Error(`timed out waiting for ${event}`));
+        }, 4000);
+        client.on(event, handler);
+      });
+    const settle = (ms = 120) => new Promise((r) => setTimeout(r, ms));
+
+    beforeEach(() => {
+      (findStreamByToken as jest.Mock).mockResolvedValue(liveRow());
+      (resolveViewerJoin as jest.Mock).mockResolvedValue(liveRow());
+    });
+
+    afterEach(() => {
+      joined.forEach((client) => client.close());
+      joined.length = 0;
+      (findStreamByToken as jest.Mock).mockReset().mockResolvedValue(null);
+      (resolveViewerJoin as jest.Mock).mockReset().mockResolvedValue(liveRow());
+    });
+
+    it("relays an offer, answer and ICE between one host and one viewer", async () => {
+      const [host, viewer] = pair(301, 302);
+      await Promise.all([connect(host), connect(viewer)]);
+
+      host.emit("live_stream_host_join", { token: "tok_live" });
+      await settle();
+
+      const joinedP = once<{ socketId: string; streamId: number }>(
+        host,
+        "live_stream_viewer_joined",
+      );
+      const okP = once<{ streamId: number; streamToken: string }>(
+        viewer,
+        "live_stream_watch_ok",
+      );
+      viewer.emit("live_stream_watch", { token: "tok_live" });
+      const [viewerJoined, watchOk] = await Promise.all([joinedP, okP]);
+      expect(watchOk.streamId).toBe(5);
+      expect(watchOk.streamToken).toBe("tok_live");
+      expect(viewerJoined.streamId).toBe(5);
+      expect(viewerJoined.socketId).toBe(viewer.id);
+
+      const offerP = once<any>(viewer, "live_webrtc_offer");
+      host.emit("live_webrtc_offer", {
+        token: "tok_live",
+        toSocketId: viewerJoined.socketId,
+        sdp: { type: "offer", sdp: "v=0 offer" },
+      });
+      const offer = await offerP;
+      expect(offer.fromSocketId).toBe(host.id);
+      expect(offer.streamToken).toBe("tok_live");
+      expect(offer.sdp).toEqual({ type: "offer", sdp: "v=0 offer" });
+
+      const answerP = once<any>(host, "live_webrtc_answer");
+      viewer.emit("live_webrtc_answer", {
+        token: "tok_live",
+        sdp: { type: "answer", sdp: "v=0 answer" },
+      });
+      const answer = await answerP;
+      expect(answer.fromSocketId).toBe(viewer.id);
+      expect(answer.sdp).toEqual({ type: "answer", sdp: "v=0 answer" });
+
+      const toHostP = once<any>(host, "live_webrtc_ice");
+      viewer.emit("live_webrtc_ice", {
+        token: "tok_live",
+        candidate: { candidate: "candidate:1", sdpMid: "0", sdpMLineIndex: 0 },
+      });
+      const toHost = await toHostP;
+      expect(toHost.fromSocketId).toBe(viewer.id);
+      expect(toHost.candidate.candidate).toBe("candidate:1");
+
+      const toViewerP = once<any>(viewer, "live_webrtc_ice");
+      host.emit("live_webrtc_ice", {
+        token: "tok_live",
+        toSocketId: viewerJoined.socketId,
+        candidate: { candidate: "candidate:2", sdpMid: "0", sdpMLineIndex: 0 },
+      });
+      const toViewer = await toViewerP;
+      expect(toViewer.fromSocketId).toBe(host.id);
+      expect(toViewer.candidate.candidate).toBe("candidate:2");
+    });
+
+    it("refuses offers from a socket that is not the stream host", async () => {
+      const [host, viewer] = pair(303, 304);
+      const intruder = mk(305);
+      await Promise.all([connect(host), connect(viewer), connect(intruder)]);
+
+      host.emit("live_stream_host_join", { token: "tok_live" });
+      await settle();
+      const joinedP = once<{ socketId: string }>(
+        host,
+        "live_stream_viewer_joined",
+      );
+      viewer.emit("live_stream_watch", { token: "tok_live" });
+      const viewerJoined = await joinedP;
+
+      const offers: any[] = [];
+      viewer.on("live_webrtc_offer", (data: any) => offers.push(data));
+      intruder.emit("live_webrtc_offer", {
+        token: "tok_live",
+        toSocketId: viewerJoined.socketId,
+        sdp: { type: "offer", sdp: "v=0 forged" },
+      });
+      // A viewer cannot spoof an offer either.
+      viewer.emit("live_webrtc_offer", {
+        token: "tok_live",
+        toSocketId: viewerJoined.socketId,
+        sdp: { type: "offer", sdp: "v=0 self" },
+      });
+      await settle(300);
+      expect(offers).toHaveLength(0);
+      intruder.close();
+    });
+
+    it("tells a viewer when the stream has already ended", async () => {
+      const viewer = mk(306);
+      joined.push(viewer);
+      await connect(viewer);
+      (resolveViewerJoin as jest.Mock).mockRejectedValueOnce(
+        Object.assign(new Error("ended"), { statusCode: 410 }),
+      );
+      const failedP = once<any>(viewer, "live_stream_watch_failed");
+      viewer.emit("live_stream_watch", { token: "tok_live" });
+      const failed = await failedP;
+      expect(failed.error).toBe("ended");
+    });
+
+    it("rejects malformed SDP instead of relaying it", async () => {
+      const [host, viewer] = pair(307, 308);
+      await Promise.all([connect(host), connect(viewer)]);
+      host.emit("live_stream_host_join", { token: "tok_live" });
+      await settle();
+      const joinedP = once<{ socketId: string }>(
+        host,
+        "live_stream_viewer_joined",
+      );
+      viewer.emit("live_stream_watch", { token: "tok_live" });
+      const viewerJoined = await joinedP;
+
+      const offers: any[] = [];
+      viewer.on("live_webrtc_offer", (data: any) => offers.push(data));
+      host.emit("live_webrtc_offer", {
+        token: "tok_live",
+        toSocketId: viewerJoined.socketId,
+        sdp: { type: "answer", sdp: "wrong-type" },
+      });
+      host.emit("live_webrtc_offer", {
+        token: "tok_live",
+        toSocketId: viewerJoined.socketId,
+        sdp: { type: "offer" },
+      });
+      await settle(300);
+      expect(offers).toHaveLength(0);
+    });
   });
 });

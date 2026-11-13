@@ -1,5 +1,6 @@
 import { Injectable, signal, computed, inject } from '@angular/core';
 import { AudioEngineService } from './audio-engine.service';
+import type { ViewerHealthThresholds } from './viewer-health';
 
 export type ProductionMode = 'movie' | 'music' | 'stream' | 'vlog';
 
@@ -157,6 +158,8 @@ export interface DeliveryPreset {
   duration: number;
   target: string;
   description: string;
+  /** Link-health thresholds used when judging viewers of this preset. */
+  health: ViewerHealthThresholds;
 }
 
 /**
@@ -548,6 +551,12 @@ const createDefaultTracks = (): VideoTrack[] => [
 const DELIVERY_PRESETS: DeliveryPreset[] = [
   {
     id: 'movie-cinema-4k',
+    health: {
+      rttFairMs: 150,
+      rttPoorMs: 300,
+      kbpsFair: 4000,
+      kbpsPoor: 1200,
+    },
     mode: 'movie',
     name: 'CinemaScope 4K',
     aspectRatio: '2.39:1',
@@ -560,6 +569,12 @@ const DELIVERY_PRESETS: DeliveryPreset[] = [
   },
   {
     id: 'movie-festival-master',
+    health: {
+      rttFairMs: 150,
+      rttPoorMs: 300,
+      kbpsFair: 4000,
+      kbpsPoor: 1200,
+    },
     mode: 'movie',
     name: 'Festival Master',
     aspectRatio: '16:9',
@@ -572,6 +587,12 @@ const DELIVERY_PRESETS: DeliveryPreset[] = [
   },
   {
     id: 'music-video-master',
+    health: {
+      rttFairMs: 120,
+      rttPoorMs: 250,
+      kbpsFair: 3500,
+      kbpsPoor: 1000,
+    },
     mode: 'music',
     name: 'Music Video Master',
     aspectRatio: '16:9',
@@ -584,6 +605,12 @@ const DELIVERY_PRESETS: DeliveryPreset[] = [
   },
   {
     id: 'music-video-vertical',
+    health: {
+      rttFairMs: 120,
+      rttPoorMs: 250,
+      kbpsFair: 1200,
+      kbpsPoor: 400,
+    },
     mode: 'music',
     name: 'Vertical Music Clip',
     aspectRatio: '9:16',
@@ -596,6 +623,12 @@ const DELIVERY_PRESETS: DeliveryPreset[] = [
   },
   {
     id: 'stream-live-landscape',
+    health: {
+      rttFairMs: 100,
+      rttPoorMs: 200,
+      kbpsFair: 1500,
+      kbpsPoor: 500,
+    },
     mode: 'stream',
     name: 'Live Stream Landscape',
     aspectRatio: '16:9',
@@ -608,6 +641,12 @@ const DELIVERY_PRESETS: DeliveryPreset[] = [
   },
   {
     id: 'stream-vertical-social',
+    health: {
+      rttFairMs: 100,
+      rttPoorMs: 200,
+      kbpsFair: 1000,
+      kbpsPoor: 350,
+    },
     mode: 'stream',
     name: 'Vertical Social Live',
     aspectRatio: '9:16',
@@ -620,6 +659,12 @@ const DELIVERY_PRESETS: DeliveryPreset[] = [
   },
   {
     id: 'vlog-daily-drop',
+    health: {
+      rttFairMs: 150,
+      rttPoorMs: 300,
+      kbpsFair: 1200,
+      kbpsPoor: 400,
+    },
     mode: 'vlog',
     name: 'Daily Drop Vlog',
     aspectRatio: '16:9',
@@ -632,6 +677,12 @@ const DELIVERY_PRESETS: DeliveryPreset[] = [
   },
   {
     id: 'vlog-mobile-story',
+    health: {
+      rttFairMs: 150,
+      rttPoorMs: 300,
+      kbpsFair: 800,
+      kbpsPoor: 300,
+    },
     mode: 'vlog',
     name: 'Mobile Story Cut',
     aspectRatio: '9:16',

@@ -118,6 +118,11 @@ import {
   LiveStreamPlatform,
   LiveStreamService,
 } from '../../services/live-stream.service';
+import { LiveVideoService } from '../../services/live-video.service';
+import { LiveRelayStripComponent } from '../live-relay-strip/live-relay-strip.component';
+import type { ViewerHealthThresholds } from '../../services/viewer-health';
+import { isValidViewerHealth } from '../../services/viewer-health';
+import { ViewerHealthSettingsService } from '../../services/viewer-health-settings.service';
 
 interface ProductionDirective {
   title: string;
@@ -291,7 +296,7 @@ interface PinchState {
 @Component({
   selector: 'app-image-video-lab',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, LiveRelayStripComponent],
   templateUrl: './image-video-lab.component.html',
   styleUrls: ['./image-video-lab.component.css'],
 })
@@ -313,6 +318,10 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
   private speechRecognition = inject(SpeechRecognitionService);
   private speechSynthesis = inject(SpeechSynthesisService);
   public liveStream = inject(LiveStreamService);
+  /** Delivers the host camera feed to viewers over WebRTC. */
+  public liveVideo = inject(LiveVideoService);
+  /** Persisted per-preset viewer-health overrides. */
+  private viewerHealthSettings = inject(ViewerHealthSettingsService);
   public cinemaProjects = inject(CinemaProjectService);
 
   @ViewChild('previewCanvas') previewCanvas!: ElementRef<HTMLCanvasElement>;
@@ -766,6 +775,29 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
   private readonly mediaBlobs = new Map<string, Blob>();
   private mediaCounter = 0;
   activePreset = computed(() => this.videoEngine.deliveryPreset());
+  /** Effective viewer limits: preset defaults unless the broadcaster tuned them. */
+  viewerHealthLimits = computed(() =>
+    this.viewerHealthSettings.thresholdsFor(this.activePreset()),
+  );
+  viewerHealthCustomized = computed(() =>
+    this.viewerHealthSettings.isCustomized(this.activePreset().id),
+  );
+  viewerHealthHasOverrides = computed(() =>
+    this.viewerHealthSettings.hasOverrides(),
+  );
+  viewerHealthOverrideCount = computed(() =>
+    this.viewerHealthSettings.overrideCount(),
+  );
+  viewerHealthUndoAvailable = computed(() =>
+    this.viewerHealthSettings.canUndoClearAll(),
+  );
+  /** Text mirrored into the editor's polite live region. */
+  viewerHealthAnnouncement = signal('');
+  /** Same explanation the relay strip shows, kept beside the editor inputs. */
+  viewerHealthExplanation = computed(() => {
+    const limits = this.viewerHealthLimits();
+    return `Fair above ${limits.rttFairMs} ms RTT or below ${limits.kbpsFair} kbps; poor above ${limits.rttPoorMs} ms or below ${limits.kbpsPoor} kbps.`;
+  });
   /**
    * The canvas remains the compositing/export surface, but a native video
    * element is the playback surface. Native controls are important on Android
@@ -997,6 +1029,28 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     // replaced, then reopen the last project through the normal project path.
     this.resumingProject.set(this.cinemaProjects.hasResumableProject());
     void this.resumeLastProject();
+    // A reload during a broadcast must bring the ON AIR strip, viewer link and
+    // END control back instead of orphaning the server row.
+    void this.liveStream.restoreActiveStream();
+    // Publish the captured camera/mic to viewers for as long as the stream
+    // is live; the service waits for the socket and the track itself.
+    effect(() => {
+      const stream = this.liveStream.currentStream();
+      if (stream) this.liveVideo.startHosting(stream);
+      else this.liveVideo.stopHosting();
+    });
+    // Judge each viewer against the active preset's limits, including any
+    // per-preset override saved in the Broadcast Kit.
+    effect(() => {
+      const preset = this.videoEngine.deliveryPreset();
+      const thresholds = this.viewerHealthSettings.thresholdsFor(preset);
+      this.liveVideo.setViewerHealthThresholds(
+        thresholds,
+        this.viewerHealthSettings.isCustomized(preset.id)
+          ? `${preset.name} · custom`
+          : preset.name,
+      );
+    });
 
     // Track the one layout where the section disclosures apply. `matchMedia`
     // rather than a width read: it fires on exactly the boundary the stylesheet
@@ -2181,6 +2235,70 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
       enabled
         ? `LOWER THIRD LIVE: "${this.videoEngine.lowerThird().title.toUpperCase()}".`
         : 'LOWER THIRD CLEARED FROM THE PROGRAM FEED.'
+    );
+  }
+
+  /** Save one tuned limit for the active preset and apply it immediately. */
+  updateViewerHealthLimit(
+    key: keyof ViewerHealthThresholds,
+    value: number | string,
+  ): void {
+    const numeric = Math.round(Number(value));
+    const preset = this.activePreset();
+    const next = {
+      ...this.viewerHealthSettings.thresholdsFor(preset),
+      [key]: numeric,
+    };
+    if (!isValidViewerHealth(next)) {
+      this.aiFeedback.set(
+        'KEEP RTT FAIR BELOW POOR, AND HEALTHY BITRATE ABOVE THE POOR LIMIT.',
+      );
+      this.viewerHealthAnnouncement.set(
+        'Viewer health limits were not changed. Keep RTT fair below poor, and healthy bitrate above the poor limit.',
+      );
+      return;
+    }
+    this.viewerHealthSettings.setOverride(preset.id, next);
+    this.aiFeedback.set(
+      `${preset.name.toUpperCase()} VIEWER HEALTH THRESHOLDS UPDATED.`,
+    );
+    this.viewerHealthAnnouncement.set(
+      `${preset.name} viewer health limits updated.`,
+    );
+  }
+
+  /** Drop the override and return to the delivery preset's own limits. */
+  resetViewerHealthLimits(): void {
+    const preset = this.activePreset();
+    this.viewerHealthSettings.clearOverride(preset.id);
+    this.aiFeedback.set(
+      `${preset.name.toUpperCase()} VIEWER HEALTH THRESHOLDS RESTORED.`,
+    );
+    this.viewerHealthAnnouncement.set(
+      `${preset.name} viewer health limits reset to the preset values.`,
+    );
+  }
+
+  /** Return every preset to its own limits in one action. */
+  resetAllViewerHealthLimits(): void {
+    if (!this.viewerHealthSettings.clearAll()) return;
+    this.aiFeedback.set(
+      'ALL VIEWER HEALTH OVERRIDES CLEARED — PRESET LIMITS RESTORED. UNDO IS AVAILABLE.',
+    );
+    this.viewerHealthAnnouncement.set(
+      'All viewer health overrides cleared. Preset limits restored. Undo is available for a short time.',
+    );
+  }
+
+  /** Put the cleared overrides back exactly as they were. */
+  undoResetAllViewerHealthLimits(): void {
+    if (!this.viewerHealthSettings.undoClearAll()) return;
+    const restored = this.viewerHealthOverrideCount();
+    this.aiFeedback.set('VIEWER HEALTH OVERRIDES RESTORED.');
+    this.viewerHealthAnnouncement.set(
+      `${restored} viewer health override${
+        restored === 1 ? '' : 's'
+      } restored.`,
     );
   }
 
@@ -6862,6 +6980,29 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     );
   }
 
+  /** True when a preset card should advertise tuned viewer-health limits. */
+  viewerHealthCustomizedFor(presetId: string): boolean {
+    return this.viewerHealthSettings.isCustomized(presetId);
+  }
+
+  /** Badge tooltip: the effective limits behind the CUSTOM HEALTH marker. */
+  viewerHealthBadgeNote(preset: {
+    id: string;
+    health: ViewerHealthThresholds;
+  }): string {
+    const limits = this.viewerHealthSettings.thresholdsFor(preset);
+    return `Custom viewer health: fair above ${limits.rttFairMs} ms RTT or below ${limits.kbpsFair} kbps; poor above ${limits.rttPoorMs} ms or below ${limits.kbpsPoor} kbps.`;
+  }
+
+  /** Visible, touch- and keyboard-friendly version of the badge tooltip. */
+  viewerHealthBadgeDetail(preset: {
+    id: string;
+    health: ViewerHealthThresholds;
+  }): string {
+    const limits = this.viewerHealthSettings.thresholdsFor(preset);
+    return `Fair above ${limits.rttFairMs} ms RTT or below ${limits.kbpsFair} kbps; poor above ${limits.rttPoorMs} ms or below ${limits.kbpsPoor} kbps.`;
+  }
+
   selectDeliveryPreset(presetId: string) {
     this.videoEngine.applyDeliveryPreset(presetId);
     this.aiFeedback.set(
@@ -6965,6 +7106,13 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
 
   ngOnDestroy() {
     if (this.animFrame) cancelAnimationFrame(this.animFrame);
+    this.liveVideo.stopHosting();
+    this.liveVideo.resetViewerHealthThresholds();
+    // Leaving the lab removes the only END control, so close the broadcast
+    // (server row + capture) rather than leave a ghost session on air.
+    if (this.liveStream.currentStream()) {
+      void this.liveStream.endStream();
+    }
     // Never leave the device light on: releasing the stream is the only way the
     // OS hands the camera back to other apps.
     this.camera.stop();

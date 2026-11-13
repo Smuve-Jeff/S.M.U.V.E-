@@ -4285,6 +4285,150 @@
 
 /* Mission briefing: keep the gradient title inside the fixed overlay. */
 .launch-mission-page { overflow-x: hidden; }
+
+/* ============================================================
+   GO LIVE DASHBOARD (stream hub tab)
+   The markup existed with no styles at all, so the pre-stream
+   config and live telemetry rendered as bare buttons.
+   ============================================================ */
+.stream-view {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  overflow-y: auto;
+}
+.stream-controls h4 {
+  margin: 0 0 0.6rem;
+  font-size: 0.6rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.6);
+}
+.platform-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.4rem;
+}
+.platform-btn {
+  min-height: 38px;
+  padding: 0.45rem 0.6rem;
+  border-radius: 8px;
+  border: 1px solid rgba(0, 229, 255, 0.25);
+  background: rgba(0, 229, 255, 0.06);
+  color: rgba(255, 255, 255, 0.82);
+  font-family: var(--elite-font);
+  font-size: 0.55rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.platform-btn:hover {
+  background: rgba(0, 229, 255, 0.14);
+  border-color: rgba(0, 229, 255, 0.55);
+  color: #fff;
+}
+.platform-btn.social {
+  border-color: rgba(0, 229, 255, 0.55);
+  color: #00e5ff;
+}
+.platform-btn.twitch {
+  border-color: rgba(145, 70, 255, 0.45);
+  color: #bf94ff;
+}
+.platform-btn.youtube {
+  border-color: rgba(255, 26, 107, 0.45);
+  color: #ff5c8a;
+}
+.platform-btn.instagram {
+  border-color: rgba(255, 26, 107, 0.35);
+  color: #ff8ab5;
+}
+.platform-btn.discord {
+  border-color: rgba(88, 101, 242, 0.5);
+  color: #a5b4fc;
+}
+.platform-btn.kick {
+  border-color: rgba(16, 185, 129, 0.45);
+  color: #6ee7b7;
+}
+.platform-btn.x-corp {
+  border-color: rgba(255, 255, 255, 0.3);
+  color: #e2e8f0;
+}
+.stream-dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.stream-status {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.65rem;
+  border-radius: 10px;
+  background: rgba(255, 26, 107, 0.07);
+  border: 1px solid rgba(255, 26, 107, 0.3);
+}
+.stream-status .status-text {
+  font-size: 0.6rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  color: #ff5c8a;
+  text-transform: uppercase;
+}
+.stream-status .terminate-btn {
+  margin-left: auto;
+}
+.telemetry-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.4rem;
+}
+.telemetry-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 0.45rem;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+.telemetry-item label {
+  font-size: 0.48rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: rgba(255, 255, 255, 0.45);
+}
+.telemetry-item span {
+  font-family: 'Geist Mono', monospace;
+  font-size: 0.6rem;
+  font-weight: 800;
+  color: #00e5ff;
+}
+.telemetry-item span.good {
+  color: #22c55e;
+}
+.telemetry-item span.fair {
+  color: #ffd54f;
+}
+.telemetry-item span.poor {
+  color: #ff1a6b;
+}
+.stream-error {
+  margin: 0 0 0.5rem;
+  padding: 0.4rem 0.6rem;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 213, 79, 0.4);
+  background: rgba(255, 213, 79, 0.08);
+  color: #ffd54f;
+  font-size: 0.55rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
 .mission-header { width: 100%; text-align: center; }
 .mission-title { text-align: center; max-width: 100%; overflow-wrap: anywhere; }
 
@@ -4297,4 +4441,111 @@
   color: #f1f5f9 !important;
   filter: none;
   width: 100%;
+}
+
+/* ============================================================
+   LIVE VIEWER FEED (share-link player)
+   ============================================================ */
+.live-feed {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  margin: 0.75rem 0 0.5rem;
+  border-radius: 12px;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  background: radial-gradient(
+    circle at 50% 40%,
+    rgba(0, 229, 255, 0.12),
+    rgba(2, 4, 10, 0.95)
+  );
+  border: 1px solid rgba(0, 229, 255, 0.25);
+}
+.live-feed.live-feed-live {
+  border-color: rgba(255, 26, 107, 0.55);
+  box-shadow: 0 0 24px rgba(255, 26, 107, 0.18);
+}
+.live-feed-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background: #000;
+}
+.live-feed-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 1rem;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.65);
+}
+.live-feed-empty .material-symbols-outlined {
+  font-size: 2rem;
+  color: var(--neon-cyan);
+  animation: live-feed-scan 2.4s ease-in-out infinite;
+}
+.live-feed-empty p {
+  margin: 0;
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.live-feed-empty .live-feed-error {
+  max-width: 34ch;
+  color: var(--neon-gold);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: none;
+}
+.live-feed-badge {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  background: rgba(255, 26, 107, 0.18);
+  border: 1px solid rgba(255, 26, 107, 0.5);
+  color: #ff5c8a;
+  font-size: 0.5rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+}
+.live-feed-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.35rem;
+}
+.live-feed-controls .action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+.live-feed-controls .material-symbols-outlined {
+  font-size: 0.9rem;
+}
+.live-feed-status {
+  font-size: 0.52rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: var(--neon-cyan);
+  text-transform: uppercase;
+}
+@keyframes live-feed-scan {
+  0%,
+  100% {
+    opacity: 0.45;
+    transform: scale(0.96);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.04);
+  }
 }

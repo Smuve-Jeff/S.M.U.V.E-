@@ -50,6 +50,8 @@ import {
   LiveStreamPlatform,
   LIVE_STREAM_PLATFORMS,
 } from "../../services/live-stream.service";
+import { LiveVideoService } from "../../services/live-video.service";
+import { LiveRelayStripComponent } from "../live-relay-strip/live-relay-strip.component";
 import { SplitScreenPanelComponent } from "../split-screen-panel/split-screen-panel.component";
 import { SmuveTvComponent } from "../smuve-tv/smuve-tv.component";
 import { FormatTimePipe } from "./format-time.pipe";
@@ -65,6 +67,7 @@ const FEED_REFRESH_INTERVAL_MS = 300000;
     FormsModule,
     SplitScreenPanelComponent,
     SmuveTvComponent,
+    LiveRelayStripComponent,
     FormatTimePipe,
   ],
   templateUrl: "./tha-spot.component.html",
@@ -1311,6 +1314,29 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   private orchestration = inject(StudioOrchestrationService);
   private shareable = inject(ShareableInviteService);
   public liveStream = inject(LiveStreamService);
+  /** Hosts the camera feed and plays an inbound shared stream. */
+  public liveVideo = inject(LiveVideoService);
+  /** True once this viewer has recorded a join for the inbound stream. */
+  readonly liveJoined = signal(false);
+  /** Human-readable live-video state for the join overlay. */
+  readonly liveFeedLabel = computed(() => {
+    switch (this.liveVideo.status()) {
+      case 'connecting':
+        return "CONNECTING TO HOST FEED…";
+      case 'waiting':
+        return "WAITING FOR HOST FEED…";
+      case 'live':
+        return "LIVE FEED";
+      case 'ended':
+        return "BROADCAST ENDED";
+      case 'unavailable':
+        return "HOST FEED UNAVAILABLE";
+      case 'error':
+        return "FEED ERROR";
+      default:
+        return "STANDBY";
+    }
+  });
 
   // Signals
   /**
@@ -1996,6 +2022,13 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     effect(() => {
       this.activeHubTab.set(this.socialService.activeHubTab());
     });
+    // Own the host feed for the whole time a stream is live, and release it
+    // when the session ends. The service waits for the socket/camera itself.
+    effect(() => {
+      const stream = this.liveStream.currentStream();
+      if (stream) this.liveVideo.startHosting(stream);
+      else this.liveVideo.stopHosting();
+    });
     const savedFavs = localStorage.getItem("tha_spot_favorites");
     if (savedFavs) this.favorites.set(JSON.parse(savedFavs));
     this.loadRecentGames();
@@ -2050,6 +2083,9 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   ngOnInit() {
+    // A reload during a broadcast must bring back the LIVE pill, the share
+    // link and the STOP control instead of orphaning the server row.
+    void this.liveStream.restoreActiveStream();
     this.socialService.loadFriends();
     this.securityService.getCSRFToken();
     this.loadFeed();
@@ -2199,7 +2235,19 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
           // so the viewer knows whose session they're joining; we don't
           // surface the from= param separately.
           void this.liveStream.peekViewerToken(liveToken).then((row) => {
-            if (row && lobbyId) {
+            if (!row) {
+              // 404/410 are the normal "stream ended" answers. Say so instead
+              // of silently dropping the invite link.
+              this.snackbarService.warning(
+                "LIVE STREAM ENDED OR UNAVAILABLE",
+              );
+              return;
+            }
+            // Start the video player immediately: the overlay is the viewer
+            // surface, not just an invitation card.
+            this.liveJoined.set(false);
+            void this.liveVideo.watch(row.shareToken);
+            if (lobbyId) {
               // Shared live link: connect the viewer to the host co-op session.
               // joinLobby queues the join if the socket is still reconnecting.
               this.matchmaking.joinLobby(lobbyId);
@@ -2239,6 +2287,13 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
       "incoming_challenge",
       this.handleLiveIncomingChallenge,
     );
+    // Release the player and the host peers; leaving the surface also removes
+    // the only STOP control, so end the session itself too.
+    this.liveVideo.stopWatching();
+    this.liveVideo.stopHosting();
+    if (this.liveStream.currentStream()) {
+      void this.liveStream.endStream();
+    }
   }
 
   setMode(mode: "gaming" | "tv"): void {
@@ -2641,11 +2696,23 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     if (!preview) return;
     const result = await this.liveStream.redeemViewerToken(preview.shareToken);
     if (result) {
-      this.liveStream.clearInbound();
+      // Keep the overlay (and the player) up. Closing it here used to end a
+      // viewing session the moment the viewer joined.
+      this.inboundLivePreview.set(result);
+      this.liveJoined.set(true);
     }
   }
 
+  /** Retry the peer connection after a network/media failure. */
+  async retryInboundLiveFeed(): Promise<void> {
+    const preview = this.inboundLivePreview();
+    if (!preview) return;
+    await this.liveVideo.watch(preview.shareToken);
+  }
+
   declineInboundLiveToken(): void {
+    this.liveVideo.stopWatching();
+    this.liveJoined.set(false);
     this.liveStream.clearInbound();
   }
 
@@ -3826,13 +3893,37 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     }
   }
 
-  goLive(platform: string) {
-    this.socialService.startStream(platform);
+  /**
+   * Legacy stream-tab entry point. It now goes through the real Go-Live
+   * service so every button issues a server row + share link instead of
+   * starting a local-only capture that advertised a stream nobody could
+   * join. Provider-only connect buttons still use startOAuthFlow.
+   */
+  async goLive(platform: string): Promise<void> {
+    const targets: Record<string, LiveStreamPlatform> = {
+      "S.M.U.V.E.": "smuve",
+      SMUVE: "smuve",
+      Twitch: "twitch",
+      Kick: "kick",
+      YouTube: "youtube",
+    };
+    const target = targets[platform];
+    if (!target) {
+      this.snackbarService.info(
+        `${platform.toUpperCase()} BROADCAST IS NOT AVAILABLE YET`,
+      );
+      return;
+    }
     this.activeHubTab.set("stream");
+    await this.liveStream.golive({
+      platform: target,
+      gameId: this.selectedGame()?.id,
+    });
   }
 
-  endStream() {
-    this.socialService.stopStream();
+  /** Stop the real session (server row + capture), not just the preview. */
+  async endStream(): Promise<void> {
+    await this.liveStream.endStream();
   }
 
   // ── Achievement System ──────────────────────────────
