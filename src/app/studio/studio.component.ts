@@ -3759,31 +3759,29 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
         if (!quiet) {
           this.snackbarService.success("Version saved to cloud history");
         }
-      } else {
+      } else if (!quiet) {
         // The push resolved but the cloud holds nothing for this set (an
         // unreachable or stubbed endpoint). Keep the version on this device
-        // rather than reporting a save that left no trace.
+        // rather than reporting a save that left no trace. A quiet push came
+        // from a save, which already kept its own copy.
         const local = await this.localVersionSnapshots(projectId, bundle);
         this.versionHistory.set(local);
         this.versionHistoryOffline.set(true);
-        if (!quiet) {
-          this.snackbarService.info(
-            "Cloud is unreachable — this version is saved on this device.",
-          );
-        }
-      }
-    } catch (error) {
-      this.logger.warn("Cloud version push failed", error);
-      // The cloud copy is optional; the version itself is not. Keep it on this
-      // device so an offline artist can still roll back.
-      const local = await this.localVersionSnapshots(projectId, bundle);
-      this.versionHistory.set(local);
-      this.versionHistoryOffline.set(true);
-      if (!quiet) {
         this.snackbarService.info(
           "Cloud is unreachable — this version is saved on this device.",
         );
       }
+    } catch (error) {
+      this.logger.warn("Cloud version push failed", error);
+      // The cloud copy is optional; the version itself is not. A save already
+      // kept this state on the device, so only an explicit push needs to.
+      if (quiet) return;
+      const local = await this.localVersionSnapshots(projectId, bundle);
+      this.versionHistory.set(local);
+      this.versionHistoryOffline.set(true);
+      this.snackbarService.info(
+        "Cloud is unreachable — this version is saved on this device.",
+      );
     }
   }
 

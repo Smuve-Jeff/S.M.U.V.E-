@@ -760,6 +760,10 @@ export class ProjectWorkspaceService {
       }
       // This save now covers anything a recovery snapshot was holding.
       await this.pruneRedundantRecoveryRecords();
+      // A save is a version: the Sets browser lists these, so history fills
+      // up from ordinary saving instead of waiting for a cloud push. Failures
+      // are swallowed — the save itself already succeeded.
+      await this.saveLocalVersion(bundle);
       await this.tryQueueCloudSync(bundle.metadata, bundle);
       this.logger.info("ProjectWorkspace: Saved " + bundle.metadata.name);
       return bundle;

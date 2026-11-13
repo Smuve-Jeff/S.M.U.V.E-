@@ -653,6 +653,20 @@ describe("ProjectWorkspaceService", () => {
     expect((service as any).captureStateSignature()).toBe(saved);
   });
 
+  it('keeps a device version with every manual save', async () => {
+    await service.manualSave();
+
+    const versions = saveItem.mock.calls.filter(
+      ([store, item]) =>
+        store === 'offline_local_cache' &&
+        String(item?.id || '').startsWith('version_'),
+    );
+
+    expect(versions).toHaveLength(1);
+    expect(versions[0][1].projectId).toBe(service.metadata()!.id);
+    expect(versions[0][1].payload.source).toBe('recovery');
+  });
+
   it('keeps a device version the history panel can fall back to', async () => {
     await expect(service.saveLocalVersion()).resolves.toBe(true);
 
