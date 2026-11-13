@@ -40,6 +40,8 @@
 }
 
 .tha-spot-container {
+  /* Space the pinned spectator rail needs, reserved only while spectating. */
+  --spectator-rail-space: calc(81px + 1.5rem);
   display: flex;
   flex-direction: column;
   min-height: 100vh;
@@ -3106,9 +3108,10 @@
 
 .spectator-chat-drawer {
   position: absolute;
-  right: 56px;
-  bottom: 60px;
-  width: min(280px, calc(100vw - 76px));
+  /* Clear of the fixed Home link and the teach FAB in the bottom-right corner. */
+  right: 84px;
+  bottom: 76px;
+  width: min(240px, calc(100vw - 96px));
   max-height: 50%;
   display: flex;
   flex-direction: column;
@@ -4932,4 +4935,17 @@
 }
 .spec-chat-send .material-symbols-outlined {
   font-size: 0.95rem;
+}
+
+/* ── Spectating: reserve the rail's column ───────────── */
+.tha-spot-container {
+  transition: padding-right 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.tha-spot-container.spectating {
+  padding-right: var(--spectator-rail-space);
+}
+@media (max-width: 420px) {
+  .tha-spot-container.spectating {
+    padding-right: calc(81px + 1.2rem);
+  }
 }

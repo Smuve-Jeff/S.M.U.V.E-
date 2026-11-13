@@ -1,6 +1,7 @@
 <div
   class="tha-spot-container full-page no-scrollbar"
   [class.tv-active]="displayMode() === 'tv'"
+  [class.spectating]="matchmaking.isSpectating()"
 >
   <!-- Cosmic Background -->
   <div class="cosmic-bg">
