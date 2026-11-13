@@ -143,7 +143,8 @@ export class ProfileEditorComponent implements OnInit {
   private artistFinetune = inject(ArtistProfileFinetuneService);
   private profileModule = inject(ArtistProfileModuleService);
   private revisionSource = inject(ArtistProfileRevisionService);
-  private fingerprint = inject(ArtistOnlineFingerprintService);
+  /** Read by the fingerprint panel in the template. */
+  fingerprint = inject(ArtistOnlineFingerprintService);
 
   // Auth state
   isAuthenticated = this.authService.isAuthenticated;

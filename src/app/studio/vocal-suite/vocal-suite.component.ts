@@ -96,6 +96,8 @@ export class VocalSuiteComponent implements AfterViewInit, OnDestroy {
 
   isBypassed = signal(false);
   activeMasteringTab = signal<"eq" | "comp" | "exciter" | "limiter">("eq");
+  readonly masteringTabs = ["eq", "comp", "exciter", "limiter"] as const;
+  readonly pipelineSteps = ["setup", "record", "edit", "master"] as const;
 
   // ── Monitor + De-Esser ──────────────────────────────────
   /**

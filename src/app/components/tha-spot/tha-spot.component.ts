@@ -1302,7 +1302,8 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   private sanitizer = inject(DomSanitizer);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
-  private gamepadService = inject(GamepadService);
+  /** Read by the controller status badge in the template. */
+  gamepadService = inject(GamepadService);
   private securityService = inject(SecurityService);
   public socialService = inject(SocialNetworkingService);
   public inboxService = inject(ChallengeInboxService);
@@ -1311,6 +1312,58 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   private snackbarService = inject(SnackbarService);
   public dailyMissions = inject(DailyMissionsService);
   public gameRatings = inject(GameRatingsService);
+
+  /*
+   * Daily Ops, the post-run rating modal and the spectator rail/chat all act
+   * through the template, but only the services owned those calls — so every
+   * button was dead (and the strict template check flagged it). These wrappers
+   * hand the work to the service that actually holds the state.
+   */
+  spectatorChatInput = signal("");
+  readonly spectatorEmojiPalette = ["🔥", "👏", "😂", "😱", "🎯", "💜"];
+  readonly starRatings = [1, 2, 3, 4, 5] as const;
+
+  claimMission(missionId: string): void {
+    this.dailyMissions.claimReward(missionId);
+  }
+
+  dismissRating(): void {
+    this.gameRatings.dismissPending();
+  }
+
+  submitRating(
+    stars: 1 | 2 | 3 | 4 | 5,
+    comment: string,
+    result: 'win' | 'loss' | 'draw' | null,
+  ): void {
+    const pending = this.gameRatings.pendingRating();
+    if (!pending) return;
+    this.gameRatings.rateGame(
+      pending.gameId,
+      stars,
+      comment || undefined,
+      result ?? undefined,
+      pending.lastScore ?? undefined,
+    );
+    this.gameRatings.dismissPending();
+  }
+
+  fireSpectatorReaction(emoji: string): void {
+    const lobby = this.matchmaking.spectateTargetLobby();
+    if (lobby) this.matchmaking.sendSpectatorReaction(lobby.id, emoji);
+  }
+
+  sendSpectatorChatNow(): void {
+    const lobby = this.matchmaking.spectateTargetLobby();
+    const text = this.spectatorChatInput().trim();
+    if (!lobby || !text) return;
+    this.matchmaking.sendSpectatorChat(lobby.id, text);
+    this.spectatorChatInput.set("");
+  }
+
+  trackByMissionId = (_: number, mission: { id: string }): string => mission.id;
+  trackByReactionId = (_: number, reaction: { id: string }): string =>
+    reaction.id;
   private orchestration = inject(StudioOrchestrationService);
   private shareable = inject(ShareableInviteService);
   public liveStream = inject(LiveStreamService);

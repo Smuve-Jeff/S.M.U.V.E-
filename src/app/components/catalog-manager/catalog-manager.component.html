@@ -41,7 +41,7 @@
   >
     <div class="flex w-full flex-wrap gap-1 md:w-auto">
       <button
-        *ngFor="let f of ['all', 'demo', 'completed', 'released']"
+        *ngFor="let f of filters"
         (click)="activeFilter.set(f)"
         class="px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest transition-all"
         [ngClass]="

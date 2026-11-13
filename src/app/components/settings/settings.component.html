@@ -1087,7 +1087,7 @@
                 [class]="
                   securityAudit().status === 'FORTIFIED'
                     ? 'text-brand-primary'
-                    : securityAudit().status === 'VULNERABLE'
+                    : securityAudit().status === 'ATTENTION_REQUIRED'
                       ? 'text-yellow-500'
                       : 'text-red-500'
                 "
@@ -1109,7 +1109,7 @@
               [class]="
                 securityAudit().status === 'FORTIFIED'
                   ? 'text-brand-primary'
-                  : securityAudit().status === 'VULNERABLE'
+                  : securityAudit().status === 'ATTENTION_REQUIRED'
                     ? 'text-yellow-500'
                     : 'text-red-500'
               "

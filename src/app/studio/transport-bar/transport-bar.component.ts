@@ -401,6 +401,7 @@ export class TransportBarComponent {
 
   // ── Pro: Count-in picker ───────────────────────────────
   countInBars = signal<0 | 1 | 2>(0);
+  readonly countInOptions = [0, 1, 2] as const;
 
   /** Shared wording for the click toggle and the Click settings panel. */
   metronomeSummary = computed(() => {

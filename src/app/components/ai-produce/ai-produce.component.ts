@@ -55,6 +55,7 @@ export class AiProduceComponent implements OnDestroy {
   private router = inject(Router);
   /** Whether the voice-preview stage card has visible artifacts. */
   hasVoicePreview = computed(() => !!this.produce.currentVoicePreview());
+  voicePreview = this.produce.currentVoicePreview;
   /** Pull cached latency snapshot for the engine metrics sub-card. */
   engineSnapshot = computed(() => this.latency.snapshot());
   /**

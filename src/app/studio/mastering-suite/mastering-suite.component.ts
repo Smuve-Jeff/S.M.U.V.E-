@@ -68,7 +68,8 @@ interface MasteringPreset {
   styleUrls: ["./mastering-suite.component.css", "../shared/platform-ux.css"],
 })
 export class MasteringSuiteComponent implements AfterViewInit, OnDestroy {
-  private audioEngine = inject(AudioEngineService);
+  /** Read by the compressor/meter readouts in the template. */
+  audioEngine = inject(AudioEngineService);
 
   // ── Pro metering surface ──────────────────────────────
   /** The engine's master tap — the same node the LUFS meter reads. */

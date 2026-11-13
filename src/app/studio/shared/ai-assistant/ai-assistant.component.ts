@@ -128,7 +128,8 @@ export class AiAssistantComponent implements OnInit, AfterViewInit, OnDestroy {
   private artistFinetune = inject(ArtistProfileFinetuneService);
   /** Persistent case file — the Studio panel writes into the same relationship. */
   private caseFile = inject(SmuveMemoryService);
-  private speechRecognition = inject(SpeechRecognitionService);
+  /** Read by the dictation controls in the template. */
+  speechRecognition = inject(SpeechRecognitionService);
   private speechSynthesis = inject(SpeechSynthesisService);
   private director = inject(StudioAiDirectorService);
   private orchestration = inject(StudioOrchestrationService, { optional: true });

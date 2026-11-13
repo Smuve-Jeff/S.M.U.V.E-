@@ -18,6 +18,8 @@ import {
 
 export interface OnlineUser {
   userId: string;
+  /** Friendship state; present on entries that come from the friends list. */
+  status?: 'pending' | 'accepted' | 'declined';
   artistName?: string;
   primaryGenre?: string;
   avatarImage?: string;

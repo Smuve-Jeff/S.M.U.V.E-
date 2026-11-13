@@ -593,7 +593,12 @@ export class ReleasePipelineComponent {
     return this.career.charterFor(release.id) ?? this.career.latestCharter();
   });
 
-  startNewRelease(name: string, type: ReleaseType) {
+  startNewRelease(name: string, type: string) {
+    const releaseType: ReleaseType = (
+      ['Album', 'EP', 'Mixtape', 'Single'] as readonly string[]
+    ).includes(type)
+      ? (type as ReleaseType)
+      : 'Album';
     const title = (name || '').trim();
     if (!title) {
       this.notify.show(
@@ -602,7 +607,7 @@ export class ReleasePipelineComponent {
       );
       return;
     }
-    void this.releaseService.initializeRelease(title, type);
+    void this.releaseService.initializeRelease(title, releaseType);
     this.showNewReleaseModal.set(false);
   }
 

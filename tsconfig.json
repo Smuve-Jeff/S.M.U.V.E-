@@ -42,5 +42,14 @@
     "src/lib/**",
     "src/types/**",
     "src/config/**"
-  ]
+  ],
+  "angularCompilerOptions": {
+    /*
+     * Templates are compiled with the same strictness as the TypeScript, so a
+     * binding to a member the component does not have is a build error instead
+     * of a runtime throw that silently blanks the rest of the view (see the
+     * Co-Write turn cards).
+     */
+    "strictTemplates": true
+  }
 }

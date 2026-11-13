@@ -553,7 +553,7 @@
                     >Spread</label
                   >
                   <div class="flex gap-1">
-                    @for (s of ['close', 'open', 'wide']; track s) {
+                    @for (s of voicingSpreads; track s) {
                       <button
                         (click)="voicingSpread.set(s)"
                         class="flex-1 py-1.5 rounded text-[7px] font-black uppercase tracking-widest border transition-all"
@@ -617,7 +617,7 @@
                 >
               </div>
               <div class="flex flex-wrap gap-1.5 mb-3">
-                @for (t of ['3rd', '5th', '7th', 'octave', 'unison']; track t) {
+                @for (t of harmonyIntervals; track t) {
                   <button
                     (click)="toggleHarmonyType(t)"
                     class="px-2 py-1 rounded text-[7px] font-black uppercase tracking-widest border transition-all"
@@ -753,7 +753,7 @@
               S.M.U.V.E Mode
             </h3>
             <div class="flex gap-2">
-              @for (mode of ['casual', 'intense', 'critic']; track mode) {
+              @for (mode of copilotModes; track mode) {
                 <button
                   (click)="setCopilotMode(mode)"
                   [class.bg-violet-500/30]="copilotMode() === mode"

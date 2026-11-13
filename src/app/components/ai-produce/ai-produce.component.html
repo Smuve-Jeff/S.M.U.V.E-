@@ -260,7 +260,7 @@
           {{ hasVoicePreview() ? 'Audition ready' : form().voicePreview ? 'Pending' : 'Skipped' }}
         </span>
       </div>
-      <div class="stage-card-body" *ngIf="hasVoicePreview() as vp; else voiceEmpty">
+      <div class="stage-card-body" *ngIf="voicePreview() as vp; else voiceEmpty">
         <div class="voice-meta">
           <span class="meta-label">Hook line</span>
           <p class="voice-hook">"{{ vp.hookLine }}"</p>

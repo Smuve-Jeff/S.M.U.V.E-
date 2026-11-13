@@ -132,7 +132,7 @@
         </button>
         <div class="comp-project-menu-label">Start from a template</div>
         <button
-          *ngFor="let template of templateService.allTemplates"
+          *ngFor="let template of templateService.allTemplates()"
           type="button"
           class="comp-project-menu-item comp-project-menu-sub"
           (click)="applyTemplate(template.id); toggleProjectMenu()"
@@ -675,7 +675,7 @@
         <span class="comp-tools-sheet-label">APPEARANCE</span>
         <div class="comp-tools-sheet-grid">
           <button
-            *ngFor="let t of ['light', 'focus', 'dark']"
+            *ngFor="let t of themeModes"
             type="button"
             class="comp-tools-sheet-btn"
             [class.comp-tools-sheet-on]="themeMode() === t"

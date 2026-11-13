@@ -488,6 +488,8 @@ export interface MusicalJourney {
 
 export interface UserProfile {
   musicalJourney: MusicalJourney;
+  /** Free-text artist bio written on the journey screen. */
+  bio?: string;
   id?: string;
   artistName: string;
   primaryGenre: string;

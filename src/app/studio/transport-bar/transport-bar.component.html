@@ -590,7 +590,7 @@
         >Count-in</span
       >
       <button
-        *ngFor="let n of [0, 1, 2]"
+        *ngFor="let n of countInOptions"
         type="button"
         class="ctb-countin-chip"
         [class.ctb-countin-active]="countInBars() === n"

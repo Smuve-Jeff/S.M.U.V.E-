@@ -2114,7 +2114,8 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
     return `${marker.beats}/${marker.unit}`;
   }
 
-  private meterBarOf(marker: MeterMarker): number {
+  /** Used by the meter ruler in the template. */
+  meterBarOf(marker: MeterMarker): number {
     return this.barAtStep(marker.step) + 1;
   }
 

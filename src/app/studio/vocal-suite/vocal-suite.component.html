@@ -130,7 +130,7 @@
         <button
           type="button"
           role="tab"
-          *ngFor="let s of ['setup', 'record', 'edit', 'master']"
+          *ngFor="let s of pipelineSteps"
           (click)="setStep(s)"
           [class.border-vocal-primary]="currentStep() === s"
           [class.bg-vocal-fl-blue/10]="currentStep() === s"
@@ -419,7 +419,7 @@
                 <button
                   type="button"
                   role="tab"
-                  *ngFor="let t of ['eq', 'comp', 'exciter', 'limiter']"
+                  *ngFor="let t of masteringTabs"
                   (click)="activeMasteringTab.set(t)"
                   [class.border-vocal-primary]="activeMasteringTab() === t"
                   [class.text-vocal-primary]="activeMasteringTab() === t"

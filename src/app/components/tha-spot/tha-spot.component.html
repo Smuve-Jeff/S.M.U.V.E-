@@ -213,10 +213,10 @@
       <!-- Star row -->
       <div class="rating-stars-row" role="radiogroup" aria-label="Star rating">
         <button
-          *ngFor="let s of [1, 2, 3, 4, 5]"
+          *ngFor="let s of starRatings"
           type="button"
           class="rating-star-btn"
-          data-rating-value="{{ s }}"
+          [attr.data-rating-value]="s"
           (click)="submitRating(s, '', null)"
           [attr.aria-label]="s + ' star' + (s === 1 ? '' : 's')"
         >

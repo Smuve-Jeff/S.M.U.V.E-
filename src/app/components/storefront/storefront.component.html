@@ -18,13 +18,7 @@
 
     <div class="filter-row">
       <button
-        *ngFor="let cat of [
-          { id: 'all', label: 'All' },
-          { id: 'sound-pack', label: 'Sound Packs' },
-          { id: 'instrument-pack', label: 'Instruments' },
-          { id: 'ai-bundle', label: 'AI Bundles' },
-          { id: 'subscription', label: 'Subscriptions' }
-        ]"
+        *ngFor="let cat of categories"
         type="button"
         class="filter-chip"
         [class.is-active]="filter() === cat.id"

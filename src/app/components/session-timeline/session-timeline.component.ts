@@ -315,7 +315,12 @@ export class SessionTimelineComponent {
     }
   }
 
-  trackById = (_: number, item: { id: string }): string => item.id;
+  /**
+   * Rows in this view are heterogeneous: snapshots carry an id, replay events
+   * and conflict markers do not, so fall back to the index for those.
+   */
+  trackById = (index: number, item: unknown): string | number =>
+    (item as { id?: string } | null)?.id ?? index;
   trackByCheckpoint = (_: number, item: SessionCheckpoint): string => item.id;
   trackEdge = (_: number, item: GraphEdge): string =>
     item.fromId + '→' + item.toId + ':' + item.kind;

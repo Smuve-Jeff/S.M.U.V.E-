@@ -8,7 +8,7 @@ import {
 } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
-import { ActivatedRoute, Router } from "@angular/router";
+import { ActivatedRoute, Router, RouterModule } from "@angular/router";
 import { Subscription } from "rxjs";
 import {
   ChallengeInboxService,
@@ -25,7 +25,7 @@ type Tab = "pending" | "accepted" | "declined" | "all";
 @Component({
   selector: "app-challenge-inbox",
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, RouterModule],
   templateUrl: "./challenge-inbox.component.html",
   styleUrls: ["./challenge-inbox.component.css"],
 })

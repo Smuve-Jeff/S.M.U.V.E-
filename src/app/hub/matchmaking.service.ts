@@ -197,7 +197,8 @@ export class MatchmakingService implements OnDestroy {
 
   // ── Socket.io ──
   private socket: Socket | null = null;
-  private connected = signal(false);
+  /** Read by the party panel to show socket connectivity. */
+  readonly connected = signal(false);
   /**
    * lobbyId the user asked to join BEFORE the socket finished connecting.
    * Flushed on 'connect' so invite links opened during a reconnect window

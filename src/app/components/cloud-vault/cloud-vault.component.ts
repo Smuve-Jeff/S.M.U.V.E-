@@ -124,7 +124,9 @@ export class CloudVaultComponent {
     await this.cloud.restoreFromBackup(projectId, snapshot);
   }
 
-  trackById = (_: number, item: { id: string }): string => item.id;
+  /** Conflict rows carry no id of their own; the index is the stable key. */
+  trackById = (index: number, item: unknown): string | number =>
+    (item as { id?: string } | null)?.id ?? index;
   trackByProjectId = (_: number, item: RemoteSnapshot): string =>
     item.projectId + ':' + item.deviceId;
 }

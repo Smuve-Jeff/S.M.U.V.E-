@@ -2,7 +2,7 @@ import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
 import { OnboardingService } from '../../services/onboarding.service';
-import { OnboardingStep } from '../../services/onboarding.service';
+import { OnboardingTourStep } from '../../services/onboarding.service';
 
 /**
  * Sprint C3 — First Beat Tour
@@ -32,12 +32,12 @@ export class FirstBeatTourComponent {
   /** Track the last-completed count so the user can see the bar move. */
   readonly milestones = [0, 25, 50, 75, 100];
 
-  openStep(step: OnboardingStep) {
+  openStep(step: OnboardingTourStep) {
     this.onboarding.openStep(step);
     this.router.navigate(['/' + step.route], { queryParams: step.queryParams });
   }
 
-  markComplete(step: OnboardingStep) {
+  markComplete(step: OnboardingTourStep) {
     this.onboarding.markStepComplete(step.id);
   }
 

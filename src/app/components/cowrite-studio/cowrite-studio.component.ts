@@ -24,7 +24,8 @@ import { MelodyPianoRollComponent } from '../melody-piano-roll/melody-piano-roll
   styleUrls: ['./cowrite-studio.component.css'],
 })
 export class CowriteStudioComponent implements OnInit {
-  private cowrite = inject(CoWriteService);
+  /** Read by the header buttons (end session) in the template. */
+  cowrite = inject(CoWriteService);
   private songwriting = inject(SongwritingAssistantService);
   private styleMimic = inject(SmuveStyleMimicService);
   private ai = inject(AiService);
@@ -51,6 +52,9 @@ export class CowriteStudioComponent implements OnInit {
   showSetup = signal(true);
   showLyrics = signal(false);
   copilotMode = signal<'casual' | 'intense' | 'critic'>('intense');
+  readonly copilotModes = ['casual', 'intense', 'critic'] as const;
+  readonly voicingSpreads = ['close', 'open', 'wide'] as const;
+  readonly harmonyIntervals = ['3rd', '5th', '7th', 'octave', 'unison'] as const;
   selectedLineIndex = signal<number | null>(null);
 
   // Setup form

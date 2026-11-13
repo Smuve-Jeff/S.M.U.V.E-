@@ -65,6 +65,17 @@ export class VocalAiService {
 
   feedbackMode = signal<'passive' | 'inclusive'>('passive');
   currentAdvice = signal<string>('ANALYZING VOCAL CORRIDOR...');
+  /**
+   * The Intel HUD renders a list of observations. The service produces one
+   * advisory at a time, so the HUD gets that single entry rather than a feed
+   * it never had.
+   */
+  readonly vocalIntel = computed<
+    { type: 'technical' | 'market'; message: string }[]
+  >(() => {
+    const advice = this.currentAdvice().trim();
+    return advice ? [{ type: 'technical', message: advice }] : [];
+  });
 
   isPassiveMode = computed(() => this.feedbackMode() === 'passive');
 

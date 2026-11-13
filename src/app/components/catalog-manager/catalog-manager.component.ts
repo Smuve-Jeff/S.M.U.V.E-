@@ -20,6 +20,7 @@ export class CatalogManagerComponent {
   catalog = computed(() => this.profile().catalog || []);
 
   activeFilter = signal<'all' | 'demo' | 'completed' | 'released'>('all');
+  readonly filters = ['all', 'demo', 'completed', 'released'] as const;
 
   filteredCatalog = computed(() => {
     const items = this.catalog();

@@ -31,6 +31,14 @@ export class StorefrontComponent {
     'all'
   );
 
+  readonly categories = [
+    { id: 'all', label: 'All' },
+    { id: 'sound-pack', label: 'Sound Packs' },
+    { id: 'instrument-pack', label: 'Instruments' },
+    { id: 'ai-bundle', label: 'AI Bundles' },
+    { id: 'subscription', label: 'Subscriptions' },
+  ] as const;
+
   readonly busy = signal<Record<string, boolean>>({});
   readonly checkoutBusy = signal(false);
 

@@ -1442,6 +1442,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
    * Persisted in localStorage; applied via <body> class.
    */
   themeMode = signal<AppTheme>("light");
+  readonly themeModes = ["light", "focus", "dark"] as const;
   /**
    * Stage FX ambience — aurora field, marquee, sheens & pulse animations.
    * Defaults ON. Persisted in localStorage; OFF adds `stage-fx-off` to
@@ -1548,7 +1549,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     { id: "drum-machine", label: "Steps", icon: "grid_on" },
     { id: "piano-roll", label: "Keys", icon: "piano" },
     { id: "vocal-suite", label: "Vocals", icon: "mic" },
-  ]);
+  ] as const);
 
   /**
    * Logical workflow domains for Google Play inspired DAW layout.

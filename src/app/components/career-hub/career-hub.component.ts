@@ -101,6 +101,20 @@ export class CareerHubComponent {
    * career. They now read from the profile and start empty.
    */
   pitches = computed<CareerPitch[]>(() => this.profile().careerPitches ?? []);
+
+  /** Strategic signals plotted on the radar's expertise axes. */
+  expertiseRadar = computed(() => {
+    const s = this.profile().strategicSignals;
+    return {
+      production: s.marketReadiness,
+      songwriting: s.identityTrust,
+      marketing: s.careerMomentum,
+      business: s.technicalAuthority,
+      legal: s.syncViability,
+      performance: s.touringStability,
+      catalyst: null,
+    };
+  });
   venues = computed<CareerVenue[]>(() => this.profile().careerVenues ?? []);
 
   readonly pitchStatuses = PITCH_STATUSES;
