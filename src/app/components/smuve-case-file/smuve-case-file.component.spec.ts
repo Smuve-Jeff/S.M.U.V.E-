@@ -71,6 +71,7 @@ describe('SmuveCaseFileComponent', () => {
     goals: Signal<SmuveMemoryEntry[]>;
     decisions: Signal<SmuveMemoryEntry[]>;
     resolve: jest.Mock;
+    reopen: jest.Mock;
     forget: jest.Mock;
     clear: jest.Mock;
   };
@@ -99,6 +100,13 @@ describe('SmuveCaseFileComponent', () => {
         entries.update((list) =>
           list.map((entry) =>
             entry.id === id ? { ...entry, resolvedAt: Date.now() } : entry
+          )
+        );
+      }),
+      reopen: jest.fn((id: string) => {
+        entries.update((list) =>
+          list.map((entry) =>
+            entry.id === id ? { ...entry, resolvedAt: null } : entry
           )
         );
       }),
@@ -237,11 +245,38 @@ describe('SmuveCaseFileComponent', () => {
     );
   });
 
-  it('deletes a mis-filed entry through the service', () => {
+  it('reopens a closed loop instead of leaving a Done click unrecoverable', () => {
+    expect(fixture.nativeElement.textContent).toContain('Reopen');
+    component.reopen(sampleEntries[2]);
+    fixture.detectChanges();
+
+    expect(memory.reopen).toHaveBeenCalledWith('o2');
+    expect(component.counts().open).toBe(2);
+    expect(component.notice()).toContain('Reopened');
+  });
+
+  it('requires a second press before deleting a mis-filed entry', () => {
     component.forget(sampleEntries[0]);
+    fixture.detectChanges();
+
+    expect(memory.forget).not.toHaveBeenCalled();
+    expect(component.confirmingForgetId()).toBe('v1');
+    expect(component.notice()).toContain('Press delete again');
+
+    component.forget(sampleEntries[0]);
+    fixture.detectChanges();
 
     expect(memory.forget).toHaveBeenCalledWith('v1');
     expect(component.counts().verdict).toBe(0);
+    expect(component.confirmingForgetId()).toBeNull();
+  });
+
+  it('drops an armed delete when the filter changes', () => {
+    component.forget(sampleEntries[0]);
+    component.setFilter('goal');
+
+    expect(component.confirmingForgetId()).toBeNull();
+    expect(memory.forget).not.toHaveBeenCalled();
   });
 
   it('filters by kind and searches the record', () => {
@@ -256,6 +291,7 @@ describe('SmuveCaseFileComponent', () => {
   });
 
   it('requires a second press before clearing the whole file', () => {
+    expect(fixture.nativeElement.textContent).toContain('Clear entries');
     component.clearAll();
     fixture.detectChanges();
     expect(memory.clear).not.toHaveBeenCalled();

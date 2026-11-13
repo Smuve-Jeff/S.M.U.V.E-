@@ -190,6 +190,23 @@ export class SmuveMemoryService {
     this.persist();
   }
 
+  /**
+   * Puts a closed loop back in front of the model. Closing is a judgement, not
+   * an irreversible deletion, so a mistyped Done must be recoverable.
+   */
+  reopen(id: string): void {
+    this.entries.update((entries) =>
+      entries.map((entry) =>
+        entry.id === id &&
+        entry.kind === 'open-loop' &&
+        entry.resolvedAt != null
+          ? { ...entry, resolvedAt: null }
+          : entry
+      )
+    );
+    this.persist();
+  }
+
   /** Removes an entry outright — used when the artist rejects a filing. */
   forget(id: string): void {
     this.entries.update((entries) => entries.filter((entry) => entry.id !== id));

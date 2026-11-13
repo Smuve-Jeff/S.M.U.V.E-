@@ -19,7 +19,43 @@ import {
   VOCAL_PROGRAM,
 } from './academy-data';
 
-const PROGRESS_KEY = 'smuve.academy.progress.v1';
+export const ACADEMY_PROGRESS_KEY = 'smuve.academy.progress.v1';
+
+/** Only real curriculum lessons count, even if storage was written by an old build. */
+const LESSON_IDS = new Set(
+  ALL_PROGRAMS.flatMap((program) =>
+    program.stages.flatMap((stage) => stage.lessons.map((lesson) => lesson.id))
+  )
+);
+
+/** Searchable text for a program: the whole curriculum, not just the card. */
+const SEARCH_INDEX = new Map<string, string>(
+  ALL_PROGRAMS.map((program) => [
+    program.id,
+    [
+      program.label,
+      program.familyLabel,
+      program.summary,
+      program.technique,
+      ...program.skills,
+      ...program.faults,
+      ...program.repertoire,
+      ...program.stages.flatMap((stage) => [
+        stage.label,
+        stage.summary,
+        ...stage.lessons.flatMap((lesson) => [
+          lesson.title,
+          lesson.focus,
+          lesson.drill,
+          lesson.criteria,
+          lesson.studioStep,
+        ]),
+      ]),
+    ]
+      .join(' ')
+      .toLowerCase(),
+  ])
+);
 
 /**
  * The Academy surface.
@@ -62,11 +98,7 @@ export class MusicAcademyService {
     return this.programs.filter((program) => {
       if (family !== 'all' && program.family !== family) return false;
       if (!query) return true;
-      return (
-        program.label.toLowerCase().includes(query) ||
-        program.familyLabel.toLowerCase().includes(query) ||
-        program.skills.some((skill) => skill.toLowerCase().includes(query))
-      );
+      return (SEARCH_INDEX.get(program.id) ?? '').includes(query);
     });
   });
 
@@ -75,6 +107,16 @@ export class MusicAcademyService {
       this.programs.find((program) => program.id === this.selectedProgramId()) ??
       this.programs[0]
     );
+  });
+
+  /** Null when the active filter/search hides the selected program. */
+  readonly selectedProgramInView = computed<InstrumentProgram | null>(() => {
+    const selected = this.selectedProgram();
+    return this.filteredPrograms().some(
+      (program) => program.id === selected.id
+    )
+      ? selected
+      : null;
   });
 
   readonly isVocalProgram = computed(() => this.selectedProgram().family === 'voice');
@@ -96,7 +138,13 @@ export class MusicAcademyService {
     () => this.profiles.profile()?.primaryGenre ?? ''
   );
 
-  readonly completedLessons = computed(() => Object.keys(this.progress()).length);
+  /** Stored IDs that no longer exist in the curriculum do not count. */
+  readonly completedLessons = computed(() => {
+    const progress = this.progress();
+    return Object.keys(progress).filter(
+      (id) => LESSON_IDS.has(id) && Boolean(progress[id])
+    ).length;
+  });
 
   readonly overallPercent = computed(() => {
     const total = this.programs.reduce(
@@ -112,12 +160,11 @@ export class MusicAcademyService {
   }
 
   progressFor(program: InstrumentProgram): ProgramProgress {
-    const completedMap = this.progress();
     const lessons = program.stages.flatMap((stage) => stage.lessons);
-    const completed = lessons.filter((lesson) => completedMap[lesson.id]).length;
-    const nextLesson = lessons.find((lesson) => !completedMap[lesson.id]) ?? null;
+    const completed = lessons.filter((lesson) => this.isComplete(lesson)).length;
+    const nextLesson = lessons.find((lesson) => !this.isComplete(lesson)) ?? null;
     const stagesComplete = program.stages.filter((stage) =>
-      stage.lessons.every((lesson) => completedMap[lesson.id])
+      stage.lessons.every((lesson) => this.isComplete(lesson))
     ).length;
     return {
       programId: program.id,
@@ -132,22 +179,32 @@ export class MusicAcademyService {
   selectedProgramProgress = computed(() => this.progressFor(this.selectedProgram()));
 
   isComplete(lesson: AcademyLesson): boolean {
-    return Boolean(this.progress()[lesson.id]);
+    return LESSON_IDS.has(lesson.id) && Boolean(this.progress()[lesson.id]);
   }
 
   selectProgram(programId: string): void {
+    if (!this.programs.some((program) => program.id === programId)) return;
     this.selectedProgramId.set(programId);
   }
 
   setFamilyFilter(family: AcademyFamily | 'all'): void {
     this.familyFilter.set(family);
+    this.ensureVisibleSelection();
   }
 
   setSearch(value: string): void {
     this.search.set(value);
+    this.ensureVisibleSelection();
+  }
+
+  clearFilters(): void {
+    this.familyFilter.set('all');
+    this.search.set('');
+    this.ensureVisibleSelection();
   }
 
   toggleLesson(lesson: AcademyLesson): void {
+    if (!LESSON_IDS.has(lesson.id)) return;
     const current = { ...this.progress() };
     if (current[lesson.id]) {
       delete current[lesson.id];
@@ -159,7 +216,7 @@ export class MusicAcademyService {
   }
 
   completeLesson(lesson: AcademyLesson): void {
-    if (this.progress()[lesson.id]) return;
+    if (!LESSON_IDS.has(lesson.id) || this.progress()[lesson.id]) return;
     const current = { ...this.progress(), [lesson.id]: Date.now() };
     this.progress.set(current);
     this.writeProgress(current);
@@ -229,15 +286,32 @@ export class MusicAcademyService {
     });
   }
 
+  /** Keep filters and the detail panel in agreement. */
+  private ensureVisibleSelection(): void {
+    const visible = this.filteredPrograms();
+    if (!visible.length) return;
+    if (!visible.some((program) => program.id === this.selectedProgramId())) {
+      this.selectedProgramId.set(visible[0].id);
+    }
+  }
+
   private readProgress(): Record<string, number> {
+    if (typeof localStorage === 'undefined') return {};
     try {
-      const raw = localStorage.getItem(PROGRESS_KEY);
+      const raw = localStorage.getItem(ACADEMY_PROGRESS_KEY);
       if (!raw) return {};
       const parsed = JSON.parse(raw);
       if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {};
       const clean: Record<string, number> = {};
       for (const [key, value] of Object.entries(parsed)) {
-        if (typeof value === 'number') clean[key] = value;
+        if (
+          LESSON_IDS.has(key) &&
+          typeof value === 'number' &&
+          Number.isFinite(value) &&
+          value > 0
+        ) {
+          clean[key] = value;
+        }
       }
       return clean;
     } catch {
@@ -246,8 +320,9 @@ export class MusicAcademyService {
   }
 
   private writeProgress(progress: Record<string, number>): void {
+    if (typeof localStorage === 'undefined') return;
     try {
-      localStorage.setItem(PROGRESS_KEY, JSON.stringify(progress));
+      localStorage.setItem(ACADEMY_PROGRESS_KEY, JSON.stringify(progress));
     } catch {
       // Storage unavailable — in-memory progress still works this session.
     }

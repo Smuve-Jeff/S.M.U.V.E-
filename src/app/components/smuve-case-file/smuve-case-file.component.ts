@@ -85,9 +85,12 @@ export class SmuveCaseFileComponent {
   readonly notice = signal('');
   readonly spoken = signal<{ line: string; archetype: string } | null>(null);
   readonly confirmingClear = signal(false);
+  /** The entry whose delete button is armed for a second, confirming press. */
+  readonly confirmingForgetId = signal<string | null>(null);
   /** Five latest revisions are visible; older ones stay one press away. */
   readonly showingAllRevisions = signal(false);
   private clearTimer: ReturnType<typeof setTimeout> | null = null;
+  private forgetTimer: ReturnType<typeof setTimeout> | null = null;
   private noticeTimer: ReturnType<typeof setTimeout> | null = null;
 
   /** Optional so the page still renders in a host without the director. */
@@ -140,15 +143,9 @@ export class SmuveCaseFileComponent {
   readonly visibleEntries = computed<SmuveMemoryEntry[]>(() => {
     const filter = this.activeFilter();
     const search = this.query().trim().toLowerCase();
-    return this.memory.entries().filter((entry) => {
-      if (filter === 'open') {
-        if (entry.kind !== 'open-loop' || entry.resolvedAt != null) return false;
-      } else if (filter !== 'all' && entry.kind !== filter) {
-        return false;
-      }
-      if (!search) return true;
-      return `${entry.text} ${entry.surfaceLabel}`.toLowerCase().includes(search);
-    });
+    return this.memory
+      .entries()
+      .filter((entry) => this.matchesFilter(entry, filter, search));
   });
 
   readonly hasEntries = computed(() => this.memory.entries().length > 0);
@@ -195,19 +192,9 @@ export class SmuveCaseFileComponent {
 
     const groups: CaseFileRoomGroup[] = [];
     for (const [surface, all] of bySurface) {
-      const entries = all.filter((entry) => {
-        if (filter === 'open') {
-          if (entry.kind !== 'open-loop' || entry.resolvedAt != null) {
-            return false;
-          }
-        } else if (filter !== 'all' && entry.kind !== filter) {
-          return false;
-        }
-        if (!search) return true;
-        return `${entry.text} ${entry.surfaceLabel}`
-          .toLowerCase()
-          .includes(search);
-      });
+      const entries = all.filter((entry) =>
+        this.matchesFilter(entry, filter, search)
+      );
       if (!entries.length) continue;
 
       const verdict = all.find((entry) => entry.kind === 'verdict') ?? null;
@@ -244,48 +231,90 @@ export class SmuveCaseFileComponent {
   constructor() {
     this.destroyRef.onDestroy(() => {
       if (this.clearTimer) clearTimeout(this.clearTimer);
+      if (this.forgetTimer) clearTimeout(this.forgetTimer);
       if (this.noticeTimer) clearTimeout(this.noticeTimer);
     });
   }
 
   setFilter(filter: CaseFileFilter): void {
+    this.disarmForget();
     this.activeFilter.set(filter);
   }
 
   onSearch(event: Event): void {
+    this.disarmForget();
     const value = (event.target as HTMLInputElement | null)?.value ?? '';
     this.query.set(value);
   }
 
   clearSearch(): void {
+    this.disarmForget();
     this.query.set('');
   }
 
   /** Closes an open loop — the only entry kind the artist can resolve. */
   resolve(entry: SmuveMemoryEntry): void {
     if (entry.kind !== 'open-loop' || entry.resolvedAt != null) return;
+    this.disarmForget();
     this.memory.resolve(entry.id);
     this.flash('Closed. Do not make me reopen it.');
   }
 
-  /** Rejects a filing so the file stays evidence, not noise. */
+  /** A closed loop is evidence, but a mistyped Done must be recoverable. */
+  reopen(entry: SmuveMemoryEntry): void {
+    if (entry.kind !== 'open-loop' || entry.resolvedAt == null) return;
+    this.disarmForget();
+    this.memory.reopen(entry.id);
+    this.flash('Reopened. It is back on the record.');
+  }
+
+  /**
+   * Rejects a filing so the file stays evidence, not noise. Deletion is a
+   * two-step action: the first press arms the entry, the second deletes it.
+   */
   forget(entry: SmuveMemoryEntry): void {
+    if (this.confirmingForgetId() !== entry.id) {
+      this.disarmForget();
+      this.confirmingForgetId.set(entry.id);
+      this.flash('Press delete again to strike this entry.');
+      this.forgetTimer = setTimeout(() => {
+        this.confirmingForgetId.set(null);
+        this.forgetTimer = null;
+      }, 4000);
+      return;
+    }
+    this.disarmForget();
     this.memory.forget(entry.id);
     this.flash('Struck from the record.');
   }
 
+  private disarmForget(): void {
+    if (this.forgetTimer) {
+      clearTimeout(this.forgetTimer);
+      this.forgetTimer = null;
+    }
+    this.confirmingForgetId.set(null);
+  }
+
   /** Two-step wipe: the first press arms, the second clears. */
   clearAll(): void {
+    this.disarmForget();
     if (!this.confirmingClear()) {
       this.confirmingClear.set(true);
       if (this.clearTimer) clearTimeout(this.clearTimer);
-      this.clearTimer = setTimeout(() => this.confirmingClear.set(false), 5000);
+      this.clearTimer = setTimeout(() => {
+        this.confirmingClear.set(false);
+        this.clearTimer = null;
+      }, 5000);
       return;
     }
     this.confirmingClear.set(false);
-    if (this.clearTimer) clearTimeout(this.clearTimer);
+    if (this.clearTimer) {
+      clearTimeout(this.clearTimer);
+      this.clearTimer = null;
+    }
     this.memory.clear();
-    this.flash('Case file cleared. New evidence only.');
+    this.flash('Case-file entries cleared. Profile revisions kept.');
   }
 
   /** Speaks the vault through the shared full-catalog shuffle. */
@@ -405,6 +434,15 @@ export class SmuveCaseFileComponent {
     return entry.kind === 'open-loop' && entry.resolvedAt == null;
   }
 
+  isClosedLoop(entry: SmuveMemoryEntry): boolean {
+    return entry.kind === 'open-loop' && entry.resolvedAt != null;
+  }
+
+  /** Keep action labels identifiable without reading the whole filing aloud. */
+  entryLabel(entry: SmuveMemoryEntry): string {
+    return this.excerpt(entry.text, 90);
+  }
+
   /** Short, honest age label; the file never claims a memory it does not have. */
   agedOn(timestamp: number): string {
     const days = Math.floor((Date.now() - timestamp) / 86_400_000);
@@ -417,6 +455,21 @@ export class SmuveCaseFileComponent {
 
   trackEntryId(_index: number, entry: SmuveMemoryEntry): string {
     return entry.id;
+  }
+
+  /** Shared by the flat count and the grouped rooms so they cannot drift. */
+  private matchesFilter(
+    entry: SmuveMemoryEntry,
+    filter: CaseFileFilter,
+    search: string
+  ): boolean {
+    if (filter === 'open') {
+      if (entry.kind !== 'open-loop' || entry.resolvedAt != null) return false;
+    } else if (filter !== 'all' && entry.kind !== filter) {
+      return false;
+    }
+    if (!search) return true;
+    return `${entry.text} ${entry.surfaceLabel}`.toLowerCase().includes(search);
   }
 
   private routeForSurface(surface: SmuveSurfaceId): string | null {

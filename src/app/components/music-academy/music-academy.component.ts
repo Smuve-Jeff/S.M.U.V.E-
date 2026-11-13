@@ -1,5 +1,12 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
 import { RouterModule } from '@angular/router';
 import type { AcademyFamily, AcademyLesson, VocalPreset } from '../../composer/academy.types';
 import { MusicAcademyService } from '../../composer/music-academy.service';
@@ -14,6 +21,12 @@ import { MusicAcademyService } from '../../composer/music-academy.service';
 })
 export class MusicAcademyComponent {
   readonly academy = inject(MusicAcademyService);
+  readonly confirmingReset = signal(false);
+  private resetTimer: ReturnType<typeof setTimeout> | null = null;
+
+  constructor() {
+    inject(DestroyRef).onDestroy(() => this.disarmReset());
+  }
 
   readonly familyChips = computed(() => {
     const families = this.academy.families();
@@ -27,30 +40,61 @@ export class MusicAcademyComponent {
   });
 
   selectProgram(programId: string): void {
+    this.disarmReset();
     this.academy.selectProgram(programId);
   }
 
   setFamily(family: AcademyFamily | 'all'): void {
+    this.disarmReset();
     this.academy.setFamilyFilter(family);
   }
 
   setSearch(event: Event): void {
+    this.disarmReset();
     this.academy.setSearch((event.target as HTMLInputElement).value);
   }
 
+  clearFilters(): void {
+    this.disarmReset();
+    this.academy.clearFilters();
+  }
+
   toggleLesson(lesson: AcademyLesson): void {
+    this.disarmReset();
     this.academy.toggleLesson(lesson);
   }
 
   practice(): void {
+    this.disarmReset();
     this.academy.practiceInStudio(this.academy.selectedProgram());
   }
 
+  /** Resetting a program is destructive, so the second press confirms it. */
   reset(): void {
+    if (this.academy.selectedProgramProgress().completed === 0) return;
+    if (!this.confirmingReset()) {
+      this.confirmingReset.set(true);
+      if (this.resetTimer) clearTimeout(this.resetTimer);
+      this.resetTimer = setTimeout(() => {
+        this.confirmingReset.set(false);
+        this.resetTimer = null;
+      }, 4000);
+      return;
+    }
+    this.disarmReset();
     this.academy.resetProgram(this.academy.selectedProgram().id);
   }
 
+  private disarmReset(): void {
+    if (this.resetTimer) {
+      clearTimeout(this.resetTimer);
+      this.resetTimer = null;
+    }
+    this.confirmingReset.set(false);
+  }
+
   applyChain(preset: VocalPreset): void {
+    this.disarmReset();
     this.academy.applyVocalChain(preset);
   }
 

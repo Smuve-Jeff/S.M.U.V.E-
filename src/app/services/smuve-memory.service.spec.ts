@@ -119,6 +119,26 @@ describe('SmuveMemoryService', () => {
     expect(memory.promptBlock('release')).not.toContain('UNRESOLVED OPEN LOOPS');
   });
 
+  it('reopens a closed loop so the next answer chases it again', () => {
+    const memory = configure(OWNER);
+
+    memory.captureTurn(
+      'release',
+      'Release Bay',
+      'How do I ship this?',
+      'The metadata is incomplete. Register the work before you upload.'
+    );
+    const loop = memory.openLoops()[0];
+    memory.resolve(loop.id);
+    expect(memory.openLoops()).toHaveLength(0);
+
+    memory.reopen(loop.id);
+
+    expect(memory.openLoops()).toHaveLength(1);
+    expect(memory.openLoops()[0].resolvedAt).toBeNull();
+    expect(memory.promptBlock('release')).toContain('UNRESOLVED OPEN LOOPS');
+  });
+
   it('does not repeat an identical filing', () => {
     const memory = configure(OWNER);
     const turn: [SmuveSurfaceId, string, string, string] = [

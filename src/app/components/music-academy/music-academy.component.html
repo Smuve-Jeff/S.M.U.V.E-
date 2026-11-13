@@ -39,17 +39,19 @@
       <input
         type="search"
         class="search"
-        placeholder="Search instruments or skills…"
+        aria-label="Search programs, lessons and drills"
+        placeholder="Search instruments, lessons or drills…"
         [value]="academy.search()"
         (input)="setSearch($event)"
       />
     </div>
-    <div class="chips">
+    <div class="chips" role="group" aria-label="Filter by instrument family">
       @for (chip of familyChips(); track chip.id) {
         <button
           type="button"
           class="chip-btn"
           [class.active]="academy.familyFilter() === chip.id"
+          [attr.aria-pressed]="academy.familyFilter() === chip.id"
           (click)="setFamily(chip.id)"
         >
           {{ chip.label }}
@@ -62,25 +64,37 @@
           type="button"
           class="program"
           [class.active]="academy.selectedProgram().id === program.id"
+          [attr.aria-pressed]="academy.selectedProgram().id === program.id"
+          [attr.aria-label]="program.label + ' — ' + progressPercent(program.id) + '% complete'"
           (click)="selectProgram(program.id)"
         >
-          <span class="program-emoji">{{ program.emoji }}</span>
+          <span class="program-emoji" aria-hidden="true">{{ program.emoji }}</span>
           <span class="program-body">
             <strong>{{ program.label }}</strong>
             <span class="program-family">{{ program.familyLabel }}</span>
-            <span class="program-bar">
-              <span class="program-fill" [style.width.%]="progressPercent(program.id)"></span>
+            <span
+              class="program-bar"
+              role="progressbar"
+              aria-valuemin="0"
+              aria-valuemax="100"
+              [attr.aria-valuenow]="progressPercent(program.id)"
+              [attr.aria-label]="program.label + ' progress'"
+            >
+              <span class="program-fill" aria-hidden="true" [style.width.%]="progressPercent(program.id)"></span>
             </span>
             <span class="program-meta">{{ progressPercent(program.id) }}% · {{ program.stages.length }} stages</span>
           </span>
         </button>
       } @empty {
-        <p class="empty">No program matches that search.</p>
+        <div class="empty">
+          <p role="status">No program matches that search or filter.</p>
+          <button type="button" class="chip-btn" (click)="clearFilters()">Clear filters</button>
+        </div>
       }
     </div>
   </section>
 
-  @if (academy.selectedProgram(); as program) {
+  @if (academy.selectedProgramInView(); as program) {
     <section class="detail">
       <div class="detail-head">
         <div class="detail-title">
@@ -89,13 +103,33 @@
             <p class="eyebrow">{{ program.familyLabel }}</p>
             <h2>{{ program.label }}</h2>
             <p class="summary">{{ program.summary }}</p>
+            @if (academy.selectedProgramProgress(); as progress) {
+              <p class="next-up">
+                @if (progress.nextLesson; as next) {
+                  <strong>Next up:</strong> {{ next.title }} · {{ next.minutes }} min
+                } @else {
+                  <strong>Program complete.</strong> Every staged lesson is checked off.
+                }
+              </p>
+            }
           </div>
         </div>
         <div class="detail-actions">
           <button type="button" class="btn btn-primary" (click)="practice()">
             Open in Studio
           </button>
-          <button type="button" class="btn btn-ghost" (click)="reset()">Reset progress</button>
+          <button
+            type="button"
+            class="btn"
+            [class.btn-ghost]="!confirmingReset()"
+            [class.btn-danger]="confirmingReset()"
+            [disabled]="academy.selectedProgramProgress().completed === 0"
+            [attr.aria-label]="confirmingReset() ? 'Confirm resetting progress for ' + program.label : 'Reset progress for ' + program.label"
+            [title]="confirmingReset() ? 'Press again to reset this program' : 'Reset all lesson progress in this program'"
+            (click)="reset()"
+          >
+            {{ confirmingReset() ? 'Confirm reset' : 'Reset progress' }}
+          </button>
         </div>
       </div>
 
@@ -150,6 +184,7 @@
                     type="button"
                     class="check"
                     [attr.aria-pressed]="academy.isComplete(lesson)"
+                    [attr.aria-label]="(academy.isComplete(lesson) ? 'Mark ' + lesson.title + ' as not done' : 'Mark ' + lesson.title + ' complete')"
                     [title]="academy.isComplete(lesson) ? 'Mark as not done' : 'Mark complete'"
                     (click)="toggleLesson(lesson)"
                   >
