@@ -616,11 +616,11 @@
           <button
             type="button"
             class="comp-tools-sheet-btn"
-            (click)="openStudioGuide(); toggleMobileToolsSheet(false)"
+            (click)="teachCurrentStudioScreen(); toggleMobileToolsSheet(false)"
           >
             <span class="material-symbols-outlined">school</span>
-            <strong>Studio Guide</strong>
-            <small>Step-by-step masterclass</small>
+            <strong>Teach this screen</strong>
+            <small>Masterclass for the current surface</small>
           </button>
           <button
             type="button"
@@ -1067,12 +1067,12 @@
       <button
         type="button"
         class="comp-rail-item"
-        (click)="openStudioGuide()"
-        aria-label="Open the Studio Masterclass tutorial"
-        title="Learn the whole Studio — beginner loop, full song and pro mastery paths"
+        (click)="teachCurrentStudioScreen()"
+        aria-label="Teach me this screen with the Studio Masterclass"
+        title="Open the Masterclass lesson for the current Studio surface"
       >
         <span class="material-symbols-outlined">school</span>
-        <span class="comp-rail-label" *ngIf="!railCollapsed()">Studio Guide</span>
+        <span class="comp-rail-label" *ngIf="!railCollapsed()">Teach this screen</span>
       </button>
       <!-- Grouped, scrollable view list — every stage stays reachable even
            when the window is short (the flat list used to clip below fold). -->
@@ -3814,6 +3814,8 @@
     (openSurface)="onGuideOpenSurface($event)"
     (startRecipe)="onGuideStartRecipe($event)"
     (stateChange)="onGuideStateChange($event)"
+    (openStandalone)="openStandaloneGuide($event)"
+    (openWorkspace)="onGuideOpenWorkspace($event)"
   ></app-studio-guide>
 
   @if (guideAutoCheck.celebration(); as completedLesson) {

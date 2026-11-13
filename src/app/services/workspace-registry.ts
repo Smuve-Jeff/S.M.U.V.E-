@@ -387,7 +387,17 @@ export const WORKSPACE_REGISTRY: WorkspaceConfig[] = [
       'Learn any instrument or train your voice with guided lessons, drills and studio practice.',
     icon: 'school',
     category: 'ARTIST',
-    related: ['practice', 'composer', 'vocal-suite'],
+    related: ['practice', 'composer', 'vocal-suite', 'masterclass'],
+  },
+  {
+    mode: 'masterclass',
+    routePath: '/masterclass',
+    label: 'S.M.U.V.E. Masterclass',
+    description:
+      'Learn the whole system end to end with guided paths, an in-character instructor, a searchable lesson library and the complete Studio atlas.',
+    icon: 'workspace_premium',
+    category: 'ARTIST',
+    related: ['studio', 'academy', 'practice'],
   },
   {
     mode: 'timeline',

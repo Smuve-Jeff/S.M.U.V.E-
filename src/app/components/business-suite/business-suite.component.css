@@ -214,6 +214,85 @@
   color: var(--text-dim, #94a3b8);
 }
 
+.portfolio-summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 240px;
+  gap: 0.6rem;
+  margin-top: 1rem;
+}
+
+.portfolio-score,
+.portfolio-next {
+  min-width: 0;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid rgba(245, 184, 79, 0.2);
+  border-radius: 0.6rem;
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.portfolio-score > strong {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 1.8rem;
+  line-height: 1;
+  color: #f5c978;
+}
+
+.portfolio-score > strong small {
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.portfolio-score > strong.portfolio-score-empty {
+  max-width: 9rem;
+  font-size: 0.95rem;
+  line-height: 1.2;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.portfolio-track {
+  height: 4px;
+  margin-top: 0.5rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.15);
+}
+
+.portfolio-track i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: #f5b84f;
+  transition: width 240ms ease;
+}
+
+.portfolio-score p,
+.portfolio-next p {
+  margin: 0.4rem 0 0;
+  font-size: 9px;
+  line-height: 1.45;
+  color: var(--text-dim, #94a3b8);
+}
+
+.portfolio-next {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.portfolio-next strong {
+  display: block;
+  margin-top: 0.3rem;
+  font-size: 0.8rem;
+  font-weight: 900;
+  line-height: 1.25;
+}
+
+.portfolio-next button {
+  margin-top: auto;
+}
+
 .expansion-lanes {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -281,6 +360,22 @@
   color: var(--text-dim, #94a3b8);
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.expansion-lane-progress {
+  display: block;
+  height: 2px;
+  margin-top: 0.15rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.14);
+}
+
+.expansion-lane-progress i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: #f5b84f;
 }
 
 .expansion-detail {
@@ -426,12 +521,26 @@
 }
 
 @media (max-width: 900px) {
+  .portfolio-summary {
+    grid-template-columns: minmax(0, 1fr) 210px;
+  }
+
   .expansion-lanes {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .expansion-detail {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 700px) {
+  .portfolio-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .portfolio-next button {
+    margin-top: 0.6rem;
   }
 }
 

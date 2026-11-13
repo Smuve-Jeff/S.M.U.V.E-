@@ -24,6 +24,8 @@ export interface CompleteGuideLesson {
 export const COMPLETE_GUIDE_SRC = "assets/learn/complete-app-guide.mp4";
 export const COMPLETE_GUIDE_PROGRESS_KEY =
   "smuve.complete-app-guide.progress.v1";
+export const COMPLETE_GUIDE_RESUME_KEY =
+  "smuve.complete-app-guide.resume.v1";
 
 export const COMPLETE_GUIDE_LESSONS: readonly CompleteGuideLesson[] = [
   {
@@ -42,7 +44,7 @@ export const COMPLETE_GUIDE_LESSONS: readonly CompleteGuideLesson[] = [
     steps: [
       "Choose a workspace family in the sidebar, then open the room that matches the job.",
       "Pin the rooms you use every session; recent rooms stay one click below them.",
-      "Press Ctrl + K when you know the name, and read Sync Health before you leave.",
+      "Press Ctrl + K (Cmd + K on Mac) when you know the name, and read Sync Health before you leave.",
     ],
     mistake:
       "Treating each card as a separate app. Every workspace reads the same profile, projects, release state and case file.",
@@ -157,7 +159,7 @@ export const COMPLETE_GUIDE_LESSONS: readonly CompleteGuideLesson[] = [
       "Film, music video, social and broadcast modes",
       "Timeline, markers and frame-accurate nudging",
       "Title cards, audio bed, FX keyframes and camera capture",
-      "Named projects and a playable master export",
+      "Image Editor, Video Editor, named projects and a playable master export",
     ],
     steps: [
       "Choose the destination and delivery preset before ingesting a single clip.",
@@ -277,7 +279,7 @@ export const COMPLETE_GUIDE_LESSONS: readonly CompleteGuideLesson[] = [
       "Remix Arena and live coding sessions",
       "Cowrite rooms and shared lyric work",
       "Challenge Inbox, notifications and callouts",
-      "Storefront, products and public artist pages",
+      "Storefront, products, Networking and public artist pages",
     ],
     steps: [
       "Use the Inbox to answer challenges and invitations before they expire.",

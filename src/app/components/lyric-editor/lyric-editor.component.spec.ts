@@ -44,6 +44,36 @@ describe('LyricEditorComponent', () => {
     expect(again.savedAt()).toBeGreaterThan(0);
   });
 
+  it('saves, restores and switches between multiple named pages', () => {
+    const { component } = create();
+    component.trackTitle.set('Chapter One');
+    component.lyrics.set('page one');
+    component.addPage();
+    component.trackTitle.set('Chapter Two');
+    component.lyrics.set('page two');
+
+    component.saveLyrics();
+
+    const again = create().component;
+    expect(again.pageCount()).toBe(2);
+    expect(again.trackTitle()).toBe('Chapter Two');
+    expect(again.lyrics()).toBe('page two');
+
+    again.selectPage('page-1');
+    expect(again.trackTitle()).toBe('Chapter One');
+    expect(again.lyrics()).toBe('page one');
+  });
+
+  it('keeps book-writing and publishing guidance in the pad', () => {
+    const { fixture } = create();
+    fixture.detectChanges();
+    const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
+
+    expect(text).toContain('S.M.U.V.E. Book Lab');
+    expect(text).toContain('Publishing is a business choice');
+    expect(text).toContain('New Page');
+  });
+
   it('labels its prompts as fixed starters, not generated lines', () => {
     const { fixture } = create();
     const text = (fixture.nativeElement as HTMLElement).textContent ?? '';

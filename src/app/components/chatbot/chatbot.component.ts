@@ -70,6 +70,7 @@ import {
   SmuveSurfaceIntel,
 } from '../../services/smuve-career-director.service';
 import { SmuveMemoryService } from '../../services/smuve-memory.service';
+import { SmuveTeachLearnService } from '../../services/smuve-teach-learn.service';
 import {
   CHAT_LESSONS,
   CHAT_PROGRESS_KEY,
@@ -110,6 +111,7 @@ type MasterActionId =
   | 'open-produce'
   | 'open-tour'
   | 'open-business'
+  | 'open-route'
   | 'tempo-90'
   | 'tempo-124'
   | 'tempo-140'
@@ -169,6 +171,7 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
   private controlService = inject(SmuveTotalControlService);
   private knowledgeEngine = inject(SmuveKnowledgeEngine);
   private styleMimicService = inject(SmuveStyleMimicService);
+  private teachLearn = inject(SmuveTeachLearnService);
 
   /**
    * Lazy injector for optional deps — keeps the component spec (which only
@@ -771,7 +774,7 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
           id: this.nextMessageId(),
           role: 'assistant',
           text:
-            '🎬 START YOUR JOURNEY HERE — every legend begins as a nobody. I am S.M.U.V.E 2.0, your AI Music Manager: I create, edit, delete, teach, and mimic. I navigate this entire app, and I own your business, marketing, and legal game plan.\n\nTell me where you are:\n  • "I\'m brand new" → beginner roadmap\n  • "Teach me royalties" → the money, explained\n  • "Mimic Drake" → style analysis + production recipe\n  • "Open the studio" → I take you there myself',
+            '🎬 START YOUR JOURNEY HERE — every legend begins as a nobody. I am S.M.U.V.E 2.0, your AI Music Manager: I create, edit, delete, teach, and mimic. I navigate this entire app, and I own your business, marketing, and legal game plan.\n\nI am the only teacher in this application:\n  • "#Teach studio" → I walk you through the shipped feature, step by step\n  • "#Learn books" → writing and publishing mechanics from a professional standard\n  • "#Learn directing" → film, music-video and performance craft\n  • "#Teach" or "#Learn" alone → I show you every available module\n\nOr tell me where you are:\n  • "I\'m brand new" → beginner roadmap\n  • "Teach me royalties" → the money, explained\n  • "Mimic Drake" → style analysis + production recipe\n  • "Open the studio" → I take you there myself',
           timestamp: Date.now(),
           category: 'system',
           actions: [
@@ -863,6 +866,7 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
   /**
    * S.M.U.V.E 2.0 master intent router. Every feature in the app is reachable:
    *   /commands → Total Control    mimic X → Style Mimic
+   *   #teach/#learn → S.M.U.V.E.'s app walkthroughs and craft lessons
    *   teach/learn/what-is → Knowledge Engine (business/marketing/legal/...)
    *   open/go to → navigation      journey/beginner → roadmap
    *   ALL-CAPS tokens (ROYALTY_AUDIT...) → real knowledge, not roasts
@@ -877,6 +881,17 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
       if (musicConfirmation) return { content: musicConfirmation.content, actions: musicConfirmation.actions };
       const result = await this.controlService.executeCommand(trimmed);
       return { content: result.message, actions: [] };
+    }
+
+    // S.M.U.V.E. is the only teacher. The hashtag form is the explicit API:
+    //   #Teach <feature> → step-by-step walkthrough of shipped app surfaces
+    //   #Learn <craft>   → professional mechanics, concepts and practice
+    const teachLearnMatch = trimmed.match(/^#(teach|learn)(?:\s+([\s\S]+))?$/i);
+    if (teachLearnMatch) {
+      return this.teachLearnIntent(
+        teachLearnMatch[1].toLowerCase() === 'teach' ? 'teach' : 'learn',
+        teachLearnMatch[2]?.trim()
+      );
     }
 
     // A bare comparison/restore command gets usage, never a surprise song.
@@ -1206,6 +1221,7 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
       'You are a world-class producer, engineer, business executive, marketing strategist, and music-law information source — never attorney advice.',
       'You operate this app through the slash-command surface (/studio, /mixer, /tracks, /project, /go, /export, /ai). When a command would move the session forward, hand it over instead of describing it.',
       'Reference real artists to extract non-copying production DNA. Never reproduce a living artist\u2019s exact lyrics or claim to be them.',
+      'S.M.U.V.E. is the only teacher in this application. #Teach is a step-by-step walkthrough of features that actually ship here; #Learn is professional craft education (directing, acting, music video, podcast/vlog, books and publishing, core concepts). Never claim the app can do something it does not ship, and never tell the artist to teach the lesson instead.',
       '',
       `${contextHeading}\n${contextBody}`,
       '',
@@ -1325,6 +1341,49 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
   }
 
   /** Knowledge-aware local fallback — used when the live link is severed. */
+  /**
+   * #Teach and #Learn are S.M.U.V.E.'s own classroom. Both resolve locally so
+   * the answer is deterministic, tied to shipped routes, and available offline.
+   */
+  private teachLearnIntent(mode: 'teach' | 'learn', topic?: string): MasterIntent {
+    if (mode === 'teach') {
+      const lesson = topic ? this.teachLearn.findTeach(topic) : null;
+      if (!lesson) {
+        return { content: this.teachLearn.teachIndex(topic), actions: [] };
+      }
+      const actions: ChatAction[] = [
+        {
+          id: 'open-route',
+          label: `Open ${lesson.workspaceLabel}`,
+          data: lesson.route,
+        },
+      ];
+      if (lesson.id === 'create') {
+        actions.push({
+          id: 'open-route',
+          label: "Open the Writer's Pad",
+          data: '/lyric-editor',
+        });
+      }
+      return { content: this.teachLearn.formatTeach(lesson), actions };
+    }
+
+    const track = topic ? this.teachLearn.findLearn(topic) : null;
+    if (!track) {
+      return { content: this.teachLearn.learnIndex(topic), actions: [] };
+    }
+    const actions: ChatAction[] = track.route
+      ? [
+          {
+            id: 'open-route',
+            label: track.action || 'Open the workspace',
+            data: track.route,
+          },
+        ]
+      : [];
+    return { content: this.teachLearn.formatLearn(track), actions };
+  }
+
   private formatKnowledge(entry: KnowledgeEntry): string {
     const role = entry.category === 'Legal' ? 'legal' : entry.category === 'Marketing' ? 'marketing' : entry.category === 'Business' || entry.category === 'Career' || entry.category === 'Distribution' ? 'manager' : entry.category === 'Songwriting' ? 'songwriter' : 'producer';
     const directive = this.artistFinetune?.directiveFor?.(role).directive || '';
@@ -1966,6 +2025,16 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
         this.navigateTo('/business-suite');
         result = 'Opening the Business Suite. The money lives there.';
         break;
+      case 'open-route': {
+        const route = action.data?.trim();
+        if (route && this.navigateTo(route)) {
+          const destination = action.label.replace(/^Open\s+(?:the\s+)?/i, '');
+          result = `Opening ${destination}. Keep your eyes on the work.`;
+        } else {
+          result = 'That workspace is unavailable right now.';
+        }
+        break;
+      }
       case 'tempo-90':
         this.setTempo(90);
         result = 'Tempo locked to 90 BPM. Even you can ride this.';

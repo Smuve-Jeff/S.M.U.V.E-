@@ -46,6 +46,35 @@ describe('strategy workspace wiring', () => {
   );
 });
 
+describe('masterclass workspace wiring', () => {
+  const protectedRoutes = routes.flatMap((route) => route.children ?? []);
+  const route = protectedRoutes.find((entry) => entry.path === 'masterclass');
+
+  it('is registered as a lazy protected route', () => {
+    expect(route).toBeDefined();
+    expect(typeof route?.loadComponent).toBe('function');
+  });
+
+  it('resolves to the standalone Masterclass page', async () => {
+    const loaded = await (route!.loadComponent as unknown as LazyComponent)();
+    const component = (loaded['MasterclassPageComponent'] ?? loaded) as {
+      name?: string;
+    };
+    expect(component.name).toBe('MasterclassPageComponent');
+  });
+
+  it('keeps the sidebar registry path in sync with the route table', () => {
+    const workspace = WORKSPACE_REGISTRY.find(
+      (entry) => entry.mode === 'masterclass'
+    );
+    expect(workspace).toBeDefined();
+    expect(workspace!.routePath).toBe('/masterclass');
+    expect(protectedRoutes.some((entry) => entry.path === 'masterclass')).toBe(
+      true
+    );
+  });
+});
+
 describe('canvas piano roll wiring', () => {
   const protectedRoutes = routes.flatMap((route) => route.children ?? []);
   const route = protectedRoutes.find(

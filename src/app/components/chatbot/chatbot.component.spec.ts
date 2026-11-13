@@ -132,6 +132,54 @@ describe('ChatbotComponent', () => {
     expect(component).toBeTruthy();
   });
 
+  it('teaches app features and professional craft from S.M.U.V.E. only', async () => {
+    const teach = await (component as any).routeMasterIntent('#teach studio');
+    expect(teach.content).toContain('#TEACH // STUDIO: IDEA TO MASTER');
+    expect(teach.content).toContain('STEP BY STEP');
+    expect(teach.actions).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: 'open-route', data: '/studio' }),
+      ])
+    );
+
+    const learn = await (component as any).routeMasterIntent('#learn books');
+    expect(learn.content).toContain('#LEARN // BOOKS: WRITE, REVISE, PUBLISH');
+    expect(learn.content).toContain('CORE CONCEPTS');
+    expect(learn.content).toContain('Writer’s Pad');
+    expect(learn.actions).toEqual([
+      expect.objectContaining({ id: 'open-route', data: '/lyric-editor' }),
+    ]);
+  });
+
+  it('lists every teaching module when #teach or #learn is used bare', async () => {
+    const teach = await (component as any).routeMasterIntent('#teach');
+    expect(teach.content).toContain('S.M.U.V.E. TEACH');
+    expect(teach.content).toContain('Tha Spot');
+
+    const learn = await (component as any).routeMasterIntent('#learn');
+    expect(learn.content).toContain('S.M.U.V.E. LEARN');
+    expect(learn.content).toContain('Books: Write, Revise, Publish');
+  });
+
+  it('resolves each named app feature and craft discipline', async () => {
+    const cases: [string, string][] = [
+      ['#teach studio', 'STUDIO: IDEA TO MASTER'],
+      ['#teach image video lab', 'IMAGE & VIDEO LAB'],
+      ['#teach tha spot', 'THA SPOT'],
+      ['#teach lyrics', 'WRITE, PRODUCE AND LEARN'],
+      ['#learn directing', 'DIRECTING: BUILD THE VISUAL ARGUMENT'],
+      ['#learn acting', 'ACTING: PLAY AN ACTION, NOT AN EMOTION'],
+      ['#learn music videos', 'MUSIC VIDEOS: CUT THE SONG, NOT THE FOOTAGE'],
+      ['#learn podcast/vlog', 'PODCAST & VLOG: EARN THE NEXT MINUTE'],
+      ['#learn books', 'BOOKS: WRITE, REVISE, PUBLISH'],
+    ];
+
+    for (const [command, expected] of cases) {
+      const intent = await (component as any).routeMasterIntent(command);
+      expect(intent?.content).toContain(expected);
+    }
+  });
+
   it('re-reads a committed profile change and says what moved', () => {
     userProfileServiceMock.profile.set({
       ...initialProfile,

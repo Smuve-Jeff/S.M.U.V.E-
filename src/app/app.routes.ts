@@ -32,6 +32,15 @@ const protectedRoutes: Routes = [
     loadComponent: () =>
       import('./studio/studio.component').then((m) => m.StudioComponent),
   },
+  {
+    // Standalone Masterclass workspace. `?guide=` and `?lesson=` mirror the
+    // in-Studio overlay's deep-link contract, so a shared lesson works in both.
+    path: 'masterclass',
+    loadComponent: () =>
+      import('./studio/masterclass-page/masterclass-page.component').then(
+        (m) => m.MasterclassPageComponent
+      ),
+  },
   // Older links to the composed page and to the second shell both land here.
   { path: 'studio-page', redirectTo: 'studio', pathMatch: 'full' },
   {

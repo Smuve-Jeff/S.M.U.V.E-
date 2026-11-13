@@ -1,14 +1,16 @@
+import { COMPLETE_GUIDE_LESSONS } from "../../components/settings/complete-app-guide.lessons";
 import type { StudioSurfaceId } from "../studio-surfaces";
 
 /**
- * The Studio Masterclass curriculum.
+ * The S.M.U.V.E. Masterclass curriculum.
  *
- * This file is the single source of truth for the in-Studio guide. It has two
+ * This file is the single source of truth for the in-app guide. It has two
  * jobs:
  *
- *  1. `GUIDE_TRACKS` — three learn-by-doing paths. A "First Loop" for kids and
+ *  1. `GUIDE_TRACKS` — four learn-by-doing paths. A "First Loop" for kids and
  *     first-timers, a "Full Song" path that walks a record from empty project to
- *     delivery, and a "Mastery" path for the pro surfaces.
+ *     delivery, a "Mastery" path for the pro surfaces, and a "Whole App" path
+ *     that teaches the rest of S.M.U.V.E. end to end.
  *  2. `GUIDE_SURFACE_ATLAS` — one entry for every surface the Studio can show.
  *     `studio-guide.data.spec.ts` asserts the atlas covers `STUDIO_SURFACES`
  *     exactly, so a new surface cannot ship undocumented.
@@ -18,7 +20,19 @@ import type { StudioSurfaceId } from "../studio-surfaces";
  * never claims a button does something the Studio does not do.
  */
 
-export type GuideTrackId = "first-loop" | "full-song" | "mastery";
+export type GuideTrackId =
+  | "first-loop"
+  | "full-song"
+  | "mastery"
+  | "whole-app";
+
+/** A real route outside the Studio, used by whole-application lessons. */
+export interface GuideWorkspaceTarget {
+  path: string;
+  label: string;
+  description: string;
+  icon: string;
+}
 
 export type GuideAutoCheckKind =
   | "transport-started"
@@ -48,14 +62,18 @@ export interface GuideLesson {
   steps: string[];
   /** The named controls used in this lesson. */
   controls: string[];
-  /** The real surface that does the work. */
-  target: StudioSurfaceId;
+  /** The real Studio surface that does the work, for Studio lessons. */
+  target?: StudioSurfaceId;
+  /** A whole-application destination, for lessons outside the Studio. */
+  workspace?: GuideWorkspaceTarget;
   /** When present, a real Studio action checks this lesson off. */
   autoCheck?: GuideAutoCheckKind;
   /** Label for the "open the tool" button. */
   action: string;
   /** The professional habit this lesson teaches. */
   proTip: string;
+  /** Optional: the mistake this lesson is designed to prevent. */
+  pitfall?: string;
   /** Optional: what the result should sound like, in plain words. */
   heard?: string;
 }
@@ -676,6 +694,52 @@ const fullSongLessons: GuideLesson[] = [
   },
 ];
 
+/**
+ * The whole application, mapped from the existing complete-app guide.
+ *
+ * Keeping one chapter source means the Masterclass cannot teach a route the
+ * Settings walkthrough has already retired. The Masterclass adds the instructor
+ * voice, focused move coaching and a live destination card on top.
+ */
+const wholeAppIcons: Record<string, string> = {
+  "/hub": "grid_view",
+  "/studio": "token",
+  "/performance": "graphic_eq",
+  "/composer": "piano",
+  "/image-video-lab": "movie",
+  "/tha-spot": "sports_esports",
+  "/career": "trending_up",
+  "/release-pipeline": "rocket_launch",
+  "/command-center": "neurology",
+  "/remix-arena": "groups",
+  "/settings": "settings",
+  "/projects": "folder_copy",
+};
+
+const wholeAppLessons: GuideLesson[] = COMPLETE_GUIDE_LESSONS.map((lesson) => ({
+  id: `app-${lesson.id}`,
+  track: "whole-app",
+  title: lesson.title,
+  kicker: lesson.kicker.toUpperCase(),
+  minutes: Math.max(5, lesson.steps.length * 3),
+  goal: lesson.summary,
+  plain:
+    `This room is ${lesson.workspaceLabel}. ${lesson.summary} ` +
+    `You do not need music theory to follow this. Read the room, then make one move.`,
+  steps: [...lesson.steps],
+  controls: [...lesson.features],
+  workspace: {
+    path: lesson.route,
+    label: lesson.workspaceLabel,
+    description: lesson.summary,
+    icon: wholeAppIcons[lesson.route] ?? "explore",
+  },
+  action: `Open ${lesson.workspaceLabel}`,
+  proTip:
+    "Name the room, the job and the one move before you touch anything. That is how a system becomes an instrument.",
+  pitfall: lesson.mistake,
+}));
+
 const masteryLessons: GuideLesson[] = [
   {
     id: "master-session",
@@ -1049,6 +1113,18 @@ export const GUIDE_TRACKS: GuideTrack[] = [
     accent: "#c084fc",
     outcome: "Live performance, sampling, DJ, notation, AI and effect-chain fluency.",
     lessons: masteryLessons,
+  },
+  {
+    id: "whole-app",
+    label: "Whole App",
+    tagline: "Every room in S.M.U.V.E., from first click to release.",
+    forWho: "Artists who want the entire system, not just the Studio",
+    minutes: wholeAppLessons.reduce((sum, lesson) => sum + lesson.minutes, 0),
+    icon: "explore",
+    accent: "#ff7a59",
+    outcome:
+      "A working map of the whole application, with a real route into every room and the habits to use it without getting lost.",
+    lessons: wholeAppLessons,
   },
 ];
 // Attach the observable action to each lesson in place, so both the path

@@ -15,6 +15,7 @@ export type MainViewMode =
   | 'artist-coach'
   | 'hub'
   | 'studio'
+  | 'masterclass'
   | 'player'
   | 'dj'
   | 'piano-roll'

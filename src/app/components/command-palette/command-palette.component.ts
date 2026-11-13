@@ -61,6 +61,35 @@ import {
           class="px-6 py-5 space-y-4 max-h-[50vh] overflow-y-auto"
         >
           <div
+            class="rounded-xl border border-brand-primary/20 bg-background-alt/60 px-4 py-3"
+            role="group"
+            aria-labelledby="palette-keyboard-title"
+          >
+            <div
+              id="palette-keyboard-title"
+              class="text-xs font-bold uppercase tracking-[0.2em] text-text-dim"
+            >
+              Global keyboard shortcuts
+            </div>
+            <div class="text-[11px] text-text-dim mt-1">
+              Available from any workspace. {{ palette.keyboardShortcutNote }}
+            </div>
+            <div class="mt-2 flex flex-wrap gap-1.5">
+              <span
+                *ngFor="let shortcut of palette.keyboardShortcuts"
+                class="palette-keyboard-item inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-2 py-1 text-[11px] text-text-main"
+                [attr.title]="shortcut.description"
+              >
+                <kbd
+                  class="rounded border border-border bg-background-alt/60 px-1 py-0.5 font-mono text-[10px] font-bold uppercase text-brand-primary"
+                >
+                  {{ shortcut.keys }}
+                </kbd>
+                <span>{{ shortcut.label }}</span>
+              </span>
+            </div>
+          </div>
+          <div
             *ngFor="let tip of palette.activeTips()"
             class="rounded-xl border border-border bg-background-alt/60 px-4 py-3"
           >

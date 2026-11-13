@@ -951,3 +951,74 @@ footer {
     grid-area: dismiss;
   }
 }
+
+
+/* ── Contextual Masterclass entry ─────────────────────────── */
+
+.teach-action-button {
+  color: #ffd77a;
+  border-color: rgba(255, 184, 0, 0.28);
+  background: rgba(255, 184, 0, 0.08);
+}
+
+.teach-action-button:hover,
+.teach-action-button:focus-visible {
+  color: #fff;
+  border-color: rgba(255, 184, 0, 0.6);
+  background: rgba(255, 184, 0, 0.16);
+}
+
+.teach-action-label {
+  color: inherit;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.teach-screen-fab {
+  position: fixed;
+  right: max(1rem, env(safe-area-inset-right));
+  /* Sit above the existing Home pill without covering a full-page control. */
+  bottom: calc(max(1rem, env(safe-area-inset-bottom)) + 56px);
+  z-index: 6000;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 40px;
+  padding: 0.55rem 0.85rem;
+  border: 1px solid rgba(255, 184, 0, 0.5);
+  border-radius: 999px;
+  color: #1d1400;
+  background: #ffb800;
+  box-shadow: 0 4px 20px #0008;
+  font-family: inherit;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.teach-screen-fab:hover,
+.teach-screen-fab:focus-visible {
+  outline: 2px solid #ffd77a;
+  outline-offset: 3px;
+  background: #ffd45c;
+}
+
+.teach-screen-fab .material-symbols-outlined {
+  font-size: 18px;
+}
+
+@media (max-width: 600px) {
+  .teach-screen-fab {
+    right: max(0.75rem, env(safe-area-inset-right));
+    bottom: calc(max(0.75rem, env(safe-area-inset-bottom)) + 52px);
+    padding: 0.5rem 0.65rem;
+  }
+
+  .teach-screen-fab-label {
+    display: none;
+  }
+}

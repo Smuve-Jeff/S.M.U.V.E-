@@ -62,6 +62,23 @@ export class SettingsComponent implements OnInit, OnDestroy {
   private http = inject(HttpClient);
   private tokenService = inject(TokenService);
   showHowTo = signal(false);
+  /** Set when the guide should land on its keyboard reference. */
+  keyboardHelpRequested = signal(false);
+
+  openCompleteGuide(): void {
+    this.keyboardHelpRequested.set(false);
+    this.showHowTo.set(true);
+  }
+
+  openKeyboardShortcuts(): void {
+    this.keyboardHelpRequested.set(true);
+    this.showHowTo.set(true);
+  }
+
+  closeCompleteGuide(): void {
+    this.showHowTo.set(false);
+    this.keyboardHelpRequested.set(false);
+  }
   outputDeviceError = signal('');
   latencyCalibrationRunning = signal(false);
   twoFactorSetup = signal<{ secret: string; qrCodeUri: string } | null>(null);

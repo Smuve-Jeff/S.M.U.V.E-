@@ -1,0 +1,18 @@
+:host {
+  display: block;
+  height: 100%;
+  min-height: 100%;
+  background: #07060d;
+}
+
+.masterclass-page {
+  height: 100%;
+  min-height: 100%;
+  overflow: hidden;
+}
+
+@media (max-width: 600px) {
+  .masterclass-page {
+    min-height: 100dvh;
+  }
+}

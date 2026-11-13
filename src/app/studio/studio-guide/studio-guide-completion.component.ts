@@ -32,6 +32,20 @@ export class StudioGuideCompletionComponent {
   private readonly haptic = inject(HapticService);
   private feedbackPlayed = false;
 
+  /** S.M.U.V.E. acknowledges the work without becoming a cheerleader. */
+  praise(): string {
+    switch (this.completion().trackId) {
+      case "first-loop":
+        return "The machine answered you. Remember that sound; it was not luck. It was a decision you can repeat.";
+      case "full-song":
+        return "Another handoff survived. This is how a record stops being a file and starts becoming a release.";
+      case "mastery":
+        return "Precision. The surface did not surprise you. Keep that hand; it will take you further than speed.";
+      default:
+        return "Another room learned. The system is becoming smaller in your hands, which is exactly how mastery feels.";
+    }
+  }
+
   constructor() {
     // The lesson action that completes the step is the gesture; the chime and
     // haptic are a quiet acknowledgement, never a second thing to dismiss.

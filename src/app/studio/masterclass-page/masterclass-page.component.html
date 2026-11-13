@@ -1,0 +1,13 @@
+<div class="masterclass-page">
+  <app-studio-guide
+    [pageMode]="true"
+    [tab]="tab()"
+    [track]="track()"
+    [lesson]="lesson()"
+    (close)="backToStudio()"
+    (openSurface)="openStudioSurface($event)"
+    (openWorkspace)="openWorkspace($event)"
+    (startRecipe)="openStudioQuickStart()"
+    (stateChange)="onStateChange($event)"
+  ></app-studio-guide>
+</div>

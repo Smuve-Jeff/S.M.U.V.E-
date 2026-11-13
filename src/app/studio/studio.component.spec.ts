@@ -2194,6 +2194,45 @@ describe("StudioComponent", () => {
         }),
       );
     });
+
+    it("teaches the current Studio surface's lesson", () => {
+      component.activeView.set("mixer");
+
+      component.teachCurrentStudioScreen();
+
+      expect(component.showStudioGuide()).toBe(true);
+      expect(component.guideLessonRequest()).not.toBeNull();
+      expect(component.guideTrackRequest()).not.toBeNull();
+    });
+
+    it("leaves the Studio for a whole-application lesson", () => {
+      component.openStudioGuide();
+      mockRouter.navigate.mockClear();
+
+      component.onGuideOpenWorkspace("/academy");
+
+      expect(component.showStudioGuide()).toBe(false);
+      expect(mockRouter.navigate).toHaveBeenCalledWith(["/academy"]);
+    });
+
+    it("hands the open lesson to the standalone Masterclass page", () => {
+      component.openStudioGuide({ track: "full-song", lessonId: "song-export" });
+      mockRouter.navigate.mockClear();
+
+      component.openStandaloneGuide({
+        tab: "learn",
+        track: "full-song",
+        lessonId: "song-export",
+      });
+
+      expect(component.showStudioGuide()).toBe(false);
+      expect(mockRouter.navigate).toHaveBeenLastCalledWith(
+        ["/masterclass"],
+        expect.objectContaining({
+          queryParams: { guide: "full-song", lesson: "song-export" },
+        }),
+      );
+    });
   });
 
   describe("recording source panel", () => {

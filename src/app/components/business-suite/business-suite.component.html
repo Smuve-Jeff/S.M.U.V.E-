@@ -118,6 +118,57 @@
       </div>
     </div>
 
+    <div class="portfolio-summary" aria-label="Portfolio progress summary">
+      <div class="portfolio-score">
+        <div class="expansion-label">Portfolio progress</div>
+        <strong *ngIf="portfolioStarted() > 0; else portfolioEmpty"
+          >{{ portfolioPercent() }}<small>%</small></strong
+        >
+        <ng-template #portfolioEmpty>
+          <strong class="portfolio-score-empty">No lanes<br />started</strong>
+        </ng-template>
+        <div
+          class="portfolio-track"
+          role="progressbar"
+          aria-valuemin="0"
+          aria-valuemax="100"
+          [attr.aria-valuenow]="portfolioPercent()"
+          aria-label="Overall portfolio progress"
+        >
+          <i [style.width.%]="portfolioPercent()"></i>
+        </div>
+        <p>
+          {{ portfolioStarted() }} of {{ expansionLanes.length }} lanes started
+          · {{ portfolioStepsCompleted() }} steps evidenced
+        </p>
+      </div>
+
+      <div class="portfolio-next" *ngIf="portfolioNext() as next; else portfolioDone">
+        <div class="expansion-label">Next lane</div>
+        <strong>{{ next.lane.label }}</strong>
+        <p>
+          {{ next.label
+          }}<ng-container *ngIf="next.percent > 0">
+            · {{ next.percent }}% complete</ng-container
+          >
+        </p>
+        <button
+          type="button"
+          class="btn-pro btn-pro-outline w-full text-[9px] font-black uppercase tracking-widest"
+          (click)="selectExpansion(next.lane.type)"
+        >
+          INSPECT LANE
+        </button>
+      </div>
+      <ng-template #portfolioDone>
+        <div class="portfolio-next">
+          <div class="expansion-label">Portfolio complete</div>
+          <strong>Every lane has recorded evidence</strong>
+          <p>Keep the finished work archived and revisit only when there is new evidence to add.</p>
+        </div>
+      </ng-template>
+    </div>
+
     <div class="expansion-lanes" role="tablist" aria-label="Expansion lanes">
       <button
         *ngFor="let lane of expansionLanes"
@@ -133,6 +184,9 @@
         <span class="expansion-lane-copy">
           <strong>{{ lane.label }}</strong>
           <small>{{ lane.kicker }}</small>
+          <span class="expansion-lane-progress" aria-hidden="true">
+            <i [style.width.%]="laneProgress(lane.type).percent"></i>
+          </span>
         </span>
       </button>
     </div>

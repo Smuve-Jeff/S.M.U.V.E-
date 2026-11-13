@@ -1,8 +1,15 @@
 import { Injectable, Injector, computed, effect, inject, signal } from '@angular/core';
+import { Router } from '@angular/router';
 import { UIService } from './ui.service';
 import { DeckService } from './deck.service';
 import { NotificationService } from './notification.service';
 import { MainViewMode } from './user-context.service';
+import {
+  GLOBAL_KEYBOARD_SHORTCUT_NOTE,
+  GLOBAL_KEYBOARD_SHORTCUTS,
+  GLOBAL_SHORTCUT_KEYS,
+} from './global-keyboard-shortcuts';
+import { masterclassRouteTarget } from '../studio/studio-guide/masterclass-route-guide';
 import type { CompositionCoreService } from '../composer/composition-core.service';
 import type { ComponentKind } from '../composer/composer.types';
 
@@ -150,6 +157,8 @@ export class CommandPaletteService {
   private deckService = inject(DeckService);
   private notificationService = inject(NotificationService);
   private injector = inject(Injector);
+  /** Optional so isolated command-palette tests do not need a router. */
+  private readonly router = inject(Router, { optional: true });
 
   private async performExecutiveAudit(): Promise<void> {
     try {
@@ -201,6 +210,8 @@ export class CommandPaletteService {
 
   isOpen = signal(false);
   showGuide = signal(false);
+  keyboardShortcuts = GLOBAL_KEYBOARD_SHORTCUTS;
+  keyboardShortcutNote = GLOBAL_KEYBOARD_SHORTCUT_NOTE;
   query = signal('');
   activeIndex = signal(0);
 
@@ -246,7 +257,7 @@ export class CommandPaletteService {
         label: 'Toggle Playback',
         description: 'Play or pause the master deck.',
         category: 'Playback',
-        shortcut: 'Space',
+        shortcut: GLOBAL_SHORTCUT_KEYS.playback,
         run: () => {
           this.deckService.togglePlay('A');
           this.notificationService.show('Playback Toggled', 'info', 1800);
@@ -257,7 +268,7 @@ export class CommandPaletteService {
         label: 'Executive AI Audit',
         description: 'Trigger a full executive AI audit.',
         category: 'AI',
-        shortcut: 'Alt + A',
+        shortcut: GLOBAL_SHORTCUT_KEYS.executiveAudit,
         run: () => void this.performExecutiveAudit(),
       },
       {
@@ -265,7 +276,7 @@ export class CommandPaletteService {
         label: 'Toggle Performance Mode',
         description: 'Switch high-voltage performance mode on/off.',
         category: 'System',
-        shortcut: 'Alt + P',
+        shortcut: GLOBAL_SHORTCUT_KEYS.performanceMode,
         run: () => {
           this.uiService.togglePerformanceMode();
           this.notificationService.show(
@@ -282,7 +293,7 @@ export class CommandPaletteService {
         label: 'Toggle Theme',
         description: 'Cycle between Light and Dark command themes.',
         category: 'System',
-        shortcut: 'Alt + T',
+        shortcut: GLOBAL_SHORTCUT_KEYS.theme,
         run: () => {
           this.uiService.toggleTheme();
           this.notificationService.show(
@@ -297,7 +308,7 @@ export class CommandPaletteService {
         label: 'Toggle Neural Advisor',
         description: 'Show or hide the AI assistant.',
         category: 'System',
-        shortcut: 'Alt + C',
+        shortcut: GLOBAL_SHORTCUT_KEYS.advisor,
         run: () => {
           this.uiService.toggleChatbot();
           this.notificationService.show(
@@ -312,7 +323,7 @@ export class CommandPaletteService {
         label: 'Toggle Scanlines',
         description: 'Enable or disable the scanline overlay.',
         category: 'System',
-        shortcut: 'Alt + S',
+        shortcut: GLOBAL_SHORTCUT_KEYS.scanlines,
         run: () => {
           this.uiService.toggleScanlines();
           this.notificationService.show(
@@ -323,12 +334,31 @@ export class CommandPaletteService {
         },
       },
       {
+        id: 'teach-this-screen',
+        label: 'Teach This Screen',
+        description:
+          'Open the Masterclass lesson for the workspace or Studio surface in front of you.',
+        category: 'Masterclass',
+        shortcut: GLOBAL_SHORTCUT_KEYS.teachScreen,
+        keywords: [
+          'teach',
+          'learn',
+          'masterclass',
+          'tutorial',
+          'lesson',
+          'help',
+          'screen',
+          'guide',
+        ],
+        run: () => this.teachScreen(),
+      },
+      {
         id: 'open-guide',
         label: 'Interaction Guide',
         description:
           'Reveal all interactive capabilities for the current view.',
         category: 'System',
-        shortcut: '?',
+        shortcut: GLOBAL_SHORTCUT_KEYS.interactionGuide,
         keepOpen: true,
         run: () => this.openGuide(),
       },
@@ -455,6 +485,23 @@ export class CommandPaletteService {
     }
   }
 
+  /** Route-aware entry point shared by the command and the Alt+L shortcut. */
+  private teachScreen(): void {
+    const target = masterclassRouteTarget(this.router?.url ?? '');
+    if (!target || !this.router) {
+      this.notificationService.show(
+        'The Masterclass is already open.',
+        'info',
+        2200
+      );
+      return;
+    }
+
+    void this.router.navigate(['/masterclass'], {
+      queryParams: { guide: target.track, lesson: target.lessonId },
+    });
+  }
+
   handleGlobalKey(event: KeyboardEvent): boolean {
     const key = event.key;
 
@@ -558,6 +605,12 @@ export class CommandPaletteService {
     if (lowerKey === 's' && event.altKey) {
       event.preventDefault();
       this.triggerById('toggle-scanlines');
+      return true;
+    }
+
+    if (lowerKey === 'l' && event.altKey) {
+      event.preventDefault();
+      this.triggerById('teach-this-screen');
       return true;
     }
 

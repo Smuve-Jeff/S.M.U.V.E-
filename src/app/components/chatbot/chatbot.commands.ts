@@ -142,9 +142,16 @@ export const QUICK_COMMANDS = [
   { label: '/sync_kb', description: 'Sync knowledge base' },
   { label: '/musicians', description: 'Manage AI Band' },
   { label: '/splits', description: 'Digital Split Sheets' },
-  { label: '/teach', description: 'Start a lesson' },
+  {
+    label: '#teach',
+    description: 'S.M.U.V.E. walks you through an app feature step by step',
+  },
+  {
+    label: '#learn',
+    description: 'Professional craft insight from S.M.U.V.E. — directing, acting, video, podcast, books',
+  },
   { label: '/mimic', description: 'Mimic artist style' },
-  { label: '/learn', description: 'Search knowledge' },
+
   { label: '/knowledge', description: 'Browse all domains' },
   { label: '/studio', description: 'Studio control' },
   { label: '/studio tempo', description: 'Set BPM' },

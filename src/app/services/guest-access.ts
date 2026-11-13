@@ -29,6 +29,7 @@ export const GUEST_ALLOWED_ROUTES: readonly string[] = [
   'studio',
   'studio-page',
   'studio-classic',
+  'masterclass',
   'vocal-suite',
   'practice',
   'dj',

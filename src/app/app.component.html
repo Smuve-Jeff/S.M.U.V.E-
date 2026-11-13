@@ -93,6 +93,19 @@
     <span>Home</span>
   </a>
 
+  @if (showFloatingTeachAction() && teachTarget(); as teach) {
+    <button
+      type="button"
+      class="teach-screen-fab"
+      (click)="openTeachScreen()"
+      [attr.aria-label]="'Teach me this screen: ' + teach.lessonTitle"
+      [attr.title]="'Open the Masterclass lesson for this screen: ' + teach.lessonTitle"
+    >
+      <span class="material-symbols-outlined" aria-hidden="true">school</span>
+      <span class="teach-screen-fab-label">Teach this screen</span>
+    </button>
+  }
+
   <div
     *ngIf="isMobile() && isSidebarOpen() && !isFullPageMode() && !isAuthRoute()"
     class="sidebar-backdrop"
@@ -524,6 +537,19 @@
             >search</span
           >
         </button>
+
+        @if (!isAuthRoute() && teachTarget(); as teach) {
+          <button
+            type="button"
+            (click)="openTeachScreen()"
+            class="shell-icon-button teach-action-button h-10 rounded-lg border flex items-center justify-center gap-2 px-2 md:px-3 transition-all group"
+            [attr.aria-label]="'Teach me this screen: ' + teach.lessonTitle"
+            [attr.title]="'Open the Masterclass lesson for this screen: ' + teach.lessonTitle"
+          >
+            <span class="material-symbols-outlined text-xl md:text-2xl">school</span>
+            <span class="teach-action-label hidden 2xl:inline">Teach me</span>
+          </button>
+        }
 
         <div
           class="shell-appearance-group hidden xl:flex items-center gap-2 rounded-2xl border border-border bg-background-alt/40 px-2 py-2"

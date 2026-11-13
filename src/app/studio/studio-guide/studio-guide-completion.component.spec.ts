@@ -38,6 +38,7 @@ describe("StudioGuideCompletionComponent", () => {
     expect(text).toContain("Lesson complete");
     expect(text).toContain("Hear your first sound");
     expect(text).toContain("Borrow a groove, then make it yours");
+    expect(text).toContain("The machine answered you");
     expect(text).toContain("Next lesson");
     expect(haptic.success).toHaveBeenCalledTimes(1);
   });

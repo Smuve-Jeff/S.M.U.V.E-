@@ -62,10 +62,11 @@ describe("StudioGuideComponent", () => {
     expect(autoCheck.noteGuideOpen).toHaveBeenCalledWith(true);
     expect(text).toContain("On this device");
 
-    expect(text).toContain("Studio Masterclass");
+    expect(text).toContain("The Masterclass");
     expect(text).toContain("First Loop");
     expect(text).toContain("Full Song");
     expect(text).toContain("Studio Mastery");
+    expect(text).toContain("Whole App");
     expect(element.querySelectorAll(".sg-lesson").length).toBe(
       GUIDE_TRACKS[0].lessons.length,
     );
@@ -146,6 +147,42 @@ describe("StudioGuideComponent", () => {
     expect(component.openLessonId()).toBe("master-ears");
   });
 
+  it("opens whole-application lessons through the workspace output", () => {
+    component.selectTrack("whole-app");
+    const lesson = component.selectedTrack().lessons[0];
+    const openWorkspace = jest.spyOn(component.openWorkspace, "emit");
+    const openSurface = jest.spyOn(component.openSurface, "emit");
+
+    component.openLessonTarget(lesson);
+
+    expect(openWorkspace).toHaveBeenCalledWith("/hub");
+    expect(openSurface).not.toHaveBeenCalled();
+  });
+
+  it("coaches one move at a time and keeps the index inside the lesson", () => {
+    component.selectTrack("whole-app");
+    const lesson = component.selectedTrack().lessons[0];
+
+    component.nextStep(lesson);
+    expect(component.activeStepIndex()).toBe(1);
+    component.setStep(lesson, 999);
+    expect(component.activeStepIndex()).toBe(lesson.steps.length - 1);
+    component.previousStep(lesson);
+    expect(component.activeStepIndex()).toBe(lesson.steps.length - 2);
+  });
+
+  it("keeps the instructor transmission in character per path", () => {
+    const wholeApp = GUIDE_TRACKS.find((track) => track.id === "whole-app")!;
+    const lesson = wholeApp.lessons[0];
+
+    expect(component.instructorLine(lesson)).toContain(
+      "The Studio is one room",
+    );
+    expect(component.instructorWhisper(lesson)).toContain(
+      "The rooms remember you",
+    );
+  });
+
   it("reports path and lesson changes for the shell to mirror into the URL", () => {
     const changes = jest.spyOn(component.stateChange, "emit");
 
@@ -164,5 +201,57 @@ describe("StudioGuideComponent", () => {
     document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
 
     expect(close).toHaveBeenCalledTimes(1);
+  });
+
+  it("renders as a page region with a Studio return control", () => {
+    fixture.componentRef.setInput("pageMode", true);
+    fixture.detectChanges();
+
+    const element = fixture.nativeElement as HTMLElement;
+    const shell = element.querySelector(".sg-shell");
+    expect(element.querySelector(".sg-backdrop")?.classList).toContain("is-page");
+    expect(shell?.getAttribute("role")).toBe("region");
+    expect(shell?.getAttribute("aria-modal")).toBeNull();
+    expect(
+      element.querySelector('[aria-label="Back to the Studio"]'),
+    ).not.toBeNull();
+    expect(
+      element.querySelector('[aria-label="Open the Studio Masterclass as a full page"]'),
+    ).toBeNull();
+  });
+
+  it("searches every path and opens the matching lesson on its own track", () => {
+    component.lessonQuery.set("export");
+    fixture.detectChanges();
+
+    const element = fixture.nativeElement as HTMLElement;
+    expect(component.lessonResults().length).toBeGreaterThan(1);
+    expect(element.querySelectorAll(".sg-lesson-result").length).toBe(
+      component.lessonResults().length,
+    );
+
+    const target = component
+      .lessonResults()
+      .find((result) => result.lesson.id === "song-export");
+    expect(target).toBeDefined();
+    component.openSearchResult(target!);
+    fixture.detectChanges();
+
+    expect(component.lessonQuery()).toBe("");
+    expect(component.selectedTrackId()).toBe("full-song");
+    expect(component.openLessonId()).toBe("song-export");
+  });
+
+  it("hands the current state to the standalone page", () => {
+    const standalone = jest.spyOn(component.openStandalone, "emit");
+
+    component.selectTrack("mastery");
+    component.openFullPage();
+
+    expect(standalone).toHaveBeenCalledWith({
+      tab: "learn",
+      track: "mastery",
+      lessonId: expect.any(String),
+    });
   });
 });

@@ -32,6 +32,13 @@ interface ExpansionLane {
   resources: ExpansionResource[];
 }
 
+interface ExpansionLaneProgress {
+  lane: ExpansionLane;
+  percent: number;
+  label: 'Not started' | 'In progress' | 'Complete';
+  completedSteps: number;
+}
+
 @Component({
   selector: 'app-business-suite',
   standalone: true,
@@ -278,6 +285,65 @@ export class BusinessSuiteComponent implements OnInit {
       ],
     },
   ];
+
+  /** Progress for every lane, read from persisted pipeline evidence only. */
+  portfolioSummary = computed<ExpansionLaneProgress[]>(() =>
+    this.expansionLanes.map((lane) => {
+      const candidates = this.bizService
+        .activePipelines()
+        .filter((pipeline) => pipeline.type === lane.type);
+      const pipeline = [...candidates].sort(
+        (a, b) => b.updatedAt - a.updatedAt
+      )[0];
+      const steps = pipeline?.stages.flatMap((stage) => stage.steps) ?? [];
+      const completedSteps = steps.filter(
+        (step) => step.status === 'Completed'
+      ).length;
+      const percent = pipeline ? pipelineProgress(pipeline) : 0;
+      const label: ExpansionLaneProgress['label'] = !pipeline
+        ? 'Not started'
+        : pipeline.status === 'Completed' || pipeline.status === 'Archived'
+          ? 'Complete'
+          : 'In progress';
+      return { lane, percent, label, completedSteps };
+    })
+  );
+
+  portfolioPercent = computed(() => {
+    if (!this.expansionLanes.length) return 0;
+    const total = this.portfolioSummary().reduce(
+      (sum, item) => sum + item.percent,
+      0
+    );
+    return Math.round(total / this.expansionLanes.length);
+  });
+
+  portfolioStarted = computed(
+    () =>
+      this.portfolioSummary().filter((item) => item.label !== 'Not started')
+        .length
+  );
+
+  portfolioStepsCompleted = computed(() =>
+    this.portfolioSummary().reduce(
+      (sum, item) => sum + item.completedSteps,
+      0
+    )
+  );
+
+  portfolioNext = computed(
+    () =>
+      this.portfolioSummary().find((item) => item.label === 'In progress') ??
+      this.portfolioSummary().find((item) => item.label === 'Not started') ??
+      null
+  );
+
+  laneProgress(type: BusinessPipelineType): ExpansionLaneProgress {
+    return (
+      this.portfolioSummary().find((item) => item.lane.type === type) ??
+      this.portfolioSummary()[0]
+    );
+  }
 
   selectedExpansion = signal<BusinessPipelineType>('Film & TV');
 

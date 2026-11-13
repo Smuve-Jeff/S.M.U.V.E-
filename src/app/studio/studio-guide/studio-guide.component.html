@@ -1,8 +1,13 @@
-<div class="sg-backdrop" (click)="close.emit()">
+<div
+  class="sg-backdrop"
+  [class.is-page]="pageMode()"
+  (click)="pageMode() ? null : close.emit()"
+>
   <section
     class="sg-shell"
-    role="dialog"
-    aria-modal="true"
+    [class.is-page]="pageMode()"
+    [attr.role]="pageMode() ? 'region' : 'dialog'"
+    [attr.aria-modal]="pageMode() ? null : 'true'"
     aria-labelledby="sg-title"
     (click)="$event.stopPropagation()"
   >
@@ -10,19 +15,20 @@
       <div class="sg-brand">
         <span class="sg-brand-icon material-symbols-outlined" aria-hidden="true">school</span>
         <div class="sg-brand-copy">
-          <p class="sg-eyebrow">S.M.U.V.E. · Studio Masterclass</p>
-          <h1 id="sg-title">Learn the whole Studio, one move at a time.</h1>
+          <p class="sg-eyebrow">S.M.U.V.E. · The Masterclass</p>
+          <h1 id="sg-title">Learn the whole system, one move at a time.</h1>
           <p class="sg-lede">
-            Three guided paths: a first loop for beginners, a complete song from
-            empty project to delivery, and the pro surfaces for mastery. Every
-            step opens the real tool it teaches.
+            Four guided paths: a first loop for absolute beginners, a complete
+            song from empty project to delivery, the pro surfaces for mastery,
+            and the entire application end to end. Every step opens the real
+            room it teaches.
           </p>
           <p class="sg-instructor">
             <span class="material-symbols-outlined" aria-hidden="true">graphic_eq</span>
             <span>
               <strong>S.M.U.V.E. Prime</strong>
               I do not teach button-poking. I teach control. Follow the path,
-              and make the machine obey.
+              and the system will obey.
             </span>
           </p>
         </div>
@@ -52,9 +58,33 @@
           <span class="material-symbols-outlined" aria-hidden="true">{{ linkCopied() ? 'check' : 'link' }}</span>
           <span class="sg-copy-label">{{ linkCopied() ? 'Copied' : 'Copy link' }}</span>
         </button>
-        <button type="button" class="sg-close" (click)="close.emit()" aria-label="Close the Studio Masterclass">
-          <span class="material-symbols-outlined" aria-hidden="true">close</span>
-        </button>
+        @if (!pageMode()) {
+          <button
+            type="button"
+            class="sg-copy-link sg-full-page"
+            (click)="openFullPage()"
+            aria-label="Open the Studio Masterclass as a full page"
+            title="Open the full Masterclass workspace"
+          >
+            <span class="material-symbols-outlined" aria-hidden="true">open_in_new</span>
+            <span class="sg-copy-label">Full page</span>
+          </button>
+        }
+        @if (pageMode()) {
+          <button
+            type="button"
+            class="sg-close"
+            (click)="close.emit()"
+            aria-label="Back to the Studio"
+            title="Back to the Studio"
+          >
+            <span class="material-symbols-outlined" aria-hidden="true">arrow_back</span>
+          </button>
+        } @else {
+          <button type="button" class="sg-close" (click)="close.emit()" aria-label="Close the Studio Masterclass">
+            <span class="material-symbols-outlined" aria-hidden="true">close</span>
+          </button>
+        }
       </div>
     </header>
 
@@ -119,6 +149,60 @@
     <div class="sg-scroll">
       @if (tab() === 'learn') {
         <section class="sg-learn" aria-label="Guided learning paths">
+          <div class="sg-lesson-search">
+            <label class="sg-lesson-search-field">
+              <span class="material-symbols-outlined" aria-hidden="true">search</span>
+              <input
+                type="search"
+                placeholder="Search all lessons — try “vocal”, “export” or “arrangement”"
+                [value]="lessonQuery()"
+                (input)="onLessonSearch($event)"
+                aria-label="Search every Masterclass lesson"
+              />
+            </label>
+            @if (lessonQuery().trim()) {
+              <div class="sg-lesson-search-head" aria-live="polite">
+                <span>
+                  {{ lessonResults().length }} lesson{{ lessonResults().length === 1 ? '' : 's' }} found
+                </span>
+                <button type="button" (click)="clearLessonSearch()">Clear</button>
+              </div>
+              <div class="sg-lesson-results" role="list">
+                @for (result of lessonResults(); track result.lesson.id) {
+                  <button
+                    type="button"
+                    class="sg-lesson-result"
+                    role="listitem"
+                    (click)="openSearchResult(result)"
+                    [attr.aria-label]="'Open lesson: ' + result.lesson.title"
+                  >
+                    <span class="sg-lesson-result-num" aria-hidden="true">
+                      {{ lessonDone(result.lesson) ? '✓' : result.number }}
+                    </span>
+                    <span class="sg-lesson-result-copy">
+                      <span class="sg-lesson-result-track">
+                        {{ result.track.label }} · {{ result.lesson.kicker }}
+                      </span>
+                      <strong>{{ result.lesson.title }}</strong>
+                      <small>{{ result.lesson.goal }}</small>
+                    </span>
+                    <span
+                      class="sg-lesson-result-state"
+                      [class.is-done]="lessonDone(result.lesson)"
+                    >
+                      {{ lessonDone(result.lesson) ? 'Done' : 'Open' }}
+                    </span>
+                  </button>
+                } @empty {
+                  <p class="sg-lesson-empty">
+                    No lesson matches “{{ lessonQuery() }}”. Try the control atlas
+                    for a specific button or surface.
+                  </p>
+                }
+              </div>
+            }
+          </div>
+
           <div class="sg-track-tabs" role="tablist" aria-label="Choose a learning path">
             @for (track of tracks; track track.id) {
               <button
@@ -167,7 +251,7 @@
                     <span class="material-symbols-outlined" aria-hidden="true">play_arrow</span>
                     Continue path
                   </button>
-                  @if (track.id === 'first-loop') {
+                  @if (track.id === 'first-loop' && !pageMode()) {
                     <button type="button" class="sg-btn" (click)="startGroove()">
                       <span class="material-symbols-outlined" aria-hidden="true">bolt</span>
                       Load a starter groove
@@ -216,17 +300,100 @@
                         {{ lesson.plain }}
                       </p>
 
+                      <div class="sg-transmission">
+                        <div class="sg-transmission-head">
+                          <span class="sg-transmission-signal">
+                            <span class="sg-live-dot" aria-hidden="true"></span>
+                            S.M.U.V.E. // INSTRUCTOR
+                          </span>
+                          @if (narrationSupported) {
+                            <button
+                              type="button"
+                              class="sg-voice"
+                              [class.is-speaking]="isNarrating(lesson)"
+                              (click)="narrateLesson(lesson)"
+                              [attr.aria-pressed]="isNarrating(lesson)"
+                            >
+                              <span class="material-symbols-outlined" aria-hidden="true">
+                                {{ isNarrating(lesson) ? 'stop_circle' : 'graphic_eq' }}
+                              </span>
+                              {{ isNarrating(lesson) ? 'Stop voice' : 'Hear S.M.U.V.E.' }}
+                            </button>
+                          }
+                        </div>
+                        <p class="sg-transmission-line">{{ instructorLine(lesson) }}</p>
+                        <p class="sg-transmission-whisper">{{ instructorWhisper(lesson) }}</p>
+                      </div>
+
+                      <div class="sg-destination" [class.is-workspace]="isWorkspaceLesson(lesson)">
+                        <span class="sg-destination-icon material-symbols-outlined" aria-hidden="true">
+                          {{ lessonDestinationIcon(lesson) }}
+                        </span>
+                        <div class="sg-destination-copy">
+                          <span class="sg-destination-kicker">
+                            {{ isWorkspaceLesson(lesson) ? 'WHOLE-APP ROOM' : 'LIVE STUDIO SURFACE' }}
+                          </span>
+                          <strong>{{ lessonDestinationLabel(lesson) }}</strong>
+                          <p>{{ lessonDestinationDescription(lesson) }}</p>
+                        </div>
+                        <button
+                          type="button"
+                          class="sg-destination-open"
+                          (click)="openLessonTarget(lesson)"
+                          [attr.aria-label]="lesson.action"
+                        >
+                          <span class="material-symbols-outlined" aria-hidden="true">arrow_outward</span>
+                          Enter
+                        </button>
+                      </div>
+
                       <div class="sg-lesson-grid">
                         <div class="sg-block">
                           <h4>
                             <span class="material-symbols-outlined" aria-hidden="true">checklist</span>
                             Do this
                           </h4>
+                          <div class="sg-coach" aria-live="polite">
+                            <div class="sg-coach-head">
+                              <span>MOVE {{ activeStepIndex() + 1 }} OF {{ lesson.steps.length }}</span>
+                              <span class="sg-coach-hint">Tap any move to focus it</span>
+                            </div>
+                            @if (lesson.steps[activeStepIndex()]; as currentMove) {
+                              <p class="sg-coach-now">{{ currentMove }}</p>
+                            }
+                            <div class="sg-coach-actions">
+                              <button
+                                type="button"
+                                class="sg-coach-btn"
+                                (click)="previousStep(lesson)"
+                                [disabled]="activeStepIndex() === 0"
+                              >
+                                <span class="material-symbols-outlined" aria-hidden="true">arrow_back</span>
+                                Back
+                              </button>
+                              <button
+                                type="button"
+                                class="sg-coach-btn is-next"
+                                (click)="nextStep(lesson)"
+                                [disabled]="activeStepIndex() >= lesson.steps.length - 1"
+                              >
+                                Next move
+                                <span class="material-symbols-outlined" aria-hidden="true">arrow_forward</span>
+                              </button>
+                            </div>
+                          </div>
                           <ol class="sg-steps">
                             @for (step of lesson.steps; track step; let n = $index) {
-                              <li>
-                                <span class="sg-step-num" aria-hidden="true">{{ n + 1 }}</span>
-                                <span>{{ step }}</span>
+                              <li [class.is-current]="n === activeStepIndex()">
+                                <button
+                                  type="button"
+                                  class="sg-step-button"
+                                  (click)="setStep(lesson, n)"
+                                  [attr.aria-current]="n === activeStepIndex() ? 'step' : null"
+                                >
+                                  <span class="sg-step-num" aria-hidden="true">{{ n + 1 }}</span>
+                                  <span>{{ step }}</span>
+                                </button>
                               </li>
                             }
                           </ol>
@@ -256,6 +423,13 @@
                         <span><strong>Pro move:</strong> {{ lesson.proTip }}</span>
                       </p>
 
+                      @if (lesson.pitfall) {
+                        <p class="sg-pitfall">
+                          <span class="material-symbols-outlined" aria-hidden="true">warning</span>
+                          <span><strong>Do not:</strong> {{ lesson.pitfall }}</span>
+                        </p>
+                      }
+
                       @if (lesson.autoCheck) {
                         <p class="sg-auto-note">
                           <span class="material-symbols-outlined" aria-hidden="true">bolt</span>
@@ -264,7 +438,7 @@
                       }
 
                       <div class="sg-lesson-actions">
-                        <button type="button" class="sg-btn sg-btn-primary" (click)="openTarget(lesson.target, lesson)">
+                        <button type="button" class="sg-btn sg-btn-primary" (click)="openLessonTarget(lesson)">
                           <span class="material-symbols-outlined" aria-hidden="true">arrow_outward</span>
                           {{ lesson.action }}
                         </button>

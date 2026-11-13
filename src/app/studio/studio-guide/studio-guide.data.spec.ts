@@ -10,6 +10,7 @@ import {
   guideTrackProgress,
 } from "./studio-guide.data";
 import { STUDIO_SURFACES, isStudioSurfaceId } from "../studio-surfaces";
+import { WORKSPACE_REGISTRY } from "../../services/workspace-registry";
 
 /**
  * The Masterclass is content, and content drifts. These assertions make the
@@ -39,11 +40,12 @@ describe("Studio Masterclass content", () => {
     }
   });
 
-  it("defines three distinct paths with real lessons", () => {
+  it("defines four distinct paths with real lessons", () => {
     expect(GUIDE_TRACKS.map((track) => track.id)).toEqual([
       "first-loop",
       "full-song",
       "mastery",
+      "whole-app",
     ]);
     for (const track of GUIDE_TRACKS) {
       expect(track.lessons.length).toBeGreaterThanOrEqual(8);
@@ -63,18 +65,29 @@ describe("Studio Masterclass content", () => {
       expect(lesson.steps.length).toBeGreaterThanOrEqual(3);
       expect(lesson.controls.length).toBeGreaterThanOrEqual(2);
       expect(lesson.proTip.trim().length).toBeGreaterThan(15);
-      expect(isStudioSurfaceId(lesson.target)).toBe(true);
       expect(lesson.minutes).toBeGreaterThan(0);
+      // A lesson teaches exactly one real destination: a Studio surface or a
+      // whole-application route. It may not be decorative or ambiguous.
+      expect(!!lesson.target !== !!lesson.workspace).toBe(true);
+      if (lesson.target) expect(isStudioSurfaceId(lesson.target)).toBe(true);
     }
   });
 
   it("gives every lesson the target it says it opens", () => {
+    const routes = new Set(WORKSPACE_REGISTRY.map((entry) => entry.routePath));
     for (const lesson of ALL_GUIDE_LESSONS) {
-      const surface = STUDIO_SURFACES.find(
-        (entry) => entry.id === lesson.target,
-      );
-      expect(surface).toBeDefined();
       expect(lesson.action.trim().length).toBeGreaterThan(3);
+      if (lesson.target) {
+        expect(
+          STUDIO_SURFACES.some((entry) => entry.id === lesson.target),
+        ).toBe(true);
+      } else {
+        expect(lesson.workspace).toBeDefined();
+        expect(routes.has(lesson.workspace!.path)).toBe(true);
+        expect(lesson.workspace!.label.trim().length).toBeGreaterThan(2);
+        expect(lesson.workspace!.description.trim().length).toBeGreaterThan(20);
+        expect(lesson.workspace!.icon.trim().length).toBeGreaterThan(2);
+      }
     }
   });
 

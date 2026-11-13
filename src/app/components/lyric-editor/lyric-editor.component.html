@@ -1,106 +1,126 @@
-<div class="p-8 h-full bg-brand-dark flex flex-col gap-6">
-  <div class="flex justify-between items-center border-b border-white/10 pb-4">
-    <div>
-      <h1
-        class="text-3xl font-black text-white uppercase italic tracking-tighter"
-      >
-        Songwriter's Pad v2.0
-      </h1>
-      <p
-        class="text-brand-primary text-xs font-black uppercase tracking-widest mt-1"
-      >
-        Refining: {{ trackTitle() }}
+<div class="writer-pad">
+  <header class="writer-header">
+    <div class="writer-heading">
+      <h1>Songwriter's Pad v2.0</h1>
+      <p>
+        Lyrics &amp; Book Pages · <strong>{{ pageCount() }}</strong>
+        {{ pageCount() === 1 ? 'page' : 'pages' }} ·
+        <strong>{{ totalWordCount() }}</strong> words in the pad
       </p>
     </div>
-    <button
-      type="button"
-      (click)="saveLyrics()"
-      [title]="
-        saveError() ||
-        'Saves the draft in this browser only — it does not commit to the release pipeline.'
-      "
-      class="bg-brand-primary text-black font-black uppercase tracking-tighter italic text-xs py-2 px-6 rounded-lg hover:scale-105 transition-all shadow-[0_0_20px_rgba(16,185,129,0.3)]"
-    >
-      {{ saveError() ? 'Save Failed' : savedAt() ? 'Draft Saved' : 'Save Draft' }}
-    </button>
-  </div>
-
-  <div class="flex gap-6 h-full overflow-hidden">
-    <!-- Editor -->
-    <div
-      class="flex-grow bg-brand-surface/30 rounded-2xl p-6 border border-white/10 flex flex-col shadow-inner"
-    >
-      <textarea
-        [(ngModel)]="lyrics"
-        placeholder="Start writing your masterpiece..."
-        class="w-full h-full bg-transparent text-slate-200 font-medium leading-relaxed resize-none focus:outline-none placeholder:text-slate-600"
-      ></textarea>
-    </div>
-
-    <!-- AI Side Panel -->
-    <div class="w-80 flex flex-col gap-6">
-      <div
-        class="bg-brand-surface/50 rounded-2xl p-6 border border-brand-primary/20 relative overflow-hidden group"
+    <div class="writer-save">
+      <button
+        type="button"
+        (click)="saveLyrics()"
+        [title]="
+          saveError() ||
+          'Saves every page in this browser only — it does not commit to the release pipeline.'
+        "
       >
-        <div class="absolute inset-0 bg-brand-primary/5 animate-pulse"></div>
-        <h3
-          class="text-xs font-black uppercase tracking-widest text-brand-primary mb-4 relative z-10 flex items-center gap-2"
-        >
-          <span class="w-2 h-2 bg-brand-primary rounded-full"></span>
-          Rhyme Starters
+        {{ saveError() ? 'Save Failed' : savedAt() ? 'Pages Saved' : 'Save Pages' }}
+      </button>
+      <small [class.is-error]="saveError()">
+        {{
+          saveError() ||
+            (savedAt()
+              ? 'All pages saved in this browser.'
+              : 'Unsaved changes stay in this session.')
+        }}
+      </small>
+    </div>
+  </header>
+
+  <nav class="page-strip" aria-label="Writer's Pad pages">
+    <div class="page-tabs" role="tablist">
+      <button
+        *ngFor="let page of pages(); let i = index"
+        type="button"
+        role="tab"
+        class="page-tab"
+        [class.is-active]="page.id === activePageId()"
+        [attr.aria-selected]="page.id === activePageId()"
+        [attr.aria-controls]="'writer-page'"
+        (click)="selectPage(page.id)"
+      >
+        <span class="page-index">{{ i + 1 }}</span>
+        <span class="page-name">{{ pageLabel(page) }}</span>
+        <span class="page-words">{{ wordCountOf(page.body) }}w</span>
+      </button>
+    </div>
+    <button type="button" class="add-page" (click)="addPage()">
+      + New Page
+    </button>
+  </nav>
+
+  <div class="writer-body">
+    <section class="editor-card" id="writer-page" role="tabpanel">
+      <div class="page-title-row">
+        <label for="writer-page-title">Page / chapter title</label>
+        <input
+          id="writer-page-title"
+          type="text"
+          [ngModel]="trackTitle()"
+          (ngModelChange)="updatePageTitle($event)"
+          placeholder="Name this page or chapter"
+          autocomplete="off"
+        />
+        <span>{{ wordCount() }} words</span>
+      </div>
+
+      <textarea
+        [ngModel]="lyrics()"
+        (ngModelChange)="updatePageBody($event)"
+        placeholder="Start writing your song, chapter, or manuscript page..."
+        aria-label="Page text"
+      ></textarea>
+    </section>
+
+    <aside class="writer-side">
+      <section class="side-card book-lab">
+        <h3>
+          <span class="status-dot"></span>
+          S.M.U.V.E. Book Lab
         </h3>
-        <p class="text-[9px] text-slate-500 mb-3 relative z-10">
+        <p class="side-intro">
+          Tips for writing and publishing your own novel. Use one page per
+          chapter or scene, name it, and save the whole manuscript here.
+        </p>
+        <ul>
+          <li *ngFor="let tip of bookTips()">{{ tip }}</li>
+        </ul>
+        <p class="side-note">
+          Publishing terms, fees and rights vary. Verify current requirements
+          with the platform, printer or publisher you choose.
+        </p>
+      </section>
+
+      <section class="side-card">
+        <h3><span class="status-dot"></span> Rhyme Starters</h3>
+        <p class="side-intro">
           Fixed writing prompts — not generated from your lyrics.
         </p>
-        <div class="space-y-3 relative z-10">
-          <div
-            *ngFor="let suggestion of rhymeStarters()"
-            class="text-[10px] text-slate-400 bg-black/40 p-3 rounded-lg border border-white/5"
-          >
+        <div class="prompt-list">
+          <div *ngFor="let suggestion of rhymeStarters()">
             {{ suggestion }}
           </div>
         </div>
-      </div>
+      </section>
 
-      <div class="bg-brand-surface/30 rounded-2xl p-6 border border-white/10">
-        <h3
-          class="text-xs font-black uppercase tracking-widest text-slate-500 mb-4"
-        >
-          Metadata
-        </h3>
-        <div class="space-y-4">
-          <div>
-            <label
-              class="text-[8px] font-black uppercase text-slate-600 block mb-1"
-              >Mood</label
-            >
-            <select
-              class="w-full bg-brand-dark border border-white/10 rounded px-2 py-1 text-xs text-white uppercase font-black"
-            >
-              <option>Dark/Aggressive</option>
-              <option>Melodic/Ethereal</option>
-              <option>Upbeat/Hype</option>
-            </select>
-          </div>
-          <div>
-            <label
-              class="text-[8px] font-black uppercase text-slate-600 block mb-1"
-              >Key Phrase Tracking</label
-            >
-            <div class="flex flex-wrap gap-2">
-              <span class="text-[8px] bg-white/5 text-white px-2 py-1 rounded"
-                >Velocity</span
-              >
-              <span class="text-[8px] bg-white/5 text-white px-2 py-1 rounded"
-                >Noir</span
-              >
-              <span class="text-[8px] bg-white/5 text-white px-2 py-1 rounded"
-                >Neon</span
-              >
-            </div>
-          </div>
+      <section class="side-card">
+        <h3>Project Metadata</h3>
+        <label for="writer-mood">Mood</label>
+        <select id="writer-mood">
+          <option>Dark/Aggressive</option>
+          <option>Melodic/Ethereal</option>
+          <option>Upbeat/Hype</option>
+        </select>
+        <span class="meta-label">Key Phrase Tracking</span>
+        <div class="key-phrases">
+          <span>Velocity</span>
+          <span>Noir</span>
+          <span>Neon</span>
         </div>
-      </div>
-    </div>
+      </section>
+    </aside>
   </div>
 </div>

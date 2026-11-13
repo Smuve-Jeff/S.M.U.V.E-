@@ -213,6 +213,29 @@ describe('SettingsComponent', () => {
     };
   };
 
+  it('opens the Complete Guide directly at keyboard shortcuts', async () => {
+    const { component } = await createComponent();
+
+    component.openKeyboardShortcuts();
+
+    expect(component.showHowTo()).toBe(true);
+    expect(component.keyboardHelpRequested()).toBe(true);
+
+    component.closeCompleteGuide();
+
+    expect(component.showHowTo()).toBe(false);
+    expect(component.keyboardHelpRequested()).toBe(false);
+  });
+
+  it('opens the Complete Guide at its first chapter from the normal action', async () => {
+    const { component } = await createComponent();
+
+    component.openCompleteGuide();
+
+    expect(component.showHowTo()).toBe(true);
+    expect(component.keyboardHelpRequested()).toBe(false);
+  });
+
   it('refreshes audio input devices from settings audio tab actions', async () => {
     const { component, microphoneServiceMock } = await createComponent();
 

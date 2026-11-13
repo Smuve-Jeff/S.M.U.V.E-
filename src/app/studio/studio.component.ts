@@ -67,6 +67,7 @@ import {
   type GuideStateChange,
   type GuideTab,
 } from "./studio-guide/studio-guide.component";
+import { masterclassTargetForStudioSurface } from "./studio-guide/masterclass-route-guide";
 import {
   StudioGuideAutoCheckService,
   type GuideLessonCompletion,
@@ -1599,6 +1600,16 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     this.setActiveView("quick-session");
   }
 
+  /** Open the Masterclass on the lesson for the surface in front of the artist. */
+  teachCurrentStudioScreen(): void {
+    const target = masterclassTargetForStudioSurface(this.activeView());
+    if (target) {
+      this.openStudioGuide({ track: target.track, lessonId: target.lessonId });
+      return;
+    }
+    this.openStudioGuide();
+  }
+
   /** Studio Masterclass — the complete guided path plus surface atlas. */
   openStudioGuide(
     options: {
@@ -1654,6 +1665,31 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     this.guideTrackRequest.set(state.track);
     this.guideLessonRequest.set(state.lessonId);
     this.writeGuideQueryParams();
+  }
+
+  /** Hand the current lesson to the standalone Masterclass workspace. */
+  openStandaloneGuide(state: GuideStateChange): void {
+    this.dismissGuideForNavigation();
+    void this.router.navigate(["/masterclass"], {
+      queryParams: guideDeepLinkParams(state.tab, state.track, state.lessonId),
+    });
+  }
+
+  /** A whole-application lesson leaves the Studio for its real workspace. */
+  onGuideOpenWorkspace(path: string): void {
+    this.dismissGuideForNavigation();
+    void this.router.navigate([path]);
+  }
+
+  /**
+   * Hide the overlay without writing a competing /studio URL. The navigation
+   * that follows is the destination; the guide's query has no meaning there.
+   */
+  private dismissGuideForNavigation(): void {
+    this.showStudioGuide.set(false);
+    this.guideTabRequest.set(null);
+    this.guideTrackRequest.set(null);
+    this.guideLessonRequest.set(null);
   }
 
   /** The guide's "open the real tool" hand-off; the shell owns navigation. */

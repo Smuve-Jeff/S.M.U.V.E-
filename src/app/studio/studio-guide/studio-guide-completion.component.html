@@ -17,6 +17,7 @@
     <div class="gc-copy">
       <p class="gc-eyebrow">{{ completion().trackLabel }} · Lesson complete</p>
       <h2 id="gc-title">{{ completion().title }}</h2>
+      <p class="gc-praise">{{ praise() }}</p>
       @if (completion().nextLessonTitle; as nextTitle) {
         <p class="gc-next">Next up: <strong>{{ nextTitle }}</strong></p>
       } @else {

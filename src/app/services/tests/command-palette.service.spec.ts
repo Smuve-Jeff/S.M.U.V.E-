@@ -1,5 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
+import { Router } from '@angular/router';
 import { CommandPaletteService } from '../command-palette.service';
 import { UIService } from '../ui.service';
 import { DeckService } from '../deck.service';
@@ -12,6 +13,7 @@ describe('CommandPaletteService', () => {
   let deckService: any;
   let aiService: any;
   let notificationService: any;
+  let router: { url: string; navigate: jest.Mock };
 
   beforeEach(() => {
     uiService = {
@@ -44,6 +46,10 @@ describe('CommandPaletteService', () => {
     notificationService = {
       show: jest.fn(),
     };
+    router = {
+      url: '/lyric-editor',
+      navigate: jest.fn(),
+    };
 
     TestBed.configureTestingModule({
       providers: [
@@ -52,6 +58,7 @@ describe('CommandPaletteService', () => {
         { provide: DeckService, useValue: deckService },
         { provide: AiService, useValue: aiService },
         { provide: NotificationService, useValue: notificationService },
+        { provide: Router, useValue: router },
       ],
     });
 
@@ -77,6 +84,48 @@ describe('CommandPaletteService', () => {
 
     expect(action?.description).toBe(
       'Coordinate releases, assets, and day-to-day executive moves.'
+    );
+  });
+
+  it('opens the interaction guide from the ? shortcut', () => {
+    const event = new KeyboardEvent('keydown', {
+      key: '?',
+      cancelable: true,
+    });
+
+    expect(service.handleGlobalKey(event)).toBe(true);
+    expect(service.showGuide()).toBe(true);
+  });
+
+  it('offers a route-aware Teach This Screen command', () => {
+    const action = service
+      .actions()
+      .find((candidate) => candidate.id === 'teach-this-screen');
+
+    expect(action?.label).toBe('Teach This Screen');
+    expect(action?.category).toBe('Masterclass');
+    expect(action?.shortcut).toBe('Alt + L');
+    expect(action?.keywords).toContain('lesson');
+  });
+
+  it('teaches the current screen from the Alt+L shortcut', () => {
+    router.url = '/lyric-editor';
+    const event = new KeyboardEvent('keydown', {
+      key: 'l',
+      altKey: true,
+      cancelable: true,
+    });
+
+    expect(service.handleGlobalKey(event)).toBe(true);
+    expect(event.defaultPrevented).toBe(true);
+    expect(router.navigate).toHaveBeenCalledWith(
+      ['/masterclass'],
+      expect.objectContaining({
+        queryParams: expect.objectContaining({
+          guide: expect.any(String),
+          lesson: expect.any(String),
+        }),
+      })
     );
   });
 

@@ -8,7 +8,9 @@ import { NotificationService } from '../../services/notification.service';
   imports: [CommonModule],
   template: `
     <div
-      class="fixed top-24 right-8 z-[9999] flex flex-col gap-3 pointer-events-none"
+      class="fixed top-24 right-8 z-[14000] flex flex-col gap-3 pointer-events-none"
+      role="status"
+      aria-live="polite"
     >
       <div
         *ngFor="let n of notificationService.notifications()"

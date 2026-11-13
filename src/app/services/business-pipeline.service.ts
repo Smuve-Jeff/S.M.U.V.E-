@@ -1,4 +1,4 @@
-import { Injectable, inject, signal } from '@angular/core';
+import { Injectable, effect, inject, signal } from '@angular/core';
 import { UserProfileService } from './user-profile.service';
 import { LoggingService } from './logging.service';
 import {
@@ -31,12 +31,23 @@ export class BusinessPipelineService {
   activePipelines = signal<BusinessPipeline[]>([]);
 
   constructor() {
-    this.loadPipelines();
+    /*
+     * This service is created before profile hydration on a full reload. Read
+     * the profile reactively so saved pathways reappear once the real record
+     * is installed, instead of keeping the empty pre-load snapshot forever.
+     */
+    effect(() => this.syncFromProfile());
+    // A pre-hydrated profile (tests and restored sessions) must be visible
+    // immediately; the effect covers the asynchronous hydration path.
+    this.syncFromProfile();
   }
 
-  private loadPipelines() {
+  private syncFromProfile(): void {
+    const hydrated = this.profileService.hydrated;
+    if (typeof hydrated === 'function' && !hydrated()) return;
+
     const profile = this.profileService.profile();
-    if ((profile as any).businessPipelines) {
+    if (Array.isArray((profile as any).businessPipelines)) {
       this.activePipelines.set((profile as any).businessPipelines);
     }
   }

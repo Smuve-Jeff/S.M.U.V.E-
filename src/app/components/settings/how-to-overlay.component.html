@@ -1,5 +1,6 @@
 <div
   class="guide-overlay"
+  (keydown)="onOverlayKeydown($event)"
   role="dialog"
   aria-modal="true"
   aria-labelledby="complete-guide-title"
@@ -14,7 +15,7 @@
         </p>
         <h1 id="complete-guide-title">The whole system, one walkthrough.</h1>
         <p class="guide-sub">
-          Thirteen chapters across the real workspaces. Start at the beginning
+          {{ lessons.length }} chapters across the real workspaces. Start at the beginning
           or jump to the room you need.
         </p>
       </div>
@@ -26,6 +27,23 @@
           </div>
         </div>
         <button
+          #resetTrigger
+          type="button"
+          class="guide-reset"
+          (click)="requestReset()"
+          aria-label="Review resetting guide progress and resume point"
+          title="Review clearing explored chapters and the saved resume point"
+          aria-haspopup="dialog"
+          aria-controls="guide-reset-confirm"
+          [attr.aria-expanded]="resetConfirming()"
+        >
+          <span class="material-symbols-outlined" aria-hidden="true"
+            >restart_alt</span
+          >
+          <span>Reset</span>
+        </button>
+        <button
+          #guideClose
           type="button"
           class="guide-close"
           (click)="closeGuide()"
@@ -36,6 +54,55 @@
       </div>
     </header>
 
+    <section
+      id="guide-reset-confirm"
+      class="guide-reset-confirm"
+      *ngIf="resetConfirming()"
+      role="alertdialog"
+      aria-labelledby="guide-reset-confirm-title"
+      aria-describedby="guide-reset-confirm-note"
+    >
+      <div class="guide-reset-confirm-copy">
+        <strong id="guide-reset-confirm-title">Clear guide progress?</strong>
+        <span id="guide-reset-confirm-note">
+          This removes every explored chapter and the saved resume point. This
+          cannot be undone.
+        </span>
+      </div>
+      <div class="guide-reset-confirm-actions">
+        <button
+          #resetCancel
+          type="button"
+          class="guide-control guide-reset-cancel"
+          (click)="cancelReset()"
+        >
+          Keep progress
+        </button>
+        <button
+          type="button"
+          class="guide-control guide-control-danger guide-reset-clear"
+          (click)="confirmReset()"
+        >
+          Clear progress
+        </button>
+      </div>
+    </section>
+
+    <div class="guide-resume" *ngIf="resumedChapter() as resumed" role="status">
+      <span class="material-symbols-outlined" aria-hidden="true">history</span>
+      <span>
+        Resumed at chapter {{ resumed.number }} —
+        <strong>{{ resumed.title }}</strong>
+      </span>
+      <button
+        type="button"
+        class="guide-resume-start"
+        (click)="startFromBeginning()"
+      >
+        Start from chapter 01
+      </button>
+    </div>
+
     <div class="guide-body">
       <aside class="guide-rail" aria-label="Complete application chapters">
         <div class="guide-rail-head">
@@ -44,10 +111,16 @@
         </div>
         <div class="guide-rail-list">
           <button
+            #chapterButton
             *ngFor="let lesson of lessons; trackBy: trackByLesson"
             type="button"
             class="guide-chapter"
             [class.is-active]="selectedLesson().id === lesson.id"
+            [attr.aria-current]="
+              selectedLesson().id === lesson.id ? 'step' : null
+            "
+            [attr.data-lesson-id]="lesson.id"
+            [attr.title]="lesson.title + ' — ' + lesson.kicker"
             (click)="selectLesson(lesson, true)"
           >
             <span class="guide-chapter-number">{{ lesson.number }}</span>
@@ -65,16 +138,20 @@
         </div>
       </aside>
 
-      <main class="guide-main">
+      <main #guideMain class="guide-main">
         <div class="guide-player">
           <video
             #tutorialVideo
             class="guide-video"
+            aria-label="Complete application walkthrough video"
             [src]="videoSrc"
             controls
             playsinline
             preload="metadata"
+            (loadedmetadata)="onVideoLoaded()"
+            (play)="markCurrentLessonExplored()"
             (timeupdate)="onTimeUpdate()"
+            (error)="onVideoError()"
           ></video>
           <div class="guide-player-bar">
             <button
@@ -107,6 +184,10 @@
               Chapter {{ selectedLesson().number }} / {{ lessons.length }}
             </span>
           </div>
+          <p class="guide-video-note" *ngIf="videoUnavailable()" role="status">
+            The walkthrough video could not load. Every chapter still works
+            from the text and the Open workspace button below.
+          </p>
         </div>
 
         <article class="guide-detail">
@@ -158,5 +239,27 @@
         </article>
       </main>
     </div>
+
+    <footer
+      #keyboardReference
+      class="guide-keyboard"
+      tabindex="-1"
+      aria-labelledby="guide-keyboard-title"
+    >
+      <div class="guide-keyboard-label">
+        <span class="guide-eyebrow" id="guide-keyboard-title">Keyboard</span>
+        <span class="guide-keyboard-hint">{{ shortcutNote }}</span>
+      </div>
+      <div class="guide-keyboard-list">
+        <span
+          *ngFor="let shortcut of shortcuts"
+          class="guide-keyboard-item"
+          [attr.title]="shortcut.description"
+        >
+          <kbd>{{ shortcut.keys }}</kbd>
+          <span>{{ shortcut.label }}</span>
+        </span>
+      </div>
+    </footer>
   </section>
 </div>

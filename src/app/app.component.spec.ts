@@ -93,6 +93,7 @@ describe('AppComponent', () => {
       url: routerUrl,
       events: routerEvents$.asObservable(),
       navigateByUrl: jest.fn(),
+      navigate: jest.fn(),
     };
     const notificationService = { show: jest.fn() };
     const authService = {
@@ -233,6 +234,37 @@ describe('AppComponent', () => {
 
     expect(component.activeViewConfig().label).toBe('Intel Lab');
     expect(component.spotlightTips()).toHaveLength(2);
+  });
+
+  it('resolves the current workspace to a real Masterclass lesson', async () => {
+    const { component } = await createComponent('/studio?view=mixer');
+
+    expect(component.teachTarget()).not.toBeNull();
+    expect(component.teachTarget()!.lessonId.length).toBeGreaterThan(3);
+    expect(component.teachTarget()!.track.length).toBeGreaterThan(3);
+  });
+
+  it('opens the Masterclass at the current screen lesson', async () => {
+    const { component, router } = await createComponent('/lyric-editor');
+    const target = component.teachTarget()!;
+
+    component.openTeachScreen();
+
+    expect(router.navigate).toHaveBeenCalledWith(['/masterclass'], {
+      queryParams: { guide: target.track, lesson: target.lessonId },
+    });
+  });
+
+  it('does not advertise the teaching action on auth routes', async () => {
+    const { component } = await createComponent('/login');
+
+    expect(component.teachTarget()).toBeNull();
+  });
+
+  it('does not advertise the teaching action on the Masterclass itself', async () => {
+    const { component } = await createComponent('/masterclass?guide=atlas');
+
+    expect(component.teachTarget()).toBeNull();
   });
 
   it('opens the interaction guide from the shell', async () => {

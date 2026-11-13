@@ -43,6 +43,7 @@ import {
   GUEST_AI_LOCK_NOTICE,
   isGuestRouteAllowed,
 } from './services/guest-access';
+import { masterclassRouteTarget } from './studio/studio-guide/masterclass-route-guide';
 
 /**
  * Route paths that render the Studio workspace itself (see `app.routes.ts`).
@@ -189,7 +190,13 @@ export class AppComponent {
     return null;
   });
 
+  /** Full URL including query, so `?view=` can select the matching lesson. */
+  private readonly activeUrl = signal('');
   navigationGroups = computed(() => this.buildNavigationGroups());
+  /** The route currently teaching the artist, resolved to a real lesson. */
+  readonly teachTarget = computed(() =>
+    masterclassRouteTarget(this.activeUrl())
+  );
   activeViewConfig = computed(
     () =>
       this.uiService.getViewConfig(this.uiService.mainViewMode()) ?? {
@@ -404,6 +411,7 @@ export class AppComponent {
   }
 
   private updateShellFromUrl(url: string) {
+    this.activeUrl.set(url);
     const path = this.getPrimaryRoute(url);
     if (path && this.uiService.getViewModes().includes(path as MainViewMode)) {
       this.uiService.setActiveViewFromRoute(path as MainViewMode);
@@ -845,6 +853,29 @@ export class AppComponent {
 
   openInteractionGuide() {
     this.commandPalette.openGuide();
+  }
+
+  /** Open the Masterclass at the lesson that explains the current screen. */
+  openTeachScreen(): void {
+    const target = this.teachTarget();
+    if (!target) return;
+
+    this.uiService.closeChatbot();
+    this.isMobileWorkspaceTrayOpen.set(false);
+    this.isSyncCenterOpen.set(false);
+    if (this.isMobile()) this.isSidebarOpen.set(false);
+
+    void this.router.navigate(['/masterclass'], {
+      queryParams: { guide: target.track, lesson: target.lessonId },
+    });
+  }
+
+  /** Full-page surfaces hide the topbar, so they get a floating entry point. */
+  showFloatingTeachAction(): boolean {
+    if (!this.isFullPageMode() || this.isAuthRoute()) return false;
+    const route = this.routeAnimState();
+    if (route === 'studio' || route === 'studio-classic') return false;
+    return this.teachTarget() !== null;
   }
 
   toggleSyncCenter() {
