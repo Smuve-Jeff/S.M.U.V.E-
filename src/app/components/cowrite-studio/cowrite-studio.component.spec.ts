@@ -48,6 +48,8 @@ describe('CowriteStudioComponent', () => {
         context: 'start',
       }),
       getCompiledLyrics: jest.fn().mockReturnValue(''),
+      smuveContributionCount: () => 1,
+      userContributionCount: () => 1,
     };
     snackbar = {
       info: jest.fn(),
@@ -85,6 +87,55 @@ describe('CowriteStudioComponent', () => {
     component = fixture.componentInstance;
     fixture.detectChanges();
   };
+
+  it('renders a contribution as a turn card with its Accept control', async () => {
+    await create();
+    cowrite.currentSession.set({
+      id: 's1',
+      title: 'Midnight Drive — Co-Write Session',
+      topic: 'Midnight Drive',
+      style: 'Pop',
+      mood: 'emotional',
+      genre: 'Pop',
+      artist: null,
+      artists: [],
+      key: 'Am',
+      bpm: 110,
+      turns: [
+        {
+          id: 't1',
+          role: 'user',
+          sectionType: 'verse',
+          text: 'streetlights blur and the radio hums',
+          timestamp: Date.now(),
+          accepted: false,
+          rejected: false,
+          lines: [],
+        },
+      ],
+      completedSections: [],
+      currentSection: 'verse',
+      sectionOrder: ['verse', 'chorus'],
+      sectionIndex: 0,
+      startedAt: Date.now(),
+      lastActivityAt: Date.now(),
+      isActive: true,
+      isComplete: false,
+    } as never);
+    component.showLyrics.set(true);
+    fixture.detectChanges();
+
+    const card: HTMLElement = fixture.nativeElement.querySelector(
+      '.custom-scrollbar > div'
+    );
+    expect(card.textContent).toContain('streetlights blur and the radio hums');
+    expect(card.textContent).toContain('You');
+    expect(
+      Array.from(card.querySelectorAll('button')).map((b) =>
+        b.textContent?.trim()
+      )
+    ).toEqual(['Accept', 'Reject']);
+  });
 
   it('starts from a page handed over by the Writer’s Pad', async () => {
     await create({ title: 'Hook Idea', body: 'first line from the pad' });

@@ -39,6 +39,14 @@ export class CowriteStudioComponent implements OnInit {
   // Session state
   currentSession = this.cowrite.currentSession;
   isThinking = this.cowrite.isThinking;
+  /*
+   * The session stats panel reads these straight off the template. They used to
+   * be referenced there without being exposed on the component, so every
+   * change-detection pass threw on the first read and abandoned the rest of the
+   * room — leaving each contribution as an empty card with no Accept control.
+   */
+  smuveContributionCount = this.cowrite.smuveContributionCount;
+  userContributionCount = this.cowrite.userContributionCount;
   userInput = signal('');
   showSetup = signal(true);
   showLyrics = signal(false);
