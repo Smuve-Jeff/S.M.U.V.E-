@@ -281,7 +281,14 @@
   flex: 1 1 auto;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  /*
+   * Scroll instead of squeeze. On a 1280x720 window the timeline, the
+   * automation editor and the tempo lane cannot all fit, and when this was
+   * hidden the first two collapsed (the lanes to 0px, the automation panel to
+   * 2px) so the tempo lane painted over the editor's controls.
+   */
+  overflow-x: hidden;
+  overflow-y: auto;
   min-height: 0;
   position: relative;
 }
@@ -294,7 +301,9 @@
   flex: 1 1 auto;
   display: flex;
   min-width: 0;
-  min-height: 0;
+  /* A timeline row needs room to be usable; without a floor it shrinks to 0px
+     as soon as the automation panel and tempo lane claim the column. */
+  min-height: 220px;
   overflow: hidden;
 }
 
@@ -1671,6 +1680,7 @@
   border: 1px solid var(--espresso-line);
   border-radius: 12px;
   overflow: hidden;
+  flex: 0 0 auto;
 }
 
 /* ============================================================
@@ -1778,6 +1788,7 @@
 
 /* ── Tempo automation lane ── */
 .arrangement-tempo-lane {
+  flex: 0 0 auto;
   margin: 8px 10px 0;
   padding: 8px 10px 6px;
   border: 1px solid rgba(255, 255, 255, 0.1);

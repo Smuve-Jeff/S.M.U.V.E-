@@ -120,7 +120,9 @@ test('WAV export downloads RIFF PCM and honors track gain and mute in a real off
   });
   expect(render.silentPeak).toBe(0);
   expect(render.audiblePeak).toBeGreaterThan(0.01);
-  await page.getByLabel('More studio controls', { exact: true }).click();
+  // The trigger's label grew a description of what it opens, so match its
+  // stable opening rather than the whole sentence.
+  await page.getByLabel(/^More studio controls/).click();
   const downloading = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Export WAV', exact: true }).click();
   const download = await downloading;
@@ -247,9 +249,23 @@ test('MIDI import creates a Studio track from a Standard MIDI File', async ({ pa
   const chooser = await chooserPromise;
   await chooser.setFiles({ name: 'qa-sweep.mid', mimeType: 'audio/midi', buffer: midiFixture() });
 
-  await expect(
-    page.locator('app-snackbar').filter({ hasText: 'Imported 1 MIDI track' }),
-  ).toBeVisible();
+  // The Studio runs its snackbars in quiet mode: a plain success confirmation
+  // is recorded in the Activity panel instead of painting a toast over the
+  // workspace, so assert the surface that actually carries the report.
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const studio = (window as any).ng.getComponent(
+          document.querySelector('app-studio'),
+        );
+        return studio
+          .actionLog()
+          .some((entry: any) =>
+            String(entry.message).includes('Imported 1 MIDI track'),
+          );
+      }),
+    )
+    .toBe(true);
   const after = await page.evaluate(() => {
     const studio = (window as any).ng.getComponent(document.querySelector('app-studio'));
     const tracks = studio.musicManager.tracks();

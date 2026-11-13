@@ -1114,10 +1114,12 @@ export class AudioEngineService {
   }
 
   setQuantumSaturation(amount: number) {
-    const n = 256;
+    // Same odd grid as setSoftClip: an even count interpolates across input 0
+    // and leaves a DC offset behind when the bus is silent.
+    const n = 1025;
     const curve = new Float32Array(n);
     for (let i = 0; i < n; i++) {
-      const x = (i * 2) / n - 1;
+      const x = (i * 2) / (n - 1) - 1;
       curve[i] = ((Math.PI + amount) * x) / (Math.PI + amount * Math.abs(x));
     }
     this.quantumSaturation.curve = amount === 0 ? null : curve;
@@ -5864,11 +5866,14 @@ export class AudioEngineService {
   }
   setSoftClip(amount: number) {
     const k = amount * 100,
-      n = 256,
+      // An odd point count puts one sample exactly on input 0; with an even
+      // count the waveshaper interpolated across the zero crossing, so silence
+      // came out of the master chain as a small DC offset.
+      n = 1025,
       curve = new Float32Array(n),
       deg = Math.PI / 180;
     for (let i = 0; i < n; i++) {
-      const x = (i * 2) / n - 1;
+      const x = (i * 2) / (n - 1) - 1;
       curve[i] = ((3 + k) * x * 20 * deg) / (Math.PI + k * Math.abs(x));
     }
     this.saturationNode.curve = amount === 0 ? null : curve;
