@@ -653,6 +653,39 @@ describe("ProjectWorkspaceService", () => {
     expect((service as any).captureStateSignature()).toBe(saved);
   });
 
+  it('keeps a device version the history panel can fall back to', async () => {
+    await expect(service.saveLocalVersion()).resolves.toBe(true);
+
+    const [store, record] = saveItem.mock.calls.at(-1)!;
+    expect(store).toBe('offline_local_cache');
+    expect(record.id.startsWith('version_')).toBe(true);
+    expect(record.projectId).toBe(service.metadata()!.id);
+    expect(record.payload.metadata.id).toBe(record.projectId);
+  });
+
+  it('lists only this project\'s device versions, newest first', async () => {
+    const id = service.metadata()!.id;
+    getAllItems.mockResolvedValue([
+      { id: `version_${id}_1`, projectId: id, savedAt: 10, title: 'A', version: 2, payload: { metadata: { id } } },
+      { id: `version_${id}_2`, projectId: id, savedAt: 20, title: 'B', version: 3, payload: { metadata: { id } } },
+      { id: 'version_proj_other_3', projectId: 'proj_other', savedAt: 30, title: 'C', version: 1, payload: { metadata: { id: 'proj_other' } } },
+      { id: 'last_saved_project_id', payload: id, savedAt: 40 },
+    ]);
+
+    const versions = await service.listLocalVersions(id);
+
+    expect(versions.map((version) => version.title)).toEqual(['B', 'A']);
+    expect(getAllItems).toHaveBeenCalledWith('offline_local_cache');
+  });
+
+  it('keeps no device version for a guest', async () => {
+    authUser.set({ id: 'guest_1', role: 'Guest' });
+
+    await expect(service.saveLocalVersion()).resolves.toBe(false);
+
+    expect(saveItem).not.toHaveBeenCalled();
+  });
+
   it('refuses to save a guest session and writes nothing', async () => {
     authUser.set({ id: 'guest_1', role: 'Guest' });
     service.isDirty.set(true);

@@ -756,6 +756,8 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   showVersionHistory = signal(false);
   versionHistory = signal<RemoteSnapshot[]>([]);
   versionHistoryBusy = signal(false);
+  /** True while the panel is showing device-kept versions, not cloud ones. */
+  versionHistoryOffline = signal(false);
 
   // ── Sets browser (local project workspaces) ──────────────
   /** Right-slide list of every set saved on this device. */
@@ -3675,18 +3677,53 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     const projectId = this.projectWorkspace.metadata()?.id;
     if (!projectId) {
       this.versionHistory.set([]);
+      this.versionHistoryOffline.set(false);
       return;
     }
     this.versionHistoryBusy.set(true);
     try {
       await this.cloudSync.refresh();
-      this.versionHistory.set(this.cloudSync.listSnapshots(projectId));
+      const cloud = this.cloudSync.listSnapshots(projectId);
+      if (cloud.length) {
+        this.versionHistory.set(cloud);
+        this.versionHistoryOffline.set(false);
+      } else {
+        // A signed-out session or a project the cloud has never seen: show
+        // what this device kept instead of an empty panel.
+        const local = await this.localVersionSnapshots(projectId);
+        this.versionHistory.set(local);
+        this.versionHistoryOffline.set(local.length > 0);
+      }
     } catch (error) {
       this.logger.warn("Could not read cloud version history", error);
-      this.versionHistory.set([]);
+      const local = await this.localVersionSnapshots(projectId);
+      this.versionHistory.set(local);
+      this.versionHistoryOffline.set(true);
     } finally {
       this.versionHistoryBusy.set(false);
     }
+  }
+
+  /**
+   * Device-kept versions shaped like cloud snapshots, so the panel and the
+   * restore path do not care which side answered.
+   */
+  private async localVersionSnapshots(
+    projectId: string,
+    bundle?: ProjectBundle,
+  ): Promise<RemoteSnapshot[]> {
+    if (bundle) await this.projectWorkspace.saveLocalVersion(bundle);
+    const records = await this.projectWorkspace.listLocalVersions(projectId);
+    return records.map((record) => ({
+      projectId,
+      deviceId: "local",
+      deviceName: "This device",
+      version: record.version,
+      title: record.title,
+      timestamp: record.savedAt,
+      byteSize: 0,
+      data: record.payload,
+    }));
   }
 
   /**
@@ -3711,11 +3748,38 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
         bundle.metadata.name || "Untitled Set",
         bundle,
       );
-      this.versionHistory.set(this.cloudSync.listSnapshots(projectId));
-      if (!quiet) this.snackbarService.success("Version saved to cloud history");
+      const cloud = this.cloudSync.listSnapshots(projectId);
+      if (cloud.length) {
+        this.versionHistory.set(cloud);
+        this.versionHistoryOffline.set(false);
+        if (!quiet) {
+          this.snackbarService.success("Version saved to cloud history");
+        }
+      } else {
+        // The push resolved but the cloud holds nothing for this set (an
+        // unreachable or stubbed endpoint). Keep the version on this device
+        // rather than reporting a save that left no trace.
+        const local = await this.localVersionSnapshots(projectId, bundle);
+        this.versionHistory.set(local);
+        this.versionHistoryOffline.set(true);
+        if (!quiet) {
+          this.snackbarService.info(
+            "Cloud is unreachable — this version is saved on this device.",
+          );
+        }
+      }
     } catch (error) {
       this.logger.warn("Cloud version push failed", error);
-      if (!quiet) this.snackbarService.error("Could not save a cloud version");
+      // The cloud copy is optional; the version itself is not. Keep it on this
+      // device so an offline artist can still roll back.
+      const local = await this.localVersionSnapshots(projectId, bundle);
+      this.versionHistory.set(local);
+      this.versionHistoryOffline.set(true);
+      if (!quiet) {
+        this.snackbarService.info(
+          "Cloud is unreachable — this version is saved on this device.",
+        );
+      }
     }
   }
 
@@ -3742,16 +3806,20 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
 
     this.versionHistoryBusy.set(true);
     try {
-      await this.cloudSync.restoreFromBackup(projectId, snapshot);
+      // Device-kept versions never reached the cloud, so there is nothing to
+      // restore there; importing the payload is the whole restore.
+      if (snapshot.deviceId !== "local") {
+        await this.cloudSync.restoreFromBackup(projectId, snapshot);
+      }
       const restored = await this.projectWorkspace.importProjectBundle(data);
       if (!restored) {
         this.snackbarService.error("The version could not be restored.");
         return;
       }
       this.history.clear();
-      this.versionHistory.set(this.cloudSync.listSnapshots(projectId));
+      await this.refreshVersionHistory();
       this.snackbarService.success(
-        `Restored cloud version v${snapshot.version}` +
+        `Restored version v${snapshot.version}` +
           this.restoredMonitorSuffix(),
       );
       this.studioTelemetry.trackEvent(

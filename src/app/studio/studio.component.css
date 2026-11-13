@@ -4508,6 +4508,16 @@ button.comp-meta-state-pill:focus-visible {
   line-height: 1.5;
   color: var(--espresso-muted);
 }
+.comp-versions-offline {
+  margin: 8px 0 0;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(214, 154, 82, 0.32);
+  background: rgba(214, 154, 82, 0.1);
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--espresso-text);
+}
 .comp-versions-empty {
   margin: 0;
   padding: 14px 4px;

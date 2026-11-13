@@ -3577,6 +3577,12 @@
         Every manual save stores a restorable version. Restoring keeps the current
         state as a new version, so nothing is lost.
       </p>
+      <p
+        class="comp-versions-offline"
+        *ngIf="versionHistoryOffline() && !versionHistoryBusy()"
+      >
+        Cloud history is unreachable — showing versions saved on this device.
+      </p>
       <p class="comp-versions-empty" *ngIf="versionHistoryBusy()">
         Loading versions…
       </p>
@@ -3584,7 +3590,7 @@
         class="comp-versions-empty"
         *ngIf="!versionHistoryBusy() && versionHistory().length === 0"
       >
-        No cloud versions yet — save the project to create the first one.
+        No versions yet — save the project to create the first one.
       </p>
       <ul class="comp-versions-list" *ngIf="versionHistory().length > 0">
         <li

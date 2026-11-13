@@ -210,6 +210,20 @@ type SerializedAudioChannel = Float32Array | number[];
  *
  * These are starting points for a new session, not prescriptions.
  */
+/** Device-kept versions, used when the cloud history cannot be reached. */
+const LOCAL_VERSION_STORE = "offline_local_cache";
+const LOCAL_VERSION_PREFIX = "version_";
+const LOCAL_VERSION_LIMIT = 5;
+
+export interface LocalProjectVersion {
+  id: string;
+  projectId: string;
+  savedAt: number;
+  title: string;
+  version: number;
+  payload: StoredProjectBundle;
+}
+
 const GENRE_PROFILES: Record<string, { bpm: number; mood?: string }> = {
   // Hip hop family
   hiphop: { bpm: 90, mood: "dark" },
@@ -1175,6 +1189,78 @@ export class ProjectWorkspaceService {
     a.click();
     a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 60_000);
+  }
+
+  // ── Local version history (cloud fallback) ─────────────
+
+  /**
+   * Store a version of the set on this device.
+   *
+   * The cloud keeps the canonical history, but an unreachable sync service
+   * used to leave the history panel empty and the artist with nothing to roll
+   * back to. These snapshots are only read when the cloud cannot answer.
+   */
+  async saveLocalVersion(bundle?: ProjectBundle): Promise<boolean> {
+    if (this.isGuestSession) return false;
+    const snapshot = bundle ?? this.createStoredSnapshot();
+    const projectId = snapshot.metadata?.id;
+    if (!projectId) return false;
+
+    const savedAt = Date.now();
+    const record: LocalProjectVersion = {
+      id: `${LOCAL_VERSION_PREFIX}${projectId}_${savedAt}`,
+      projectId,
+      savedAt,
+      title: (snapshot.metadata.name || "Untitled Set").trim() || "Untitled Set",
+      version: Number(snapshot.metadata.version) || 1,
+      payload: this.toStoredBundle(snapshot, "recovery"),
+    };
+    try {
+      // Keep room for the version just requested by dropping the oldest ones
+      // first: a full disk must not swallow the save the artist asked for.
+      const existing = await this.listAllLocalVersions(projectId);
+      const stale = existing.slice(LOCAL_VERSION_LIMIT - 1);
+      if (stale.length) {
+        await this.storage.deleteItems(
+          LOCAL_VERSION_STORE,
+          stale.map((entry) => entry.id),
+        );
+      }
+      await this.storage.saveItem(LOCAL_VERSION_STORE, record);
+      return true;
+    } catch (error) {
+      this.logger.warn("ProjectWorkspace: Local version snapshot failed", error);
+      return false;
+    }
+  }
+
+  /** Newest-first versions this device kept for one project. */
+  async listLocalVersions(projectId: string): Promise<LocalProjectVersion[]> {
+    return (await this.listAllLocalVersions(projectId)).slice(
+      0,
+      LOCAL_VERSION_LIMIT,
+    );
+  }
+
+  private async listAllLocalVersions(
+    projectId: string,
+  ): Promise<LocalProjectVersion[]> {
+    try {
+      const stored = await this.storage.getAllItems(LOCAL_VERSION_STORE);
+      return (Array.isArray(stored) ? stored : [])
+        .filter(
+          (item): item is LocalProjectVersion =>
+            !!item &&
+            typeof item.id === "string" &&
+            item.id.startsWith(LOCAL_VERSION_PREFIX) &&
+            item.projectId === projectId &&
+            !!item.payload,
+        )
+        .sort((a, b) => b.savedAt - a.savedAt);
+    } catch (error) {
+      this.logger.warn("ProjectWorkspace: Local version read failed", error);
+      return [];
+    }
   }
 
   async restoreLatestProjectState(): Promise<boolean> {
