@@ -653,6 +653,40 @@ describe("ProjectWorkspaceService", () => {
     expect((service as any).captureStateSignature()).toBe(saved);
   });
 
+  it('measures the room a set and its device versions take', async () => {
+    const id = service.metadata()!.id;
+    const record = {
+      id: `project_${id}`,
+      metadata: { id, name: 'Sized', bpm: 120, timeSignature: [4, 4] },
+      tracks: [],
+      audioAssets: [
+        { id: 'take-1', sampleRate: 44100, channelCount: 2, frameCount: 100, duration: 0 },
+      ],
+      savedAt: 5,
+      source: 'manual',
+    };
+    const version = (n: number) => ({
+      id: `version_${id}_${n}`,
+      projectId: id,
+      savedAt: n,
+      title: 'Sized',
+      version: n,
+      payload: record,
+    });
+    getAllItems.mockImplementation((store: string) =>
+      Promise.resolve(store === 'projects' ? [record] : [version(2), version(1)]),
+    );
+
+    const usage = await service.measureStorageUsage();
+
+    expect(usage.sets).toHaveLength(1);
+    expect(usage.sets[0].versionCount).toBe(2);
+    // 100 frames x 2 channels x 4 bytes of samples, plus the JSON around them.
+    expect(usage.sets[0].setBytes).toBeGreaterThan(800);
+    expect(usage.sets[0].versionBytes).toBe(usage.sets[0].setBytes * 2);
+    expect(usage.totalBytes).toBe(usage.sets[0].setBytes * 3);
+  });
+
   it('keeps a device version with every manual save', async () => {
     await service.manualSave();
 

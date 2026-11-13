@@ -99,6 +99,7 @@ import {
   ProjectWorkspaceService,
   type LocalProjectSummary,
   type LocalProjectVersion,
+  type LocalStorageUsage,
   type ProjectBundle,
 } from "./project-workspace.service";
 import {
@@ -771,6 +772,9 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   /** Set whose device-kept versions are expanded in the Sets browser. */
   setsVersionsFor = signal('');
   setsVersions = signal<LocalProjectVersion[]>([]);
+  /** Room each set (and its device versions) takes, keyed by project id. */
+  setsUsage = signal<Record<string, LocalStorageUsage>>({});
+  setsUsageTotal = signal(0);
 
   /**
    * Saved mix state shown in Project Details. Each of these is a real field on
@@ -3890,6 +3894,14 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     try {
       const sets = await this.projectWorkspace.listLocalProjects();
       this.localSets.set(sets);
+      // Sizes are a nicety: a shelf that cannot measure itself still lists.
+      if (typeof this.projectWorkspace.measureStorageUsage === 'function') {
+        const usage = await this.projectWorkspace.measureStorageUsage();
+        this.setsUsage.set(
+          Object.fromEntries(usage.sets.map((item) => [item.projectId, item])),
+        );
+        this.setsUsageTotal.set(usage.totalBytes);
+      }
     } catch (error) {
       this.logger.warn("Studio: Could not read local sets", error);
       this.setsError.set('Could not read this device\u2019s sets.');
@@ -3904,6 +3916,26 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   /** Compact "saved 5 min ago" label for a set row. */
+  /** "1.4 MB", "812 KB" — the shelf's size labels. */
+  formatSetBytes(bytes: number): string {
+    if (!Number.isFinite(bytes) || bytes <= 0) return '—';
+    if (bytes < 1024) return `${Math.round(bytes)} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  }
+
+  setSizeLabel(set: LocalProjectSummary): string {
+    return this.formatSetBytes(this.setsUsage()[set.projectId]?.setBytes ?? 0);
+  }
+
+  setVersionsSizeLabel(set: LocalProjectSummary): string {
+    const usage = this.setsUsage()[set.projectId];
+    const count = usage?.versionCount ?? 0;
+    if (!count) return 'none yet';
+    const label = count === 1 ? 'version' : 'versions';
+    return `${count} ${label} · ${this.formatSetBytes(usage.versionBytes)}`;
+  }
+
   formatSetSavedAt(savedAt: number): string {
     if (!savedAt) return "not saved yet";
     const elapsed = Date.now() - savedAt;

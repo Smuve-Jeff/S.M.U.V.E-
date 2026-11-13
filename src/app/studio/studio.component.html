@@ -3784,7 +3784,8 @@
               </span>
               <span class="comp-sets-stamp"
                 >{{ setSourceLabel(set) }}
-                {{ formatSetSavedAt(set.savedAt) }} · v{{ set.version }}</span
+                {{ formatSetSavedAt(set.savedAt) }} · v{{ set.version }} ·
+                {{ setSizeLabel(set) }}</span
               >
             </span>
           </button>
@@ -3813,6 +3814,9 @@
             class="comp-sets-versions"
             *ngIf="setsVersionsFor() === set.projectId"
           >
+            <li class="comp-sets-versions-stamp">
+              Versions on this device · {{ setVersionsSizeLabel(set) }}
+            </li>
             <li
               class="comp-sets-version"
               *ngFor="let version of setsVersions(); trackBy: setVersionTrack"
@@ -3846,6 +3850,9 @@
           </ul>
         </li>
       </ul>
+      <p class="comp-sets-usage" *ngIf="setsUsageTotal() > 0">
+        SAVED ON THIS DEVICE · {{ formatSetBytes(setsUsageTotal()) }}
+      </p>
     </div>
   </aside>
 

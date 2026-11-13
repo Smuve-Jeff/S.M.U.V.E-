@@ -215,6 +215,15 @@ const LOCAL_VERSION_STORE = "offline_local_cache";
 const LOCAL_VERSION_PREFIX = "version_";
 const LOCAL_VERSION_LIMIT = 5;
 
+export interface LocalStorageUsage {
+  projectId: string;
+  /** Bytes taken by the set's own stored record(s). */
+  setBytes: number;
+  /** Bytes taken by the device versions kept for it. */
+  versionBytes: number;
+  versionCount: number;
+}
+
 export interface LocalProjectVersion {
   id: string;
   projectId: string;
@@ -1265,6 +1274,13 @@ export class ProjectWorkspaceService {
   private async listAllLocalVersions(
     projectId: string,
   ): Promise<LocalProjectVersion[]> {
+    return (await this.readLocalVersions()).filter(
+      (version) => version.projectId === projectId,
+    );
+  }
+
+  /** Every version this device kept, newest first, across all sets. */
+  private async readLocalVersions(): Promise<LocalProjectVersion[]> {
     try {
       const stored = await this.storage.getAllItems(LOCAL_VERSION_STORE);
       return (Array.isArray(stored) ? stored : [])
@@ -1273,7 +1289,7 @@ export class ProjectWorkspaceService {
             !!item &&
             typeof item.id === "string" &&
             item.id.startsWith(LOCAL_VERSION_PREFIX) &&
-            item.projectId === projectId &&
+            !!item.projectId &&
             !!item.payload,
         )
         .sort((a, b) => b.savedAt - a.savedAt);
@@ -1281,6 +1297,77 @@ export class ProjectWorkspaceService {
       this.logger.warn("ProjectWorkspace: Local version read failed", error);
       return [];
     }
+  }
+
+  /**
+   * How much room each set takes on this device, split between the set's own
+   * record and the versions kept for it. Estimated from the audio descriptors
+   * rather than by serialising every sample: sizing a set must not cost what
+   * saving it costs.
+   */
+  async measureStorageUsage(): Promise<{
+    sets: LocalStorageUsage[];
+    totalBytes: number;
+  }> {
+    const usage = new Map<string, LocalStorageUsage>();
+    const entryFor = (projectId: string): LocalStorageUsage => {
+      const existing = usage.get(projectId);
+      if (existing) return existing;
+      const created: LocalStorageUsage = {
+        projectId,
+        setBytes: 0,
+        versionBytes: 0,
+        versionCount: 0,
+      };
+      usage.set(projectId, created);
+      return created;
+    };
+
+    try {
+      for (const record of await this.readStoredProjects()) {
+        const projectId = record.metadata?.id;
+        if (!projectId) continue;
+        entryFor(projectId).setBytes += this.estimateBundleBytes(record);
+      }
+      for (const version of await this.readLocalVersions()) {
+        const target = entryFor(version.projectId);
+        target.versionBytes += this.estimateBundleBytes(version.payload);
+        target.versionCount += 1;
+      }
+    } catch (error) {
+      this.logger.warn("ProjectWorkspace: Storage measurement failed", error);
+    }
+
+    const sets = Array.from(usage.values());
+    return {
+      sets,
+      totalBytes: sets.reduce(
+        (total, item) => total + item.setBytes + item.versionBytes,
+        0,
+      ),
+    };
+  }
+
+  /** Rough IndexedDB footprint of one stored bundle, samples included. */
+  private estimateBundleBytes(bundle: ProjectBundle | undefined): number {
+    if (!bundle) return 0;
+    let bytes = 0;
+    for (const asset of bundle.audioAssets ?? []) {
+      const frames = Number(asset.frameCount) || 0;
+      const channels =
+        Number(asset.channelCount) || asset.channels?.length || 1;
+      bytes += frames * channels * 4;
+    }
+    try {
+      // Notes, automation and metadata serialise cheaply; the samples the
+      // count above already covers are the only part worth skipping.
+      bytes += JSON.stringify(bundle, (key, value) =>
+        key === "channels" ? undefined : value,
+      ).length;
+    } catch {
+      bytes += 2_048;
+    }
+    return bytes;
   }
 
   async restoreLatestProjectState(): Promise<boolean> {
