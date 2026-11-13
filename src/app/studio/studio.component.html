@@ -3835,6 +3835,20 @@
             class="comp-sets-versions"
             *ngIf="setsVersionsFor() === set.projectId"
           >
+            <li
+              class="comp-sets-version-undo"
+              *ngIf="pendingUndoFor(set) as undone"
+            >
+              <span>v{{ undone.version }} deleted</span>
+              <button
+                type="button"
+                class="comp-sets-version-undo-btn"
+                (click)="undoVersionDelete()"
+                [attr.aria-label]="'Undo deleting version ' + undone.version"
+              >
+                Undo
+              </button>
+            </li>
             <li class="comp-sets-versions-stamp">
               <span>Versions on this device · {{ setVersionsSizeLabel(set) }}</span>
               <button

@@ -781,6 +781,14 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   staleVersionCount = signal(0);
   /** Device storage; null until the estimate is read. */
   storageQuota = signal<DeviceStorageQuota | null>(null);
+  /** The version a delete can still be taken back, and for which set. */
+  pendingVersionUndo = signal<{
+    version: LocalProjectVersion;
+    projectId: string;
+  } | null>(null);
+  private versionUndoTimer: ReturnType<typeof setTimeout> | null = null;
+  /** How long a version delete stays undoable. */
+  private readonly versionUndoWindowMs = 8_000;
   /** The shelf warns at this share of the device's quota. */
   private readonly storageWarnPercent = 80;
 
@@ -3970,11 +3978,61 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
         );
       }
       await this.refreshLocalSets();
+      // Keep the record in hand briefly: a mis-tap on a small icon should not
+      // cost a version.
+      this.pendingVersionUndo.set({ version, projectId: set.projectId });
+      this.scheduleVersionUndoExpiry();
       this.snackbarService.success(
         `Deleted version v${version.version} of “${set.name}”`,
       );
     } finally {
       this.setsBusy.set(false);
+    }
+  }
+
+  /** The version waiting to be restored for this set, if any. */
+  pendingUndoFor(set: LocalProjectSummary): LocalProjectVersion | null {
+    const pending = this.pendingVersionUndo();
+    return pending && pending.projectId === set.projectId
+      ? pending.version
+      : null;
+  }
+
+  /** Put a just-deleted version back. */
+  async undoVersionDelete(): Promise<void> {
+    const pending = this.pendingVersionUndo();
+    if (!pending) return;
+    this.clearVersionUndoTimer();
+    this.pendingVersionUndo.set(null);
+
+    const restored = await this.projectWorkspace.restoreDeletedVersion(
+      pending.version,
+    );
+    if (!restored) {
+      this.setsError.set('That version could not be put back.');
+      return;
+    }
+    if (this.setsVersionsFor() === pending.projectId) {
+      this.setsVersions.set(
+        await this.projectWorkspace.listLocalVersions(pending.projectId),
+      );
+    }
+    await this.refreshLocalSets();
+    this.snackbarService.success(`Version v${pending.version.version} is back`);
+  }
+
+  private scheduleVersionUndoExpiry(): void {
+    this.clearVersionUndoTimer();
+    this.versionUndoTimer = setTimeout(() => {
+      this.versionUndoTimer = null;
+      this.pendingVersionUndo.set(null);
+    }, this.versionUndoWindowMs);
+  }
+
+  private clearVersionUndoTimer(): void {
+    if (this.versionUndoTimer) {
+      clearTimeout(this.versionUndoTimer);
+      this.versionUndoTimer = null;
     }
   }
 

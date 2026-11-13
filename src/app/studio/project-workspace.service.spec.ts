@@ -678,6 +678,22 @@ describe("ProjectWorkspaceService", () => {
     expect(usage.staleVersionBytes).toBeGreaterThan(0);
   });
 
+  it('puts a deleted version back unchanged', async () => {
+    const version = {
+      id: 'version_proj_x_9',
+      projectId: 'proj_x',
+      savedAt: 9,
+      title: 'Back',
+      version: 9,
+      payload: { id: 'project_proj_x', metadata: { id: 'proj_x' }, tracks: [] },
+    } as any;
+
+    await expect(service.restoreDeletedVersion(version)).resolves.toBe(true);
+
+    expect(saveItem).toHaveBeenCalledWith('offline_local_cache', version);
+    await expect(service.restoreDeletedVersion({} as any)).resolves.toBe(false);
+  });
+
   it('deletes exactly one version by its record id', async () => {
     const id = service.metadata()!.id;
     const versionId = `version_${id}_7`;

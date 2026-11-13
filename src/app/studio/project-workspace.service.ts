@@ -1392,6 +1392,18 @@ export class ProjectWorkspaceService {
     }
   }
 
+  /** Put a just-deleted version back, keeping its timestamp and title. */
+  async restoreDeletedVersion(version: LocalProjectVersion): Promise<boolean> {
+    if (!version?.payload || !version.id) return false;
+    try {
+      await this.storage.saveItem(LOCAL_VERSION_STORE, version);
+      return true;
+    } catch (error) {
+      this.logger.warn("ProjectWorkspace: Version restore failed", error);
+      return false;
+    }
+  }
+
   /** Delete exactly one kept version, by its record id. */
   async deleteLocalVersion(versionId: string): Promise<boolean> {
     if (!versionId) return false;
