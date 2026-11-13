@@ -41,7 +41,7 @@
 
 .tha-spot-container {
   /* Space the pinned spectator rail needs, reserved only while spectating. */
-  --spectator-rail-space: calc(81px + 1.5rem);
+  --spectator-rail-space: calc(5.4rem + 0.6rem + 0.75rem);
   display: flex;
   flex-direction: column;
   min-height: 100vh;
@@ -4760,6 +4760,9 @@
   position: fixed;
   top: 50%;
   right: 0.6rem;
+  /* Fixed width keeps the column the page reserves in sync with the rail. */
+  width: 5.4rem;
+  box-sizing: border-box;
   transform: translateY(-50%);
   z-index: 12;
   display: flex;
@@ -4946,6 +4949,63 @@
 }
 @media (max-width: 420px) {
   .tha-spot-container.spectating {
-    padding-right: calc(81px + 1.2rem);
+    padding-right: calc(5.4rem + 0.6rem + 0.5rem);
+  }
+}
+
+/*
+ * The header narrows with the container, but its two control clusters have a
+ * fixed intrinsic width and used to spill past the reserved gutter. Let them
+ * wrap and tighten while the rail is up so the whole bar stays in its column.
+ */
+.tha-spot-container.spectating .spot-header {
+  height: auto;
+  min-height: 64px;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  padding: 0.4rem 0.75rem;
+}
+.tha-spot-container.spectating .header-left,
+.tha-spot-container.spectating .header-right {
+  min-width: 0;
+  max-width: 100%;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+.tha-spot-container.spectating .header-right {
+  width: 100%;
+  justify-content: flex-start;
+}
+/* These clusters size themselves to their buttons and would push past the
+   reserved gutter; cap them at the column and let their contents wrap. */
+.tha-spot-container.spectating .header-right > * {
+  max-width: 100%;
+}
+.tha-spot-container.spectating .room-selector {
+  flex-wrap: wrap;
+}
+.tha-spot-container.spectating .mode-toggle-group {
+  flex-wrap: wrap;
+}
+/* On narrow screens the wrapped header needs smaller controls to stay in the
+   column; wider viewports keep the standard sizes. */
+@media (max-width: 720px) {
+  .tha-spot-container.spectating .spot-title {
+    font-size: 1.05rem;
+    letter-spacing: 0.18em;
+  }
+  .tha-spot-container.spectating .header-btn {
+    width: 36px;
+    min-width: 36px;
+    height: 36px;
+    min-height: 36px;
+  }
+  .tha-spot-container.spectating .header-btn .material-symbols-outlined {
+    font-size: 1.05rem;
+  }
+  .tha-spot-container.spectating .mode-btn {
+    padding: 0.3rem 0.5rem;
+    font-size: 0.55rem;
+    letter-spacing: 0.04em;
   }
 }
