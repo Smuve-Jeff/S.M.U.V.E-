@@ -320,9 +320,20 @@ test('audio import tempo-match stretches the clip to the project tempo', async (
   await page.getByLabel('Source tempo of the imported audio').fill('80');
   await page.getByRole('button', { name: 'Stretch the import to the project tempo' }).click();
 
-  await expect(
-    page.locator('app-snackbar').filter({ hasText: 'Stretch set to' }),
-  ).toBeVisible();
+  // Studio snackbars run in quiet mode, so the confirmation lands in the
+  // activity log rather than over the workspace.
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const studio = (window as any).ng.getComponent(
+          document.querySelector('app-studio'),
+        );
+        return studio
+          .actionLog()
+          .some((entry: any) => String(entry.message).includes('Stretch set to'));
+      }),
+    )
+    .toBe(true);
   const ratio = await page.evaluate(() => {
     const studio = (window as any).ng.getComponent(document.querySelector('app-studio'));
     return studio.audioImport.selectedAudio().stretchRatio;
@@ -437,6 +448,9 @@ for (const viewport of [
     const drawerOpener = page.getByRole('tab', { name: 'Open Studio view drawer and tools', exact: true });
     if (await drawerOpener.isVisible()) {
       await drawerOpener.click();
+      // The drawer opens phone-first with six primary surfaces; the full tool
+      // map — where Sampler lives — is one tap away.
+      await page.locator('.comp-drawer-all-toggle').click();
       const choice = page.locator('.comp-drawer-grid-btn').filter({ hasText: 'Sampler' });
       await choice.click();
       await expect(page.locator('.comp-drawer')).not.toHaveClass(/comp-drawer-open/);
@@ -473,7 +487,7 @@ for (const viewport of [
       { flag: 'showImportPanel', selector: '.comp-import-panel', close: 'Close import panel' },
       { flag: 'showVersionHistory', selector: '.comp-versions-panel', close: 'Close version history' },
       { flag: 'showSetsBrowser', selector: '.comp-sets-panel', close: 'Close the Sets browser' },
-      { flag: 'showAiAssistant', selector: '.ai-shell', close: 'Close AI Assistant' },
+      { flag: 'showAiAssistant', selector: '.ai-shell', close: 'Close S.M.U.V.E. Studio assistant' },
     ];
     for (const { flag, selector, close } of panels) {
       await page.evaluate((flag) => (window as any).ng.getComponent(document.querySelector('app-studio'))[flag].set(true), flag);

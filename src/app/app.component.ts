@@ -794,7 +794,19 @@ export class AppComponent {
    */
   showUniversalHomeLink(): boolean {
     if (!this.isFullPageMode() || this.isAuthRoute()) return false;
-    return this.routeAnimState() !== 'studio';
+    return !this.isStudioShellRoute();
+  }
+
+  /**
+   * `/studio` and `/studio-classic` are the same shell.
+   *
+   * The chrome suppressions below compared against `'studio'` alone, so on
+   * `/studio-classic` the floating Home pill still rendered and sat on top of
+   * the "Open Studio view drawer and tools" tab on phones, swallowing taps.
+   */
+  private isStudioShellRoute(): boolean {
+    const route = this.routeAnimState();
+    return route === 'studio' || route === 'studio-classic';
   }
 
   /**
@@ -817,7 +829,7 @@ export class AppComponent {
    * and keep it available everywhere else.
    */
   showAdvisorFab(): boolean {
-    return this.routeAnimState() !== 'studio';
+    return !this.isStudioShellRoute();
   }
 
   /** A direct/deep-linked workspace must never send Home outside the app. */
