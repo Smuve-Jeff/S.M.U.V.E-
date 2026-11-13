@@ -71,7 +71,7 @@ const DIRECTIVE_DESTINATIONS: Record<string, MainViewMode> = {
   'stem-splitter': 'dj',
   'legal-executioner': 'business-suite',
   'tha-spot-god': 'tha-spot',
-  'ghostwriter-v2': 'cowrite',
+  'ghostwriter-v2': 'songwriting',
   'engagement-hijack': 'strategy',
 };
 

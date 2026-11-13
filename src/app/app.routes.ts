@@ -208,11 +208,34 @@ const protectedRoutes: Routes = [
       ),
   },
   {
-    path: 'lyric-editor',
+    // Songwriting Studio: Writer's Pad and Co-Write live here as tabs.
+    path: 'songwriting',
     loadComponent: () =>
-      import('./components/lyric-editor/lyric-editor.component').then(
-        (m) => m.LyricEditorComponent
-      ),
+      import(
+        './components/songwriting-studio/songwriting-studio.component'
+      ).then((m) => m.SongwritingStudioComponent),
+    children: [
+      {
+        path: 'pad',
+        loadComponent: () =>
+          import('./components/lyric-editor/lyric-editor.component').then(
+            (m) => m.LyricEditorComponent
+          ),
+      },
+      {
+        path: 'cowrite',
+        loadComponent: () =>
+          import('./components/cowrite-studio/cowrite-studio.component').then(
+            (m) => m.CowriteStudioComponent
+          ),
+      },
+      { path: '', redirectTo: 'pad', pathMatch: 'full' },
+    ],
+  },
+  {
+    path: 'lyric-editor',
+    redirectTo: 'songwriting/pad',
+    pathMatch: 'full',
   },
   {
     path: 'remix-arena',
@@ -334,10 +357,8 @@ const protectedRoutes: Routes = [
   },
   {
     path: 'cowrite',
-    loadComponent: () =>
-      import('./components/cowrite-studio/cowrite-studio.component').then(
-        (m) => m.CowriteStudioComponent
-      ),
+    redirectTo: 'songwriting/cowrite',
+    pathMatch: 'full',
   },
   {
     path: 'artist-development',

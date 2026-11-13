@@ -79,7 +79,7 @@ export const NEURAL_UPGRADE_BLUEPRINTS: UpgradeRecommendation[] = [
     title: 'Lyric editor session',
     type: 'Software',
     description:
-      'Open the Lyric Editor and draft from your own ideas. S.M.U.V.E. does not source lyrics from Billboard metadata.',
+      'Open the Songwriting Studio and draft from your own ideas. S.M.U.V.E. does not source lyrics from Billboard metadata.',
     cost: 'Included',
     url: '',
     impact: 'Medium',
@@ -87,8 +87,8 @@ export const NEURAL_UPGRADE_BLUEPRINTS: UpgradeRecommendation[] = [
     targetArea: 'Production',
     priority: 'Medium',
     prerequisites: [],
-    actionLabel: 'Open Lyric Editor',
-    toolId: 'lyric-editor',
+    actionLabel: 'Open Songwriting Studio',
+    toolId: 'songwriting',
   },
   {
     id: 'upg-engagement-hijacker',

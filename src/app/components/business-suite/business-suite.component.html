@@ -262,6 +262,17 @@
     </article>
   </section>
 
+  <!-- First run: the grid is where a pathway will live, so name it -->
+  <section *ngIf="hasNoPipelines()" class="pipeline-empty">
+    <div class="spine-kicker">NO PATHWAYS YET</div>
+    <h2>Pick a module and build one</h2>
+    <p>
+      A pathway is a short, staged plan for one piece of infrastructure — merch,
+      a label entity, a PRO registration. Every step is marked from work you can
+      actually point to, so nothing here is a projection.
+    </p>
+  </section>
+
   <!-- Active Pipelines Section -->
   <section
     *ngIf="activePipelines().length > 0 || archivedPipelines().length > 0"
@@ -309,6 +320,17 @@
           {{ pipeline.type }} Pathway
         </p>
 
+        <div class="pipeline-card-next" *ngIf="nextStepFor(pipeline) as next">
+          <span class="pipeline-card-next-label">Next step</span>
+          <p>{{ next.title }}</p>
+        </div>
+        <p
+          class="pipeline-card-next pipeline-card-next-done"
+          *ngIf="!nextStepFor(pipeline) && stepCounts(pipeline).total > 0"
+        >
+          Every step in this pathway is complete.
+        </p>
+
         <div class="mt-auto space-y-2">
           <div
             class="flex justify-between text-[8px] font-black uppercase text-text-dim"
@@ -321,6 +343,16 @@
               class="h-full bg-brand-primary transition-all duration-500"
               [style.width.%]="progress(pipeline)"
             ></div>
+          </div>
+          <div
+            class="flex justify-between text-[8px] font-black uppercase text-text-dim"
+          >
+            <span>Steps evidenced</span>
+            <span
+              >{{ stepCounts(pipeline).done }}/{{
+                stepCounts(pipeline).total
+              }}</span
+            >
           </div>
           <div
             *ngIf="pipeline.status === 'Completed'"
@@ -377,13 +409,22 @@
             {{ pipeline.type }} · Archived
           </div>
         </div>
-        <button
-          type="button"
-          (click)="restorePipeline(pipeline, $event)"
-          class="text-[9px] font-black uppercase tracking-widest text-brand-primary hover:text-brand-primary/80 transition-colors shrink-0"
-        >
-          Restore
-        </button>
+        <div class="flex items-center gap-3 shrink-0">
+          <button
+            type="button"
+            (click)="restorePipeline(pipeline, $event)"
+            class="text-[9px] font-black uppercase tracking-widest text-brand-primary hover:text-brand-primary/80 transition-colors"
+          >
+            Restore
+          </button>
+          <button
+            type="button"
+            (click)="removePipeline(pipeline, $event)"
+            class="text-[9px] font-black uppercase tracking-widest text-red-400/80 hover:text-red-400 transition-colors"
+          >
+            Remove
+          </button>
+        </div>
       </div>
     </div>
   </section>
@@ -412,7 +453,8 @@
         >
           <span
             class="material-symbols-outlined text-2xl text-text-dim group-hover:text-secondary"
-            >rocket_launch</span
+            aria-hidden="true"
+            >{{ module.icon }}</span
           >
         </div>
         <h4

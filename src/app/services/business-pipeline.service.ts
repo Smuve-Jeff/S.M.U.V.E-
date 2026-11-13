@@ -5,6 +5,7 @@ import {
   BusinessPipeline,
   BusinessPipelineType,
   BusinessStage,
+  BusinessStep,
 } from '../types/business.types';
 
 /**
@@ -19,6 +20,24 @@ export function pipelineProgress(pipeline: BusinessPipeline): number {
   const completed = stages.filter((stage) => stage.status === 'Completed')
     .length;
   return Math.round((completed / stages.length) * 100);
+}
+
+/** Every step in a pipeline, in stage order. */
+export function pipelineSteps(pipeline: BusinessPipeline): BusinessStep[] {
+  return (pipeline?.stages ?? []).flatMap((stage) => stage.steps ?? []);
+}
+
+/**
+ * The first step the artist can still act on. Stages unlock in order, so this
+ * is always a step of the open stage — which is exactly what a card should
+ * name instead of forcing the artist to open the pathway to find out.
+ */
+export function pipelineNextStep(
+  pipeline: BusinessPipeline
+): BusinessStep | null {
+  return (
+    pipelineSteps(pipeline).find((step) => step.status !== 'Completed') ?? null
+  );
 }
 
 @Injectable({
@@ -90,15 +109,19 @@ export class BusinessPipelineService {
   }
 
   /**
-   * Removes a completed pipeline from the profile. Open work is refused:
-   * deleting it would throw away steps the artist can still finish.
+   * Removes a finished pipeline from the profile. Open work is refused:
+   * deleting it would throw away steps the artist can still finish. Archived
+   * pathways count as finished — forcing the artist to restore one first was
+   * the only way to delete it.
    */
   async removePipeline(pipelineId: string): Promise<boolean> {
     const pipelines = this.activePipelines();
     const target = pipelines.find((pipeline) => pipeline.id === pipelineId);
-    if (!target || target.status !== 'Completed') {
+    const finished =
+      target?.status === 'Completed' || target?.status === 'Archived';
+    if (!target || !finished) {
       this.logger.warn(
-        `BusinessPipeline: Refused to remove ${pipelineId}; only completed pathways can be removed`
+        `BusinessPipeline: Refused to remove ${pipelineId}; only completed or archived pathways can be removed`
       );
       return false;
     }
@@ -174,16 +197,22 @@ export class BusinessPipelineService {
         };
       });
 
-      let newIndex = p.currentStageIndex;
-      if (
-        updatedStages[newIndex]?.status === 'Completed' &&
-        newIndex < updatedStages.length - 1
-      ) {
-        newIndex++;
+      /*
+       * Point at the first stage that is still open instead of stepping one
+       * forward. Reopening a step in an earlier stage now pulls the pipeline
+       * back to that stage, so the timeline cannot claim a reopened stage is
+       * merely upcoming (and a finished pipeline cannot stay Completed).
+       */
+      const openIndex = updatedStages.findIndex(
+        (stage) => stage.status !== 'Completed'
+      );
+      const newIndex =
+        openIndex === -1 ? Math.max(0, updatedStages.length - 1) : openIndex;
+      if (openIndex !== -1 && updatedStages[openIndex].status === 'Locked') {
         // Replace the stage instead of mutating it: the previous pipeline
         // snapshot still holds this object.
-        updatedStages[newIndex] = {
-          ...updatedStages[newIndex],
+        updatedStages[openIndex] = {
+          ...updatedStages[openIndex],
           status: 'In Progress',
         };
       }

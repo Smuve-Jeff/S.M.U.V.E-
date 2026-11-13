@@ -40,6 +40,7 @@ export const GUEST_ALLOWED_ROUTES: readonly string[] = [
   'mixer',
   'drum-machine',
   'performance',
+  'songwriting',
   'lyric-editor',
   'tha-spot',
   'gaming-hub',

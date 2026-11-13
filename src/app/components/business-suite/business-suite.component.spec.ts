@@ -189,6 +189,25 @@ describe('BusinessSuiteComponent', () => {
     );
   });
 
+  it('does not promise to resume an archived pathway', async () => {
+    const nativeElement = await create(profile());
+    bizMock.activePipelines.set([
+      pipeline({ type: 'Merch', status: 'Archived' }),
+    ]);
+    fixture.detectChanges();
+
+    const cards = Array.from(
+      nativeElement.querySelectorAll('.glass-v42')
+    ) as HTMLElement[];
+    const card = cards.find((candidate) =>
+      candidate.textContent?.includes('Merch')
+    )!;
+
+    // Nothing to resume: a new pathway is what the click actually creates.
+    expect(component.activePipelineFor('Merch')).toBeNull();
+    expect(card.querySelector('button')?.textContent).toContain('INITIALIZE');
+  });
+
   it('shows 0% for an untouched pipeline and 100% only when every stage is done', async () => {
     const nativeElement = await create(profile());
     bizMock.activePipelines.set([pipeline()]);
@@ -270,6 +289,93 @@ describe('BusinessSuiteComponent', () => {
 
     expect(bizMock.removePipeline).toHaveBeenCalledWith('biz-1');
     expect(navigate).not.toHaveBeenCalled();
+  });
+
+  it('names the next step on a pathway card instead of hiding it', async () => {
+    const nativeElement = await create(profile());
+    bizMock.activePipelines.set([
+      pipeline({
+        stages: [
+          {
+            id: 's1',
+            name: 'Stage One',
+            status: 'In Progress',
+            steps: [
+              {
+                id: 'a',
+                title: 'Moodboard',
+                description: '',
+                status: 'Completed',
+                aiGuidance: '',
+              },
+              {
+                id: 'b',
+                title: 'Vendor Setup',
+                description: '',
+                status: 'Pending',
+                aiGuidance: '',
+              },
+            ],
+          },
+          { id: 's2', name: 'Stage Two', status: 'Locked', steps: [] },
+          { id: 's3', name: 'Stage Three', status: 'Locked', steps: [] },
+        ],
+      }),
+    ]);
+    fixture.detectChanges();
+
+    const text = nativeElement.textContent || '';
+    expect(text).toContain('Next step');
+    expect(text).toContain('Vendor Setup');
+    expect(text).toContain('1/2');
+  });
+
+  it('gives each module its own icon instead of one shared rocket', async () => {
+    const nativeElement = await create(profile());
+    const icons = Array.from(
+      nativeElement.querySelectorAll(
+        '.glass-v42 .material-symbols-outlined'
+      )
+    ).map((icon) => icon.textContent?.trim());
+
+    expect(icons).toHaveLength(component.availableModules.length);
+    expect(new Set(icons).size).toBe(icons.length);
+    expect(icons).not.toContain('rocket_launch');
+  });
+
+  it('explains what a pathway is before anything is started', async () => {
+    const nativeElement = await create(profile());
+
+    expect(nativeElement.querySelector('.pipeline-empty')).not.toBeNull();
+    expect(nativeElement.textContent).toContain('Pick a module and build one');
+
+    bizMock.activePipelines.set([pipeline()]);
+    fixture.detectChanges();
+
+    expect(nativeElement.querySelector('.pipeline-empty')).toBeNull();
+  });
+
+  it('removes an archived pathway from the archived list', async () => {
+    const nativeElement = await create(profile());
+    bizMock.activePipelines.set([
+      pipeline({ id: 'biz-arch', name: 'Old Merch Pathway', status: 'Archived' }),
+    ]);
+    fixture.detectChanges();
+
+    const toggle = Array.from(nativeElement.querySelectorAll('button')).find(
+      (button) => button.textContent?.includes('Archived (1)')
+    )!;
+    toggle.click();
+    fixture.detectChanges();
+
+    dialogMock.confirm.mockResolvedValueOnce(true);
+    const remove = Array.from(nativeElement.querySelectorAll('button')).find(
+      (button) => button.textContent?.trim() === 'Remove'
+    )!;
+    remove.click();
+    await fixture.whenStable();
+
+    expect(bizMock.removePipeline).toHaveBeenCalledWith('biz-arch');
   });
 
   it('archives a completed pathway on request', async () => {

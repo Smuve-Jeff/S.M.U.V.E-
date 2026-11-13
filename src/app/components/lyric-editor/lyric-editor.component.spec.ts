@@ -64,6 +64,18 @@ describe('LyricEditorComponent', () => {
     expect(again.lyrics()).toBe('page one');
   });
 
+  it('auto-saves unsaved words when the pad unmounts', () => {
+    const { fixture, component } = create();
+    component.updatePageTitle('Draft');
+    component.updatePageBody('unsaved line');
+
+    fixture.destroy();
+
+    const stored = JSON.parse(localStorage.getItem(draftKey) as string);
+    expect(stored.lyrics).toBe('unsaved line');
+    expect(stored.title).toBe('Draft');
+  });
+
   it('keeps book-writing and publishing guidance in the pad', () => {
     const { fixture } = create();
     fixture.detectChanges();

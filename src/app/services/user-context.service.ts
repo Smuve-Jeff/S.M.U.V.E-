@@ -32,6 +32,7 @@ export type MainViewMode =
   | 'produce'
   | 'composer'
   | 'academy'
+  | 'songwriting'
   | 'lyric-editor'
   | 'remix-arena'
   | 'image-video-lab'

@@ -47,7 +47,7 @@ describe('CommandPaletteService', () => {
       show: jest.fn(),
     };
     router = {
-      url: '/lyric-editor',
+      url: '/songwriting/pad',
       navigate: jest.fn(),
     };
 
@@ -141,7 +141,7 @@ describe('CommandPaletteService', () => {
   });
 
   it('teaches the current screen from the Alt+L shortcut', () => {
-    router.url = '/lyric-editor';
+    router.url = '/songwriting/pad';
     const event = new KeyboardEvent('keydown', {
       key: 'l',
       altKey: true,

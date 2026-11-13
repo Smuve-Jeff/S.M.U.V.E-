@@ -375,7 +375,7 @@ describe('SmuveTotalControlService', () => {
     cowrite.startSession = jest.fn();
     expect((await service.executeCommand('/cowrite status')).message).toBe('real session');
     await service.executeCommand('/cowrite studio');
-    expect(router.navigate).toHaveBeenCalledWith(['/cowrite']);
+    expect(router.navigate).toHaveBeenCalledWith(['/songwriting/cowrite']);
     expect(cowrite.startSession).not.toHaveBeenCalled();
   });
 

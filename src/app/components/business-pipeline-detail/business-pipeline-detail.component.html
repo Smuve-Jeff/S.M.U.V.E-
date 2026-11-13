@@ -1,3 +1,25 @@
+<!-- A missing pathway used to render a blank page -->
+<div
+  class="pipeline-detail-page p-8 h-full bg-brand-dark overflow-y-auto animate-enter"
+  *ngIf="!pipeline()"
+>
+  <div class="pipeline-missing">
+    <div class="pipeline-missing-kicker">PATHWAY UNAVAILABLE</div>
+    <h1>This pathway is not on your record</h1>
+    <p>
+      It may have been removed, or it belongs to another session. Nothing was
+      changed — open the Business Hub to start or resume a pathway.
+    </p>
+    <button
+      type="button"
+      routerLink="/business-suite"
+      class="pipeline-missing-action"
+    >
+      Back to the Business Hub
+    </button>
+  </div>
+</div>
+
 <div
   class="pipeline-detail-page p-8 h-full bg-brand-dark overflow-y-auto animate-enter"
   *ngIf="pipeline() as p"
@@ -48,7 +70,13 @@
           *ngFor="let stage of p.stages; let i = index"
           class="flex items-center gap-4 flex-shrink-0 min-w-[120px]"
         >
-          <div class="flex flex-col items-center">
+          <button
+            type="button"
+            class="stage-pick flex flex-col items-center"
+            [attr.aria-current]="displayStageIndex() === i ? 'step' : null"
+            [attr.aria-label]="'Review phase ' + (i + 1) + ': ' + stage.name"
+            (click)="selectStage(i)"
+          >
             <div
               class="w-10 h-10 rounded-full border-2 flex items-center justify-center text-xs font-black transition-all"
               [ngClass]="{
@@ -73,7 +101,7 @@
             >
               {{ stage.name }}
             </span>
-          </div>
+          </button>
           <div
             *ngIf="i < p.stages.length - 1"
             class="h-[1px] flex-grow mb-4 min-w-[40px]"
@@ -85,33 +113,34 @@
       </div>
 
       <!-- Current Stage Details -->
-      <div class="space-y-6" *ngIf="currentStage() as stage">
+      <div class="space-y-6" *ngIf="displayStage() as stage">
         <div class="pipeline-stage-heading flex justify-between items-center mb-6">
           <h2
             class="text-2xl font-black text-white uppercase italic tracking-tighter"
           >
-            Phase {{ p.currentStageIndex + 1 }}: {{ stage.name }}
+            Phase {{ displayStageIndex() + 1 }}: {{ stage.name }}
           </h2>
           <span
+            *ngIf="!isReviewingStage(); else reviewing"
             class="text-[10px] font-black text-brand-primary uppercase tracking-[0.2em]"
             [class.animate-pulse]="p.status !== 'Completed'"
             >{{ p.status === 'Completed' ? 'Complete' : 'In Progress' }}</span
           >
+          <ng-template #reviewing>
+            <button
+              type="button"
+              class="stage-return"
+              (click)="showCurrentStage()"
+            >
+              Reviewing a finished phase · return to the open one
+            </button>
+          </ng-template>
         </div>
 
-        <div
-          *ngFor="let step of stage.steps"
-          class="group bg-brand-surface/30 rounded-3xl border transition-all overflow-hidden"
-          [ngClass]="{
-            'border-brand-primary/30 shadow-[0_0_30px_rgba(16,185,129,0.05)]':
-              step.status === 'Pending',
-            'border-white/5': step.status === 'Completed',
-          }"
-        >
-          <!-- Step implementation... (using *ngFor="let step of stage.steps") -->
-        </div>
+        <p *ngIf="stage.steps.length === 0" class="stage-empty">
+          This phase has no steps recorded.
+        </p>
 
-        <!-- Re-writing track content for clarity and robustness -->
         <ng-container *ngFor="let step of stage.steps">
           <div
             class="group bg-brand-surface/30 rounded-3xl border transition-all overflow-hidden mb-6"
@@ -154,6 +183,14 @@
                     class="px-4 py-2 bg-white/5 border border-white/10 text-white text-[9px] font-black uppercase tracking-widest rounded-lg hover:border-brand-primary transition-all"
                   >
                     Mark Complete
+                  </button>
+                  <button
+                    *ngIf="step.status === 'Completed'"
+                    (click)="reopenStep(step)"
+                    class="px-4 py-2 bg-white/5 border border-white/10 text-slate-400 text-[9px] font-black uppercase tracking-widest rounded-lg hover:border-white/40 hover:text-white transition-all"
+                    [attr.aria-label]="'Reopen ' + step.title"
+                  >
+                    Reopen
                   </button>
                 </div>
               </div>

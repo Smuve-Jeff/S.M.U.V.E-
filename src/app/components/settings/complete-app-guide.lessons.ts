@@ -130,17 +130,17 @@ export const COMPLETE_GUIDE_LESSONS: readonly CompleteGuideLesson[] = [
     title: "Write, produce and learn",
     kicker: "Creation",
     summary:
-      "Composition Core, AI Produce, Cowrite Studio, Lyric Editor, Practice Space and Music Academy cover the writing and skill-building side of the record — instruments and vocals, acting and directing, music business and legal, plus marketing and promotion.",
+      "Composition Core, AI Produce, Songwriting Studio, Practice Space and Music Academy cover the writing and skill-building side of the record — instruments and vocals, acting and directing, music business and legal, plus marketing and promotion.",
     features: [
       "Genre-locked composition and single musical steps",
       "AI Produce from brief to arrangement",
-      "Cowrite rooms and lyric editing",
+      "Songwriting Studio: Writer's Pad pages and co-write rooms",
       "Practice drills and Academy programs",
       "Academy career paths: acting, directing, music business and legal, marketing and promotion",
     ],
     steps: [
       "Start with a brief in Composition Core or AI Produce.",
-      "Move the idea into Cowrite Studio or Lyric Editor for topline and lyric work.",
+      "Move the idea into the Songwriting Studio for topline and lyric work — solo pages or a co-write room.",
       "Use Practice Space and Music Academy to turn a weakness into a repeatable routine — including acting, directing, business, legal and promotion drills when the song needs a career skill.",
     ],
     mistake:
@@ -275,10 +275,10 @@ export const COMPLETE_GUIDE_LESSONS: readonly CompleteGuideLesson[] = [
     title: "Community and commerce",
     kicker: "Network",
     summary:
-      "Remix Arena, Cowrite Studio, Challenge Inbox, Storefront and Products connect collaboration, competition and selling without leaving the workspace.",
+      "Remix Arena, the Songwriting Studio co-write room, Challenge Inbox, Storefront and Products connect collaboration, competition and selling without leaving the workspace.",
     features: [
       "Remix Arena and live coding sessions",
-      "Cowrite rooms and shared lyric work",
+      "Co-write rooms and shared lyric work",
       "Challenge Inbox, notifications and callouts",
       "Storefront, products, Networking and public artist pages",
     ],

@@ -130,6 +130,39 @@ describe('BusinessPipelineService', () => {
     expect(pipelineProgress({ ...completedPipeline, stages: [] })).toBe(0);
   });
 
+  it('pulls the pipeline back to a stage whose step was reopened', async () => {
+    load(profile());
+    const id = await service.initializeModule(
+      'Merch',
+      'Official Merch Pathway'
+    );
+    const current = () =>
+      service.activePipelines().find((pipeline) => pipeline.id === id)!;
+
+    await service.updateStep(id, 'stg-1', 'step-1', 'Completed');
+    await service.updateStep(id, 'stg-1', 'step-2', 'Completed');
+    await service.updateStep(id, 'stg-2', 'step-3', 'Completed');
+    expect(current().currentStageIndex).toBe(2);
+
+    // Reopening an earlier step must not leave the open stage two phases ahead.
+    await service.updateStep(id, 'stg-1', 'step-1', 'Pending');
+
+    expect(current().currentStageIndex).toBe(0);
+    expect(current().status).toBe('Active');
+    expect(current().stages[0].status).toBe('In Progress');
+  });
+
+  it('removes an archived pathway without forcing a restore first', async () => {
+    load(
+      profile({
+        businessPipelines: [{ ...completedPipeline, status: 'Archived' }],
+      } as any)
+    );
+
+    expect(await service.removePipeline(completedPipeline.id)).toBe(true);
+    expect(service.activePipelines()).toEqual([]);
+  });
+
   it('removes a completed pipeline from the profile', async () => {
     load(profile({ businessPipelines: [completedPipeline] } as any));
     expect(service.activePipelines()).toHaveLength(1);

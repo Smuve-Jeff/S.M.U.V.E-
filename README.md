@@ -64,7 +64,7 @@ public routes.
 | `/mastering` | Mastering Suite | Spectrum analysis, soft-clip, limiting, AI mix master, reference-track A/B with loudness matching, one-tap delivery-target conform |
 | `/vocal-suite` | Vocal Suite | Capture, comping, and vocal enhancement |
 | `/dj` | DJ Booth | Two-deck mixer with crossfader, platters, stems (`/turntable`, `/decks` alias here) |
-| `/lyric-editor` | Lyric Editor | Writing and lyric ideation |
+| `/songwriting` | Songwriting Studio | Writer's Pad pages and AI co-write sessions (`/songwriting/pad`, `/songwriting/cowrite`; `/lyric-editor`, `/cowrite` alias here) |
 | `/practice` | Practice Space | Rehearsal protocols and metronome tools |
 | `/produce` | AI Produce | Assisted beat and arrangement generation |
 | `/command-center` | Command Center | Operational cockpit for projects and tasks |
@@ -80,7 +80,6 @@ public routes.
 | `/toolkit` | Artist Toolkit | Release blueprint, split sheet, royalty estimator, rights checklist, and career guides |
 | `/artist-development` | Artist Development | Growth programs and missions (`/dev-hub` alias) |
 | `/knowledge-base` | Knowledge Base | AI reference surface |
-| `/cowrite` | Cowrite Studio | Collaborative writing sessions |
 | `/profile` | Profile | Artist identity, scoring, and settings context |
 | `/journey` | Artist Journey | Onboarding and progression map |
 | `/store`, `/products` | Storefront | Product catalog |

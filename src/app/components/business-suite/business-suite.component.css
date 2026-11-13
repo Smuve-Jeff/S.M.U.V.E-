@@ -564,3 +564,64 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* ── Pathway cards: the next step is visible without opening the pathway ── */
+.pipeline-card-next {
+  margin-bottom: 0.9rem;
+  padding: 0.55rem 0.7rem;
+  border-left: 2px solid var(--brand-primary, #5dc4c2);
+  border-radius: 0 0.45rem 0.45rem 0;
+  background: rgba(93, 196, 194, 0.07);
+}
+
+.pipeline-card-next-label {
+  display: block;
+  font-size: 7px;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--brand-primary, #5dc4c2);
+}
+
+.pipeline-card-next p {
+  margin: 0.2rem 0 0;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.35;
+  color: var(--text-main, #f1f5f9);
+}
+
+.pipeline-card-next-done {
+  border-left-color: rgba(148, 163, 184, 0.4);
+  background: rgba(148, 163, 184, 0.06);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.4;
+  color: var(--text-dim, #94a3b8);
+}
+
+/* ── First-run empty state ─────────────────────────────────────────── */
+.pipeline-empty {
+  margin-bottom: 2.5rem;
+  padding: 1.15rem 1.35rem;
+  border: 1px dashed rgba(148, 163, 184, 0.28);
+  border-radius: 0.9rem;
+  background: rgba(0, 0, 0, 0.16);
+}
+
+.pipeline-empty h2 {
+  margin: 0.35rem 0 0;
+  font-size: 1.1rem;
+  font-style: italic;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+}
+
+.pipeline-empty p {
+  max-width: 46rem;
+  margin: 0.4rem 0 0;
+  font-size: 11px;
+  line-height: 1.55;
+  color: var(--text-dim, #94a3b8);
+}

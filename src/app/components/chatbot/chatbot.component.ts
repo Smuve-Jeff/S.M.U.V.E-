@@ -1367,7 +1367,7 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
         actions.push({
           id: 'open-route',
           label: "Open the Writer's Pad",
-          data: '/lyric-editor',
+          data: '/songwriting/pad',
         });
       }
       return { content: this.teachLearn.formatTeach(lesson), actions };

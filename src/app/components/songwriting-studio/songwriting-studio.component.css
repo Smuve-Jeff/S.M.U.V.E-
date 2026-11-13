@@ -1,0 +1,95 @@
+.songwriting-shell {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1.25rem clamp(1rem, 3vw, 2rem) 2rem;
+}
+
+.songwriting-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.9rem;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+  padding-bottom: 0.9rem;
+}
+
+.songwriting-heading h1 {
+  margin: 0;
+  font-size: clamp(1.4rem, 2.6vw, 1.9rem);
+  letter-spacing: 0.01em;
+  color: #f1f5f9;
+}
+
+.songwriting-heading p {
+  margin: 0.3rem 0 0;
+  color: #94a3b8;
+  font-size: 0.9rem;
+  max-width: 46rem;
+}
+
+.songwriting-tabs {
+  display: flex;
+  gap: 0.5rem;
+  background: rgba(2, 6, 23, 0.55);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 0.9rem;
+  padding: 0.35rem;
+}
+
+.songwriting-tab {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.55rem 0.95rem;
+  border-radius: 0.65rem;
+  color: #cbd5e1;
+  text-decoration: none;
+  border: 1px solid transparent;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.songwriting-tab:hover {
+  color: #f8fafc;
+  background: rgba(148, 163, 184, 0.12);
+}
+
+.songwriting-tab.is-active {
+  color: #fbbf24;
+  background: rgba(251, 191, 36, 0.1);
+  border-color: rgba(251, 191, 36, 0.4);
+}
+
+.tab-emoji {
+  font-size: 1.15rem;
+  line-height: 1;
+}
+
+.tab-label {
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+.tab-hint {
+  font-size: 0.72rem;
+  color: #7d8aa0;
+}
+
+.songwriting-tab.is-active .tab-hint {
+  color: rgba(251, 191, 36, 0.75);
+}
+
+.songwriting-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+@media (max-width: 640px) {
+  .songwriting-tab .tab-hint {
+    display: none;
+  }
+}

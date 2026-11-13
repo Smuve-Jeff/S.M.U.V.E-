@@ -147,7 +147,7 @@ describe('ChatbotComponent', () => {
     expect(learn.content).toContain('CORE CONCEPTS');
     expect(learn.content).toContain('Writer’s Pad');
     expect(learn.actions).toEqual([
-      expect.objectContaining({ id: 'open-route', data: '/lyric-editor' }),
+      expect.objectContaining({ id: 'open-route', data: '/songwriting/pad' }),
     ]);
   });
 

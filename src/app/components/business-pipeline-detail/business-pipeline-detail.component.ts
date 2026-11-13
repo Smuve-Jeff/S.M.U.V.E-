@@ -53,6 +53,42 @@ export class BusinessPipelineDetailComponent implements OnInit {
     return p.stages[p.currentStageIndex];
   });
 
+  /** A stage the artist picked on the timeline; null means "the open one". */
+  selectedStageIndex = signal<number | null>(null);
+
+  /**
+   * The stage on screen. Completed stages used to be unreachable, so a step
+   * marked complete by mistake could never be reopened.
+   */
+  displayStageIndex = computed(() => {
+    const p = this.pipeline();
+    if (!p) return 0;
+    const picked = this.selectedStageIndex();
+    if (picked !== null && p.stages[picked]) return picked;
+    return p.currentStageIndex;
+  });
+
+  displayStage = computed(() => {
+    const p = this.pipeline();
+    return p ? (p.stages[this.displayStageIndex()] ?? null) : null;
+  });
+
+  /** True while the artist is reviewing a stage other than the open one. */
+  isReviewingStage = computed(
+    () =>
+      this.selectedStageIndex() !== null &&
+      this.selectedStageIndex() !== this.pipeline()?.currentStageIndex
+  );
+
+  selectStage(index: number): void {
+    this.selectedStageIndex.set(index);
+  }
+
+  /** Returns the page to the stage work actually happens in. */
+  showCurrentStage(): void {
+    this.selectedStageIndex.set(null);
+  }
+
   /**
    * The same evidence read the Business Suite shows — the panel must not
    * invent a second score for the artist's rights, business, or money work.
@@ -86,6 +122,8 @@ export class BusinessPipelineDetailComponent implements OnInit {
   constructor() {
     this.route.params.subscribe((params) => {
       this.pipelineId.set(params['id']);
+      // A different pathway must not inherit the previous stage selection.
+      this.selectedStageIndex.set(null);
     });
   }
 
@@ -119,9 +157,22 @@ export class BusinessPipelineDetailComponent implements OnInit {
 
   completeStep(step: BusinessStep) {
     const p = this.pipeline();
-    const s = this.currentStage();
+    const s = this.displayStage();
     if (p && s) {
-      this.bizService.updateStep(p.id, s.id, step.id, 'Completed');
+      void this.bizService.updateStep(p.id, s.id, step.id, 'Completed');
+    }
+  }
+
+  /**
+   * Undo a step marked complete by mistake. The service pulls the pipeline back
+   * to this stage, so a reopened step cannot leave a finished pathway claiming
+   * to be complete.
+   */
+  reopenStep(step: BusinessStep) {
+    const p = this.pipeline();
+    const s = this.displayStage();
+    if (p && s) {
+      void this.bizService.updateStep(p.id, s.id, step.id, 'Pending');
     }
   }
 

@@ -45,6 +45,7 @@ const ROUTE_CHAPTERS: Record<string, string> = {
   "video-editor": "app-lab",
   inbox: "app-network",
   "knowledge-base": "app-business",
+  songwriting: "app-create",
   "lyric-editor": "app-create",
   networking: "app-network",
   practice: "app-create",
@@ -117,7 +118,7 @@ export function masterclassTargetForStudioSurface(
 }
 
 /**
- * Resolve `/mixer`, `/lyric-editor`, `/studio?view=mixer`, or any other routed
+ * Resolve `/mixer`, `/songwriting/pad`, `/studio?view=mixer`, or any other routed
  * workspace into a shareable Masterclass lesson. Unknown routes fall back to
  * the shell orientation lesson, so every workspace has a teaching entry point.
  */

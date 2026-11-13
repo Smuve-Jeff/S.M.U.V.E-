@@ -280,7 +280,7 @@ export const LEARN_TRACKS: readonly LearnTrack[] = [
     ],
     mistake:
       'Rewriting chapter one for months while the ending is still unknown. Draft forward, then fix the whole book with the ending in view.',
-    route: '/lyric-editor',
+    route: '/songwriting/pad',
     action: 'Open the Writer’s Pad',
     keywords: ['book', 'books', 'novel', 'author', 'writing', 'publish', 'publishing', 'isbn', 'chapter'],
   },

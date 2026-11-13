@@ -613,7 +613,7 @@ export class ReleasePipelineComponent {
 
   navigateToStage(track: ProductionTrack, stage: string) {
     if (stage === 'lyrics') {
-      this.router.navigate(['/lyric-editor']);
+      this.router.navigate(['/songwriting', 'pad']);
     } else {
       this.router.navigate(['/studio']);
     }

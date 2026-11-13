@@ -30,6 +30,13 @@ describe("Masterclass route resolver", () => {
     expect(masterclassRouteTarget("/academy?program=acting")?.lessonId).toBe(
       "app-create"
     );
+    expect(masterclassRouteTarget("/songwriting")?.lessonId).toBe("app-create");
+    expect(masterclassRouteTarget("/songwriting/pad")?.lessonId).toBe(
+      "app-create"
+    );
+    expect(masterclassRouteTarget("/songwriting/cowrite")?.lessonId).toBe(
+      "app-create"
+    );
     expect(masterclassRouteTarget("/lyric-editor")?.lessonId).toBe("app-create");
     expect(masterclassRouteTarget("/release-pipeline")?.lessonId).toBe(
       "app-business",

@@ -3,7 +3,9 @@ import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import {
   BusinessPipelineService,
+  pipelineNextStep,
   pipelineProgress,
+  pipelineSteps,
 } from '../../services/business-pipeline.service';
 import {
   BUSINESS_SPINE_PHASES,
@@ -117,18 +119,43 @@ export class BusinessSuiteComponent implements OnInit {
     return phase.provenance === 'missing' ? 'No evidence' : `${phase.score}%`;
   }
 
-  /** Pipelines on the working grid: archived work is kept but not shown. */
+  /**
+   * Pipelines on the working grid: archived work is kept but not shown. Most
+   * recently touched first, so the pathway being worked is not buried under
+   * older ones by insertion order.
+   */
   activePipelines = computed(() =>
     this.bizService
       .activePipelines()
       .filter((pipeline) => pipeline.status !== 'Archived')
+      .sort((a, b) => b.updatedAt - a.updatedAt)
   );
 
   archivedPipelines = computed(() =>
     this.bizService
       .activePipelines()
       .filter((pipeline) => pipeline.status === 'Archived')
+      .sort((a, b) => b.updatedAt - a.updatedAt)
   );
+
+  /** True before the artist has started anything, so the grid is not just absent. */
+  hasNoPipelines = computed(
+    () =>
+      this.activePipelines().length === 0 && this.archivedPipelines().length === 0
+  );
+
+  /** The step a card can name so the pathway does not have to be opened. */
+  nextStepFor(pipeline: BusinessPipeline) {
+    return pipelineNextStep(pipeline);
+  }
+
+  stepCounts(pipeline: BusinessPipeline): { done: number; total: number } {
+    const steps = pipelineSteps(pipeline);
+    return {
+      done: steps.filter((step) => step.status === 'Completed').length,
+      total: steps.length,
+    };
+  }
 
   showArchived = signal(false);
 
@@ -362,41 +389,40 @@ export class BusinessSuiteComponent implements OnInit {
     this.router.navigate(['/artist-development']);
   }
 
+  /**
+   * Material symbol names, not icon-font class strings: the grid renders them
+   * directly, so each module is recognisable instead of every card carrying
+   * the same rocket.
+   */
   availableModules: {
     type: BusinessPipelineType;
     icon: string;
     description: string;
-    color: string;
   }[] = [
     {
       type: 'Merch',
-      icon: 'fas fa-tshirt',
+      icon: 'apparel',
       description: 'Design and deploy a professional merchandise line.',
-      color: 'brand-primary',
     },
     {
       type: 'Record Label',
-      icon: 'fas fa-building',
+      icon: 'apartment',
       description: 'Establish your legal entity and record label operations.',
-      color: 'brand-secondary',
     },
     {
       type: 'Website',
-      icon: 'fas fa-globe',
+      icon: 'language',
       description: 'Build a high-performance fan portal and landing page.',
-      color: 'brand-warning',
     },
     {
       type: 'PRO',
-      icon: 'fas fa-copyright',
-      description: 'Register with BMI/ASCAP and secure your royalties.',
-      color: 'brand-danger',
+      icon: 'copyright',
+      description: 'Register with a PRO and secure your performance royalties.',
     },
     {
       type: 'Legal',
-      icon: 'fas fa-file-contract',
-      description: 'AI-generated contracts and split sheets for protection.',
-      color: 'brand-info',
+      icon: 'gavel',
+      description: 'Contract and split-sheet templates you fill in yourself.',
     },
   ];
 
@@ -450,7 +476,7 @@ export class BusinessSuiteComponent implements OnInit {
       await this.dialog.alert({
         title: 'Pathway not removed',
         message:
-          'Only a completed pathway can be removed. Finish it first, then remove it.',
+          'Only a completed or archived pathway can be removed. Finish it first, then remove it.',
         confirmLabel: 'Got it',
       });
     }
@@ -464,14 +490,19 @@ export class BusinessSuiteComponent implements OnInit {
     return pipelineProgress(pipeline);
   }
 
-  /** The open pipeline for a module, so a card can offer to resume it. */
+  /**
+   * The open pipeline for a module, so a card can offer to resume it. Only
+   * Draft and Active count: an archived or completed pathway cannot be
+   * resumed, and promising RESUME for one used to start a second pathway.
+   */
   activePipelineFor(type: BusinessPipelineType): BusinessPipeline | null {
     return (
       this.bizService
         .activePipelines()
         .find(
           (pipeline) =>
-            pipeline.type === type && pipeline.status !== 'Completed'
+            pipeline.type === type &&
+            (pipeline.status === 'Draft' || pipeline.status === 'Active')
         ) ?? null
     );
   }

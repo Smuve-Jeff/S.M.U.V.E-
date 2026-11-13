@@ -1,4 +1,4 @@
-import { Component, computed, signal, inject } from '@angular/core';
+import { Component, OnDestroy, computed, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ReleasePipelineService } from '../../services/release-pipeline.service';
@@ -26,7 +26,7 @@ interface StoredWriterPages {
   templateUrl: './lyric-editor.component.html',
   styleUrls: ['./lyric-editor.component.css'],
 })
-export class LyricEditorComponent {
+export class LyricEditorComponent implements OnDestroy {
   private releaseService = inject(ReleasePipelineService);
 
   /** The active page. These two signals remain the editor's live buffers. */
@@ -70,6 +70,17 @@ export class LyricEditorComponent {
 
   constructor() {
     this.restoreWriterState();
+  }
+
+  /**
+   * The pad unmounts whenever the artist switches Songwriting Studio tabs,
+   * so persist unsaved words instead of dropping them. A fully empty pad
+   * writes nothing.
+   */
+  ngOnDestroy(): void {
+    if (this.savedAt() === null && this.totalWordCount() > 0) {
+      this.saveLyrics();
+    }
   }
 
   /** Save every page in this browser. This is not a release-pipeline commit. */

@@ -245,7 +245,7 @@ describe('AppComponent', () => {
   });
 
   it('opens the Masterclass at the current screen lesson', async () => {
-    const { component, router } = await createComponent('/lyric-editor');
+    const { component, router } = await createComponent('/songwriting/pad');
     const target = component.teachTarget()!;
 
     component.openTeachScreen();

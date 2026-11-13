@@ -124,6 +124,70 @@ describe('BusinessPipelineDetailComponent', () => {
     ).toBeNull();
   });
 
+  it('explains a missing pathway instead of rendering a blank page', () => {
+    pipelines.set([]);
+    fixture.detectChanges();
+
+    const nativeElement = fixture.nativeElement as HTMLElement;
+    expect(nativeElement.querySelector('.pipeline-missing')).not.toBeNull();
+    expect(nativeElement.textContent).toContain(
+      'This pathway is not on your record'
+    );
+  });
+
+  it('lets a finished phase be reviewed and its step reopened', async () => {
+    const base = pipeline();
+    pipelines.set([
+      {
+        ...base,
+        stages: [
+          {
+            id: 's1',
+            name: 'Stage One',
+            status: 'Completed',
+            steps: [
+              {
+                id: 'a',
+                title: 'Moodboard',
+                description: '',
+                status: 'Completed',
+                aiGuidance: '',
+              },
+            ],
+          },
+          base.stages[1],
+          base.stages[2],
+        ],
+      },
+    ]);
+    fixture.detectChanges();
+
+    // The open stage is phase two until the artist picks another one.
+    expect(text()).toContain('Phase 2: Stage Two');
+
+    component.selectStage(0);
+    fixture.detectChanges();
+
+    expect(text()).toContain('Phase 1: Stage One');
+    expect(text()).toContain('Reviewing a finished phase');
+
+    const reopen = Array.from(
+      (fixture.nativeElement as HTMLElement).querySelectorAll('button')
+    ).find((button) => button.textContent?.trim() === 'Reopen')!;
+    reopen.click();
+    await fixture.whenStable();
+
+    const service = TestBed.inject(BusinessPipelineService) as unknown as {
+      updateStep: jest.Mock;
+    };
+    expect(service.updateStep).toHaveBeenCalledWith(
+      'biz-1',
+      's1',
+      'a',
+      'Pending'
+    );
+  });
+
   it('quotes counted progress and evidence instead of invented percentages', () => {
     expect(text()).toContain('Evidence Impact');
     expect(text()).not.toContain('+12.4%');

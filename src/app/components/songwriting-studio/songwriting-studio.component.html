@@ -1,0 +1,39 @@
+<div class="songwriting-shell">
+  <header class="songwriting-header">
+    <div class="songwriting-heading">
+      <h1>Songwriting Studio</h1>
+      <p>
+        Write solo pages or co-write with S.M.U.V.E. — lyrics, melody and
+        harmony stay in one room.
+      </p>
+    </div>
+    <nav class="songwriting-tabs" aria-label="Songwriting Studio sections">
+      <a
+        type="button"
+        class="songwriting-tab"
+        routerLink="pad"
+        routerLinkActive="is-active"
+        ariaCurrentWhenActive="page"
+      >
+        <span class="tab-emoji" aria-hidden="true">✍️</span>
+        <span class="tab-label">Writer's Pad</span>
+        <span class="tab-hint">Solo pages</span>
+      </a>
+      <a
+        type="button"
+        class="songwriting-tab"
+        routerLink="cowrite"
+        routerLinkActive="is-active"
+        ariaCurrentWhenActive="page"
+      >
+        <span class="tab-emoji" aria-hidden="true">🤝</span>
+        <span class="tab-label">Co-Write</span>
+        <span class="tab-hint">Sessions &amp; melody</span>
+      </a>
+    </nav>
+  </header>
+
+  <div class="songwriting-body">
+    <router-outlet></router-outlet>
+  </div>
+</div>
