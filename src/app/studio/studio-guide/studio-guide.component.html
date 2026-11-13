@@ -265,6 +265,45 @@
               </div>
             </article>
 
+            @if (track.id === 'whole-app' && academyPrograms().length) {
+              <section class="sg-academy-strip" aria-label="Music Academy programs">
+                <div class="sg-academy-strip-head">
+                  <div>
+                    <h3>Music Academy programs</h3>
+                    <p>{{ academyOverallPercent() }}% complete across {{ academyPrograms().length }} programs. Pick one to keep learning — the Academy opens on that program.</p>
+                  </div>
+                </div>
+                <div class="sg-academy-grid" role="list">
+                  @for (program of academyPrograms(); track program.id) {
+                    <button
+                      type="button"
+                      class="sg-academy-card"
+                      role="listitem"
+                      (click)="openAcademy(program.id)"
+                      [attr.aria-label]="program.label + ' — ' + program.percent + '% complete. Open in Music Academy.'"
+                    >
+                      <span class="sg-academy-emoji" aria-hidden="true">{{ program.emoji }}</span>
+                      <span class="sg-academy-copy">
+                        <strong>{{ program.label }}</strong>
+                        <span
+                          class="sg-academy-bar"
+                          role="progressbar"
+                          aria-valuemin="0"
+                          aria-valuemax="100"
+                          [attr.aria-valuenow]="program.percent"
+                          [attr.aria-label]="program.label + ' progress'"
+                        >
+                          <span class="sg-academy-fill" aria-hidden="true" [style.width.%]="program.percent"></span>
+                        </span>
+                        <small>{{ program.percent }}% complete</small>
+                      </span>
+                      <span class="sg-academy-go material-symbols-outlined" aria-hidden="true">arrow_forward</span>
+                    </button>
+                  }
+                </div>
+              </section>
+            }
+
             <div class="sg-lesson-list">
               @for (lesson of track.lessons; track lesson.id; let i = $index) {
                 <article class="sg-lesson" [class.is-open]="isLessonOpen(lesson.id)" [class.is-done]="lessonDone(lesson)">

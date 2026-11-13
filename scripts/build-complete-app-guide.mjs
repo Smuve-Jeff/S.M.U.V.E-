@@ -125,9 +125,11 @@ const CHAPTERS = [
       "Cowrite and Lyric Editor",
       "Practice Space",
       "Music Academy programs",
+      "Academy career paths: acting, directing, business, legal, marketing",
     ],
     lines: [
       "The creation side of the app starts before the Studio: Composition Core, AI Produce, Cowrite, Lyric Editor, Practice and the Music Academy.",
+      "The Academy now covers instruments and vocals plus acting, directing, music business and legal, and marketing and promotion.",
       "Composition Core works inside a genre and can generate a full song, a beat or a single musical step.",
       "AI Produce takes a brief further, while Cowrite and Lyric Editor keep the human topline and the words in the room.",
       "Practice and Academy turn a weak spot into a routine. Use them between records, not only when a deadline is already late.",

@@ -139,4 +139,14 @@ describe('MasterclassPageComponent', () => {
 
     expect(router.navigate).toHaveBeenCalledWith(['/academy']);
   });
+
+  it('opens an Academy program pick on that Academy program', async () => {
+    await create();
+
+    component.openAcademyProgram('acting');
+
+    expect(router.navigate).toHaveBeenCalledWith(['/academy'], {
+      queryParams: { program: 'acting' },
+    });
+  });
 });

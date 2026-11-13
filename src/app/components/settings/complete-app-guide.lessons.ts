@@ -130,17 +130,18 @@ export const COMPLETE_GUIDE_LESSONS: readonly CompleteGuideLesson[] = [
     title: "Write, produce and learn",
     kicker: "Creation",
     summary:
-      "Composition Core, AI Produce, Cowrite Studio, Lyric Editor, Practice Space and Music Academy cover the writing and skill-building side of the record.",
+      "Composition Core, AI Produce, Cowrite Studio, Lyric Editor, Practice Space and Music Academy cover the writing and skill-building side of the record — instruments and vocals, acting and directing, music business and legal, plus marketing and promotion.",
     features: [
       "Genre-locked composition and single musical steps",
       "AI Produce from brief to arrangement",
       "Cowrite rooms and lyric editing",
       "Practice drills and Academy programs",
+      "Academy career paths: acting, directing, music business and legal, marketing and promotion",
     ],
     steps: [
       "Start with a brief in Composition Core or AI Produce.",
       "Move the idea into Cowrite Studio or Lyric Editor for topline and lyric work.",
-      "Use Practice Space and Music Academy to turn a weakness into a repeatable routine.",
+      "Use Practice Space and Music Academy to turn a weakness into a repeatable routine — including acting, directing, business, legal and promotion drills when the song needs a career skill.",
     ],
     mistake:
       "Asking AI for a finished record with no genre, reference or constraint. Direction is part of the composition, not a setting you can skip.",

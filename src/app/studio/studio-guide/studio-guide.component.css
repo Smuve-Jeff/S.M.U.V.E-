@@ -2124,3 +2124,106 @@ input:focus-visible {
     margin-left: 44px;
   }
 }
+
+/* ── Music Academy program strip (Whole App path) ──────────── */
+
+.sg-academy-strip {
+  margin: 14px 0 4px;
+  padding: 14px;
+  border: 1px solid rgba(125, 211, 252, 0.18);
+  border-radius: 14px;
+  background:
+    radial-gradient(600px 160px at 0% -20%, rgba(56, 189, 248, 0.12), transparent 60%),
+    rgba(255, 255, 255, 0.022);
+}
+
+.sg-academy-strip-head h3 {
+  margin: 0 0 4px;
+  font-size: 0.95rem;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  color: #f2f6ff;
+}
+
+.sg-academy-strip-head p {
+  margin: 0 0 10px;
+  font-size: 0.78rem;
+  line-height: 1.5;
+  color: #9fabc2;
+}
+
+.sg-academy-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 8px;
+}
+
+.sg-academy-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  color: inherit;
+  background: rgba(255, 255, 255, 0.03);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.18s ease, background 0.18s ease;
+}
+
+.sg-academy-card:hover {
+  border-color: rgba(125, 211, 252, 0.45);
+  background: rgba(56, 189, 248, 0.07);
+}
+
+.sg-academy-emoji {
+  flex: 0 0 auto;
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.sg-academy-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.sg-academy-copy strong {
+  overflow: hidden;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #eef3ff;
+}
+
+.sg-academy-bar {
+  display: block;
+  height: 5px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.sg-academy-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #38bdf8, #5dc4c2);
+  transition: width 0.3s ease;
+}
+
+.sg-academy-copy small {
+  font-size: 0.68rem;
+  color: #8b96ad;
+}
+
+.sg-academy-go {
+  flex: 0 0 auto;
+  color: #7dd3fc;
+  font-size: 18px;
+}

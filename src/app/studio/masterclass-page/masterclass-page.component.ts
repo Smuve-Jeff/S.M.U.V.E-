@@ -86,6 +86,13 @@ export class MasterclassPageComponent {
     void this.router.navigate([path]);
   }
 
+  /** Academy program picks open the Academy pre-selected to that program. */
+  openAcademyProgram(programId: string): void {
+    void this.router.navigate(['/academy'], {
+      queryParams: { program: programId },
+    });
+  }
+
   /** The overlay's starter action; the page still lands in the real Studio. */
   openStudioQuickStart(): void {
     void this.router.navigate(['/studio'], {

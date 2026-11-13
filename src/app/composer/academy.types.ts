@@ -12,7 +12,12 @@ export type AcademyFamily =
   | 'brass'
   | 'electronic'
   | 'world'
-  | 'voice';
+  | 'voice'
+  | 'acting'
+  | 'directing'
+  | 'business'
+  | 'marketing'
+  | 'industry';
 
 export interface AcademyLesson {
   id: string;
@@ -46,8 +51,10 @@ export interface InstrumentProgram {
   skills: string[];
   faults: string[];
   repertoire: string[];
-  studioInstrumentId: string;
-  studioView: string;
+  studioInstrumentId?: string;
+  studioView?: string;
+  practiceRoute?: string;
+  practiceLabel?: string;
   stages: AcademyStage[];
 }
 

@@ -2,12 +2,12 @@
   <header class="hero">
     <div>
       <p class="eyebrow">S.M.U.V.E. · Music Academy</p>
-      <h1>Learn the instrument. Then own the record.</h1>
+      <h1>Learn the craft. Then own the record.</h1>
       <p class="lede">
-        Every instrument, from absolute beginner to studio-ready, plus a vocal
-        coach that trains pitch, tone, strength and tuning as separate skills.
-        S.M.U.V.E. teaches the technique, gives you the drill, tells you what
-        “good” sounds like, and opens the Studio on the right instrument.
+        Learn instruments and vocals, acting and directing, music business and
+        legal, plus marketing and promotion. S.M.U.V.E. teaches the technique,
+        gives you the drill, tells you what “good” sounds like, and opens the
+        right workspace for the work.
       </p>
       <div class="hero-chips">
         <span class="chip">Suggested start: {{ academy.recommendedLevel() }}</span>
@@ -35,7 +35,7 @@
 
   <section class="browser">
     <div class="browser-head">
-      <h2>Choose your instrument</h2>
+      <h2>Choose your discipline</h2>
       <input
         type="search"
         class="search"
@@ -116,7 +116,7 @@
         </div>
         <div class="detail-actions">
           <button type="button" class="btn btn-primary" (click)="practice()">
-            Open in Studio
+            {{ practiceLabel() }}
           </button>
           <button
             type="button"
@@ -134,9 +134,9 @@
       </div>
 
       <div class="detail-meta">
-        <div><span class="meta-key">Tuning / setup</span><span class="meta-value">{{ program.tuning }}</span></div>
+        <div><span class="meta-key">Setup</span><span class="meta-value">{{ program.tuning }}</span></div>
         <div><span class="meta-key">You need</span><span class="meta-value">{{ program.rig }}</span></div>
-        <div><span class="meta-key">Core technique</span><span class="meta-value">{{ program.technique }}</span></div>
+        <div><span class="meta-key">Core method</span><span class="meta-value">{{ program.technique }}</span></div>
       </div>
 
       <div class="skill-grid">

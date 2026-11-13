@@ -108,6 +108,38 @@ describe('CommandPaletteService', () => {
     expect(action?.keywords).toContain('lesson');
   });
 
+  it('offers one discovery command per Academy career discipline', () => {
+    const actions = service.actions();
+    for (const program of [
+      'acting',
+      'directing',
+      'music-business-legal',
+      'marketing-promotion',
+      'entertainment-industry',
+    ]) {
+      const action = actions.find(
+        (candidate) => candidate.id === `learn-${program}`
+      );
+      expect(action?.category).toBe('Music Academy');
+      expect(action?.keywords).toContain('academy');
+    }
+
+    service.updateQuery('marketing');
+    expect(
+      service.filteredActions().map((action) => action.id)
+    ).toContain('learn-marketing-promotion');
+  });
+
+  it('deep links an Academy discipline command to its program', () => {
+    service.openPalette();
+
+    expect(service.executeCommandById('learn-acting')).toBe(true);
+    expect(router.navigate).toHaveBeenCalledWith(['/academy'], {
+      queryParams: { program: 'acting' },
+    });
+    expect(service.isOpen()).toBe(false);
+  });
+
   it('teaches the current screen from the Alt+L shortcut', () => {
     router.url = '/lyric-editor';
     const event = new KeyboardEvent('keydown', {

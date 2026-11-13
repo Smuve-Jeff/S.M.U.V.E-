@@ -34,6 +34,7 @@ import {
 import { StudioGuideAutoCheckService } from "./studio-guide.auto-check.service";
 import { StudioGuideService } from "./studio-guide.service";
 import { StudioGuideSyncService } from "./studio-guide-sync.service";
+import { MusicAcademyService } from "../../composer/music-academy.service";
 
 export type { GuideTab } from "./studio-guide-deep-link";
 
@@ -87,6 +88,8 @@ export class StudioGuideComponent {
   readonly openStandalone = output<GuideStateChange>();
   /** Ask the shell to open a whole-application workspace route. */
   readonly openWorkspace = output<string>();
+  /** Ask the shell to open one Music Academy program by id. */
+  readonly openAcademyProgram = output<string>();
 
   /** Standalone page mode: no dialog backdrop, no modal close semantics. */
   readonly pageMode = input(false);
@@ -102,6 +105,27 @@ export class StudioGuideComponent {
 
   readonly tracks = GUIDE_TRACKS;
   readonly atlas = GUIDE_SURFACE_ATLAS;
+  /**
+   * Academy progress for the in-guide program strip. Optional so the guide
+   * renders without the Academy service wherever it is unavailable; the
+   * strip simply hides and every lesson keeps working.
+   */
+  private readonly academy = inject(MusicAcademyService, { optional: true });
+
+  readonly academyPrograms = computed(() => {
+    const academy = this.academy;
+    if (!academy) return [];
+    return academy.programs.map((program) => ({
+      id: program.id,
+      label: program.label,
+      emoji: program.emoji,
+      percent: academy.progressFor(program).percent,
+    }));
+  });
+
+  readonly academyOverallPercent = computed(
+    () => this.academy?.overallPercent() ?? 0
+  );
   readonly glossary = GUIDE_GLOSSARY;
   readonly shortcuts = GUIDE_SHORTCUTS;
 
@@ -360,6 +384,11 @@ export class StudioGuideComponent {
 
   openFullPage(): void {
     this.openStandalone.emit(this.currentState());
+  }
+
+  /** Open one Academy program in its own workspace, leaving the guide. */
+  openAcademy(programId: string): void {
+    this.openAcademyProgram.emit(programId);
   }
 
   /** Open whatever real destination this lesson teaches. */

@@ -1681,6 +1681,14 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     void this.router.navigate([path]);
   }
 
+  /** An Academy program pick leaves the Studio for that Academy program. */
+  onGuideOpenAcademyProgram(programId: string): void {
+    this.dismissGuideForNavigation();
+    void this.router.navigate(['/academy'], {
+      queryParams: { program: programId },
+    });
+  }
+
   /**
    * Hide the overlay without writing a competing /studio URL. The navigation
    * that follows is the destination; the guide's query has no meaning there.

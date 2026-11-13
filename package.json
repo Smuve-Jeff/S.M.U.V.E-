@@ -48,7 +48,10 @@
     "mg:run:render": "npm run mg:run:prod",
     "mg:revert": "npx typeorm -- migration:revert -d src/database/data-source.ts",
     "mg:show": "npx typeorm -- migration:show -d src/database/data-source.ts",
-    "qa:sql": "node scripts/repro-500.cjs"
+    "qa:sql": "node scripts/repro-500.cjs",
+    "artifacts:clean": "node scripts/clean-qa-artifacts.mjs",
+    "artifacts:clean:dry": "node scripts/clean-qa-artifacts.mjs --dry-run",
+    "artifacts:clean:verbose": "node scripts/clean-qa-artifacts.mjs --verbose"
   },
   "dependencies": {
     "@angular-devkit/build-angular": "21.2.26",

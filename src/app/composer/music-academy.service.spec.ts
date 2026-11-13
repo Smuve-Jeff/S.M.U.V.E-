@@ -15,6 +15,10 @@ type ProfileSlice = {
 const VOICE = ALL_PROGRAMS.find((program) => program.id === 'voice')!;
 const PIANO = ALL_PROGRAMS.find((program) => program.id === 'piano')!;
 const DRUMS = ALL_PROGRAMS.find((program) => program.id === 'drum-kit')!;
+const ACTING = ALL_PROGRAMS.find((program) => program.id === 'acting')!;
+const BUSINESS = ALL_PROGRAMS.find(
+  (program) => program.id === 'music-business-legal'
+)!;
 const TOTAL_LESSONS = ALL_PROGRAMS.reduce(
   (sum, program) =>
     sum + program.stages.reduce((stageSum, stage) => stageSum + stage.lessons.length, 0),
@@ -228,6 +232,20 @@ describe('MusicAcademyService', () => {
 
     expect(service.selectedProgram().id).toBe('voice');
     expect(service.selectedProgramInView()?.id).toBe('voice');
+  });
+
+  it('sends non-studio programs to their own workspace', () => {
+    const service = create();
+
+    service.practiceSelected(ACTING);
+    expect(music.addTrack).not.toHaveBeenCalled();
+    expect(router.navigate).toHaveBeenCalledWith(['/practice']);
+    expect(service.practiceLabelFor(ACTING)).toBe('Open Practice Space');
+
+    service.practiceSelected(BUSINESS);
+    expect(router.navigate).toHaveBeenCalledWith(['/business-suite']);
+    expect(service.practiceLabelFor(BUSINESS)).toBe('Open Business Suite');
+    expect(service.practiceLabelFor(VOICE)).toBe('Open in Studio');
   });
 
   it('opens practice on the right instrument and view', () => {

@@ -167,10 +167,14 @@ describe('ChatbotComponent', () => {
       ['#teach image video lab', 'IMAGE & VIDEO LAB'],
       ['#teach tha spot', 'THA SPOT'],
       ['#teach lyrics', 'WRITE, PRODUCE AND LEARN'],
+      ['#teach acting', 'WRITE, PRODUCE AND LEARN'],
       ['#learn directing', 'DIRECTING: BUILD THE VISUAL ARGUMENT'],
       ['#learn acting', 'ACTING: PLAY AN ACTION, NOT AN EMOTION'],
       ['#learn music videos', 'MUSIC VIDEOS: CUT THE SONG, NOT THE FOOTAGE'],
       ['#learn podcast/vlog', 'PODCAST & VLOG: EARN THE NEXT MINUTE'],
+      ['#learn business', 'MUSIC BUSINESS & LEGAL: OWN THE RIGHTS'],
+      ['#learn marketing', 'MARKETING & PROMOTION: EARN THE AUDIENCE'],
+      ['#learn industry', 'ENTERTAINMENT INDUSTRY: WORK THE WHOLE SYSTEM'],
       ['#learn books', 'BOOKS: WRITE, REVISE, PUBLISH'],
     ];
 
@@ -178,6 +182,33 @@ describe('ChatbotComponent', () => {
       const intent = await (component as any).routeMasterIntent(command);
       expect(intent?.content).toContain(expected);
     }
+  });
+
+  it('pairs craft lessons with their Academy program deep link', async () => {
+    const directing = await (component as any).routeMasterIntent('#learn directing');
+    expect(directing.actions).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: 'open-route', data: '/image-video-lab' }),
+        expect.objectContaining({
+          id: 'open-route',
+          label: 'Open Academy: Directing',
+          data: '/academy',
+          queryParams: { program: 'directing' },
+        }),
+      ])
+    );
+
+    const business = await (component as any).routeMasterIntent('#learn music business');
+    expect(business.actions).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: 'open-route', data: '/business-suite' }),
+        expect.objectContaining({
+          id: 'open-route',
+          data: '/academy',
+          queryParams: { program: 'music-business-legal' },
+        }),
+      ])
+    );
   });
 
   it('re-reads a committed profile change and says what moved', () => {

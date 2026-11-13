@@ -2,6 +2,7 @@ import { ComponentFixture, TestBed } from "@angular/core/testing";
 import { signal } from "@angular/core";
 
 import { StudioGuideComponent } from "./studio-guide.component";
+import { MusicAcademyService } from "../../composer/music-academy.service";
 import { StudioGuideAutoCheckService } from "./studio-guide.auto-check.service";
 import { GUIDE_SURFACE_ATLAS, GUIDE_TRACKS } from "./studio-guide.data";
 import { StudioGuideService } from "./studio-guide.service";
@@ -47,6 +48,19 @@ describe("StudioGuideComponent", () => {
       providers: [
         { provide: StudioGuideAutoCheckService, useValue: autoCheck },
         { provide: StudioGuideSyncService, useValue: guideSync },
+        {
+          provide: MusicAcademyService,
+          useValue: {
+            programs: [
+              { id: "acting", label: "Acting", emoji: "🎭" },
+              { id: "voice", label: "Voice / Vocal Coach", emoji: "🎤" },
+            ],
+            progressFor: (program: { id: string }) => ({
+              percent: program.id === "acting" ? 100 : 25,
+            }),
+            overallPercent: signal(44),
+          },
+        },
       ],
     }).compileComponents();
 
@@ -157,6 +171,42 @@ describe("StudioGuideComponent", () => {
 
     expect(openWorkspace).toHaveBeenCalledWith("/hub");
     expect(openSurface).not.toHaveBeenCalled();
+  });
+
+  it("shows the Academy program strip with progress on the Whole App path", () => {
+    const element = fixture.nativeElement as HTMLElement;
+    component.selectTrack("whole-app");
+    fixture.detectChanges();
+
+    const strip = element.querySelector(".sg-academy-strip");
+    expect(strip).not.toBeNull();
+    expect(strip?.textContent).toContain("Acting");
+    expect(strip?.textContent).toContain("Voice / Vocal Coach");
+    expect(strip?.textContent).toContain("100% complete");
+    expect(strip?.textContent).toContain("44% complete across 2 programs");
+    expect(element.querySelectorAll(".sg-academy-card").length).toBe(2);
+  });
+
+  it("opens the picked Academy program through the shell output", () => {
+    const element = fixture.nativeElement as HTMLElement;
+    component.selectTrack("whole-app");
+    fixture.detectChanges();
+    const emit = jest.spyOn(component.openAcademyProgram, "emit");
+
+    const acting = Array.from(
+      element.querySelectorAll(".sg-academy-card")
+    ).find((card) => card.textContent?.includes("Acting")) as HTMLButtonElement;
+    acting.click();
+
+    expect(emit).toHaveBeenCalledWith("acting");
+  });
+
+  it("hides the Academy strip on the other paths", () => {
+    const element = fixture.nativeElement as HTMLElement;
+    component.selectTrack("first-loop");
+    fixture.detectChanges();
+
+    expect(element.querySelector(".sg-academy-strip")).toBeNull();
   });
 
   it("coaches one move at a time and keeps the index inside the lesson", () => {

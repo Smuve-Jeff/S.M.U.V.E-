@@ -148,7 +148,7 @@ export const QUICK_COMMANDS = [
   },
   {
     label: '#learn',
-    description: 'Professional craft insight from S.M.U.V.E. — directing, acting, video, podcast, books',
+    description: 'Professional craft insight from S.M.U.V.E. — directing, acting, video, business, marketing, books',
   },
   { label: '/mimic', description: 'Mimic artist style' },
 

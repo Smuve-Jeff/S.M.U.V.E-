@@ -10,8 +10,9 @@ import {
  * #Teach is an in-app feature walkthrough: it points at a shipped workspace and
  * only repeats instructions that exist in the app guide. #Learn is craft
  * education: the professional mechanics behind directing, acting, music video,
- * podcast/vlog and book publishing. Neither surface writes a lesson for the
- * artist — S.M.U.V.E. is the only teacher.
+ * podcast/vlog, book publishing, music business and legal, marketing and
+ * promotion, and the wider entertainment industry. Neither surface writes a
+ * lesson for the artist — S.M.U.V.E. is the only teacher.
  */
 export interface LearnTrack {
   id: string;
@@ -23,6 +24,9 @@ export interface LearnTrack {
   mistake: string;
   route?: string;
   action?: string;
+  /** Music Academy program backing this craft, opened as a second action. */
+  academyProgram?: string;
+  academyAction?: string;
   keywords: readonly string[];
 }
 
@@ -45,6 +49,13 @@ const TEACH_ALIASES: Record<string, readonly string[]> = {
     'composition',
     'cowrite',
     'academy',
+    'acting',
+    'directing',
+    'music business',
+    'music legal',
+    'marketing',
+    'promotion',
+    'entertainment industry',
     'book',
     'books',
     'writer',
@@ -83,6 +94,8 @@ export const LEARN_TRACKS: readonly LearnTrack[] = [
       'Covering everything so the edit can decide later. Coverage without a point of view produces footage, not a scene.',
     route: '/image-video-lab',
     action: 'Open Image & Video Lab',
+    academyProgram: 'directing',
+    academyAction: 'Open Academy: Directing',
     keywords: ['direct', 'directing', 'director', 'film', 'cinema', 'shot', 'coverage'],
   },
   {
@@ -109,6 +122,8 @@ export const LEARN_TRACKS: readonly LearnTrack[] = [
       'Indicating the emotion the script names. Playing “sad” is a result; playing “hide the truth from the person I love” gives the camera something to watch.',
     route: '/image-video-lab',
     action: 'Open the camera in Image & Video Lab',
+    academyProgram: 'acting',
+    academyAction: 'Open Academy: Acting',
     keywords: ['act', 'acting', 'actor', 'audition', 'self tape', 'performance', 'character'],
   },
   {
@@ -135,6 +150,8 @@ export const LEARN_TRACKS: readonly LearnTrack[] = [
       'Shooting a pile of cool shots and hoping the edit finds a video. Start from the section map; every setup should have a named job.',
     route: '/image-video-lab',
     action: 'Open Image & Video Lab',
+    academyProgram: 'directing',
+    academyAction: 'Open Academy: Directing',
     keywords: ['music video', 'video', 'visual', 'treatment', 'beat map', 'youtube'],
   },
   {
@@ -163,6 +180,81 @@ export const LEARN_TRACKS: readonly LearnTrack[] = [
     route: '/image-video-lab',
     action: 'Open Image & Video Lab',
     keywords: ['podcast', 'vlog', 'interview', 'youtube', 'broadcast', 'episode', 'microphone'],
+  },
+  {
+    id: 'music-business',
+    title: 'Music Business & Legal: Own the Rights',
+    kicker: 'BUSINESS · RIGHTS & RELEASES',
+    summary:
+      'A release is two assets: the song and the recording. Paper decides who owns each one, who gets paid, and what happens when money arrives.',
+    concepts: [
+      'Split sheets record who wrote what and in what share. Unsigned splits become disputes the moment a song earns.',
+      'Publishing and masters are separate rights with separate owners, registrations and payment paths.',
+      'Producer, feature, sample and cover deals each need terms, fees, credits and approvals before release week.',
+      'A release-day checklist — splits, credits, ISRCs, artwork rights and distributor details — prevents takedowns and frozen payouts.',
+    ],
+    practice: [
+      'Complete an Academy split-sheet drill for your next cowrite before the session file leaves the room.',
+      'Build a clearance list for one release with an owner, status and decision date per item.',
+      'Draft a one-page revenue map showing where streaming, sync, live and merchandise money actually lands.',
+    ],
+    mistake:
+      'Trusting a verbal agreement because everyone is friendly now. Friendliness fades; signed paper holds.',
+    route: '/business-suite',
+    action: 'Open Business Suite',
+    academyProgram: 'music-business-legal',
+    academyAction: 'Open Academy: Music Business & Legal',
+    keywords: ['business', 'legal', 'rights', 'splits', 'publishing', 'contracts', 'royalties', 'clearance'],
+  },
+  {
+    id: 'marketing',
+    title: 'Marketing & Promotion: Earn the Audience',
+    kicker: 'MARKETING · ROLLOUT & GROWTH',
+    summary:
+      'Promotion is a system, not a hope. One audience, one hook and one call to action per release beats posting everywhere to no one.',
+    concepts: [
+      'Positioning is a promise: name the genre, the feeling and the difference in one line a stranger can repeat.',
+      'A hook library turns one release into many doors — lyric, visual, story and challenge versions of the same idea.',
+      'A four-week rollout concentrates attention: tease, launch, sustain. Day-one assets are scheduled before day one.',
+      'Retention, saves and follows outrank raw views. Measure, keep the winning format, and stop feeding the losers.',
+    ],
+    practice: [
+      'Cut five platform-native clips from one Academy performance session, each with its own hook.',
+      'Plan a release calendar with owners and deadlines, then schedule every launch-week post in advance.',
+      'Review your last five posts and name the single format worth repeating.',
+    ],
+    mistake:
+      'Posting without a hook and calling the algorithm unfair. No hook, no doorway — the song never gets a chance.',
+    route: '/strategy',
+    action: 'Open Strategy Hub',
+    academyProgram: 'marketing-promotion',
+    academyAction: 'Open Academy: Marketing & Promotion',
+    keywords: ['marketing', 'promotion', 'audience', 'hooks', 'rollout', 'campaign', 'growth', 'release'],
+  },
+  {
+    id: 'entertainment-industry',
+    title: 'Entertainment Industry: Work the Whole System',
+    kicker: 'INDUSTRY · ROLES, MONEY & CONDUCT',
+    summary:
+      'Music opens doors to live performance, screen and brand work — but only for artists who understand the rooms, the money and the conduct each one expects.',
+    concepts: [
+      'Every project has a pipeline: recording, mixing, mastering, distribution, playlisting and payment, each with a gatekeeper.',
+      'Streaming, sync, live and merchandise pay through different routes. Trace each one to the artist before you plan around it.',
+      'Managers, lawyers, distributors and publicists have distinct jobs. Duplicate roles waste money; missing roles stall releases.',
+      'Professional conduct is infrastructure: clear messages, honest paperwork, early calls and repeatable stage discipline.',
+    ],
+    practice: [
+      'Draw the team and handoffs around your next release with one owner and deadline per handoff.',
+      'Assemble a five-minute booker packet: clips, credits, press and business documents.',
+      'Write yearly skill, release and income targets with one measurable proof per year.',
+    ],
+    mistake:
+      'Treating the next single as the whole career. Singles are steps; the map is what makes them add up.',
+    route: '/knowledge-base',
+    action: 'Open Knowledge Base',
+    academyProgram: 'entertainment-industry',
+    academyAction: 'Open Academy: Entertainment Industry',
+    keywords: ['industry', 'entertainment', 'career', 'revenue', 'team', 'conduct', 'live', 'sync'],
   },
   {
     id: 'books',
@@ -347,7 +439,7 @@ export class SmuveTeachLearnService {
       ...this.learnTracks.map(
         (track) => `• ${track.title} — ${track.kicker.toLowerCase()}`
       ),
-      'Use: #learn directing · #learn acting · #learn music videos · #learn podcast · #learn books',
+      'Use: #learn directing · #learn acting · #learn music videos · #learn business · #learn marketing',
     ].join('\n');
   }
 }

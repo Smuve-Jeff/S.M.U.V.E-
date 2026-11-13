@@ -7,7 +7,8 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { RouterModule } from '@angular/router';
+import { ActivatedRoute, Router, RouterModule } from '@angular/router';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import type { AcademyFamily, AcademyLesson, VocalPreset } from '../../composer/academy.types';
 import { MusicAcademyService } from '../../composer/music-academy.service';
 
@@ -21,17 +22,30 @@ import { MusicAcademyService } from '../../composer/music-academy.service';
 })
 export class MusicAcademyComponent {
   readonly academy = inject(MusicAcademyService);
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   readonly confirmingReset = signal(false);
   private resetTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor() {
     inject(DestroyRef).onDestroy(() => this.disarmReset());
+    // Deep links like /academy?program=acting land on that program. Unknown
+    // values are ignored so a stale link can never select a missing program.
+    this.route.queryParamMap
+      .pipe(takeUntilDestroyed())
+      .subscribe((params) => {
+        const programId = params.get('program');
+        if (programId) {
+          this.disarmReset();
+          this.academy.selectProgram(programId);
+        }
+      });
   }
 
   readonly familyChips = computed(() => {
     const families = this.academy.families();
     return [
-      { id: 'all' as const, label: 'All instruments' },
+      { id: 'all' as const, label: 'All disciplines' },
       ...families.map((family) => ({
         id: family,
         label: this.academy.familyLabels[family],
@@ -42,6 +56,12 @@ export class MusicAcademyComponent {
   selectProgram(programId: string): void {
     this.disarmReset();
     this.academy.selectProgram(programId);
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { program: programId },
+      queryParamsHandling: 'merge',
+      replaceUrl: true,
+    });
   }
 
   setFamily(family: AcademyFamily | 'all'): void {
@@ -66,7 +86,11 @@ export class MusicAcademyComponent {
 
   practice(): void {
     this.disarmReset();
-    this.academy.practiceInStudio(this.academy.selectedProgram());
+    this.academy.practiceSelected(this.academy.selectedProgram());
+  }
+
+  practiceLabel(): string {
+    return this.academy.practiceLabelFor(this.academy.selectedProgram());
   }
 
   /** Resetting a program is destructive, so the second press confirms it. */

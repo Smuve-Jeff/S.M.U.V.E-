@@ -1,5 +1,12 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { Router, provideRouter } from '@angular/router';
+import {
+  ActivatedRoute,
+  Router,
+  convertToParamMap,
+  provideRouter,
+  type ParamMap,
+} from '@angular/router';
+import { BehaviorSubject } from 'rxjs';
 import { MusicAcademyComponent } from './music-academy.component';
 import { MusicAcademyService } from '../../composer/music-academy.service';
 import { UserProfileService } from '../../services/user-profile.service';
@@ -13,6 +20,7 @@ describe('MusicAcademyComponent', () => {
   let music: { addTrack: jest.Mock; setTrackPlugins: jest.Mock };
   let notify: { show: jest.Mock };
   let navigate: jest.SpyInstance;
+  let queryParams: BehaviorSubject<ParamMap>;
 
   const button = (label: string): HTMLButtonElement => {
     const match = Array.from(
@@ -31,11 +39,16 @@ describe('MusicAcademyComponent', () => {
       setTrackPlugins: jest.fn(),
     };
     notify = { show: jest.fn() };
+    queryParams = new BehaviorSubject<ParamMap>(convertToParamMap({}));
 
     TestBed.configureTestingModule({
       imports: [MusicAcademyComponent],
       providers: [
         provideRouter([]),
+        {
+          provide: ActivatedRoute,
+          useValue: { queryParamMap: queryParams.asObservable() },
+        },
         { provide: UserProfileService, useValue: { profile: () => null } },
         { provide: MusicManagerService, useValue: music },
         { provide: NotificationService, useValue: notify },
@@ -59,7 +72,7 @@ describe('MusicAcademyComponent', () => {
   it('renders the selected program and its next lesson without a false empty state', () => {
     const text = fixture.nativeElement.textContent || '';
 
-    expect(text).toContain('Learn the instrument');
+    expect(text).toContain('Learn the craft');
     expect(text).toContain('Voice / Vocal Coach');
     expect(text).toContain('Next up:');
     expect(fixture.nativeElement.querySelector('.detail')).not.toBeNull();
@@ -119,7 +132,7 @@ describe('MusicAcademyComponent', () => {
     const allChip = Array.from(
       fixture.nativeElement.querySelectorAll('.chips .chip-btn')
     ).find((candidate: HTMLButtonElement) =>
-      candidate.textContent?.includes('All instruments')
+      candidate.textContent?.includes('All disciplines')
     ) as HTMLButtonElement;
     expect(allChip.getAttribute('aria-pressed')).toBe('true');
 
@@ -152,5 +165,43 @@ describe('MusicAcademyComponent', () => {
     expect(navigate).toHaveBeenCalledWith(['/studio'], {
       queryParams: { view: 'vocal-suite' },
     });
+  });
+
+  it('sends acting practice to Practice Space with its own call to action', () => {
+    service.selectProgram('acting');
+    fixture.detectChanges();
+
+    button('Open Practice Space').click();
+    fixture.detectChanges();
+
+    expect(music.addTrack).not.toHaveBeenCalled();
+    expect(navigate).toHaveBeenCalledWith(['/practice']);
+  });
+
+  it('lands on the program named by the ?program= deep link', () => {
+    queryParams.next(convertToParamMap({ program: 'directing' }));
+    fixture.detectChanges();
+
+    expect(service.selectedProgram().id).toBe('directing');
+    expect(component.practiceLabel()).toBe('Open Image & Video Lab');
+  });
+
+  it('ignores an unknown ?program= value instead of selecting nothing', () => {
+    queryParams.next(convertToParamMap({ program: 'not-a-program' }));
+    fixture.detectChanges();
+
+    expect(service.selectedProgram().id).toBe('voice');
+  });
+
+  it('writes the selected program back to the URL for sharing', () => {
+    component.selectProgram('marketing-promotion');
+
+    expect(service.selectedProgram().id).toBe('marketing-promotion');
+    expect(navigate).toHaveBeenCalledWith(
+      [],
+      expect.objectContaining({
+        queryParams: { program: 'marketing-promotion' },
+      })
+    );
   });
 });

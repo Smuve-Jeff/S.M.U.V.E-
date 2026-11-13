@@ -27,6 +27,9 @@ describe("Masterclass route resolver", () => {
 
   it("maps whole-application workspaces to their real chapter", () => {
     expect(masterclassRouteTarget("/academy")?.lessonId).toBe("app-create");
+    expect(masterclassRouteTarget("/academy?program=acting")?.lessonId).toBe(
+      "app-create"
+    );
     expect(masterclassRouteTarget("/lyric-editor")?.lessonId).toBe("app-create");
     expect(masterclassRouteTarget("/release-pipeline")?.lessonId).toBe(
       "app-business",

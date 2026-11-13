@@ -54,6 +54,24 @@ describe("Studio Masterclass content", () => {
     }
   });
 
+  it("teaches the Academy career disciplines inside the creation chapter", () => {
+    const create = ALL_GUIDE_LESSONS.find((lesson) => lesson.id === "app-create");
+    expect(create).toBeDefined();
+    const copy = [
+      create!.goal,
+      create!.plain,
+      ...create!.controls,
+    ].join(" ");
+    for (const discipline of [
+      "acting",
+      "directing",
+      "business",
+      "marketing",
+    ]) {
+      expect(copy.toLowerCase()).toContain(discipline);
+    }
+  });
+
   it("keeps every lesson actionable and correctly targeted", () => {
     const lessonIds = ALL_GUIDE_LESSONS.map((lesson) => lesson.id);
     expect(new Set(lessonIds).size).toBe(lessonIds.length);

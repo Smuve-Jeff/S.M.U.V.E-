@@ -136,6 +136,8 @@ interface ChatAction {
   label: string;
   /** Arbitrary payload — e.g. artist name for apply-mimic, category for lesson. */
   data?: string;
+  /** Optional router query params, used for Academy program deep links. */
+  queryParams?: Record<string, string>;
 }
 
 interface MasterIntent {
@@ -1083,10 +1085,13 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
   }
 
   /** Actual router navigation (null-safe so the spec's bare test bed stays green). */
-  private navigateTo(route: string): boolean {
+  private navigateTo(
+    route: string,
+    queryParams?: Record<string, string>
+  ): boolean {
     const r = this.router;
     if (!r) return false;
-    r.navigate([route]);
+    r.navigate([route], queryParams ? { queryParams } : undefined);
     return true;
   }
 
@@ -1381,6 +1386,14 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
           },
         ]
       : [];
+    if (track.academyProgram) {
+      actions.push({
+        id: 'open-route',
+        label: track.academyAction || 'Open the Academy program',
+        data: '/academy',
+        queryParams: { program: track.academyProgram },
+      });
+    }
     return { content: this.teachLearn.formatLearn(track), actions };
   }
 
@@ -2027,7 +2040,7 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
         break;
       case 'open-route': {
         const route = action.data?.trim();
-        if (route && this.navigateTo(route)) {
+        if (route && this.navigateTo(route, action.queryParams)) {
           const destination = action.label.replace(/^Open\s+(?:the\s+)?/i, '');
           result = `Opening ${destination}. Keep your eyes on the work.`;
         } else {

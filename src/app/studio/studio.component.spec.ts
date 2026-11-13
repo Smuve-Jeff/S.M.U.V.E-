@@ -2215,6 +2215,18 @@ describe("StudioComponent", () => {
       expect(mockRouter.navigate).toHaveBeenCalledWith(["/academy"]);
     });
 
+    it("leaves the Studio for a picked Academy program", () => {
+      component.openStudioGuide();
+      mockRouter.navigate.mockClear();
+
+      component.onGuideOpenAcademyProgram("acting");
+
+      expect(component.showStudioGuide()).toBe(false);
+      expect(mockRouter.navigate).toHaveBeenCalledWith(["/academy"], {
+        queryParams: { program: "acting" },
+      });
+    });
+
     it("hands the open lesson to the standalone Masterclass page", () => {
       component.openStudioGuide({ track: "full-song", lessonId: "song-export" });
       mockRouter.navigate.mockClear();

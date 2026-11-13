@@ -384,7 +384,7 @@ export const WORKSPACE_REGISTRY: WorkspaceConfig[] = [
     routePath: '/academy',
     label: 'Music Academy',
     description:
-      'Learn any instrument or train your voice with guided lessons, drills and studio practice.',
+      'Learn instruments and vocals, acting and directing, music business and legal, plus marketing and promotion.',
     icon: 'school',
     category: 'ARTIST',
     related: ['practice', 'composer', 'vocal-suite', 'masterclass'],

@@ -266,8 +266,30 @@ export class MusicAcademyService {
     this.router.navigate(['/vocal-suite']);
   }
 
+  /** Practice CTA label, including workspaces outside the Studio. */
+  practiceLabelFor(program: InstrumentProgram): string {
+    return program.practiceLabel ?? 'Open in Studio';
+  }
+
+  /** Sends Studio programs to the Studio and other disciplines to their workspace. */
+  practiceSelected(program: InstrumentProgram): void {
+    if (program.practiceRoute) {
+      void this.router.navigate([program.practiceRoute]);
+      return;
+    }
+    this.practiceInStudio(program);
+  }
+
   /** Opens the Studio with a track already set to the instrument being learned. */
   practiceInStudio(program: InstrumentProgram): void {
+    if (!program.studioInstrumentId || !program.studioView) {
+      this.notify.show(
+        `${program.label} opens in its own workspace, not on a Studio track.`,
+        'info'
+      );
+      if (program.practiceRoute) void this.router.navigate([program.practiceRoute]);
+      return;
+    }
     const trackId = this.music.addTrack(
       `${program.label} practice`,
       program.studioInstrumentId,

@@ -8,11 +8,11 @@ import type {
 /**
  * The Academy curriculum.
  *
- * Every instrument gets a nine-lesson path — posture and first sound, technique
- * under tempo, then studio-ready performance — with the instrument's own
- * technique language written into the drills. The voice gets its own four-stage
- * path because pitch, tone, strength and tuning are separate skills and should
- * never be taught as one blob.
+ * Every discipline gets a nine-lesson path — foundation and first work,
+ * technique under pressure, then release-ready performance. Instruments use
+ * their own technique language in the drills. The voice gets its own
+ * four-stage path because pitch, tone, strength and tuning are separate
+ * skills and should never be taught as one blob.
  */
 
 export const FAMILY_LABELS: Record<AcademyFamily, string> = {
@@ -26,6 +26,11 @@ export const FAMILY_LABELS: Record<AcademyFamily, string> = {
   electronic: 'Electronic & Studio',
   world: 'World & Folk',
   voice: 'Voice',
+  acting: 'Acting',
+  directing: 'Directing',
+  business: 'Music Business & Legal',
+  marketing: 'Marketing & Promotion',
+  industry: 'Entertainment Industry',
 };
 
 interface FamilyLesson {
@@ -727,8 +732,423 @@ const FAMILY_STAGES: Record<Exclude<AcademyFamily, 'voice'>, FamilyStage[]> = {
           title: 'Building your own signature',
           focus: 'Three constraints you always use.',
           drill: 'Write a track using your own rules and document them.',
-          criteria: 'Someone could tell it is you from the rules alone.',
-          minutes: 40,
+                criteria: 'Someone could tell it is you from the rules alone.',
+        minutes: 40,
+      },
+    ],
+  },
+  ],
+  acting: [
+    {
+      label: 'Presence and truth',
+      summary: 'Ground the body, breathe for the room, and react honestly.',
+      lessons: [
+        {
+          title: 'Neutral body and stage breath',
+          focus: 'Alignment, grounding and quiet readiness.',
+          drill: 'Scan from feet to crown, take three counted stage breaths, then enter and speak one line.',
+          criteria: 'No fidgeting; the first word lands without a gasp.',
+          minutes: 15,
+        },
+        {
+          title: 'Objectives instead of emotions',
+          focus: 'Play what the character wants, not how they feel.',
+          drill: 'Choose an objective for two lines, then play the same lines with three different tactics.',
+          criteria: 'Each tactic changes the delivery without changing the words.',
+          minutes: 20,
+        },
+        {
+          title: 'Listening and reacting',
+          focus: 'Let the partner cause the next line.',
+          drill: 'Repeat the partner’s last phrase silently before answering, then make the answer a reaction.',
+          criteria: 'No line begins before its cue has landed.',
+          minutes: 20,
+        },
+      ],
+    },
+    {
+      label: 'Voice, text and camera',
+      summary: 'Make the words clear, playable and true at close range.',
+      lessons: [
+        {
+          title: 'Scoring a script beat by beat',
+          focus: 'Mark objectives, obstacles and changes.',
+          drill: 'Score one page into beats; name the shift and the tactic for each.',
+          criteria: 'Every beat has a new objective or a changed tactic.',
+          minutes: 25,
+        },
+        {
+          title: 'Vocal clarity without pushing',
+          focus: 'Diction and support rather than volume.',
+          drill: 'Warm up with consonant drills, then perform the page at three distances.',
+          criteria: 'Every word is intelligible without throat strain.',
+          minutes: 20,
+        },
+        {
+          title: 'Camera truth and the self-tape',
+          focus: 'Small behavior reads better than large acting.',
+          drill: 'Record two self-tapes with clean sound, steady framing and honest eyeline.',
+          criteria: 'One take is submission-ready and under the requested limit.',
+          minutes: 30,
+        },
+      ],
+    },
+    {
+      label: 'Audition and performance',
+      summary: 'Build repeatable pieces and handle the pressure of the room.',
+      lessons: [
+        {
+          title: 'Monologue architecture',
+          focus: 'Opening, turn and button.',
+          drill: 'Shape a one-minute monologue with one clear change and a decisive ending.',
+          criteria: 'The listener can name the change without being told.',
+          minutes: 25,
+        },
+        {
+          title: 'Scene work and status',
+          focus: 'Power moves between people.',
+          drill: 'Play a two-person scene twice, reversing who has higher status each time.',
+          criteria: 'The status reversal is visible in posture and pace.',
+          minutes: 30,
+        },
+        {
+          title: 'Audition workflow',
+          focus: 'Slate, take, submit.',
+          drill: 'Record a slate, two contrasting takes and a labeled submission file.',
+          criteria: 'The submission is clean, labeled and ready to send.',
+          minutes: 30,
+        },
+      ],
+    },
+  ],
+  directing: [
+    {
+      label: 'Seeing like a director',
+      summary: 'Turn lyrics and performances into shots that can be edited.',
+      lessons: [
+        {
+          title: 'Shot language and intention',
+          focus: 'Every frame answers why the camera is there.',
+          drill: 'Storyboard eight shots for one verse; give each an intention, size and movement.',
+          criteria: 'No decorative shots remain on the board.',
+          minutes: 25,
+        },
+        {
+          title: 'Coverage that edits',
+          focus: 'Wide, medium, close and cutaways.',
+          drill: 'Plan coverage for a sixteen-bar performance so an editor can assemble it blind.',
+          criteria: 'The plan provides an edit point at least every four bars.',
+          minutes: 30,
+        },
+        {
+          title: 'Directing performers',
+          focus: 'Give playable verbs, not line readings.',
+          drill: 'Direct the same lyric three ways—pursue, resist and surrender—without demonstrating the line.',
+          criteria: 'Each version changes the performance while keeping the lyric intact.',
+          minutes: 25,
+        },
+      ],
+    },
+    {
+      label: 'Production craft',
+      summary: 'Schedule, light, record and cover a real shoot.',
+      lessons: [
+        {
+          title: 'Blocking and the shooting order',
+          focus: 'Protect performance energy and daylight.',
+          drill: 'Block one scene, then order eight setups to minimize company moves.',
+          criteria: 'The schedule finishes on time with performance coverage intact.',
+          minutes: 30,
+        },
+        {
+          title: 'Light and sound for story',
+          focus: 'The audience should feel the source.',
+          drill: 'Light one setup from a motivated source and record dialogue clean enough to use.',
+          criteria: 'Dialogue is intelligible and the lighting has one clear source.',
+          minutes: 35,
+        },
+        {
+          title: 'Music-video rhythm',
+          focus: 'Cut with the lyric, drums and breath.',
+          drill: 'Cut a thirty-second sequence where every edit serves the arrangement.',
+          criteria: 'The picture accelerates when the music accelerates.',
+          minutes: 35,
+        },
+      ],
+    },
+    {
+      label: 'Leadership and finishing',
+      summary: 'Run the room, choose the take and deliver the project.',
+      lessons: [
+        {
+          title: 'Dailies and selects',
+          focus: 'Judge performance, not polish.',
+          drill: 'Review three takes and choose selects using story criteria only.',
+          criteria: 'The selects can be defended shot by shot.',
+          minutes: 25,
+        },
+        {
+          title: 'Call sheet and run of show',
+          focus: 'Everyone knows where to be and what happens next.',
+          drill: 'Write a one-page call sheet and performance order for a small shoot.',
+          criteria: 'Cast and crew could run the day from that page alone.',
+          minutes: 30,
+        },
+        {
+          title: 'Directing a live stage moment',
+          focus: 'Entrances, focus and endings.',
+          drill: 'Block a three-minute live entrance, song and exit with lighting cues.',
+          criteria: 'The audience knows where to look at every moment.',
+          minutes: 35,
+        },
+      ],
+    },
+  ],
+  business: [
+    {
+      label: 'Ownership and splits',
+      summary: 'Know what you own before anyone else touches it.',
+      lessons: [
+        {
+          title: 'Songs, recordings and rights',
+          focus: 'Publishing and masters are different assets.',
+          drill: 'Map one release into its song rights, recording rights and revenue owners.',
+          criteria: 'Every owner and asset is named in one page.',
+          minutes: 25,
+        },
+        {
+          title: 'Split sheets that prevent fights',
+          focus: 'Agree percentages while everyone is friendly.',
+          drill: 'Complete a split sheet for a cowrite with roles, percentages and signatures.',
+          criteria: 'The sheet is signed before the session file leaves the room.',
+          minutes: 20,
+        },
+        {
+          title: 'Publishing and PRO registration',
+          focus: 'Register the work so it can be paid.',
+          drill: 'Prepare songwriter, publisher and recording metadata for one release.',
+          criteria: 'The metadata packet is complete and internally consistent.',
+          minutes: 25,
+        },
+      ],
+    },
+    {
+      label: 'Contracts and releases',
+      summary: 'Read the deal, protect the work and release cleanly.',
+      lessons: [
+        {
+          title: 'Producer and feature agreements',
+          focus: 'Points, fees, credits and approvals.',
+          drill: 'Red-line a short producer/feature term sheet and list every missing protection.',
+          criteria: 'No unsigned verbal promise remains outside the paper.',
+          minutes: 30,
+        },
+        {
+          title: 'Samples, covers and permissions',
+          focus: 'Clear the rights before release week.',
+          drill: 'Build a clearance list for one release, including owner, status and deadline.',
+          criteria: 'Every uncleared item has an owner and a decision date.',
+          minutes: 30,
+        },
+        {
+          title: 'Release-day legal checklist',
+          focus: 'No surprises after upload.',
+          drill: 'Verify splits, credits, ISRCs, artwork rights and distributor details for one release.',
+          criteria: 'The checklist is signed off with no blanks.',
+          minutes: 25,
+        },
+      ],
+    },
+    {
+      label: 'Money and team',
+      summary: 'Follow the revenue and behave like a business.',
+      lessons: [
+        {
+          title: 'Where release money comes from',
+          focus: 'Streams, sync, tickets and merchandise.',
+          drill: 'Draft a one-page revenue map for your next twelve months.',
+          criteria: 'Each income line names who pays, when and how much.',
+          minutes: 30,
+        },
+        {
+          title: 'Budget a small release',
+          focus: 'Spend where the return lives.',
+          drill: 'Budget recording, visuals, promotion and distribution for one single.',
+          criteria: 'The budget balances without hoping for virality.',
+          minutes: 30,
+        },
+        {
+          title: 'Build and brief the team',
+          focus: 'Manager, lawyer, distributor and publicist roles.',
+          drill: 'Write role briefs and one question you will ask each hire.',
+          criteria: 'No two roles duplicate the same responsibility.',
+          minutes: 25,
+        },
+      ],
+    },
+  ],
+  marketing: [
+    {
+      label: 'Position and audience',
+      summary: 'Say who the music is for and why it matters.',
+      lessons: [
+        {
+          title: 'Artist promise in one line',
+          focus: 'Genre, feeling and difference.',
+          drill: 'Write ten one-line introductions, then keep the one a stranger remembers.',
+          criteria: 'A stranger can repeat the promise after hearing your song once.',
+          minutes: 20,
+        },
+        {
+          title: 'Find the first hundred fans',
+          focus: 'One audience is better than everyone.',
+          drill: 'Define one audience avatar, three hangouts and three creators they trust.',
+          criteria: 'The avatar is specific enough to target this week.',
+          minutes: 25,
+        },
+        {
+          title: 'Build a hook library',
+          focus: 'The song is the product; the hook is the doorway.',
+          drill: 'Create ten hooks from one release: lyric, visual, story and challenge versions.',
+          criteria: 'At least three hooks work without explaining the song.',
+          minutes: 30,
+        },
+      ],
+    },
+    {
+      label: 'Content and rollout',
+      summary: 'Turn one release into weeks of promotion.',
+      lessons: [
+        {
+          title: 'Short-form without burnout',
+          focus: 'One shoot, many edits.',
+          drill: 'Record one performance session and cut five platform-native clips.',
+          criteria: 'Each clip has its own hook and call to action.',
+          minutes: 35,
+        },
+        {
+          title: 'Release calendar',
+          focus: 'Tease, launch and sustain.',
+          drill: 'Plan four weeks around one release with owners and deadlines.',
+          criteria: 'No launch-week task is assigned to “later.”',
+          minutes: 30,
+        },
+        {
+          title: 'Premiere and release week',
+          focus: 'Concentrate attention while it exists.',
+          drill: 'Script release-day posts, fan replies and follow-up content in advance.',
+          criteria: 'Everything for day one is scheduled before day one.',
+          minutes: 30,
+        },
+      ],
+    },
+    {
+      label: 'Growth and measurement',
+      summary: 'Learn what worked and repeat it deliberately.',
+      lessons: [
+        {
+          title: 'Read the numbers honestly',
+          focus: 'Retention beats views.',
+          drill: 'Compare completion, saves, follows and streams for your last five posts.',
+          criteria: 'One format is identified as worth repeating.',
+          minutes: 25,
+        },
+        {
+          title: 'Own the fan list',
+          focus: 'Followers are rented; contacts are owned.',
+          drill: 'Set up one email or SMS capture with a real incentive.',
+          criteria: 'A fan can join in under one minute.',
+          minutes: 25,
+        },
+        {
+          title: 'Test paid promotion safely',
+          focus: 'Small budgets test winners; they do not rescue losers.',
+          drill: 'Run one small test behind your best organic post with a stop rule.',
+          criteria: 'The test has a budget, audience, goal and stop rule.',
+          minutes: 30,
+        },
+      ],
+    },
+  ],
+  industry: [
+    {
+      label: 'Map the entertainment business',
+      summary: 'Learn the rooms, roles and handoffs before you need them.',
+      lessons: [
+        {
+          title: 'Who does what',
+          focus: 'Artist, manager, label, publisher, distributor and promoter.',
+          drill: 'Draw the team around your next release and label every handoff.',
+          criteria: 'Each handoff has one owner and one deadline.',
+          minutes: 25,
+        },
+        {
+          title: 'Follow one song to market',
+          focus: 'Studio to fan is a pipeline.',
+          drill: 'Trace recording, mixing, mastering, distribution, playlisting and payment.',
+          criteria: 'Every stage names its gatekeeper and cost.',
+          minutes: 25,
+        },
+        {
+          title: 'Live, screen and brand lanes',
+          focus: 'Music opens other doors.',
+          drill: 'List three adjacent lanes—live, sync/acting or brand—and their entry requirements.',
+          criteria: 'Each lane has one realistic next step.',
+          minutes: 25,
+        },
+      ],
+    },
+    {
+      label: 'Money, rights and conduct',
+      summary: 'Get paid correctly and stay employable.',
+      lessons: [
+        {
+          title: 'Revenue and royalty paths',
+          focus: 'Know the route before the money moves.',
+          drill: 'Trace streaming, sync, live and merchandise income to the artist.',
+          criteria: 'Each path names the payer and the collection point.',
+          minutes: 30,
+        },
+        {
+          title: 'Professional communication',
+          focus: 'Clear, brief and documented.',
+          drill: 'Write a booking, clearance and follow-up email for the same project.',
+          criteria: 'Each message could be forwarded without embarrassment.',
+          minutes: 20,
+        },
+        {
+          title: 'Rehearsal and stage discipline',
+          focus: 'Be early, prepared and repeatable.',
+          drill: 'Build a rehearsal plan, call time sheet and load-in checklist.',
+          criteria: 'The show could start without asking the artist a question.',
+          minutes: 25,
+        },
+      ],
+    },
+    {
+      label: 'Career design',
+      summary: 'Turn skills into a sustainable working life.',
+      lessons: [
+        {
+          title: 'Portfolio, not just songs',
+          focus: 'Proof beats promises.',
+          drill: 'Assemble performance clips, credits, press and business documents in one packet.',
+          criteria: 'A booker can evaluate you in under five minutes.',
+          minutes: 30,
+        },
+        {
+          title: 'Five-year career map',
+          focus: 'Skills, releases, income and team milestones.',
+          drill: 'Write yearly targets with one measurable proof per year.',
+          criteria: 'Each year has a skill, release and income target.',
+          minutes: 30,
+        },
+        {
+          title: 'Protect the career',
+          focus: 'Health, contracts and reputation.',
+          drill: 'Write personal rules for rest, agreements and public conduct.',
+          criteria: 'The rules are specific enough to follow under pressure.',
+          minutes: 20,
         },
       ],
     },
@@ -830,8 +1250,10 @@ interface ProgramSeed {
   skills: string[];
   faults: string[];
   repertoire: string[];
-  studioInstrumentId: string;
-  studioView: string;
+  studioInstrumentId?: string;
+  studioView?: string;
+  practiceRoute?: string;
+  practiceLabel?: string;
   summary: string;
 }
 
@@ -1301,6 +1723,81 @@ const PROGRAM_SEEDS: ProgramSeed[] = [
     studioView: 'studio',
     summary: 'The bellows is the expression; the keyboard is just the notes.',
   },
+  {
+    id: 'acting',
+    label: 'Acting',
+    emoji: '🎭',
+    family: 'acting',
+    tuning: 'Your voice and body',
+    rig: 'Rehearsal space + camera or phone',
+    technique: 'play the objective, not the emotion, and let the text move the body',
+    skills: ['Script analysis', 'Objectives and tactics', 'Voice and diction', 'Camera performance'],
+    faults: ['Indicating emotion', 'Rushing cues', 'Playing to yourself instead of the partner'],
+    repertoire: ['A one-minute monologue', 'A two-person scene', 'A clean self-tape'],
+    practiceRoute: '/practice',
+    practiceLabel: 'Open Practice Space',
+    summary: 'Truthful acting for stage, camera, music video and live performance.',
+  },
+  {
+    id: 'directing',
+    label: 'Directing',
+    emoji: '🎬',
+    family: 'directing',
+    tuning: 'Story, shots and edit rhythm',
+    rig: 'Camera or phone + Image & Video Lab',
+    technique: 'give every shot one clear intention and direct performers with playable verbs',
+    skills: ['Visual storytelling', 'Shot coverage', 'Directing performers', 'Edit rhythm'],
+    faults: ['Coverage that cannot be edited', 'Demonstrating line readings', 'Style without story'],
+    repertoire: ['A performance video', 'A narrative short', 'A live stage blocking plan'],
+    practiceRoute: '/image-video-lab',
+    practiceLabel: 'Open Image & Video Lab',
+    summary: 'Direct music performance, video and live moments with an editor’s eye.',
+  },
+  {
+    id: 'music-business-legal',
+    label: 'Music Business & Legal',
+    emoji: '⚖️',
+    family: 'business',
+    tuning: 'Rights, releases and deadlines',
+    rig: 'Business Suite + release checklist',
+    technique: 'get every promise in writing before the work leaves your hands',
+    skills: ['Split sheets', 'Publishing and masters', 'Licensing and permissions', 'Release operations'],
+    faults: ['Verbal agreements', 'Unsigned splits', 'Releasing before clearance'],
+    repertoire: ['A signed split sheet', 'A clearance list', 'A release-day checklist'],
+    practiceRoute: '/business-suite',
+    practiceLabel: 'Open Business Suite',
+    summary: 'Own the rights, read the deal and release without legal surprises.',
+  },
+  {
+    id: 'marketing-promotion',
+    label: 'Marketing & Promotion',
+    emoji: '📣',
+    family: 'marketing',
+    tuning: 'Audience, hook and release calendar',
+    rig: 'Strategy Hub + content calendar',
+    technique: 'give every release one audience, one hook and one call to action',
+    skills: ['Artist positioning', 'Short-form content', 'Rollout calendars', 'Audience analytics'],
+    faults: ['Posting without a hook', 'Launching without a calendar', 'Chasing views instead of fans'],
+    repertoire: ['A teaser campaign', 'A release-week calendar', 'A post-release review'],
+    practiceRoute: '/strategy',
+    practiceLabel: 'Open Strategy Hub',
+    summary: 'Turn one release into attention, fans and repeatable growth.',
+  },
+  {
+    id: 'entertainment-industry',
+    label: 'Entertainment Industry Foundations',
+    emoji: '🌐',
+    family: 'industry',
+    tuning: 'Roles, money and timelines',
+    rig: 'Knowledge Base + career map',
+    technique: 'learn the room before asking the room for anything',
+    skills: ['Industry roles', 'Revenue streams', 'Professional conduct', 'Career planning'],
+    faults: ['Skipping the paperwork', 'Unclear handoffs', 'No plan beyond the next release'],
+    repertoire: ['A team one-sheet', 'A revenue map', 'A five-year career plan'],
+    practiceRoute: '/knowledge-base',
+    practiceLabel: 'Open Knowledge Base',
+    summary: 'Understand how music, live performance, screen and brands actually work.',
+  },
 ];
 
 const buildStages = (seed: ProgramSeed): AcademyStage[] => {
@@ -1341,6 +1838,8 @@ export const INSTRUMENT_PROGRAMS: InstrumentProgram[] = PROGRAM_SEEDS.map((seed)
   repertoire: seed.repertoire,
   studioInstrumentId: seed.studioInstrumentId,
   studioView: seed.studioView,
+  practiceRoute: seed.practiceRoute,
+  practiceLabel: seed.practiceLabel,
   stages: buildStages(seed),
 }));
 

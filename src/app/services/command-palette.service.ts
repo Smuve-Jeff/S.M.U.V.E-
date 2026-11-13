@@ -89,6 +89,45 @@ const COMPOSE_ACTIONS: Array<{
   },
 ];
 
+/** Direct links into each career discipline of the Music Academy. */
+const ACADEMY_PROGRAM_ACTIONS: Array<{
+  program: string;
+  label: string;
+  description: string;
+  keywords: string[];
+}> = [
+  {
+    program: 'acting',
+    label: 'Learn: Acting',
+    description: 'Open the Academy acting program: objectives, voice, camera truth and auditions.',
+    keywords: ['acting', 'actor', 'audition', 'self tape', 'monologue', 'scene'],
+  },
+  {
+    program: 'directing',
+    label: 'Learn: Directing',
+    description: 'Open the Academy directing program: shot language, coverage and leading a shoot.',
+    keywords: ['directing', 'director', 'film', 'video', 'shot', 'coverage', 'music video'],
+  },
+  {
+    program: 'music-business-legal',
+    label: 'Learn: Music Business & Legal',
+    description: 'Open the Academy business program: ownership, splits, contracts and release money.',
+    keywords: ['business', 'legal', 'splits', 'publishing', 'contracts', 'royalties', 'rights'],
+  },
+  {
+    program: 'marketing-promotion',
+    label: 'Learn: Marketing & Promotion',
+    description: 'Open the Academy marketing program: positioning, hooks, rollouts and measurement.',
+    keywords: ['marketing', 'promotion', 'audience', 'hooks', 'release', 'campaign', 'growth'],
+  },
+  {
+    program: 'entertainment-industry',
+    label: 'Learn: Entertainment Industry Foundations',
+    description: 'Open the Academy industry program: roles, revenue paths and career design.',
+    keywords: ['industry', 'entertainment', 'career', 'revenue', 'team', 'conduct'],
+  },
+];
+
 const INTERACTION_TIPS: InteractionTip[] = [
   {
     id: 'global-palette',
@@ -370,6 +409,14 @@ export class CommandPaletteService {
         keywords: ['compose', 'write', 'generate', 'song', 'score', ...action.keywords],
         run: () => this.composeStep(action.component),
       })),
+      ...ACADEMY_PROGRAM_ACTIONS.map((action) => ({
+        id: `learn-${action.program}`,
+        label: action.label,
+        description: action.description,
+        category: 'Music Academy',
+        keywords: ['academy', 'learn', 'lesson', 'program', action.program, ...action.keywords],
+        run: () => this.openAcademyProgram(action.program, action.label),
+      })),
       ...recentActions,
       ...pinnedActions,
       ...navigationActions,
@@ -483,6 +530,21 @@ export class CommandPaletteService {
     if (action) {
       this.runAction(action);
     }
+  }
+
+  /** Deep link straight into one Academy discipline. */
+  private openAcademyProgram(programId: string, label: string): void {
+    if (!this.router) {
+      this.notificationService.show(
+        `${label} needs navigation, which is unavailable in this build.`,
+        'warning',
+        2200
+      );
+      return;
+    }
+    void this.router.navigate(['/academy'], {
+      queryParams: { program: programId },
+    });
   }
 
   /** Route-aware entry point shared by the command and the Alt+L shortcut. */
