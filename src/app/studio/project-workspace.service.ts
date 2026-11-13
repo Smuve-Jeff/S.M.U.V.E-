@@ -1764,13 +1764,24 @@ export class ProjectWorkspaceService {
       structure,
       takeState,
       notes,
-      masterGain,
+      // AudioParam.value is a float32 read-back: a master gain saved as 0.8
+      // comes back as 0.800000011920929, so comparing it raw left every project
+      // permanently dirty and the status strip could never say "Saved locally".
+      masterGain: Number(Number(masterGain).toFixed(4)),
       monitorMono,
       sessionLaunchQuantize,
       sessionFollowEnabled,
       sessionFollowBars,
       sessionSceneFollowRules,
-      projectState,
+      // The master gain rides in the project state as well, straight off the
+      // same float32 AudioParam; normalise it there too.
+      projectState: {
+        performance: projectState.performance,
+        master: {
+          ...projectState.master,
+          gain: Number(Number(projectState.master.gain).toFixed(4)),
+        },
+      },
     });
   }
 

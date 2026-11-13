@@ -640,6 +640,19 @@ describe("ProjectWorkspaceService", () => {
     expect(service.isSaving()).toBe(false);
   });
 
+  it('reads a float32 fader value back as the master gain that was saved', () => {
+    // AudioParam.value is float32: a master gain saved as 0.8 reads back as
+    // 0.800000011920929. Comparing that raw kept every project permanently
+    // dirty, so the status strip could never reach "Saved locally".
+    const engine = (TestBed.inject(MusicManagerService) as any).engine;
+    engine.masterGain.gain.value = 0.8;
+    const saved = (service as any).captureStateSignature();
+
+    engine.masterGain.gain.value = 0.800000011920929;
+
+    expect((service as any).captureStateSignature()).toBe(saved);
+  });
+
   it('refuses to save a guest session and writes nothing', async () => {
     authUser.set({ id: 'guest_1', role: 'Guest' });
     service.isDirty.set(true);

@@ -93,7 +93,9 @@ test('workspace save failures stay visible and exported bundles restore project 
   const stream = await download.createReadStream();
   const chunks: Buffer[] = [];
   for await (const chunk of stream!) chunks.push(Buffer.from(chunk));
-  const artifact = JSON.parse(Buffer.concat(chunks).toString('utf8'));
+  const artifact = JSON.parse(
+    readArchiveEntry(Buffer.concat(chunks), 'project.json').toString('utf8'),
+  );
   expect(artifact.metadata.name).toBe('Quality Sweep Session');
   expect(artifact.automation.lanes).toHaveLength(1);
   expect(artifact.notes).toBe('QA session notes');
@@ -562,4 +564,27 @@ function midiFixture(): Buffer {
   ];
   const header = [0x4d, 0x54, 0x68, 0x64, 0, 0, 0, 6, 0, 1, 0, 1, 0x01, 0xe0]; // TPQN 480
   return Buffer.from([...header, ...trackHeader, ...events]);
+}
+
+/**
+ * Pull one entry out of a `.smuve` archive.
+ *
+ * The bundle is a ZIP (manifest plus one raw Float32 file per audio asset) and
+ * `zip.util.ts` writes STORE entries, so the local headers carry everything
+ * needed without inflating anything.
+ */
+function readArchiveEntry(zip: Buffer, name: string): Buffer {
+  let offset = 0;
+  while (offset + 30 <= zip.length && zip.readUInt32LE(offset) === 0x04034b50) {
+    const size = zip.readUInt32LE(offset + 18);
+    const nameLength = zip.readUInt16LE(offset + 26);
+    const extraLength = zip.readUInt16LE(offset + 28);
+    const entryName = zip
+      .subarray(offset + 30, offset + 30 + nameLength)
+      .toString('utf8');
+    const dataStart = offset + 30 + nameLength + extraLength;
+    if (entryName === name) return zip.subarray(dataStart, dataStart + size);
+    offset = dataStart + size;
+  }
+  throw new Error(`The project archive has no ${name} entry.`);
 }
