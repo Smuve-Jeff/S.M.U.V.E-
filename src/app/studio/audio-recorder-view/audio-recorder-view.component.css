@@ -91,6 +91,7 @@
 .arv-transport {
   display: grid;
   grid-template-columns: minmax(260px, 1fr) auto;
+  min-width: 0;
   gap: 18px;
   padding: 22px;
   background:
@@ -1133,11 +1134,12 @@
   }
 
   .arv-transport {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
     padding: 12px;
   }
 
   .arv-record-btn {
+    min-width: 0;
     min-height: 88px;
     justify-content: center;
   }
@@ -1148,7 +1150,28 @@
 
   .arv-transport-meta {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    min-width: 0;
+  }
+
+  .arv-meta-row {
+    min-width: 0;
+    gap: 6px;
+  }
+
+  .arv-meta-value {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    text-align: right;
+  }
+
+  .arv-controls-row {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .arv-control-btn {
+    min-width: 0;
   }
 
   .arv-latest-take {
@@ -2034,5 +2057,13 @@
 @media (pointer: coarse) {
   .arv-latency-action {
     min-height: 44px;
+  }
+}
+
+/* At the narrowest phone width the metadata pairs wrap against each other in
+   two columns. Stack them so both values stay readable inside the card. */
+@media (max-width: 360px) {
+  .arv-transport-meta {
+    grid-template-columns: 1fr;
   }
 }
