@@ -450,6 +450,11 @@ describe('AudioEngineService', () => {
     expect(service.metronomeEnabled()).toBe(true);
     expect(service.playMode()).toBe('pattern');
 
+    // The mock context stays suspended, so start() arms asynchronously and
+    // cannot set the transport flag before this test drives one tick. Arm it
+    // the way a running context would.
+    service.isPlaying.set(true);
+
     const scheduled = jest.fn();
     service.onScheduleStep = scheduled;
     service.clickSubdivision.set('none');
@@ -622,6 +627,8 @@ describe('AudioEngineService', () => {
   });
 
   it('should schedule metronome and step callbacks with lookahead timing', () => {
+    // scheduler() refuses to hand out ticks while the context is suspended.
+    mockAudioContext.state = 'running';
     service.metronomeEnabled.set(true);
     const scheduled = jest.fn();
     service.onScheduleStep = scheduled;
@@ -664,10 +671,13 @@ describe('AudioEngineService', () => {
     expect(osc.frequency.setValueAtTime).toHaveBeenCalled();
   });
 
-  it('should use the fixed scheduler interval', () => {
+  it('should use the fixed scheduler interval', async () => {
     const setIntervalSpy = jest.spyOn(globalThis, 'setInterval');
+    mockAudioContext.state = 'running';
 
-    service.start();
+    // start() begins the clock synchronously only for a running context; for a
+    // suspended one it resolves first, so the expectation must wait for it.
+    await service.start();
 
     expect(setIntervalSpy).toHaveBeenCalledWith(expect.any(Function), 25);
     setIntervalSpy.mockRestore();

@@ -5846,12 +5846,16 @@ export class AudioEngineService {
    * Run only the click: the Practice Space metronome. The engine's own clock
    * drives it, so a drill inherits the Studio tempo, meter, subdivision and
    * timbre instead of keeping a second, drifting timer of its own.
+   *
+   * Returns `start()`'s own result: a suspended context starts asynchronously,
+   * so a caller that wants to know when the click clock is armed must be able
+   * to await it instead of guessing.
    */
-  startClickOnly(): void {
+  startClickOnly(): Promise<void> | void {
     this.clickOnly = true;
     this.metronomeEnabled.set(true);
     this.playMode.set('pattern');
-    this.start();
+    return this.start();
   }
 
   stopClickOnly(): void {

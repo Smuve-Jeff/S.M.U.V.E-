@@ -111,13 +111,16 @@ describe('LiveEngineService', () => {
   });
 
   it('assigns sample zones at their recorded pitches for melodic and hybrid presets', async () => {
+    // The factory samples are midi-js-soundfonts files, whose names carry the
+    // note in lower case (`...-g3.mp3`). What matters is that the zone is keyed
+    // by the pitch the sample was recorded at.
     await service.setInstrument('strat-elite-clean');
     expect(Tone.Sampler).toHaveBeenLastCalledWith(expect.objectContaining({
-      urls: { G3: expect.stringContaining('/G3.mp3') },
+      urls: { G3: expect.stringMatching(/g3\.mp3$/i) },
     }));
     await service.setInstrument('whisper-choir');
     expect(Tone.Sampler).toHaveBeenLastCalledWith(expect.objectContaining({
-      urls: { C5: expect.stringContaining('/C5.mp3') },
+      urls: { C5: expect.stringMatching(/c5\.mp3$/i) },
     }));
   });
 
