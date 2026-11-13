@@ -55,6 +55,41 @@
   align-items: center;
   gap: 10px;
 }
+
+/* Tablet header owns Home so the floating shortcut no longer covers the
+   rightmost step cells. Phones keep the floating shortcut. */
+.dm-home-link {
+  display: none;
+  align-items: center;
+  gap: 6px;
+  height: 40px;
+  padding: 0 12px;
+  border: 1px solid var(--ivory-line);
+  border-radius: 999px;
+  background: var(--ivory-paper);
+  color: var(--espresso-text);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-decoration: none;
+  flex: 0 0 auto;
+}
+.dm-home-link .material-symbols-outlined {
+  font-size: 18px;
+  color: var(--teal-500);
+}
+.dm-home-link:hover,
+.dm-home-link:focus-visible {
+  border-color: var(--teal-500);
+  color: var(--teal-500);
+}
+
+@media (min-width: 768px) {
+  .dm-home-link {
+    display: inline-flex;
+  }
+}
 .dm-ai-chip {
   display: inline-flex;
   align-items: center;

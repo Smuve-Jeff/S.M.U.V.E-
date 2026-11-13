@@ -790,6 +790,16 @@ export class AppComponent {
   }
 
   /**
+   * Drum Machine and Performance put a Home pill in their own headers on
+   * tablet, so the floating pill must not sit over the rightmost grid steps
+   * or rack controls. Phones keep the floating pill because those headers have
+   * no spare row at that width.
+   */
+  usesInlineHomeLink(): boolean {
+    return ['drum-machine', 'performance'].includes(this.routeAnimState());
+  }
+
+  /**
    * Whether the floating S.M.U.V.E. Advisor renders.
    *
    * In the Studio shell the global Advisor FAB occupied the same bottom-right

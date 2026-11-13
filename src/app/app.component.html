@@ -85,6 +85,7 @@
     routerLink="/hub"
     (click)="navigateHome(); $event.preventDefault()"
     class="universal-home-link"
+    [class.universal-home-link--route-inline]="usesInlineHomeLink()"
     aria-label="Back to Home Hub"
     title="Back to Home Hub"
   >

@@ -41,6 +41,42 @@
   flex-wrap: wrap;
 }
 
+/* Tablet header owns Home so the floating shortcut no longer covers the
+   right-hand rack and limiter controls. Phones keep the floating shortcut. */
+.perf-home-link {
+  display: none;
+  align-items: center;
+  gap: 5px;
+  min-height: 40px;
+  padding: 0 10px;
+  border: 1px solid rgba(0, 229, 255, 0.32);
+  border-radius: 9px;
+  background: rgba(8, 16, 26, 0.9);
+  color: #cfeef5;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  text-decoration: none;
+  flex: 0 0 auto;
+}
+.perf-home-link .material-symbols-outlined {
+  font-size: 17px;
+}
+.perf-home-link:hover,
+.perf-home-link:focus-visible {
+  border-color: rgba(0, 229, 255, 0.7);
+  background: rgba(0, 229, 255, 0.18);
+  color: #eafcff;
+}
+
+@media (min-width: 768px) {
+  .perf-home-link {
+    display: inline-flex;
+  }
+}
+
 .brand-title h1 {
   margin: 0;
   font-size: 14px;

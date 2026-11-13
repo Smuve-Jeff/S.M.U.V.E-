@@ -11,6 +11,15 @@
   <!-- ───────── TOP META BAR ───────── -->
   <header class="perf-header studio-context-toolbar performer-header">
     <div class="brand-row studio-horizontal-rail performer-brand-rail">
+      <a
+        routerLink="/hub"
+        class="perf-home-link"
+        aria-label="Back to Home Hub"
+        title="Back to Home Hub"
+      >
+        <span class="material-symbols-outlined" aria-hidden="true">home</span>
+        <span>Home</span>
+      </a>
       <div class="spectrum-strip" aria-hidden="true">
         <span
           *ngFor="let v of spectrumData()"

@@ -11,6 +11,7 @@ import {
 } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
+import { RouterLink } from "@angular/router";
 import { AudioSessionService } from "../audio-session.service";
 import { KnobComponent } from "../shared/knob/knob.component";
 import { MusicManagerService } from "../../services/music-manager.service";
@@ -76,6 +77,7 @@ const KIT_TYPE_PROXY: Record<string, number> = {
   imports: [
     CommonModule,
     FormsModule,
+    RouterLink,
     KnobComponent,
     StudioBottomSheetComponent,
   ],

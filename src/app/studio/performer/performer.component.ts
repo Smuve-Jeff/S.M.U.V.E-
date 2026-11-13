@@ -9,6 +9,7 @@ import {
 } from "@angular/core";
 import { CommonModule, DecimalPipe } from "@angular/common";
 import { FormsModule } from "@angular/forms";
+import { RouterLink } from "@angular/router";
 import { AudioSessionService } from "../audio-session.service";
 import { KnobComponent } from "../shared/knob/knob.component";
 import {
@@ -43,6 +44,7 @@ function toFiniteNumber(value: unknown, fallback: number): number {
   imports: [
     CommonModule,
     FormsModule,
+    RouterLink,
     KnobComponent,
     PerformanceGridComponent,
     RecordingWaveformComponent,

@@ -519,11 +519,24 @@ describe('AppComponent', () => {
 
     expect(component.isFullPageMode()).toBe(true);
     expect(component.showUniversalHomeLink()).toBe(true);
+    expect(component.usesInlineHomeLink()).toBe(false);
 
     Object.defineProperty(window, 'innerWidth', {
       configurable: true,
       value: originalWidth,
     });
+  });
+
+  it('moves the floating Home shortcut into the drum-machine header on tablet', async () => {
+    const { component } = await createComponent('/drum-machine');
+
+    expect(component.usesInlineHomeLink()).toBe(true);
+  });
+
+  it('moves the floating Home shortcut into the performance header on tablet', async () => {
+    const { component } = await createComponent('/performance');
+
+    expect(component.usesInlineHomeLink()).toBe(true);
   });
 
   it('hides the floating home link on the studio landscape tier that shows the rail', async () => {
