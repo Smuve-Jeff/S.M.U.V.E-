@@ -383,7 +383,7 @@ footer {
 
   .mobile-surface-card h2 {
     font-size: 9px;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.06em;
   }
 }
 
@@ -728,7 +728,8 @@ footer {
 @media (max-width: 1024px) {
   /* The full status cluster and appearance console belong to wide desktop.
      At tablet width they forced the live-surface card underneath the controls. */
-  .shell-connectivity-status {
+  .shell-connectivity-status,
+  .shell-performance-toggle {
     display: none !important;
   }
 
