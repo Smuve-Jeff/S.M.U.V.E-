@@ -300,6 +300,37 @@ test('cloud version history lists saved versions for the current project', async
   expect(rows[0]).toContain('v');
 });
 
+test('restores a version this device kept when the cloud is unreachable', async ({ page }) => {
+  await page.goto('/studio-classic?view=arrangement');
+  await expect(page.locator('[data-studio-workspace]')).toHaveAttribute('data-studio-workspace', 'arrangement');
+
+  // The version is pushed with no cloud to accept it, so the tab keeps its own.
+  await page.evaluate(async () => {
+    const studio = (window as any).ng.getComponent(document.querySelector('app-studio'));
+    studio.projectWorkspace.updateMetadata({ name: 'Restore QA Session' });
+    await studio.pushVersionSnapshot();
+  });
+
+  // Move the set on, so a restore is something the page can show.
+  await page.evaluate(() => {
+    const studio = (window as any).ng.getComponent(document.querySelector('app-studio'));
+    studio.projectWorkspace.updateMetadata({ name: 'Mutated Session' });
+  });
+  await expect(page.locator('.comp-brand-tag')).toHaveText('Mutated Session');
+
+  await page.getByRole('button', { name: 'S.M.U.V.E. Stage — tap to open project menu' }).click();
+  await page.locator('.comp-project-menu-item', { hasText: 'Version History' }).click();
+
+  const row = page.locator('.comp-versions-row').first();
+  await expect(row).toContainText('Restore QA Session');
+  await row.getByRole('button', { name: 'Restore' }).click();
+
+  await expect(page.getByText('Restore version?')).toBeVisible();
+  await page.getByRole('button', { name: 'Restore version' }).click();
+
+  await expect(page.locator('.comp-brand-tag')).toHaveText('Restore QA Session');
+});
+
 test('audio import tempo-match stretches the clip to the project tempo', async ({ page }) => {
   await page.goto('/studio-classic?view=arrangement');
   await expect(page.locator('[data-studio-workspace]')).toHaveAttribute('data-studio-workspace', 'arrangement');

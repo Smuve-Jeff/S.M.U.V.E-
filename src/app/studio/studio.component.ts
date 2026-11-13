@@ -3791,7 +3791,9 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
       return;
     }
     const confirmed = await this.dialog.confirm({
-      title: "Restore cloud version?",
+      // Device-kept versions reach this dialog too, so it does not claim a
+      // cloud copy the artist may never have uploaded.
+      title: "Restore version?",
       message:
         `Replace the current session with v${snapshot.version} from ` +
         `${this.versionDeviceLabel(snapshot)}? This is also saved as a new version, so nothing is lost.`,
@@ -3829,7 +3831,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
       );
     } catch (error) {
       this.logger.warn("Cloud version restore failed", error);
-      this.snackbarService.error("Cloud version restore failed");
+      this.snackbarService.error("That version could not be restored.");
     } finally {
       this.versionHistoryBusy.set(false);
     }
