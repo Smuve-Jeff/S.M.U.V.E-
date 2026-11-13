@@ -510,10 +510,18 @@ const FEED_REFRESH_INTERVAL_MS = 300000;
         .intel-toggle-label {
           display: none;
         }
-        /* Keep the sheet's own controls (tab strip and close button) clear of
-           the edge tabs, which sit over the sheet's top band. */
-        .sidebar-header {
-          padding-right: 3rem;
+        /*
+         * While a sheet is open its header row needs the full width for the
+         * tab strip, so drop the edge tabs below the sheet header instead of
+         * letting them float over it.
+         */
+        .tha-spot-container.sheet-open .rival-hub-toggle,
+        .tha-spot-container.sheet-open .rival-hub-toggle.panel-open {
+          top: calc(env(safe-area-inset-top, 0px) + 284px);
+        }
+        .tha-spot-container.sheet-open .intel-toggle,
+        .tha-spot-container.sheet-open .intel-toggle.panel-open {
+          top: calc(env(safe-area-inset-top, 0px) + 332px);
         }
         .sidebar-content {
           min-height: 0;
@@ -583,6 +591,15 @@ const FEED_REFRESH_INTERVAL_MS = 300000;
         .intel-toggle,
         .intel-toggle.panel-open {
           top: calc(env(safe-area-inset-top, 0px) + 160px);
+        }
+        /* Under an open sheet header on this shorter layout. */
+        .tha-spot-container.sheet-open .rival-hub-toggle,
+        .tha-spot-container.sheet-open .rival-hub-toggle.panel-open {
+          top: calc(env(safe-area-inset-top, 0px) + 180px);
+        }
+        .tha-spot-container.sheet-open .intel-toggle,
+        .tha-spot-container.sheet-open .intel-toggle.panel-open {
+          top: calc(env(safe-area-inset-top, 0px) + 228px);
         }
         .mobile-search-bar {
           display: flex;

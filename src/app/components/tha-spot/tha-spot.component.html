@@ -2,6 +2,7 @@
   class="tha-spot-container full-page no-scrollbar"
   [class.tv-active]="displayMode() === 'tv'"
   [class.spectating]="matchmaking.isSpectating()"
+  [class.sheet-open]="showRivalHub() || showIntelPanel()"
 >
   <!-- Cosmic Background -->
   <div class="cosmic-bg">
