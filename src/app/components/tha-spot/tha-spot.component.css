@@ -1828,7 +1828,12 @@
   }
 
   .header-right {
-    flex-shrink: 0;
+    /* Own row, and capped at the header's content width: as a shrink-proof
+       item it used to size to its buttons (358px on a 328px screen) and push
+       the mode switch past the right edge of the viewport. */
+    flex: 1 1 100%;
+    min-width: 0;
+    max-width: 100%;
     flex-wrap: wrap;
     justify-content: flex-end;
     gap: 4px;
