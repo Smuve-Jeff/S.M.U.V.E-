@@ -2039,7 +2039,8 @@
   }
 
   .achievement-popup {
-    top: calc(64px + env(safe-area-inset-top, 0px));
+    /* The phone header wraps to 160px, not the 64px desktop bar. */
+    top: calc(172px + env(safe-area-inset-top, 0px));
     right: 12px;
     left: 12px;
   }
@@ -2048,6 +2049,21 @@
 @media (max-width: 390px) {
   .status-text {
     display: none;
+  }
+
+  /*
+   * The chat sheet's tab strip gets ~260px on a 390px phone, while the five
+   * named tabs plus the pickers measure ~338px. Tighten the tracking and
+   * padding here so the named tabs stop needing a swipe; the strip still
+   * scrolls for anything past them.
+   */
+  .hub-tabs {
+    gap: 2px;
+  }
+  .hub-tabs button {
+    padding: 0.3rem;
+    font-size: 0.6rem;
+    letter-spacing: 0.03em;
   }
 
   .header-btn {

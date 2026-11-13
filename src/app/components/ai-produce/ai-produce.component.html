@@ -562,7 +562,7 @@
   </section>
 
   <section class="log-card" *ngIf="produce.log().length > 0">
-    <div class="log-header" (click)="reset">
+    <div class="log-header" (click)="reset()">
       <h3>Pipeline Log</h3>
       <span>{{ produce.log().length }} entries</span>
     </div>

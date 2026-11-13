@@ -1090,4 +1090,82 @@ describe("ThaSpotComponent", () => {
       "NEURAL SYNC UNAVAILABLE — NOT CONNECTED TO THE NETWORK",
     );
   });
+  /*
+   * Phone layout contract.
+   *
+   * The layouts below were tuned against the laid-out page — the phone header
+   * wraps to ~160px, not the 64px desktop bar — and every one of those offsets
+   * shipped through a green suite because jsdom cannot lay anything out. These
+   * pin the wiring and the offsets to the component source so a future edit
+   * cannot quietly reintroduce a covered header or an unreserved rail.
+   */
+  describe("phone layout contract", () => {
+    const template = () =>
+      readFileSync(join(__dirname, "tha-spot.component.html"), "utf8");
+    const componentSource = () =>
+      readFileSync(join(__dirname, "tha-spot.component.ts"), "utf8");
+    const componentStyles = () =>
+      readFileSync(join(__dirname, "tha-spot.component.css"), "utf8");
+
+    it("flags spectating and an open sheet on the root container", () => {
+      const rootTag = template().slice(0, template().indexOf(">"));
+      expect(rootTag).toContain(
+        '[class.spectating]="matchmaking.isSpectating()"',
+      );
+      expect(rootTag).toContain(
+        '[class.sheet-open]="showRivalHub() || showIntelPanel()"',
+      );
+    });
+
+    it("sets both flags from the signals they describe", () => {
+      component.showRivalHub.set(true);
+      expect(component.showRivalHub()).toBe(true);
+      component.showRivalHub.set(false);
+      component.showIntelPanel.set(true);
+      expect(component.showIntelPanel()).toBe(true);
+      component.showIntelPanel.set(false);
+    });
+
+    it("reserves the rail column in pixels, only while spectating", () => {
+      const css = componentStyles();
+      // rem drifted from the rail's real width once the root font scaled.
+      expect(css).toContain("--spectator-rail-space: calc(86px + 10px + 12px)");
+      expect(css).toMatch(
+        /\.tha-spot-container\.spectating\s*\{[^}]*padding-right:\s*var\(--spectator-rail-space\)/,
+      );
+      expect(css).toMatch(/\.spectator-rail\s*\{[^}]*width:\s*86px/);
+    });
+
+    it("starts the phone sheets under the header and the sticky search bar", () => {
+      const styles = componentSource() + componentStyles();
+      // 160px wrapped header + 48px search bar, and 56 + 48 in short landscape.
+      expect(styles).toContain(
+        "inset: calc(208px + env(safe-area-inset-top, 0px)) 0 0 0;",
+      );
+      expect(styles).toContain("inset: 104px 0 0 0;");
+    });
+
+    it("drops the edge tabs below the open sheet header", () => {
+      const styles = componentSource();
+      expect(styles).toMatch(
+        /\.tha-spot-container\.sheet-open \.rival-hub-toggle[\s\S]{0,160}\+ 284px/,
+      );
+      expect(styles).toMatch(
+        /\.tha-spot-container\.sheet-open \.intel-toggle[\s\S]{0,160}\+ 332px/,
+      );
+      // Closed state clears the search bar, not the header.
+      expect(styles).toMatch(
+        /\.rival-hub-toggle,\s*\n\s*\.rival-hub-toggle\.panel-open,\s*\n\s*\.intel-toggle,[\s\S]{0,200}\+ 216px/,
+      );
+    });
+
+    it("glides the tab move with the panel's own timing and honours reduced motion", () => {
+      const styles = componentStyles() + componentSource();
+      expect(styles).toContain("top 0.35s cubic-bezier(0.16, 1, 0.3, 1)");
+      expect(styles).toMatch(
+        /prefers-reduced-motion: reduce[\s\S]{0,400}\.rival-hub-toggle,[\s\S]{0,120}transition: none !important/,
+      );
+    });
+  });
+
 });
