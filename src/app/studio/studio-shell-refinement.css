@@ -193,7 +193,14 @@
 
 .comp-view {
   min-width: 0;
-  min-height: 100%;
+  /*
+   * The canvas is a flex column that can also hold the beginner hint strip, so
+   * `min-height: 100%` asked for the whole canvas *below* that strip and ran
+   * every view ~40px past the canvas bottom, where it was clipped. Filling the
+   * leftover space keeps the view inside the frame either way.
+   */
+  flex: 1 1 auto;
+  min-height: 0;
   padding: clamp(10px, 1.25vw, 20px);
 }
 
