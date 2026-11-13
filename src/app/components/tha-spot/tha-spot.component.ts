@@ -461,7 +461,12 @@ const FEED_REFRESH_INTERVAL_MS = 300000;
         .executive-sidebar,
         .rival-hub {
           position: fixed;
-          inset: calc(64px + env(safe-area-inset-top, 0px)) 0 0 0;
+          /*
+           * The phone header wraps to ~160px, not the 64px used here, so these
+           * sheets started over its control rows. Start them under the header;
+           * the short landscape block below keeps its own 52px offset.
+           */
+          inset: calc(160px + env(safe-area-inset-top, 0px)) 0 0 0;
           width: 100%;
           max-width: none;
           height: auto;
@@ -526,13 +531,13 @@ const FEED_REFRESH_INTERVAL_MS = 300000;
       /* ── Landscape phones / short viewports (≤ 520px tall) ── */
       @media (orientation: landscape) and (max-height: 520px) {
         .spot-header {
-          height: 52px;
+          height: 56px;
           padding: 0 0.75rem;
         }
         .executive-sidebar,
         .rival-hub {
-          top: 52px;
-          inset: 52px 0 0 0;
+          top: 56px;
+          inset: 56px 0 0 0;
           width: min(420px, 100%);
         }
         .content-section {
@@ -564,14 +569,14 @@ const FEED_REFRESH_INTERVAL_MS = 300000;
           bottom: 12px;
           right: 12px;
         }
-        /* 52px header + 48px search bar; keep the tabs below both. */
+        /* 56px header + 48px search bar; keep the tabs below both. */
         .rival-hub-toggle,
         .rival-hub-toggle.panel-open {
-          top: calc(env(safe-area-inset-top, 0px) + 108px);
+          top: calc(env(safe-area-inset-top, 0px) + 112px);
         }
         .intel-toggle,
         .intel-toggle.panel-open {
-          top: calc(env(safe-area-inset-top, 0px) + 156px);
+          top: calc(env(safe-area-inset-top, 0px) + 160px);
         }
         .mobile-search-bar {
           display: flex;
