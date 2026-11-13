@@ -4006,6 +4006,19 @@ disclosure. Record arm, monitor and phantom stay visible. */
   }
 }
 
+@media (max-width: 420px) {
+  /* Four layout tabs cannot fit their icons on a phone. Drop the decorative
+     glyphs and let the labels share the strip so FX Macros stays reachable. */
+  .performer-layout-switcher .icn {
+    display: none;
+  }
+  .performer-layout-switcher button {
+    flex: 1 1 auto;
+    min-width: 0;
+    padding-inline: 4px;
+  }
+}
+
 /* A MIDI message the output device refused must not look like normal traffic. */
 .midi-log-row.midi-log-failed {
   color: #f87171;
