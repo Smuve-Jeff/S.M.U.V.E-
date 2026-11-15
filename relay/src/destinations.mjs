@@ -42,7 +42,17 @@ export function validateDestination(input) {
  * Append the key to the ingest base. Twitch gives `rtmp://live.twitch.tv/app`,
  * Kick gives `rtmps://<id>.global-contribute.live-video.net:443/app`; both take
  * the key as the final path segment.
+ *
+ * Query flags stay on the end where the provider expects them, which is what
+ * makes Twitch's bandwidth test (`.../app?bandwidthtest=true`) work: the key
+ * goes in as the path segment and the flag follows it. Appending naively would
+ * produce `.../app?bandwidthtest=true/live_...`, which Twitch reads as a key of
+ * `true/live_...`.
  */
 export function pushUrl(rtmpUrl, streamKey) {
-  return `${String(rtmpUrl).trim().replace(/\/+$/, "")}/${String(streamKey).trim()}`;
+  const trimmed = String(rtmpUrl).trim().replace(/\/+$/, "");
+  const queryAt = trimmed.indexOf("?");
+  const base = queryAt === -1 ? trimmed : trimmed.slice(0, queryAt);
+  const query = queryAt === -1 ? "" : trimmed.slice(queryAt);
+  return `${base.replace(/\/+$/, "")}/${String(streamKey).trim()}${query}`;
 }

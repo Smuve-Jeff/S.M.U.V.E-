@@ -1,0 +1,300 @@
+# First live broadcast: fresh host → relay self-test → a real Twitch channel
+
+This is the run that proves the broadcast path for real. Everything here has
+been unit-tested, but the chain has never run against Docker, MediaMTX, ffmpeg
+and Twitch together, so the steps are ordered to make each failure land on one
+layer at a time.
+
+```text
+browser ──WHIP (WebRTC)──▶ MediaMTX ──RTSP──▶ ffmpeg ──RTMP(S)──▶ Twitch / Kick
+```
+
+Do not announce a show until step 8 passes. Steps 1–7 are setup, 8–9 prove the
+media path without touching a channel, 10–12 are the real thing.
+
+## 0. What this host needs
+
+| Piece | Requirement |
+| --- | --- |
+| Relay host | Docker with compose v2 (`docker compose version`), public DNS name, TLS on 443, **UDP `8189` reachable from the internet** |
+| API host | Node 22, PostgreSQL, the env vars from `.env.example` |
+| Twitch app | Client ID + secret, callback registered (step 6) |
+| Browser | The app served over **HTTPS** — browsers only expose WHIP publishing on a secure origin |
+| Credentials | A Twitch channel you can stream to. Kick is optional (step 11) |
+
+TLS is not decoration: on a plain `http://` origin the browser refuses to
+publish, and the self-test will fail in step 8 with no useful error.
+
+## 1. Publish the right ports on the relay host
+
+| Port | What | Exposure |
+| --- | --- | --- |
+| `8889/tcp` | MediaMTX WHIP — where the browser publishes | Behind TLS on 443 |
+| `8189/udp` | WebRTC media | **Public**; nothing works without it |
+| `8080/tcp` | Relay control API — what the S.M.U.V.E API calls | Private network or TLS, never open to the world |
+| `9997/tcp` | MediaMTX config API | **Never published** — it accepts arbitrary path creation |
+| `8554/tcp`, `1935/tcp` | RTSP and the local self-test RTMP sink | Compose network only |
+
+Check: `ss -lunp | grep 8189` on the host once the stack is up (step 2), and
+confirm the DNS name resolves to it from a machine outside the network.
+
+## 2. Start the relay
+
+```bash
+cd relay
+export PUBLIC_RELAY_URL=https://relay.example.com     # https origin that fronts :8889
+export RELAY_TOKEN=$(openssl rand -hex 32)            # must equal MEDIA_RELAY_TOKEN on the API
+export RELAY_STATE_KEY=$(openssl rand -hex 32)        # enables restart recovery
+docker compose up --build -d
+docker compose logs -f relay
+```
+
+Expect four lines before anything else happens:
+
+```text
+[relay] control API on :8080
+[relay] publishing under https://relay.example.com/<session>/whip
+[relay] self-test sink: rtmp://mediamtx:1935/selftest
+[relay] restored 0 session(s) from /var/lib/relay/sessions.json
+```
+
+Checks:
+
+- `curl -s http://127.0.0.1:8080/health` → `{"status":"ok","sessions":0,"mediamtx":"reachable",...}`.
+- **`503` / `"mediamtx":"unreachable"`** → MediaMTX is not answering. Look at
+  `docker compose ps` and `docker compose logs mediamtx`; confirm `api: yes` is
+  still in `mediamtx.yml`. This is exactly the condition the API's boot check
+  refuses to start on, so fix it now rather than at step 4.
+- **Compose refuses to start** → it prints `set PUBLIC_RELAY_URL` or
+  `set RELAY_TOKEN`; both are required in `docker-compose.yml`.
+- **`restored 0 session(s)` is not logged** → `RELAY_STATE_KEY` was empty, so
+  persistence is off. Relaunch with the key, or accept that a relay restart ends
+  the push (step 12).
+- **ffmpeg present:** `docker compose exec relay ffmpeg -hide_banner -version | head -1`.
+
+## 3. Put TLS in front of WHIP
+
+Terminate TLS in front of `:8889` (Caddy, nginx, a Cloudflare tunnel) and set
+`PUBLIC_RELAY_URL` to that path-free origin. WebSocket-style upgrades must pass
+through, so do not buffer the response.
+
+Then set `webrtcAdditionalHosts` in `relay/mediamtx.yml` to the relay's public
+hostname and `docker compose restart mediamtx`, so the browser gets a candidate
+that actually works.
+
+Check from **outside** the relay network:
+
+```bash
+curl -s -o /dev/null -w '%{http_code}\n' https://relay.example.com/anything/whip
+```
+
+`404` or `405` is healthy — MediaMTX is answering and refusing the bare
+request. A TLS error, a timeout, or a blank reply means the proxy is not passing
+`:8889` through, and step 8 will report `THE RELAY RECEIVED NO MEDIA`.
+
+## 4. Point the API at the relay
+
+On the API host:
+
+```bash
+API_PUBLIC_URL=https://api.example.com            # used to build OAuth callbacks and validate requests
+MEDIA_RELAY_URL=https://relay-control.example.com  # reaches the relay's :8080
+MEDIA_RELAY_TOKEN=<the RELAY_TOKEN from step 2>
+MEDIA_RELAY_PROBE_TIMEOUT_MS=3000
+TWITCH_RTMP_URL=rtmp://live.twitch.tv/app
+```
+
+Start the API (`npm run dev:server` for a host run, or
+`npm run build:server && npm run start:server`). The boot check runs once and
+decides whether the process lives:
+
+| Boot output | Meaning | Action |
+| --- | --- | --- |
+| `[stream-accounts] OAuth ready for Twitch, YouTube.` | Providers configured, relay answered | Continue |
+| `The broadcast relay is up but cannot reach MediaMTX, so every push would fail. Fix MEDIAMTX_API_URL ...` | Relay answered **degraded** (503): it cannot reach MediaMTX | Fix MediaMTX, not the relay |
+| `The broadcast relay at <url> did not answer its health probe. Start it, or clear MEDIA_RELAY_URL ...` | Unreachable, timed out, wrong URL, or a token the relay rejected | `curl -s $MEDIA_RELAY_URL/health`; compare `MEDIA_RELAY_TOKEN` with `RELAY_TOKEN` |
+| `The streaming_accounts table is missing. Run \`npm run mg:run\` ...` | Migrations not applied | Step 5 |
+
+The process exits non-zero on any of those, so a deployment that gets past boot
+has already proven the relay hop. Check `curl -s $API_PUBLIC_URL/api/health`.
+
+## 5. Apply the migrations
+
+```bash
+npm run mg:run
+```
+
+Two tables must exist: `streaming_accounts` and `streaming_destinations`.
+Verify with `psql "$DATABASE_URL" -c '\d streaming_accounts'`. The boot check
+detects a missing table by error code and names it; it does not migrate for you.
+
+## 6. Register the Twitch application
+
+In the Twitch developer console create (or open) the app and set:
+
+| Field | Value |
+| --- | --- |
+| OAuth redirect URL | `<API_PUBLIC_URL>/api/stream-accounts/twitch/callback` |
+| Scopes the app requests | `channel:read:stream_key channel:manage:broadcast` |
+| Client ID / secret | into `TWITCH_CLIENT_ID` / `TWITCH_CLIENT_SECRET` |
+
+`channel:read:stream_key` is the one that makes the push possible: the relay
+needs the channel's key, and Twitch hands it out over Helix rather than in a
+dashboard the host copies from. `channel:manage:broadcast` covers the rest of
+the channel link. The connect flow sends `force_verify=true`, so Twitch asks
+which account even when a browser session already exists.
+
+YouTube is optional and read-only (`youtube.readonly openid email profile`) —
+it links the account but does **not** receive an RTMP push; only Twitch and Kick
+are ingest targets. Callback:
+`<API_PUBLIC_URL>/api/stream-accounts/youtube/callback`.
+
+Optional: set `OAUTH_TOKEN_KEY` (32-byte hex/base64) so stored tokens are sealed
+with their own key instead of one derived from `JWT_SECRET`.
+
+## 7. Connect the channel in the app
+
+1. Open **Tha Spot** → **STREAMING ACCOUNTS**.
+2. Press **CONNECT** next to TWITCH, approve on Twitch, and wait for the row to
+   show the channel name instead of `NOT CONNECTED`.
+3. Scroll to **BROADCAST PUSH** and press **CHECK**.
+
+Checks:
+
+- The header reads `RELAY READY`. `NO RELAY CONFIGURED` means `MEDIA_RELAY_URL`
+  is missing on the API, and every push will answer 503.
+- The TWITCH row reads `TWITCH — <your channel>` and **PUSH** is enabled. An
+  empty row with `NOT READY` means the account is not linked.
+- A 401/403 sentence about reconnecting Twitch means the stored token was
+  revoked or the app's client id changed — press **RECONNECT**.
+
+## 8. Self-test — prove the media path without a provider
+
+Press **SELF-TEST**. It publishes a generated colour-bar pattern through the
+same WHIP publisher a real host uses, waits six seconds, and asks the relay what
+arrived.
+
+Pass looks like:
+
+```text
+MEDIA CONFIRMED — 412 KB, 1 TRACK
+```
+
+That byte count is the whole point: it separates "the URL was accepted" from
+"video reached the RTMP side". No camera, no game and no stream key are
+involved, and the sink is the stack's own `rtmp://mediamtx:1935/selftest`, so
+this cannot appear on your channel.
+
+Failures, in the order they usually happen:
+
+| Message | Cause | Fix |
+| --- | --- | --- |
+| `THE RELAY RECEIVED NO MEDIA — CHECK THE WHIP URL, TLS AND UDP` | Browser connected nothing: TLS proxy not passing `:8889`, or `8189/udp` blocked | Step 3; check `webrtcAdditionalHosts` |
+| `THE RELAY RETURNED NO TEST SESSION` | Relay answered without a session | Read the relay logs; check 8080 reachability from the API |
+| `The relay refused the self-test (SELFTEST_RTMP_URL is not configured on this relay).` | Sink unset | Set `SELFTEST_RTMP_URL` (compose defaults it to the local sink) |
+| `THIS BROWSER CANNOT GENERATE A TEST PATTERN` | No `canvas.captureStream` (very old browser) | Use a current Chrome/Firefox/Safari |
+| 429 | More than 20 push attempts in a minute for this account | Wait a minute |
+
+Cross-check on the relay without the app:
+
+```bash
+curl -s -H "Authorization: Bearer $RELAY_TOKEN" \
+  "http://127.0.0.1:8080/sessions/<id>"
+```
+
+`ready: true` with `bytesReceived` above zero and a non-empty `tracks` array is
+the same evidence the panel shows.
+
+## 9. Prove egress to Twitch with the bandwidth test
+
+The self-test can push at Twitch instead of the local sink. Twitch's
+`bandwidthtest` flag accepts the stream without showing it on your channel:
+
+```bash
+cd relay
+export SELFTEST_RTMP_URL='rtmp://live.twitch.tv/app?bandwidthtest=true'
+export SELFTEST_STREAM_KEY='live_...'    # your channel's key
+docker compose up -d relay
+docker compose logs -f relay             # "[relay] self-test sink: rtmp://live.twitch.tv/app?bandwidthtest=true"
+```
+
+The relay appends the session key as the path segment and keeps the flag after
+it (`.../app/live_...?bandwidthtest=true`), which is the shape Twitch expects.
+
+Press **SELF-TEST** again. Expect `MEDIA CONFIRMED`. If the local sink passed but
+this fails, the relay cannot reach Twitch over RTMP outbound — check egress
+firewall rules for `:1935` and the key itself.
+
+Afterwards, unset `SELFTEST_RTMP_URL` (or set it back to the local sink) and
+restart the relay, so a stray self-test can never touch the channel.
+
+## 10. Real broadcast to Twitch
+
+1. Turn the camera on (or switch to **SCREEN**) in the broadcast panel.
+2. Press **PUSH** on the TWITCH row. Expect `PUSHING TO TWITCH` and the row
+   switching to **STOP**.
+
+Checks, in order:
+
+- Twitch Creator Dashboard → **Stream Manager** shows a video preview and
+  `Excellent`/`Good` stream health.
+- The public channel page plays the stream after a few seconds.
+- `docker compose logs -f relay` shows the session opening and ffmpeg running;
+  `docker compose logs --tail 30 mediamtx` shows the WHIP path being published
+  and, once bytes flow, the RTSP reader ffmpeg opened.
+- Switching camera ↔ game keeps the feed alive (the video track is replaced in
+  place rather than republishing).
+
+Stop with **STOP**; the snackbar reads `BROADCAST PUSH STOPPED`, Twitch reports
+the stream offline within ~10 seconds, and the relay session is deleted. Ending
+the stream in the app also ends the push.
+
+## 11. Kick (optional)
+
+Kick has no public key API, so the host pastes it once:
+
+1. In Kick's creator dashboard copy the ingest URL
+   (`rtmps://<channel-id>.global-contribute.live-video.net:443/app`) and the
+   stream key.
+2. Paste both into **KICK URL + KEY** and press **SAVE**. The key is sealed at
+   rest and never echoed back; the row then reads `KICK — <ingest host>`.
+3. Press **PUSH** on the KICK row and confirm the channel goes live.
+
+Validation is deliberate: the URL must start `rtmp://` or `rtmps://` and the key
+must be 8–200 characters of letters, digits, `_` or `-`. A rejection here is a
+copy-paste error, not a server problem.
+
+One platform at a time: while a push is live the panel shows **STOP** instead of
+**PUSH**, so stop the current push before switching channels.
+
+## 12. Restart the relay mid-broadcast
+
+With `RELAY_STATE_FILE` and `RELAY_STATE_KEY` set (step 2), an in-flight push
+survives a relay restart because MediaMTX and the browser's publish keep
+running:
+
+```bash
+docker compose restart relay
+docker compose logs relay | grep restored     # "[relay] restored 1 session(s) ..."
+```
+
+The provider feed continues without the host republishing, because the session
+id — and therefore the WHIP URL — is unchanged. If the log instead says
+`dropping stored session ...: its publisher is gone`, the browser had already
+stopped publishing and there was nothing to re-attach.
+
+## Sign-off checklist
+
+- [ ] `/health` answers `200` with `"mediamtx":"reachable"`
+- [ ] API boot log shows OAuth ready and no relay problem
+- [ ] Migrations applied (`streaming_accounts`, `streaming_destinations`)
+- [ ] Twitch row shows the channel; `RELAY READY`
+- [ ] SELF-TEST → `MEDIA CONFIRMED — n KB, n TRACKS`
+- [ ] SELF-TEST against `?bandwidthtest=true` also confirms media
+- [ ] Real PUSH shows video on the public channel
+- [ ] STOP returns the channel to offline
+- [ ] Relay restart mid-push keeps the feed alive
+
+The last item that has never been exercised is a full show over a real network
+for an hour: watch the relay's ffmpeg for reconnects and the app for the viewer
+stall watchdog while it runs.

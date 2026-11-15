@@ -63,3 +63,14 @@ test("appends the key to the ingest base without doubling the slash", () => {
     "rtmps://host:443/app/sk_us_kick_123456",
   );
 });
+
+test("keeps a query flag after the key", () => {
+  assert.equal(
+    pushUrl("rtmp://live.twitch.tv/app?bandwidthtest=true", "live_123456789_abcdef"),
+    "rtmp://live.twitch.tv/app/live_123456789_abcdef?bandwidthtest=true",
+  );
+  assert.equal(
+    pushUrl("rtmps://host:443/app", "sk_us_kick_123456"),
+    "rtmps://host:443/app/sk_us_kick_123456",
+  );
+});

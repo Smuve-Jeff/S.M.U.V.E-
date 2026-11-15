@@ -50,6 +50,9 @@ down or degraded, which is what catches the problem before a host goes live.
 
 ## Run it
 
+For the end-to-end procedure on a fresh host, including the checks at each
+step, see [`docs/FIRST_BROADCAST.md`](../docs/FIRST_BROADCAST.md).
+
 ```bash
 PUBLIC_RELAY_URL=https://relay.example.com RELAY_TOKEN=change-me \
   docker compose up --build
