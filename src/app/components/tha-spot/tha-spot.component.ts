@@ -2021,6 +2021,16 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
       );
     });
   });
+  /** Incoming requests waiting on this user, used by the NET tab badge. */
+  incomingFriendRequestCount = computed(
+    () =>
+      this.socialService
+        .friendsDirectory()
+        .filter(
+          (friend) =>
+            friend.status === 'pending' && friend.direction !== 'outgoing',
+        ).length,
+  );
   selectedDmUser = computed(() =>
     [
       ...this.onlineUsers(),

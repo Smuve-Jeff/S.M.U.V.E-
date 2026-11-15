@@ -1663,6 +1663,15 @@
           (click)="setHubTab('friends')"
         >
           NET
+          <span
+            class="net-request-badge"
+            *ngIf="incomingFriendRequestCount() > 0"
+            [attr.aria-label]="
+              incomingFriendRequestCount() + ' incoming friend requests'
+            "
+          >
+            {{ incomingFriendRequestCount() }}
+          </span>
         </button>
         <button
           [class.active]="activeHubTab() === 'party'"

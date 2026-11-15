@@ -381,6 +381,39 @@ export const emitChallengeCreated = (challenge: {
   ioServer.to(challenge.fromUserId).emit("challenge_persisted", payload);
 };
 
+/**
+ * Tell a user that someone just sent them a friend request. Targeted at the
+ * recipient's personal room so other connected clients never see it.
+ */
+export const emitFriendRequestReceived = (request: {
+  toUserId: string;
+  fromUserId: string;
+}): void => {
+  if (!ioServer) return;
+  ioServer.to(String(request.toUserId)).emit("friend_request_received", {
+    fromUserId: String(request.fromUserId),
+  });
+};
+
+/** Tell a user their friend-request notifications were bulk-marked read. */
+export const emitFriendRequestsRead = (userId: string): void => {
+  ioServer?.to(String(userId)).emit("friend_requests_read");
+};
+
+/** Tell both sides a friend request is no longer actionable. */
+export const emitFriendRequestResolved = (
+  userId: string,
+  otherUserId: string,
+): void => {
+  if (!ioServer) return;
+  ioServer
+    .to(String(userId))
+    .emit("friend_request_resolved", { otherUserId: String(otherUserId) });
+  ioServer
+    .to(String(otherUserId))
+    .emit("friend_request_resolved", { otherUserId: String(userId) });
+};
+
 export const emitChallengeResponse = (challenge: {
   id: number;
   fromUserId: string;

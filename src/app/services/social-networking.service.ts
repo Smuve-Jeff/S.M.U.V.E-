@@ -367,6 +367,31 @@ export class SocialNetworkingService {
       }
     });
 
+    this.socket.on('friend_request_received', (data: { fromUserId?: string }) => {
+      if (!data?.fromUserId) return;
+      // The event only carries the sender id; reload so the request appears in
+      // the friends list with its name, avatar, and incoming direction.
+      void this.loadFriends();
+      this.notifications?.show?.('NEW FRIEND REQUEST', 'info');
+    });
+
+    this.socket.on('friend_requests_read', () => {
+      // The server bulk-marked friend-request notifications when the friends
+      // list was fetched; clear the unread dot on any loaded inbox.
+      this.injector.get(ChallengeInboxService, null)?.markFriendRequestsRead?.();
+    });
+
+    this.socket.on(
+      'friend_request_resolved',
+      (data: { otherUserId?: string }) => {
+        if (!data?.otherUserId) return;
+        // Accepted, declined, or cancelled: drop the stale request row.
+        this.injector
+          .get(ChallengeInboxService, null)
+          ?.removeFriendRequestsFrom?.(data.otherUserId);
+      },
+    );
+
     this.socket.on('neural_sync_invite', (data: any) => {
       if (!data?.fromUserId) return;
       // Surface as a non-blocking in-app banner instead of a native

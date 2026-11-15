@@ -19,6 +19,7 @@ jest.mock("@/services", () => ({
     }
   }),
   blockUser: jest.fn(),
+  clearFriendRequestNotifications: jest.fn(),
   createChallenge: jest.fn(),
   featuredUsers: jest.fn(),
   listBlockedUsers: jest.fn(),
@@ -26,6 +27,7 @@ jest.mock("@/services", () => ({
   listFriends: jest.fn(),
   listMessageThread: jest.fn(),
   listNotifications: jest.fn(),
+  markFriendRequestNotificationsRead: jest.fn(),
   markNotificationRead: jest.fn(),
   persistNotification: jest.fn(),
   removeFriend: jest.fn(),
@@ -38,6 +40,9 @@ jest.mock("@/services", () => ({
 jest.mock("@/socket", () => ({
   emitChallengeCreated: jest.fn(),
   emitChallengeResponse: jest.fn(),
+  emitFriendRequestReceived: jest.fn(),
+  emitFriendRequestResolved: jest.fn(),
+  emitFriendRequestsRead: jest.fn(),
 }));
 
 const app = express();
@@ -211,6 +216,111 @@ describe("social challenge HTTP routes", () => {
         "7",
         "accepted",
       );
+      expect(services.clearFriendRequestNotifications).toHaveBeenCalledWith(
+        "12",
+        "7",
+      );
+      expect(socket.emitFriendRequestResolved).toHaveBeenCalledWith("12", "7");
+    });
+
+    it("notifies the recipient when a new friend request is created", async () => {
+      (globalThis as any).__socialRouteActor = { userId: 7, role: "user" };
+      (services.addFriend as jest.Mock).mockResolvedValue({
+        success: true,
+        requested: true,
+      });
+
+      const response = await fetch(`${baseUrl}/api/users/7/friends/12`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+      });
+
+      expect(response.status).toBe(200);
+      await expect(response.json()).resolves.toEqual({
+        success: true,
+        requested: true,
+      });
+      expect(services.addFriend).toHaveBeenCalledWith("7", "12");
+      expect(services.persistNotification).toHaveBeenCalledWith({
+        userId: "12",
+        type: "friend_request",
+        title: "New friend request",
+        body: "A player wants to connect with you. Open NET to respond.",
+        payload: { fromUserId: "7" },
+      });
+      expect(socket.emitFriendRequestReceived).toHaveBeenCalledWith({
+        toUserId: "12",
+        fromUserId: "7",
+      });
+    });
+
+    it("does not notify for a duplicate or mutual-accept request", async () => {
+      (globalThis as any).__socialRouteActor = { userId: 7, role: "user" };
+      (services.addFriend as jest.Mock).mockResolvedValue({ success: true });
+
+      const response = await fetch(`${baseUrl}/api/users/7/friends/12`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+      });
+
+      expect(response.status).toBe(200);
+      expect(services.persistNotification).not.toHaveBeenCalled();
+      expect(socket.emitFriendRequestReceived).not.toHaveBeenCalled();
+      expect(services.clearFriendRequestNotifications).not.toHaveBeenCalled();
+    });
+
+    it("clears stale notifications when mutual requests auto-accept", async () => {
+      (globalThis as any).__socialRouteActor = { userId: 7, role: "user" };
+      (services.addFriend as jest.Mock).mockResolvedValue({
+        success: true,
+        accepted: true,
+      });
+
+      const response = await fetch(`${baseUrl}/api/users/7/friends/12`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+      });
+
+      expect(response.status).toBe(200);
+      expect(services.clearFriendRequestNotifications).toHaveBeenCalledWith(
+        "7",
+        "12",
+      );
+      expect(socket.emitFriendRequestResolved).toHaveBeenCalledWith("7", "12");
+      expect(services.persistNotification).not.toHaveBeenCalled();
+    });
+
+    it("marks friend-request notifications read and clears loaded inboxes", async () => {
+      (globalThis as any).__socialRouteActor = { userId: 7, role: "user" };
+      (services.listFriends as jest.Mock).mockResolvedValue([]);
+      (services.markFriendRequestNotificationsRead as jest.Mock).mockResolvedValue({
+        success: true,
+        updated: 2,
+      });
+
+      const response = await fetch(`${baseUrl}/api/users/7/friends`);
+
+      expect(response.status).toBe(200);
+      await expect(response.json()).resolves.toEqual([]);
+      expect(services.listFriends).toHaveBeenCalledWith("7");
+      expect(services.markFriendRequestNotificationsRead).toHaveBeenCalledWith(
+        "7",
+      );
+      expect(socket.emitFriendRequestsRead).toHaveBeenCalledWith("7");
+    });
+
+    it("does not emit a read event when nothing was unread", async () => {
+      (globalThis as any).__socialRouteActor = { userId: 7, role: "user" };
+      (services.listFriends as jest.Mock).mockResolvedValue([]);
+      (services.markFriendRequestNotificationsRead as jest.Mock).mockResolvedValue({
+        success: true,
+        updated: 0,
+      });
+
+      const response = await fetch(`${baseUrl}/api/users/7/friends`);
+
+      expect(response.status).toBe(200);
+      expect(socket.emitFriendRequestsRead).not.toHaveBeenCalled();
     });
 
     it("declines a pending request for its recipient", async () => {
@@ -236,6 +346,11 @@ describe("social challenge HTTP routes", () => {
         "7",
         "declined",
       );
+      expect(services.clearFriendRequestNotifications).toHaveBeenCalledWith(
+        "12",
+        "7",
+      );
+      expect(socket.emitFriendRequestResolved).toHaveBeenCalledWith("12", "7");
     });
 
     it("returns 404 when accepting your own outgoing request", async () => {
@@ -274,6 +389,11 @@ describe("social challenge HTTP routes", () => {
       expect(response.status).toBe(200);
       await expect(response.json()).resolves.toEqual({ success: true });
       expect(services.removeFriend).toHaveBeenCalledWith("7", "12");
+      expect(services.clearFriendRequestNotifications).toHaveBeenCalledWith(
+        "7",
+        "12",
+      );
+      expect(socket.emitFriendRequestResolved).toHaveBeenCalledWith("7", "12");
     });
 
     it("returns 403 when either user has blocked the other", async () => {

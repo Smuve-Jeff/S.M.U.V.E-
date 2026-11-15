@@ -260,6 +260,16 @@ describe("ThaSpotComponent", () => {
     expect(component).toBeTruthy();
   });
 
+  it("counts only incoming pending requests for the NET badge", () => {
+    socialServiceMock.friendsDirectory.set([
+      { userId: "incoming-1", status: "pending", direction: "incoming" },
+      { userId: "outgoing-1", status: "pending", direction: "outgoing" },
+      { userId: "friend-1", status: "accepted" },
+    ]);
+
+    expect(component.incomingFriendRequestCount()).toBe(1);
+  });
+
   it("polls the live directory only while NET is open and the socket is down", () => {
     const loadSpy = jest.spyOn(component.liveStream, "loadActiveStreams");
     try {

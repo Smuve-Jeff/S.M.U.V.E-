@@ -92,6 +92,7 @@ import {
   addFriend,
   assertOwnershipOrAdmin,
   blockUser,
+  clearFriendRequestNotifications,
   createChallenge,
   filterBlocked,
   getProfile,
@@ -104,6 +105,7 @@ import {
   respondToChallenge,
   listNotifications,
   listRoomMessages,
+  markFriendRequestNotificationsRead,
   markNotificationRead,
   respondToFriendRequest,
   persistRoomMessage,
@@ -699,8 +701,9 @@ describe("friend request service", () => {
       .mockResolvedValueOnce(null) // caller has no row yet
       .mockResolvedValueOnce(null); // no reverse request
 
-    await addFriend("sender", "recipient");
+    const result = await addFriend("sender", "recipient");
 
+    expect(result).toEqual({ success: true, requested: true });
     expect(repos.friends.create).toHaveBeenCalledWith({
       userId: "sender",
       friendId: "recipient",
@@ -797,8 +800,9 @@ describe("friend request service", () => {
       .mockResolvedValueOnce(null) // caller has no row
       .mockResolvedValueOnce(reverse); // the other user already asked
 
-    await addFriend("sender", "recipient");
+    const result = await addFriend("sender", "recipient");
 
+    expect(result).toEqual({ success: true, accepted: true });
     expect(reverse.status).toBe("accepted");
     expect(repos.friends.save).toHaveBeenCalledWith(reverse);
     expect(mockRootQb.values).toHaveBeenCalledWith({
@@ -845,6 +849,38 @@ describe("notification service", () => {
       order: { createdAt: "DESC" },
       take: 30,
     });
+  });
+
+  it("marks unread friend-request notifications for the list owner", async () => {
+    await expect(markFriendRequestNotificationsRead("u1")).resolves.toEqual({
+      success: true,
+      updated: 1,
+    });
+
+    expect(mockRootQb.update).toHaveBeenCalledWith("notifications");
+    expect(mockRootQb.set).toHaveBeenCalledWith({ isRead: true });
+    expect(mockRootQb.where).toHaveBeenCalledWith(
+      expect.stringContaining("type = 'friend_request'"),
+      { userId: "u1" },
+    );
+    expect(mockRootQb.where).toHaveBeenCalledWith(
+      expect.stringContaining("is_read = false"),
+      { userId: "u1" },
+    );
+  });
+
+  it("clears friend-request notifications in both directions", async () => {
+    await expect(
+      clearFriendRequestNotifications("u1", "u2"),
+    ).resolves.toEqual({ success: true });
+
+    expect(mockRootQb.delete).toHaveBeenCalled();
+    expect(mockRootQb.from).toHaveBeenCalledWith("notifications");
+    expect(mockRootQb.where).toHaveBeenCalledWith("type = 'friend_request'");
+    expect(mockRootQb.andWhere).toHaveBeenCalledWith(
+      expect.stringContaining("payload->>'fromUserId'"),
+      { userId: "u1", otherUserId: "u2" },
+    );
   });
 
   it("marks a notification read with the isRead property key", async () => {

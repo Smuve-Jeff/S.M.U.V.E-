@@ -385,7 +385,7 @@ export const listFriends = async (userId: string): Promise<FriendRow[]> => {
 export const addFriend = async (
   userId: string,
   friendId: string,
-): Promise<{ success: boolean }> => {
+): Promise<{ success: boolean; requested?: boolean; accepted?: boolean }> => {
   if (userId === friendId) {
     throw new AppError(400, "Cannot friend yourself");
   }
@@ -402,7 +402,7 @@ export const addFriend = async (
     // Repair a half-written friendship instead of creating a pending request
     // against someone who is already a friend.
     await upsertFriend({ userId, friendId, status: "accepted" });
-    return { success: true };
+    return { success: true, accepted: true };
   }
   if (reverse?.status === "pending") {
     // Both users asked for each other: accept instead of leaving two pending
@@ -410,13 +410,13 @@ export const addFriend = async (
     reverse.status = "accepted";
     await repo().friends.save(reverse);
     await upsertFriend({ userId, friendId, status: "accepted" });
-    return { success: true };
+    return { success: true, accepted: true };
   }
 
   await repo().friends.save(
     repo().friends.create({ userId, friendId, status: "pending" }),
   );
-  return { success: true };
+  return { success: true, requested: true };
 };
 
 // Upsert the reverse row with ENTITY-PROPERTY keys (column-name keys would
@@ -845,6 +845,44 @@ export const markNotificationRead = async (
   if (!result.affected) {
     throw new AppError(404, "Notification not found");
   }
+  return { success: true };
+};
+
+/**
+ * Mark every unread friend-request notification read for one user. Called when
+ * the friends list is fetched so the request has actually been seen.
+ */
+export const markFriendRequestNotificationsRead = async (
+  userId: string,
+): Promise<{ success: boolean; updated: number }> => {
+  const result = await AppDataSource.createQueryBuilder()
+    .update("notifications")
+    .set({ isRead: true })
+    .where(
+      "user_id = :userId AND type = 'friend_request' AND is_read = false",
+      { userId },
+    )
+    .execute();
+  return { success: true, updated: result?.affected ?? 0 };
+};
+
+/**
+ * Drop the friend-request notifications between two users once the request is
+ * accepted, declined, cancelled, or the friendship is removed.
+ */
+export const clearFriendRequestNotifications = async (
+  userId: string,
+  otherUserId: string,
+): Promise<{ success: boolean }> => {
+  await AppDataSource.createQueryBuilder()
+    .delete()
+    .from("notifications")
+    .where("type = 'friend_request'")
+    .andWhere(
+      "((user_id = :userId AND payload->>'fromUserId' = :otherUserId) OR (user_id = :otherUserId AND payload->>'fromUserId' = :userId))",
+      { userId, otherUserId },
+    )
+    .execute();
   return { success: true };
 };
 

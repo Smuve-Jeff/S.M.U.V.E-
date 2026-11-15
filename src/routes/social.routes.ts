@@ -2,11 +2,18 @@ import { Router } from "express";
 import type { NextFunction, Request, Response } from "express";
 import { parseIdParam } from "@/lib";
 import { authenticate } from "@/middleware/auth";
-import { emitChallengeCreated, emitChallengeResponse } from "@/socket";
+import {
+  emitChallengeCreated,
+  emitChallengeResponse,
+  emitFriendRequestReceived,
+  emitFriendRequestResolved,
+  emitFriendRequestsRead,
+} from "@/socket";
 import {
   addFriend,
   assertOwnershipOrAdmin,
   blockUser,
+  clearFriendRequestNotifications,
   createChallenge,
   featuredUsers,
   listBlockedUsers,
@@ -14,6 +21,7 @@ import {
   listFriends,
   listMessageThread,
   listNotifications,
+  markFriendRequestNotificationsRead,
   markNotificationRead,
   persistNotification,
   removeFriend,
@@ -36,6 +44,24 @@ const own = (req: Request, res: Response, next: NextFunction): void => {
     next();
   } catch (err) {
     next(err as Error);
+  }
+};
+
+/**
+ * A request that was accepted, declined, cancelled, or auto-accepted is no
+ * longer actionable. Delete its notification rows and tell both connected
+ * inboxes to drop them.
+ */
+const resolveFriendRequestNotifications = async (
+  userId: string,
+  friendId: string,
+): Promise<void> => {
+  try {
+    await clearFriendRequestNotifications(userId, friendId);
+    emitFriendRequestResolved(userId, friendId);
+  } catch (err) {
+    // The friendship transition is authoritative; cleanup can retry on reload.
+    console.error("Friend request notification cleanup failed:", err);
   }
 };
 
@@ -63,7 +89,24 @@ router.get("/:userId/messages/:friendId", own, async (req, res) => {
 
 // GET /api/users/:userId/friends
 router.get("/:userId/friends", own, async (req, res) => {
-  res.json(await listFriends(req.params.userId));
+  const friends = await listFriends(req.params.userId);
+  try {
+    // Fetching the friends list is the point where incoming requests become
+    // visible, so this is when their notifications stop being unread.
+    const marked = await markFriendRequestNotificationsRead(req.params.userId);
+    if (marked.updated > 0) {
+      // Clear the unread dot on any inbox already loaded on this account.
+      try {
+        emitFriendRequestsRead(req.params.userId);
+      } catch (err) {
+        console.error("Friend request read emit failed:", err);
+      }
+    }
+  } catch (err) {
+    // A read-state failure must never hide the friends list.
+    console.error("Friend request notification read failed:", err);
+  }
+  res.json(friends);
 });
 
 // GET /api/users/:userId/blocks
@@ -83,23 +126,67 @@ router.delete("/:userId/blocks/:blockedUserId", own, async (req, res) => {
 
 // POST /api/users/:userId/friends/:friendId
 router.post("/:userId/friends/:friendId", own, async (req, res) => {
-  res.json(await addFriend(req.params.userId, req.params.friendId));
+  const result = await addFriend(req.params.userId, req.params.friendId);
+  if (result.requested) {
+    // `requested` is false for duplicates and mutual-request auto-accepts, so
+    // the recipient is only pinged when there is a genuinely new request.
+    // Persist BEFORE emitting: the event makes the client fetch the friends
+    // list, which marks these notifications read, so an unread row written
+    // afterwards would stay unread despite the list having been seen.
+    try {
+      await persistNotification({
+        userId: req.params.friendId,
+        type: "friend_request",
+        title: "New friend request",
+        body: "A player wants to connect with you. Open NET to respond.",
+        payload: { fromUserId: req.params.userId },
+      });
+    } catch (err) {
+      // Persistence is best-effort; the request and live ping still matter.
+      console.error("Friend request notification persist failed:", err);
+    }
+    try {
+      emitFriendRequestReceived({
+        toUserId: req.params.friendId,
+        fromUserId: req.params.userId,
+      });
+    } catch (err) {
+      // The request is already persisted; a realtime failure must not undo it.
+      console.error("Friend request emit failed:", err);
+    }
+  } else if (result.accepted) {
+    // Mutual requests auto-accept, so any request notifications are stale.
+    await resolveFriendRequestNotifications(
+      req.params.userId,
+      req.params.friendId,
+    );
+  }
+  res.json(result);
 });
 
 // PATCH /api/users/:userId/friends/:friendId — { status }
 router.patch("/:userId/friends/:friendId", own, async (req, res) => {
-  res.json(
-    await respondToFriendRequest(
-      req.params.userId,
-      req.params.friendId,
-      req.body?.status,
-    ),
+  const updated = await respondToFriendRequest(
+    req.params.userId,
+    req.params.friendId,
+    req.body?.status,
   );
+  await resolveFriendRequestNotifications(
+    req.params.userId,
+    req.params.friendId,
+  );
+  res.json(updated);
 });
 
 // DELETE /api/users/:userId/friends/:friendId
 router.delete("/:userId/friends/:friendId", own, async (req, res) => {
-  res.json(await removeFriend(req.params.userId, req.params.friendId));
+  const removed = await removeFriend(req.params.userId, req.params.friendId);
+  // Covers cancelling an outgoing request and unfriending an accepted one.
+  await resolveFriendRequestNotifications(
+    req.params.userId,
+    req.params.friendId,
+  );
+  res.json(removed);
 });
 
 // GET /api/users/:userId/challenges?status=

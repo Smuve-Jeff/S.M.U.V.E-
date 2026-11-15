@@ -64,6 +64,8 @@ describe('SocialNetworkingService', () => {
           provide: ChallengeInboxService,
           useValue: {
             bindSocket: jest.fn(),
+            markFriendRequestsRead: jest.fn(),
+            removeFriendRequestsFrom: jest.fn(),
           },
         },
         {
@@ -215,6 +217,47 @@ describe('SocialNetworkingService', () => {
     ]);
 
     expect(service.onlineUsers().map((u) => u.userId)).toEqual(['keep-1']);
+  });
+
+  it('clears loaded friend-request notifications when the server marks them read', () => {
+    serverEvent('friend_requests_read');
+
+    expect(
+      TestBed.inject(ChallengeInboxService).markFriendRequestsRead,
+    ).toHaveBeenCalled();
+  });
+
+  it('removes a resolved friend request from the loaded inbox', () => {
+    serverEvent('friend_request_resolved', { otherUserId: 'sender-1' });
+
+    expect(
+      TestBed.inject(ChallengeInboxService).removeFriendRequestsFrom,
+    ).toHaveBeenCalledWith('sender-1');
+  });
+
+  it('reloads friends when a friend request arrives over the socket', async () => {
+    serverEvent('friend_request_received', { fromUserId: 'sender-1' });
+
+    const request = TestBed.inject(HttpTestingController).expectOne(
+      (r) => r.method === 'GET' && r.url.endsWith('/users/test-id/friends'),
+    );
+    request.flush([
+      {
+        userId: 'sender-1',
+        artistName: 'SENDER',
+        status: 'pending',
+        direction: 'incoming',
+      },
+    ]);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(service.friends()).toEqual([
+      expect.objectContaining({
+        userId: 'sender-1',
+        status: 'pending',
+        direction: 'incoming',
+      }),
+    ]);
   });
 
   it('hides live broadcasts from blocked users', () => {

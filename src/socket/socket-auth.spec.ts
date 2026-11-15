@@ -15,7 +15,11 @@ import {
   resolveViewerJoin,
   startLiveStream,
 } from "@/services/live-stream.service";
-import { provisionChallengeLobby, setupSocketIO } from "./index";
+import {
+  emitFriendRequestReceived,
+  provisionChallengeLobby,
+  setupSocketIO,
+} from "./index";
 import liveStreamRoutes from "@/routes/live-stream.routes";
 
 // The socket server only touches the database inside handlers (presence sync,
@@ -238,6 +242,24 @@ describe("socket.io handshake + JWT auth", () => {
       client.once("connect", () => resolve());
       client.once("connect_error", (error) => reject(error));
     });
+
+  it("delivers a friend-request event only to the recipient", async () => {
+    const recipient = mk(801);
+    const bystander = mk(802);
+    await Promise.all([connect(recipient), connect(bystander)]);
+
+    const received = new Promise<any>((resolve) => {
+      recipient.once("friend_request_received", resolve);
+    });
+    const leaked = jest.fn();
+    bystander.on("friend_request_received", leaked);
+
+    emitFriendRequestReceived({ toUserId: "801", fromUserId: "999" });
+
+    await expect(received).resolves.toEqual({ fromUserId: "999" });
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(leaked).not.toHaveBeenCalled();
+  });
 
   it("accepts a client that presents a valid JWT", (done) => {
     const token = jwt.sign(
