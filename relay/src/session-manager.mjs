@@ -24,6 +24,8 @@ export class SessionManager {
   #rtspUrl;
   #ffmpegPath;
   #maxRestarts;
+  #audioBitrate;
+  #audioChannels;
   #logger;
   #store;
   #onAlert;
@@ -43,16 +45,37 @@ export class SessionManager {
     onAlert = null,
     /** How many times the relay may restart ffmpeg for a stalled session. */
     maxRecoveries = 2,
+    /**
+     * Audio settings for the Opus → AAC re-encode. Twitch accepts AAC up to
+     * 320 kbps and expects stereo, but the right value depends on the material
+     * and the host's uplink, so both are settings rather than constants.
+     */
+    audioBitrate = "128k",
+    audioChannels = 2,
   }) {
     if (typeof spawn !== "function") throw new Error("spawn is required");
     if (!mediamtx) throw new Error("mediamtx client is required");
     if (!publicUrl) throw new Error("PUBLIC_RELAY_URL is required");
+    const bitrate = String(audioBitrate).trim();
+    if (!/^\d{1,3}k$/.test(bitrate) || Number(bitrate.slice(0, -1)) < 32) {
+      throw new Error(
+        `EGRESS_AUDIO_BITRATE must look like 128k, got "${audioBitrate}"`,
+      );
+    }
+    const channels = Number(audioChannels);
+    if (channels !== 1 && channels !== 2) {
+      throw new Error(
+        `EGRESS_AUDIO_CHANNELS must be 1 or 2, got "${audioChannels}"`,
+      );
+    }
     this.#spawn = spawn;
     this.#mediamtx = mediamtx;
     this.#publicUrl = String(publicUrl).replace(/\/+$/, "");
     this.#rtspUrl = String(rtspUrl).replace(/\/+$/, "");
     this.#ffmpegPath = ffmpegPath;
     this.#maxRestarts = Math.max(0, Number(maxRestarts) || 0);
+    this.#audioBitrate = bitrate;
+    this.#audioChannels = channels;
     this.#logger = logger;
     this.#store = store;
     this.#onAlert = typeof onAlert === "function" ? onAlert : null;
@@ -518,7 +541,9 @@ export class SessionManager {
         "-c:a",
         "aac",
         "-b:a",
-        "128k",
+        this.#audioBitrate,
+        "-ac",
+        String(this.#audioChannels),
         "-f",
         "flv",
         session.destination,

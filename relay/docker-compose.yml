@@ -42,6 +42,10 @@ services:
       # EGRESS_MAX_RECOVERIES times. 0 keeps it report-only.
       EGRESS_RECOVER_AFTER_SECONDS: ${EGRESS_RECOVER_AFTER_SECONDS:-45}
       EGRESS_MAX_RECOVERIES: ${EGRESS_MAX_RECOVERIES:-2}
+      # Egress audio. The browser sends Opus, which FLV cannot carry, so the
+      # relay re-encodes it to AAC at this bitrate and channel count.
+      EGRESS_AUDIO_BITRATE: ${EGRESS_AUDIO_BITRATE:-128k}
+      EGRESS_AUDIO_CHANNELS: ${EGRESS_AUDIO_CHANNELS:-2}
       ALERT_WEBHOOK_URL: ${ALERT_WEBHOOK_URL:-}
       FFMPEG_PATH: ffmpeg
     volumes:

@@ -71,6 +71,8 @@ const manager = new SessionManager({
   ffmpegPath: process.env.FFMPEG_PATH || "ffmpeg",
   maxRestarts: Number(process.env.FFMPEG_MAX_RESTARTS ?? 5),
   maxRecoveries: Number(process.env.EGRESS_MAX_RECOVERIES ?? 2),
+  audioBitrate: (process.env.EGRESS_AUDIO_BITRATE || "").trim() || "128k",
+  audioChannels: Number(process.env.EGRESS_AUDIO_CHANNELS ?? 2),
   store,
   onAlert,
 });

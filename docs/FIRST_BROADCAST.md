@@ -329,7 +329,9 @@ broadcast from.
 **The codec is the highest-risk item.** The relay copies video and re-encodes
 audio (`-c:v copy -c:a aac`): FLV can carry H.264 but not Opus, and a single
 `-c copy` made the muxer refuse to write a header at all, so a host with a
-microphone reached the provider with nothing. The publisher therefore restricts the
+microphone reached the provider with nothing. The AAC encode is tuned with
+`EGRESS_AUDIO_BITRATE` (default `128k`) and `EGRESS_AUDIO_CHANNELS` (default `2`);
+if the provider reports poor audio, change those rather than the browser. The publisher therefore restricts the
 video transceiver to H.264 with `setCodecPreferences`, and refuses the push
 outright when the browser has no H.264 encoder. That preference is still advisory
 per spec, and browsers too old to implement it are left alone, so check the codec

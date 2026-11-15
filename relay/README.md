@@ -51,6 +51,8 @@ down or degraded, which is what catches the problem before a host goes live.
 | `EGRESS_STALL_SECONDS` | `15` | Silence to the provider before a live session is alerted; `0` disables |
 | `EGRESS_RECOVER_AFTER_SECONDS` | `45` | Silence after which the relay restarts ffmpeg itself; `0` keeps it report-only |
 | `EGRESS_MAX_RECOVERIES` | `2` | Restart attempts per session before the relay gives up and just reports |
+| `EGRESS_AUDIO_BITRATE` | `128k` | Bitrate of the Opus → AAC re-encode; must look like `96k` (32k or more) |
+| `EGRESS_AUDIO_CHANNELS` | `2` | Channel count of that re-encode: `1` or `2` |
 | `ALERT_WEBHOOK_URL` | — | If set, stall, reconnect and give-up alerts are POSTed here as JSON |
 
 ## Run it
@@ -78,7 +80,9 @@ is open.
 
 Video is copied through unchanged; audio is re-encoded from Opus to AAC, because
 FLV cannot carry Opus at all — with a single `-c copy` the muxer refuses to write a
-header and the push never leaves the relay.
+header and the push never leaves the relay. `EGRESS_AUDIO_BITRATE` and
+`EGRESS_AUDIO_CHANNELS` tune that encode; both are refused at startup if malformed,
+rather than producing audio the provider silently will not take.
 
 MediaMTX's `bytesReceived` proves the browser is still sending; it says nothing
 about the provider, because ffmpeg can stay connected and write nothing after

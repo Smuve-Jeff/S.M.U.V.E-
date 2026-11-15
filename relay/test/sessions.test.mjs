@@ -71,11 +71,34 @@ test("opens a path and pushes RTSP to the provider's RTMP ingest", async () => {
     "aac",
     "-b:a",
     "128k",
+    "-ac",
+    "2",
     "-f",
     "flv",
     "rtmp://live.twitch.tv/app/live_123456789_abcdef",
   ]);
   assert.equal(manager.list()[0].running, true);
+});
+
+test("audio settings are configurable, and bad values are refused", async () => {
+  const { manager, calls } = harness({ audioBitrate: "96k", audioChannels: 1 });
+  await manager.create(destination);
+  const args = calls[0].args;
+  assert.equal(args[args.indexOf("-b:a") + 1], "96k");
+  assert.equal(args[args.indexOf("-ac") + 1], "1");
+
+  assert.throws(
+    () => harness({ audioBitrate: "128 kbps" }),
+    /EGRESS_AUDIO_BITRATE must look like 128k/
+  );
+  assert.throws(
+    () => harness({ audioChannels: 6 }),
+    /EGRESS_AUDIO_CHANNELS must be 1 or 2/
+  );
+  assert.throws(
+    () => harness({ audioBitrate: "8k" }),
+    /EGRESS_AUDIO_BITRATE must look like 128k/
+  );
 });
 
 test("deleting a session kills ffmpeg and its publish path", async () => {
