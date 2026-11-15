@@ -402,3 +402,86 @@ test("keeps a history of the egress drops a session recovers from", async () => 
     mock.timers.reset();
   }
 });
+
+test("restarts ffmpeg after the grace period and pushes again", async () => {
+  mock.timers.enable({ apis: ["Date", "setTimeout"] });
+  try {
+    const alerts = [];
+    const { manager, children } = harness({
+      onAlert: (alert) => alerts.push(alert),
+      maxRecoveries: 1,
+    });
+    const session = await manager.create(destination);
+    progress(children[0], 1024);
+    await manager.watchdog(15_000, Date.now() + 20_000);
+
+    // Stalled, but the grace period has not passed yet.
+    assert.deepEqual(await manager.recover(45_000, Date.now() + 30_000), []);
+    assert.equal(children[0].killed, false);
+
+    assert.deepEqual(await manager.recover(45_000, Date.now() + 60_000), [
+      session.id,
+    ]);
+    assert.equal(children[0].killed, true);
+    assert.equal(alerts.at(-1).event, "session.recovering");
+    assert.equal(alerts.at(-1).attempt, 1);
+
+    let status = await manager.status(session.id);
+    assert.equal(status.recoveries, 1);
+    assert.equal(status.recovering, false);
+    assert.equal(status.stalled, false);
+    assert.match(status.lastRecoveryAt, /^\d{4}-/);
+    assert.equal(status.bitrateKbps, 0);
+
+    // The replacement ffmpeg is spawned after a short pause.
+    mock.timers.tick(1_000);
+    assert.equal(children.length, 2);
+
+    // Its byte counter starts over, so the old baseline cannot mask new bytes.
+    assert.deepEqual(await manager.watchdog(15_000, Date.now() + 120_000), []);
+    progress(children[1], 4096);
+
+    status = await manager.status(session.id);
+    assert.equal(status.bytesOut, 4096);
+    assert.equal(alerts.at(-1).event, "session.reconnected");
+  } finally {
+    mock.timers.reset();
+  }
+});
+
+test("stops restarting once the recovery attempts are spent", async () => {
+  mock.timers.enable({ apis: ["Date", "setTimeout"] });
+  try {
+    const alerts = [];
+    const { manager, children } = harness({
+      onAlert: (alert) => alerts.push(alert),
+      maxRecoveries: 0,
+    });
+    const session = await manager.create(destination);
+    progress(children[0], 1024);
+    await manager.watchdog(15_000, Date.now() + 20_000);
+
+    assert.deepEqual(await manager.recover(45_000, Date.now() + 60_000), []);
+    assert.equal(children[0].killed, false);
+    assert.equal(alerts.at(-1).event, "session.recovery-failed");
+    assert.equal((await manager.status(session.id)).recoveryGaveUp, true);
+
+    // Said once, not on every tick.
+    await manager.recover(45_000, Date.now() + 120_000);
+    assert.equal(
+      alerts.filter((alert) => alert.event === "session.recovery-failed").length,
+      1,
+    );
+  } finally {
+    mock.timers.reset();
+  }
+});
+
+test("leaves a session that is pushing fine alone", async () => {
+  const { manager, children } = harness();
+  await manager.create(destination);
+  progress(children[0], 1024);
+
+  assert.deepEqual(await manager.recover(45_000, Date.now() + 600_000), []);
+  assert.equal(children[0].killed, false);
+});

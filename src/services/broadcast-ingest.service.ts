@@ -312,6 +312,10 @@ interface RelaySessionSnapshot {
   drops: number;
   silentMs: number;
   lastDropAt: string | null;
+  recoveries: number;
+  recovering: boolean;
+  lastRecoveryAt: string | null;
+  recoveryGaveUp: boolean;
   running: boolean;
   error: string | null;
 }
@@ -348,6 +352,10 @@ async function readRelaySession(
     drops?: unknown;
     silentMs?: unknown;
     lastDropAt?: unknown;
+    recoveries?: unknown;
+    recovering?: unknown;
+    lastRecoveryAt?: unknown;
+    recoveryGaveUp?: unknown;
     running?: unknown;
     error?: unknown;
   };
@@ -367,6 +375,11 @@ async function readRelaySession(
     drops: Number(payload.drops ?? 0) || 0,
     silentMs: Number(payload.silentMs ?? 0) || 0,
     lastDropAt: typeof payload.lastDropAt === "string" ? payload.lastDropAt : null,
+    recoveries: Number(payload.recoveries ?? 0) || 0,
+    recovering: payload.recovering === true,
+    lastRecoveryAt:
+      typeof payload.lastRecoveryAt === "string" ? payload.lastRecoveryAt : null,
+    recoveryGaveUp: payload.recoveryGaveUp === true,
     running: payload.running === true,
     error: typeof payload.error === "string" ? payload.error : null,
   };
@@ -400,6 +413,12 @@ export interface IngestStatus {
   /** Total time spent silent across those drops. */
   silentMs: number;
   lastDropAt: string | null;
+  /** How many times the relay restarted ffmpeg to bring this push back. */
+  recoveries: number;
+  recovering: boolean;
+  lastRecoveryAt: string | null;
+  /** The relay ran out of restart attempts and left the session flagged. */
+  recoveryGaveUp: boolean;
   error: string | null;
 }
 
@@ -416,6 +435,10 @@ export async function ingestStatus(relayId: string): Promise<IngestStatus> {
     drops: snapshot.drops,
     silentMs: snapshot.silentMs,
     lastDropAt: snapshot.lastDropAt,
+    recoveries: snapshot.recoveries,
+    recovering: snapshot.recovering,
+    lastRecoveryAt: snapshot.lastRecoveryAt,
+    recoveryGaveUp: snapshot.recoveryGaveUp,
     error: snapshot.error,
   };
 }

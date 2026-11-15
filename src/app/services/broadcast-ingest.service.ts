@@ -76,6 +76,16 @@ export class BroadcastIngestService {
     silentMs: number;
   }>({ bitrateKbps: 0, drops: 0, silentMs: 0 });
 
+  /**
+   * Relay-driven recovery: after the grace period the relay restarts ffmpeg
+   * itself, so the panel reports the reconnect instead of asking the host to.
+   */
+  readonly recovery = signal<{
+    recovering: boolean;
+    recoveries: number;
+    gaveUp: boolean;
+  }>({ recovering: false, recoveries: 0, gaveUp: false });
+
   /** Result of the last relay self-test, shown next to the button. */
   readonly selfTest = signal<{ status: 'idle' | 'running' | 'pass' | 'fail'; detail: string }>({
     status: 'idle',
@@ -219,6 +229,7 @@ export class BroadcastIngestService {
     this.egressTimer = null;
     this.stall.set({ stalled: false, stalledForMs: 0 });
     this.quality.set({ bitrateKbps: 0, drops: 0, silentMs: 0 });
+    this.recovery.set({ recovering: false, recoveries: 0, gaveUp: false });
   }
 
   private async refreshEgress(relayId: string): Promise<void> {
@@ -230,6 +241,9 @@ export class BroadcastIngestService {
           bitrateKbps?: number;
           drops?: number;
           silentMs?: number;
+          recoveries?: number;
+          recovering?: boolean;
+          recoveryGaveUp?: boolean;
         }>(this.endpoint(`/ingest/${encodeURIComponent(relayId)}`), {
           headers: this.headers(),
         }),
@@ -243,10 +257,28 @@ export class BroadcastIngestService {
         drops: Number(status?.drops ?? 0) || 0,
         silentMs: Number(status?.silentMs ?? 0) || 0,
       });
+      this.recovery.set({
+        recovering: status?.recovering === true,
+        recoveries: Number(status?.recoveries ?? 0) || 0,
+        gaveUp: status?.recoveryGaveUp === true,
+      });
     } catch (error) {
       // A session the relay no longer knows about is not a stall: stop asking.
       if ((error as { status?: number } | null)?.status === 404) this.stopWatching();
     }
+  }
+
+  /** What the relay is doing about a silent push, if it is doing anything. */
+  recoveryNote(): string {
+    if (this.state() !== 'live') return '';
+    const { recovering, gaveUp } = this.recovery();
+    if (recovering) {
+      return 'RELAY IS RECONNECTING THE PUSH — THE PROVIDER MAY SHOW A SHORT GAP';
+    }
+    if (gaveUp) {
+      return 'THE RELAY COULD NOT RECONNECT — STOP AND PUSH AGAIN';
+    }
+    return '';
   }
 
   /** One line for the panel while the provider has stopped receiving. */
@@ -272,7 +304,10 @@ export class BroadcastIngestService {
       drops === 0
         ? 'NO DROPS'
         : `${drops} DROP${drops === 1 ? '' : 'S'} (${Math.round(silentMs / 1_000)}S SILENT)`;
-    return `EGRESS ${rate} · ${history}`;
+    const reboots = this.recovery().recoveries;
+    const suffix =
+      reboots > 0 ? ` · ${reboots} RECONNECT${reboots === 1 ? '' : 'S'}` : '';
+    return `EGRESS ${rate} · ${history}${suffix}`;
   }
 
   /**

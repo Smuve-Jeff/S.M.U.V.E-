@@ -245,8 +245,8 @@ Checks, in order:
 - Switching camera ↔ game keeps the feed alive (the video track is replaced in
   place rather than republishing).
 - The relay's startup log announced
-  `[relay] egress watchdog: 15s of silence`; during the push, nothing should say
-  `[relay] ALERT session …`. If it does, the browser is still uploading but the
+  `[relay] egress watchdog: 15s of silence, restarting ffmpeg after 45s`; during
+  the push, nothing should say `[relay] ALERT session …`. If it does, the browser is still uploading but the
   provider has stopped receiving — check outbound RTMP from the relay host, then
   stop and re-push. The panel says
   `PROVIDER SILENT FOR <n>S — THE RELAY IS STILL RECEIVING, SO CHECK ITS RTMP EGRESS`
@@ -257,6 +257,11 @@ Checks, in order:
   `EGRESS 3,140 KBPS · NO DROPS`. A rate near zero means the provider is
   receiving nothing even if the panel has not flagged a stall yet; any drop
   count above zero means the push already went silent once and recovered.
+- A stall that lasts past 45 s is fixed by the relay, not by you: the panel says
+  `RELAY IS RECONNECTING THE PUSH — THE PROVIDER MAY SHOW A SHORT GAP`, then the
+  quality line gains `· 1 RECONNECT`. If it instead says
+  `THE RELAY COULD NOT RECONNECT — STOP AND PUSH AGAIN`, the push is beyond what
+  a restart can fix.
 
 Stop with **STOP**; the snackbar reads `BROADCAST PUSH STOPPED`, Twitch reports
 the stream offline within ~10 seconds, and the relay session is deleted. Ending

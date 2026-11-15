@@ -3268,6 +3268,9 @@
               <p class="account-note warn" *ngIf="ingest.stallNote()">
                 {{ ingest.stallNote() }}
               </p>
+              <p class="account-note warn" *ngIf="ingest.recoveryNote()">
+                {{ ingest.recoveryNote() }}
+              </p>
               <p class="account-note quality" *ngIf="ingest.qualityNote()">
                 {{ ingest.qualityNote() }}
               </p>

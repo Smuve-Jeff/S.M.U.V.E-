@@ -70,6 +70,7 @@ const manager = new SessionManager({
   rtspUrl: process.env.MEDIAMTX_RTSP_URL || "rtsp://127.0.0.1:8554",
   ffmpegPath: process.env.FFMPEG_PATH || "ffmpeg",
   maxRestarts: Number(process.env.FFMPEG_MAX_RESTARTS ?? 5),
+  maxRecoveries: Number(process.env.EGRESS_MAX_RECOVERIES ?? 2),
   store,
   onAlert,
 });
@@ -84,11 +85,13 @@ sweeper.unref();
 // Egress watchdog: a session that was pushing and then went silent is the one
 // failure nobody notices until the show is over.
 const stallMs = Math.max(0, Number(process.env.EGRESS_STALL_SECONDS ?? 15)) * 1_000;
+const recoverMs =
+  Math.max(0, Number(process.env.EGRESS_RECOVER_AFTER_SECONDS ?? 45)) * 1_000;
 const watchdog = stallMs
-  ? setInterval(
-      () => void manager.watchdog(stallMs),
-      Math.max(1_000, Math.min(5_000, stallMs / 3)),
-    )
+  ? setInterval(() => {
+      void manager.watchdog(stallMs);
+      if (recoverMs > 0) void manager.recover(recoverMs);
+    }, Math.max(1_000, Math.min(5_000, stallMs / 3)))
   : null;
 watchdog?.unref?.();
 
@@ -108,7 +111,11 @@ server.listen(port, () => {
   );
   console.log(
     stallMs > 0
-      ? `[relay] egress watchdog: ${stallMs / 1_000}s of silence${alertWebhook ? `, alerting ${alertWebhook}` : ""}`
+      ? `[relay] egress watchdog: ${stallMs / 1_000}s of silence${
+          recoverMs > 0
+            ? `, restarting ffmpeg after ${recoverMs / 1_000}s`
+            : ", reporting only"
+        }${alertWebhook ? `, alerting ${alertWebhook}` : ""}`
       : "[relay] egress watchdog disabled (EGRESS_STALL_SECONDS=0)",
   );
 });

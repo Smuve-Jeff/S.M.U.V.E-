@@ -21,7 +21,7 @@ The API server's `MEDIA_RELAY_URL` points at this service. Contract:
 | `POST` | `/sessions` | `{ rtmpUrl, streamKey }` | `201 { id, whipUrl }` |
 | `DELETE` | `/sessions/:id` | — | `204` |
 | `GET` | `/health` | — | `200 { status: ok, mediamtx, sessions, stalled }`, or `503 { status: degraded }` when MediaMTX is unreachable |
-| `GET` | `/sessions/:id` | — | `200 { ready, bytesReceived, tracks, bytesOut, bitrateKbps, drops, silentMs, stalled, stalledForMs, … }` |
+| `GET` | `/sessions/:id` | — | `200 { ready, bytesReceived, tracks, bytesOut, bitrateKbps, drops, silentMs, recoveries, recovering, stalled, stalledForMs, … }` |
 
 Every route except `/health` requires `Authorization: Bearer $RELAY_TOKEN`.
 
@@ -49,7 +49,9 @@ down or degraded, which is what catches the problem before a host goes live.
 | `RELAY_STATE_FILE` | — | Where to keep session records for restart recovery; unset disables it |
 | `RELAY_STATE_KEY` | — | Key that encrypts that file (required with `RELAY_STATE_FILE`) |
 | `EGRESS_STALL_SECONDS` | `15` | Silence to the provider before a live session is alerted; `0` disables |
-| `ALERT_WEBHOOK_URL` | — | If set, stall and recovery alerts are POSTed here as JSON |
+| `EGRESS_RECOVER_AFTER_SECONDS` | `45` | Silence after which the relay restarts ffmpeg itself; `0` keeps it report-only |
+| `EGRESS_MAX_RECOVERIES` | `2` | Restart attempts per session before the relay gives up and just reports |
+| `ALERT_WEBHOOK_URL` | — | If set, stall, reconnect and give-up alerts are POSTed here as JSON |
 
 ## Run it
 
@@ -84,10 +86,15 @@ is over, so ffmpeg is started with `-progress pipe:1` and the relay watches its
   `EGRESS_STALL_SECONDS` (default 15) is flagged once, logged as
   `[relay] ALERT session <id> has sent nothing to the provider for <n>s`, and
   reported by `GET /sessions/:id` (`stalled`, `stalledForMs`, `bytesOut`) and by
-  `GET /health` (`stalled` count). It is **not** killed or restarted: a silent
-  ffmpeg is still holding the provider connection, and reconnecting it behind
-  the host's back would be its own surprise. Stop and re-push, or let the host
-  see it.
+  `GET /health` (`stalled` count).
+- If the silence outlasts `EGRESS_RECOVER_AFTER_SECONDS` (default 45), the relay
+  restarts that session's ffmpeg itself, up to `EGRESS_MAX_RECOVERIES` times
+  (`session.recovering`, then `session.reconnected` on the first bytes back).
+  The MediaMTX path and the WHIP URL are untouched, so the browser keeps
+  publishing and only the RTMP half reconnects — the provider sees a gap of
+  roughly the grace period plus one second. After the attempt cap the session
+  stays up and flagged (`session.recovery-failed`) instead of restarting in a
+  loop, because a provider that keeps dropping us is not a bug a loop can fix.
 - When bytes move again the flag clears and `session.recovered` is emitted.
 - The same progress stream gives a quality readout: `bitrateKbps` is the
   smoothed rate of ffmpeg's byte deltas (samples closer than 250 ms are treated
@@ -110,9 +117,11 @@ With `ALERT_WEBHOOK_URL` set, both events are POSTed there:
 }
 ```
 
-Any endpoint that accepts JSON works (a Slack/Discord webhook, a monitoring
-collector). A webhook that is down never affects the stream: failures are logged
-and the relay carries on.
+Events are `session.stalled`, `session.recovering`, `session.reconnected`,
+`session.recovery-failed` and `session.recovered` (bytes resumed without a
+restart). Any endpoint that accepts JSON works (a Slack/Discord webhook, a
+monitoring collector). A webhook that is down never affects the stream: failures
+are logged and the relay carries on.
 
 ## Surviving a relay restart
 

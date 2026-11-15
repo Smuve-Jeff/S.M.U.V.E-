@@ -4,6 +4,8 @@ import { pushUrl, validateDestination, ValidationError } from "./destinations.mj
 /** An ffmpeg that dies this fast never got a usable input: retry it. */
 const RESTART_WINDOW_MS = 5_000;
 const BASE_RESTART_DELAY_MS = 1_000;
+/** Pause before re-spawning ffmpeg after a silent-egress recovery. */
+const RECOVERY_DELAY_MS = 1_000;
 
 /**
  * One session = one MediaMTX publish path + one ffmpeg pushing RTSP to RTMP.
@@ -25,6 +27,7 @@ export class SessionManager {
   #logger;
   #store;
   #onAlert;
+  #maxRecoveries;
 
   constructor({
     spawn,
@@ -38,6 +41,8 @@ export class SessionManager {
     store = null,
     /** Called when a session's egress stalls or recovers. */
     onAlert = null,
+    /** How many times the relay may restart ffmpeg for a stalled session. */
+    maxRecoveries = 2,
   }) {
     if (typeof spawn !== "function") throw new Error("spawn is required");
     if (!mediamtx) throw new Error("mediamtx client is required");
@@ -51,6 +56,7 @@ export class SessionManager {
     this.#logger = logger;
     this.#store = store;
     this.#onAlert = typeof onAlert === "function" ? onAlert : null;
+    this.#maxRecoveries = Math.max(0, Number(maxRecoveries) || 0);
   }
 
   async create(input, { kind = "broadcast" } = {}) {
@@ -81,6 +87,11 @@ export class SessionManager {
       lastSampleAt: null,
       drops: [],
       silentMs: 0,
+      recoveries: 0,
+      recovering: false,
+      lastRecoveryAt: null,
+      awaitingFirstByte: false,
+      recoveryGaveUp: false,
     };
     this.#sessions.set(id, session);
     this.#startFfmpeg(session);
@@ -164,6 +175,11 @@ export class SessionManager {
         lastSampleAt: null,
         drops: [],
         silentMs: 0,
+        recoveries: 0,
+        recovering: false,
+        lastRecoveryAt: null,
+        awaitingFirstByte: false,
+        recoveryGaveUp: false,
       });
       this.#startFfmpeg(this.#sessions.get(id));
       restored += 1;
@@ -243,6 +259,12 @@ export class SessionManager {
       drops: session.drops?.length ?? 0,
       silentMs: session.silentMs ?? 0,
       lastDropAt: session.drops?.at(-1)?.at ?? null,
+      // Recovery: the relay restarts ffmpeg itself once the silence outlasts
+      // the grace period, so the panel can say it is reconnecting.
+      recoveries: session.recoveries ?? 0,
+      recovering: session.recovering === true,
+      lastRecoveryAt: session.lastRecoveryAt ?? null,
+      recoveryGaveUp: session.recoveryGaveUp === true,
     };
   }
 
@@ -318,6 +340,63 @@ export class SessionManager {
     return flagged;
   }
 
+  /**
+   * Restart a stalled session's ffmpeg once the silence has lasted a grace
+   * period, so a dead RTMP connection recovers without the host watching logs.
+   *
+   * This is the deliberate follow-up to `watchdog`: alert early, act later.
+   * Attempts are capped per session, because a provider that keeps dropping us
+   * is not something a restart loop can fix, and after the cap the session stays
+   * up and flagged instead of thrashing.
+   */
+  async recover(graceMs, now = Date.now()) {
+    const grace = Number(graceMs);
+    if (!Number.isFinite(grace) || grace <= 0) return [];
+    const restarted = [];
+    for (const session of this.#sessions.values()) {
+      if (!session.stalled || !session.child || session.recovering) continue;
+      const silentFor = now - (session.stalledSince ?? now);
+      if (silentFor < grace) continue;
+
+      if ((session.recoveries ?? 0) >= this.#maxRecoveries) {
+        if (!session.recoveryGaveUp) {
+          session.recoveryGaveUp = true;
+          this.#logger.error?.(
+            `[relay] session ${session.id} is still silent and out of recovery attempts (${session.recoveries}/${this.#maxRecoveries}); leaving it up for the host`,
+          );
+          this.#alert({
+            event: "session.recovery-failed",
+            sessionId: session.id,
+            kind: session.kind,
+            silentForMs: silentFor,
+            attempt: session.recoveries,
+          });
+        }
+        continue;
+      }
+
+      session.recovering = true;
+      session.recoveries = (session.recoveries ?? 0) + 1;
+      session.lastRecoveryAt = new Date(now).toISOString();
+      restarted.push(session.id);
+      this.#logger.warn?.(
+        `[relay] restarting ffmpeg for ${session.id} after ${Math.round(
+          silentFor / 1000,
+        )}s of silent egress (attempt ${session.recoveries}/${this.#maxRecoveries})`,
+      );
+      this.#alert({
+        event: "session.recovering",
+        sessionId: session.id,
+        kind: session.kind,
+        silentForMs: silentFor,
+        attempt: session.recoveries,
+      });
+      // The exit handler sees `recovering` and re-spawns instead of closing.
+      session.child.kill?.("SIGTERM");
+    }
+    return restarted;
+  }
+
   #alert(payload) {
     if (!this.#onAlert) return;
     try {
@@ -357,6 +436,19 @@ export class SessionManager {
       }
       session.bytesOut = size;
       session.lastBytesAt = now;
+      if (session.awaitingFirstByte) {
+        session.awaitingFirstByte = false;
+        this.#logger.info?.(
+          `[relay] session ${session.id} is pushing again after a reconnect`,
+        );
+        this.#alert({
+          event: "session.reconnected",
+          sessionId: session.id,
+          kind: session.kind,
+          bytesOut: size,
+          attempt: session.recoveries ?? 0,
+        });
+      }
       if (session.stalled) {
         // One completed drop, kept as history: a push that hiccuped twice is a
         // different story from one that has been clean.
@@ -434,6 +526,26 @@ export class SessionManager {
     child.once("exit", (code, signal) => {
       session.child = null;
       if (session.stopped) return;
+
+      // A restart we asked for: ffmpeg's byte counter starts over, so reset the
+      // egress baseline while keeping the drop history that led here.
+      if (session.recovering) {
+        session.recovering = false;
+        session.awaitingFirstByte = true;
+        session.bytesOut = 0;
+        session.lastBytesAt = null;
+        session.lastSampleAt = null;
+        session.bitrateKbps = 0;
+        session.stalled = false;
+        session.stalledForMs = 0;
+        session.stalledSince = null;
+        session.timer = setTimeout(() => {
+          if (!session.stopped) this.#startFfmpeg(session);
+        }, RECOVERY_DELAY_MS);
+        session.timer.unref?.();
+        return;
+      }
+
       const lived = Date.now() - startedAt;
       if (lived < RESTART_WINDOW_MS && session.restarts < this.#maxRestarts) {
         session.restarts += 1;

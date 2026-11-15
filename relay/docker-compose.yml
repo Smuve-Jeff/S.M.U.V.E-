@@ -38,6 +38,10 @@ services:
       RELAY_STATE_KEY: ${RELAY_STATE_KEY:-}
       # Alert when a live session stops sending to the provider.
       EGRESS_STALL_SECONDS: ${EGRESS_STALL_SECONDS:-15}
+      # After this much silence the relay restarts ffmpeg itself, up to
+      # EGRESS_MAX_RECOVERIES times. 0 keeps it report-only.
+      EGRESS_RECOVER_AFTER_SECONDS: ${EGRESS_RECOVER_AFTER_SECONDS:-45}
+      EGRESS_MAX_RECOVERIES: ${EGRESS_MAX_RECOVERIES:-2}
       ALERT_WEBHOOK_URL: ${ALERT_WEBHOOK_URL:-}
       FFMPEG_PATH: ffmpeg
     volumes:
