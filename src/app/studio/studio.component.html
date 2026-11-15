@@ -149,6 +149,9 @@
         <button type="button" class="comp-project-menu-item" (click)="importMidi(); toggleProjectMenu()">
           <span class="material-symbols-outlined">piano</span> Import MIDI
         </button>
+        <button type="button" class="comp-project-menu-item" (click)="importDawproject(); toggleProjectMenu()">
+          <span class="material-symbols-outlined">swap_horiz</span> Import DAWproject
+        </button>
         <button type="button" class="comp-project-menu-item" [disabled]="projectWorkspace.isSaving()" (click)="saveProject(); toggleProjectMenu()">
           <span class="material-symbols-outlined">save</span> Save Project
         </button>
@@ -1802,6 +1805,10 @@
       <button (click)="importMidi(); toggleMobileDrawer()" class="comp-drawer-item">
         <span class="material-symbols-outlined">piano</span>
         <span>Import MIDI</span>
+      </button>
+      <button (click)="importDawproject(); toggleMobileDrawer()" class="comp-drawer-item">
+        <span class="material-symbols-outlined">swap_horiz</span>
+        <span>Import DAWproject</span>
       </button>
       <button (click)="toggleVersionHistory(); toggleMobileDrawer()" class="comp-drawer-item">
         <span class="material-symbols-outlined">history</span>

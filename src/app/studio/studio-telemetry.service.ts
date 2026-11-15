@@ -28,6 +28,7 @@ export type StudioTelemetryEventName =
   | "project_exported"
   | "midi_exported"
   | "midi_imported"
+  | "dawproject_imported"
   | "cloud_version_restored"
   | "comp_takes_exported"
   | "comp_assembly_exported"

@@ -22,6 +22,7 @@ import { ActivatedRoute, Router } from "@angular/router";
 
 import { MidiWriter, MidiTrackData } from "./midi-writer.util";
 import { MidiImportService } from "./midi-import.service";
+import { DawprojectMaterializeService } from "./dawproject-materialize.service";
 
 import { AudioSessionService } from "./audio-session.service";
 import { AudioRecorderService } from "./audio-recorder.service";
@@ -671,6 +672,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   public readonly smartSound = inject(SmartSoundService);
   public readonly audioImport = inject(AudioImportService);
   public readonly midiImport = inject(MidiImportService);
+  public readonly dawprojectImport = inject(DawprojectMaterializeService);
   private readonly fileLoader = inject(FileLoaderService);
   public readonly smartProduction = inject(SmartProductionFoundationsService);
   public readonly componentRecording = inject(ComponentRecordingService);
@@ -3684,6 +3686,68 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     } catch (error) {
       this.logger.error("MIDI import failed", error);
       this.snackbarService.error("MIDI import failed");
+    }
+  }
+
+  // -- DAWproject import (.dawproject) ---------------------
+
+  async importDawproject(): Promise<void> {
+    this.haptic.light();
+    try {
+      const files = await this.fileLoader.pickLocalFiles(".dawproject");
+      if (files.length === 0) return;
+      const { importDawprojectArchive } = await import("./dawproject-import");
+
+      let trackCount = 0;
+      let noteCount = 0;
+      let audioClipCount = 0;
+      let tempoBpm: number | undefined;
+      let failed = 0;
+      const warnings: string[] = [];
+      for (const file of files) {
+        try {
+          const bytes = new Uint8Array(await file.arrayBuffer());
+          const parsed = await importDawprojectArchive(bytes);
+          const summary = await this.dawprojectImport.materialize(parsed);
+          trackCount += summary.trackCount;
+          noteCount += summary.noteCount;
+          audioClipCount += summary.audioClipCount;
+          tempoBpm ??= summary.tempoBpm;
+          warnings.push(...summary.warnings);
+        } catch (error) {
+          failed++;
+          this.logger.warn(`DAWproject import failed for ${file.name}`, error);
+        }
+      }
+
+      if (trackCount > 0) {
+        this.history.clear();
+        this.snackbarService.success(
+          `Imported ${trackCount} track(s) \u00b7 ${noteCount} note(s) \u00b7 ${audioClipCount} audio clip(s)` +
+            (tempoBpm ? ` \u00b7 ${tempoBpm} BPM` : ""),
+        );
+        if (warnings.length > 0) {
+          this.snackbarService.warning(warnings.slice(0, 3).join(" "));
+        }
+        this.studioTelemetry.trackEvent(
+          "dawproject_imported",
+          { trackCount, noteCount, audioClipCount, tempoBpm: tempoBpm ?? 0 },
+          true,
+        );
+      } else if (failed === 0) {
+        this.snackbarService.warning(
+          "Nothing to import: the file held no playable tracks" +
+            (warnings.length > 0 ? ` (${warnings[0]})` : ""),
+        );
+      }
+      if (failed > 0) {
+        this.snackbarService.warning(
+          `Skipped ${failed} DAWproject file(s) that could not be parsed`,
+        );
+      }
+    } catch (error) {
+      this.logger.error("DAWproject import failed", error);
+      this.snackbarService.error("DAWproject import failed");
     }
   }
 
