@@ -15,6 +15,13 @@ async function main() {
     console.log(`[api] Connected to database: ${DB_NAME}`);
     logEmailConfiguration();
 
+    // Streaming-account OAuth: a half-configured provider or a missing grants
+    // table must stop the deploy here instead of failing in a host's face.
+    const { assertStreamingOAuthSetup } = await import(
+      "@/services/streaming-oauth-setup"
+    );
+    await assertStreamingOAuthSetup();
+
     const server = createServer(app);
     setupSocketIO(server);
     // Loaded here, at boot: the notifier owns the entity-backed friend query,

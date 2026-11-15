@@ -15,13 +15,25 @@ import { JWT_SECRET, OAUTH_TOKEN_KEY } from "@/config/env";
  */
 const VERSION = "v1";
 
+/** Decode an operator key: 64 hex characters or base64 that yields 32 bytes. */
+export function decodeOAuthTokenKey(value: string): Buffer | null {
+  const trimmed = (value ?? "").trim();
+  if (!trimmed) return null;
+  const decoded = /^[0-9a-f]{64}$/i.test(trimmed)
+    ? Buffer.from(trimmed, "hex")
+    : Buffer.from(trimmed, "base64");
+  return decoded.length === 32 ? decoded : null;
+}
+
 function key(): Buffer {
   const configured = OAUTH_TOKEN_KEY.trim();
   if (configured) {
-    const decoded = /^[0-9a-f]{64}$/i.test(configured)
-      ? Buffer.from(configured, "hex")
-      : Buffer.from(configured, "base64");
-    return decoded.length === 32 ? decoded : createHash("sha256").update(configured).digest();
+    // A value that is not a 32-byte key still has to seal deterministically:
+    // hash it, and let the deploy check warn that the operator's key is off.
+    return (
+      decodeOAuthTokenKey(configured) ??
+      createHash("sha256").update(configured).digest()
+    );
   }
   return createHash("sha256").update(`smuve:stream-oauth:${JWT_SECRET}`).digest();
 }
