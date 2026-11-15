@@ -8,6 +8,8 @@ import { CreateChallengeDedupeIndex1786243200005 } from "./1786243200005-CreateC
 import { CreateRoomMessages1786243200006 } from "./1786243200006-CreateRoomMessages";
 import { CreateAccountTokens1786243200007 } from "./1786243200007-CreateAccountTokens";
 import { AddUserSessionAndVerificationColumns1786243200008 } from "./1786243200008-AddUserSessionAndVerificationColumns";
+import { CreateStreamingAccounts1786243200012 } from "./1786243200012-CreateStreamingAccounts";
+import { CreateStreamingDestinations1786243200013 } from "./1786243200013-CreateStreamingDestinations";
 
 /**
  * Metadata per migration drives dialect assertions:
@@ -32,6 +34,8 @@ const migrations: MigrationEntry[] = [
   { migration: new CreateRoomMessages1786243200006(), hasSerialColumn: true, hasJson: false },
   { migration: new CreateAccountTokens1786243200007(), hasSerialColumn: true, hasJson: false },
   { migration: new AddUserSessionAndVerificationColumns1786243200008(), hasSerialColumn: false, hasJson: false },
+  { migration: new CreateStreamingAccounts1786243200012(), hasSerialColumn: true, hasJson: false },
+  { migration: new CreateStreamingDestinations1786243200013(), hasSerialColumn: true, hasJson: false },
 ];
 
 const migrationNames = [
@@ -44,6 +48,8 @@ const migrationNames = [
   "CreateRoomMessages1786243200006",
   "CreateAccountTokens1786243200007",
   "AddUserSessionAndVerificationColumns1786243200008",
+  "CreateStreamingAccounts1786243200012",
+  "CreateStreamingDestinations1786243200013",
 ];
 
 /** Stand-in QueryRunner that records every statement it is asked to run. */
@@ -189,6 +195,40 @@ describe("database migrations (dialect-aware)", () => {
     expect(my8).toContain("ALTER TABLE users ADD COLUMN tokenVersion int NOT NULL DEFAULT 0");
     expect(my8).toContain(
       "ALTER TABLE users ADD COLUMN emailVerified boolean NOT NULL DEFAULT false",
+    );
+
+    // 0012 — streaming_accounts holds the OAuth grants the broadcast path needs.
+    // The unique (userId, platform) index is the invariant: it is what lets a
+    // reconnect replace a grant instead of piling up dead tokens. Tokens are
+    // nullable where the providers allow it (no refresh token, no expiry).
+    const pg12 = normalizeSql(await runUp(new CreateStreamingAccounts1786243200012(), "postgres"));
+    expect(pg12).toContain('CREATE TABLE IF NOT EXISTS "streaming_accounts"');
+    expect(pg12).toContain('"id" SERIAL PRIMARY KEY');
+    expect(pg12).toContain('"refreshToken" text');
+    expect(pg12).toContain('"expiresAt" TIMESTAMP');
+    expect(pg12).toContain(
+      'CREATE UNIQUE INDEX IF NOT EXISTS "uq_streaming_accounts_user_platform" ON "streaming_accounts" ("userId", "platform")',
+    );
+    expect(pg12).toContain('REFERENCES "users"("id") ON DELETE CASCADE');
+    const my12 = normalizeSql(await runUp(new CreateStreamingAccounts1786243200012(), "mysql"));
+    expect(my12).toContain("CREATE TABLE IF NOT EXISTS streaming_accounts");
+    expect(my12).toContain("id int AUTO_INCREMENT PRIMARY KEY");
+    expect(my12).toContain(
+      "CREATE UNIQUE INDEX IF NOT EXISTS uq_streaming_accounts_user_platform ON streaming_accounts (userId, platform)",
+    );
+
+    // 0013 — streaming_destinations is the manual RTMP destination Kick needs.
+    const pg13 = normalizeSql(await runUp(new CreateStreamingDestinations1786243200013(), "postgres"));
+    expect(pg13).toContain('CREATE TABLE IF NOT EXISTS "streaming_destinations"');
+    expect(pg13).toContain('"id" SERIAL PRIMARY KEY');
+    expect(pg13).toContain(
+      'CREATE UNIQUE INDEX IF NOT EXISTS "uq_streaming_destinations_user_platform" ON "streaming_destinations" ("userId", "platform")',
+    );
+    const my13 = normalizeSql(await runUp(new CreateStreamingDestinations1786243200013(), "mysql"));
+    expect(my13).toContain("CREATE TABLE IF NOT EXISTS streaming_destinations");
+    expect(my13).toContain("id int AUTO_INCREMENT PRIMARY KEY");
+    expect(my13).toContain(
+      "CREATE UNIQUE INDEX IF NOT EXISTS uq_streaming_destinations_user_platform ON streaming_destinations (userId, platform)",
     );
   });
 });
