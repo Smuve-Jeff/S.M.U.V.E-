@@ -36,6 +36,7 @@ import { SocialNetworkingService, OnlineUser } from "../../services/social-netwo
 import { ChallengeInboxService } from "../../services/challenge-inbox.service";
 import { PeerNetworkingService } from "../../services/peer-networking.service";
 import { SnackbarService } from "../../services/snackbar.service";
+import { StreamingPlatformsService } from "../../services/streaming-platforms.service";
 import { MatchmakingService } from "../../hub/matchmaking.service";
 import { ActivatedRoute, Router } from "@angular/router";
 import { DailyMissionsService } from "../../services/daily-missions.service";
@@ -1420,6 +1421,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   public liveStream = inject(LiveStreamService);
   /** Hosts the camera feed and plays an inbound shared stream. */
   public liveVideo = inject(LiveVideoService);
+  public platformsService = inject(StreamingPlatformsService);
   /**
    * Viewer mix split: the host publishes camera and game (screen) video
    * slots plus voice and system-sound audio slots, so the player divides

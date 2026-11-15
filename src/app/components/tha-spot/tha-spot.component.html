@@ -3132,6 +3132,59 @@
                 SCREEN
               </button>
             </div>
+            <div class="stream-accounts">
+              <div class="stream-accounts-head">
+                <span class="quality-readout">STREAMING ACCOUNTS</span>
+                <span class="accounts-count">
+                  {{ platformsService.connectedCount() }} CONNECTED
+                </span>
+                <button
+                  class="quality-btn"
+                  (click)="platformsService.sync()"
+                  [disabled]="platformsService.syncing()"
+                  title="Re-read the platform connections saved for this account"
+                >
+                  SYNC
+                </button>
+              </div>
+              <div
+                class="account-row"
+                *ngFor="let platform of platformsService.platforms"
+              >
+                <span class="account-name">{{ platform.label }}</span>
+                <span
+                  class="account-state"
+                  [class.on]="platformsService.isConnected(platform.id)"
+                >
+                  {{
+                    platformsService.isConnected(platform.id)
+                      ? 'CONNECTED'
+                      : 'NOT CONNECTED'
+                  }}
+                </span>
+                <span class="account-broadcast" *ngIf="!platform.broadcast"
+                  >CONNECT ONLY</span
+                >
+                <button
+                  class="quality-btn"
+                  (click)="platformsService.connect(platform.id)"
+                  [disabled]="platformsService.connecting() === platform.id"
+                >
+                  {{
+                    platformsService.isConnected(platform.id)
+                      ? 'RECONNECT'
+                      : 'CONNECT'
+                  }}
+                </button>
+                <button
+                  class="quality-btn"
+                  *ngIf="platformsService.isConnected(platform.id)"
+                  (click)="platformsService.disconnect(platform.id)"
+                >
+                  DISCONNECT
+                </button>
+              </div>
+            </div>
             <div class="platform-grid">
               <button class="platform-btn twitch" (click)="goLive('Twitch')">
                 TWITCH

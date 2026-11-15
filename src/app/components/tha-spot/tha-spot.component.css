@@ -4502,6 +4502,52 @@
   border-color: rgba(255, 255, 255, 0.3);
   color: #e2e8f0;
 }
+.stream-accounts {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+.stream-accounts-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.stream-accounts-head .accounts-count {
+  margin-left: auto;
+  color: rgba(232, 251, 255, 0.72);
+  font-size: 0.6rem;
+  letter-spacing: 0.08em;
+}
+.account-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid rgba(var(--neon-cyan-rgb), 0.18);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  font-size: 0.62rem;
+  letter-spacing: 0.06em;
+}
+.account-name {
+  flex: 1;
+  color: #e8fbff;
+}
+.account-state {
+  color: #7a8699;
+  font-size: 0.55rem;
+}
+.account-state.on {
+  color: #3ddc97;
+}
+.account-broadcast {
+  color: #ffd166;
+  font-size: 0.55rem;
+}
+.account-row .quality-btn {
+  padding: 0.2rem 0.45rem;
+  font-size: 0.55rem;
+}
 .stream-audio-warning {
   display: flex;
   align-items: center;

@@ -1017,12 +1017,14 @@ export class SocialNetworkingService {
     'twitch',
     'kick',
     'youtube',
+    'tiktok',
     'instagram',
     'discord',
     'x',
   ]);
 
-  startOAuthFlow(platform: string) {
+  /** `onConnected` runs when the provider popup reports success. */
+  startOAuthFlow(platform: string, onConnected?: () => void) {
     const key = (platform || '').toLowerCase();
     if (!SocialNetworkingService.CONNECT_PLATFORMS.has(key)) {
       this.notifications?.show?.(
@@ -1069,6 +1071,7 @@ export class SocialNetworkingService {
       this.currentPlatform.set(`${key} (Connected)`);
       window.removeEventListener('message', handler);
       clearInterval(watch);
+      onConnected?.();
     };
     window.addEventListener('message', handler);
 
