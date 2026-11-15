@@ -1,0 +1,47 @@
+name: Social and Socket Tests
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: social-socket-tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  social:
+    name: Social, route, and socket suites
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Use project Node version
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Run social and socket suites
+        run: |
+          npx jest \
+            src/services/social.service.spec.ts \
+            src/routes/social.routes.spec.ts \
+            src/socket/socket-auth.spec.ts \
+            src/app/services/social-networking.service.spec.ts \
+            src/app/services/challenge-inbox.service.spec.ts \
+            src/app/components/tha-spot/tha-spot.component.spec.ts \
+            --silent
+        env:
+          CI: true
+          NODE_OPTIONS: --max-old-space-size=4096
