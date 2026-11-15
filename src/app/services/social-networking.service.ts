@@ -6,6 +6,10 @@ import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { PeerNetworkingService } from './peer-networking.service';
 import { ChallengeInboxService } from './challenge-inbox.service';
+import {
+  androidScreenCapture,
+  nativeScreenCaptureAvailable,
+} from './android-screen-capture.service';
 import { io, Socket } from 'socket.io-client';
 import { TokenService } from './token.service';
 import { NotificationService } from './notification.service';
@@ -96,6 +100,40 @@ export const STREAM_QUALITY_PRESETS: Record<
   '480p': { width: 854, height: 480, bitrate: 2500 },
   '720p': { width: 1280, height: 720, bitrate: 4500 },
   '1080p': { width: 1920, height: 1080, bitrate: 6000 },
+};
+
+/**
+ * Why this shell cannot capture a display, or null when it can.
+ *
+ * A Capacitor WebView (the Android and iOS builds) exposes no
+ * `getDisplayMedia`, and nothing native bridges MediaProjection or ReplayKit
+ * into the page yet, so the switch has to say so instead of failing on press.
+ * The Electron shell answers the request in its main process and is allowed.
+ */
+const describeScreenShareUnavailable = (): string | null => {
+  if (typeof navigator === 'undefined') return null;
+  const shell =
+    typeof window !== 'undefined'
+      ? (
+          window as {
+            Capacitor?: { getPlatform?: () => string };
+          }
+        ).Capacitor?.getPlatform?.()
+      : undefined;
+  if (shell === 'android') {
+    // The Android app captures through MediaProjection; an older build without
+    // the bridge has to say so rather than fail on press.
+    return nativeScreenCaptureAvailable()
+      ? null
+      : 'SCREEN SHARING NEEDS THE UPDATED ANDROID APP — REINSTALL IT, OR STREAM FROM A DESKTOP BROWSER';
+  }
+  if (shell === 'ios') {
+    return 'iOS DOES NOT ALLOW SCREEN CAPTURE — STREAM THE GAME FROM THE DESKTOP APP';
+  }
+  if (typeof navigator.mediaDevices?.getDisplayMedia !== 'function') {
+    return 'THIS BROWSER CANNOT CAPTURE THE DISPLAY — USE DESKTOP CHROME, EDGE OR SAFARI';
+  }
+  return null;
 };
 
 @Injectable({ providedIn: 'root' })
@@ -233,13 +271,31 @@ export class SocialNetworkingService {
    */
   videoSource = signal<'camera' | 'screen'>('camera');
   /**
-   * getDisplayMedia availability: desktop Chrome/Edge/Safari 17+. Absent
-   * on mobile browsers, where the switch stays disabled.
+   * getDisplayMedia availability: desktop browsers and the Electron shell.
+   * Absent in the mobile app builds, where the switch explains the gap.
    */
   readonly screenShareSupported = signal(
-    typeof navigator !== 'undefined' &&
-      !!navigator.mediaDevices?.getDisplayMedia
+    describeScreenShareUnavailable() === null
   );
+  /** Why screen capture cannot run here, or null when it is usable. */
+  readonly screenShareUnavailableReason = signal(
+    describeScreenShareUnavailable()
+  );
+  /** The live screen capture carries game/system sound, not just the mic. */
+  readonly screenAudioAvailable = signal(false);
+  /**
+   * How the host gets game sound to viewers when the share came back silent.
+   * GAME ONLY is blocked while this is set: muting the mic would leave the
+   * audience with no audio at all.
+   */
+  readonly screenAudioWarning = computed(() => {
+    if (this.videoSource() !== 'screen' || this.screenAudioAvailable()) {
+      return null;
+    }
+    return nativeScreenCaptureAvailable()
+      ? 'NO GAME SOUND YET — START THE GAME; IF IT STAYS SILENT THIS DEVICE WILL NOT SHARE PLAYBACK AUDIO'
+      : 'NO GAME AUDIO CAPTURED — TICK "SHARE TAB AUDIO" (OR SYSTEM AUDIO) IN THE PICKER, OR VIEWERS HEAR YOUR MIC ONLY';
+  });
   /** Mic track ids, so a switch back to camera drops system audio but keeps voice. */
   private micTrackIds = new Set<string>();
 
@@ -1121,7 +1177,9 @@ export class SocialNetworkingService {
     this.micEnabled.set(true);
     this.videoSource.set('camera');
     this.screenAudioOnly.set(false);
+    this.screenAudioAvailable.set(false);
     this.micTrackIds.clear();
+    void androidScreenCapture.stop();
   }
 
   /**
@@ -1144,6 +1202,7 @@ export class SocialNetworkingService {
         this.setHostStream(new MediaStream([video, ...micTracks]), 'screen');
         // System sound joins alongside the mic; the player mixes both.
         systemAudio.forEach((t) => this.localStream()?.addTrack(t));
+        this.screenAudioAvailable.set(this.screenAudioReady(systemAudio));
         return;
       } catch {
         // Picker cancelled or capture unsupported — fall through to camera.
@@ -1159,6 +1218,7 @@ export class SocialNetworkingService {
       audio: { echoCancellation: true, noiseSuppression: true },
     });
     stream.getAudioTracks().forEach((t) => this.micTrackIds.add(t.id));
+    this.screenAudioAvailable.set(false);
     this.setHostStream(stream, 'camera');
   }
 
@@ -1172,6 +1232,33 @@ export class SocialNetworkingService {
     width: number;
     height: number;
   }): Promise<{ video: MediaStreamTrack; systemAudio: MediaStreamTrack[] }> {
+    if (nativeScreenCaptureAvailable()) {
+      // Android's WebView has no getDisplayMedia: the MediaProjection service
+      // feeds JPEG frames that a canvas turns into a real video track. It has
+      // no game audio, which the host is warned about separately.
+      androidScreenCapture.onEnded = () => {
+        if (this.videoSource() === 'screen' && this.isStreaming()) {
+          void this.setVideoSource('camera').catch(() => undefined);
+        }
+      };
+      const nativeStream = await androidScreenCapture.start();
+      const nativeVideo = nativeStream.getVideoTracks()[0];
+      if (!nativeVideo) {
+        void androidScreenCapture.stop();
+        throw new Error('SCREEN_CAPTURE_NO_VIDEO_TRACK');
+      }
+      this.guardScreenCaptureEnd(nativeVideo);
+      // The game-audio track always exists, but it carries silence until the
+      // game actually plays something: only real signal clears the warning.
+      androidScreenCapture.onAudioDetected = () => {
+        if (this.videoSource() === 'screen') {
+          this.screenAudioAvailable.set(true);
+        }
+      };
+      this.screenAudioAvailable.set(androidScreenCapture.hasGameAudio);
+      const nativeAudio = androidScreenCapture.audioTrack;
+      return { video: nativeVideo, systemAudio: nativeAudio ? [nativeAudio] : [] };
+    }
     const display = await navigator.mediaDevices.getDisplayMedia({
       video: {
         width: { ideal: preset.width },
@@ -1191,10 +1278,28 @@ export class SocialNetworkingService {
       display.getTracks().forEach((t) => t.stop());
       throw new Error('SCREEN_CAPTURE_NO_VIDEO_TRACK');
     }
+    this.guardScreenCaptureEnd(video);
+    return { video, systemAudio };
+  }
+
+  /**
+   * Whether the share really carries game sound. The native Android bridge
+   * always exposes an audio track, so possession is not proof: it has to have
+   * produced signal.
+   */
+  private screenAudioReady(systemAudio: MediaStreamTrack[]): boolean {
+    return nativeScreenCaptureAvailable()
+      ? androidScreenCapture.hasGameAudio
+      : systemAudio.length > 0;
+  }
+
+  /**
+   * Identity-checked: only the track that is STILL the live picture falls back
+   * to camera. A replaced track ending late (or a double-tap loser's track)
+   * must never yank a newer session back to camera.
+   */
+  private guardScreenCaptureEnd(video: MediaStreamTrack): void {
     video.addEventListener('ended', () => {
-      // Identity-checked: only the track that is STILL the live picture
-      // falls back. A replaced track ending late (or a double-tap
-      // loser's track) must never yank a newer session back to camera.
       if (
         this.videoSource() === 'screen' &&
         this.isStreaming() &&
@@ -1203,7 +1308,6 @@ export class SocialNetworkingService {
         void this.setVideoSource('camera').catch(() => undefined);
       }
     });
-    return { video, systemAudio };
   }
 
   /** One fresh front-camera video track (audio stays with the mic). */
@@ -1254,7 +1358,8 @@ export class SocialNetworkingService {
   ): Promise<void> {
     if (source === 'screen' && !this.screenShareSupported()) {
       this.streamError.set(
-        'SCREEN_SHARE_UNSUPPORTED — USE DESKTOP CHROME, EDGE OR SAFARI'
+        this.screenShareUnavailableReason() ||
+          'SCREEN_SHARE_UNSUPPORTED — USE DESKTOP CHROME, EDGE OR SAFARI'
       );
       return;
     }
@@ -1274,9 +1379,12 @@ export class SocialNetworkingService {
           await this.acquireScreenCapture(preset);
         const micAudio = this.micAudioOf(current);
         next = new MediaStream([video, ...micAudio, ...systemAudio]);
+        this.screenAudioAvailable.set(this.screenAudioReady(systemAudio));
       } else {
         const video = await this.acquireCameraTrack(preset);
         next = new MediaStream([video, ...this.micAudioOf(current)]);
+        this.screenAudioAvailable.set(false);
+        void androidScreenCapture.stop();
       }
       if (!this.isStreaming()) {
         // The session ended while the picker was open: release the fresh
@@ -1291,6 +1399,11 @@ export class SocialNetworkingService {
         if (!this.micTrackIds.has(t.id)) t.stop();
       });
     } catch (err: any) {
+      // Android's consent dialog denied: say so instead of a generic failure.
+      if (String(err?.message || '').includes('SCREEN_CAPTURE_DENIED')) {
+        this.streamError.set('SCREEN SHARING WAS DENIED — ALLOW IT TO SHOW THE GAME');
+        return;
+      }
       // Picker cancelled mid-show: stay on the current source.
       if (err?.name !== 'NotAllowedError') {
         this.streamError.set(
@@ -1374,9 +1487,12 @@ export class SocialNetworkingService {
   private applyMicState(): void {
     const stream = this.localStream();
     if (!stream) return;
-    const voiceOn =
-      this.micEnabled() &&
-      !(this.screenAudioOnly() && this.videoSource() === 'screen');
+    // GAME ONLY is only safe when real game sound replaces the mic.
+    const gameSoundCarriesTheMix =
+      this.screenAudioOnly() &&
+      this.videoSource() === 'screen' &&
+      this.screenAudioAvailable();
+    const voiceOn = this.micEnabled() && !gameSoundCarriesTheMix;
     this.micAudioOf(stream).forEach((t) => {
       t.enabled = voiceOn;
     });
@@ -1384,6 +1500,10 @@ export class SocialNetworkingService {
 
   /** Viewers hear game sound only — the host's mic leaves their mix. */
   setScreenAudioOnly(on: boolean): void {
+    // With no captured game audio this would mute the only sound available.
+    if (on && this.videoSource() === 'screen' && !this.screenAudioAvailable()) {
+      return;
+    }
     this.screenAudioOnly.set(on);
     this.applyMicState();
   }

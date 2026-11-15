@@ -2495,6 +2495,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   ngOnDestroy() {
+    if (this.gameLiveNoticeTimer) clearTimeout(this.gameLiveNoticeTimer);
     this.clearGameLoadWatchdog();
     this.clearGameReloadTimer();
     this.removeGameFrameGuards();
@@ -4241,6 +4242,64 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   /** Stop the real session (server row + capture), not just the preview. */
   async endStream(): Promise<void> {
     await this.liveStream.endStream();
+  }
+
+  /**
+   * In-game bar notice: the snackbar layer renders under the immersive game
+   * overlay, so a warning raised while playing has to live inside it.
+   */
+  readonly gameLiveNotice = signal<string | null>(null);
+  private gameLiveNoticeTimer?: ReturnType<typeof setTimeout>;
+
+  /** In-game bar: cut between the camera and the game without leaving it. */
+  async toggleLiveSource(): Promise<void> {
+    if (this.socialService.videoSource() === 'screen') {
+      await this.socialService.setVideoSource('camera');
+      return;
+    }
+    await this.requestScreenSource();
+  }
+
+  /** Pre-stream source picker: choosing SCREEN explains when it cannot run. */
+  selectStreamSource(source: 'camera' | 'screen'): void {
+    if (source === 'camera') {
+      this.socialService.videoSource.set('camera');
+      return;
+    }
+    const reason = this.socialService.screenShareUnavailableReason();
+    if (reason) {
+      this.flashGameLiveNotice(reason);
+      return;
+    }
+    this.socialService.videoSource.set('screen');
+  }
+
+  /** Ask for a display, or say why the host cannot on this build. */
+  private async requestScreenSource(): Promise<void> {
+    const reason = this.socialService.screenShareUnavailableReason();
+    if (reason) {
+      this.flashGameLiveNotice(reason);
+      return;
+    }
+    if (this.socialService.switchingSource()) return;
+    await this.socialService.setVideoSource('screen');
+    if (this.socialService.videoSource() === 'screen') {
+      const audioWarning = this.socialService.screenAudioWarning();
+      if (audioWarning) this.flashGameLiveNotice(audioWarning);
+    }
+    const error = this.socialService.streamError();
+    if (error && this.socialService.videoSource() === 'camera') {
+      this.flashGameLiveNotice(error);
+    }
+  }
+
+  private flashGameLiveNotice(message: string): void {
+    this.gameLiveNotice.set(message);
+    if (this.gameLiveNoticeTimer) clearTimeout(this.gameLiveNoticeTimer);
+    this.gameLiveNoticeTimer = setTimeout(() => {
+      this.gameLiveNotice.set(null);
+      this.gameLiveNoticeTimer = undefined;
+    }, 6000);
   }
 
   // ── Achievement System ──────────────────────────────

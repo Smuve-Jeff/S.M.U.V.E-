@@ -6,7 +6,7 @@ import {
 } from '@capacitor-community/electron';
 import chokidar from 'chokidar';
 import type { MenuItemConstructorOptions } from 'electron';
-import { app, BrowserWindow, Menu, MenuItem, nativeImage, Tray, session, shell } from 'electron';
+import { app, BrowserWindow, Menu, MenuItem, nativeImage, Tray, desktopCapturer, session, shell } from 'electron';
 import electronIsDev from 'electron-is-dev';
 import electronServe from 'electron-serve';
 import windowStateKeeper from 'electron-window-state';
@@ -161,6 +161,33 @@ export class ElectronCapacitorApp {
       this.TrayIcon.setToolTip(app.getName());
       this.TrayIcon.setContextMenu(Menu.buildFromTemplate(this.TrayMenuTemplate));
     }
+
+    // Screen/game sharing. Chromium in Electron has no source picker and no
+    // default answer for getDisplayMedia, so a renderer request is denied
+    // unless the main process grants a source. Without this a host pressing
+    // SCREEN (or SHOW GAME) can never broadcast a game from the desktop app.
+    session.defaultSession.setDisplayMediaRequestHandler(
+      async (request, callback) => {
+        const reply = callback as unknown as (streams: unknown) => void;
+        try {
+          const sources = await desktopCapturer.getSources({ types: ['screen'] });
+          const display = sources.find((source) => source.id.startsWith('screen:')) ?? sources[0];
+          if (!display) {
+            reply(null);
+            return;
+          }
+          reply({
+            video: display,
+            // Loopback audio is Windows-only; elsewhere the mic still rides along.
+            ...(request.audioRequested && process.platform === 'win32'
+              ? { audio: 'loopback' }
+              : {}),
+          });
+        } catch {
+          reply(null);
+        }
+      }
+    );
 
     // Setup the main manu bar at the top of our window.
     Menu.setApplicationMenu(Menu.buildFromTemplate(this.AppMenuBarMenuTemplate));

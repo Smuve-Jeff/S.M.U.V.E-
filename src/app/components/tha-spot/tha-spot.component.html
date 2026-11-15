@@ -3126,8 +3126,7 @@
               <button
                 class="quality-btn"
                 [class.active]="socialService.videoSource() === 'screen'"
-                (click)="socialService.videoSource.set('screen')"
-                [disabled]="!socialService.screenShareSupported()"
+                (click)="selectStreamSource('screen')"
                 title="Share your screen — pick a tab, window or display when you go live"
               >
                 SCREEN
@@ -3196,8 +3195,8 @@
               </button>
               <button
                 class="av-btn"
-                (click)="socialService.setVideoSource(socialService.videoSource() === 'camera' ? 'screen' : 'camera')"
-                [disabled]="!socialService.screenShareSupported() || socialService.switchingSource()"
+                (click)="toggleLiveSource()"
+                [disabled]="socialService.switchingSource()"
                 [title]="socialService.videoSource() === 'camera' ? 'Switch to screen share — viewers keep watching' : 'Switch back to camera'"
               >
                 <span class="material-symbols-outlined">{{
@@ -3212,9 +3211,16 @@
               <button
                 class="av-btn"
                 (click)="socialService.setScreenAudioOnly(!socialService.screenAudioOnly())"
-                [disabled]="socialService.videoSource() !== 'screen'"
+                [disabled]="
+                  socialService.videoSource() !== 'screen' ||
+                  !socialService.screenAudioAvailable()
+                "
                 [class.active]="socialService.screenAudioOnly()"
-                title="Viewers hear game sound only — your mic stays out of their mix"
+                [title]="
+                  socialService.screenAudioAvailable()
+                    ? 'Viewers hear game sound only — your mic stays out of their mix'
+                    : 'No game audio is captured, so this would leave viewers in silence'
+                "
               >
                 <span class="material-symbols-outlined">mic_off</span>
                 GAME ONLY
@@ -3231,6 +3237,13 @@
                 socialService.streamQuality() | uppercase
               }}</span>
             </div>
+            <p
+              class="stream-audio-warning"
+              *ngIf="socialService.screenAudioWarning() as audioWarning"
+            >
+              <span class="material-symbols-outlined">volume_off</span>
+              {{ audioWarning }}
+            </p>
             <video
               *ngIf="socialService.localStream()"
               class="stream-local-preview"
@@ -3807,6 +3820,48 @@
           EXIT TO ALL GAMES
         </button>
       </footer>
+    </div>
+
+    <!-- In-game live bar: change source, see viewers, or stop without leaving
+         the game. It lives inside the overlay because the hub's stream tab is
+         not rendered while a cabinet fills the screen. -->
+    <div
+      class="game-live-bar glass-v42"
+      *ngIf="socialService.isStreaming()"
+      role="status"
+      aria-label="Live broadcast controls"
+    >
+      <span class="glb-live"><span class="glb-dot"></span>LIVE</span>
+      <span class="glb-viewers"
+        >{{ liveVideo.viewerConnections().length }} WATCHING</span
+      >
+      <span class="glb-warn" *ngIf="socialService.screenAudioWarning()"
+        >NO GAME AUDIO</span
+      >
+      <button
+        type="button"
+        class="glb-btn"
+        (click)="toggleLiveSource()"
+        [disabled]="socialService.switchingSource()"
+        [title]="
+          socialService.videoSource() === 'camera'
+            ? 'Share the game instead of the camera'
+            : 'Switch back to the camera'
+        "
+      >
+        {{ socialService.videoSource() === 'camera' ? 'SHOW GAME' : 'SHOW CAM' }}
+      </button>
+      <button
+        type="button"
+        class="glb-btn stop"
+        (click)="endStream()"
+        title="End the broadcast"
+      >
+        STOP
+      </button>
+      <span class="glb-notice" *ngIf="gameLiveNotice()">{{
+        gameLiveNotice()
+      }}</span>
     </div>
   </div>
 
