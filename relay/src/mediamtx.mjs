@@ -25,6 +25,21 @@ export class MediaMtxClient {
     });
   }
 
+  /** `ready` plus byte counters: how a self-test proves media arrived. */
+  async getPath(id) {
+    try {
+      const response = await this.#fetch(
+        `${this.#apiUrl}/v3/paths/get/${encodeURIComponent(id)}`,
+        {},
+      );
+      if (response.status === 404) return null;
+      if (!response.ok) return null;
+      return await response.json();
+    } catch {
+      return null;
+    }
+  }
+
   async deletePath(id) {
     try {
       await this.#request(

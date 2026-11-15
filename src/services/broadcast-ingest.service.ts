@@ -252,6 +252,88 @@ export async function startIngestSession(
   return { platform: key, relayId: id, whipUrl };
 }
 
+export interface SelfTestSession {
+  relayId: string;
+  whipUrl: string;
+}
+
+export interface SelfTestStatus {
+  ready: boolean;
+  bytesReceived: number;
+  tracks: string[];
+  running: boolean;
+  error: string | null;
+}
+
+/**
+ * Open a relay session aimed at the relay's own test sink. No provider key is
+ * involved, so this cannot go live on the host's channel by accident.
+ */
+export async function startSelfTest(): Promise<SelfTestSession> {
+  const relay = relayConfiguration();
+  if (!relay) {
+    throw new AppError(
+      503,
+      "Broadcast push is not configured on this server. Set MEDIA_RELAY_URL to a WHIP→RTMP relay.",
+    );
+  }
+  const response = await callRelay(relay, "/selftest", {
+    method: "POST",
+    headers: { Accept: "application/json" },
+  });
+  const payload = (await response.json().catch(() => ({}))) as {
+    id?: unknown;
+    whipUrl?: unknown;
+    error?: unknown;
+  };
+  if (!response.ok) {
+    const detail =
+      typeof payload.error === "string" ? payload.error : `HTTP ${response.status}`;
+    throw new AppError(502, `The relay refused the self-test (${detail}).`);
+  }
+  const id = typeof payload.id === "string" ? payload.id : "";
+  const whipUrl = typeof payload.whipUrl === "string" ? payload.whipUrl : "";
+  if (!id || !/^https?:\/\//i.test(whipUrl)) {
+    throw new AppError(502, "The relay returned an unusable self-test session.");
+  }
+  return { relayId: id, whipUrl };
+}
+
+/** What the relay actually received on a self-test session. */
+export async function selfTestStatus(relayId: string): Promise<SelfTestStatus> {
+  const relay = relayConfiguration();
+  const id = String(relayId || "");
+  if (!relay || !/^[A-Za-z0-9_-]{1,128}$/.test(id)) {
+    throw new AppError(400, "That self-test session is not valid.");
+  }
+  const response = await callRelay(relay, `/sessions/${encodeURIComponent(id)}`, {
+    method: "GET",
+    headers: { Accept: "application/json" },
+  });
+  if (response.status === 404) {
+    throw new AppError(404, "That self-test session has already closed.");
+  }
+  const payload = (await response.json().catch(() => ({}))) as {
+    ready?: unknown;
+    bytesReceived?: unknown;
+    tracks?: unknown;
+    running?: unknown;
+    error?: unknown;
+  };
+  if (!response.ok) {
+    throw new AppError(502, "The relay could not report on the self-test.");
+  }
+  return {
+    ready: payload.ready === true,
+    bytesReceived: Number(payload.bytesReceived ?? 0) || 0,
+    tracks: Array.isArray(payload.tracks)
+      ? payload.tracks.map((track) => String(track))
+      : [],
+    running: payload.running === true,
+    error: typeof payload.error === "string" ? payload.error : null,
+  };
+}
+
 /** Close the relay session; a missing relay just means nothing to tear down. */
 export async function stopIngestSession(relayId: string): Promise<void> {
   const relay = relayConfiguration();

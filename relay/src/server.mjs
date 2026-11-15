@@ -47,7 +47,14 @@ async function readJson(req) {
  *   DELETE /sessions/:id   -> 204
  *   GET    /health         -> 200 (unauthenticated, for liveness probes)
  */
-export function createRelayServer({ manager, token = "", logger = console }) {
+export function createRelayServer({
+  manager,
+  token = "",
+  logger = console,
+  /** Fixed RTMP sink the self-test publishes to; null disables the endpoint. */
+  selftestDestination = null,
+  selftestTtlMs = 180_000,
+}) {
   return createServer(async (req, res) => {
     try {
       const url = new URL(req.url ?? "/", "http://relay.local");
@@ -68,7 +75,31 @@ export function createRelayServer({ manager, token = "", logger = console }) {
         return send(res, 201, session);
       }
 
+      // A self-test proves WHIP → MediaMTX → ffmpeg → RTMP without a real
+      // host or provider key, so it may only target the configured sink.
+      if (req.method === "POST" && url.pathname === "/selftest") {
+        if (!selftestDestination) {
+          return send(res, 503, {
+            error: "SELFTEST_RTMP_URL is not configured on this relay",
+          });
+        }
+        const session = await manager.create(selftestDestination, {
+          kind: "selftest",
+        });
+        const timer = setTimeout(
+          () => void manager.delete(session.id, { reason: "selftest-timeout" }),
+          selftestTtlMs,
+        );
+        timer.unref?.();
+        return send(res, 201, session);
+      }
+
       const match = /^\/sessions\/([A-Za-z0-9_-]{1,64})$/.exec(url.pathname);
+      if (req.method === "GET" && match) {
+        const status = await manager.status(match[1]);
+        if (!status) return send(res, 404, { error: "no such session" });
+        return send(res, 200, status);
+      }
       if (req.method === "DELETE" && match) {
         await manager.delete(match[1], { reason: "requested" });
         res.writeHead(204);

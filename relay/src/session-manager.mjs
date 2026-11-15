@@ -45,13 +45,14 @@ export class SessionManager {
     this.#logger = logger;
   }
 
-  async create(input) {
+  async create(input, { kind = "broadcast" } = {}) {
     const { rtmpUrl, streamKey } = validateDestination(input);
     const id = randomUUID().replace(/-/g, "");
     await this.#mediamtx.addPath(id);
 
     const session = {
       id,
+      kind,
       destination: pushUrl(rtmpUrl, streamKey),
       createdAt: Date.now(),
       restarts: 0,
@@ -79,6 +80,32 @@ export class SessionManager {
 
   has(id) {
     return this.#sessions.has(id);
+  }
+
+  /**
+   * Live view of one session for a self-test: MediaMTX reports whether the
+   * browser's publish became readable and how many bytes it carried, which is
+   * the difference between "the URL was accepted" and "media arrived".
+   */
+  async status(id) {
+    const session = this.#sessions.get(id);
+    if (!session) return null;
+    const path =
+      typeof this.#mediamtx.getPath === "function"
+        ? await this.#mediamtx.getPath(id).catch(() => null)
+        : null;
+    const tracks = Array.isArray(path?.tracks) ? path.tracks : [];
+    return {
+      id,
+      kind: session.kind,
+      createdAt: new Date(session.createdAt).toISOString(),
+      running: !!session.child,
+      restarts: session.restarts,
+      error: session.error,
+      ready: !!path?.ready,
+      bytesReceived: Number(path?.bytesReceived ?? 0),
+      tracks,
+    };
   }
 
   async delete(id, { reason = "requested" } = {}) {

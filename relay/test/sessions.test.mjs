@@ -114,6 +114,29 @@ test("gives up and closes the session once the retry budget is spent", async () 
   }
 });
 
+test("reports MediaMTX byte and track stats for a session", async () => {
+  const { manager, children } = harness({
+    mediamtx: {
+      addPath: async () => {},
+      deletePath: async () => {},
+      getPath: async () => ({
+        ready: true,
+        bytesReceived: 4096,
+        tracks: ["video/H264"],
+      }),
+    },
+  });
+  const session = await manager.create(destination);
+
+  const status = await manager.status(session.id);
+
+  assert.equal(status.ready, true);
+  assert.equal(status.bytesReceived, 4096);
+  assert.deepEqual(status.tracks, ["video/H264"]);
+  assert.equal(status.kind, "broadcast");
+  children[0].kill();
+});
+
 test("sweeps sessions that outlive their configured lifetime", async () => {
   const { manager, deleted } = harness();
   const session = await manager.create(destination);

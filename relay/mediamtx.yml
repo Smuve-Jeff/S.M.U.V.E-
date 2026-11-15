@@ -22,9 +22,11 @@ webrtcAllowOrigins: ['*']
 webrtcAdditionalHosts: []
 webrtcLocalUDPAddress: :8189
 
-# Not used by this relay: no HLS/RTMP/SRT surface to secure.
+# RTMP is the local self-test sink (ffmpeg pushes here to prove the path).
+# It is on the compose network only — never publish 1935.
+rtmp: yes
+rtmpAddress: 0.0.0.0:1935
 hls: no
-rtmp: no
 srt: no
 
 paths:

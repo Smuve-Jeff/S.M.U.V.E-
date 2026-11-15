@@ -4574,6 +4574,9 @@
   font-size: 0.55rem;
   letter-spacing: 0.06em;
 }
+.account-note.ok {
+  color: #3ddc97;
+}
 .stream-audio-warning {
   display: flex;
   align-items: center;

@@ -27,6 +27,11 @@ services:
       MEDIAMTX_API_URL: http://mediamtx:9997
       MEDIAMTX_RTSP_URL: rtsp://mediamtx:8554
       SESSION_TTL_MINUTES: ${SESSION_TTL_MINUTES:-360}
+      # Self-test target: the MediaMTX RTMP listener inside this network. Point
+      # it at a provider ingest (Twitch with ?bandwidthtest=true) to prove
+      # egress to the platform instead.
+      SELFTEST_RTMP_URL: ${SELFTEST_RTMP_URL:-rtmp://mediamtx:1935/selftest}
+      SELFTEST_STREAM_KEY: ${SELFTEST_STREAM_KEY:-selftest}
       FFMPEG_PATH: ffmpeg
     ports:
       # Control API: reachable by the S.M.U.V.E API only. Put it behind TLS or

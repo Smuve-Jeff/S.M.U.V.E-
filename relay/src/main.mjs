@@ -19,6 +19,14 @@ if (!token) {
   );
 }
 
+const selftestRtmpUrl = (process.env.SELFTEST_RTMP_URL || "").trim();
+const selftestDestination = selftestRtmpUrl
+  ? {
+      rtmpUrl: selftestRtmpUrl,
+      streamKey: process.env.SELFTEST_STREAM_KEY || "selftest",
+    }
+  : null;
+
 const manager = new SessionManager({
   spawn,
   mediamtx: new MediaMtxClient({
@@ -35,10 +43,20 @@ const ttlMs = Number(process.env.SESSION_TTL_MINUTES || 360) * 60_000;
 const sweeper = setInterval(() => void manager.sweep(ttlMs), 60_000);
 sweeper.unref();
 
-const server = createRelayServer({ manager, token });
+const server = createRelayServer({
+  manager,
+  token,
+  selftestDestination,
+  selftestTtlMs: Number(process.env.SELFTEST_TTL_SECONDS || 180) * 1_000,
+});
 server.listen(port, () => {
   console.log(`[relay] control API on :${port}`);
   console.log(`[relay] publishing under ${publicUrl}/<session>/whip`);
+  console.log(
+    selftestDestination
+      ? `[relay] self-test sink: ${selftestDestination.rtmpUrl}`
+      : "[relay] self-test disabled (SELFTEST_RTMP_URL is not set)",
+  );
 });
 
 let closing = false;

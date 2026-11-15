@@ -6,6 +6,7 @@ import { SocialNetworkingService } from './social-networking.service';
 import { SnackbarService } from './snackbar.service';
 import { TokenService } from './token.service';
 import { UserProfileService } from './user-profile.service';
+import { createTestPattern } from './test-pattern';
 import { WhipPublisher } from './whip-publisher';
 
 export type IngestPlatform = 'twitch' | 'kick';
@@ -58,6 +59,12 @@ export class BroadcastIngestService {
   readonly pushing = signal<IngestPlatform | null>(null);
   readonly state = this.whip.state;
   readonly error = this.whip.error;
+
+  /** Result of the last relay self-test, shown next to the button. */
+  readonly selfTest = signal<{ status: 'idle' | 'running' | 'pass' | 'fail'; detail: string }>({
+    status: 'idle',
+    detail: '',
+  });
 
   private relayId: string | null = null;
 
@@ -173,6 +180,84 @@ export class BroadcastIngestService {
     await this.whip.stop();
     await this.releaseRelay();
     this.snackbar.info('BROADCAST PUSH STOPPED');
+  }
+
+  /**
+   * Prove the media path before a real broadcast: publish a generated pattern
+   * with the same WHIP publisher a host uses, then ask the relay what arrived.
+   * A byte counter above zero is the difference between "the URL was accepted"
+   * and "video reached the RTMP side".
+   */
+  async runSelfTest(): Promise<void> {
+    if (this.selfTest().status === 'running') return;
+    const pattern = createTestPattern();
+    if (!pattern) {
+      this.selfTest.set({
+        status: 'fail',
+        detail: 'THIS BROWSER CANNOT GENERATE A TEST PATTERN',
+      });
+      return;
+    }
+
+    this.selfTest.set({ status: 'running', detail: 'PUBLISHING A TEST PATTERN…' });
+    let relayId: string | null = null;
+    try {
+      const session = await firstValueFrom(
+        this.http.post<{ relayId?: string; whipUrl?: string }>(
+          this.endpoint('/selftest'),
+          {},
+          { headers: this.headers() },
+        ),
+      );
+      if (!session?.relayId || !session.whipUrl) {
+        throw new Error('THE RELAY RETURNED NO TEST SESSION');
+      }
+      relayId = session.relayId;
+      const started = await this.whip.start(session.whipUrl, pattern.stream);
+      if (!started) throw new Error(this.whip.error() ?? 'PUBLISH FAILED');
+
+      // Long enough for ICE, an RTSP connection and a few seconds of frames.
+      await new Promise((resolve) => setTimeout(resolve, 6_000));
+      const status = await firstValueFrom(
+        this.http.get<{ ready?: boolean; bytesReceived?: number; tracks?: unknown[] }>(
+          this.endpoint(`/selftest/${relayId}`),
+          { headers: this.headers() },
+        ),
+      );
+      const bytes = Number(status?.bytesReceived ?? 0);
+      const tracks = Array.isArray(status?.tracks) ? status.tracks.length : 0;
+      if (status?.ready && bytes > 0) {
+        this.selfTest.set({
+          status: 'pass',
+          detail: `MEDIA CONFIRMED — ${Math.max(1, Math.round(bytes / 1024))} KB, ${tracks} TRACK${tracks === 1 ? '' : 'S'}`,
+        });
+        this.snackbar.success('SELF-TEST PASSED');
+      } else {
+        this.selfTest.set({
+          status: 'fail',
+          detail: 'THE RELAY RECEIVED NO MEDIA — CHECK THE WHIP URL, TLS AND UDP',
+        });
+        this.snackbar.error('SELF-TEST FAILED');
+      }
+    } catch (error) {
+      const detail = this.describe(error);
+      this.selfTest.set({ status: 'fail', detail });
+      this.snackbar.error(detail);
+    } finally {
+      await this.whip.stop();
+      pattern.stop();
+      if (relayId) {
+        try {
+          await firstValueFrom(
+            this.http.delete(this.endpoint(`/selftest/${relayId}`), {
+              headers: this.headers(),
+            }),
+          );
+        } catch {
+          // The relay's own self-test timeout closes it.
+        }
+      }
+    }
   }
 
   private async releaseRelay(): Promise<void> {

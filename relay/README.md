@@ -36,6 +36,9 @@ Every route except `/health` requires `Authorization: Bearer $RELAY_TOKEN`.
 | `FFMPEG_PATH` | `ffmpeg` | ffmpeg binary |
 | `FFMPEG_MAX_RESTARTS` | `5` | Retries for an ffmpeg that exits before the publisher connects |
 | `SESSION_TTL_MINUTES` | `360` | Age at which a session is closed |
+| `SELFTEST_RTMP_URL` | — | RTMP sink the self-test pushes to; unset disables `/selftest` |
+| `SELFTEST_STREAM_KEY` | `selftest` | Key/id used for the self-test sink |
+| `SELFTEST_TTL_SECONDS` | `180` | How long a self-test session may stay open |
 
 ## Run it
 
@@ -54,6 +57,33 @@ MEDIA_RELAY_TOKEN=change-me
 The app's boot check reports the relay: a malformed URL stops the deploy, an
 absent one warns that PUSH answers 503, and a missing token warns that the relay
 is open.
+
+## Self-test
+
+`POST /selftest` opens a session aimed at `SELFTEST_RTMP_URL` — never at a
+provider key — and `GET /sessions/:id` reports what MediaMTX actually received
+(`ready`, `bytesReceived`, `tracks`). The app uses that pair from the BROADCAST
+PUSH panel: pressing **SELF-TEST** publishes a generated colour-bar pattern with
+the same WHIP publisher a real host uses, waits six seconds, and shows
+`MEDIA CONFIRMED — <n> KB, <n> TRACKS` or the reason it failed.
+
+That exercises the whole path — browser encode → WHIP → MediaMTX → ffmpeg →
+RTMP — without a camera, a game or a provider stream key. By default the push
+target is this compose stack's own RTMP listener (`rtmp://mediamtx:1935/selftest`),
+so the result cannot appear on the host's channel.
+
+To prove egress to Twitch as well, point the sink at the channel's ingest with
+the bandwidth-test flag, which makes Twitch accept the stream without showing it
+publicly:
+
+```bash
+SELFTEST_RTMP_URL='rtmp://live.twitch.tv/app?bandwidthtest=true' \
+SELFTEST_STREAM_KEY='live_...' \
+  docker compose up --build
+```
+
+Kick has no equivalent flag, so leave the self-test on the local sink there and
+verify a real Kick push in the dashboard.
 
 ## Deploying for real
 

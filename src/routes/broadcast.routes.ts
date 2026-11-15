@@ -6,7 +6,9 @@ import {
   clearKickDestination,
   destinationOverview,
   saveKickDestination,
+  selfTestStatus,
   startIngestSession,
+  startSelfTest,
   stopIngestSession,
 } from "@/services/broadcast-ingest.service";
 
@@ -54,6 +56,16 @@ router.post("/ingest/:platform", authenticate, pushLimiter, async (req, res) => 
   res.status(201).json(
     await startIngestSession(actorOf(req), String(req.params.platform || "")),
   );
+});
+
+// POST /api/broadcast/selftest — prove WHIP → relay → RTMP with a test pattern.
+router.post("/selftest", authenticate, pushLimiter, async (_req, res) => {
+  res.status(201).json(await startSelfTest());
+});
+
+// GET /api/broadcast/selftest/:relayId — what the relay actually received.
+router.get("/selftest/:relayId", authenticate, async (req, res) => {
+  res.json(await selfTestStatus(String(req.params.relayId || "")));
 });
 
 // DELETE /api/broadcast/ingest/:relayId — close the relay session.

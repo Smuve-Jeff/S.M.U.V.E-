@@ -3204,6 +3204,17 @@
                 >
                   CHECK
                 </button>
+                <button
+                  class="quality-btn"
+                  (click)="ingest.runSelfTest()"
+                  [disabled]="
+                    ingest.selfTest().status === 'running' ||
+                    ingest.pushing() !== null
+                  "
+                  title="Publish a test pattern through the relay to prove the media path"
+                >
+                  SELF-TEST
+                </button>
               </div>
               <div class="account-row" *ngFor="let target of ingest.platforms">
                 <span class="account-name">{{ target.label }}</span>
@@ -3253,6 +3264,13 @@
               </div>
               <p class="account-note" *ngIf="ingest.error()">
                 {{ ingest.error() }}
+              </p>
+              <p
+                class="account-note"
+                [class.ok]="ingest.selfTest().status === 'pass'"
+                *ngIf="ingest.selfTest().detail"
+              >
+                {{ ingest.selfTest().detail }}
               </p>
             </div>
             <div class="platform-grid">
