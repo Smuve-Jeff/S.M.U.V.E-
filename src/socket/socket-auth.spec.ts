@@ -1710,13 +1710,12 @@ describe("resolved-match lobby provisioning + in-match relays", () => {
       event: string,
     ): Promise<T> =>
       new Promise<T>((resolve, reject) => {
-        let timer: ReturnType<typeof setTimeout>;
         const handler = (data: T) => {
           clearTimeout(timer);
           client.off(event, handler);
           resolve(data);
         };
-        timer = setTimeout(() => {
+        const timer = setTimeout(() => {
           client.off(event, handler);
           reject(new Error(`timed out waiting for ${event}`));
         }, 4000);

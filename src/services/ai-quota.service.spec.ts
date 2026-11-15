@@ -1,12 +1,12 @@
 import {
   AI_IMAGE_QUOTA_LIMIT,
-  AI_VIDEO_QUOTA_LIMIT,
   aiQuotaGuard,
   buildStatus,
   quotaWindowFor,
   quotaStatus,
   recordAiUsage,
 } from "./ai-quota.service";
+import { AppDataSource } from "@/database/data-source";
 
 jest.mock("@/database/data-source", () => ({
   AppDataSource: { getRepository: jest.fn() },
@@ -16,8 +16,6 @@ const findOneBy = jest.fn();
 const query = jest.fn();
 
 const mockedRepo = () => ({ findOneBy, query });
-
-const { AppDataSource } = require("@/database/data-source");
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -131,7 +129,7 @@ describe("recordAiUsage", () => {
 
 describe("aiQuotaGuard", () => {
   const response = () => {
-    const handlers: Record<string, Function> = {};
+    const handlers: Record<string, (...args: unknown[]) => void> = {};
     return {
       statusCode: 200,
       status(code: number) {
@@ -142,7 +140,7 @@ describe("aiQuotaGuard", () => {
         this.body = body;
         return this;
       },
-      on(event: string, cb: Function) {
+      on(event: string, cb: (...args: unknown[]) => void) {
         handlers[event] = cb;
       },
       emit(event: string) {

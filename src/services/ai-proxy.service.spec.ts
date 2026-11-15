@@ -2,6 +2,9 @@ import {
   AI_PROVIDER_MAX_ATTEMPTS,
   backoffDelayMs,
   isRetryableProviderError,
+  normalizeAudioSource,
+  normalizeImageSource,
+  parseGeminiImageResponse,
   providerErrorStatus,
   providerFailure,
   providerRetryAfterMs,
@@ -157,7 +160,6 @@ describe("analyzePrompt without a provider key", () => {
 
 describe("normalizeImageSource", () => {
   it("passes hosted URLs and data URLs through untouched", () => {
-    const { normalizeImageSource } = require("./ai-proxy.service");
     expect(normalizeImageSource("https://cdn.example/frame.png")).toBe(
       "https://cdn.example/frame.png"
     );
@@ -167,7 +169,6 @@ describe("normalizeImageSource", () => {
   });
 
   it("wraps bare base64 with the caller's MIME type", () => {
-    const { normalizeImageSource } = require("./ai-proxy.service");
     expect(normalizeImageSource("AAA", "image/webp")).toBe(
       "data:image/webp;base64,AAA"
     );
@@ -416,7 +417,6 @@ describe("fal media endpoints (Photo Studio + shot video)", () => {
 
 describe("normalizeAudioSource", () => {
   it("passes hosted URLs and data URLs through untouched", () => {
-    const { normalizeAudioSource } = require("./ai-proxy.service");
     expect(normalizeAudioSource("https://cdn.example/voice.wav")).toBe(
       "https://cdn.example/voice.wav"
     );
@@ -426,7 +426,6 @@ describe("normalizeAudioSource", () => {
   });
 
   it("wraps bare base64 as audio/wav", () => {
-    const { normalizeAudioSource } = require("./ai-proxy.service");
     expect(normalizeAudioSource("AAA")).toBe("data:audio/wav;base64,AAA");
   });
 });
@@ -552,7 +551,6 @@ describe("fal queue polling + lip-sync", () => {
 
 describe("parseGeminiImageResponse", () => {
   it("pulls the first inline image out as a data URL", () => {
-    const { parseGeminiImageResponse } = require("./ai-proxy.service");
     const url = parseGeminiImageResponse({
       candidates: [
         {
@@ -569,7 +567,6 @@ describe("parseGeminiImageResponse", () => {
   });
 
   it("defaults the MIME type and finds nothing in a text reply", () => {
-    const { parseGeminiImageResponse } = require("./ai-proxy.service");
     expect(
       parseGeminiImageResponse({
         candidates: [{ content: { parts: [{ inlineData: { data: "BBB" } }] } }],

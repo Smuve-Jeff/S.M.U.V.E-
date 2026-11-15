@@ -1,4 +1,5 @@
 import type { CompositionPass } from './composition-core.service';
+import { formatDuration } from './composer-engine';
 
 /** Flattened, display-ready view of one pass for side-by-side comparison. */
 export interface PassCard {
@@ -24,11 +25,6 @@ export interface PassComparison {
   /** Differences of B relative to A, ready for a single readable line. */
   delta: string[];
 }
-
-const formatDuration = (seconds: number): string => {
-  const safe = Math.max(0, Math.round(seconds));
-  return `${Math.floor(safe / 60)}:${String(safe % 60).padStart(2, '0')}`;
-};
 
 const signed = (value: number, suffix: string): string =>
   `${value > 0 ? '+' : ''}${value}${suffix}`;
