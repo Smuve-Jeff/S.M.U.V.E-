@@ -22,6 +22,7 @@ import {
   setupSocketIO,
 } from "./index";
 import liveStreamRoutes from "@/routes/live-stream.routes";
+import socialRoutes from "@/routes/social.routes";
 
 // The socket server only touches the database inside handlers (presence sync,
 // studio collab) — never during the connection/auth handshake — so a stub
@@ -88,6 +89,16 @@ jest.mock("@/services", () => ({
   buildSessionSyncPayload: jest.fn(async () => ({})),
   isEitherBlocked: jest.fn(async () => false),
   filterBlocked: jest.fn(async (_userId: string, users: any[]) => users),
+  assertOwnershipOrAdmin: jest.fn((actor: any, routeUserId: string) => {
+    if (actor.role !== "admin" && String(actor.userId) !== routeUserId) {
+      throw Object.assign(new Error("Access denied"), { statusCode: 403 });
+    }
+  }),
+  blockUser: jest.fn(async (_userId: string, blockedUserId: string) => ({
+    success: true,
+    blockedUserId,
+  })),
+  clearFriendRequestNotifications: jest.fn(async () => ({ success: true })),
   isUserBlocked: jest.fn(async () => false),
   listRoomMessages: jest.fn(async () => []),
   persistRoomMessage: jest.fn(async (input: any) => ({
@@ -216,6 +227,7 @@ describe("socket.io handshake + JWT auth", () => {
     const app = express();
     app.use(express.json());
     app.use("/api", liveStreamRoutes);
+    app.use("/api/users", socialRoutes);
     httpServer = createServer(app);
     setupSocketIO(httpServer);
     await new Promise<void>((resolve) => httpServer.listen(0, resolve));
@@ -1158,6 +1170,81 @@ describe("socket.io handshake + JWT auth", () => {
     const [usersA, usersB] = await Promise.all([rosterA, rosterB]);
     expect(usersA.map((u) => u.userId)).not.toContain("302");
     expect(usersB.map((u) => u.userId)).toContain("301");
+
+    jest
+      .mocked(filterBlocked)
+      .mockImplementation(async (_userId, users) => users);
+  });
+
+  it("updates both rosters after a REST block without a status change", async () => {
+    const clientA = mk(401);
+    const clientB = mk(402);
+    await Promise.all([connect(clientA), connect(clientB)]);
+    clientA.emit("register_presence", {
+      userId: "401",
+      metadata: { artistName: "A" },
+    });
+    clientB.emit("register_presence", {
+      userId: "402",
+      metadata: { artistName: "B" },
+    });
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
+    // Only the REST block flips this gate, so a registration broadcast cannot
+    // satisfy the assertions before the route runs.
+    let blocked = false;
+    jest.mocked(filterBlocked).mockImplementation(async (recipientId, users) => {
+      if (!blocked) return users;
+      const other = String(recipientId) === "401" ? "402" : "401";
+      return users.filter((u) => String(u.userId) !== other);
+    });
+
+    const waitForRoster = (
+      client: ReturnType<typeof mk>,
+      predicate: (users: any[]) => boolean,
+      label: string,
+    ) =>
+      new Promise<any[]>((resolve, reject) => {
+        const timer = setTimeout(() => {
+          client.off("users_online", handler);
+          reject(new Error(`no post-block roster: ${label}`));
+        }, 5000);
+        const handler = (users: any[]) => {
+          if (!Array.isArray(users) || !predicate(users)) return;
+          clearTimeout(timer);
+          client.off("users_online", handler);
+          resolve(users);
+        };
+        client.on("users_online", handler);
+      });
+
+    const rosterA = waitForRoster(
+      clientA,
+      (users) => users.every((u) => u.userId !== "402"),
+      "blocker hides the blocked user",
+    );
+    const rosterB = waitForRoster(
+      clientB,
+      (users) => users.every((u) => u.userId !== "401"),
+      "blocked user hides the blocker",
+    );
+    blocked = true;
+
+    const token = jwt.sign(
+      { userId: 401, role: "user" },
+      process.env.JWT_SECRET!,
+    );
+    const response = await fetch(`${url()}/api/users/401/blocks/402`, {
+      method: "PUT",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    expect(response.status).toBe(200);
+
+    const [usersA, usersB] = await Promise.all([rosterA, rosterB]);
+    expect(usersA.map((u) => u.userId)).not.toContain("402");
+    expect(usersA.map((u) => u.userId)).toContain("401");
+    expect(usersB.map((u) => u.userId)).not.toContain("401");
+    expect(usersB.map((u) => u.userId)).toContain("402");
 
     jest
       .mocked(filterBlocked)
