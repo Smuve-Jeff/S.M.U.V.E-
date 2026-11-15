@@ -317,6 +317,85 @@ id — and therefore the WHIP URL — is unchanged. If the log instead says
 `dropping stored session ...: its publisher is gone`, the browser had already
 stopped publishing and there was nothing to re-attach.
 
+## Proving the browser hop
+
+Every automated check publishes from software: the media-path test uses werift and
+the second-client check uses ffmpeg's `whip` muxer. Neither is a browser. Camera
+permissions, secure-context rules, ICE through a real NAT, codec selection and tab
+throttling have therefore never run, and they fail in ways the server never sees.
+Do this once on the real origin, before a show, with the browser you will actually
+broadcast from.
+
+**The codec is the highest-risk item.** The relay's ffmpeg is `-c copy`, so the
+browser's codec goes straight into FLV — H.264 survives, VP8/VP9/AV1 do not. The
+app adds tracks without stating a codec preference, so whichever codec the
+browser and MediaMTX negotiate is what you get. Check it rather than assuming it.
+
+1. **Secure context.** On the real origin, `window.isSecureContext` in the console
+   is `true` and `navigator.mediaDevices` exists. On a plain `http://` origin
+   neither holds and PUSH fails without ever asking for the camera.
+2. **Permission.** Press **PUSH** and allow the camera. Deny it once as well: PUSH
+   stops before the publisher with `NO CAPTURE YET — SWITCH THE CAMERA ON FIRST`,
+   rather than sitting on `CONNECTING`. A browser that has remembered the denial
+   needs its site settings cleared before it will ask again.
+3. **The WHIP request.** DevTools → Network, filter `whip`. Expect exactly one
+   `POST https://relay.example.com/<session>/whip` returning `201`, request
+   `Content-Type: application/sdp`, response `Location: …/<session>/whip/<resource>`
+   and an SDP body starting `v=0`. One POST per push — the publisher gathers ICE
+   before sending, so there is no trickle stream. A `404` is the session or path,
+   a TLS error is the proxy in front of `:8889`; the panel shows the same failure
+   as `WHIP HTTP <status>`.
+4. **ICE.** In `chrome://webrtc-internals`, pick the connection created at that
+   moment: `iceConnectionState` reaches `connected` (or `completed`), and the
+   selected candidate pair is the browser's srflx candidate against
+   `relay.example.com:8189/udp`. `checking` → `failed` means UDP `8189` is not
+   arriving, or MediaMTX advertised a host the browser cannot reach (step 3).
+   There is no TURN server: on a network that blocks UDP or is symmetrically
+   NATed, this is where it stops, and that is a known limit rather than a
+   misconfiguration.
+5. **Codec.** In the same panel, `outbound-rtp` video should read `H264`. Then
+   confirm it server-side, which is what the relay actually sees:
+
+   ```bash
+   curl -s -H "Authorization: Bearer $MEDIA_RELAY_TOKEN" \
+     "$MEDIA_RELAY_URL/sessions/<session-id>" | jq '{ready, tracks, bytesReceived}'
+   ```
+
+   `tracks` must be `["H264"]`. `VP8`, `VP9` or `AV1` means the media reaches
+   MediaMTX but cannot be copied into FLV; `session.error` on the same response
+   carries ffmpeg's complaint (`Could not write header`, or a codec tag error).
+   Record what your browser negotiated — that is the finding this checklist exists
+   for.
+6. **Bytes on both sides.** `bytesReceived` climbs in the response above, the
+   panel shows `EGRESS <n> KBPS · NO DROPS`, and `docker compose logs mediamtx`
+   shows the WHIP session gaining an RTSP reader. `bytesReceived` rising with no
+   reader means the relay never pulled; a reader with flat `ingest-bytes` in a
+   media-path log means egress.
+7. **Camera ↔ game switch.** Switch source mid-push. Network shows **no second
+   POST** and `bytesSent` carries on without dropping to zero — that is
+   `replaceTrack` doing its job. A new POST means the app republished, which
+   renegotiates mid-broadcast.
+8. **Background tab.** Switch tabs for 30 s, then back. `bytesSent` plateauing is
+   expected: browsers throttle encoders they stop rendering. If the relay logs
+   `[relay] ALERT session … has sent nothing to the provider …` and restarts
+   ffmpeg, the throttle was severe enough to look like a stall — keep the tab
+   visible during a show.
+9. **Stop.** The panel returns to **PUSH**, Network shows `DELETE` on the
+   `Location` URL, `GET /sessions/<id>` 404s, and the channel goes offline.
+10. **Network change.** Toggle Wi-Fi, or sleep the laptop, mid-push. The connection
+    goes `disconnected` → `failed` and does not recover: the publisher opens no
+    ICE restart. STOP then PUSH is the correct recovery, which is what the panel
+    tells the host.
+
+| What you saw | Which layer |
+| --- | --- |
+| No `POST …/whip` in Network | App or browser: insecure origin, permission, JS error |
+| `POST` with a 4xx/5xx, or a TLS error | URL, proxy, TLS in front of `:8889` |
+| `201` but `bytesReceived` stays 0 | ICE: UDP `8189`, or an unreachable advertised host |
+| `bytesReceived` climbs, ingest flat | Relay pull or RTMP egress to the provider |
+| `tracks` is not `H264` | Codec negotiation, browser side |
+| Quality collapses only when the tab is hidden | Browser throttling, not a stall |
+
 ## Reading a failed media-path check
 
 The media path has a check that runs without any provider account: a Node WHIP
@@ -364,6 +443,8 @@ Three failures are worth recognising on sight:
 - [ ] Real PUSH shows video on the public channel
 - [ ] STOP returns the channel to offline
 - [ ] Relay restart mid-push keeps the feed alive
+- [ ] Browser hop checked once on the real origin: `tracks` is `H264`, ICE
+      `connected`, one `POST …/whip` and one `DELETE` per push
 
 The last item that has never been exercised is a full show over a real network
 for an hour: watch the relay's ffmpeg for reconnects and the app for the viewer
