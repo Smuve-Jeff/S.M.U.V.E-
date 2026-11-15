@@ -12,8 +12,8 @@ import {
 } from "../services/local-storage.service";
 import { SessionSafetyService } from "../services/session-safety.service";
 import { OfflineSyncService } from "../services/offline-sync.service";
+import { CloudSyncService } from "../services/cloud-sync.service";
 import { LoggingService } from "../services/logging.service";
-import { APP_SECURITY_CONFIG } from "../app.security";
 import { AutomationService } from "./automation.service";
 import { ArrangementMarkersService, type ArrangementMarker } from "./arrangement-markers.service";
 import { SidechainRoutingService, type SidechainRoute } from "./sidechain-routing.service";
@@ -111,10 +111,45 @@ export interface DirectorBundleState {
   briefs?: Array<{ surfaceId: string; brief: string; at: number }>;
 }
 
+/**
+ * The set's guide vocal as it travels inside a cloud snapshot: the raw
+ * upload bytes (base64), capped so an instrumental never turns a version
+ * push into a phone-radio ordeal. Local records and archive exports keep
+ * using the media store / archive entry instead.
+ */
+export interface SharedGuideTrack {
+  name: string;
+  mimeType: string;
+  dataBase64: string;
+  byteSize: number;
+}
+
+/** Guide uploads above this stay on-device; the song never waits on its guide. */
+const SHARED_GUIDE_MAX_BYTES = 6 * 1024 * 1024;
+
+/** Chunked base64 so a multi-megabyte guide never blows the call stack. */
+function encodeBytesToBase64(bytes: Uint8Array): string {
+  let binary = "";
+  const CHUNK = 0x8000;
+  for (let i = 0; i < bytes.length; i += CHUNK) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + CHUNK));
+  }
+  return btoa(binary);
+}
+
+function decodeBase64ToBytes(base64: string): Uint8Array<ArrayBuffer> {
+  const binary = atob(base64);
+  const bytes = new Uint8Array(new ArrayBuffer(binary.length));
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return bytes;
+}
+
 export interface ProjectBundle {
   metadata: ProjectMetadata;
   tracks: any[];
   audioAssets?: SerializedAudioAsset[];
+  /** Guide vocal shared through the cloud. Absent = no guide to share. */
+  guideTrack?: SharedGuideTrack;
   structure?: SongSection[];
   takeState?: TakeStateBundle;
   automation: any;
@@ -349,6 +384,8 @@ export class ProjectWorkspaceService {
   private readonly backingTrack = inject(PROJECT_BACKING_TRACK, {
     optional: true,
   });
+  /** The one cloud writer: every versioned push goes through here. */
+  private readonly cloudSync = inject(CloudSyncService);
   private readonly markers = inject(ArrangementMarkersService);
   private readonly vcaBuses = inject(VcaBusService);
   private readonly sidechainRouting = inject(SidechainRoutingService);
@@ -734,7 +771,9 @@ export class ProjectWorkspaceService {
       await this.requirePersistence();
       await this.storage.saveItem("projects", stored);
       await this.persistBackingTrack(snapshot.metadata.id);
-      await this.tryQueueCloudSync(snapshot.metadata, snapshot);
+      // Local only by design: every cloud row must be a restorable
+      // version, and autosaves fire while the artist is still mid-thought.
+      // Manual and import saves queue the versioned push below.
       this.lastAutoSave.set(stored.savedAt);
       this.markPersistenceClean(snapshot, "autosave", stored.savedAt);
       this.versionCount.update((v) => v + 1);
@@ -1590,6 +1629,49 @@ export class ProjectWorkspaceService {
     );
   }
 
+  /**
+   * Queue the restorable bundle for versioned cloud history — the only
+   * cloud contract this workspace writes. The offline queue replays it
+   * with a proper manifest whether the radio is up now or later.
+   */
+  /**
+   * Take a cloud bundle's guide vocal onto this device: decode the shared
+   * bytes into the vocal chain and store them with the set (memory-only
+   * for guests, per the clearance promise).
+   */
+  private async adoptSharedGuide(
+    projectId: string,
+    guide: SharedGuideTrack,
+  ): Promise<void> {
+    if (!this.backingTrack) return;
+    if (
+      !guide?.dataBase64 ||
+      typeof guide.byteSize !== "number" ||
+      guide.byteSize <= 0 ||
+      guide.byteSize > SHARED_GUIDE_MAX_BYTES
+    ) {
+      this.logger.warn(
+        "ProjectWorkspace: shared guide track is missing or oversized; skipping",
+      );
+      return;
+    }
+    const bytes = decodeBase64ToBytes(guide.dataBase64);
+    if (bytes.byteLength !== guide.byteSize) {
+      this.logger.warn(
+        "ProjectWorkspace: shared guide track failed its size check; skipping",
+      );
+      return;
+    }
+    await this.backingTrack.adoptProject(
+      projectId,
+      {
+        name: guide.name || "Backing track",
+        blob: new Blob([bytes], { type: guide.mimeType || "audio/mpeg" }),
+      },
+      { persist: !this.isGuestSession },
+    );
+  }
+
   private async queueCloudSync(bundle: ProjectBundle): Promise<void> {
     const userId = this.auth.currentUser()?.id;
     if (!userId) {
@@ -1597,19 +1679,49 @@ export class ProjectWorkspaceService {
       return;
     }
 
-    const syncId = await this.offlineSync.queueOperation(
-      "CREATE",
-      `${APP_SECURITY_CONFIG.api_url}/projects`,
-      {
-        projectId: bundle.metadata.id,
-        userId,
-        title: bundle.metadata.name,
-        projectData: this.toJsonSafeBundle(bundle),
-      },
-      { userId },
+    const syncId = await this.cloudSync.queuePush(
+      bundle.metadata.id,
+      bundle.metadata.name,
+      this.withSharedGuide(this.toJsonSafeBundle(bundle)),
     );
     this.lastQueuedSyncId.set(syncId);
     this.cloudSyncQueued.set(true);
+  }
+
+  /**
+   * Fold the set's guide vocal into an outbound cloud bundle. The vocal
+   * services own the bytes on-device; this only borrows the archived
+   * upload for the trip. Oversized guides stay home with a warning
+   * instead of stalling the push — the song must never wait on its guide.
+   */
+  private withSharedGuide(bundle: ProjectBundle): ProjectBundle {
+    try {
+      const file = this.backingTrack?.archiveFile();
+      if (!file?.data?.byteLength) return bundle;
+      if (file.data.byteLength > SHARED_GUIDE_MAX_BYTES) {
+        this.logger.warn(
+          `ProjectWorkspace: guide track (${file.data.byteLength} bytes) ` +
+            `exceeds the ${SHARED_GUIDE_MAX_BYTES} byte share cap; ` +
+            `the version pushes without it.`,
+        );
+        return bundle;
+      }
+      return {
+        ...bundle,
+        guideTrack: {
+          name: file.name,
+          mimeType: file.mimeType,
+          dataBase64: encodeBytesToBase64(file.data),
+          byteSize: file.data.byteLength,
+        },
+      };
+    } catch (error) {
+      this.logger.warn(
+        "ProjectWorkspace: guide track could not be shared",
+        error,
+      );
+      return bundle;
+    }
   }
 
   // ── Snapshot ───────────────────────────────────────────
@@ -1762,6 +1874,21 @@ export class ProjectWorkspaceService {
     )?.catch((error: unknown) =>
       this.logger.warn("ProjectWorkspace: backing track restore failed", error),
     );
+    // A cloud version's guide travels inside the bundle: adopt it so the
+    // set opens on a device that never had the file. The archive's own
+    // file (above) wins when both are present — it is the freshest copy.
+    // Restoring a version restores its guide, so a present cloud guide
+    // replaces whatever this device held.
+    if (!importedBacking && bundle.guideTrack && this.backingTrack) {
+      const guide = bundle.guideTrack;
+      void this.adoptSharedGuide(bundle.metadata.id, guide).catch(
+        (error: unknown) =>
+          this.logger.warn(
+            "ProjectWorkspace: shared guide track restore failed",
+            error,
+          ),
+      );
+    }
   }
 
   /**

@@ -1376,6 +1376,36 @@
   color: var(--teal-500);
 }
 
+/* ================================================
+   CLOUD PILL — topbar push-state indicator
+   ================================================ */
+.comp-cloud-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  background: linear-gradient(
+    135deg,
+    rgba(59, 130, 246, 0.14),
+    rgba(59, 130, 246, 0.05)
+  );
+  border: 1px solid rgba(59, 130, 246, 0.55);
+  border-radius: 999px;
+  color: #1d4ed8;
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  cursor: default;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.comp-cloud-pill .material-symbols-outlined {
+  font-size: 14px;
+  color: #2563eb;
+}
+
 .comp-hw-badge.pulse {
   animation: comp-hw-pulse 2.4s ease-in-out infinite;
 }

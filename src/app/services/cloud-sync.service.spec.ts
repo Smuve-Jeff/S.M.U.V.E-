@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { CloudSyncService } from './cloud-sync.service';
+import { CloudSyncService, LARGE_PUSH_BYTES } from './cloud-sync.service';
 import { MockCloudServer } from './mock-cloud-server';
 import { CLOUD_SERVER } from './cloud-server-client';
 import { OfflineSyncService } from './offline-sync.service';
@@ -312,9 +312,9 @@ describe('CloudSyncService cross-device resume', () => {
   function seedSnapshots() {
     const mine = sut.deviceId();
     cloud.__seed([
-      { projectId: 'px', deviceId: mine, version: 1, data: { v: 1 }, timestamp: 100, title: 'X', byteSize: 1 },
-      { projectId: 'px', deviceId: 'dev_desktop', version: 2, data: { v: 2 }, timestamp: 200, title: 'X', byteSize: 1 },
-      { projectId: 'px', deviceId: 'dev_desktop', version: 3, data: { v: 3 }, timestamp: 300, title: 'X', byteSize: 1 },
+      { projectId: 'px', deviceId: mine, version: 1, data: { metadata: { id: 'px' }, v: 1 }, timestamp: 100, title: 'X', byteSize: 1 },
+      { projectId: 'px', deviceId: 'dev_desktop', version: 2, data: { metadata: { id: 'px' }, v: 2 }, timestamp: 200, title: 'X', byteSize: 1 },
+      { projectId: 'px', deviceId: 'dev_desktop', version: 3, data: { metadata: { id: 'px' }, v: 3 }, timestamp: 300, title: 'X', byteSize: 1 },
       // Newer but unrestorable — carries no payload.
       { projectId: 'px', deviceId: 'dev_desktop', version: 4, data: undefined, timestamp: 400, title: 'X', byteSize: 1 },
       // Another project entirely — must not leak across.
@@ -334,5 +334,82 @@ describe('CloudSyncService cross-device resume', () => {
     await seedSnapshots();
     expect(sut.newerRemoteSnapshot('px', 350)).toBeNull();
     expect(sut.newerRemoteSnapshot('missing', 0)).toBeNull();
+  });
+});
+
+describe('CloudSyncService unified queue + size guard', () => {
+  let sut: CloudSyncService;
+  let cloud: MockCloudServer;
+  let offline: StubOfflineSync;
+
+  beforeEach(() => {
+    if (typeof navigator !== 'undefined') {
+      Object.defineProperty(navigator, 'onLine', {
+        configurable: true,
+        get: () => true,
+      });
+    }
+    TestBed.configureTestingModule({
+      providers: [
+        CloudSyncService,
+        MockCloudServer,
+        { provide: CLOUD_SERVER, useExisting: MockCloudServer },
+        { provide: OfflineSyncService, useClass: StubOfflineSync },
+        { provide: LocalStorageService, useClass: StubStorage },
+      ],
+    });
+    sut = TestBed.inject(CloudSyncService);
+    cloud = TestBed.inject(MockCloudServer);
+    offline = TestBed.inject(OfflineSyncService) as unknown as StubOfflineSync;
+    cloud.__seed([]);
+  });
+
+  function queuedPayloads(): Array<{
+    endpoint: string;
+    payload: { projectId: string; manifest: { version: number }; payload: unknown };
+  }> {
+    return offline.queueOperation.mock.calls.map((call) => ({
+      endpoint: call[1] as string,
+      payload: call[2] as {
+        projectId: string;
+        manifest: { version: number };
+        payload: unknown;
+      },
+    }));
+  }
+
+  it('routes queuePush through the versioned cloud endpoint with a manifest', async () => {
+    const syncId = await sut.queuePush('px', 'Set', { metadata: { id: 'px' } });
+    expect(syncId).toBe('qid');
+    const queued = queuedPayloads();
+    expect(queued).toHaveLength(1);
+    expect(queued[0].endpoint).toBe('/cloud/push');
+    expect(queued[0].payload.projectId).toBe('px');
+    expect(queued[0].payload.manifest.version).toBe(1);
+    expect(sut.pushStatus()).toBe('queued');
+  });
+
+  it('bumps the queued version above a persisted manifest', async () => {
+    expect(await sut.push('px', 'Set', { metadata: { id: 'px' } })).toBe('success');
+    await sut.queuePush('px', 'Set', { metadata: { id: 'px' } });
+    const queued = queuedPayloads();
+    expect(queued).toHaveLength(1);
+    expect(queued[0].payload.manifest.version).toBe(2);
+  });
+
+  it('flags large pushes and clears the notice on a small one', async () => {
+    const big = 'x'.repeat(LARGE_PUSH_BYTES + 1);
+    await sut.push('px', 'Set', { metadata: { id: 'px' }, blob: big });
+    expect(sut.largePushNotice()?.bytes).toBeGreaterThanOrEqual(LARGE_PUSH_BYTES);
+    await sut.push('px', 'Set', { metadata: { id: 'px' } });
+    expect(sut.largePushNotice()).toBeNull();
+  });
+
+  it('never offers a non-bundle row as a cross-device resume', async () => {
+    cloud.__seed([
+      { projectId: 'px', deviceId: 'dev_desktop', version: 7, data: { kind: 'legacy', v: 7 }, timestamp: 700, title: 'X', byteSize: 1 },
+    ]);
+    await sut.refresh();
+    expect(sut.newerRemoteSnapshot('px', 0)).toBeNull();
   });
 });

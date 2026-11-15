@@ -100,34 +100,32 @@ describe('AutoSaveService', () => {
     expect(service.lastError()).toBeNull();
   });
 
-  it('only claims a queued retry when the offline queue accepted it', async () => {
+  it('reports a device-only failure when the local save fails', async () => {
     const service = TestBed.inject(AutoSaveService);
     const project = { id: 'selected-id', tracks: [] };
     musicManager.snapshotProject.mockReturnValue(project);
     (TestBed.inject(DatabaseService).saveProject as jest.Mock).mockRejectedValueOnce(
-      new Error('network down'),
+      new Error('quota exceeded'),
     );
-    offlineSync.queueOperation.mockRejectedValueOnce(new Error('no storage'));
 
     await (service as any).syncProject(project);
 
-    expect(service.lastError()).toContain('could not be queued');
+    // No cloud leg, no dead queue: the message points at the device.
+    expect(service.lastError()).toContain('could not be saved on this device');
     expect(service.isSaving()).toBe(false);
+    expect(offlineSync.queueOperation).not.toHaveBeenCalled();
   });
 
-  it('reports a queued retry when the offline queue accepts the save', async () => {
+  it('leaves no error when the local save succeeds', async () => {
     const service = TestBed.inject(AutoSaveService);
     const project = { id: 'selected-id', tracks: [] };
     musicManager.snapshotProject.mockReturnValue(project);
-    (TestBed.inject(DatabaseService).saveProject as jest.Mock).mockRejectedValueOnce(
-      new Error('network down'),
-    );
 
     await (service as any).syncProject(project);
 
-    expect(service.lastError()).toBe(
-      'Cloud sync queued. Changes are safe locally.',
-    );
+    expect(service.lastError()).toBeNull();
+    expect(service.isSaving()).toBe(false);
+    expect(offlineSync.queueOperation).not.toHaveBeenCalled();
   });
 
 });

@@ -120,6 +120,8 @@ describe("StudioComponent", () => {
     autoSaveEnabled: signal(true),
     autoSave: jest.fn().mockResolvedValue(true),
     listLocalProjects: jest.fn().mockResolvedValue([]),
+    saveLocalVersion: jest.fn().mockResolvedValue(undefined),
+    listLocalVersions: jest.fn().mockResolvedValue([]),
     loadProject: jest.fn().mockResolvedValue(null),
     deleteLocalProject: jest.fn().mockResolvedValue(true),
     genres: [],
@@ -424,6 +426,101 @@ describe("StudioComponent", () => {
     } finally {
       restoreSpy.mockRestore();
       delete (mockSnackbar as any).show;
+    }
+  });
+
+  it("asks before pushing a large version over a metered connection", async () => {
+    mockProjectWorkspace.metadata.set({ id: "proj_a", name: "Set" });
+    mockProjectWorkspace.listLocalVersions.mockResolvedValue([]);
+    const bundle = { metadata: { id: "proj_a", name: "Set" }, tracks: [] };
+    const mockCloud = {
+      payloadBytes: jest.fn(() => 9 * 1024 * 1024),
+      push: jest.fn(),
+      listSnapshots: jest.fn(() => []),
+      refresh: jest.fn(),
+    };
+    const injector = (component as any).injector;
+    const originalGet = injector.get.bind(injector);
+    jest
+      .spyOn(injector, "get")
+      .mockImplementation((token: any, ...rest: any[]) =>
+        token === CloudSyncService ? mockCloud : originalGet(token, ...rest),
+      );
+    mockDialog.confirm.mockResolvedValueOnce(false);
+    Object.defineProperty(navigator, "connection", {
+      configurable: true,
+      value: { saveData: true },
+    });
+    try {
+      await component.pushVersionSnapshot(bundle as any);
+      expect(mockDialog.confirm).toHaveBeenCalledWith(
+        expect.objectContaining({ title: "Large cloud upload?" }),
+      );
+      expect(mockCloud.push).not.toHaveBeenCalled();
+      expect(component.versionHistoryOffline()).toBe(true);
+      expect(mockSnackbar.info).toHaveBeenCalledWith(
+        "Kept on this device — upload it later from version history.",
+      );
+    } finally {
+      // jsdom exposes connection as a read-only prototype getter —
+      // remove only the own property this test defined.
+      delete (navigator as unknown as { connection?: unknown }).connection;
+    }
+  });
+
+  it("uploads without asking when the connection is not metered", async () => {
+    mockProjectWorkspace.metadata.set({ id: "proj_a", name: "Set" });
+    const bundle = { metadata: { id: "proj_a", name: "Set" }, tracks: [] };
+    const mockCloud = {
+      payloadBytes: jest.fn(() => 9 * 1024 * 1024),
+      push: jest.fn().mockResolvedValue("success"),
+      listSnapshots: jest.fn(() => []),
+      refresh: jest.fn(),
+    };
+    const injector = (component as any).injector;
+    const originalGet = injector.get.bind(injector);
+    jest
+      .spyOn(injector, "get")
+      .mockImplementation((token: any, ...rest: any[]) =>
+        token === CloudSyncService ? mockCloud : originalGet(token, ...rest),
+      );
+    Object.defineProperty(navigator, "connection", {
+      configurable: true,
+      value: undefined,
+    });
+    try {
+      await component.pushVersionSnapshot(bundle as any);
+      expect(mockDialog.confirm).not.toHaveBeenCalled();
+      expect(mockCloud.push).toHaveBeenCalled();
+    } finally {
+      // jsdom exposes connection as a read-only prototype getter —
+      // remove only the own property this test defined.
+      delete (navigator as unknown as { connection?: unknown }).connection;
+    }
+  });
+
+  it("reads the header pill from push state and multipart progress", async () => {
+    const injector = (component as any).injector;
+    const originalGet = injector.get.bind(injector);
+    const mockCloud = {
+      uploadProgress: jest.fn(() => null),
+      pushStatus: jest.fn(() => "queued"),
+    };
+    jest
+      .spyOn(injector, "get")
+      .mockImplementation((token: any, ...rest: any[]) =>
+        token === CloudSyncService ? mockCloud : originalGet(token, ...rest),
+      );
+    try {
+      expect(component.cloudPushLabel()).toBe("Cloud queued");
+      mockCloud.uploadProgress.mockReturnValue({
+        uploadId: "u1",
+        doneParts: 2,
+        totalParts: 5,
+      });
+      expect(component.cloudPushLabel()).toBe("Cloud 2/5");
+    } finally {
+      (injector.get as jest.Mock).mockRestore();
     }
   });
 

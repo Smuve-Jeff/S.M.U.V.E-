@@ -7,6 +7,8 @@ import { LocalStorageService } from "../services/local-storage.service";
 import { LoggingService } from "../services/logging.service";
 import { MusicManagerService } from "../services/music-manager.service";
 import { OfflineSyncService } from "../services/offline-sync.service";
+import { CloudSyncService } from "../services/cloud-sync.service";
+import { PROJECT_BACKING_TRACK } from "./project-backing-track.token";
 import { ProjectService } from "../services/project.service";
 import {
   ProjectBundle,
@@ -36,6 +38,8 @@ describe("ProjectWorkspaceService", () => {
   let stemAudioCache: Map<string, any>;
   let saveItem: jest.Mock;
   let queueOperation: jest.Mock;
+  let cloudQueuePush: jest.Mock;
+  let backingArchiveFile: jest.Mock;
   let tempoSet: jest.Mock;
   let monitorMono: ReturnType<typeof signal<boolean>>;
   let launchQuantize: ReturnType<typeof signal<any>>;
@@ -153,6 +157,8 @@ describe("ProjectWorkspaceService", () => {
     stemAudioCache = new Map<string, any>();
     saveItem = jest.fn().mockResolvedValue(undefined);
     queueOperation = jest.fn().mockResolvedValue("sync_test_1");
+    cloudQueuePush = jest.fn().mockResolvedValue("sync_test_1");
+    backingArchiveFile = jest.fn().mockReturnValue(null);
     tempoSet = jest.fn();
     monitorMono = signal(false);
     launchQuantize = signal("none");
@@ -339,6 +345,20 @@ describe("ProjectWorkspaceService", () => {
           useValue: {
             saveLocal: jest.fn().mockResolvedValue(undefined),
             queueOperation,
+          },
+        },
+        {
+          provide: CloudSyncService,
+          useValue: { queuePush: (...args: unknown[]) => cloudQueuePush(...args) },
+        },
+        {
+          provide: PROJECT_BACKING_TRACK,
+          useValue: {
+            archiveFile: (...args: unknown[]) => backingArchiveFile(...args),
+            adoptProject: jest.fn().mockResolvedValue(true),
+            restoreProject: jest.fn().mockResolvedValue(false),
+            persistProject: jest.fn().mockResolvedValue(undefined),
+            forgetProject: jest.fn().mockResolvedValue(undefined),
           },
         },
         {
@@ -1168,8 +1188,9 @@ describe("ProjectWorkspaceService", () => {
     expect(service.audioIntegrity()?.ok).toBe(false);
   });
 
-  it('queues binary audio as plain arrays so the JSON sync survives', async () => {
+  it('queues binary audio as plain arrays through the versioned contract', async () => {
     authUser.set({ id: 'artist_1' });
+    cloudQueuePush.mockClear();
     const binaryBundle = {
       ...makeBundle(),
       metadata: { id: 'proj_sync', name: 'Sync Me', bpm: 120 },
@@ -1187,10 +1208,11 @@ describe("ProjectWorkspaceService", () => {
 
     await (service as any).queueCloudSync(binaryBundle);
 
-    expect(queueOperation).toHaveBeenCalledTimes(1);
-    const payload = queueOperation.mock.calls[0][2];
-    expect(payload.projectId).toBe('proj_sync');
-    const channels = payload.projectData.audioAssets[0].channels;
+    expect(cloudQueuePush).toHaveBeenCalledTimes(1);
+    const [projectId, title, payload] = cloudQueuePush.mock.calls[0];
+    expect(projectId).toBe('proj_sync');
+    expect(title).toBe('Sync Me');
+    const channels = (payload as any).audioAssets[0].channels;
     expect(Array.isArray(channels[0])).toBe(true);
     // Float32 storage is approximate — the shape (plain array of samples)
     // is what the sync contract needs, not bit-exact decimals.
@@ -1198,6 +1220,83 @@ describe("ProjectWorkspaceService", () => {
     expect(channels[0][1]).toBeCloseTo(-0.2, 5);
     // The queued copy converts; the live binary bundle keeps its typed arrays.
     expect(binaryBundle.audioAssets[0].channels[0]).toBeInstanceOf(Float32Array);
+  });
+
+  it('folds the guide vocal into the outbound cloud bundle', async () => {
+    authUser.set({ id: 'artist_1' });
+    cloudQueuePush.mockClear();
+    backingArchiveFile.mockReturnValue({
+      name: 'Guide Take',
+      mimeType: 'audio/mpeg',
+      data: new Uint8Array([1, 2, 3, 4]),
+    });
+    const bundle = {
+      ...makeBundle(),
+      metadata: { id: 'proj_sync', name: 'Sync Me', bpm: 120 },
+    };
+
+    await (service as any).queueCloudSync(bundle);
+
+    const payload = cloudQueuePush.mock.calls[0][2] as any;
+    expect(payload.guideTrack).toMatchObject({
+      name: 'Guide Take',
+      mimeType: 'audio/mpeg',
+      byteSize: 4,
+    });
+    expect(typeof payload.guideTrack.dataBase64).toBe('string');
+    // The source bundle is untouched — the guide rides a copy.
+    expect((bundle as any).guideTrack).toBeUndefined();
+  });
+
+  it('leaves an oversized guide on the device instead of stalling the push', async () => {
+    authUser.set({ id: 'artist_1' });
+    cloudQueuePush.mockClear();
+    backingArchiveFile.mockReturnValue({
+      name: 'Huge Instrumental',
+      mimeType: 'audio/mpeg',
+      data: new Uint8Array(7 * 1024 * 1024),
+    });
+    const bundle = {
+      ...makeBundle(),
+      metadata: { id: 'proj_sync', name: 'Sync Me', bpm: 120 },
+    };
+
+    await (service as any).queueCloudSync(bundle);
+
+    const payload = cloudQueuePush.mock.calls[0][2] as any;
+    expect(payload.guideTrack).toBeUndefined();
+    expect(cloudQueuePush).toHaveBeenCalledTimes(1);
+    expect(TestBed.inject(LoggingService).warn).toHaveBeenCalledWith(
+      expect.stringContaining('exceeds'),
+    );
+  });
+
+  it('adopts a cloud bundle guide on a device that never had the file', async () => {
+    const guideBytes = new Uint8Array([10, 20, 30]);
+    let binary = '';
+    for (const byte of guideBytes) binary += String.fromCharCode(byte);
+    const bundle = {
+      ...makeBundle(),
+      metadata: { id: 'proj_guide', name: 'Guide Set', bpm: 120 },
+      guideTrack: {
+        name: 'Guide Take',
+        mimeType: 'audio/mpeg',
+        dataBase64: btoa(binary),
+        byteSize: guideBytes.byteLength,
+      },
+    };
+
+    service.restoreFromSnapshot(bundle as any);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    const backing = TestBed.inject(PROJECT_BACKING_TRACK) as any;
+    expect(backing.adoptProject).toHaveBeenCalledWith(
+      'proj_guide',
+      expect.objectContaining({ name: 'Guide Take' }),
+      expect.objectContaining({ persist: true }),
+    );
+    const blob = backing.adoptProject.mock.calls[0][1].blob as Blob;
+    expect(blob.size).toBe(guideBytes.byteLength);
   });
 
   it('rejects malformed imports before writing or replacing the active session', async () => {
@@ -1499,6 +1598,20 @@ describe("ProjectWorkspaceService", () => {
         { provide: AutomationService, useValue: { lanes: signal([]), macros: signal([]), modulationSources: signal([]) } },
         { provide: AuthService, useValue: { currentUser: signal(user) } },
         {
+          provide: CloudSyncService,
+          useValue: { queuePush: (...args: unknown[]) => cloudQueuePush(...args) },
+        },
+        {
+          provide: PROJECT_BACKING_TRACK,
+          useValue: {
+            archiveFile: (...args: unknown[]) => backingArchiveFile(...args),
+            adoptProject: jest.fn().mockResolvedValue(true),
+            restoreProject: jest.fn().mockResolvedValue(false),
+            persistProject: jest.fn().mockResolvedValue(undefined),
+            forgetProject: jest.fn().mockResolvedValue(undefined),
+          },
+        },
+        {
           provide: MusicManagerService,
           useValue: {
             tracks,
@@ -1565,6 +1678,20 @@ describe("ProjectWorkspaceService", () => {
           useValue: { saveLocal: jest.fn(), queueOperation },
         },
         {
+          provide: CloudSyncService,
+          useValue: { queuePush: (...args: unknown[]) => cloudQueuePush(...args) },
+        },
+        {
+          provide: PROJECT_BACKING_TRACK,
+          useValue: {
+            archiveFile: (...args: unknown[]) => backingArchiveFile(...args),
+            adoptProject: jest.fn().mockResolvedValue(true),
+            restoreProject: jest.fn().mockResolvedValue(false),
+            persistProject: jest.fn().mockResolvedValue(undefined),
+            forgetProject: jest.fn().mockResolvedValue(undefined),
+          },
+        },
+        {
           provide: LoggingService,
           useValue: { info: jest.fn(), warn: jest.fn(), error: jest.fn() },
         },
@@ -1577,14 +1704,12 @@ describe("ProjectWorkspaceService", () => {
     await expect(service.importProjectBundle(bundle)).resolves.toBe(true);
 
     expect(tracks()).toEqual(bundle.tracks);
-    expect(queueOperation).toHaveBeenCalledWith(
-      "CREATE",
-      expect.stringContaining("/projects"),
+    expect(cloudQueuePush).toHaveBeenCalledWith(
+      bundle.metadata.id,
+      bundle.metadata.name,
       expect.objectContaining({
-        projectId: bundle.metadata.id,
-        userId: user.id,
+        metadata: expect.objectContaining({ id: bundle.metadata.id }),
       }),
-      { userId: user.id },
     );
     expect(service.cloudSyncQueued()).toBe(true);
   });

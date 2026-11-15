@@ -29,7 +29,10 @@ import { AudioRecorderService } from "./audio-recorder.service";
 import { AtmosphericLightService } from "./atmospheric-light.service";
 import { AudioEngineService } from "../services/audio-engine.service";
 import { ExportService } from "../services/export.service";
-import { CloudSyncService } from "../services/cloud-sync.service";
+import {
+  CloudSyncService,
+  LARGE_PUSH_BYTES,
+} from "../services/cloud-sync.service";
 import { FileLoaderService } from "../services/file-loader.service";
 import type { RemoteSnapshot } from "../types/cloud-sync.types";
 import { HardwareService } from "../services/hardware.service";
@@ -893,6 +896,27 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   /** Lazy so specs that never touch version history don't build the cloud. */
   private get cloudSync(): CloudSyncService {
     return this.injector.get(CloudSyncService);
+  }
+
+  /**
+   * Header pill text for the cloud push state (null hides the pill).
+   * Public because the template binds it; the lazy getter stays private.
+   */
+  cloudPushLabel(): string | null {
+    try {
+      const progress = this.cloudSync.uploadProgress();
+      if (progress) {
+        return `Cloud ${progress.doneParts}/${progress.totalParts}`;
+      }
+      const status = this.cloudSync.pushStatus();
+      if (status === "syncing") return "Cloud syncing";
+      if (status === "queued") return "Cloud queued";
+      if (status === "conflict") return "Cloud conflict";
+      if (status === "error") return "Cloud error";
+      return null;
+    } catch {
+      return null;
+    }
   }
 
   toggleBezierEditor(laneId?: string): void {
@@ -3836,6 +3860,36 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     const projectId = snapshot?.metadata?.id;
     if (!snapshot || !projectId) return;
     bundle = snapshot;
+    // A song-length set stringifies to tens of megabytes: on a metered
+    // connection the artist confirms before the radio pays for it. A
+    // declined push keeps the local version instead of losing anything.
+    // Fail-open: a guard that cannot run must never block the push.
+    try {
+      if (
+        this.cloudSync.payloadBytes(bundle) >= LARGE_PUSH_BYTES &&
+        this.isMeteredConnection()
+      ) {
+        const mb = (this.cloudSync.payloadBytes(bundle) / 1048576).toFixed(1);
+        const proceed = await this.dialog.confirm({
+          title: "Large cloud upload?",
+          message:
+            `This version is about ${mb} MB and this looks like a metered ` +
+            `connection. Upload it now, or keep it on this device until Wi-Fi?`,
+          confirmLabel: "Upload now",
+          cancelLabel: "Keep on this device",
+        });
+        if (!proceed) {
+          await this.keepLocalVersion(
+            projectId,
+            bundle,
+            "Kept on this device — upload it later from version history.",
+          );
+          return;
+        }
+      }
+    } catch (guardError) {
+      this.logger.warn("Studio: large-upload guard skipped", guardError);
+    }
     try {
       await this.cloudSync.push(
         projectId,
@@ -3854,10 +3908,9 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
         // unreachable or stubbed endpoint). Keep the version on this device
         // rather than reporting a save that left no trace. A quiet push came
         // from a save, which already kept its own copy.
-        const local = await this.localVersionSnapshots(projectId, bundle);
-        this.versionHistory.set(local);
-        this.versionHistoryOffline.set(true);
-        this.snackbarService.info(
+        await this.keepLocalVersion(
+          projectId,
+          bundle,
           "Cloud is unreachable — this version is saved on this device.",
         );
       }
@@ -3866,12 +3919,49 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
       // The cloud copy is optional; the version itself is not. A save already
       // kept this state on the device, so only an explicit push needs to.
       if (quiet) return;
-      const local = await this.localVersionSnapshots(projectId, bundle);
-      this.versionHistory.set(local);
-      this.versionHistoryOffline.set(true);
-      this.snackbarService.info(
+      await this.keepLocalVersion(
+        projectId,
+        bundle,
         "Cloud is unreachable — this version is saved on this device.",
       );
+    }
+  }
+
+  /**
+   * Fall back to a device-kept version with one message: used when the
+   * cloud is unreachable and when the artist declines a large metered
+   * upload. Nothing is lost either way — the version lives here.
+   */
+  private async keepLocalVersion(
+    projectId: string,
+    bundle: ProjectBundle,
+    message: string,
+  ): Promise<void> {
+    const local = await this.localVersionSnapshots(projectId, bundle);
+    this.versionHistory.set(local);
+    this.versionHistoryOffline.set(true);
+    this.snackbarService.info(message);
+  }
+
+  /** True on connections where a multi-megabyte upload costs real money. */
+  private isMeteredConnection(): boolean {
+    try {
+      const connection =
+        (navigator as unknown as { connection?: unknown })?.connection as
+          | {
+              saveData?: boolean;
+              effectiveType?: string;
+              type?: string;
+            }
+          | undefined;
+      if (!connection) return false;
+      if (connection.saveData === true) return true;
+      const kind = String(
+        connection.effectiveType ?? connection.type ?? "",
+      ).toLowerCase();
+      return kind.includes("2g") || kind === "cellular";
+    } catch {
+      return false;
     }
   }
 

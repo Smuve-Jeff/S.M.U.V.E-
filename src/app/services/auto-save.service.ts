@@ -171,6 +171,10 @@ export class AutoSaveService {
     this.lastError.set(null);
 
     try {
+      // Local crash recovery only. There is no cloud leg here by design:
+      // the legacy upsert endpoint has no queue handler and its rows are
+      // never restored, while versioned cloud history is written by
+      // explicit saves through CloudSyncService.
       await this.databaseService.saveProject(
         projectId,
         projectTitle,
@@ -179,38 +183,10 @@ export class AutoSaveService {
       );
       this.lastSavedAt.set(Date.now());
     } catch (error) {
-      // Queue for offline sync instead of losing the save — and only report a
-      // queued retry when the queue actually accepted one.
-      let queued = false;
-      try {
-        await this.offlineSync.queueOperation(
-          'UPDATE',
-          '/api/projects/' + projectId,
-          {
-            projectId,
-            projectTitle,
-            projectData,
-            userId,
-          }
-        );
-        queued = true;
-      } catch (queueError) {
-        this.logger.error(
-          'AutoSaveService: Offline queue refused the save',
-          queueError
-        );
-      }
       this.lastError.set(
-        queued
-          ? 'Cloud sync queued. Changes are safe locally.'
-          : 'Cloud sync failed and could not be queued. Changes are only on this device.',
+        'Changes could not be saved on this device. Export a backup before leaving.',
       );
-      this.logger.error(
-        queued
-          ? 'AutoSaveService: Cloud sync failed, queued for retry'
-          : 'AutoSaveService: Cloud sync failed, nothing queued',
-        error
-      );
+      this.logger.error('AutoSaveService: Local save failed', error);
     } finally {
       this.isSaving.set(false);
     }

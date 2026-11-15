@@ -16,6 +16,13 @@ import {
   SyncTimelineEntry,
 } from '../types/cloud-sync.types';
 
+/**
+ * Pushes at or above this size earn a notice (and a metered-connection
+ * confirm in the Studio): a song-length stereo set stringifies to tens of
+ * megabytes, which is a rude surprise on a phone radio.
+ */
+export const LARGE_PUSH_BYTES = 8 * 1024 * 1024;
+
 const DEVICE_KEY = 'smuve_cloud_device';
 const TIMELINE_KEY = 'smuve_cloud_timeline';
 const PROJECTS_KEY = 'smuve_cloud_projects';
@@ -61,6 +68,16 @@ export class CloudSyncService {
 
   /** Push status — coarse-grained so the header pill can light up. */
   readonly pushStatus = signal<SyncStatus>('idle');
+
+  /**
+   * Set when the last measured push crossed LARGE_PUSH_BYTES (cleared by
+   * the next small push or a success). The Studio reads this before
+   * pushing a big set over a metered connection.
+   */
+  readonly largePushNotice = signal<{
+    bytes: number;
+    threshold: number;
+  } | null>(null);
 
   /** Pull status (kept separate so the dashboard can show both). */
   readonly pullStatus = signal<SyncStatus>('idle');
@@ -210,6 +227,54 @@ export class CloudSyncService {
 
   // ─── Sync primitives ───────────────────────────────────────────────
 
+  /** Measured JSON size of a push payload (0 when it cannot stringify). */
+  payloadBytes(payload: unknown): number {
+    try {
+      return JSON.stringify(payload ?? null).length;
+    } catch {
+      return 0;
+    }
+  }
+
+  /**
+   * THE write path for versioned cloud history: build the next manifest
+   * for this device and queue the envelope for the offline replay
+   * adapter. When the radio is up the queue replays immediately, so
+   * callers get one contract — queuePush — whether online or off.
+   */
+  async queuePush(
+    projectId: string,
+    title: string,
+    payload: unknown
+  ): Promise<string> {
+    const existingManifest = this.localManifests()[projectId];
+    const manifest: ProjectManifest = {
+      projectId,
+      version: (existingManifest?.version ?? 0) + 1,
+      lastModified: Date.now(),
+      authorDeviceId: this.deviceId(),
+      deviceName: this.deviceName(),
+      title: title || existingManifest?.title || 'Untitled Project',
+      byteSize: this.payloadBytes(payload),
+    };
+    const syncId = await this.offlineSync.queueOperation(
+      'UPDATE',
+      OFFLINE_PUSH_ENDPOINT,
+      { projectId, manifest, payload }
+    );
+    this.pushStatus.set('queued');
+    this.appendTimeline({
+      id: this.timelineId(),
+      projectId,
+      projectTitle: manifest.title,
+      direction: 'push',
+      status: 'queued',
+      at: Date.now(),
+      note: 'Queued for sync',
+    });
+    return syncId;
+  }
+
   /**
    * Push a project payload to the cloud. Increments local version,
    * sends an envelope, and writes the timeline. On conflict, the entry
@@ -220,6 +285,10 @@ export class CloudSyncService {
     title: string,
     payload: unknown
   ): Promise<SyncStatus> {
+    const bytes = this.payloadBytes(payload);
+    this.largePushNotice.set(
+      bytes >= LARGE_PUSH_BYTES ? { bytes, threshold: LARGE_PUSH_BYTES } : null
+    );
     const existingManifest = this.localManifests()[projectId];
     const nextVersion = (existingManifest?.version ?? 0) + 1;
     const manifest: ProjectManifest = {
@@ -229,25 +298,11 @@ export class CloudSyncService {
       authorDeviceId: this.deviceId(),
       deviceName: this.deviceName(),
       title: title || existingManifest?.title || 'Untitled Project',
-      byteSize: this.byteSize(payload),
+      byteSize: bytes,
     };
 
     if (!this.isCloudReachable()) {
-      await this.offlineSync.queueOperation(
-        'UPDATE',
-        OFFLINE_PUSH_ENDPOINT,
-        { projectId, manifest, payload }
-      );
-      this.pushStatus.set('queued');
-      this.appendTimeline({
-        id: this.timelineId(),
-        projectId,
-        projectTitle: manifest.title,
-        direction: 'push',
-        status: 'queued',
-        at: Date.now(),
-        note: 'Offline — queued for sync',
-      });
+      await this.queuePush(projectId, title, payload);
       return 'queued';
     }
 
@@ -473,6 +528,12 @@ export class CloudSyncService {
     await this.persistManifest(envelope.projectId, envelope.manifest);
     this.lastSyncedAt.set(Date.now());
     this.pushStatus.set('success');
+    const replayedBytes = this.payloadBytes(envelope.payload);
+    this.largePushNotice.set(
+      replayedBytes >= LARGE_PUSH_BYTES
+        ? { bytes: replayedBytes, threshold: LARGE_PUSH_BYTES }
+        : null
+    );
     this.appendTimeline({
       id: this.timelineId(),
       projectId: envelope.projectId,
@@ -480,7 +541,10 @@ export class CloudSyncService {
       direction: 'push',
       status: 'success',
       at: Date.now(),
-      note: 'Queued edit replayed after network recovery',
+      note:
+        replayedBytes >= LARGE_PUSH_BYTES
+          ? 'Large queued upload replayed after network recovery'
+          : 'Queued edit replayed after network recovery',
     });
     await this.refresh();
   }
@@ -561,8 +625,7 @@ export class CloudSyncService {
         snapshot.deviceId !== 'local' &&
         snapshot.deviceId !== this.deviceId() &&
         (snapshot.timestamp ?? 0) > localUpdatedAt &&
-        snapshot.data !== undefined &&
-        snapshot.data !== null
+        typeof (snapshot.data as { metadata?: { id?: unknown } } | null | undefined)?.metadata?.id === 'string'
     );
     candidates.sort((a, b) => (b.timestamp ?? 0) - (a.timestamp ?? 0));
     return candidates[0] ?? null;
@@ -675,11 +738,7 @@ export class CloudSyncService {
   }
 
   private byteSize(payload: unknown): number {
-    try {
-      return JSON.stringify(payload ?? null).length;
-    } catch {
-      return 0;
-    }
+    return this.payloadBytes(payload);
   }
 
   /**

@@ -161,36 +161,30 @@ export class DatabaseService {
     }
   }
 
+  /**
+   * Local project save. Cloud writes go through CloudSyncService.push /
+   * queuePush exclusively — a single versioned contract — so every cloud
+   * row is a restorable bundle instead of a legacy unversioned upsert.
+   * The global sync pill still reflects this write via the shared signals.
+   */
   async saveProject(
     projectId: string,
     title: string,
     projectData: any,
     userId: string
   ): Promise<void> {
-    await this.localStorageService.saveItem('projects', {
-      id: projectId,
-      title,
-      data: projectData,
-      userId: userId || 'anonymous',
-      updatedAt: Date.now(),
-    });
-
-    if (userId && typeof navigator !== 'undefined' && navigator.onLine) {
-      this.isSyncing.set(true);
-      try {
-        await firstValueFrom(
-          this.http.post(
-            `${this.API_URL}/projects`,
-            { projectId, userId, title, projectData },
-            this.getHeaders()
-          )
-        );
-        this.lastSyncTime.set(Date.now());
-      } catch (error) {
-        this.logger.error(`Failed to sync project ${title} to cloud`, error);
-      } finally {
-        this.isSyncing.set(false);
-      }
+    this.isSyncing.set(true);
+    try {
+      await this.localStorageService.saveItem('projects', {
+        id: projectId,
+        title,
+        data: projectData,
+        userId: userId || 'anonymous',
+        updatedAt: Date.now(),
+      });
+      this.lastSyncTime.set(Date.now());
+    } finally {
+      this.isSyncing.set(false);
     }
   }
 

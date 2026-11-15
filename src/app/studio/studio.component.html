@@ -226,6 +226,22 @@
         <span>NOW PLAYING</span>
       </div>
 
+      <!-- Cloud push state — part X/Y during multipart uploads, queued /
+           conflict / error otherwise. Hidden when the cloud is idle. -->
+      <div
+        *ngIf="cloudPushLabel()"
+        class="comp-cloud-pill"
+        role="status"
+        aria-live="polite"
+        [attr.aria-label]="cloudPushLabel()"
+        [attr.title]="cloudPushLabel()"
+      >
+        <span class="material-symbols-outlined" aria-hidden="true"
+          >cloud_upload</span
+        >
+        <span>{{ cloudPushLabel() }}</span>
+      </div>
+
       <!-- Beginner / Pro mode toggle -->
       <button
         type="button"
