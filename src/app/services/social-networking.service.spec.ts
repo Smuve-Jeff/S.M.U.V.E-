@@ -233,6 +233,11 @@ describe('SocialNetworkingService', () => {
     expect(
       TestBed.inject(ChallengeInboxService).removeFriendRequestsFrom,
     ).toHaveBeenCalledWith('sender-1');
+    // The other side's friends list also needs to reconcile after a resolution.
+    const request = TestBed.inject(HttpTestingController).expectOne(
+      (r) => r.method === 'GET' && r.url.endsWith('/users/test-id/friends'),
+    );
+    request.flush([]);
   });
 
   it('reloads friends when a friend request arrives over the socket', async () => {

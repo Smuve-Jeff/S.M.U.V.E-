@@ -451,6 +451,30 @@ describe("blocklist service", () => {
     expect(builder.execute).toHaveBeenCalled();
   });
 
+  it("clears pending requests and their notifications when blocking", async () => {
+    const builder = {
+      insert: jest.fn().mockReturnThis(),
+      values: jest.fn().mockReturnThis(),
+      orIgnore: jest.fn().mockReturnThis(),
+      execute: jest.fn().mockResolvedValue({ affected: 1 }),
+    };
+    (repos.blocks.createQueryBuilder as jest.Mock).mockReturnValue(builder);
+
+    await blockUser("u1", "u2");
+
+    expect(mockRootQb.delete).toHaveBeenCalledTimes(2);
+    expect(mockRootQb.from).toHaveBeenCalledWith("friends");
+    expect(mockRootQb.where).toHaveBeenCalledWith(
+      expect.stringContaining("status = 'pending'"),
+      { userId: "u1", blockedUserId: "u2" },
+    );
+    expect(mockRootQb.from).toHaveBeenCalledWith("notifications");
+    expect(mockRootQb.andWhere).toHaveBeenCalledWith(
+      expect.stringContaining("payload->>'fromUserId'"),
+      { userId: "u1", otherUserId: "u2" },
+    );
+  });
+
   it("deletes a block row on unblock", async () => {
     await expect(unblockUser("u1", "u2")).resolves.toMatchObject({
       success: true,

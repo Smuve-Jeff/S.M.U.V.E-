@@ -143,6 +143,26 @@ export const blockUser = async (
     .orIgnore()
     .execute();
   invalidateBlockCache();
+  // A pending request is no longer actionable between blocked users. Remove
+  // both directions and their notifications; accepted friendships stay hidden
+  // by filterBlocked so an unblock restores them.
+  try {
+    await AppDataSource.createQueryBuilder()
+      .delete()
+      .from("friends")
+      .where(
+        "status = 'pending' AND ((user_id = :userId AND friend_id = :blockedUserId) OR (user_id = :blockedUserId AND friend_id = :userId))",
+        { userId, blockedUserId },
+      )
+      .execute();
+  } catch (err) {
+    console.error("Block pending-request cleanup failed:", err);
+  }
+  try {
+    await clearFriendRequestNotifications(userId, blockedUserId);
+  } catch (err) {
+    console.error("Block friend-request notification cleanup failed:", err);
+  }
   return { success: true, blockedUserId };
 };
 

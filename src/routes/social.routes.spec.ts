@@ -185,6 +185,26 @@ describe("social challenge HTTP routes", () => {
     expect(socket.emitChallengeResponse).not.toHaveBeenCalled();
   });
 
+  it("clears pending requests when a block is placed", async () => {
+    (globalThis as any).__socialRouteActor = { userId: 7, role: "user" };
+    (services.blockUser as jest.Mock).mockResolvedValue({
+      success: true,
+      blockedUserId: "12",
+    });
+
+    const response = await fetch(`${baseUrl}/api/users/7/blocks/12`, {
+      method: "PUT",
+    });
+
+    expect(response.status).toBe(200);
+    expect(services.blockUser).toHaveBeenCalledWith("7", "12");
+    expect(services.clearFriendRequestNotifications).toHaveBeenCalledWith(
+      "7",
+      "12",
+    );
+    expect(socket.emitFriendRequestResolved).toHaveBeenCalledWith("7", "12");
+  });
+
   it("rejects challenge routes outside the authenticated user's ownership", async () => {
     const response = await fetch(`${baseUrl}/api/users/8/challenges`, {
       method: "POST",
