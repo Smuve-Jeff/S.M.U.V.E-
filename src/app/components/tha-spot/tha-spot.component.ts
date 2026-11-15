@@ -2884,6 +2884,17 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     await this.watchLiveToken(user?.liveShareToken);
   }
 
+  /**
+   * Join the broadcast behind the "a friend went live" card, then clear it so
+   * the same alert cannot send the viewer back into a stream they left.
+   */
+  async watchFriendLive(): Promise<void> {
+    const alert = this.socialService.friendWentLive();
+    if (!alert) return;
+    this.socialService.clearFriendLive();
+    await this.watchLiveToken(alert.shareToken);
+  }
+
   /** Watch any directory entry (server or presence) by its share token. */
   async watchLiveToken(token: string | null | undefined): Promise<void> {
     if (!token) return;

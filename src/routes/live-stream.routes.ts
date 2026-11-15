@@ -12,7 +12,7 @@ import {
 } from "@/services/live-stream.service";
 import { getIceConfig } from "@/services/turn.service";
 import type { AuthUser } from "@/types";
-import { emitLiveDirectoryChanged } from "@/socket";
+import { announceFriendWentLive, emitLiveDirectoryChanged } from "@/socket";
 
 /**
  * Live-stream / Go-Live backend surface:
@@ -85,6 +85,14 @@ router.post(
       // REST starts never hit the socket lifecycle handler, so announce the
       // directory change here; peers refetch without waiting for a poll.
       emitLiveDirectoryChanged("started");
+      // REST starts skip the socket lifecycle handler, so the friends'
+      // "went live" card is raised here too.
+      void announceFriendWentLive(hostId, {
+        shareToken: row.shareToken,
+        platform: row.platform,
+        gameId: row.gameId,
+        hostDisplayName: row.hostDisplayName,
+      });
       return res.status(201).json(row);
     } catch (err) {
       return next(err);

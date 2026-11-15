@@ -81,6 +81,10 @@ const SOCKET_WAIT_MS = 8_000;
 const HOST_MEDIA_WAIT_MS = 8_000;
 const VIEWER_OFFER_TIMEOUT_MS = 15_000;
 const VIEWER_POLL_MS = 12_000;
+// A peer that reports failed/disconnected is replaced rather than kept: the
+// host may simply have rebuilt its socket, and the only cure is a new offer.
+const VIEWER_ICE_RECOVERY_MS = 6_000;
+const VIEWER_REJOIN_MS = 3_000;
 // Managed TURN credentials are short-lived; refresh with plenty of headroom.
 const ICE_CACHE_MS = 10 * 60_000;
 // Stats are sampled rather than streamed: a few seconds is plenty for a
@@ -132,6 +136,7 @@ export class LiveVideoService {
   private viewerPendingIce: RTCIceCandidateInit[] = [];
   private viewerTimeout: ReturnType<typeof setTimeout> | null = null;
   private viewerPoll: ReturnType<typeof setInterval> | null = null;
+  private viewerRejoinTimer: ReturnType<typeof setTimeout> | null = null;
 
   private iceServers: RTCIceServer[] = FALLBACK_ICE_SERVERS;
   private iceConfig?: Promise<void>;
@@ -324,7 +329,11 @@ export class LiveVideoService {
   private onViewerJoined = (data: SocketPayload) => {
     if (!this.hostToken || data?.streamToken !== this.hostToken) return;
     const socketId = typeof data?.socketId === "string" ? data.socketId : "";
-    if (!socketId || this.hostPeers.has(socketId)) return;
+    if (!socketId) return;
+    // A viewer that re-joins (recovered peer, rebuilt socket) needs a fresh
+    // offer. Skipping it because a stale peer existed is why a recovered
+    // viewer never got video back without reloading.
+    if (this.hostPeers.has(socketId)) this.closeHostPeer(socketId);
     this.viewerNames.set(
       socketId,
       typeof data?.viewerName === "string" ? data.viewerName : null,
@@ -784,11 +793,53 @@ export class LiveVideoService {
 
   private onOffer = (data: SocketPayload) => {
     if (!this.viewerToken || data?.streamToken !== this.viewerToken) return;
-    if (this.viewerPc) return;
     const sdp = data?.sdp;
     if (!sdp || sdp.type !== "offer" || typeof sdp.sdp !== "string") return;
+    // A host that reconnected (new socket, new peer) re-offers. Ignoring it
+    // because "we already have a peer" is what left viewers frozen on a dead
+    // connection for the rest of the broadcast.
+    if (this.viewerPc && !this.isViewerPeerDead(this.viewerPc)) return;
+    if (this.viewerPc) this.dropViewerPeer("waiting");
     void this.acceptOffer(sdp);
   };
+
+  private isViewerPeerDead(pc: RTCPeerConnection): boolean {
+    return (
+      pc.connectionState === "failed" ||
+      pc.connectionState === "closed" ||
+      pc.connectionState === "disconnected"
+    );
+  }
+
+  /**
+   * Release a dead inbound peer but keep the watch session: the room, the
+   * token and the source state survive, so the next offer resumes the feed.
+   */
+  private dropViewerPeer(status: LiveFeedStatus = "connecting"): void {
+    this.viewerPc?.close();
+    this.viewerPc = undefined;
+    this.viewerPendingIce = [];
+    this.remoteStream.set(null);
+    this.status.set(status);
+  }
+
+  /**
+   * Ask the host for one fresh offer. `live_stream_watch` is idempotent on the
+   * server, and the host replaces the stale peer for this socket.
+   */
+  private requestFreshOffer(): void {
+    const token = this.viewerToken;
+    const socket = this.boundSocket;
+    if (!token || !socket?.connected) return;
+    if (this.viewerRejoinTimer !== null) clearTimeout(this.viewerRejoinTimer);
+    this.viewerRejoinTimer = setTimeout(() => {
+      this.viewerRejoinTimer = null;
+      if (this.viewerToken !== token || !socket.connected) return;
+      if (this.viewerPc && !this.isViewerPeerDead(this.viewerPc)) return;
+      this.dropViewerPeer("waiting");
+      socket.emit("live_stream_watch", { token });
+    }, VIEWER_REJOIN_MS);
+  }
 
   private async acceptOffer(sdp: {
     type: "offer";
@@ -818,10 +869,22 @@ export class LiveVideoService {
       });
     };
     pc.onconnectionstatechange = () => {
+      if (this.viewerPc !== pc) return;
       if (pc.connectionState === "failed") {
-        this.failViewer(
-          "FEED BLOCKED BY NETWORK — A TURN RELAY MAY BE REQUIRED",
-        );
+        // Do not strand the viewer on a dead peer: rebuild on a fresh offer.
+        this.dropViewerPeer("waiting");
+        this.feedError.set("RECONNECTING TO THE HOST FEED…");
+        this.requestFreshOffer();
+        return;
+      }
+      if (pc.connectionState === "disconnected") {
+        // ICE may recover on its own; only renegotiate if it does not.
+        setTimeout(() => {
+          if (this.viewerPc === pc && pc.connectionState === "disconnected") {
+            this.dropViewerPeer("waiting");
+            this.requestFreshOffer();
+          }
+        }, VIEWER_ICE_RECOVERY_MS);
       }
     };
 
@@ -963,6 +1026,10 @@ export class LiveVideoService {
 
   private finishViewing(status: LiveFeedStatus, message: string | null): void {
     this.clearViewerTimeout();
+    if (this.viewerRejoinTimer !== null) {
+      clearTimeout(this.viewerRejoinTimer);
+      this.viewerRejoinTimer = null;
+    }
     this.clearViewerPoll();
     this.viewerPc?.close();
     this.viewerPc = undefined;

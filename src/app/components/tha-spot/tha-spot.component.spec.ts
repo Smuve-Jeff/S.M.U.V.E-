@@ -125,6 +125,8 @@ describe("ThaSpotComponent", () => {
       friends: signal([]),
       friendsDirectory: signal([]),
       liveNow: signal([]),
+      friendWentLive: signal(null),
+      clearFriendLive: jest.fn(),
       loadFriends: jest.fn(),
       joinParty: jest.fn(),
       joinRoom: jest.fn(),
@@ -1210,6 +1212,45 @@ describe("ThaSpotComponent", () => {
       expect(styles).toMatch(
         /prefers-reduced-motion: reduce[\s\S]{0,400}\.rival-hub-toggle,[\s\S]{0,120}transition: none !important/,
       );
+    });
+  });
+
+  describe("friend go-live card", () => {
+    it("joins the friend's broadcast and clears the card", async () => {
+      const social = TestBed.inject(SocialNetworkingService);
+      social.friendWentLive.set({
+        hostId: "42",
+        hostDisplayName: "NOVA",
+        platform: "smuve",
+        gameId: null,
+        shareToken: "tok_friend",
+        ts: 1,
+      });
+      const watchSpy = jest
+        .spyOn(component, "watchLiveToken")
+        .mockResolvedValue(undefined);
+
+      (social.clearFriendLive as jest.Mock).mockImplementation(() =>
+        social.friendWentLive.set(null),
+      );
+
+      await component.watchFriendLive();
+
+      expect(watchSpy).toHaveBeenCalledWith("tok_friend");
+      expect(social.clearFriendLive).toHaveBeenCalled();
+    });
+
+    it("does nothing when there is no card", async () => {
+      const social = TestBed.inject(SocialNetworkingService);
+      social.friendWentLive.set(null);
+      const watchSpy = jest
+        .spyOn(component, "watchLiveToken")
+        .mockResolvedValue(undefined);
+
+      await component.watchFriendLive();
+
+      expect(watchSpy).not.toHaveBeenCalled();
+      expect(social.clearFriendLive).not.toHaveBeenCalled();
     });
   });
 

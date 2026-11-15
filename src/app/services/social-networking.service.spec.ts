@@ -17,6 +17,7 @@ const mockSocket = {
     socketHandlers.set(event, handler);
   }),
   emit: jest.fn(),
+  connect: jest.fn(),
   disconnect: jest.fn(),
 };
 
@@ -87,6 +88,38 @@ describe('SocialNetworkingService', () => {
   it('should be created and initialize the socket for an authenticated profile', () => {
     expect(service).toBeTruthy();
     expect(mockSocket.on).toHaveBeenCalled();
+  });
+
+  it('surfaces a friend who just went live, with the token to watch', () => {
+    const show = jest.fn();
+    (service as any).notifications = { show };
+
+    serverEvent('friend_went_live', {
+      hostId: 42,
+      hostDisplayName: 'NOVA',
+      platform: 'smuve',
+      gameId: 'tekken-3-elite',
+      shareToken: 'tok_friend',
+      ts: 1700000000000,
+    });
+
+    expect(service.friendWentLive()).toEqual({
+      hostId: '42',
+      hostDisplayName: 'NOVA',
+      platform: 'smuve',
+      gameId: 'tekken-3-elite',
+      shareToken: 'tok_friend',
+      ts: 1700000000000,
+    });
+    expect(show).toHaveBeenCalledWith(
+      'NOVA IS LIVE - OPEN LIVE NOW TO WATCH',
+      'info'
+    );
+  });
+
+  it('ignores a go-live alert that carries no share token', () => {
+    serverEvent('friend_went_live', { hostId: 42, hostDisplayName: 'NOVA' });
+    expect(service.friendWentLive()).toBeNull();
   });
 
   it('binds the inbox as soon as the authenticated socket is created', () => {

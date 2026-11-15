@@ -100,6 +100,90 @@ const liveSources = new Map<
   number,
   { videoSource: "camera" | "screen"; screenAudioOnly: boolean }
 >();
+/**
+ * How long a broadcast survives its host socket dropping. A phone that
+ * backgrounds, a laptop that sleeps or a page refresh all look like a lost
+ * host for a moment; ending the room at once would kill every viewer. The
+ * host's re-registration cancels the timer.
+ */
+const hostDropGraceMs = (): number => {
+  const configured = Number(process.env.LIVE_HOST_DROP_GRACE_MS);
+  return Number.isFinite(configured) && configured > 0 ? configured : 30_000;
+};
+const hostDropTimers = new Map<number, ReturnType<typeof setTimeout>>();
+
+const cancelHostDropGrace = (streamId: number): void => {
+  const timer = hostDropTimers.get(streamId);
+  if (!timer) return;
+  clearTimeout(timer);
+  hostDropTimers.delete(streamId);
+};
+
+const scheduleHostDropGrace = (streamId: number): void => {
+  cancelHostDropGrace(streamId);
+  const timer = setTimeout(() => {
+    hostDropTimers.delete(streamId);
+    // A host socket that came back owns the room again.
+    const stillHosted = [...liveHosts.values()].some(
+      (host) => host.streamId === streamId,
+    );
+    if (stillHosted) return;
+    liveSources.delete(streamId);
+    ioServer?.to(getLiveRoom(streamId)).emit("live_stream_ended", { streamId });
+  }, hostDropGraceMs());
+  hostDropTimers.set(streamId, timer);
+};
+
+export interface LiveStreamAnnouncement {
+  shareToken: string;
+  platform?: string;
+  gameId?: string | null;
+  hostDisplayName?: string;
+}
+
+/**
+ * Who a new broadcast should be announced to. Wired at boot by the friend
+ * notifier, which owns the entity-backed friend query — this module stays
+ * free of entity imports so the socket layer can be loaded on its own.
+ */
+export type FriendLiveNotifier = (
+  hostId: string,
+  stream: LiveStreamAnnouncement,
+) => Promise<void>;
+
+let friendLiveNotifier: FriendLiveNotifier | null = null;
+
+export const setFriendLiveNotifier = (
+  notifier: FriendLiveNotifier | null,
+): void => {
+  friendLiveNotifier = notifier;
+};
+
+/** Emit to every socket a user holds (their presence room). */
+export const emitToUser = (
+  userId: string,
+  event: string,
+  payload: unknown,
+): void => {
+  ioServer?.to(String(userId)).emit(event, payload);
+};
+
+/**
+ * Tell the host's accepted friends that a broadcast just started, so an
+ * online friend gets a join card instead of having to notice the LIVE badge.
+ * Best effort: presence and the live directory stay the source of truth.
+ */
+export const announceFriendWentLive = async (
+  hostId: string,
+  stream: LiveStreamAnnouncement,
+): Promise<void> => {
+  if (!ioServer || !stream?.shareToken || !friendLiveNotifier) return;
+  try {
+    await friendLiveNotifier(String(hostId), stream);
+  } catch {
+    /* presence + directory still carry the broadcast */
+  }
+};
 
 interface RelaySdp {
   type: "offer" | "answer";
@@ -760,6 +844,7 @@ export const setupSocketIO = (httpServer: HttpServer): Server => {
             return;
           }
           socket.join(getLiveRoom(stream.id));
+          cancelHostDropGrace(stream.id);
           liveHosts.set(socket.id, {
             userId: String(userId),
             hostId: String(stream.hostId),
@@ -2514,6 +2599,12 @@ export const setupSocketIO = (httpServer: HttpServer): Server => {
           });
           void broadcastOnlineUsers();
           emitLiveDirectoryChanged("started");
+          void announceFriendWentLive(String(userId), {
+            shareToken: issued.shareToken,
+            platform,
+            gameId: issued.gameId ?? null,
+            hostDisplayName: meta.artistName,
+          });
         } catch (err) {
           socket.emit("live_stream_failed", {
             platform,
@@ -2664,11 +2755,21 @@ export const setupSocketIO = (httpServer: HttpServer): Server => {
       // Relay bookkeeping must not outlive the socket: a stale viewer entry
       // makes the host offer to a dead socket, and a stale host entry would
       // keep replaying a broadcast nobody is serving.
+      const viewerRelay = liveViewers.get(socket.id);
       liveViewers.delete(socket.id);
+      if (viewerRelay) {
+        // Without this the host keeps a dead peer alive for the rest of the
+        // broadcast, so its viewer list and its senders never recover.
+        io.to(viewerRelay.hostId).emit("live_stream_viewer_left", {
+          streamId: viewerRelay.streamId,
+          socketId: socket.id,
+        });
+      }
       const hostRelay = liveHosts.get(socket.id);
       if (hostRelay) {
         liveHosts.delete(socket.id);
         liveSources.delete(hostRelay.streamId);
+        scheduleHostDropGrace(hostRelay.streamId);
       }
       const userSockets = socketIdsByUser.get(userId);
       userSockets?.delete(socket.id);

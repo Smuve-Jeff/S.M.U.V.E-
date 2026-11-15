@@ -120,6 +120,24 @@ export class SocialNetworkingService {
   private tokenService = inject(TokenService);
 
   onlineUsers = signal<OnlineUser[]>([]);
+  /** Dismiss the go-live card once it has been joined or ignored. */
+  clearFriendLive(): void {
+    this.friendWentLive.set(null);
+  }
+
+  /**
+   * The most recent "a friend went live" alert. The server raises it on every
+   * go-live (socket or REST) so an online friend gets a join card instead of
+   * having to notice the LIVE badge on the NET tab.
+   */
+  readonly friendWentLive = signal<{
+    hostId: string;
+    hostDisplayName: string;
+    platform: string;
+    gameId: string | null;
+    shareToken: string;
+    ts: number;
+  } | null>(null);
   messages = signal<PrivateMessage[]>([]);
   roomMessages = signal<RoomMessage[]>([]);
   /** Players the current user has blocked (server-authoritative list). */
@@ -278,6 +296,8 @@ export class SocialNetworkingService {
   private currentRoomId: string | null = null;
   /** Token the server rejected — prevents an immediate rebuild hot-loop. */
   private lastRejectedToken: string | null | undefined;
+  private wakeHooksInstalled = false;
+  private lastConnectError: string | null = null;
   private get peerService() {
     return this.injector.get(PeerNetworkingService);
   }
@@ -323,6 +343,27 @@ export class SocialNetworkingService {
     });
   }
 
+  /**
+   * Bring the socket back the moment the device is usable again.
+   *
+   * socket.io's own retry loop cannot run while a phone is asleep or a tab is
+   * frozen, and it stops trying entirely once the attempt budget is spent —
+   * which is why host and viewer connections "kept breaking" until a reload.
+   */
+  private installWakeHooks(): void {
+    if (this.wakeHooksInstalled || typeof window === 'undefined') return;
+    this.wakeHooksInstalled = true;
+    const resume = () => {
+      const sock = this.socket;
+      if (!sock || sock.connected || !this.tokenService.jwtToken()) return;
+      sock.connect();
+    };
+    window.addEventListener('online', resume);
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') resume();
+    });
+  }
+
   private initializeSocket(userId: string) {
     // Fresh token on EVERY (re)connect attempt: `auth` as a function is
     // re-invoked by socket.io for each connection attempt, so a login that
@@ -330,17 +371,24 @@ export class SocialNetworkingService {
     const sock = io(APP_SECURITY_CONFIG.socket_url, {
       transports: ['websocket', 'polling'],
       reconnection: true,
-      reconnectionAttempts: 10,
+      // A phone that sleeps or a tunnel that blips easily outlasts ten
+      // attempts, and a socket that gives up never comes back on its own:
+      // no presence, no live signaling, no chat until a reload.
+      reconnectionAttempts: Infinity,
       reconnectionDelay: 1500,
+      reconnectionDelayMax: 8_000,
+      randomizationFactor: 0.5,
       auth: (cb) => cb({ token: this.tokenService.jwtToken() ?? undefined }),
     });
     this.socket = sock;
+    this.installWakeHooks();
     // The socket is a plain field, not a signal: binding in an Angular effect
     // never reacts when it is created after the initial login.
     this.injector.get(ChallengeInboxService, null)?.bindSocket(sock);
 
     sock.on('connect', () => {
       this.socketConnected.set(true);
+      this.lastConnectError = null;
       // Flush DMs queued while the socket was down.
       if (this.pendingMessages.length > 0) {
         const queued = this.pendingMessages;
@@ -392,7 +440,10 @@ export class SocialNetworkingService {
       // Transient transport errors are expected during reconnect storms.
       const generic =
         err?.message === 'websocket error' || err?.message === 'xhr poll error';
-      if (err?.message && !generic) {
+      // The socket retries forever now, so log a given reason once instead of
+      // once per attempt.
+      if (err?.message && !generic && err.message !== this.lastConnectError) {
+        this.lastConnectError = err.message;
         console.warn('[Social] Socket connect_error:', err.message);
       }
     });
@@ -421,6 +472,33 @@ export class SocialNetworkingService {
         );
       }
     });
+
+    this.socket.on(
+      'friend_went_live',
+      (data: {
+        hostId?: string;
+        hostDisplayName?: string;
+        platform?: string;
+        gameId?: string | null;
+        shareToken?: string;
+        ts?: number;
+      }) => {
+        if (!data?.shareToken) return;
+        const hostDisplayName = data.hostDisplayName || 'A FRIEND';
+        this.friendWentLive.set({
+          hostId: String(data.hostId ?? ''),
+          hostDisplayName,
+          platform: data.platform || 'smuve',
+          gameId: data.gameId ?? null,
+          shareToken: data.shareToken,
+          ts: Number(data.ts) || Date.now(),
+        });
+        this.notifications?.show?.(
+          `${hostDisplayName.toUpperCase()} IS LIVE - OPEN LIVE NOW TO WATCH`,
+          'info'
+        );
+      }
+    );
 
     this.socket.on('friend_request_received', (data: { fromUserId?: string }) => {
       if (!data?.fromUserId) return;

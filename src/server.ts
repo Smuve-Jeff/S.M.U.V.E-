@@ -2,7 +2,7 @@ import path from "node:path";
 import express from "express";
 import { createServer } from "node:http";
 import apiApp from "@/app";
-import { setupSocketIO } from "@/socket";
+import { setFriendLiveNotifier, setupSocketIO } from "@/socket";
 import { AppDataSource } from "@/database/data-source";
 import { DB_NAME, NODE_ENV, PORT } from "@/config/env";
 import { logEmailConfiguration } from "@/services/email.service";
@@ -63,6 +63,13 @@ async function main(): Promise<void> {
     const unified = createUnifiedApp();
     const server = createServer(unified);
     setupSocketIO(server);
+    // Loaded here, at boot: the notifier owns the entity-backed friend query,
+    // so a static import would drag TypeORM entities into every module that
+    // merely imports this entrypoint (the unified-app tests included).
+    const { notifyFriendsWentLive } = await import(
+      "@/services/friend-live-notifier"
+    );
+    setFriendLiveNotifier(notifyFriendsWentLive);
 
     server.listen(PORT, () => {
       console.log(`[api] unified server listening on :${PORT} (${NODE_ENV})`);

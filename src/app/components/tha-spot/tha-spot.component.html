@@ -2763,6 +2763,45 @@
           <!-- Active streams are server-backed so a viewer who just logged in
                can find a broadcast even without a presence event; presence
                entries are merged in for freshness and deduped by token. -->
+          <!-- A friend just went live: one tap joins their broadcast. -->
+          <div
+            class="live-now"
+            *ngIf="socialService.friendWentLive() as friendLive"
+          >
+            <h5><span class="live-dot"></span> FRIEND IS LIVE</h5>
+            <div class="user-list">
+              <div class="user-item">
+                <div class="user-info">
+                  <div class="user-meta">
+                    <span class="user-name">{{ friendLive.hostDisplayName }}</span>
+                    <span class="user-location">
+                      {{ friendLive.platform | uppercase }}
+                      <ng-container *ngIf="friendLive.gameId"
+                        >· {{ friendLive.gameId | uppercase }}</ng-container
+                      >
+                    </span>
+                  </div>
+                </div>
+                <div class="user-actions">
+                  <button
+                    type="button"
+                    class="action-btn live-watch"
+                    (click)="watchFriendLive()"
+                  >
+                    WATCH
+                  </button>
+                  <button
+                    type="button"
+                    class="action-btn"
+                    (click)="socialService.clearFriendLive()"
+                  >
+                    DISMISS
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <div class="live-now" *ngIf="liveStream.liveDirectory().length > 0">
             <h5><span class="live-dot"></span> ACTIVE STREAMS</h5>
             <div class="user-list">

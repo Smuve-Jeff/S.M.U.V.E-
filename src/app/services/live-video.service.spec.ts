@@ -533,6 +533,62 @@ describe("LiveVideoService", () => {
     });
   });
 
+  it("accepts a fresh offer after the inbound peer dies", async () => {
+    await service.watch("tok");
+    socket.trigger("live_webrtc_offer", {
+      streamToken: "tok",
+      sdp: { type: "offer", sdp: "first" },
+    });
+    await flush();
+    const first = FakePeerConnection.instances[0];
+    expect(FakePeerConnection.instances).toHaveLength(1);
+
+    // A duplicate offer must not tear down a healthy peer.
+    socket.trigger("live_webrtc_offer", {
+      streamToken: "tok",
+      sdp: { type: "offer", sdp: "duplicate" },
+    });
+    await flush();
+    expect(FakePeerConnection.instances).toHaveLength(1);
+
+    // The host reconnected and re-offered: the dead peer cannot block it.
+    first.connectionState = "failed";
+    expect(service.status()).toBe("connecting");
+    first.onconnectionstatechange?.();
+    socket.trigger("live_webrtc_offer", {
+      streamToken: "tok",
+      sdp: { type: "offer", sdp: "second" },
+    });
+    await flush();
+
+    expect(FakePeerConnection.instances).toHaveLength(2);
+    expect(FakePeerConnection.instances[1].remoteDescription?.sdp).toBe(
+      "second",
+    );
+    service.stopWatching();
+  });
+
+  it("asks the host for a fresh offer when the peer fails", async () => {
+    await service.watch("tok");
+    socket.trigger("live_webrtc_offer", {
+      streamToken: "tok",
+      sdp: { type: "offer", sdp: "first" },
+    });
+    await flush();
+    const pc = FakePeerConnection.instances[0];
+    pc.connectionState = "failed";
+    pc.onconnectionstatechange?.();
+
+    await new Promise((resolve) => setTimeout(resolve, 3_300));
+
+    const joins = socket.emitted.filter(
+      (entry) => entry.event === "live_stream_watch",
+    );
+    expect(joins).toHaveLength(2);
+    expect(joins[1].data).toEqual({ token: "tok" });
+    service.stopWatching();
+  }, 10_000);
+
   it("stops watching on an ended broadcast and releases the player", async () => {
     await service.watch("tok");
     socket.trigger("live_webrtc_offer", {

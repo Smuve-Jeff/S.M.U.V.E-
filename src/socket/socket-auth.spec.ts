@@ -17,8 +17,10 @@ import {
   startLiveStream,
 } from "@/services/live-stream.service";
 import {
+  announceFriendWentLive,
   emitFriendRequestReceived,
   provisionChallengeLobby,
+  setFriendLiveNotifier,
   setupSocketIO,
 } from "./index";
 import liveStreamRoutes from "@/routes/live-stream.routes";
@@ -1925,6 +1927,65 @@ describe("resolved-match lobby provisioning + in-match relays", () => {
       const ok = await okP;
       expect(ok.videoSource).toBe("screen");
       expect(ok.screenAudioOnly).toBe(true);
+    });
+
+    it("announces a new broadcast to the friends lookup wired at boot", async () => {
+      const notifier = jest.fn(async () => undefined);
+      setFriendLiveNotifier(notifier);
+
+      await announceFriendWentLive("321", {
+        shareToken: "tok_live",
+        platform: "smuve",
+        hostDisplayName: "NOVA",
+      });
+
+      expect(notifier).toHaveBeenCalledWith("321", {
+        shareToken: "tok_live",
+        platform: "smuve",
+        hostDisplayName: "NOVA",
+      });
+      setFriendLiveNotifier(null);
+    });
+
+    it("never announces a broadcast that has no share token", async () => {
+      const notifier = jest.fn(async () => undefined);
+      setFriendLiveNotifier(notifier);
+      await announceFriendWentLive("321", { shareToken: "" });
+      expect(notifier).not.toHaveBeenCalled();
+      setFriendLiveNotifier(null);
+    });
+
+    it("tells the host when a viewer socket drops", async () => {
+      const [host, viewer] = pair(331, 332);
+      await Promise.all([connect(host), connect(viewer)]);
+      host.emit("live_stream_host_join", { token: "tok_live" });
+      await settle();
+      viewer.emit("live_stream_watch", { token: "tok_live" });
+      await settle();
+
+      const leftP = once<any>(host, "live_stream_viewer_left");
+      // socket.io clears `id` on disconnect, so capture it first.
+      const viewerId = viewer.id;
+      viewer.close();
+      const left = await leftP;
+      expect(left.socketId).toBe(viewerId);
+      expect(left.streamId).toBe(5);
+    });
+
+    it("keeps the room alive through a brief host drop, then ends it", async () => {
+      process.env.LIVE_HOST_DROP_GRACE_MS = "250";
+      const [host, viewer] = pair(341, 342);
+      await Promise.all([connect(host), connect(viewer)]);
+      host.emit("live_stream_host_join", { token: "tok_live" });
+      await settle();
+      viewer.emit("live_stream_watch", { token: "tok_live" });
+      await settle();
+
+      const endedP = once<any>(viewer, "live_stream_ended");
+      host.close();
+      const ended = await endedP;
+      expect(ended.streamId).toBe(5);
+      delete process.env.LIVE_HOST_DROP_GRACE_MS;
     });
 
     it("refuses offers from a socket that is not the stream host", async () => {
