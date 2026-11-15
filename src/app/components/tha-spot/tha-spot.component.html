@@ -3158,15 +3158,16 @@
                 >
                   {{
                     platformsService.isConnected(platform.id)
-                      ? 'CONNECTED'
+                      ? (platformsService.displayName(platform.id) || 'CONNECTED')
                       : 'NOT CONNECTED'
                   }}
                 </span>
-                <span class="account-broadcast" *ngIf="!platform.broadcast"
-                  >CONNECT ONLY</span
+                <span class="account-broadcast" *ngIf="!platform.connectable"
+                  >COMING SOON</span
                 >
                 <button
                   class="quality-btn"
+                  *ngIf="platform.connectable"
                   (click)="platformsService.connect(platform.id)"
                   [disabled]="platformsService.connecting() === platform.id"
                 >
@@ -3201,26 +3202,8 @@
               <button class="platform-btn tiktok" (click)="goLive('TikTok')">
                 TIKTOK
               </button>
-              <button
-                class="platform-btn instagram"
-                (click)="socialService.startOAuthFlow('instagram')"
-              >
-                INSTAGRAM (CONNECT)
-              </button>
-              <button
-                class="platform-btn discord"
-                (click)="socialService.startOAuthFlow('discord')"
-              >
-                DISCORD (CONNECT)
-              </button>
               <button class="platform-btn kick" (click)="goLive('Kick')">
                 KICK
-              </button>
-              <button
-                class="platform-btn x-corp"
-                (click)="socialService.startOAuthFlow('x')"
-              >
-                X (TWITTER) (CONNECT)
               </button>
             </div>
           </div>

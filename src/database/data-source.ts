@@ -24,6 +24,7 @@ import { RoomMessage } from "@/entities/RoomMessage";
 import { AccountToken } from "@/entities/AccountToken";
 import { CloudProjectSnapshot } from "@/entities/CloudProjectSnapshot";
 import { AiUsageLedger } from "@/entities/AiUsageLedger";
+import { StreamingAccount } from "@/entities/StreamingAccount";
 
 const isDevelopment = NODE_ENV === "development";
 const isProduction = NODE_ENV === "production";
@@ -58,6 +59,7 @@ export const AppDataSource = new DataSource({
     AccountToken,
     CloudProjectSnapshot,
     AiUsageLedger,
+    StreamingAccount,
   ],
   migrations: isDevelopment
     ? [__dirname + "/migrations/*.ts"]

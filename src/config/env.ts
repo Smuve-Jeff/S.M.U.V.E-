@@ -40,6 +40,25 @@ export const APP_ORIGIN = (
   .trim()
   .replace(/\/+$/, "");
 
+// ── Streaming account OAuth (Twitch / YouTube) ─────────────────────────────
+// The public origin providers redirect back to. Must match the callback URL
+// registered in each provider's app console exactly.
+export const API_PUBLIC_URL = (
+  process.env.API_PUBLIC_URL ||
+  process.env.PUBLIC_API_URL ||
+  `http://localhost:${PORT}`
+).replace(/\/+$/, "");
+
+export const TWITCH_CLIENT_ID = process.env.TWITCH_CLIENT_ID || "";
+export const TWITCH_CLIENT_SECRET = process.env.TWITCH_CLIENT_SECRET || "";
+export const YOUTUBE_CLIENT_ID =
+  process.env.YOUTUBE_CLIENT_ID || process.env.GOOGLE_CLIENT_ID || "";
+export const YOUTUBE_CLIENT_SECRET =
+  process.env.YOUTUBE_CLIENT_SECRET || process.env.GOOGLE_CLIENT_SECRET || "";
+/** 32-byte key (hex or base64) for sealing stored OAuth tokens. Optional: when
+ *  blank the key is derived from JWT_SECRET under a distinct label. */
+export const OAUTH_TOKEN_KEY = process.env.OAUTH_TOKEN_KEY || "";
+
 /** How long a password-reset link stays valid. */
 export const PASSWORD_RESET_TTL_MINUTES =
   Number(process.env.PASSWORD_RESET_TTL_MINUTES) || 30;

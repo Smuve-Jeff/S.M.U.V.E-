@@ -1,6 +1,10 @@
+import { HttpClient } from '@angular/common/http';
 import { Injectable, computed, effect, inject, signal } from '@angular/core';
+import { firstValueFrom } from 'rxjs';
+import { APP_SECURITY_CONFIG } from '../app.security';
 import { SocialNetworkingService } from './social-networking.service';
 import { SnackbarService } from './snackbar.service';
+import { TokenService } from './token.service';
 import { UserProfileService } from './user-profile.service';
 
 export type StreamingPlatformId =
@@ -17,185 +21,244 @@ export interface StreamingPlatform {
   label: string;
   /**
    * Whether a broadcast can be routed here today. Instagram, Discord and X are
-   * connect-only until an ingest path exists, so the UI says so instead of
-   * offering a Go Live that cannot deliver.
+   * listed so the surface is complete, but they have no ingest path yet.
    */
   broadcast: boolean;
+  /** The server has a real OAuth implementation for this provider. */
+  connectable: boolean;
 }
 
 export const STREAMING_PLATFORMS: readonly StreamingPlatform[] = [
-  { id: 'twitch', label: 'TWITCH', broadcast: true },
-  { id: 'youtube', label: 'YOUTUBE', broadcast: true },
-  { id: 'kick', label: 'KICK', broadcast: true },
-  { id: 'tiktok', label: 'TIKTOK', broadcast: true },
-  { id: 'instagram', label: 'INSTAGRAM', broadcast: false },
-  { id: 'discord', label: 'DISCORD', broadcast: false },
-  { id: 'x', label: 'X', broadcast: false },
+  { id: 'twitch', label: 'TWITCH', broadcast: true, connectable: true },
+  { id: 'youtube', label: 'YOUTUBE', broadcast: true, connectable: true },
+  { id: 'kick', label: 'KICK', broadcast: true, connectable: false },
+  { id: 'tiktok', label: 'TIKTOK', broadcast: true, connectable: false },
+  { id: 'instagram', label: 'INSTAGRAM', broadcast: false, connectable: false },
+  { id: 'discord', label: 'DISCORD', broadcast: false, connectable: false },
+  { id: 'x', label: 'X', broadcast: false, connectable: false },
 ];
 
 interface PlatformConnection {
-  connectedAt: number;
-  lastSyncedAt: number;
+  /** Channel/user name the provider reported at connect time. */
+  displayName: string;
+  connectedAt: string;
+  lastSyncedAt: string;
 }
 
-interface StoredConnections {
-  userId: string;
-  connections: Partial<Record<StreamingPlatformId, PlatformConnection>>;
-  syncedAt: number | null;
+interface PlatformConnectionDto {
+  platform?: string;
+  displayName?: string;
+  connectedAt?: string;
+  lastSyncedAt?: string;
 }
 
-const STORAGE_KEY = 'smuve.stream-platforms.v1';
+interface ConnectionsResponse {
+  connections?: PlatformConnectionDto[];
+}
+
+interface AuthorizeResponse {
+  authorizeUrl?: string;
+}
+
+interface SyncResponse extends ConnectionsResponse {
+  refreshed?: number;
+  disconnected?: string[];
+}
 
 /**
- * The host's streaming accounts.
+ * The host's streaming accounts, backed by the API.
  *
- * The provider popup contract is the existing `/api/auth/:platform` page, which
- * answers with `<PLATFORM>_AUTH_SUCCESS`. This service owns the consequence of
- * that answer: which platforms this account has connected, when each was last
- * confirmed, and the ability to re-read that state after another tab (or a
- * second device on the same profile) changes it. Connections are stored per
- * user id so signing into a different account never inherits them.
+ * The browser never sees a provider token: it asks the server for a signed
+ * authorize URL, the provider redirects the popup back to the server, and the
+ * server exchanges and stores the grant. This service only mirrors the visible
+ * result (which platform is linked, to which channel, and when it was last
+ * confirmed) and owns the popup plumbing.
  */
 @Injectable({ providedIn: 'root' })
 export class StreamingPlatformsService {
+  private readonly http = inject(HttpClient);
   private readonly social = inject(SocialNetworkingService);
   private readonly profile = inject(UserProfileService);
+  private readonly tokenService = inject(TokenService);
   private readonly snackbar = inject(SnackbarService);
 
   readonly platforms = STREAMING_PLATFORMS;
   readonly connections =
     signal<Partial<Record<StreamingPlatformId, PlatformConnection>>>({});
-  /** When the saved state was last read back, or null if never. */
+  /** When the server state was last read successfully, or null if never. */
   readonly syncedAt = signal<number | null>(null);
   readonly syncing = signal(false);
   /** The platform whose connect popup is open, if any. */
   readonly connecting = signal<StreamingPlatformId | null>(null);
 
   readonly connectedCount = computed(
-    () => this.platforms.filter((platform) => !!this.connections()[platform.id]).length,
+    () =>
+      this.platforms.filter((platform) => !!this.connections()[platform.id])
+        .length,
   );
 
   constructor() {
-    // Connections belong to the signed-in account, so a profile change re-reads
-    // the store instead of carrying the previous account's platforms over.
+    // Connections belong to the signed-in account: a profile change reloads
+    // them instead of showing the previous account's channels.
     effect(() => {
       const userId = this.profile.profile()?.id ?? '';
-      this.hydrate(userId);
+      if (!userId) {
+        this.connections.set({});
+        this.syncedAt.set(null);
+        return;
+      }
+      void this.load();
     });
-    if (typeof window !== 'undefined') {
-      window.addEventListener('storage', (event) => {
-        if (event.key !== STORAGE_KEY) return;
-        this.hydrate(this.profile.profile()?.id ?? '');
-      });
-    }
   }
 
   isConnected(id: StreamingPlatformId): boolean {
     return !!this.connections()[id];
   }
 
-  /** Platform names to show on the Go Live surface, connected ones first. */
-  connectedPlatforms(): StreamingPlatform[] {
-    return this.platforms.filter((platform) => this.isConnected(platform.id));
+  displayName(id: StreamingPlatformId): string {
+    return this.connections()[id]?.displayName ?? '';
   }
 
   /**
-   * Open the provider's connect popup. A success callback records the account;
-   * pressing it on a connected platform re-authorises and refreshes the stamp.
+   * Ask the server for a signed authorize URL and open the provider popup.
+   * Pressing it on a connected platform re-authorises and replaces the grant.
    */
-  connect(id: StreamingPlatformId): void {
-    const platform = this.platforms.find((entry) => entry.id === id);
+  async connect(id: StreamingPlatformId): Promise<void> {
+    const platform = this.platformFor(id);
     if (!platform) return;
-    this.connecting.set(id);
-    this.social.startOAuthFlow(id, () => {
-      const now = Date.now();
-      this.connecting.set(null);
-      this.connections.update((current) => ({
-        ...current,
-        [id]: { connectedAt: current[id]?.connectedAt ?? now, lastSyncedAt: now },
-      }));
-      this.persist();
-      this.snackbar.success(`${platform.label} CONNECTED`);
-    });
-    // A popup the host abandons must not leave the button spinning forever.
-    setTimeout(() => {
-      if (this.connecting() === id) this.connecting.set(null);
-    }, 15_000);
-  }
-
-  disconnect(id: StreamingPlatformId): void {
-    const platform = this.platforms.find((entry) => entry.id === id);
-    if (!platform) return;
-    this.connections.update((current) => {
-      const next = { ...current };
-      delete next[id];
-      return next;
-    });
-    this.persist();
-    this.snackbar.info(`${platform.label} DISCONNECTED`);
-  }
-
-  /**
-   * Re-read the connections saved for this account (another tab may have
-   * changed them) and report what is live.
-   */
-  sync(): void {
-    this.syncing.set(true);
-    this.hydrate(this.profile.profile()?.id ?? '');
-    this.syncedAt.set(Date.now());
-    this.persist();
-    this.syncing.set(false);
-    const count = this.connectedCount();
-    this.snackbar.info(
-      count === 0
-        ? 'NO STREAMING PLATFORMS CONNECTED YET'
-        : `SYNCED — ${count} PLATFORM${count === 1 ? '' : 'S'} CONNECTED`,
-    );
-  }
-
-  private hydrate(userId: string): void {
-    if (typeof localStorage === 'undefined') return;
-    if (!userId) {
-      this.connections.set({});
-      this.syncedAt.set(null);
+    if (!platform.connectable) {
+      this.snackbar.info(`${platform.label} CONNECT IS NOT AVAILABLE YET`);
       return;
     }
+    this.connecting.set(id);
     try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) {
-        this.connections.set({});
-        this.syncedAt.set(null);
-        return;
+      const response = await firstValueFrom(
+        this.http.post<AuthorizeResponse>(this.endpoint(`/${id}/authorize`), {}, {
+          headers: this.headers(),
+        }),
+      );
+      const authorizeUrl = response?.authorizeUrl;
+      if (!authorizeUrl) {
+        throw new Error('No authorize URL');
       }
-      const stored = JSON.parse(raw) as StoredConnections;
-      if (stored?.userId !== userId) {
-        this.connections.set({});
-        this.syncedAt.set(null);
-        return;
-      }
-      this.connections.set(stored.connections ?? {});
-      this.syncedAt.set(stored.syncedAt ?? null);
-    } catch {
-      // A corrupt store is worth less than a clean slate.
-      this.connections.set({});
-      this.syncedAt.set(null);
+      this.social.openConnectPopup(
+        id,
+        authorizeUrl,
+        () => {
+          this.connecting.set(null);
+          void this.load().then(() =>
+            this.snackbar.success(`${platform.label} CONNECTED`),
+          );
+        },
+        (message) => {
+          this.connecting.set(null);
+          this.snackbar.error(
+            message?.trim()
+              ? message.trim().toUpperCase()
+              : `${platform.label} CONNECT FAILED`,
+          );
+        },
+      );
+    } catch (error) {
+      this.connecting.set(null);
+      this.snackbar.error(this.describe(error, platform.label));
     }
   }
 
-  private persist(): void {
-    if (typeof localStorage === 'undefined') return;
-    const userId = this.profile.profile()?.id ?? '';
-    if (!userId) return;
+  /** Re-confirm every linked account with the provider and reload the list. */
+  async sync(): Promise<void> {
+    this.syncing.set(true);
     try {
-      const payload: StoredConnections = {
-        userId,
-        connections: this.connections(),
-        syncedAt: this.syncedAt(),
-      };
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
-    } catch {
-      // Storage full or disabled: the session still works, it just will not
-      // survive a reload.
+      const result = await firstValueFrom(
+        this.http.post<SyncResponse>(this.endpoint('/sync'), {}, {
+          headers: this.headers(),
+        }),
+      );
+      this.apply(result?.connections ?? []);
+      const dropped = (result?.disconnected ?? []).map((id) => id.toUpperCase());
+      if (dropped.length) {
+        this.snackbar.warning(
+          `${dropped.join(', ')} NEEDS TO BE RECONNECTED`,
+        );
+        return;
+      }
+      const count = this.connectedCount();
+      this.snackbar.info(
+        count === 0
+          ? 'NO STREAMING PLATFORMS CONNECTED YET'
+          : `SYNCED — ${count} PLATFORM${count === 1 ? '' : 'S'} CONNECTED`,
+      );
+    } catch (error) {
+      this.snackbar.error(this.describe(error, 'SYNC'));
+    } finally {
+      this.syncing.set(false);
     }
+  }
+
+  async disconnect(id: StreamingPlatformId): Promise<void> {
+    const platform = this.platformFor(id);
+    if (!platform) return;
+    try {
+      await firstValueFrom(
+        this.http.delete(this.endpoint(`/${id}`), { headers: this.headers() }),
+      );
+      this.connections.update((current) => {
+        const next = { ...current };
+        delete next[id];
+        return next;
+      });
+      this.snackbar.info(`${platform.label} DISCONNECTED`);
+    } catch (error) {
+      this.snackbar.error(this.describe(error, platform.label));
+    }
+  }
+
+  private platformFor(id: StreamingPlatformId): StreamingPlatform | undefined {
+    return this.platforms.find((platform) => platform.id === id);
+  }
+
+  /** Silent read: a failed load keeps whatever the last good one showed. */
+  private async load(): Promise<void> {
+    try {
+      const response = await firstValueFrom(
+        this.http.get<ConnectionsResponse>(this.endpoint(), {
+          headers: this.headers(),
+        }),
+      );
+      this.apply(response?.connections ?? []);
+    } catch {
+      // Offline or signed out: stale counts are better than a false "none".
+    }
+  }
+
+  private apply(rows: PlatformConnectionDto[]): void {
+    const next: Partial<Record<StreamingPlatformId, PlatformConnection>> = {};
+    for (const row of rows) {
+      const id = String(row?.platform ?? '').toLowerCase() as StreamingPlatformId;
+      if (!this.platforms.some((platform) => platform.id === id)) continue;
+      next[id] = {
+        displayName: row.displayName ?? id.toUpperCase(),
+        connectedAt: row.connectedAt ?? new Date().toISOString(),
+        lastSyncedAt: row.lastSyncedAt ?? new Date().toISOString(),
+      };
+    }
+    this.connections.set(next);
+    this.syncedAt.set(Date.now());
+  }
+
+  /** The server's own message is more useful than a status code. */
+  private describe(error: unknown, label: string): string {
+    const body = (error as { error?: { error?: unknown } } | null)?.error;
+    const message = typeof body?.error === 'string' ? body.error.trim() : '';
+    return message ? message.toUpperCase() : `${label} REQUEST FAILED`;
+  }
+
+  private endpoint(path = ''): string {
+    return `${APP_SECURITY_CONFIG.api_url}/stream-accounts${path}`;
+  }
+
+  private headers(): Record<string, string> {
+    const token = this.tokenService.jwtToken();
+    return token ? { Authorization: `Bearer ${token}` } : {};
   }
 }

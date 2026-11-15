@@ -1,6 +1,8 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { BehaviorSubject, of } from "rxjs";
+import { provideHttpClient } from "@angular/common/http";
+import { provideHttpClientTesting } from "@angular/common/http/testing";
 import { ComponentFixture, TestBed } from "@angular/core/testing";
 import { ThaSpotComponent } from "./tha-spot.component";
 import { UserProfileService } from "../../services/user-profile.service";
@@ -208,6 +210,8 @@ describe("ThaSpotComponent", () => {
     await TestBed.configureTestingModule({
       imports: [ThaSpotComponent],
       providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
         { provide: Router, useValue: routerMock },
         {
           provide: ActivatedRoute,

@@ -1008,39 +1008,31 @@ export class SocialNetworkingService {
   // STREAMING LOGIC
   private streamInterval?: any;
 
-  startTwitchAuth() {
-    this.startOAuthFlow('twitch');
-  }
-
-  /** Platforms the `/api/auth/:platform` popup contract answers for. */
-  private static readonly CONNECT_PLATFORMS = new Set([
-    'twitch',
-    'kick',
-    'youtube',
-    'tiktok',
-    'instagram',
-    'discord',
-    'x',
-  ]);
-
-  /** `onConnected` runs when the provider popup reports success. */
-  startOAuthFlow(platform: string, onConnected?: () => void) {
+  /**
+   * Open a provider's connect popup and wait for its answer.
+   *
+   * The authorize URL comes from the API (it carries the signed `state`), so
+   * this only owns the window: origin-checked messages, a popup the host closed
+   * without finishing, and a listener that cannot outlive its round.
+   */
+  openConnectPopup(
+    platform: string,
+    authorizeUrl: string,
+    onConnected?: () => void,
+    onFailed?: (message: string) => void
+  ) {
     const key = (platform || '').toLowerCase();
-    if (!SocialNetworkingService.CONNECT_PLATFORMS.has(key)) {
-      this.notifications?.show?.(
-        `CONNECT NOT SUPPORTED FOR ${key.toUpperCase() || 'PLATFORM'}`,
-        'warning'
-      );
+    if (!key || !authorizeUrl) {
+      this.notifications?.show?.('CONNECT IS NOT AVAILABLE RIGHT NOW', 'warning');
+      onFailed?.('CONNECT IS NOT AVAILABLE RIGHT NOW');
       return;
     }
-    const width = 500,
-      height = 600;
+    const width = 520,
+      height = 640;
     const left = window.screen.width / 2 - width / 2;
     const top = window.screen.height / 2 - height / 2;
-    const url = `${APP_SECURITY_CONFIG.api_url}/auth/${key}`;
-
     const popup = window.open(
-      url,
+      authorizeUrl,
       `${key} Auth`,
       `width=${width},height=${height},left=${left},top=${top}`
     );
@@ -1049,11 +1041,11 @@ export class SocialNetworkingService {
         'POPUP BLOCKED — ALLOW POPUPS TO CONNECT',
         'warning'
       );
+      onFailed?.('POPUP BLOCKED — ALLOW POPUPS TO CONNECT');
       return;
     }
 
-    // Match the Go-Live listener contract: only accept a callback from our
-    // own origins, and only the platform this round was opened for.
+    // Only accept a callback from our own origins, and only this platform's.
     let apiOrigin = '';
     try {
       apiOrigin = new URL(APP_SECURITY_CONFIG.api_url).origin;
@@ -1061,28 +1053,40 @@ export class SocialNetworkingService {
       apiOrigin = window.location.origin;
     }
 
+    let settled = false;
+    const finish = () => {
+      settled = true;
+      window.removeEventListener('message', handler);
+      clearInterval(watch);
+    };
     const handler = (event: MessageEvent) => {
       if (event.origin !== apiOrigin && event.origin !== window.location.origin) {
         return;
       }
       if (!event.data || typeof event.data !== 'object') return;
-      const type = (event.data as { type?: string }).type;
-      if (type !== `${key.toUpperCase()}_AUTH_SUCCESS`) return;
-      this.currentPlatform.set(`${key} (Connected)`);
-      window.removeEventListener('message', handler);
-      clearInterval(watch);
-      onConnected?.();
+      const data = event.data as { type?: string; message?: string };
+      if (data.type === `${key.toUpperCase()}_AUTH_SUCCESS`) {
+        finish();
+        this.currentPlatform.set(`${key} (Connected)`);
+        onConnected?.();
+        return;
+      }
+      if (data.type === `${key.toUpperCase()}_AUTH_FAILED`) {
+        finish();
+        onFailed?.(String(data.message ?? ''));
+      }
     };
     window.addEventListener('message', handler);
 
-    // An abandoned popup must not leave a listener behind to swallow a
-    // later connect callback from a different platform.
+    // An abandoned popup must not leave a listener behind to swallow a later
+    // connect callback from a different platform.
     const watch = setInterval(() => {
-      if (!popup.closed) return;
-      window.removeEventListener('message', handler);
-      clearInterval(watch);
+      if (settled || !popup.closed) return;
+      finish();
+      onFailed?.('THE CONNECT WINDOW CLOSED BEFORE IT FINISHED');
     }, 700);
   }
+
   /**
    * Start a live stream: acquires real camera + mic via getUserMedia,
    * reports telemetry at the selected quality tier, and simulates an
