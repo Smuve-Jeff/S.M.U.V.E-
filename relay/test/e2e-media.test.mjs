@@ -22,8 +22,10 @@ import { createWhipPublisher } from "./helpers/whip-publisher.mjs";
  * throughout, so it also proves that a relay restart does not disturb the
  * browser side.
  *
- * Needs ffmpeg, MediaMTX and werift; without them it skips, so the ordinary
- * suite stays runnable on a machine that has none:
+ * Needs ffmpeg, MediaMTX and werift. A tool that is simply absent skips the
+ * suite, so the ordinary run stays possible on a machine that has none; a tool
+ * that is configured but does not work, or a run that promised the tools and did
+ * not get them (`RELAY_E2E_REQUIRE_TOOLS=1`, as CI sets), fails instead:
  *
  *   RELAY_FFMPEG_PATH=/path/to/ffmpeg \
  *   MEDIAMTX_PATH=/path/to/mediamtx \
@@ -46,11 +48,32 @@ const API = `http://127.0.0.1:${API_PORT}`;
 const diagnosticDir = process.env.RELAY_E2E_LOGS_DIR || null;
 const SINK_PATH = "live/e2e_key_123";
 
-const installed = (binary) =>
-  spawnSync(binary, ["-version"], { stdio: "ignore" }).status === 0 ||
-  spawnSync(binary, ["--version"], { stdio: "ignore" }).status === 0;
+/**
+ * Is a required binary usable?
+ *
+ * Absent tools may skip the suite; anything else is a failure, because a path
+ * that was set and does not run is a misconfiguration, not an inapplicable test.
+ */
+function checkBinary(label, envVar, fallback) {
+  const configured = process.env[envVar] || null;
+  const binary = configured || fallback;
+  const attempts = ["-version", "--version"].map((flag) =>
+    spawnSync(binary, [flag], { stdio: "ignore" }),
+  );
+  if (attempts.some((attempt) => attempt.status === 0)) return null;
+  const absent = attempts.every((attempt) => attempt.error?.code === "ENOENT");
+  if (configured) {
+    return {
+      kind: "broken",
+      what: `${envVar}=${configured} does not run${absent ? " (no such file)" : ""}`,
+    };
+  }
+  return absent
+    ? { kind: "missing", what: `${label} is not installed (set ${envVar})` }
+    : { kind: "broken", what: `${label} is installed but does not run` };
+}
 
-/** werift is not a project dependency; resolve it or the test is skipped. */
+/** werift is not a project dependency; a configured path that fails is broken. */
 async function loadWerift() {
   const root = process.env.RELAY_WERIFT_PATH;
   const candidates = [
@@ -59,23 +82,58 @@ async function loadWerift() {
   ].filter(Boolean);
   for (const candidate of candidates) {
     try {
-      return await import(candidate);
-    } catch {
-      // Try the next location.
+      return { module: await import(candidate) };
+    } catch (error) {
+      // A module that is present but cannot load is not the same as one that is
+      // not installed: only "not found" may fall through to a skip.
+      if (error?.code !== "ERR_MODULE_NOT_FOUND") {
+        return {
+          issue: {
+            kind: "broken",
+            what: `werift at ${candidate} cannot be loaded: ${error?.message ?? error}`,
+          },
+        };
+      }
     }
   }
-  return null;
+  return {
+    issue: root
+      ? {
+          kind: "broken",
+          what: `RELAY_WERIFT_PATH=${root} does not contain werift (expected lib/webrtc/src/index.js)`,
+        }
+      : { kind: "missing", what: "werift is not installed (set RELAY_WERIFT_PATH)" },
+  };
 }
 
-const werift = await loadWerift();
+const weriftResult = await loadWerift();
+const issues = [
+  checkBinary("ffmpeg", "RELAY_FFMPEG_PATH", "ffmpeg"),
+  checkBinary("MediaMTX", "MEDIAMTX_PATH", "mediamtx"),
+  weriftResult.issue,
+].filter(Boolean);
+const missing = issues.filter((issue) => issue.kind === "missing");
+const broken = issues.filter((issue) => issue.kind === "broken");
+// CI provisions every tool, so a gap there is a broken job, not a machine that
+// happens not to have them.
+const requireTools = process.env.RELAY_E2E_REQUIRE_TOOLS === "1";
 
-const skip = !installed(FFMPEG)
-  ? "ffmpeg is not installed (set RELAY_FFMPEG_PATH)"
-  : !installed(MEDIAMTX)
-    ? "mediamtx is not installed (set MEDIAMTX_PATH)"
-    : !werift
-      ? "werift is not installed (set RELAY_WERIFT_PATH)"
-      : false;
+if (broken.length > 0 || (requireTools && missing.length > 0)) {
+  throw new Error(
+    [
+      "the media path cannot run here:",
+      ...issues.map((issue) => `  - ${issue.what}`),
+      ...(requireTools && missing.length > 0
+        ? ["RELAY_E2E_REQUIRE_TOOLS=1 is set, so a missing tool fails instead of skipping."]
+        : []),
+    ].join("\n"),
+  );
+}
+
+const werift = weriftResult.module;
+
+const skip =
+  missing.length > 0 ? issues.map((issue) => issue.what).join("; ") : false;
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 

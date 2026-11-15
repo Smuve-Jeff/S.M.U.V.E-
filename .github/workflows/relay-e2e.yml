@@ -57,6 +57,9 @@ jobs:
         run: npm run test:relay:e2e:setup
         env:
           CI: true
+          # The setup step just provisioned all three tools, so a skip here means
+          # provisioning did not take — that must fail, not pass quietly.
+          RELAY_E2E_REQUIRE_TOOLS: '1'
           RELAY_E2E_LOGS_DIR: ${{ runner.temp }}/relay-e2e-logs
 
       # A red run has to explain itself: the media server's log and the relay's

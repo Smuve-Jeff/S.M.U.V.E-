@@ -205,7 +205,9 @@ restarted ffmpeg itself — with the browser-side publish left connected
 throughout, which is what makes a relay restart invisible upstream.
 
 It skips when the binaries (or werift) are absent, so the normal suite never
-needs them. To fetch what it needs and run it in one command:
+needs them. A tool that is set but does not run fails instead of skipping, and so
+does a run with `RELAY_E2E_REQUIRE_TOOLS=1` — CI sets that, because it has just
+provisioned all three, so a skip there would mean the provisioning did not take. To fetch what it needs and run it in one command:
 
 ```bash
 npm run test:relay:e2e:setup
