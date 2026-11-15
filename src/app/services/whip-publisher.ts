@@ -7,6 +7,79 @@ const ICE_GATHER_TIMEOUT_MS = 2_500;
 
 const STUN_SERVERS: RTCIceServer[] = [{ urls: 'stun:stun.l.google.com:19302' }];
 
+/** The relay copies the track into FLV, which cannot carry VP8, VP9 or AV1. */
+const REQUIRED_VIDEO_CODEC = 'video/h264';
+
+/**
+ * `setCodecPreferences` takes `Iterable<RTCRtpCodec>`, which is the name this
+ * TypeScript version's DOM lib gives the capability objects.
+ */
+export type VideoCodec = RTCRtpCodec;
+
+/**
+ * H.264 only, constrained baseline first.
+ *
+ * The relay's ffmpeg is `-c copy`, so whatever the browser negotiates ends up in
+ * the FLV muxer unchanged: an H.264 track is carried, a VP8 or AV1 track is not,
+ * and the failure appears at the provider rather than here. Returning only the
+ * H.264 capabilities means the browser cannot answer with anything else, which
+ * is stronger than merely listing H.264 first.
+ *
+ * Profiles are ordered constrained baseline (42…), main (4d…), then the rest:
+ * baseline is the profile every RTMP ingest and FLV player handles, and it is what
+ * MediaMTX offers first for WebRTC. Returns null when the browser offers no H.264
+ * at all, so the caller can refuse the push instead of publishing something the
+ * relay cannot mux.
+ */
+export function h264Only(codecs: readonly VideoCodec[]): VideoCodec[] | null {
+  const h264 = codecs.filter(
+    (codec) => codec.mimeType?.toLowerCase() === REQUIRED_VIDEO_CODEC
+  );
+  if (h264.length === 0) return null;
+  const profileRank = (codec: VideoCodec): number => {
+    const profile =
+      (codec.sdpFmtpLine ?? '')
+        .match(/profile-level-id=([0-9a-f]{6})/i)?.[1]
+        ?.toLowerCase() ?? '';
+    if (profile.startsWith('42')) return 0;
+    if (profile.startsWith('4d')) return 1;
+    return 2;
+  };
+  // sort() is stable, so browsers that offer several baseline variants keep
+  // their own relative order.
+  return [...h264].sort((a, b) => profileRank(a) - profileRank(b));
+}
+
+/**
+ * Express the preference on the video transceiver, before the offer is created.
+ *
+ * Returns a message when the push cannot work, null when it was applied or when
+ * this browser is too old to express a preference at all — an old browser still
+ * publishes, exactly as it did before, rather than being blocked outright.
+ */
+export function applyH264Preference(
+  pc: RTCPeerConnection,
+  sender: RTCRtpSender
+): string | null {
+  const capabilities = RTCRtpSender.getCapabilities?.('video');
+  if (!capabilities) return null;
+  const preferred = h264Only(capabilities.codecs ?? []);
+  if (!preferred) {
+    return 'THIS BROWSER HAS NO H.264 ENCODER — THE RELAY CANNOT CARRY ANOTHER CODEC';
+  }
+  const transceiver = pc.getTransceivers().find((entry) => entry.sender === sender);
+  if (!transceiver || typeof transceiver.setCodecPreferences !== 'function') {
+    return null;
+  }
+  try {
+    transceiver.setCodecPreferences(preferred);
+  } catch {
+    // A rejected preference list is not fatal: the push proceeds with the
+    // browser's own order, and the codec check on the relay's session shows it.
+  }
+  return null;
+}
+
 /**
  * Publish a MediaStream over WHIP (RFC 9725).
  *
@@ -42,6 +115,16 @@ export class WhipPublisher {
       this.state.set('error');
       this.error.set('NOTHING TO SEND — NO CAPTURE TRACKS');
       return false;
+    }
+
+    if (video && this.videoSender) {
+      const codecProblem = applyH264Preference(pc, this.videoSender);
+      if (codecProblem) {
+        await this.stop();
+        this.state.set('error');
+        this.error.set(codecProblem);
+        return false;
+      }
     }
 
     try {

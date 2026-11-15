@@ -328,8 +328,10 @@ broadcast from.
 
 **The codec is the highest-risk item.** The relay's ffmpeg is `-c copy`, so the
 browser's codec goes straight into FLV — H.264 survives, VP8/VP9/AV1 do not. The
-app adds tracks without stating a codec preference, so whichever codec the
-browser and MediaMTX negotiate is what you get. Check it rather than assuming it.
+publisher therefore restricts the video transceiver to H.264 with
+`setCodecPreferences`, and refuses the push outright when the browser has no H.264
+encoder. That preference is still advisory per spec, and browsers too old to
+implement it are left alone, so check the codec rather than trusting the code.
 
 1. **Secure context.** On the real origin, `window.isSecureContext` in the console
    is `true` and `navigator.mediaDevices` exists. On a plain `http://` origin
@@ -361,11 +363,12 @@ browser and MediaMTX negotiate is what you get. Check it rather than assuming it
      "$MEDIA_RELAY_URL/sessions/<session-id>" | jq '{ready, tracks, bytesReceived}'
    ```
 
-   `tracks` must be `["H264"]`. `VP8`, `VP9` or `AV1` means the media reaches
-   MediaMTX but cannot be copied into FLV; `session.error` on the same response
-   carries ffmpeg's complaint (`Could not write header`, or a codec tag error).
-   Record what your browser negotiated — that is the finding this checklist exists
-   for.
+   `tracks` must be `["H264"]`. If it is `VP8`, `VP9` or `AV1`, this browser
+   ignored the publisher's preference (or predates `setCodecPreferences`): the
+   media reaches MediaMTX but cannot be copied into FLV, and `session.error` on the
+   same response carries ffmpeg's complaint (`Could not write header`, or a codec
+   tag error). Record what your browser negotiated — that is the finding this
+   checklist exists for.
 6. **Bytes on both sides.** `bytesReceived` climbs in the response above, the
    panel shows `EGRESS <n> KBPS · NO DROPS`, and `docker compose logs mediamtx`
    shows the WHIP session gaining an RTSP reader. `bytesReceived` rising with no
