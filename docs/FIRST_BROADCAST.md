@@ -329,6 +329,14 @@ relay's ffmpeg or its pull; bytes out but a low `ingest-bytes.txt` means egress
 to the provider. If the run fails saying the diagnostics themselves could not be
 written, the media path may well have passed — fix the log directory first.
 
+Three failures are worth recognising on sight:
+
+| Symptom | What it means | What to do |
+| --- | --- | --- |
+| The job dies in "Provision ffmpeg, MediaMTX, werift" before any test output | A download was blocked: ffmpeg-static's postinstall or the pinned MediaMTX tarball | Re-run once; if it repeats, install the tools on that machine and point `RELAY_FFMPEG_PATH` and `MEDIAMTX_PATH` at them |
+| `timed out waiting for MediaMTX`, or for the WHIP publish right after it starts | Something else owns those ports — a media server left running from an earlier attempt is the usual culprit, and it answers the API while the new one cannot bind | Find the owner with `ss -ltnp` and stop that pid; `mediamtx.log` stays empty because this run's server never started |
+| `WebRTC never connected (state failed)` | ICE could not pair: UDP on loopback is blocked, or the client gathered only a candidate family the server does not answer on | Check `mediamtx.log` for a created session with no bytes behind it; fix the network, not the test |
+
 ## Sign-off checklist
 
 - [ ] `/health` answers `200` with `"mediamtx":"reachable"`
