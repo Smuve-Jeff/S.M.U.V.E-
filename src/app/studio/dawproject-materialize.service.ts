@@ -13,7 +13,6 @@ import type {
   DawprojectTrack,
 } from "./dawproject-export";
 import type { DawprojectImportResult } from "./dawproject-import";
-import type { TrackType } from "../types/studio.types";
 
 /**
  * Caps mirror MidiImportService so a DAWproject bundle cannot exceed what a

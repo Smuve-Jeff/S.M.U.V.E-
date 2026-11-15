@@ -1070,6 +1070,11 @@
   color: var(--teal-500);
 }
 
+.ai-director-badge.ai-director-priority {
+  border-color: var(--amber-500, #f59e0b);
+  color: var(--amber-500, #f59e0b);
+}
+
 .ai-director-step-detail {
   margin: 4px 0 0;
   color: var(--espresso-muted);

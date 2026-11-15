@@ -440,6 +440,9 @@
               <span [class.ai-director-live]="step.executable" class="ai-director-badge">
                 {{ step.executable ? 'EXECUTED' : 'GUIDED' }}
               </span>
+              <span *ngIf="step.priority" class="ai-director-badge ai-director-priority" title="Prioritized from the live session state">
+                PRIORITY
+              </span>
             </p>
             <p class="ai-director-step-detail">{{ step.detail }}</p>
           </div>

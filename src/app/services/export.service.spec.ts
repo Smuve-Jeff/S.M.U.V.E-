@@ -92,7 +92,7 @@ describe('ExportService (Sprint A6)', () => {
     const encode = jest.spyOn(svc, 'exportToFormat').mockResolvedValueOnce(new Blob(['loop']));
     const download = jest.spyOn(svc, 'downloadBlob').mockImplementation(() => {});
     const previousOfflineAudioContext = (globalThis as any).OfflineAudioContext;
-    (globalThis as any).OfflineAudioContext = jest.fn().mockImplementation((_channels, _length, sampleRate) => ({
+    (globalThis as any).OfflineAudioContext = jest.fn().mockImplementation((_channels, _length, _sampleRate) => ({
       createBuffer: (channels: number, length: number, rate: number) => ({
         numberOfChannels: channels,
         length,
@@ -128,7 +128,7 @@ describe('ExportService (Sprint A6)', () => {
     const encode = jest.spyOn(svc, 'exportToFormat').mockResolvedValueOnce(new Blob(['loop'], { type: 'audio/mpeg' }));
     const download = jest.spyOn(svc, 'downloadBlob').mockImplementation(() => {});
     const previousOfflineAudioContext = (globalThis as any).OfflineAudioContext;
-    (globalThis as any).OfflineAudioContext = jest.fn().mockImplementation((_channels, _length, sampleRate) => ({
+    (globalThis as any).OfflineAudioContext = jest.fn().mockImplementation((_channels, _length, _sampleRate) => ({
       createBuffer: (channels: number, length: number, rate: number) => ({
         numberOfChannels: channels,
         length,

@@ -84,8 +84,62 @@ export interface StudioDirectorStep {
   detail: string;
   executable: boolean;
   targetSurfaceId?: StudioSurfaceId;
+  /** Set by the fact rules when this step answers the live session state. */
+  priority?: boolean;
   run: () => Promise<string> | string;
 }
+
+/** Severity of a session fact: what the plan should do about it. */
+export type DirectorFactSeverity = 'info' | 'opportunity' | 'risk';
+
+/**
+ * One machine-readable session reading. Display strings still come from
+ * `sessionEvidence`; facts drive which steps the plan prioritizes.
+ */
+export interface DirectorFact {
+  id: string;
+  label: string;
+  detail: string;
+  severity: DirectorFactSeverity;
+  /** Step label this fact points at (used to re-surface a failed step). */
+  stepLabel?: string;
+}
+
+/** Words too generic to match a step against a focus prompt. */
+const FOCUS_STOPWORDS = new Set([
+  'the', 'a', 'an', 'and', 'or', 'to', 'of', 'in', 'on', 'my', 'me',
+  'it', 'is', 'for', 'with', 'fix', 'make', 'get', 'how', 'do', 'i',
+  'this', 'that', 'please', 'at', 'by', 'be', 'are', 'was', 'were',
+  'can', 'could', 'should', 'would', 'like', 'want', 'need', 'just',
+  'really', 'very', 'too', 'so', 'up', 'out', 'now', 'here', 'what',
+  'when', 'where', 'which', 'have', 'has', 'had', 'will', 'from',
+]);
+
+/** Distinctive prompt tokens: lowercase words, 3+ chars, no stopwords. */
+function focusTokens(prompt: string): string[] {
+  const words = prompt
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter((word) => word.length >= 3 && !FOCUS_STOPWORDS.has(word));
+  return [...new Set(words)];
+}
+
+/**
+ * Strong intents and the surface that answers them. First match wins, so
+ * specific crafts (mastering, export) precede their generic parents.
+ */
+const FOCUS_ROUTES: Array<{ pattern: RegExp; surfaceId: StudioSurfaceId }> = [
+  { pattern: /\b(master|mastering|loudness|lufs)\b/, surfaceId: 'mastering' },
+  { pattern: /\b(export|bounce|render|stems?|wav|mp3|deliver|release)\b/, surfaceId: 'export' },
+  { pattern: /\b(mix|mixing|balance|muddy|eq|compressor|compression)\b/, surfaceId: 'mixer' },
+  { pattern: /\b(tune|tuning|pitch|vocals?|sing|singing)\b/, surfaceId: 'vocal-suite' },
+  { pattern: /\b(drums?|beat|groove|kick|snare|808|hi-?hat)\b/, surfaceId: 'drum-machine' },
+  { pattern: /\b(keys?|scale|chords?|harmony|melody|bassline)\b/, surfaceId: 'piano-roll' },
+  { pattern: /\b(record|recording|takes?|punch-?in|comp|comping)\b/, surfaceId: 'audio-recorder' },
+  { pattern: /\b(lyrics?|verse|chorus|hook|toplines?)\b/, surfaceId: 'ai-produce' },
+  { pattern: /\b(tempo|bpm|timing|metronome|click)\b/, surfaceId: 'quick-session' },
+  { pattern: /\b(plugins?|effects?|reverb|delay|\bfx\b)\b/, surfaceId: 'plugins' },
+];
 
 export interface StudioDirectorPlan {
   surfaceId: StudioSurfaceId;
@@ -94,6 +148,8 @@ export interface StudioDirectorPlan {
   successCriteria: string[];
   evidence: string[];
   steps: StudioDirectorStep[];
+  /** Ids of steps the fact rules prioritized, in plan order. */
+  priorityStepIds: string[];
 }
 
 export interface StudioDirectorStepResult {
@@ -196,7 +252,8 @@ export class StudioAiDirectorService {
     const surface = SURFACE_LOOKUP.get(surfaceId);
     const planContext = { ...context, surfaceId };
     const evidence = this.sessionEvidence(planContext);
-    const steps = this.stepsFor(planContext, evidence);
+    const facts = this.collectFacts(planContext);
+    const steps = this.stepsFor(planContext, facts);
 
     return {
       surfaceId,
@@ -205,6 +262,9 @@ export class StudioAiDirectorService {
       successCriteria: this.successCriteriaFor(surfaceId),
       evidence,
       steps,
+      priorityStepIds: steps
+        .filter((step) => step.priority)
+        .map((step) => step.id),
     };
   }
 
@@ -773,8 +833,14 @@ export class StudioAiDirectorService {
     return evidence;
   }
 
-  private stepsFor(context: StudioDirectorContext, evidence: string[]): StudioDirectorStep[] {
+  private stepsFor(
+    context: StudioDirectorContext,
+    facts: DirectorFact[],
+  ): StudioDirectorStep[] {
     const surfaceId = this.normalizeSurfaceId(context.surfaceId);
+    // Every case below returns through adaptSteps: the base template keeps
+    // its stable ids and order, while the rules flag, annotate and append
+    // on a copy. Saved runs and step addresses keep working.
     const make = (
       index: number,
       label: string,
@@ -794,102 +860,102 @@ export class StudioAiDirectorService {
 
     switch (surfaceId) {
       case 'quick-session':
-        return [
+        return this.adaptSteps(surfaceId, facts, [
           make(1, 'Apply the closest Quick Session starter', 'Pick the one-tap Quick Session recipe closest to the transport BPM and write it to real tracks via MusicManagerService.applyGeneratedRecipe, which is undoable. A dirty sketch is never replaced: when the session is dirty the step reports the recommendation and preserves the canvas.', true, () => this.applyQuickSessionStarter()),
           make(2, 'Sync tempo and verify key', 'Sync the engine tempo to the project tempo when they differ, then read the key/scale and metronome state from the live services. Syncing the tempo is a service-backed write; the key readout stays a measurement.', true, () => this.quickSessionReadiness()),
           make(3, 'Select the next one-tap move', 'Focus the first playable track with notes so the artist can act on the recommended next move immediately. When nothing is playable yet, the step reports building a groove first.', true, () => this.quickSessionNextMove()),
-        ];
+        ]);
       case 'arrangement':
-        return [
+        return this.adaptSteps(surfaceId, facts, [
           make(1, 'Focus the selected arrangement lane', 'Select the first track with notes so the director works on a real lane rather than an empty one.', true, () => this.selectFirstTrack()),
           make(2, 'Detect the musical key and scale', 'Run Krumhansl-Kessler key detection over the session notes and apply the result to the project key/scale.', true, () => this.detectAndApplyKey()),
           make(3, 'Apply the section energy map', 'Use the detected key and session density to place intro, verse, chorus and bridge transitions. The default AI Copilot structure is applied only when the current markers are still the stock defaults; custom sections are left alone.', true, () => this.applySongStructure()),
           make(4, 'Read the automation lanes', 'Read every automation lane, its points and interpolation, plus modulation sources, macros and the write mode. The same readout states which export path carries each lane, so the arrangement is judged against delivery before anything renders.', true, () => this.automationCoverage(), 'arrangement'),
-        ];
+        ]);
       case 'session':
-        return [
+        return this.adaptSteps(surfaceId, facts, [
           make(1, 'Seed the clip grid with a full beat', 'Generate drums, bass, chords and melody and write them to real tracks.', true, () => this.applyBeatPackage(context)),
           make(2, 'Focus the scene’s first playable track', 'Select the first melodic track so the artist can immediately audition the generated clip.', true, () => this.selectFirstTrack()),
           make(3, 'Launch the first pattern scene', 'Launch the first non-empty pattern scene and report how many channels switched. Returning to Arrangement is the reversible undo.', true, () => this.launchFirstScene()),
-        ];
+        ]);
       case 'piano-roll':
-        return [
+        return this.adaptSteps(surfaceId, facts, [
           make(1, 'Detect and apply the roll’s key', 'Analyze the notes in the roll, then set the project key/scale so highlighting and scale safety pull in the same direction.', true, () => this.detectAndApplyKey()),
           make(2, 'Write a melodic seed into the selected track', 'Ensure the selected track has notes; if empty, generate a complete beat and write bass/melody into it.', true, () => this.seedMelodicTrack()),
           make(3, 'Humanize and audit scale collisions', 'Humanize the selected track, then check each pitch against the active key and scale before adding ornament notes.', true, () => this.humanizeSelectedTrack()),
-        ];
+        ]);
       case 'drum-machine':
-        return [
+        return this.adaptSteps(surfaceId, facts, [
           make(1, 'Generate a playable drum kit pattern', 'Generate a genre-aware drum pattern and write kick, snare/clap, hi-hat and percussion into a drum track.', true, () => this.applyBeatPackage(context)),
           make(2, 'Humanize the kit timing', 'Apply micro-timing and velocity variation to the selected drum track when available.', true, () => this.humanizeSelectedTrack()),
           make(3, 'Run one EVOLVE variation', 'Mutate a focused slice of the kit on a drum track: trim or retime a small number of hits and nudge some velocities, matching the surface EVOLVE behavior without claiming to press its header control.', true, () => this.evolveDrumVariation()),
-        ];
+        ]);
       case 'channel-rack':
-        return [
+        return this.adaptSteps(surfaceId, facts, [
           make(1, 'Seed the rack with a complete groove', 'Generate the full beat package and map its layers to rack tracks.', true, () => this.applyBeatPackage(context)),
           make(2, 'Check channel headroom', 'Run the AI mix pass so channel gains are compared against the current scene before adding more sounds.', true, () => this.analyzeAndApplyMix()),
           make(3, 'Audit channel roles for duplicates', 'Read every Channel Rack track’s current instrument identity and flag duplicate channel roles before adding or assigning more sounds. This is an audit pass, not a silent reassignment of sample-backed sounds.', true, () => this.channelRoleAudit()),
-        ];
+        ]);
       case 'mixer':
-        return [
+        return this.adaptSteps(surfaceId, facts, [
           make(1, 'Refresh the evidence-backed mix pass', 'Recompute every track-level suggestion from the current session instead of trusting an old snapshot.', true, () => this.analyzeAndApplyMix()),
           make(2, 'Audit mute and solo state', 'Read the live mute/solo state for every track and the selected track before balancing gains.', true, () => this.auditMixerMuteSolo()),
           make(3, 'Read the channel meters', 'Read the post-fader peak and momentary level for every mixer channel from the audio engine taps, plus the selected channel’s mono correlation. When the transport is stopped the meters correctly read silence, so play the session to judge balance.', true, () => this.mixerChannelMeters(), 'mixer'),
           make(4, 'Snapshot the bus routing and VCA state', 'Read every group bus with its member channels, master-routed channels, VCA buses with their assignments and fader values, and send levels — one snapshot of the whole console routing.', true, () => this.mixerBusSnapshot(), 'mixer'),
           make(5, 'Check stems readiness for delivery', 'Confirm which tracks the stem renderer would actually write: every unmuted non-bus track becomes a stem, muted tracks are skipped and solo is ignored. No audio is rendered in this step.', true, () => this.stemsReadiness(), 'mixer'),
           make(6, 'Use the neural balance only as a rough nudge', 'The neural balance is a randomized gain nudge plus safety compression, not a measurement-based mix.', true, () => this.applyNeuralNudge()),
-        ];
+        ]);
       case 'effects-rack':
-        return [
+        return this.adaptSteps(surfaceId, facts, [
           make(1, 'Run the rack analysis', 'Recompute AI mix suggestions against the selected track and current FX chain.', true, () => this.analyzeAndApplyMix()),
           make(2, 'Apply the highest-value suggestion', 'Apply the top recommendation instead of stacking unrelated effects.', true, () => this.applyTopMixSuggestion()),
           make(3, 'A/B the rack in context', 'Bypass the selected track’s insert chain with one undoable Studio command, confirm the difference, then restore it if the processing hurt the mix.', true, () => this.toggleInsertBypass()),
-        ];
+        ]);
       case 'vocal-suite':
-        return [
+        return this.adaptSteps(surfaceId, facts, [
           make(1, 'Measure the selected vocal take', 'Measure the selected track’s recorded audio clip directly (peak, RMS, crest, silence and clipped samples) when one exists; otherwise read the latest Vocal AI guidance note. Uploading and analyzing a new take in the Vocal Suite remains required for guidance on material that is not already in the session.', true, () => this.measureVocalTake(), 'vocal-suite'),
           make(2, 'Generate a harmony stack from the take', 'Use the take’s notes to create a harmony part; if no part is detected, the fallback is a simple third above the root.', true, () => this.generateHarmonyFromSelectedTake()),
           make(3, 'Apply the conservative vocal polish chain', 'Only after Vocal AI evidence exists, set the vocal mastering chain to a conservative de-esser, multiband, exciter, EQ and limiter profile. This changes the live vocal chain; it does not hide tuning, clipping or timing problems.', true, () => this.applyConservativeVocalPolish(), 'vocal-suite'),
-        ];
+        ]);
       case 'dj':
-        return [
+        return this.adaptSteps(surfaceId, facts, [
           make(1, 'Make both decks audition-ready', 'Set both deck gains and the crossfader to neutral so the artist can hear either deck cleanly.', true, () => this.prepareDjDecks()),
           make(2, 'Arm key-lock and deck B loop', 'Set deck B to unity rate with pitch preservation and enable its loop so the next phrase can be cued cleanly.', true, () => this.prepareDjLoop()),
           make(3, 'Centre the crossfader in phrase', 'Set the DJ crossfader back to the phrase-neutral centre so the next move can ride either deck cleanly.', true, () => this.prepareDjCrossfade()),
-        ];
+        ]);
       case 'performance':
-        return [
+        return this.adaptSteps(surfaceId, facts, [
           make(1, 'Select the strongest performance take', 'Rank the PerformanceRecordingService takes by captured notes then peak level, select the strongest in the carousel, and report the MIDI take count. Selecting is reversible; no take is overwritten.', true, () => this.selectStrongestPerformanceTake()),
           make(2, 'Arm the next clean performance take', 'Arm the next PerformanceRecordingService take slot for the selected track, then perform the full pass and stop the take from the performance surface to capture it.', true, () => this.armNextPerformanceTake(), 'performance'),
           make(3, 'Promote the strongest MIDI take', 'Rank the takes by captured note count and make the strongest take the active take for playback/comping.', true, () => this.promoteBestTake()),
-        ];
+        ]);
       case 'mastering':
-        return [
+        return this.adaptSteps(surfaceId, facts, [
           make(1, 'Run the genre-aware master', 'Let the AI Mix Assistant choose targets from the session composition and apply compressor, limiter and tone EQ.', true, () => this.autoMaster()),
           make(2, 'Render the offline review bounce', 'Render the full arrangement offline and read its measured peak/RMS; if the peak clips, lower the target rather than raising the limiter.', true, () => this.bounceProjectReview()),
           make(3, 'Render the offline comparison bounce', 'Render the offline comparison bounce and read its measured peak/RMS against the streaming target.', true, () => this.bounceProjectReview()),
-        ];
+        ]);
       case 'ai-produce':
-        return [
+        return this.adaptSteps(surfaceId, facts, [
           make(1, 'Generate the full one-tap production idea', 'Run the six-stage Produce pipeline: idea, beat, lyrics, voice preview, mix/master and release checklist.', true, () => this.runAiProduce(context)),
           make(2, 'Apply the generated artifacts', 'Commit the current idea, beat, lyrics and mix handoff to the project via AiProduceService.applyToProject().', true, () => this.applyAiProduceArtifacts()),
           make(3, 'Use the release handoff to plan delivery', 'Read the AI Produce release handoff directly and surface the completed stages, pending stages and next step.', true, () => this.releaseHandoffStatus()),
-        ];
+        ]);
       case 'sound-browser':
       case 'sound-pad':
-        return [
+        return this.adaptSteps(surfaceId, facts, [
           make(1, 'Smart-search the session’s sound family', `Use the current key, BPM and mood to search the sound library for a matching sound.`, true, () => this.smartSearchSounds(context)),
           make(2, 'Favorite the best playable result', 'Save the best match so the next session starts from a proven sound, not a blind search.', true, () => this.favoriteBestSound(context)),
           make(3, 'Surface the closest sound neighbours', 'Find the closest matches around the best search result and record the sound as used; keep the original unless a neighbour wins a full-loop audition.', true, () => this.surfaceSimilarSounds(context)),
-        ];
+        ]);
       case 'synthesizer':
-        return [
+        return this.adaptSteps(surfaceId, facts, [
           make(1, 'Seed the synth with a melodic layer', 'Add a generated melody to a track if the synth lane is empty, then use that track for sound design.', true, () => this.seedMelodicTrack()),
           make(2, 'Check the synth register against the bass', 'Measure the selected synth lane and the lowest melodic register from the live project notes and flag any root/register collision.', true, () => this.synthRegisterCheck()),
           make(3, 'Track a useful patch recipe', 'Favorite the patch once its role is proven in the full session.', true, () => this.favoriteBestSound(context)),
-        ];
+        ]);
       case 'tuner':
-        return [
+        return this.adaptSteps(surfaceId, facts, [
           make(1, 'Report the tuning reference', 'Read the shared A4 concert-pitch reference and tolerance from the tuner pitch utilities, then compare it with the project key. The live needle still needs the artist or line input to play or sing the reference.', true, () => this.tunerReferenceStatus(), 'tuner'),
           make(2, 'Open the live tuner input', 'Open the shared TunerLiveService microphone input — the same stream the Tuner surface needle reads — so a physical instrument can be tuned against the reference.', true, () => this.openLiveTunerInput(), 'tuner'),
           make(3, 'Read the live tuner input', 'Report the latest live needle reading from the shared tuner input, or say plainly that no stable note has been heard yet.', true, () => this.liveTunerReading(), 'tuner'),
@@ -898,53 +964,53 @@ export class StudioAiDirectorService {
           make(6, 'Check the same tuning reference across takes', 'Measure the recorded audio clips on every track against the one A4 reference and report each take’s deviation, so takes can be comped without pitch drift. This checks recorded material; a physical instrument still has to be tuned to the live input first.', true, () => this.tunerReferenceAcrossTakes(), 'tuner'),
           make(7, 'Recheck key after tuning', 'After tuning, run key detection again if the material was out of tune.', true, () => this.detectAndApplyKey()),
           make(8, 'Verify the live microphone on this device', 'Verify the microphone path on the device the artist is actually using: browser capture support, the audio inputs the device exposes, the permission state, and whether the shared tuner stream is live, silent or ended. This step never opens the microphone and never claims a pitch it did not measure.', true, () => this.verifyLiveMicrophone(), 'tuner'),
-        ];
+        ]);
       case 'chord-editor':
-        return [
+        return this.adaptSteps(surfaceId, facts, [
           make(1, 'Generate a chord framework', 'Create a genre-aware progression from the session key and mood; Roman numerals are interpreted as guidance, not literal notes.', true, () => this.generateChordFramework(context)),
           make(2, 'Voicing check against the bass', 'Measure the bass and chord registers from the live project notes and flag any root collision.', true, () => this.chordBassRegisterCheck()),
           make(3, 'Turn the progression into parts', 'Generate a generator-backed chord framework, then write pad, bass and top-line notes into separate undoable tracks.', true, () => this.turnProgressionIntoParts(context), 'piano-roll'),
-        ];
+        ]);
       case 'sampler':
-        return [
+        return this.adaptSteps(surfaceId, facts, [
           make(1, 'Find a sample that fits the key and tempo', 'Search the sound library by the session key/BPM and favorite only the sample that loops cleanly.', true, () => this.smartSearchSounds(context)),
           make(2, 'Slice the selected sample on phrase boundaries', 'Use transient detection and the sampler-slice utility to cut the selected imported sample on measured phrase boundaries, then load the resulting AudioBuffers into the shared Sampler pads and place arrangement audio clips for audition.', true, () => this.sliceSelectedSampleOnPhraseBoundaries(), 'sampler'),
           make(3, 'Chop against the generated groove', 'Use the generated drum pattern as the timing reference for the chop.', true, () => this.applyBeatPackage(context)),
-        ];
+        ]);
       case 'score':
-        return [
+        return this.adaptSteps(surfaceId, facts, [
           make(1, 'Seed the score with a playable motif', 'Add a generated four-bar motif to the selected track so the score has a real subject.', true, () => this.seedMelodicTrack()),
           make(2, 'Audit the score’s range and scale fit', 'Measure the selected track’s pitch range and count notes that fall outside the detected project scale; add harmony only after this audit.', true, () => this.auditScoreRange()),
           make(3, 'Humanize the printed part', 'Add micro-timing and velocity variation so the notation does not sound mechanical.', true, () => this.humanizeSelectedTrack()),
           make(4, 'Export the score as MusicXML', 'Serialize every notation part into a MusicXML chart through the score utility and download it for MuseScore, Sibelius or Dorico.', true, () => this.exportScoreMusicXml(), 'score'),
           make(5, 'Open the score print/PDF dialog', 'Open the browser print dialog from the Score surface so the chart can be printed or saved as PDF.', true, () => this.printScorePdf(), 'score'),
-        ];
+        ]);
       case 'sample-library':
-        return [
+        return this.adaptSteps(surfaceId, facts, [
           make(1, 'Search the library by musical fit', 'Use key, BPM, genre and mood instead of a random browser scroll.', true, () => this.smartSearchSounds(context)),
           make(2, 'Favorite the first playable winner', 'Save the first sample that sounds correct in the full session.', true, () => this.favoriteBestSound(context)),
           make(3, 'Install the closest curated pack', 'Install the not-yet-installed pack whose genre or mood matches the Director context, avoiding a duplicate install.', true, () => this.installClosestPack(context)),
-        ];
+        ]);
       case 'plugins':
-        return [
+        return this.adaptSteps(surfaceId, facts, [
           make(1, 'Run the mix evidence pass first', 'Plugins should solve a measured problem, not become decoration.', true, () => this.analyzeAndApplyMix()),
           make(2, 'Apply the highest-value suggested plugin chain', 'Use the top mix suggestion as the plugin chain, then audition it in context.', true, () => this.applyTopMixSuggestion()),
           make(3, 'Bypass the chain for a reversible comparison', 'Bypass the selected track’s inserts with one undoable command; only commit the chain after the mix survives a full loop.', true, () => this.toggleInsertBypass()),
-        ];
+        ]);
       case 'audio-recorder':
-        return [
+        return this.adaptSteps(surfaceId, facts, [
           make(1, 'Audit the saved takes', 'Read the recorder saved takes from persistence, including each take duration and measured level when stored, so the artist knows what already exists before recording another pass.', true, () => this.recorderTakeStatus()),
           make(2, 'Arm the selected track for the next record pass', 'Arm the selected track in RecordingStatusService so the next record press lands on it, then report the recorder take count and the track take counts without overwriting them. Arming is reversible from the mixer; capturing audio itself remains a surface gesture.', true, () => this.armRecorderTrack()),
           make(3, 'Move the best take into the session', 'Promote the strongest captured MIDI take through TakeManagerService so playback and comping use it.', true, () => this.promoteBestTake()),
-        ];
+        ]);
       case 'performer':
-        return [
+        return this.adaptSteps(surfaceId, facts, [
           make(1, 'Select the strongest performance take', 'Rank the PerformanceRecordingService takes by captured notes then peak level, select the strongest in the carousel, and report the MIDI take count. Selecting is reversible; no take is overwritten.', true, () => this.selectStrongestPerformanceTake()),
           make(2, 'Arm the performer’s next take slot', 'Arm the next PerformanceRecordingService take slot for the selected track, then perform one complete pass and stop the take from the performer surface.', true, () => this.armNextPerformanceTake(), 'performer'),
           make(3, 'Merge the take comp into the track', 'Stack every take on the track, merge them through TakeManagerService, and write the comp back through MusicManagerService.replaceTrackNotes().', true, () => this.applyTakeComp()),
-        ];
+        ]);
       case 'export':
-        return [
+        return this.adaptSteps(surfaceId, facts, [
           make(1, 'Run the final mastering pass', 'Master against the intended delivery surface before exporting.', true, () => this.autoMaster()),
           make(2, 'Complete the delivery export', 'Render the pre-master mix, apply the retained master chain, run the S.M.U.V.E polish, measure the polished buffer, encode a real WAV and download the delivery file.', true, () => this.completeDeliveryExport()),
           make(3, 'Check stems readiness before exporting stems', 'Confirm exactly which tracks become stems (every unmuted non-bus track) and which are skipped (muted tracks and buses) before spending time rendering them. No audio is rendered in this step.', true, () => this.stemsReadiness()),
@@ -956,8 +1022,249 @@ export class StudioAiDirectorService {
           make(9, 'Export the transport loop as WAV', 'Render the current A/B loop region, or the active loop length from step 0 when no A/B region is set, and download it as a standalone 24-bit WAV.', true, () => this.exportTransportLoop('wav24')),
           make(10, 'Export the transport loop as MP3', 'Render the same loop region as a shareable MP3; the filename and result metadata carry the loop start/end steps.', true, () => this.exportTransportLoop('mp3')),
           make(11, 'Prepare the delivery checklist', 'Read the AI Produce release handoff and surface format, loudness target, artwork, metadata and next delivery step.', true, () => this.deliveryChecklist()),
-        ];
+        ]);
     }
+  }
+
+  /**
+   * Machine-readable session readings. Display strings still come from
+   * `sessionEvidence`; facts drive which steps the plan prioritizes.
+   */
+  collectFacts(
+    context: StudioDirectorContext = { surfaceId: 'arrangement' },
+  ): DirectorFact[] {
+    const facts: DirectorFact[] = [];
+    const focus = context.focusPrompt?.trim() ?? '';
+    if (focus.length > 0) {
+      facts.push({
+        id: 'artist-focus',
+        label: 'Artist focus',
+        detail: focus.slice(0, 140),
+        severity: 'info',
+      });
+    }
+    const tracks = this.music.tracks();
+    const notes = tracks.reduce(
+      (sum, track) => sum + (track.notes?.length ?? 0),
+      0,
+    );
+    if (notes === 0) {
+      facts.push({
+        id: 'empty-session',
+        label: 'Empty session',
+        detail:
+          tracks.length === 0
+            ? 'No tracks yet — generating the first sound is the fastest move.'
+            : `${tracks.length} track(s) but no notes yet — seeding a part is the fastest move.`,
+        severity: 'opportunity',
+      });
+    }
+    if (!this.music.selectedTrack()) {
+      facts.push({
+        id: 'no-track-selected',
+        label: 'No track selected',
+        detail: 'Selection steps will pick the first playable track.',
+        severity: 'info',
+      });
+    }
+    const metadata = this.workspace.metadata() as { bpm?: unknown } | null;
+    const projectBpm =
+      typeof metadata?.bpm === 'number' &&
+      Number.isFinite(metadata.bpm) &&
+      metadata.bpm > 0
+        ? Math.round(metadata.bpm)
+        : null;
+    const engineBpm = this.engine.tempo();
+    if (
+      projectBpm !== null &&
+      Number.isFinite(engineBpm) &&
+      Math.round(engineBpm) !== projectBpm
+    ) {
+      facts.push({
+        id: 'tempo-drift',
+        label: 'Tempo drift',
+        detail: `Engine ${Math.round(engineBpm)} BPM vs project ${projectBpm} BPM — sync first or every later reading is off.`,
+        severity: 'risk',
+      });
+    }
+    const suggestions = this.mix.suggestions().length;
+    if (suggestions > 0) {
+      facts.push({
+        id: 'mix-suggestions-pending',
+        label: 'Mix suggestions pending',
+        detail: `${suggestions} mix suggestion${suggestions === 1 ? '' : 's'} waiting — the top one is the next move.`,
+        severity: 'opportunity',
+      });
+    }
+    const anySolo = tracks.some((track) => track.soloed);
+    const audible = tracks.some(
+      (track) => !track.muted && (!anySolo || track.soloed),
+    );
+    if (tracks.length > 0 && !audible) {
+      facts.push({
+        id: 'all-muted',
+        label: 'Nothing audible',
+        detail:
+          'Every playable track is muted or soloed out — audit mute/solo before judging anything.',
+        severity: 'risk',
+      });
+    }
+    const failure = this.lastRun?.results.find((result) => !result.ok);
+    if (this.lastRun && failure) {
+      facts.push({
+        id: 'last-run-failed',
+        label: 'Last run failed',
+        detail: `"${failure.step.label}" failed: ${String(failure.message).slice(0, 140)}`,
+        severity: 'risk',
+        stepLabel: failure.step.label,
+      });
+    }
+    const vocalAdvice = this.vocal.currentAdvice().trim();
+    if (vocalAdvice.length > 12) {
+      facts.push({
+        id: 'vocal-signal',
+        label: 'Fresh vocal guidance',
+        detail: 'Vocal AI left new guidance — the vocal steps answer it first.',
+        severity: 'opportunity',
+      });
+    }
+    return facts;
+  }
+
+  /**
+   * Adapt a base template to the live facts without moving its stable ids
+   * or order: matching steps are flagged priority and annotated with the
+   * fact, and at most one conditional step is appended per surface.
+   */
+  private adaptSteps(
+    surfaceId: StudioSurfaceId,
+    facts: DirectorFact[],
+    base: StudioDirectorStep[],
+  ): StudioDirectorStep[] {
+    const steps = base.map((step) => ({ ...step }));
+    const active = new Map(facts.map((fact) => [fact.id, fact]));
+    const flag = (stepId: string, factId: string): void => {
+      const fact = active.get(factId);
+      const step = steps.find((candidate) => candidate.id === stepId);
+      if (!fact || !step) return;
+      step.priority = true;
+      step.detail = `${step.detail} ${fact.detail}`;
+    };
+    // A step that failed on the previous run jumps the queue by label,
+    // wherever it lives.
+    const failed = active.get('last-run-failed');
+    if (failed?.stepLabel) {
+      const step = steps.find(
+        (candidate) => candidate.label === failed.stepLabel,
+      );
+      if (step) {
+        step.priority = true;
+        step.detail = `${step.detail} ${failed.detail}`;
+      }
+    }
+    const rules: Record<string, Array<[string, string]>> = {
+      'quick-session': [
+        ['quick-session-2', 'tempo-drift'],
+        ['quick-session-1', 'empty-session'],
+      ],
+      arrangement: [['arrangement-1', 'no-track-selected']],
+      session: [
+        ['session-2', 'no-track-selected'],
+        ['session-1', 'empty-session'],
+      ],
+      'piano-roll': [['piano-roll-2', 'empty-session']],
+      'drum-machine': [['drum-machine-1', 'empty-session']],
+      'channel-rack': [['channel-rack-1', 'empty-session']],
+      mixer: [
+        ['mixer-1', 'mix-suggestions-pending'],
+        ['mixer-2', 'all-muted'],
+      ],
+      'effects-rack': [['effects-rack-2', 'mix-suggestions-pending']],
+      'vocal-suite': [['vocal-suite-1', 'vocal-signal']],
+      mastering: [['mastering-1', 'mix-suggestions-pending']],
+      synthesizer: [['synthesizer-1', 'empty-session']],
+      score: [['score-1', 'empty-session']],
+      sampler: [['sampler-3', 'empty-session']],
+    };
+    for (const [stepId, factId] of rules[surfaceId] ?? []) {
+      flag(stepId, factId);
+    }
+    // The artist's focus prompt: score this surface's steps by token
+    // overlap and flag the best match; when nothing here answers it,
+    // append a guide step pointing at the surface that does.
+    const focus = active.get('artist-focus');
+    if (focus) {
+      const tokens = focusTokens(focus.detail);
+      let best: StudioDirectorStep | null = null;
+      let bestScore = 0;
+      for (const step of steps) {
+        const haystack = `${step.label} ${step.detail}`.toLowerCase();
+        const score = tokens.filter((token) =>
+          haystack.includes(token),
+        ).length;
+        if (score > bestScore) {
+          best = step;
+          bestScore = score;
+        }
+      }
+      if (best && bestScore >= 2) {
+        best.priority = true;
+        best.detail = `${best.detail} Focus: "${focus.detail}"`;
+      } else {
+        const route = FOCUS_ROUTES.find((entry) =>
+          entry.pattern.test(focus.detail),
+        );
+        if (route && route.surfaceId !== surfaceId) {
+          const target =
+            SURFACE_LOOKUP.get(route.surfaceId)?.label ?? route.surfaceId;
+          steps.push({
+            id: `${surfaceId}-${steps.length + 1}`,
+            surfaceId,
+            label: `Follow the focus: open ${target}`,
+            detail:
+              `"${focus.detail}" points at ${target} — open it to run ` +
+              `its Director plan there.`,
+            executable: false,
+            targetSurfaceId: route.surfaceId,
+            priority: true,
+            run: () =>
+              `Open the ${target} surface to answer: ${focus.detail}`,
+          });
+        }
+      }
+    }
+    const append = (
+      label: string,
+      detail: string,
+      run: () => Promise<string> | string,
+      targetSurfaceId?: StudioSurfaceId,
+    ): void => {
+      steps.push({
+        id: `${surfaceId}-${steps.length + 1}`,
+        surfaceId,
+        label,
+        detail,
+        executable: true,
+        targetSurfaceId,
+        priority: true,
+        run,
+      });
+    };
+    if (surfaceId === 'arrangement' && active.has('empty-session')) {
+      append(
+        'Seed the empty arrangement',
+        'The session has no notes, so generate a melodic layer first instead of auditing emptiness.',
+        () => this.seedMelodicTrack(),
+      );
+    }
+    if (surfaceId === 'mixer' && active.has('mix-suggestions-pending')) {
+      append(
+        'Apply the top mix suggestion now',
+        'Suggestions are waiting, so apply the highest-value one instead of only analyzing.',
+        () => this.applyTopMixSuggestion(),
+      );
+    }
+    return steps;
   }
 
   private missionFor(surfaceId: StudioSurfaceId): string {
@@ -1660,7 +1967,7 @@ export class StudioAiDirectorService {
     const track = this.ensureTrack('Director Harmony', 'grand-piano', 'midi');
     // Keep the Director honest: this is a simple major-third harmony, not a
     // measured vocal arrangement. The full Vocal Suite remains the model.
-    const harmonyNotes = melody.map((note, i) => ({
+    const harmonyNotes = melody.map((note) => ({
       id: this.nextId('harmony'),
       midi: note.midi + 4,
       step: note.step,
@@ -2044,7 +2351,6 @@ export class StudioAiDirectorService {
     const padTrack = this.ensureTrack('Director Chord Pad', 'grand-piano', 'midi');
     const bassTrack = this.ensureTrack('Director Chord Bass', 'grand-piano', 'midi');
     const topTrack = this.ensureTrack('Director Chord Top', 'grand-piano', 'midi');
-    const majorScale = [0, 2, 4, 5, 7, 9, 11];
     const padNotes: TrackNote[] = [];
     const bassNotes: TrackNote[] = [];
 

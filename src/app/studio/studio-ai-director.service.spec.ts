@@ -1280,3 +1280,204 @@ describe('StudioAiDirectorService', () => {
     expect(undone).toContain('Remove Track · Test Track');
   });
 });
+
+describe('StudioAiDirectorService adaptive plans', () => {
+  beforeEach(() => {
+    TestBed.resetTestingModule();
+    window.localStorage.clear();
+  });
+
+  it('seeds first when the arrangement session is empty', () => {
+    const { service } = makeDirector({
+      music: {
+        tracks: signal([]),
+        selectedTrackId: signal<string | null>(null),
+        selectedTrack: () => null,
+      },
+    });
+
+    const plan = service.buildPlan({ surfaceId: 'arrangement' });
+
+    // Stable base order: the template still starts at arrangement-1.
+    expect(plan.steps[0].id).toBe('arrangement-1');
+    const seed = plan.steps[plan.steps.length - 1];
+    expect(seed.id).toBe('arrangement-5');
+    expect(seed.priority).toBe(true);
+    expect(seed.label).toMatch(/Seed the empty arrangement/);
+    expect(plan.priorityStepIds).toContain('arrangement-5');
+    expect(plan.evidence.length).toBeGreaterThan(0);
+  });
+
+  it('leaves a healthy session template untouched', () => {
+    const { service } = makeDirector({});
+
+    const plan = service.buildPlan({ surfaceId: 'arrangement' });
+
+    expect(plan.steps.map((step) => step.id)).toEqual([
+      'arrangement-1',
+      'arrangement-2',
+      'arrangement-3',
+      'arrangement-4',
+    ]);
+    expect(plan.priorityStepIds).toEqual([]);
+  });
+
+  it('prioritizes the tempo sync step with live values when the engine drifts', () => {
+    const { service } = makeDirector({
+      engine: { tempo: signal(132) },
+      workspace: { metadata: signal({ bpm: 100 }) },
+    });
+
+    const plan = service.buildPlan({ surfaceId: 'quick-session' });
+
+    expect(plan.steps[0].id).toBe('quick-session-1');
+    const sync = plan.steps[1];
+    expect(sync.id).toBe('quick-session-2');
+    expect(sync.priority).toBe(true);
+    expect(sync.detail).toContain('132');
+    expect(sync.detail).toContain('100');
+    expect(plan.priorityStepIds).toContain('quick-session-2');
+  });
+
+  it('appends an apply step when mix suggestions are waiting', () => {
+    const { service } = makeDirector({
+      mix: { suggestions: signal([{ id: 's1' }]) },
+    });
+
+    const plan = service.buildPlan({ surfaceId: 'mixer' });
+
+    expect(plan.steps.map((step) => step.id)).toEqual([
+      'mixer-1',
+      'mixer-2',
+      'mixer-3',
+      'mixer-4',
+      'mixer-5',
+      'mixer-6',
+      'mixer-7',
+    ]);
+    expect(plan.steps[0].priority).toBe(true);
+    const apply = plan.steps[plan.steps.length - 1];
+    expect(apply.priority).toBe(true);
+    expect(apply.label).toMatch(/Apply the top mix suggestion/);
+    expect(plan.priorityStepIds).toEqual(['mixer-1', 'mixer-7']);
+  });
+
+  it('re-surfaces the step that failed on the previous run', async () => {
+    const { service } = makeDirector({
+      scale: {
+        detectKeyAndScale: jest.fn(() => {
+          throw new Error('key blew up');
+        }),
+      },
+    });
+
+    const first = service.buildPlan({ surfaceId: 'arrangement' });
+    const run = await service.runPlan(first);
+    expect(run.failed).toBe(1);
+
+    const plan = service.buildPlan({ surfaceId: 'arrangement' });
+
+    const failed = plan.steps.find((step) => step.id === 'arrangement-2');
+    expect(failed?.priority).toBe(true);
+    expect(failed?.detail).toContain('key blew up');
+    expect(plan.priorityStepIds).toContain('arrangement-2');
+  });
+
+  it('flags the vocal step when fresh vocal guidance exists', () => {
+    const { service } = makeDirector({
+      vocal: { currentAdvice: signal('Your chorus take clips at 0:42 — retake it.') },
+    });
+
+    const plan = service.buildPlan({ surfaceId: 'vocal-suite' });
+
+    expect(plan.steps[0].priority).toBe(true);
+    expect(plan.priorityStepIds).toContain('vocal-suite-1');
+  });
+});
+
+describe('StudioAiDirectorService focus-prompt selection', () => {
+  beforeEach(() => {
+    TestBed.resetTestingModule();
+    window.localStorage.clear();
+  });
+
+  it('flags the step that answers the focus on the same surface', () => {
+    const { service } = makeDirector({});
+
+    const plan = service.buildPlan({
+      surfaceId: 'vocal-suite',
+      focusPrompt: 'tune my vocal take',
+    });
+
+    expect(plan.steps).toHaveLength(3);
+    expect(plan.steps[0].priority).toBe(true);
+    expect(plan.steps[0].detail).toContain('Focus: "tune my vocal take"');
+    expect(plan.priorityStepIds).toEqual(['vocal-suite-1']);
+  });
+
+  it('points at the answering surface when nothing here matches', () => {
+    const { service } = makeDirector({});
+
+    const plan = service.buildPlan({
+      surfaceId: 'arrangement',
+      focusPrompt: 'fix the muddy mix',
+    });
+
+    expect(plan.steps.map((step) => step.id)).toEqual([
+      'arrangement-1',
+      'arrangement-2',
+      'arrangement-3',
+      'arrangement-4',
+      'arrangement-5',
+    ]);
+    const pointer = plan.steps[plan.steps.length - 1];
+    expect(pointer.priority).toBe(true);
+    expect(pointer.executable).toBe(false);
+    expect(pointer.targetSurfaceId).toBe('mixer');
+    expect(pointer.label).toMatch(/Follow the focus/);
+    expect(plan.priorityStepIds).toEqual(['arrangement-5']);
+  });
+
+  it('runs the pointer step as guidance to open the right surface', async () => {
+    const { service } = makeDirector({});
+    const plan = service.buildPlan({
+      surfaceId: 'arrangement',
+      focusPrompt: 'fix the muddy mix',
+    });
+    const pointer = plan.steps[plan.steps.length - 1];
+
+    const result = await service.runStep(pointer);
+
+    expect(result.ok).toBe(true);
+    expect(result.message).toContain('surface to answer');
+    expect(result.message).toContain('fix the muddy mix');
+  });
+
+  it('ignores a blank focus prompt', () => {
+    const { service } = makeDirector({});
+
+    const plan = service.buildPlan({
+      surfaceId: 'arrangement',
+      focusPrompt: '   ',
+    });
+
+    expect(plan.steps).toHaveLength(4);
+    expect(plan.priorityStepIds).toEqual([]);
+    expect(
+      service.collectFacts({ surfaceId: 'arrangement', focusPrompt: '   ' }),
+    ).toEqual([]);
+  });
+
+  it('collects the artist focus as a fact with the prompt text', () => {
+    const { service } = makeDirector({});
+
+    const facts = service.collectFacts({
+      surfaceId: 'mixer',
+      focusPrompt: 'the low end feels weak on phone speakers',
+    });
+
+    expect(facts.map((fact) => fact.id)).toContain('artist-focus');
+    const focus = facts.find((fact) => fact.id === 'artist-focus');
+    expect(focus?.detail).toContain('low end feels weak');
+  });
+});

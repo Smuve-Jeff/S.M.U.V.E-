@@ -29,7 +29,6 @@ describe('LocalStorageService durable storage', () => {
 
   afterEach(() => {
     addEventListener.mockRestore();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     delete (navigator as any).storage;
   });
 

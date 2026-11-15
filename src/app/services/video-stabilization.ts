@@ -152,7 +152,6 @@ export function estimateRotationDegrees(
     }
     return best;
   };
-  const hw = Math.floor(width / 2);
   const hh = Math.floor(height / 2);
   const margin = maxShift + 2;
   const top = match(margin, margin, width - margin, hh - margin);
