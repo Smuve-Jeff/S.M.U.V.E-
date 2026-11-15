@@ -1,6 +1,6 @@
-import { emitToUser } from "@/socket";
+import { emitToUser, isUserOnline } from "@/socket";
 import type { LiveStreamAnnouncement } from "@/socket";
-import { listFriends } from "./social.service";
+import { listFriends, persistNotification } from "./social.service";
 
 /**
  * Announce a new broadcast to the host's accepted friends.
@@ -29,6 +29,23 @@ export const notifyFriendsWentLive = async (
   for (const friend of friends) {
     if (friend.status && friend.status !== "accepted") continue;
     if (!friend.userId) continue;
-    emitToUser(String(friend.userId), "friend_went_live", payload);
+    const friendId = String(friend.userId);
+    if (isUserOnline(friendId)) {
+      emitToUser(friendId, "friend_went_live", payload);
+      continue;
+    }
+    // Offline friends get the same card waiting in their notification inbox,
+    // so a broadcast they missed is not lost the moment they close the tab.
+    try {
+      await persistNotification({
+        userId: friendId,
+        type: "friend_live",
+        title: `${payload.hostDisplayName} IS LIVE`,
+        body: `${payload.platform.toUpperCase()}${payload.gameId ? ` · ${payload.gameId}` : ""} — tap to watch`,
+        payload,
+      });
+    } catch {
+      /* the live directory still lists the broadcast */
+    }
   }
 };

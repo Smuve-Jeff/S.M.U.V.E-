@@ -170,6 +170,20 @@ export class ChallengeInboxComponent implements OnInit, OnDestroy {
     else this.snackbarService.error("CHALLENGE RESPONSE FAILED — PLEASE RETRY");
   }
 
+  /**
+   * A notification is a door, not just a receipt: a friend going live opens
+   * the broadcast the notification carries, and is marked read on the way.
+   */
+  async openNotification(n: AppNotification): Promise<void> {
+    await this.markRead(n);
+    if (n.type !== "friend_live") return;
+    const token = (n.payload as { shareToken?: unknown } | null)?.shareToken;
+    if (typeof token !== "string" || !token) return;
+    await this.router.navigate(["/tha-spot"], {
+      queryParams: { live: token },
+    });
+  }
+
   async markRead(n: AppNotification) {
     if (n.read) return;
     await this.inbox.markNotificationRead(n.id);

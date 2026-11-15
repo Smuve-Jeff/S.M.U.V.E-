@@ -1003,6 +1003,40 @@ describe("socket.io handshake + JWT auth", () => {
     );
   });
 
+  it("retires live alerts whose broadcast is over on presence sync", async () => {
+    const { AppDataSource } = jest.requireMock("@/database/data-source");
+    AppDataSource.createQueryBuilder.mockClear();
+    const token = jwt.sign(
+      { userId: 7, role: "user" },
+      process.env.JWT_SECRET!,
+    );
+    const client = ioClient(url(), {
+      auth: { token },
+      transports: ["websocket", "polling"],
+    });
+    await new Promise<void>((resolve) => client.on("connect", () => resolve()));
+
+    client.emit("register_presence", { userId: "7", metadata: {} });
+    await new Promise((resolve) => setTimeout(resolve, 300));
+
+    const chains = AppDataSource.createQueryBuilder.mock.results.map(
+      (result: { value: any }) => result.value,
+    );
+    const updates = chains.filter((chain: any) =>
+      chain.set.mock.calls.some(
+        ([values]: [{ isRead?: boolean }]) => values?.isRead === true,
+      ),
+    );
+    expect(updates.length).toBeGreaterThan(0);
+    const where = updates
+      .flatMap((chain: any) => chain.where.mock.calls)
+      .map(([sql]: [string]) => sql)
+      .join(" ");
+    expect(where).toContain("friend_live");
+    expect(where).toContain("live_streams");
+    client.close();
+  });
+
   it("keeps a user present while any of their sockets is still connected", (done) => {
     // Social + matchmaking clients each hold their own socket for the same
     // user. Losing one must not delete presence while the other is alive.

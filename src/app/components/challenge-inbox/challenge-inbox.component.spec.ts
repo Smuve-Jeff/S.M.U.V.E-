@@ -122,4 +122,122 @@ describe("ChallengeInboxComponent response feedback", () => {
     expect(inbox.respondToChallenge).toHaveBeenCalledWith(11, "accepted");
     fixture.destroy();
   });
+
+  it("opens the broadcast carried by a friend-live notification", async () => {
+    const inbox = {
+      loading: signal(false),
+      challenges: signal([]),
+      notifications: signal([]),
+      unreadCount: signal(0),
+      pendingCount: signal(0),
+      loadInbox: jest.fn().mockResolvedValue(undefined),
+      loadNotifications: jest.fn().mockResolvedValue(undefined),
+      respondToChallenge: jest.fn().mockResolvedValue(true),
+      markNotificationRead: jest.fn().mockResolvedValue(undefined),
+      onChallengeInboxSync: jest.fn(),
+      onNotificationSync: jest.fn(),
+      bindSocket: jest.fn(),
+    };
+    TestBed.configureTestingModule({
+      imports: [ChallengeInboxComponent],
+      providers: [
+        { provide: ChallengeInboxService, useValue: inbox },
+        {
+          provide: SocialNetworkingService,
+          useValue: { getSocket: () => ({ on: jest.fn(), off: jest.fn() }) },
+        },
+        {
+          provide: UserProfileService,
+          useValue: { profile: signal({ id: "me" }) },
+        },
+        {
+          provide: SnackbarService,
+          useValue: { success: jest.fn(), info: jest.fn(), error: jest.fn() },
+        },
+        { provide: TokenService, useValue: { jwtToken: jest.fn() } },
+        { provide: GameService, useValue: { getGameById: jest.fn() } },
+        { provide: Router, useValue: { navigate: jest.fn() } },
+        {
+          provide: ActivatedRoute,
+          useValue: { queryParamMap: of({ get: () => null }) },
+        },
+      ],
+    }).overrideComponent(ChallengeInboxComponent, { set: { template: "" } });
+    const fixture = TestBed.createComponent(ChallengeInboxComponent);
+    const router = TestBed.inject(Router);
+
+    await fixture.componentInstance.openNotification({
+      id: 7,
+      type: "friend_live",
+      title: "NOVA IS LIVE",
+      body: "SMUVE — tap to watch",
+      payload: { shareToken: "tok_offline" },
+      read: false,
+      timestamp: Date.now(),
+    });
+
+    expect(inbox.markNotificationRead).toHaveBeenCalledWith(7);
+    expect(router.navigate).toHaveBeenCalledWith(["/tha-spot"], {
+      queryParams: { live: "tok_offline" },
+    });
+    fixture.destroy();
+  });
+
+  it("only marks a notification read when it carries no broadcast", async () => {
+    const inbox = {
+      loading: signal(false),
+      challenges: signal([]),
+      notifications: signal([]),
+      unreadCount: signal(0),
+      pendingCount: signal(0),
+      loadInbox: jest.fn().mockResolvedValue(undefined),
+      loadNotifications: jest.fn().mockResolvedValue(undefined),
+      respondToChallenge: jest.fn().mockResolvedValue(true),
+      markNotificationRead: jest.fn().mockResolvedValue(undefined),
+      onChallengeInboxSync: jest.fn(),
+      onNotificationSync: jest.fn(),
+      bindSocket: jest.fn(),
+    };
+    TestBed.configureTestingModule({
+      imports: [ChallengeInboxComponent],
+      providers: [
+        { provide: ChallengeInboxService, useValue: inbox },
+        {
+          provide: SocialNetworkingService,
+          useValue: { getSocket: () => ({ on: jest.fn(), off: jest.fn() }) },
+        },
+        {
+          provide: UserProfileService,
+          useValue: { profile: signal({ id: "me" }) },
+        },
+        {
+          provide: SnackbarService,
+          useValue: { success: jest.fn(), info: jest.fn(), error: jest.fn() },
+        },
+        { provide: TokenService, useValue: { jwtToken: jest.fn() } },
+        { provide: GameService, useValue: { getGameById: jest.fn() } },
+        { provide: Router, useValue: { navigate: jest.fn() } },
+        {
+          provide: ActivatedRoute,
+          useValue: { queryParamMap: of({ get: () => null }) },
+        },
+      ],
+    }).overrideComponent(ChallengeInboxComponent, { set: { template: "" } });
+    const fixture = TestBed.createComponent(ChallengeInboxComponent);
+    const router = TestBed.inject(Router);
+
+    await fixture.componentInstance.openNotification({
+      id: 8,
+      type: "friend_live",
+      title: "NOVA IS LIVE",
+      body: "SMUVE",
+      payload: {},
+      read: false,
+      timestamp: Date.now(),
+    });
+
+    expect(inbox.markNotificationRead).toHaveBeenCalledWith(8);
+    expect(router.navigate).not.toHaveBeenCalled();
+    fixture.destroy();
+  });
 });

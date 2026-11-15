@@ -364,6 +364,22 @@ export class SocialNetworkingService {
     });
   }
 
+  /**
+   * Force the transport back to life. Auto-reconnect handles the ordinary
+   * case; this is the manual escape hatch behind the reconnect banner.
+   */
+  reconnectSocket(): void {
+    if (!this.tokenService.jwtToken()) return;
+    if (!this.socket) {
+      // A socket the server severed was dropped, not reconnecting.
+      this.lastRejectedToken = undefined;
+      const userId = this.profileService.profile().id;
+      if (userId) this.initializeSocket(userId);
+      return;
+    }
+    if (!this.socket.connected) this.socket.connect();
+  }
+
   private initializeSocket(userId: string) {
     // Fresh token on EVERY (re)connect attempt: `auth` as a function is
     // re-invoked by socket.io for each connection attempt, so a login that

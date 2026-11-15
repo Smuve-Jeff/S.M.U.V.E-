@@ -1457,6 +1457,16 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     return !!track && track.readyState !== "ended" && track.muted !== true;
   }
 
+  /**
+   * The inbound feed or its transport dropped and is being rebuilt. Shown as
+   * a banner with a manual reconnect so a viewer is never left guessing.
+   */
+  readonly liveFeedReconnecting = computed(
+    () =>
+      !!this.liveVideo.watchingToken() &&
+      (this.liveVideo.recovering() || !this.socialService.socketConnected())
+  );
+
   /** True once this viewer has recorded a join for the inbound stream. */
   readonly liveJoined = signal(false);
   /** Human-readable live-video state for the join overlay. */
@@ -2924,6 +2934,12 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
       this.inboundLivePreview.set(result);
       this.liveJoined.set(true);
     }
+  }
+
+  /** Reconnect banner action: wake the transport and rebuild the feed now. */
+  reconnectLiveFeed(): void {
+    this.socialService.reconnectSocket();
+    this.liveVideo.retryViewerFeed();
   }
 
   /** Retry the peer connection after a network/media failure. */

@@ -589,6 +589,52 @@ describe("LiveVideoService", () => {
     service.stopWatching();
   }, 10_000);
 
+  it("flags a dropped feed and rebuilds it on demand", async () => {
+    await service.watch("tok");
+    socket.trigger("live_webrtc_offer", {
+      streamToken: "tok",
+      sdp: { type: "offer", sdp: "first" },
+    });
+    await flush();
+    const pc = FakePeerConnection.instances[0];
+    expect(service.recovering()).toBe(false);
+
+    pc.connectionState = "failed";
+    pc.onconnectionstatechange?.();
+    expect(service.recovering()).toBe(true);
+
+    // The banner action must not wait out the automatic rejoin delay.
+    service.retryViewerFeed();
+    const joins = socket.emitted.filter(
+      (entry) => entry.event === "live_stream_watch",
+    );
+    expect(joins).toHaveLength(2);
+    // The old peer is gone; the replacement is built from the fresh offer.
+    expect(FakePeerConnection.instances[0].connectionState).toBe("closed");
+
+    socket.trigger("live_webrtc_offer", {
+      streamToken: "tok",
+      sdp: { type: "offer", sdp: "retry" },
+    });
+    await flush();
+    expect(FakePeerConnection.instances).toHaveLength(2);
+    const retried = FakePeerConnection.instances[1];
+    retried.receivers = [{ track: videoTrack }, { track: remoteAudio }];
+    retried.ontrack?.({ streams: [remoteMedia], track: videoTrack });
+
+    expect(service.status()).toBe("live");
+    expect(service.recovering()).toBe(false);
+    service.stopWatching();
+  });
+
+  it("does not rebuild a feed the viewer is not watching", () => {
+    service.retryViewerFeed();
+    expect(service.recovering()).toBe(false);
+    expect(
+      socket.emitted.filter((entry) => entry.event === "live_stream_watch"),
+    ).toHaveLength(0);
+  });
+
   it("stops watching on an ended broadcast and releases the player", async () => {
     await service.watch("tok");
     socket.trigger("live_webrtc_offer", {

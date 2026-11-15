@@ -127,6 +127,7 @@ describe("ThaSpotComponent", () => {
       liveNow: signal([]),
       friendWentLive: signal(null),
       clearFriendLive: jest.fn(),
+      reconnectSocket: jest.fn(),
       loadFriends: jest.fn(),
       joinParty: jest.fn(),
       joinRoom: jest.fn(),
@@ -1212,6 +1213,40 @@ describe("ThaSpotComponent", () => {
       expect(styles).toMatch(
         /prefers-reduced-motion: reduce[\s\S]{0,400}\.rival-hub-toggle,[\s\S]{0,120}transition: none !important/,
       );
+    });
+  });
+
+  describe("live reconnect banner", () => {
+    it("stays hidden while nothing is being watched", () => {
+      expect(component.liveFeedReconnecting()).toBe(false);
+    });
+
+    it("shows while a dropped feed or transport is being rebuilt", () => {
+      const liveVideo = TestBed.inject(LiveVideoService);
+      liveVideo.watchingToken.set("tok_live");
+      socialServiceMock.socketConnected.set(true);
+
+      expect(component.liveFeedReconnecting()).toBe(false);
+
+      liveVideo.recovering.set(true);
+      expect(component.liveFeedReconnecting()).toBe(true);
+
+      liveVideo.recovering.set(false);
+      socialServiceMock.socketConnected.set(false);
+      expect(component.liveFeedReconnecting()).toBe(true);
+
+      socialServiceMock.socketConnected.set(true);
+      expect(component.liveFeedReconnecting()).toBe(false);
+    });
+
+    it("wakes the transport and forces a fresh feed on tap", () => {
+      const liveVideo = TestBed.inject(LiveVideoService);
+      const retry = jest.spyOn(liveVideo, "retryViewerFeed");
+
+      component.reconnectLiveFeed();
+
+      expect(socialServiceMock.reconnectSocket).toHaveBeenCalled();
+      expect(retry).toHaveBeenCalled();
     });
   });
 

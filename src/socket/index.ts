@@ -159,6 +159,12 @@ export const setFriendLiveNotifier = (
   friendLiveNotifier = notifier;
 };
 
+/** Whether a user currently holds at least one socket. */
+export const isUserOnline = (userId: string): boolean => {
+  const room = ioServer?.sockets.adapter.rooms.get(String(userId));
+  return (room?.size ?? 0) > 0;
+};
+
 /** Emit to every socket a user holds (their presence room). */
 export const emitToUser = (
   userId: string,
@@ -779,6 +785,29 @@ export const setupSocketIO = (httpServer: HttpServer): Server => {
       }));
       io.to(userId).emit("challenge_inbox_sync", challenges);
 
+      // A "friend went live" card is only useful while that room is up. Retire
+      // the ones whose broadcast ended (or that sat unopened for a day) so the
+      // inbox never offers WATCH on a dead stream. Kept separate from the sync
+      // below: a failed prune must not cost the user their other notifications.
+      try {
+        await AppDataSource.createQueryBuilder()
+          .update("notifications")
+          .set({ isRead: true })
+          .where(
+            `user_id = :userId AND type = 'friend_live' AND is_read = false
+             AND (created_at < (CURRENT_TIMESTAMP - INTERVAL '24 hours')
+               OR NOT EXISTS (
+                 SELECT 1 FROM live_streams s
+                 WHERE s.share_token = notifications.payload->>'shareToken'
+                   AND s.active = true
+               ))`,
+            { userId },
+          )
+          .execute();
+      } catch (pruneErr) {
+        console.error("Stale live alert prune failed:", pruneErr);
+      }
+
       const notifRows = await AppDataSource.createQueryBuilder()
         .select([
           `n.id as "id"`,
@@ -790,7 +819,18 @@ export const setupSocketIO = (httpServer: HttpServer): Server => {
           `EXTRACT(EPOCH FROM n.created_at)::bigint * 1000 as "timestamp"`,
         ])
         .from("notifications", "n")
-        .where("n.user_id = :userId", { userId })
+        .where(
+          `n.user_id = :userId
+           AND (n.type <> 'friend_live' OR (
+             n.created_at > (CURRENT_TIMESTAMP - INTERVAL '24 hours')
+             AND EXISTS (
+               SELECT 1 FROM live_streams s
+               WHERE s.share_token = n.payload->>'shareToken'
+                 AND s.active = true
+             )
+           ))`,
+          { userId },
+        )
         .orderBy("n.created_at", "DESC")
         .limit(30)
         .getRawMany();

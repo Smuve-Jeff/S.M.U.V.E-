@@ -1520,6 +1520,23 @@
             RETRY FEED
           </button>
         </div>
+        <div class="live-feed-reconnect" *ngIf="liveFeedReconnecting()">
+          <span class="material-symbols-outlined">sync_problem</span>
+          <p>
+            {{
+              socialService.socketConnected()
+                ? 'FEED DROPPED — RECONNECTING…'
+                : 'CONNECTION LOST — RECONNECTING…'
+            }}
+          </p>
+          <button
+            type="button"
+            class="action-btn"
+            (click)="reconnectLiveFeed()"
+          >
+            RECONNECT
+          </button>
+        </div>
         <div class="live-feed-badge" *ngIf="liveVideo.status() === 'live'">
           <span class="live-dot"></span>
           {{

@@ -32,11 +32,15 @@
         *ngFor="let n of notifications().slice(0, 3)"
         class="notif-card glass-v42"
         [class.unread]="!n.read"
-        (click)="markRead(n)"
+        (click)="openNotification(n)"
       >
         <div class="notif-left">
           <span class="material-symbols-outlined">{{
-            n.type === 'challenge_incoming' ? 'swords' : 'notifications'
+            n.type === 'challenge_incoming'
+              ? 'swords'
+              : n.type === 'friend_live'
+                ? 'sensors'
+                : 'notifications'
           }}</span>
           <span class="notif-unread-dot" *ngIf="!n.read"></span>
         </div>

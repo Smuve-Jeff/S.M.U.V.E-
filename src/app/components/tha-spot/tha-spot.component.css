@@ -4561,6 +4561,36 @@
   font-weight: 900;
   letter-spacing: 0.1em;
 }
+.live-feed-reconnect {
+  position: absolute;
+  left: 50%;
+  bottom: 0.75rem;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.6rem;
+  border-radius: 999px;
+  background: rgba(10, 6, 20, 0.88);
+  border: 1px solid rgba(255, 176, 32, 0.6);
+  color: #ffc46b;
+  font-size: 0.55rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  pointer-events: auto;
+  z-index: 3;
+}
+.live-feed-reconnect p {
+  margin: 0;
+}
+.live-feed-reconnect .material-symbols-outlined {
+  font-size: 0.95rem;
+}
+.live-feed-reconnect .action-btn {
+  padding: 0.2rem 0.5rem;
+  font-size: 0.5rem;
+}
 .live-feed-controls {
   display: flex;
   align-items: center;

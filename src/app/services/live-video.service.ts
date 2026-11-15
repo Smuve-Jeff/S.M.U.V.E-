@@ -105,6 +105,8 @@ export class LiveVideoService {
   readonly isMuted = signal(true);
   /** Which picture the host is showing — the viewer display follows it. */
   readonly hostSharingScreen = signal(false);
+  /** True while a dropped inbound feed is being rebuilt (drives the banner). */
+  readonly recovering = signal(false);
   /** Whether the host cut their mic from the viewers' mix. */
   readonly hostScreenAudioOnly = signal(false);
   /** TURN relay state reported alongside the ICE configuration. */
@@ -725,6 +727,7 @@ export class LiveVideoService {
     this.watchingToken.set(token);
     this.status.set("connecting");
     this.feedError.set(null);
+    this.recovering.set(false);
     this.isMuted.set(true);
 
     const socket = await this.waitForViewerSocket(token);
@@ -831,6 +834,8 @@ export class LiveVideoService {
     const token = this.viewerToken;
     const socket = this.boundSocket;
     if (!token || !socket?.connected) return;
+    // The banner should appear the moment the feed dies, not 3s later.
+    this.recovering.set(true);
     if (this.viewerRejoinTimer !== null) clearTimeout(this.viewerRejoinTimer);
     this.viewerRejoinTimer = setTimeout(() => {
       this.viewerRejoinTimer = null;
@@ -839,6 +844,26 @@ export class LiveVideoService {
       this.dropViewerPeer("waiting");
       socket.emit("live_stream_watch", { token });
     }, VIEWER_REJOIN_MS);
+  }
+
+  /**
+   * Manual retry from the reconnect banner: rebuild the inbound peer now
+   * instead of waiting for the automatic rejoin, and re-arm the watch if the
+   * transport is what dropped.
+   */
+  retryViewerFeed(): void {
+    const token = this.viewerToken;
+    const socket = this.boundSocket;
+    if (!token) return;
+    if (this.viewerRejoinTimer !== null) {
+      clearTimeout(this.viewerRejoinTimer);
+      this.viewerRejoinTimer = null;
+    }
+    this.dropViewerPeer("connecting");
+    this.recovering.set(true);
+    this.feedError.set(null);
+    if (!socket?.connected) return;
+    socket.emit("live_stream_watch", { token });
   }
 
   private async acceptOffer(sdp: {
@@ -927,6 +952,8 @@ export class LiveVideoService {
     if (!tracks.length) return;
     this.remoteStream.set(new MediaStream(tracks));
     this.status.set("live");
+    this.recovering.set(false);
+    this.feedError.set(null);
     this.clearViewerTimeout();
     tracks
       .filter((track) => track.kind === "audio")
@@ -1039,6 +1066,7 @@ export class LiveVideoService {
     this.watchingToken.set(null);
     this.status.set(status);
     this.feedError.set(message);
+    this.recovering.set(false);
   }
 
   private startViewerPoll(token: string): void {
