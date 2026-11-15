@@ -301,6 +301,34 @@ id — and therefore the WHIP URL — is unchanged. If the log instead says
 `dropping stored session ...: its publisher is gone`, the browser had already
 stopped publishing and there was nothing to re-attach.
 
+## Reading a failed media-path check
+
+The media path has a check that runs without any provider account: a Node WHIP
+publisher pushes into MediaMTX, the relay's ffmpeg pulls that and pushes RTMP
+into a local ingest, and the run stalls the relay on purpose and expects it to
+recover. It runs on every push and pull request that touches the relay.
+
+When it goes red, the job prints each log file in its own group and uploads them
+together as the `relay-e2e-logs` artifact. To get the same files locally:
+
+```bash
+RELAY_E2E_LOGS_DIR=/tmp/relay-run npm run test:relay:e2e:setup
+```
+
+| File | Answers |
+| --- | --- |
+| `mediamtx.log` | Did the WHIP publish reach the media server at all? |
+| `relay.log` | Did the relay open the session, retry, flag a stall, recover? |
+| `session.json` | Last status: `ready`, `pid`, `restarts`, byte counts, ffmpeg's error |
+| `alerts.json` | The stall and recovery events, in order |
+| `ingest-bytes.txt` | What the ingest actually received |
+
+Read them in the order the media takes: no publish in `mediamtx.log` means the
+browser or WHIP layer; a publish but no `bytesOut` in `session.json` means the
+relay's ffmpeg or its pull; bytes out but a low `ingest-bytes.txt` means egress
+to the provider. If the run fails saying the diagnostics themselves could not be
+written, the media path may well have passed — fix the log directory first.
+
 ## Sign-off checklist
 
 - [ ] `/health` answers `200` with `"mediamtx":"reachable"`
