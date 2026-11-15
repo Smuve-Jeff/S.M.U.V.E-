@@ -44,6 +44,7 @@ import {
   SmuveSurfaceIntel,
 } from './smuve-career-director.service';
 import { SmuveMemoryService } from './smuve-memory.service';
+import { ArtistRelationshipService } from './artist-relationship.service';
 import { UserStoreService } from './user-store.service';
 import { GUEST_AI_LOCK_NOTICE, mayUseAi } from './guest-access';
 import { buildMarketAlerts } from './market-alerts.util';
@@ -89,6 +90,12 @@ export class AiService {
    * across modules and sessions instead of starting each prompt cold.
    */
   private caseFile = inject(SmuveMemoryService);
+  /**
+   * The living artist model: relationship stage, interview progress and
+   * tone calibration. Appended to the master prompt so a new artist meets
+   * curiosity and a veteran meets memory.
+   */
+  private relationship = inject(ArtistRelationshipService);
   private userProfileService = inject(UserProfileService);
   private lifecycle = inject(ArtistLifecycleService);
   private musicManager = inject(MusicManagerService);
@@ -397,6 +404,11 @@ Remember: sharpen the artist's decisions, sign the work with a GOD's signature, 
     // Lifecycle state is derived from profile evidence, so it rides with the
     // same sharing permission as every other profile-derived block.
     prompt += `\n\n${this.lifecycleAdvisorBrief()}`;
+
+    // Relationship brief: who this artist is to you, what you still need
+    // to learn, and the one interview question to weave in. Gated inside
+    // the service — private profiles yield shape, never substance.
+    prompt += `\n\n${this.relationship.brief()}`;
 
     return prompt;
   }

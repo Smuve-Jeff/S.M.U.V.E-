@@ -70,6 +70,7 @@ import {
   SmuveSurfaceIntel,
 } from '../../services/smuve-career-director.service';
 import { SmuveMemoryService } from '../../services/smuve-memory.service';
+import { ArtistRelationshipService } from '../../services/artist-relationship.service';
 import { SmuveTeachLearnService } from '../../services/smuve-teach-learn.service';
 import {
   CHAT_LESSONS,
@@ -129,7 +130,9 @@ type MasterActionId =
   | 'composer-load-a'
   | 'composer-load-b'
   | 'composer-audition-a'
-  | 'composer-audition-b';
+  | 'composer-audition-b'
+  | 'interview-skip'
+  | 'interview-undo';
 
 interface ChatAction {
   id: MasterActionId;
@@ -144,6 +147,10 @@ interface MasterIntent {
   content: string;
   actions: ChatAction[];
 }
+
+/** Closing line when the interview ladder runs out of questions. */
+const INTERVIEW_COMPLETE =
+  "That's the full picture — for now. I know your lane, your mission and your standards, and I'll keep learning from the work itself. Now — what are we making?";
 
 const MASTER_STORAGE_KEY = 'smuve.master.chat.v1';
 const MASTER_STORAGE_MAX = 60;
@@ -229,6 +236,26 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
   private get profileRevision(): ArtistProfileRevisionService | null {
     return this.injector.get(ArtistProfileRevisionService, null);
   }
+  /**
+   * The living artist model — stage, interview, tone. Optional on purpose:
+   * the chat must still mount in a bare host, and the relationship brief
+   * is an enhancement, never a dependency.
+   */
+  private get relationship(): ArtistRelationshipService | null {
+    try {
+      return this.injector.get(ArtistRelationshipService, null);
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * The live interview card, if one is on screen: the message carrying the
+   * question plus the question it asked. Never persisted — the card is
+   * re-evaluated from the profile on every load.
+   */
+  private interviewCard: { messageId: string; questionId: string } | null =
+    null;
   /**
    * Career + genre + room director. Optional on purpose: the chat must still
    * mount in a bare host, and its lens is an enhancement, never a dependency.
@@ -787,6 +814,7 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
       : null;
 
     this.messages.set(journeyMsg ? [greeting, journeyMsg] : [greeting]);
+    this.syncInterviewCard();
   }
 
   async sendMessage() {
@@ -815,6 +843,14 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
     this.speechSynthesisService.cancel();
     this.persistMessages();
 
+    // Free-chat answer capture: when S.M.U.V.E. is still learning this
+    // artist, a plain reply may be an interview answer in disguise. Filing
+    // it never replaces the reply — the conversation continues below.
+    // The screen is synchronous so the no-op path costs the send flow
+    // nothing; only a real candidate awaits the profile write.
+    const interviewCandidate = this.interviewAnswerCandidate(text);
+    if (interviewCandidate) await this.fileInterviewAnswer(interviewCandidate);
+
     try {
       let content: string;
       let actions: ChatAction[] = [];
@@ -835,6 +871,7 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
       // modules are not verdicts, and filing them would make the case file
       // look like a log instead of a manager's memory.
       if (!intent) this.recordCaseTurn(text, content);
+      this.syncInterviewCard();
       if (generation !== this.replyGeneration || this.destroyed) return;
 
       this.speechSynthesisService.speak(content, {
@@ -1252,6 +1289,18 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
         ? `S.M.U.V.E ARTIST FINE-TUNE — apply this existing profile compiler to every recommendation; the artist’s explicit request takes priority, and their sonic non-negotiables remain protected:\n${artistFineTune}`
         : 'S.M.U.V.E ARTIST FINE-TUNE: Honor the artist’s stated genre, sonic blueprint, preferred tempo, production priorities, and boundaries. Their explicit request takes priority; do not flatten their identity into a genre stereotype.',
       '',
+      ...(() => {
+        // Relationship brief: who this artist is to S.M.U.V.E., what is
+        // still missing, and the one interview question to weave in.
+        // Gated inside the service — private profiles yield shape, never
+        // substance — so a bare host without the service simply skips it.
+        try {
+          const brief = this.relationship?.brief();
+          return brief ? [brief, ''] : [];
+        } catch {
+          return [];
+        }
+      })(),
       'PROFILE READING MANDATE — the artist reads as ' +
         (synth?.archetype
           ? `${synth.archetype}. `
@@ -1993,6 +2042,211 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
     this.persistMessages();
   }
 
+  /**
+   * Reconcile the interview card with the profile: show it while S.M.U.V.E.
+   * is still learning this artist, keep it on the current question, and
+   * close it with the receipt when the ladder runs out. Stages past
+   * getting-to-know retire the card silently — the model brief carries on.
+   */
+  private syncInterviewCard(): void {
+    if (this.destroyed) return;
+    const rel = this.relationship;
+    const next = rel?.nextQuestion() ?? null;
+    const existingId = this.interviewCard?.messageId ?? null;
+    const existingAlive = existingId
+      ? this.messages().some((m) => m.id === existingId)
+      : false;
+    if (!rel || !next) {
+      if (existingAlive && this.interviewCard) {
+        const doneId = this.interviewCard.messageId;
+        this.messages.update((list) =>
+          list.map((m) =>
+            m.id === doneId ? { ...m, text: INTERVIEW_COMPLETE, actions: [] } : m
+          )
+        );
+        this.persistMessages();
+      }
+      this.interviewCard = null;
+      return;
+    }
+    const stage = rel.stage();
+    if (stage !== 'stranger' && stage !== 'getting-to-know') {
+      if (existingAlive) {
+        const staleId = this.interviewCard?.messageId;
+        this.messages.update((list) =>
+          list.map((m) => (m.id === staleId ? { ...m, actions: [] } : m))
+        );
+        this.persistMessages();
+      }
+      this.interviewCard = null;
+      return;
+    }
+    const progress = rel.interviewProgress();
+    // The marker is the rung's identity: the model echoes it when it weaves
+    // the question, and capture keys off it — never off phrasing.
+    const marker = `[iq:${next.id}]`;
+    const cardText =
+      `GETTING TO KNOW YOU — ${progress.answered} of ${progress.total}` +
+      `\n\n${next.ask} ${marker}` +
+      `\n\nAnswer right here and I'll file it. Skip anytime.`;
+    const actions: ChatAction[] = [{ id: 'interview-skip', label: 'Skip' }];
+    const id = this.interviewCard?.messageId ?? this.nextMessageId();
+    const current = existingAlive
+      ? this.messages().find((m) => m.id === id)
+      : undefined;
+    const isLast =
+      existingAlive &&
+      this.messages()[this.messages().length - 1]?.id === id;
+    if (current && current.text === cardText && isLast) return;
+    // The card lives at the end of the transcript: whatever S.M.U.V.E. said
+    // last, the open question stays the next thing the artist sees — and a
+    // reply typed under it unambiguously answers it.
+    this.messages.update((list) => [
+      ...list.filter((m) => m.id !== id),
+      {
+        id,
+        role: 'assistant',
+        text: cardText,
+        timestamp: Date.now(),
+        category: 'system',
+        actions,
+      },
+    ]);
+    this.interviewCard = { messageId: id, questionId: next.id };
+    this.persistMessages();
+  }
+
+  /**
+   * Synchronous screen for free-chat answer capture: returns the pending
+   * question and the trimmed reply when the reply reads like an answer
+   * (short, not a question, not a command) while S.M.U.V.E. is still
+   * learning this artist. Deliberately sync — the no-op path must not add
+   * microtask hops to the send flow.
+   */
+  private interviewAnswerCandidate(
+    text: string
+  ): { question: { id: string; label: string }; trimmed: string } | null {
+    const rel = this.relationship;
+    if (!rel) return null;
+    const stage = rel.stage();
+    if (stage !== 'stranger' && stage !== 'getting-to-know') return null;
+    const question = rel.nextQuestion();
+    if (!question) return null;
+    // Capture is marker-scoped, never phrasing-scoped. A reply counts as
+    // an answer when it directly follows the live card — or the model's
+    // woven echo of it, which carries the card's verbatim marker. Anything
+    // else is conversation, not data.
+    const marker = `[iq:${question.id}]`;
+    const card = this.interviewCard;
+    const matchesCard = !!card && card.questionId === question.id;
+    // At screen time the user's own message is already appended, so the
+    // question must be the message it directly follows — second to last.
+    const transcript = this.messages();
+    const previous = transcript[transcript.length - 2];
+    const answersCard =
+      matchesCard && !!previous && previous.id === card.messageId;
+    const answersEcho =
+      !!previous &&
+      previous.role === 'assistant' &&
+      previous.text.includes(marker);
+    if (!answersCard && !answersEcho) {
+      if (!matchesCard) this.syncInterviewCard();
+      return null;
+    }
+    const trimmed = text.trim();
+    if (!trimmed || trimmed.length > 200) return null;
+    if (trimmed.startsWith('/') || trimmed.startsWith('#')) return null;
+    if (trimmed.endsWith('?')) return null;
+    if (
+      /^(who|what|when|where|why|how|can|could|would|should|do|does|did|is|are|was|were|will|open|play|show|teach|learn|mimic|make|create|go|export|stop|start)\b/i.test(
+        trimmed
+      )
+    ) {
+      return null;
+    }
+    return { question, trimmed };
+  }
+
+  /**
+   * File a screened candidate into the profile and advance the card.
+   * Best-effort: a filing failure never interrupts the reply flow.
+   */
+  private async fileInterviewAnswer(candidate: {
+    question: { id: string; label: string };
+    trimmed: string;
+  }): Promise<void> {
+    try {
+      const rel = this.relationship;
+      if (!rel) return;
+      const noteId = this.nextMessageId();
+      if (
+        !(await rel.answerCurrentQuestion(candidate.trimmed, {
+          messageId: noteId,
+        }))
+      ) {
+        return;
+      }
+      const shown =
+        candidate.trimmed.length > 80
+          ? candidate.trimmed.slice(0, 79).trimEnd() + '…'
+          : candidate.trimmed;
+      this.messages.update((m) => [
+        ...m,
+        {
+          id: noteId,
+          role: 'assistant',
+          text: `Filed — ${candidate.question.label}: ${shown}`,
+          timestamp: Date.now(),
+          category: 'system',
+          actions: [{ id: 'interview-undo', label: 'Undo', data: noteId }],
+        },
+      ]);
+      this.persistMessages();
+      this.syncInterviewCard();
+    } catch {
+      /* filing never interrupts the reply */
+    }
+  }
+
+  /**
+   * One-tap undo for a Filed note: restores the previous value (or empties
+   * a field the answer created), drops the DNA event, and reopens the
+   * rung on the card. Refuses when a newer answer already replaced it.
+   */
+  private async undoInterviewAnswer(messageId?: string): Promise<string> {
+    const rel = this.relationship;
+    if (!rel || !messageId) return 'Nothing to undo.';
+    const result = await rel.undoInterviewAnswer(messageId);
+    if (!result.ok) return result.reason;
+    this.messages.update((list) =>
+      list.map((m) =>
+        m.id === messageId
+          ? {
+              ...m,
+              text: `Undone — ${result.label ?? 'answer'} reverted.`,
+              actions: [],
+            }
+          : m
+      )
+    );
+    this.persistMessages();
+    this.syncInterviewCard();
+    // No reply line: the reverted note is the feedback.
+    return '';
+  }
+
+  /** Skip the card's question and move the interview on. */
+  private skipInterviewQuestion(): string {
+    try {
+      this.relationship?.skipCurrentQuestion();
+    } finally {
+      this.syncInterviewCard();
+    }
+    void this.relationship;
+    // No reply line: the advancing card is the feedback.
+    return '';
+  }
+
   /** One-tap AI apply — executes a Master action against the live app. */
   async runChatAction(action: ChatAction) {
     if (this.isTyping()) return;
@@ -2097,6 +2351,14 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
       case 'music-help':
         result = this.chatMusic?.help().content ?? 'Music engine offline.';
         break;
+      case 'interview-skip': {
+        result = this.skipInterviewQuestion();
+        break;
+      }
+      case 'interview-undo': {
+        result = await this.undoInterviewAnswer(action.data);
+        break;
+      }
       case 'composer-open':
         if (this.router) {
           void this.router.navigate(['/composer']);
@@ -2160,18 +2422,21 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
         return;
     }
 
-    this.messages.update((m) => [
-      ...m,
-      {
-        id: this.nextMessageId(),
-        role: 'assistant',
-        text: result,
-        timestamp: Date.now(),
-      },
-    ]);
-    this.persistMessages();
+    if (result) {
+      this.messages.update((m) => [
+        ...m,
+        {
+          id: this.nextMessageId(),
+          role: 'assistant',
+          text: result,
+          timestamp: Date.now(),
+        },
+      ]);
+      this.persistMessages();
+      this.snack?.success(result);
+    }
+    this.syncInterviewCard();
     this.scrollToBottom();
-    this.snack?.success(result);
   }
 
   /** Apply an artist's production recipe: BPM from their range + chords in their key. */
@@ -2354,6 +2619,7 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
         .map((m) => ({ role: m.role, text: this.personaSafeText(m.text), timestamp: m.timestamp, category: m.category, id: this.nextMessageId() }));
       if (restored.length > 0) {
         this.messages.set(restored);
+        this.syncInterviewCard();
         return true;
       }
       return false;

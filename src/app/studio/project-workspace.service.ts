@@ -13,6 +13,7 @@ import {
 import { SessionSafetyService } from "../services/session-safety.service";
 import { OfflineSyncService } from "../services/offline-sync.service";
 import { CloudSyncService } from "../services/cloud-sync.service";
+import { ArtistRelationshipService } from "../services/artist-relationship.service";
 import { LoggingService } from "../services/logging.service";
 import { AutomationService } from "./automation.service";
 import { ArrangementMarkersService, type ArrangementMarker } from "./arrangement-markers.service";
@@ -386,6 +387,14 @@ export class ProjectWorkspaceService {
   });
   /** The one cloud writer: every versioned push goes through here. */
   private readonly cloudSync = inject(CloudSyncService);
+  /**
+   * Behavioural learning: a finished save is evidence of how this artist
+   * works. Best-effort and silent — a learning failure must never fail
+   * the save it observed.
+   */
+  private readonly relationship = inject(ArtistRelationshipService, {
+    optional: true,
+  });
   private readonly markers = inject(ArrangementMarkersService);
   private readonly vcaBuses = inject(VcaBusService);
   private readonly sidechainRouting = inject(SidechainRoutingService);
@@ -837,6 +846,15 @@ export class ProjectWorkspaceService {
       await this.saveLocalVersion(bundle);
       await this.tryQueueCloudSync(bundle.metadata, bundle);
       this.logger.info("ProjectWorkspace: Saved " + bundle.metadata.name);
+      void this.relationship
+        ?.observe({
+          dimension: "production",
+          summary:
+            `Saved ${bundle.metadata.name || "Untitled"} with ` +
+            `${bundle.tracks?.length ?? 0} tracks at ${bundle.metadata.bpm ?? "?"} BPM`,
+          weight: 0.3,
+        })
+        .catch(() => undefined);
       return bundle;
     } catch (error) {
       // A failed save must not leave the in-memory revision ahead of what is

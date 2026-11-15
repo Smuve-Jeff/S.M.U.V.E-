@@ -11,6 +11,7 @@ import { UserStoreService } from '../../services/user-store.service';
 import { signal } from '@angular/core';
 import { initialProfile } from '../../types/profile.types';
 import { ArtistProfileFinetuneService } from '../../services/artist-profile-finetune.service';
+import { ArtistRelationshipService } from '../../services/artist-relationship.service';
 import { SmuveTotalControlService } from '../../services/smuve-total-control.service';
 
 describe('ChatbotComponent', () => {
@@ -22,6 +23,7 @@ describe('ChatbotComponent', () => {
   let speechSynthesisServiceMock: any;
   let finetuneMock: any;
   let uiServiceMock: any;
+  let relationshipMock: any;
 
   beforeEach(async () => {
     localStorage.clear();
@@ -38,6 +40,22 @@ describe('ChatbotComponent', () => {
 
     // Mutable calibration signal: tests flip it to foundational/partial/
     // calibrated and assert the chat prompt and ADAPTED badge follow.
+    // Quiet by default: a confidant with nothing to ask, so existing
+    // transcript tests never see an interview card. Card tests override.
+    relationshipMock = {
+      stage: jest.fn(() => 'confidant'),
+      nextQuestion: jest.fn(() => null),
+      interviewProgress: jest.fn(() => ({ answered: 0, total: 12 })),
+      answerCurrentQuestion: jest.fn(async () => true),
+      skipCurrentQuestion: jest.fn(() => null),
+      undoInterviewAnswer: jest.fn(async () => ({
+        ok: true,
+        reason: 'undone',
+        label: 'Primary genre',
+      })),
+      brief: jest.fn(() => ''),
+    };
+
     finetuneMock = {
       promptBlock: jest.fn(() => 'SONIC NON-NEGOTIABLE: preserve the room tone.'),
       profileCalibration: signal({
@@ -119,6 +137,10 @@ describe('ChatbotComponent', () => {
         {
           provide: ArtistProfileFinetuneService,
           useValue: finetuneMock,
+        },
+        {
+          provide: ArtistRelationshipService,
+          useValue: relationshipMock,
         },
       ],
     }).compileComponents();
@@ -892,5 +914,190 @@ describe('ChatbotComponent', () => {
       sharing: false,
     });
     expect(component.adaptedChip()).toBeNull();
+  });
+
+  it('posts an interview card while S.M.U.V.E. is still learning the artist', () => {
+    relationshipMock.stage.mockReturnValue('stranger');
+    relationshipMock.nextQuestion.mockReturnValue({
+      id: 'genre',
+      ask: 'What lane are we running in?',
+      label: 'Primary genre',
+    });
+
+    (component as any).syncInterviewCard();
+
+    const card = (component as any)
+      .messages()
+      .find((m: any) => (m.actions ?? []).some((a: any) => a.id === 'interview-skip'));
+    expect(card).toBeTruthy();
+    expect(card.text).toContain('GETTING TO KNOW YOU');
+    expect(card.text).toContain('What lane are we running in?');
+  });
+
+  it('files a free-chat reply as the pending interview answer', async () => {
+    relationshipMock.stage.mockReturnValue('getting-to-know');
+    relationshipMock.nextQuestion.mockReturnValue({
+      id: 'genre',
+      ask: 'What lane are we running in?',
+      label: 'Primary genre',
+    });
+    (component as any).syncInterviewCard();
+    (component as any).messages.update((m: any[]) => [
+      ...m,
+      { id: 'u1', role: 'user', text: 'Drill, mostly', timestamp: Date.now() },
+    ]);
+
+    const candidate = (component as any).interviewAnswerCandidate('Drill, mostly');
+    expect(candidate?.question?.id).toBe('genre');
+    await (component as any).fileInterviewAnswer(candidate);
+
+    expect(relationshipMock.answerCurrentQuestion).toHaveBeenCalledWith(
+      'Drill, mostly',
+      expect.objectContaining({ messageId: expect.any(String) })
+    );
+    const note = (component as any)
+      .messages()
+      .find((m: any) => m.text.startsWith('Filed — Primary genre'));
+    expect(note).toBeTruthy();
+  });
+
+  it('leaves questions, commands and lessons to the normal reply flow', async () => {
+    relationshipMock.stage.mockReturnValue('stranger');
+    relationshipMock.nextQuestion.mockReturnValue({
+      id: 'genre',
+      ask: 'What lane are we running in?',
+      label: 'Primary genre',
+    });
+
+    for (const text of ['How do I mix 808s?', '/studio', '#teach studio', 'make it louder right now please '.repeat(10)]) {
+      expect((component as any).interviewAnswerCandidate(text)).toBeNull();
+    }
+    expect(relationshipMock.answerCurrentQuestion).not.toHaveBeenCalled();
+  });
+
+  it('only files replies typed directly under the live card', () => {
+    relationshipMock.stage.mockReturnValue('stranger');
+    relationshipMock.nextQuestion.mockReturnValue({
+      id: 'genre',
+      ask: 'What lane are we running in?',
+      label: 'Primary genre',
+    });
+
+    // The question exists but no card is on screen — conversation, not data.
+    expect((component as any).interviewAnswerCandidate('Drill')).toBeNull();
+
+    // The card is live but a reply to an older turn is not under it.
+    (component as any).syncInterviewCard();
+    (component as any).messages.update((m: any[]) => [
+      ...m,
+      { id: 'old-user', role: 'user', text: 'thanks', timestamp: Date.now() },
+      { id: 'old-ai', role: 'assistant', text: 'Anytime.', timestamp: Date.now() },
+    ]);
+    expect((component as any).interviewAnswerCandidate('Drill')).toBeNull();
+
+    // Typed directly under the card — this one files.
+    (component as any).syncInterviewCard();
+    (component as any).messages.update((m: any[]) => [
+      ...m,
+      { id: 'u1', role: 'user', text: 'Drill', timestamp: Date.now() },
+    ]);
+    const candidate = (component as any).interviewAnswerCandidate('Drill');
+    expect(candidate?.question?.id).toBe('genre');
+  });
+
+  it('undoes a filed answer from its note', async () => {
+    relationshipMock.stage.mockReturnValue('getting-to-know');
+    relationshipMock.nextQuestion.mockReturnValue({
+      id: 'genre',
+      ask: 'What lane are we running in?',
+      label: 'Primary genre',
+    });
+    (component as any).syncInterviewCard();
+    (component as any).messages.update((m: any[]) => [
+      ...m,
+      { id: 'u1', role: 'user', text: 'Drill', timestamp: Date.now() },
+    ]);
+    const candidate = (component as any).interviewAnswerCandidate('Drill');
+    await (component as any).fileInterviewAnswer(candidate);
+
+    const note = (component as any)
+      .messages()
+      .find((m: any) => m.text.startsWith('Filed — Primary genre'));
+    expect(note.actions).toEqual([
+      expect.objectContaining({ id: 'interview-undo' }),
+    ]);
+
+    await (component as any).runChatAction({
+      id: 'interview-undo',
+      label: 'Undo',
+      data: note.id,
+    });
+
+    expect(relationshipMock.undoInterviewAnswer).toHaveBeenCalledWith(note.id);
+    const reverted = (component as any)
+      .messages()
+      .find((m: any) => m.id === note.id);
+    expect(reverted.text).toContain('Undone');
+    expect(reverted.actions).toEqual([]);
+  });
+
+  it('files a reply typed under the model\u2019s marked echo of the question', () => {
+    relationshipMock.stage.mockReturnValue('stranger');
+    relationshipMock.nextQuestion.mockReturnValue({
+      id: 'genre',
+      ask: 'What lane are we running in?',
+      label: 'Primary genre',
+    });
+    // No card on screen — the model wove the question with its marker and
+    // the artist answered the model's wording, not the card's.
+    (component as any).messages.update((m: any[]) => [
+      ...m,
+      {
+        id: 'ai-echo',
+        role: 'assistant',
+        text: 'Real talk — what lane are we running in? [iq:genre]',
+        timestamp: Date.now(),
+      },
+      { id: 'u1', role: 'user', text: 'Drill', timestamp: Date.now() },
+    ]);
+    const candidate = (component as any).interviewAnswerCandidate('Drill');
+    expect(candidate?.question?.id).toBe('genre');
+  });
+
+  it('rejects a reply under a stale marker from an earlier rung', () => {
+    relationshipMock.stage.mockReturnValue('stranger');
+    relationshipMock.nextQuestion.mockReturnValue({
+      id: 'experience',
+      ask: 'How long have you been at this?',
+      label: 'Experience',
+    });
+    (component as any).messages.update((m: any[]) => [
+      ...m,
+      {
+        id: 'ai-stale',
+        role: 'assistant',
+        text: 'What lane are we running in? [iq:genre]',
+        timestamp: Date.now(),
+      },
+      { id: 'u1', role: 'user', text: 'Drill', timestamp: Date.now() },
+    ]);
+    expect(
+      (component as any).interviewAnswerCandidate('Drill')
+    ).toBeNull();
+  });
+
+  it('skips the card question and moves the interview on', async () => {
+    relationshipMock.stage.mockReturnValue('stranger');
+    relationshipMock.nextQuestion.mockReturnValue({
+      id: 'genre',
+      ask: 'What lane are we running in?',
+      label: 'Primary genre',
+    });
+    relationshipMock.skipCurrentQuestion.mockReturnValue({ id: 'genre' });
+    (component as any).syncInterviewCard();
+
+    await (component as any).runChatAction({ id: 'interview-skip', label: 'Skip' });
+
+    expect(relationshipMock.skipCurrentQuestion).toHaveBeenCalled();
   });
 });

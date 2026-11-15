@@ -1420,6 +1420,17 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   public liveStream = inject(LiveStreamService);
   /** Hosts the camera feed and plays an inbound shared stream. */
   public liveVideo = inject(LiveVideoService);
+  /**
+   * Viewer mix split: the watched feed arrives as one mixed stream, so the
+   * player divides it — picture on the video element, VOICE (host mic) and
+   * GAME (screen system sound) each on a dedicated audio element with its
+   * own volume slider. Track order is the host's contract: mic first,
+   * system sound second (SocialNetworkingService.setVideoSource). Camera
+   * broadcasts carry voice only; the game row simply stays hidden.
+   */
+  readonly viewerVideoStream = signal<MediaStream | null>(null);
+  readonly viewerVoiceStream = signal<MediaStream | null>(null);
+  readonly viewerGameStream = signal<MediaStream | null>(null);
   /** True once this viewer has recorded a join for the inbound stream. */
   readonly liveJoined = signal(false);
   /** Human-readable live-video state for the join overlay. */
@@ -2136,6 +2147,24 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   constructor() {
     effect(() => {
       this.activeHubTab.set(this.socialService.activeHubTab());
+    });
+    // Divide the watched feed for the per-source mix sliders. jsdom has
+    // no MediaStream, so the split no-ops in tests and the empty state
+    // stays put.
+    effect(() => {
+      const feed = this.liveVideo.remoteStream();
+      if (typeof MediaStream === 'undefined') return;
+      const videoTracks = feed?.getVideoTracks() ?? [];
+      const audioTracks = feed?.getAudioTracks() ?? [];
+      this.viewerVideoStream.set(
+        videoTracks.length ? new MediaStream(videoTracks) : null
+      );
+      this.viewerVoiceStream.set(
+        audioTracks[0] ? new MediaStream([audioTracks[0]]) : null
+      );
+      this.viewerGameStream.set(
+        audioTracks[1] ? new MediaStream([audioTracks[1]]) : null
+      );
     });
     // Own the host feed for the whole time a stream is live, and release it
     // when the session ends. The service waits for the socket/camera itself.

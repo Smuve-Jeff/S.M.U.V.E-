@@ -191,6 +191,43 @@ export class SocialNetworkingService {
   cameraEnabled = signal(true);
   micEnabled = signal(true);
   streamError = signal<string | null>(null);
+  /**
+   * Host video source for S.M.U.V.E Live: front camera or shared screen.
+   * Sticky across the pre-stream picker and live switches — startStream()
+   * honors it, so choosing SCREEN before going live opens only the screen
+   * picker (no camera-then-screen double prompt).
+   */
+  videoSource = signal<'camera' | 'screen'>('camera');
+  /**
+   * getDisplayMedia availability: desktop Chrome/Edge/Safari 17+. Absent
+   * on mobile browsers, where the switch stays disabled.
+   */
+  readonly screenShareSupported = signal(
+    typeof navigator !== 'undefined' &&
+      !!navigator.mediaDevices?.getDisplayMedia
+  );
+  /** Mic track ids, so a switch back to camera drops system audio but keeps voice. */
+  private micTrackIds = new Set<string>();
+  /**
+   * Screen-audio-only mode: while the source is the shared screen, the
+   * mic stays out of the viewers' mix — game sound only. The mic toggle
+   * keeps working underneath and takes over again on camera or on exit.
+   */
+  screenAudioOnly = signal(false);
+  /** Host-peer video senders refresh when the source track changes. */
+  private videoTrackListeners = new Set<(track: MediaStreamTrack) => void>();
+
+  /**
+   * Subscribe to host video-track replacements (camera ↔ screen). The live
+   * video fan-out registers once per hosting session and swaps the video
+   * sender track on every viewer peer — no re-negotiation, no rejoin.
+   */
+  onVideoTrackReplaced(cb: (track: MediaStreamTrack) => void): () => void {
+    this.videoTrackListeners.add(cb);
+    return () => {
+      this.videoTrackListeners.delete(cb);
+    };
+  }
 
   neuralSyncStatus = signal<'idle' | 'syncing' | 'synced'>('idle');
   lastSyncedData = signal<any>(null);
@@ -865,19 +902,7 @@ export class SocialNetworkingService {
     this.streamError.set(null);
     if (!this.localStream()) {
       try {
-        const preset = STREAM_QUALITY_PRESETS[this.streamQuality()];
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: {
-            width: { ideal: preset.width },
-            height: { ideal: preset.height },
-            facingMode: 'user',
-          },
-          audio: {
-            echoCancellation: true,
-            noiseSuppression: true,
-          },
-        });
-        this.localStream.set(stream);
+        await this.acquireHostMedia();
       } catch (err: any) {
         this.streamError.set(
           err?.name === 'NotAllowedError'
@@ -917,6 +942,182 @@ export class SocialNetworkingService {
     this.localStream.set(null);
     this.cameraEnabled.set(true);
     this.micEnabled.set(true);
+    this.videoSource.set('camera');
+    this.screenAudioOnly.set(false);
+    this.micTrackIds.clear();
+  }
+
+  /**
+   * Initial host capture honoring the pre-stream source choice. Screen
+   * capture pairs the shared screen with the mic (narrate the game) and
+   * adds system audio when the browser shares it; a refused screen picker
+   * falls back to camera instead of killing the broadcast.
+   */
+  private async acquireHostMedia(): Promise<void> {
+    const preset = STREAM_QUALITY_PRESETS[this.streamQuality()];
+    if (this.videoSource() === 'screen' && this.screenShareSupported()) {
+      try {
+        const { video, systemAudio } =
+          await this.acquireScreenCapture(preset);
+        const mic = await navigator.mediaDevices.getUserMedia({
+          audio: { echoCancellation: true, noiseSuppression: true },
+        });
+        const micTracks = mic.getAudioTracks();
+        micTracks.forEach((t) => this.micTrackIds.add(t.id));
+        this.setHostStream(new MediaStream([video, ...micTracks]), 'screen');
+        // System sound joins alongside the mic; the player mixes both.
+        systemAudio.forEach((t) => this.localStream()?.addTrack(t));
+        return;
+      } catch {
+        // Picker cancelled or capture unsupported — fall through to camera.
+        this.videoSource.set('camera');
+      }
+    }
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: {
+        width: { ideal: preset.width },
+        height: { ideal: preset.height },
+        facingMode: 'user',
+      },
+      audio: { echoCancellation: true, noiseSuppression: true },
+    });
+    stream.getAudioTracks().forEach((t) => this.micTrackIds.add(t.id));
+    this.setHostStream(stream, 'camera');
+  }
+
+  /**
+   * One fresh screen video track plus any system-audio tracks the browser
+   * offers. Stray sibling tracks are stopped so no hidden capture survives.
+   * When the viewer presses the browser's own Stop sharing, the track's
+   * `ended` event drops the broadcast back to camera — viewers stay on.
+   */
+  private async acquireScreenCapture(preset: {
+    width: number;
+    height: number;
+  }): Promise<{ video: MediaStreamTrack; systemAudio: MediaStreamTrack[] }> {
+    const display = await navigator.mediaDevices.getDisplayMedia({
+      video: {
+        width: { ideal: preset.width },
+        height: { ideal: preset.height },
+        frameRate: { ideal: 30 },
+      },
+      audio: true,
+    });
+    const video = display.getVideoTracks()[0];
+    const systemAudio = display.getAudioTracks();
+    display
+      .getTracks()
+      .forEach((t) => {
+        if (t !== video && !systemAudio.includes(t)) t.stop();
+      });
+    if (!video) {
+      display.getTracks().forEach((t) => t.stop());
+      throw new Error('SCREEN_CAPTURE_NO_VIDEO_TRACK');
+    }
+    video.addEventListener('ended', () => {
+      if (this.videoSource() === 'screen' && this.isStreaming()) {
+        void this.setVideoSource('camera').catch(() => undefined);
+      }
+    });
+    return { video, systemAudio };
+  }
+
+  /** One fresh front-camera video track (audio stays with the mic). */
+  private async acquireCameraTrack(preset: {
+    width: number;
+    height: number;
+  }): Promise<MediaStreamTrack> {
+    const cam = await navigator.mediaDevices.getUserMedia({
+      video: {
+        width: { ideal: preset.width },
+        height: { ideal: preset.height },
+        facingMode: 'user',
+      },
+      audio: false,
+    });
+    const video = cam.getVideoTracks()[0];
+    cam.getTracks().forEach((t) => {
+      if (t !== video) t.stop();
+    });
+    if (!video) throw new Error('CAMERA_CAPTURE_NO_VIDEO_TRACK');
+    return video;
+  }
+
+  /**
+   * Live source switch: front camera ↔ screen recording. The mic survives
+   * both directions; system audio joins on screen and leaves on camera.
+   * Every connected viewer peer gets the new track via replaceTrack —
+   * the audience watches straight through the cut, chat uninterrupted.
+   */
+  async setVideoSource(source: 'camera' | 'screen'): Promise<void> {
+    if (!this.isStreaming() || this.videoSource() === source) return;
+    if (source === 'screen' && !this.screenShareSupported()) {
+      this.streamError.set(
+        'SCREEN_SHARE_UNSUPPORTED — USE DESKTOP CHROME, EDGE OR SAFARI'
+      );
+      return;
+    }
+    const current = this.localStream();
+    if (!current) {
+      this.streamError.set(
+        'MEDIA_CAPTURE_UNAVAILABLE — USING SIMULATION ONLY'
+      );
+      return;
+    }
+    const preset = STREAM_QUALITY_PRESETS[this.streamQuality()];
+    const previousVideo = current.getVideoTracks()[0];
+    try {
+      let next: MediaStream;
+      if (source === 'screen') {
+        const { video, systemAudio } =
+          await this.acquireScreenCapture(preset);
+        const micAudio = this.micAudioOf(current);
+        next = new MediaStream([video, ...micAudio, ...systemAudio]);
+      } else {
+        const video = await this.acquireCameraTrack(preset);
+        next = new MediaStream([video, ...this.micAudioOf(current)]);
+      }
+      this.setHostStream(next, source);
+      previousVideo?.stop();
+      // The old screen track's system audio leaves with the switch.
+      current.getAudioTracks().forEach((t) => {
+        if (!this.micTrackIds.has(t.id)) t.stop();
+      });
+    } catch (err: any) {
+      // Picker cancelled mid-show: stay on the current source.
+      if (err?.name !== 'NotAllowedError') {
+        this.streamError.set(
+          'VIDEO_SOURCE_SWITCH_FAILED — STAYED ON ' +
+            this.videoSource().toUpperCase()
+        );
+      }
+    }
+  }
+
+  /** The mic ledger first; every audio track when capture predates it. */
+  private micAudioOf(stream: MediaStream): MediaStreamTrack[] {
+    const mic = stream.getAudioTracks().filter((t) => this.micTrackIds.has(t.id));
+    return mic.length ? mic : stream.getAudioTracks();
+  }
+
+  /** Publish a rebuilt host stream and push the video track to viewers. */
+  private setHostStream(
+    stream: MediaStream,
+    source: 'camera' | 'screen'
+  ): void {
+    this.localStream.set(stream);
+    this.videoSource.set(source);
+    this.cameraEnabled.set(true);
+    this.applyMicState();
+    const video = stream.getVideoTracks()[0];
+    if (!video) return;
+    this.videoTrackListeners.forEach((cb) => {
+      try {
+        cb(video);
+      } catch {
+        /* a doomed peer must not break the switch */
+      }
+    });
   }
 
   /** Switch quality tier live — re-negotiates the video track. */
@@ -949,11 +1150,32 @@ export class SocialNetworkingService {
     this.localStream()?.getVideoTracks().forEach((t) => (t.enabled = next));
   }
 
-  /** Toggle the microphone track on the live stream. */
+  /** Toggle the microphone (voice) tracks on the live stream. */
   toggleMic() {
-    const next = !this.micEnabled();
-    this.micEnabled.set(next);
-    this.localStream()?.getAudioTracks().forEach((t) => (t.enabled = next));
+    this.micEnabled.set(!this.micEnabled());
+    this.applyMicState();
+  }
+
+  /**
+   * Voice audibility for viewers: the mic toggle, minus screen-audio-only
+   * mode. System (game) sound always rides along — viewers balance it
+   * against the voice with their own per-source mix sliders.
+   */
+  private applyMicState(): void {
+    const stream = this.localStream();
+    if (!stream) return;
+    const voiceOn =
+      this.micEnabled() &&
+      !(this.screenAudioOnly() && this.videoSource() === 'screen');
+    this.micAudioOf(stream).forEach((t) => {
+      t.enabled = voiceOn;
+    });
+  }
+
+  /** Viewers hear game sound only — the host's mic leaves their mix. */
+  setScreenAudioOnly(on: boolean): void {
+    this.screenAudioOnly.set(on);
+    this.applyMicState();
   }
 
   /**

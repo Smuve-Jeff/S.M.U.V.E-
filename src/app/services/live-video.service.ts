@@ -100,6 +100,7 @@ export class LiveVideoService {
 
   private boundSocket?: Socket;
   private hostSocket?: Socket;
+  private videoTrackUnsub: (() => void) | null = null;
   private hostToken: string | null = null;
   private hostStreamId: number | null = null;
   private hostPeers = new Map<string, HostPeer>();
@@ -138,6 +139,11 @@ export class LiveVideoService {
     this.stopHosting();
     this.hostToken = stream.shareToken;
     this.hostStreamId = stream.id;
+    // Camera ↔ screen switches arrive here and land on every viewer peer
+    // via replaceTrack — no re-negotiation, no viewer rejoin.
+    this.videoTrackUnsub = this.social.onVideoTrackReplaced((track) =>
+      this.replaceHostVideoTrack(track),
+    );
     void this.registerHost();
   }
 
@@ -159,6 +165,23 @@ export class LiveVideoService {
     this.viewerHealthLabel.set("DEFAULT");
   }
 
+  /**
+   * Camera ↔ screen switch: swap the video sender track on every viewer
+   * peer in place. The audience watches straight through the cut while
+   * chat and presence stay exactly where they were.
+   */
+  private replaceHostVideoTrack(track: MediaStreamTrack): void {
+    for (const entry of this.hostPeers.values()) {
+      const sender = entry.pc
+        .getSenders()
+        .find((s) => s.track?.kind === "video");
+      if (!sender) continue;
+      void sender.replaceTrack(track).catch(() => {
+        /* a stale sender keeps the old frame; stats flag the peer */
+      });
+    }
+  }
+
   /** Stop accepting viewers and close every peer (camera is owned elsewhere). */
   stopHosting(): void {
     const socket = this.hostSocket;
@@ -174,6 +197,8 @@ export class LiveVideoService {
     this.viewerConnections.set([]);
     this.pendingViewers.forEach((timer) => clearTimeout(timer));
     this.pendingViewers.clear();
+    this.videoTrackUnsub?.();
+    this.videoTrackUnsub = null;
     this.hostSocket = undefined;
     this.hostToken = null;
     this.hostStreamId = null;

@@ -587,3 +587,330 @@ describe('SocialNetworkingService', () => {
     expect(service.localStream()).toBe(fakeStream);
   });
 });
+
+describe('SocialNetworkingService video source (camera ↔ screen)', () => {
+  let service: SocialNetworkingService;
+  let getUserMedia: jest.Mock;
+  let getDisplayMedia: jest.Mock;
+  let originalMediaDevices: MediaDevices | undefined;
+  let OriginalMediaStream: any;
+
+  const makeTrack = (kind: 'audio' | 'video', id: string) => ({
+    kind,
+    id,
+    enabled: true,
+    stop: jest.fn(),
+    addEventListener: jest.fn(),
+  });
+  const fakeMedia = (tracks: any[]) => ({
+    getTracks: () => [...tracks],
+    getVideoTracks: () => tracks.filter((t) => t.kind === 'video'),
+    getAudioTracks: () => tracks.filter((t) => t.kind === 'audio'),
+  });
+
+  beforeEach(() => {
+    originalMediaDevices = (navigator as any).mediaDevices;
+    getUserMedia = jest.fn();
+    getDisplayMedia = jest.fn();
+    Object.defineProperty(navigator, 'mediaDevices', {
+      value: { getUserMedia, getDisplayMedia },
+      configurable: true,
+    });
+    OriginalMediaStream = (global as any).MediaStream;
+    (global as any).MediaStream = class {
+      tracks: any[];
+      constructor(tracks: any[] = []) {
+        this.tracks = [...tracks];
+      }
+      getTracks() {
+        return [...this.tracks];
+      }
+      getVideoTracks() {
+        return this.tracks.filter((t: any) => t.kind === 'video');
+      }
+      getAudioTracks() {
+        return this.tracks.filter((t: any) => t.kind === 'audio');
+      }
+      addTrack(t: any) {
+        this.tracks.push(t);
+      }
+    };
+    service = TestBed.inject(SocialNetworkingService);
+    (service.screenShareSupported as any).set(true);
+    service.isStreaming.set(false);
+    service.localStream.set(null);
+    service.videoSource.set('camera');
+  });
+
+  afterEach(() => {
+    service.stopStream();
+    Object.defineProperty(navigator, 'mediaDevices', {
+      value: originalMediaDevices,
+      configurable: true,
+    });
+    (global as any).MediaStream = OriginalMediaStream;
+  });
+
+  it('starts on the pre-picked screen source with mic plus system audio', async () => {
+    const screenVideo = makeTrack('video', 'screen-v');
+    const sysAudio = makeTrack('audio', 'sys-a');
+    getDisplayMedia.mockResolvedValue(fakeMedia([screenVideo, sysAudio]));
+    const mic = makeTrack('audio', 'mic-1');
+    getUserMedia.mockResolvedValue(fakeMedia([mic]));
+
+    service.videoSource.set('screen');
+    await service.startStream('S.M.U.V.E.');
+
+    expect(getDisplayMedia).toHaveBeenCalled();
+    expect(service.videoSource()).toBe('screen');
+    expect(service.localStream()!.getVideoTracks()[0]).toBe(screenVideo);
+    expect(service.localStream()!.getAudioTracks()).toEqual(
+      expect.arrayContaining([mic, sysAudio])
+    );
+  });
+
+  it('falls back to camera when the pre-stream screen picker is refused', async () => {
+    getDisplayMedia.mockRejectedValue(
+      Object.assign(new Error('denied'), { name: 'NotAllowedError' })
+    );
+    const camVideo = makeTrack('video', 'cam-v');
+    const mic = makeTrack('audio', 'mic-2');
+    getUserMedia.mockResolvedValue(fakeMedia([camVideo, mic]));
+
+    service.videoSource.set('screen');
+    await service.startStream('S.M.U.V.E.');
+
+    expect(service.videoSource()).toBe('camera');
+    expect(service.localStream()!.getVideoTracks()[0]).toBe(camVideo);
+    expect(service.streamError()).toBeNull();
+  });
+
+  it('switches camera → screen live, keeps the mic and notifies viewers', async () => {
+    const camVideo = makeTrack('video', 'cam-v');
+    const mic = makeTrack('audio', 'mic-1');
+    getUserMedia.mockResolvedValue(fakeMedia([camVideo, mic]));
+    await service.startStream('S.M.U.V.E.');
+    const onTrack = jest.fn();
+    service.onVideoTrackReplaced(onTrack);
+
+    const screenVideo = makeTrack('video', 'screen-v');
+    const sysAudio = makeTrack('audio', 'sys-a');
+    getDisplayMedia.mockResolvedValue(fakeMedia([screenVideo, sysAudio]));
+    await service.setVideoSource('screen');
+
+    expect(service.videoSource()).toBe('screen');
+    expect(service.localStream()!.getVideoTracks()[0]).toBe(screenVideo);
+    expect(service.localStream()!.getAudioTracks()).toEqual(
+      expect.arrayContaining([mic, sysAudio])
+    );
+    expect(camVideo.stop).toHaveBeenCalled();
+    expect(onTrack).toHaveBeenCalledWith(screenVideo);
+  });
+
+  it('switches screen → camera and drops system audio but keeps the mic', async () => {
+    const camVideo = makeTrack('video', 'cam-v');
+    const mic = makeTrack('audio', 'mic-1');
+    getUserMedia.mockResolvedValue(fakeMedia([camVideo, mic]));
+    await service.startStream('S.M.U.V.E.');
+
+    const screenVideo = makeTrack('video', 'screen-v');
+    const sysAudio = makeTrack('audio', 'sys-a');
+    getDisplayMedia.mockResolvedValue(fakeMedia([screenVideo, sysAudio]));
+    await service.setVideoSource('screen');
+
+    const camVideo2 = makeTrack('video', 'cam-v2');
+    getUserMedia.mockResolvedValue(fakeMedia([camVideo2]));
+    const onTrack = jest.fn();
+    service.onVideoTrackReplaced(onTrack);
+    await service.setVideoSource('camera');
+
+    expect(service.videoSource()).toBe('camera');
+    expect(service.localStream()!.getVideoTracks()[0]).toBe(camVideo2);
+    expect(service.localStream()!.getAudioTracks()).toEqual([mic]);
+    expect(sysAudio.stop).toHaveBeenCalled();
+    expect(mic.stop).not.toHaveBeenCalled();
+    expect(onTrack).toHaveBeenCalledWith(camVideo2);
+  });
+
+  it('keeps the current source when the mid-show picker is cancelled', async () => {
+    const camVideo = makeTrack('video', 'cam-v');
+    const mic = makeTrack('audio', 'mic-1');
+    getUserMedia.mockResolvedValue(fakeMedia([camVideo, mic]));
+    await service.startStream('S.M.U.V.E.');
+    getDisplayMedia.mockRejectedValue(
+      Object.assign(new Error('cancelled'), { name: 'NotAllowedError' })
+    );
+
+    await service.setVideoSource('screen');
+
+    expect(service.videoSource()).toBe('camera');
+    expect(service.localStream()!.getVideoTracks()[0]).toBe(camVideo);
+    expect(service.streamError()).toBeNull();
+  });
+
+  it('refuses screen on browsers without display capture', async () => {
+    (service.screenShareSupported as any).set(false);
+    const camVideo = makeTrack('video', 'cam-v');
+    const mic = makeTrack('audio', 'mic-1');
+    getUserMedia.mockResolvedValue(fakeMedia([camVideo, mic]));
+    await service.startStream('S.M.U.V.E.');
+
+    await service.setVideoSource('screen');
+
+    expect(service.videoSource()).toBe('camera');
+    expect(service.streamError()).toContain('SCREEN_SHARE_UNSUPPORTED');
+    expect(getDisplayMedia).not.toHaveBeenCalled();
+  });
+
+  it('falls back to camera when the user stops sharing in the browser', async () => {
+    const camVideo = makeTrack('video', 'cam-v');
+    const mic = makeTrack('audio', 'mic-1');
+    getUserMedia.mockResolvedValue(fakeMedia([camVideo, mic]));
+    await service.startStream('S.M.U.V.E.');
+
+    const screenVideo = makeTrack('video', 'screen-v');
+    getDisplayMedia.mockResolvedValue(fakeMedia([screenVideo]));
+    await service.setVideoSource('screen');
+    expect(service.videoSource()).toBe('screen');
+
+    const camVideo2 = makeTrack('video', 'cam-v2');
+    getUserMedia.mockResolvedValue(fakeMedia([camVideo2]));
+    const ended = screenVideo.addEventListener.mock.calls.find(
+      ([event]: any[]) => event === 'ended'
+    )?.[1];
+    expect(ended).toBeDefined();
+    ended();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(service.videoSource()).toBe('camera');
+    expect(service.localStream()!.getVideoTracks()[0]).toBe(camVideo2);
+  });
+});
+
+describe('SocialNetworkingService screen audio only', () => {
+  let service: SocialNetworkingService;
+  let getUserMedia: jest.Mock;
+  let getDisplayMedia: jest.Mock;
+  let originalMediaDevices: MediaDevices | undefined;
+  let OriginalMediaStream: any;
+
+  const makeTrack = (kind: 'audio' | 'video', id: string) => ({
+    kind,
+    id,
+    enabled: true,
+    stop: jest.fn(),
+    addEventListener: jest.fn(),
+  });
+  const fakeMedia = (tracks: any[]) => ({
+    getTracks: () => [...tracks],
+    getVideoTracks: () => tracks.filter((t) => t.kind === 'video'),
+    getAudioTracks: () => tracks.filter((t) => t.kind === 'audio'),
+  });
+
+  beforeEach(() => {
+    originalMediaDevices = (navigator as any).mediaDevices;
+    getUserMedia = jest.fn();
+    getDisplayMedia = jest.fn();
+    Object.defineProperty(navigator, 'mediaDevices', {
+      value: { getUserMedia, getDisplayMedia },
+      configurable: true,
+    });
+    OriginalMediaStream = (global as any).MediaStream;
+    (global as any).MediaStream = class {
+      tracks: any[];
+      constructor(tracks: any[] = []) {
+        this.tracks = [...tracks];
+      }
+      getTracks() {
+        return [...this.tracks];
+      }
+      getVideoTracks() {
+        return this.tracks.filter((t: any) => t.kind === 'video');
+      }
+      getAudioTracks() {
+        return this.tracks.filter((t: any) => t.kind === 'audio');
+      }
+      addTrack(t: any) {
+        this.tracks.push(t);
+      }
+    };
+    service = TestBed.inject(SocialNetworkingService);
+    (service.screenShareSupported as any).set(true);
+    service.isStreaming.set(false);
+    service.localStream.set(null);
+    service.videoSource.set('camera');
+  });
+
+  afterEach(() => {
+    service.stopStream();
+    Object.defineProperty(navigator, 'mediaDevices', {
+      value: originalMediaDevices,
+      configurable: true,
+    });
+    (global as any).MediaStream = OriginalMediaStream;
+  });
+
+  async function goScreenLive() {
+    const camVideo = makeTrack('video', 'cam-v');
+    const mic = makeTrack('audio', 'mic-1');
+    getUserMedia.mockResolvedValue(fakeMedia([camVideo, mic]));
+    await service.startStream('S.M.U.V.E.');
+    const screenVideo = makeTrack('video', 'screen-v');
+    const sysAudio = makeTrack('audio', 'sys-a');
+    getDisplayMedia.mockResolvedValue(fakeMedia([screenVideo, sysAudio]));
+    await service.setVideoSource('screen');
+    return { mic, sysAudio };
+  }
+
+  it('mutes the mic for viewers but leaves game sound playing', async () => {
+    const { mic, sysAudio } = await goScreenLive();
+
+    service.setScreenAudioOnly(true);
+
+    expect(service.screenAudioOnly()).toBe(true);
+    expect(mic.enabled).toBe(false);
+    expect(sysAudio.enabled).toBe(true);
+  });
+
+  it('restores the mic when screen-audio-only is switched off', async () => {
+    const { mic } = await goScreenLive();
+    service.setScreenAudioOnly(true);
+    expect(mic.enabled).toBe(false);
+
+    service.setScreenAudioOnly(false);
+
+    expect(mic.enabled).toBe(true);
+  });
+
+  it('keeps the mic back on camera even with the flag still set', async () => {
+    const { mic } = await goScreenLive();
+    service.setScreenAudioOnly(true);
+
+    const camVideo2 = makeTrack('video', 'cam-v2');
+    getUserMedia.mockResolvedValue(fakeMedia([camVideo2]));
+    await service.setVideoSource('camera');
+
+    expect(service.videoSource()).toBe('camera');
+    expect(mic.enabled).toBe(true);
+  });
+
+  it('no longer mutes game sound with the mic toggle', async () => {
+    const { mic, sysAudio } = await goScreenLive();
+
+    service.toggleMic();
+
+    expect(service.micEnabled()).toBe(false);
+    expect(mic.enabled).toBe(false);
+    expect(sysAudio.enabled).toBe(true);
+  });
+
+  it('resets screen-audio-only when the stream stops', async () => {
+    await goScreenLive();
+    service.setScreenAudioOnly(true);
+
+    service.stopStream();
+
+    expect(service.screenAudioOnly()).toBe(false);
+  });
+});

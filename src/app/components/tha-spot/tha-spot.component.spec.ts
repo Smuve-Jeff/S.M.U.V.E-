@@ -28,6 +28,7 @@ import {
   ParamMap,
 } from "@angular/router";
 import { signal } from "@angular/core";
+import { LiveVideoService } from "../../services/live-video.service";
 
 describe("ThaSpotComponent", () => {
   let component: ThaSpotComponent;
@@ -1212,4 +1213,56 @@ describe("ThaSpotComponent", () => {
     });
   });
 
+  describe("viewer mix split", () => {
+    let OriginalMediaStream: any;
+
+    beforeEach(() => {
+      OriginalMediaStream = (global as any).MediaStream;
+      (global as any).MediaStream = class {
+        tracks: any[];
+        constructor(tracks: any[] = []) {
+          this.tracks = [...tracks];
+        }
+        getTracks() {
+          return [...this.tracks];
+        }
+      };
+    });
+
+    afterEach(() => {
+      (global as any).MediaStream = OriginalMediaStream;
+      TestBed.inject(LiveVideoService).remoteStream.set(null);
+    });
+
+    it("divides the watched feed into picture, voice and game streams", () => {
+      const liveVideo = TestBed.inject(LiveVideoService);
+      const video = { kind: "video" };
+      const mic = { kind: "audio", id: "mic" };
+      const system = { kind: "audio", id: "sys" };
+      liveVideo.remoteStream.set({
+        getVideoTracks: () => [video],
+        getAudioTracks: () => [mic, system],
+      } as any);
+      TestBed.flushEffects();
+
+      // Host contract: mic first, system sound second.
+      expect(component.viewerVoiceStream()?.getTracks()).toEqual([mic]);
+      expect(component.viewerGameStream()?.getTracks()).toEqual([system]);
+      expect(component.viewerVideoStream()?.getTracks()).toEqual([video]);
+    });
+
+    it("shows voice only when the host is on camera", () => {
+      const liveVideo = TestBed.inject(LiveVideoService);
+      const video = { kind: "video" };
+      const mic = { kind: "audio", id: "mic" };
+      liveVideo.remoteStream.set({
+        getVideoTracks: () => [video],
+        getAudioTracks: () => [mic],
+      } as any);
+      TestBed.flushEffects();
+
+      expect(component.viewerVoiceStream()?.getTracks()).toEqual([mic]);
+      expect(component.viewerGameStream()).toBeNull();
+    });
+  });
 });

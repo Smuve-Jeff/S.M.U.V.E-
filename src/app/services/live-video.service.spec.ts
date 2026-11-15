@@ -54,8 +54,14 @@ class FakePeerConnection {
     FakePeerConnection.instances.push(this);
   }
 
+  senders: Array<{ track: any; replaceTrack: jest.Mock }> = [];
   addTrack(track: any): void {
     this.tracks.push(track);
+    this.senders.push({ track, replaceTrack: jest.fn(async () => undefined) });
+  }
+
+  getSenders(): Array<{ track: any; replaceTrack: jest.Mock }> {
+    return this.senders;
   }
 
   async createOffer(): Promise<any> {
@@ -152,6 +158,7 @@ describe("LiveVideoService", () => {
       localStream: jest.fn(() => media),
       streamError: jest.fn(() => null),
       socketConnected: jest.fn(() => true),
+      onVideoTrackReplaced: jest.fn(() => () => undefined),
     };
     http = {
       get: jest.fn(() =>
@@ -482,5 +489,36 @@ describe("LiveVideoService", () => {
       event: "live_stream_host_join",
       data: { token: "tok" },
     });
+  });
+
+  it("swaps the video track on every viewer peer when the host switches source", async () => {
+    service.startHosting(stream);
+    await flush();
+    socket.trigger("live_stream_viewer_joined", {
+      streamToken: "tok",
+      socketId: "viewer-1",
+      viewerName: "NOVA",
+      streamId: 5,
+    });
+    await flush();
+
+    const pc = FakePeerConnection.instances[0];
+    const screenTrack = makeTrack("video");
+    const listener = (social.onVideoTrackReplaced as jest.Mock).mock.calls[0][0];
+    listener(screenTrack);
+    await flush();
+
+    const videoSender = pc.senders.find((s) => s.track.kind === "video");
+    expect(videoSender?.replaceTrack).toHaveBeenCalledWith(screenTrack);
+  });
+
+  it("releases the source-switch subscription when hosting stops", async () => {
+    const unsub = jest.fn();
+    (social.onVideoTrackReplaced as jest.Mock).mockReturnValueOnce(unsub);
+    service.startHosting(stream);
+    await flush();
+
+    service.stopHosting();
+    expect(unsub).toHaveBeenCalled();
   });
 });

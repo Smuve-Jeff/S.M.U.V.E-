@@ -1489,13 +1489,15 @@
 
       <!-- The host's camera/mic, delivered peer-to-peer over WebRTC. -->
       <div class="live-feed" [class.live-feed-live]="liveVideo.status() === 'live'">
+        <!-- Picture only: voice and game sound ride dedicated audio
+             elements below so each gets its own volume slider. -->
         <video
-          *ngIf="liveVideo.remoteStream() as feed"
+          *ngIf="viewerVideoStream() as feed"
           class="live-feed-video"
           [srcObject]="feed"
           autoplay
           playsinline
-          [muted]="liveVideo.isMuted()"
+          muted
           aria-label="Host live video feed"
         ></video>
         <div class="live-feed-empty" *ngIf="!liveVideo.remoteStream()">
@@ -1533,6 +1535,45 @@
           }}</span>
           {{ liveVideo.isMuted() ? 'UNMUTE' : 'MUTE' }}
         </button>
+        <div
+          class="live-mix"
+          *ngIf="viewerVoiceStream() || viewerGameStream()"
+        >
+          <label class="mix-slider" *ngIf="viewerVoiceStream() as voice">
+            <span>VOICE</span>
+            <audio
+              #voiceAudio
+              [srcObject]="voice"
+              autoplay
+              [muted]="liveVideo.isMuted()"
+            ></audio>
+            <input
+              type="range"
+              min="0"
+              max="100"
+              value="100"
+              (input)="voiceAudio.volume = $any($event.target).value / 100"
+              aria-label="Host voice volume"
+            />
+          </label>
+          <label class="mix-slider" *ngIf="viewerGameStream() as game">
+            <span>GAME</span>
+            <audio
+              #gameAudio
+              [srcObject]="game"
+              autoplay
+              [muted]="liveVideo.isMuted()"
+            ></audio>
+            <input
+              type="range"
+              min="0"
+              max="100"
+              value="100"
+              (input)="gameAudio.volume = $any($event.target).value / 100"
+              aria-label="Game sound volume"
+            />
+          </label>
+        </div>
         <span class="live-feed-status">{{ liveFeedLabel() }}</span>
       </div>
 
@@ -2952,6 +2993,25 @@
                 FULL 1080p
               </button>
             </div>
+            <div class="stream-quality-row">
+              <span class="quality-readout">SOURCE</span>
+              <button
+                class="quality-btn"
+                [class.active]="socialService.videoSource() === 'camera'"
+                (click)="socialService.videoSource.set('camera')"
+              >
+                CAMERA
+              </button>
+              <button
+                class="quality-btn"
+                [class.active]="socialService.videoSource() === 'screen'"
+                (click)="socialService.videoSource.set('screen')"
+                [disabled]="!socialService.screenShareSupported()"
+                title="Share your screen — pick a tab, window or display when you go live"
+              >
+                SCREEN
+              </button>
+            </div>
             <div class="platform-grid">
               <button class="platform-btn twitch" (click)="goLive('Twitch')">
                 TWITCH
@@ -3012,6 +3072,31 @@
               >
                 <span class="material-symbols-outlined">videocam</span>
                 CAMERA
+              </button>
+              <button
+                class="av-btn"
+                (click)="socialService.setVideoSource(socialService.videoSource() === 'camera' ? 'screen' : 'camera')"
+                [disabled]="!socialService.screenShareSupported()"
+                [title]="socialService.videoSource() === 'camera' ? 'Switch to screen share — viewers keep watching' : 'Switch back to camera'"
+              >
+                <span class="material-symbols-outlined">{{
+                  socialService.videoSource() === 'camera'
+                    ? 'screen_share'
+                    : 'videocam'
+                }}</span>
+                {{
+                  socialService.videoSource() === 'camera' ? 'SCREEN' : 'CAM'
+                }}
+              </button>
+              <button
+                class="av-btn"
+                (click)="socialService.setScreenAudioOnly(!socialService.screenAudioOnly())"
+                [disabled]="socialService.videoSource() !== 'screen'"
+                [class.active]="socialService.screenAudioOnly()"
+                title="Viewers hear game sound only — your mic stays out of their mix"
+              >
+                <span class="material-symbols-outlined">mic_off</span>
+                GAME ONLY
               </button>
               <button
                 class="av-btn"
