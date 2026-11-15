@@ -1,4 +1,5 @@
 import { TestBed } from '@angular/core/testing';
+import { signal } from '@angular/core';
 import { of, throwError } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
 import { LiveStreamService } from './live-stream.service';
@@ -25,6 +26,8 @@ let profileRef: {
   value: { id: string; artistName: string };
 } = { value: { id: '', artistName: 'Anonymous' } };
 const updateStatusCalls: any[] = [];
+const socketConnectedSignal = signal(false);
+let presenceExtras: (() => Record<string, unknown>) | null = null;
 const openedPopups: Array<{ url: string; target: string; features: string }> =
   [];
 const messageListeners: Array<(event: any) => void> = [];
@@ -72,6 +75,8 @@ beforeEach(() => {
   httpCalls.length = 0;
   httpResponses.length = 0;
   updateStatusCalls.length = 0;
+  socketConnectedSignal.set(false);
+  presenceExtras = null;
   openedPopups.length = 0;
   messageListeners.length = 0;
   tokenRef = { value: null };
@@ -130,6 +135,13 @@ beforeEach(() => {
           updateStatus: (meta: unknown) => updateStatusCalls.push(meta),
           startStream: jest.fn(async () => undefined),
           stopStream: jest.fn(),
+          setPresenceExtrasProvider: (fn: any) => {
+            presenceExtras = fn;
+          },
+          liveNow: jest.fn(() => []),
+          blockedUsers: signal([]),
+          socketConnected: socketConnectedSignal,
+          getSocket: jest.fn(() => undefined),
         },
       },
     ],
@@ -503,7 +515,10 @@ describe('LiveStreamService', () => {
           { provide: HapticService, useValue: { light: jest.fn(), medium: jest.fn() } },
           {
             provide: SocialNetworkingService,
-            useValue: { updateStatus: () => undefined },
+            useValue: {
+              updateStatus: () => undefined,
+              setPresenceExtrasProvider: () => undefined,
+            },
           },
         ],
       });
@@ -525,6 +540,213 @@ describe('LiveStreamService', () => {
       });
       const ok = await service.copyShareUrl(true);
       expect(ok).toBe(true);
+    });
+  });
+
+  describe('socket directory updates', () => {
+    it('refetches immediately on live_stream_started and live_stream_ended', async () => {
+      const handlers = new Map<string, () => void>();
+      const socket = {
+        connected: true,
+        on: jest.fn((event: string, fn: () => void) => {
+          handlers.set(event, fn);
+        }),
+        off: jest.fn(),
+      };
+      const social = TestBed.inject(SocialNetworkingService) as any;
+      socketConnectedSignal.set(true);
+      social.getSocket.mockReturnValue(socket);
+      tokenRef = { value: 'TKN' };
+      profileRef = { value: { id: '77', artistName: 'JEFF' } };
+
+      service = TestBed.inject(LiveStreamService);
+      TestBed.flushEffects();
+
+      expect(handlers.has('live_stream_started')).toBe(true);
+      expect(handlers.has('live_stream_ended')).toBe(true);
+      expect(handlers.has('live_directory_changed')).toBe(true);
+
+      httpResponses.push([]);
+      handlers.get('live_stream_started')!();
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(
+        httpCalls.filter((call) =>
+          call.url.includes('/live-streams/active')
+        )
+      ).toHaveLength(1);
+
+      httpResponses.push([]);
+      handlers.get('live_stream_ended')!();
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(
+        httpCalls.filter((call) =>
+          call.url.includes('/live-streams/active')
+        )
+      ).toHaveLength(2);
+    });
+  });
+
+  describe('reconnect catch-up', () => {
+    it('fetches the directory once when the socket reconnects after an outage', async () => {
+      tokenRef = { value: 'TKN' };
+      profileRef = { value: { id: '77', artistName: 'JEFF' } };
+      const social = TestBed.inject(SocialNetworkingService) as any;
+      socketConnectedSignal.set(false);
+      social.getSocket.mockReturnValue(undefined);
+
+      service = TestBed.inject(LiveStreamService);
+      TestBed.flushEffects();
+
+      social.getSocket.mockReturnValue({
+        connected: true,
+        on: jest.fn(),
+        off: jest.fn(),
+      });
+      httpResponses.push([]);
+      socketConnectedSignal.set(true);
+      TestBed.flushEffects();
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(
+        httpCalls.filter((call) =>
+          call.url.includes('/live-streams/active')
+        )
+      ).toHaveLength(1);
+
+      // Staying connected does not keep polling.
+      TestBed.flushEffects();
+      await Promise.resolve();
+      expect(
+        httpCalls.filter((call) =>
+          call.url.includes('/live-streams/active')
+        )
+      ).toHaveLength(1);
+    });
+  });
+
+  describe('active stream directory', () => {
+    it('loads active streams and merges presence without duplicates', async () => {
+      service = TestBed.inject(LiveStreamService);
+      tokenRef = { value: 'TKN' };
+      profileRef = { value: { id: '77', artistName: 'JEFF' } };
+      const social = TestBed.inject(SocialNetworkingService) as any;
+      social.liveNow.mockReturnValue([
+        { userId: '99', artistName: 'RIVAL', live: true, liveShareToken: 'tok-1' },
+        {
+          userId: '100',
+          artistName: 'PEER',
+          live: true,
+          liveShareToken: 'tok-2',
+          livePlatform: 'smuve',
+          liveGameId: 'mk2',
+        },
+        {
+          userId: '101',
+          artistName: 'STALE',
+          live: false,
+          liveShareToken: 'tok-3',
+        },
+      ]);
+      httpResponses.push([
+        makeRow({
+          shareToken: 'tok-1',
+          hostId: '99',
+          hostDisplayName: 'RIVAL',
+          platform: 'smuve',
+          gameId: 'halo',
+          viewerJoins: 3,
+        }),
+      ]);
+
+      await service.loadActiveStreams();
+
+      expect(httpCalls.at(-1)).toMatchObject({
+        method: 'GET',
+        url: expect.stringContaining('/api/live-streams/active'),
+      });
+      const directory = service.liveDirectory();
+      expect(directory).toHaveLength(2);
+      expect(directory[0]).toMatchObject({
+        shareToken: 'tok-1',
+        hostName: 'RIVAL',
+        viewerJoins: 3,
+      });
+      expect(directory[1]).toMatchObject({
+        shareToken: 'tok-2',
+        hostName: 'PEER',
+        gameId: 'mk2',
+      });
+    });
+
+    it('never lists this host\'s own stream', async () => {
+      service = TestBed.inject(LiveStreamService);
+      tokenRef = { value: 'TKN' };
+      profileRef = { value: { id: '77', artistName: 'JEFF' } };
+      httpResponses.push([
+        makeRow({ shareToken: 'mine', hostId: '77', active: true }),
+      ]);
+
+      await service.loadActiveStreams();
+
+      expect(service.liveDirectory()).toEqual([]);
+    });
+  });
+
+  describe('blocked hosts in the directory', () => {
+    it('hides active streams from blocked users', async () => {
+      service = TestBed.inject(LiveStreamService);
+      tokenRef = { value: 'TKN' };
+      profileRef = { value: { id: '77', artistName: 'JEFF' } };
+      const social = TestBed.inject(SocialNetworkingService) as any;
+      social.blockedUsers.set([{ userId: '99', artistName: 'BLOCKED' }]);
+      httpResponses.push([
+        makeRow({ shareToken: 'blocked-tok', hostId: '99', active: true }),
+        makeRow({ shareToken: 'visible-tok', hostId: '101', active: true }),
+      ]);
+
+      await service.loadActiveStreams();
+
+      expect(service.liveDirectory().map((entry) => entry.shareToken)).toEqual([
+        'visible-tok',
+      ]);
+    });
+  });
+
+  describe('presence identity', () => {
+    it('publishes the live identity with presence registration', async () => {
+      service = TestBed.inject(LiveStreamService);
+      tokenRef = { value: 'TKN' };
+      profileRef = { value: { id: '77', artistName: 'JEFF' } };
+      httpResponses.push(
+        makeRow({ platform: 'smuve', shareToken: 'live-tok', gameId: 'halo' })
+      );
+
+      await service.golive({ platform: 'smuve', gameId: 'halo' });
+
+      expect(presenceExtras?.()).toEqual({
+        live: true,
+        livePlatform: 'smuve',
+        liveShareToken: 'live-tok',
+        liveGameId: 'halo',
+      });
+    });
+
+    it('drops the live fields once the stream ends', async () => {
+      service = TestBed.inject(LiveStreamService);
+      tokenRef = { value: 'TKN' };
+      profileRef = { value: { id: '77', artistName: 'JEFF' } };
+      httpResponses.push(makeRow({ platform: 'smuve' }));
+      await service.golive({ platform: 'smuve' });
+      httpResponses.push({ success: true, streamId: 1 });
+
+      await service.endStream();
+
+      expect(presenceExtras?.()).toEqual({});
     });
   });
 

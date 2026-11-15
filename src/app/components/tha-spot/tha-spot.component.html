@@ -2672,14 +2672,52 @@
         <div class="friends-view" *ngIf="activeHubTab() === 'friends'">
           <div class="friends-header">
             <h4>EXECUTIVE_NETWORK</h4>
-            <button class="icon-btn" (click)="socialService.loadFriends()">
+            <button class="icon-btn" (click)="refreshNetDirectory()">
               <span class="material-symbols-outlined">refresh</span>
             </button>
           </div>
+
+          <!-- Active streams are server-backed so a viewer who just logged in
+               can find a broadcast even without a presence event; presence
+               entries are merged in for freshness and deduped by token. -->
+          <div class="live-now" *ngIf="liveStream.liveDirectory().length > 0">
+            <h5><span class="live-dot"></span> ACTIVE STREAMS</h5>
+            <div class="user-list">
+              <div
+                class="user-item"
+                *ngFor="let entry of liveStream.liveDirectory()"
+              >
+                <div class="user-info">
+                  <div class="user-meta">
+                    <span class="user-name">{{ entry.hostName }}</span>
+                    <span class="user-location">
+                      {{ entry.platform | uppercase }}
+                      <ng-container *ngIf="entry.gameId"
+                        >· {{ entry.gameId | uppercase }}</ng-container
+                      >
+                      <ng-container *ngIf="entry.viewerJoins"
+                        >· {{ entry.viewerJoins }} WATCHING</ng-container
+                      >
+                    </span>
+                  </div>
+                </div>
+                <div class="user-actions">
+                  <button
+                    type="button"
+                    class="action-btn live-watch"
+                    (click)="watchLiveToken(entry.shareToken)"
+                  >
+                    WATCH
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <div class="user-list">
             <div
               class="user-item"
-              *ngFor="let friend of socialService.friends()"
+              *ngFor="let friend of socialService.friendsDirectory()"
               [class.pending]="friend.status === 'pending'"
             >
               <div class="user-info">
@@ -2688,20 +2726,39 @@
                   class="user-avatar"
                 />
                 <div class="user-meta">
-                  <span class="user-name">{{ friend.artistName }}</span>
+                  <span class="user-name">
+                    {{ friend.artistName }}
+                    <span
+                      class="live-chip"
+                      *ngIf="friend.live && friend.liveShareToken"
+                      >● LIVE</span
+                    >
+                  </span>
                   <span class="user-location" *ngIf="friend.location"
                     ><span class="material-symbols-outlined mini"
                       >location_on</span
                     >
                     {{ friend.location }}</span
                   >
-                  <span class="status-label" *ngIf="friend.status === 'pending'"
-                    >PENDING_APPROVAL</span
-                  >
+                  <span class="status-label" *ngIf="friend.status === 'pending'">
+                    {{
+                      friend.direction === "outgoing"
+                        ? "AWAITING_RESPONSE"
+                        : "INCOMING_REQUEST"
+                    }}
+                  </span>
                 </div>
               </div>
               <div class="user-actions">
                 <ng-container *ngIf="friend.status === 'accepted'">
+                  <button
+                    type="button"
+                    class="action-btn live-watch"
+                    *ngIf="friend.live && friend.liveShareToken"
+                    (click)="watchPeerLive(friend)"
+                  >
+                    WATCH
+                  </button>
                   <button
                     type="button"
                     class="action-btn"
@@ -2725,7 +2782,9 @@
                     UNLINK
                   </button>
                 </ng-container>
-                <ng-container *ngIf="friend.status === 'pending'">
+                <ng-container
+                  *ngIf="friend.status === 'pending' && friend.direction !== 'outgoing'"
+                >
                   <button
                     class="action-btn"
                     (click)="
@@ -2749,11 +2808,21 @@
                     DENY
                   </button>
                 </ng-container>
+                <ng-container
+                  *ngIf="friend.status === 'pending' && friend.direction === 'outgoing'"
+                >
+                  <button
+                    class="action-btn danger"
+                    (click)="socialService.removeFriend(friend.userId)"
+                  >
+                    CANCEL
+                  </button>
+                </ng-container>
               </div>
             </div>
             <div
               class="empty-state"
-              *ngIf="socialService.friends().length === 0"
+              *ngIf="socialService.friendsDirectory().length === 0"
             >
               NO_ACTIVE_FRIEND_LINKS
             </div>
@@ -2771,13 +2840,28 @@
             <div class="search-results">
               <div class="user-item" *ngFor="let user of globalSearchResults()">
                 <div class="user-info">
-                  <span class="user-name">{{ user.artistName }}</span>
-                  <div
-                    class="user-meta"
-                    style="font-size: 0.7rem; color: var(--success-v42)"
-                  >
-                    ELITE: {{ user.eliteScore || 0 }} | SQUAD:
-                    {{ user.squadCount || 0 }}
+                  <img
+                    [src]="user.avatarImage || 'assets/avatar.jpg'"
+                    class="user-avatar"
+                    alt=""
+                  />
+                  <div class="user-meta">
+                    <span class="user-name">{{ user.artistName || 'ANONYMOUS' }}</span>
+                    <span class="user-location">
+                      <ng-container *ngIf="user.primaryGenre"
+                        >{{ user.primaryGenre }}</ng-container
+                      >
+                      <ng-container *ngIf="user.primaryGenre && user.location"
+                        > · </ng-container
+                      >
+                      <ng-container *ngIf="user.location">{{ user.location }}</ng-container>
+                    </span>
+                    <div
+                      style="font-size: 0.7rem; color: var(--success-v42)"
+                    >
+                      ELITE: {{ user.eliteScore || 0 }} | SQUAD:
+                      {{ user.squadCount || 0 }}
+                    </div>
                   </div>
                 </div>
                 <button

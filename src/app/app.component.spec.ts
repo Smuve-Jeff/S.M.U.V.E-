@@ -375,6 +375,21 @@ describe('AppComponent', () => {
     expect(component.isFullPageMode()).toBe(true);
   });
 
+  /**
+   * The Masterclass is a teaching workspace, not a Hub page. Left inside the
+   * frame, a phone spent roughly 150px on the top bar and dock before the
+   * guide's own header, and the floating Home pill would paint over the
+   * lesson actions.
+   */
+  it('treats the Masterclass as a full-page workspace', async () => {
+    const { component } = await createComponent(
+      '/masterclass?guide=first-loop'
+    );
+
+    expect(component.isFullPageMode()).toBe(true);
+    expect(component.showUniversalHomeLink()).toBe(false);
+  });
+
   it('treats login as an auth-only full-page route', async () => {
     const { component, uiService } = await createComponent('/login');
 

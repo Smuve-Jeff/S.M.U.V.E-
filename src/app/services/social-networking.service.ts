@@ -1,5 +1,5 @@
 import { APP_SECURITY_CONFIG } from '../app.security';
-import { Injectable, inject, signal, effect } from '@angular/core';
+import { Injectable, computed, inject, signal, effect } from '@angular/core';
 import { UserProfileService } from './user-profile.service';
 import { Injector } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
@@ -20,6 +20,8 @@ export interface OnlineUser {
   userId: string;
   /** Friendship state; present on entries that come from the friends list. */
   status?: 'pending' | 'accepted' | 'declined';
+  /** Pending requests only: who sent it. */
+  direction?: 'incoming' | 'outgoing';
   artistName?: string;
   primaryGenre?: string;
   avatarImage?: string;
@@ -31,6 +33,15 @@ export interface OnlineUser {
   squadCount?: number;
   /** Chat room this user is currently in (server presence; null when fresh). */
   currentRoom?: string | null;
+  /**
+   * Live-stream identity published through presence. `live` flips false when
+   * the host ends the broadcast; the token is the same one `?live=` links use,
+   * so peers can open the stream without the host sending a link.
+   */
+  live?: boolean;
+  livePlatform?: string;
+  liveShareToken?: string;
+  liveGameId?: string;
 }
 
 export interface PrivateMessage {
@@ -91,6 +102,10 @@ export class SocialNetworkingService {
   getSocket(): Socket | undefined {
     return this.socket;
   }
+  /** Extra presence metadata contributed by services (live-stream identity). */
+  private presenceExtras: (() => Record<string, unknown>) | null = null;
+  /** Last status update emitted while offline; flushed on the next connect. */
+  private pendingStatus: Record<string, unknown> | null = null;
   private injector = inject(Injector);
   private http = inject(HttpClient);
   private tokenService = inject(TokenService);
@@ -102,6 +117,41 @@ export class SocialNetworkingService {
   blockedUsers = signal<OnlineUser[]>([]);
   // challenges moved to ChallengeInboxService (single source of truth)
   friends = signal<OnlineUser[]>([]);
+  /**
+   * Friends merged with live presence. The REST friends list carries no
+   * stream identity, so a broadcasting friend used to look offline in the
+   * NET tab even while their LIVE metadata was on the wire.
+   */
+  readonly friendsDirectory = computed<OnlineUser[]>(() => {
+    const presence = new Map(this.onlineUsers().map((u) => [u.userId, u]));
+    return this.friends().map((friend) => {
+      const live = presence.get(friend.userId);
+      if (!live) return friend;
+      return {
+        ...friend,
+        online: true,
+        live: live.live,
+        livePlatform: live.livePlatform,
+        liveShareToken: live.liveShareToken,
+        liveGameId: live.liveGameId,
+        currentRoom: live.currentRoom,
+      };
+    });
+  });
+  /**
+   * Every peer currently broadcasting, friend or not — the LIVE NOW list.
+   * Blocked users are removed here so every discovery surface (directory,
+   * badges, future consumers) inherits the same filter.
+   */
+  readonly liveNow = computed(() => {
+    const blocked = new Set(this.blockedUsers().map((u) => String(u.userId)));
+    return this.onlineUsers().filter(
+      (u) =>
+        u.live === true &&
+        !!u.liveShareToken &&
+        !blocked.has(String(u.userId))
+    );
+  });
   partyMembers = signal<OnlineUser[]>([]);
   activeHubTab = signal<'room' | 'dm' | 'stream' | 'friends' | 'party'>('room');
   currentPartyId = signal<string | null>(null);
@@ -248,19 +298,20 @@ export class SocialNetworkingService {
           'success'
         );
       }
-      const profile = this.profileService.profile();
       this.socket?.emit('register_presence', {
         userId,
-        metadata: this.isIncognito()
-          ? { artistName: 'Incognito', profileSetupCompleted: false }
-          : {
-              artistName: profile.artistName,
-              primaryGenre: profile.primaryGenre,
-              avatarImage: profile.avatarImage,
-              location: profile.location,
-              profileSetupCompleted: profile.profileSetupCompleted,
-            },
+        metadata: this.presenceMetadata(),
+        // Incognito must replace metadata so hidden profile fields do not
+        // survive a reconnect from another tab/device.
+        ...(this.isIncognito() ? { replace: true } : {}),
       });
+      // A Go Live that happened while the socket was down (or just before
+      // this connect handler ran) must not stay invisible to friends.
+      if (this.pendingStatus) {
+        const metadata = this.pendingStatus;
+        this.pendingStatus = null;
+        this.socket?.emit('update_status', { userId, metadata });
+      }
       if (this.currentRoomId) {
         this.socket?.emit('join_room', this.currentRoomId);
       }
@@ -299,9 +350,18 @@ export class SocialNetworkingService {
       if (this.isIncognito()) {
         this.onlineUsers.set([]);
       } else {
+        // Presence is re-broadcast continuously; filtering only when the user
+        // blocks someone lets the next broadcast put the blocked account back
+        // in the roster. Apply the current blocklist to every snapshot.
+        const blocked = new Set(
+          this.blockedUsers().map((u) => String(u.userId))
+        );
         this.onlineUsers.set(
           users.filter(
-            (u) => u.userId !== userId && u.artistName !== 'Incognito'
+            (u) =>
+              u.userId !== userId &&
+              u.artistName !== 'Incognito' &&
+              !blocked.has(String(u.userId))
           )
         );
       }
@@ -614,7 +674,40 @@ export class SocialNetworkingService {
   updateStatus(metadata: any) {
     const userId = this.profileService.profile().id;
     if (!userId) return;
-    this.socket?.emit('update_status', { userId, metadata });
+    const merged = { ...(this.pendingStatus ?? {}), ...(metadata ?? {}) };
+    // Not connected yet: hold the latest status and flush it right after the
+    // next register_presence so a Go Live during (re)connect is never lost.
+    if (!this.isSocketLive()) {
+      this.pendingStatus = merged;
+      return;
+    }
+    this.pendingStatus = null;
+    this.socket?.emit('update_status', { userId, metadata: merged });
+  }
+
+  /**
+   * Register metadata a service owns (the live-stream identity). It is merged
+   * into every presence registration, including socket reconnects, because
+   * `register_presence` replaces metadata wholesale on the server.
+   */
+  setPresenceExtrasProvider(provider: (() => Record<string, unknown>) | null) {
+    this.presenceExtras = provider;
+  }
+
+  /** Profile fields plus any service-owned presence identity. */
+  private presenceMetadata(): Record<string, unknown> {
+    if (this.isIncognito()) {
+      return { artistName: 'Incognito', profileSetupCompleted: false };
+    }
+    const profile = this.profileService.profile();
+    return {
+      artistName: profile.artistName,
+      primaryGenre: profile.primaryGenre,
+      avatarImage: profile.avatarImage,
+      location: profile.location,
+      profileSetupCompleted: profile.profileSetupCompleted,
+      ...(this.presenceExtras?.() ?? {}),
+    };
   }
   /**
    * DMs sent while the socket is down. Flushed on the next successful
@@ -961,6 +1054,16 @@ export class SocialNetworkingService {
         )
       );
       this.blockedUsers.set(blocked);
+      // The blocklist usually arrives after the first presence snapshot. Purge
+      // already-listed users so the roster is correct without waiting for the
+      // next broadcast (or a refresh).
+      const blockedIds = new Set(blocked.map((u) => String(u.userId)));
+      this.onlineUsers.update((users) =>
+        users.filter((u) => !blockedIds.has(String(u.userId)))
+      );
+      this.friends.update((users) =>
+        users.filter((u) => !blockedIds.has(String(u.userId)))
+      );
       return blocked;
     } catch (e) {
       console.error('Failed to load blocked users', e);
@@ -1310,15 +1413,10 @@ export class SocialNetworkingService {
     const profile = this.profileService.profile();
     this.socket?.emit('register_presence', {
       userId: profile.id,
-      metadata: this.isIncognito()
-        ? { artistName: 'Incognito', profileSetupCompleted: false }
-        : {
-            artistName: profile.artistName,
-            primaryGenre: profile.primaryGenre,
-            avatarImage: profile.avatarImage,
-            location: profile.location,
-            profileSetupCompleted: profile.profileSetupCompleted,
-          },
+      metadata: this.presenceMetadata(),
+      // Turning incognito ON replaces metadata so hidden profile fields do
+      // not linger; every other registration merges to keep live identity.
+      ...(this.isIncognito() ? { replace: true } : {}),
     });
     if (this.isIncognito()) {
       this.onlineUsers.set([]);

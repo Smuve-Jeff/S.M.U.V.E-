@@ -103,6 +103,7 @@ describe("ThaSpotComponent", () => {
     };
     socialServiceMock = {
       isIncognito: signal(false),
+      socketConnected: signal(false),
       getSocket: jest.fn().mockReturnValue(fakeSocket),
       onlineUsers: signal([]),
       onlineInRoom: jest.fn(() => 0),
@@ -118,6 +119,11 @@ describe("ThaSpotComponent", () => {
       pendingNeuralSync: signal(null),
       currentPartyId: jest.fn().mockReturnValue(null),
       updateStatus: jest.fn(),
+      setPresenceExtrasProvider: jest.fn(),
+      loadBlockedUsers: jest.fn(),
+      friends: signal([]),
+      friendsDirectory: signal([]),
+      liveNow: signal([]),
       loadFriends: jest.fn(),
       joinParty: jest.fn(),
       joinRoom: jest.fn(),
@@ -252,6 +258,34 @@ describe("ThaSpotComponent", () => {
 
   it("should create", () => {
     expect(component).toBeTruthy();
+  });
+
+  it("polls the live directory only while NET is open and the socket is down", () => {
+    const loadSpy = jest.spyOn(component.liveStream, "loadActiveStreams");
+    try {
+      component.showRivalHub.set(true);
+      component.activeHubTab.set("friends");
+      component.socialService.socketConnected.set(false);
+      component.refreshLiveDirectoryIfVisible();
+      expect(loadSpy).toHaveBeenCalledTimes(1);
+
+      // Socket events keep the list current while connected; polling stops.
+      component.socialService.socketConnected.set(true);
+      component.refreshLiveDirectoryIfVisible();
+      expect(loadSpy).toHaveBeenCalledTimes(1);
+
+      component.socialService.socketConnected.set(false);
+      component.activeHubTab.set("room");
+      component.refreshLiveDirectoryIfVisible();
+      expect(loadSpy).toHaveBeenCalledTimes(1);
+
+      component.activeHubTab.set("friends");
+      component.showRivalHub.set(false);
+      component.refreshLiveDirectoryIfVisible();
+      expect(loadSpy).toHaveBeenCalledTimes(1);
+    } finally {
+      loadSpy.mockRestore();
+    }
   });
 
   it("should toggle between gaming and the S.M.U.V.E TV broadcast mode", () => {

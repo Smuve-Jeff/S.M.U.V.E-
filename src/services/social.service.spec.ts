@@ -89,6 +89,7 @@ const repos = {
 );
 
 import {
+  addFriend,
   assertOwnershipOrAdmin,
   blockUser,
   createChallenge,
@@ -104,6 +105,7 @@ import {
   listNotifications,
   listRoomMessages,
   markNotificationRead,
+  respondToFriendRequest,
   persistRoomMessage,
   saveProfile,
   searchUsers,
@@ -528,7 +530,7 @@ describe("blocklist service", () => {
     });
   });
 
-  it("lists friends LEFT-joining profiles, keeping profile-less friends with a fallback name", async () => {
+  it("lists friends and incoming requests, keeping profile-less friends with a fallback name", async () => {
     const builder = {
       select: jest.fn().mockReturnThis(),
       from: jest.fn().mockReturnThis(),
@@ -547,9 +549,27 @@ describe("blocklist service", () => {
         },
       ]),
     };
-    (AppDataSource.createQueryBuilder as jest.Mock).mockReturnValueOnce(
-      builder as never,
-    );
+    const incomingBuilder = {
+      select: jest.fn().mockReturnThis(),
+      from: jest.fn().mockReturnThis(),
+      innerJoin: jest.fn(),
+      leftJoin: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      getRawMany: jest.fn().mockResolvedValue([
+        {
+          userId: "u5",
+          artistName: "Requester",
+          primaryGenre: "Soul",
+          avatarImage: null,
+          location: null,
+          fallbackName: null,
+          status: "pending",
+        },
+      ]),
+    };
+    (AppDataSource.createQueryBuilder as jest.Mock)
+      .mockReturnValueOnce(builder as never)
+      .mockReturnValueOnce(incomingBuilder as never);
     setBlockRows([]); // block cache consulted by filterBlocked inside listFriends
     const rows = await listFriends("u1");
     expect(rows).toEqual([
@@ -561,11 +581,25 @@ describe("blocklist service", () => {
         location: undefined,
         status: "accepted",
       },
+      {
+        userId: "u5",
+        artistName: "Requester",
+        primaryGenre: "Soul",
+        avatarImage: undefined,
+        location: undefined,
+        status: "pending",
+        direction: "incoming",
+      },
     ]);
     expect(builder.leftJoin).toHaveBeenCalledWith(
       "user_profiles",
       "u",
       "f.friend_id = u.user_id",
+    );
+    expect(incomingBuilder.leftJoin).toHaveBeenCalledWith(
+      "user_profiles",
+      "u",
+      "f.user_id = u.user_id",
     );
     expect(builder.innerJoin).not.toHaveBeenCalled();
     // Regression guard: the id must come from the friends row / users fallback
@@ -596,17 +630,10 @@ describe("blocklist service", () => {
       andWhere: jest.fn().mockReturnThis(),
       orderBy: jest.fn().mockReturnThis(),
       take: jest.fn().mockReturnThis(),
+      // The hidden-profile row is filtered by SQL; this mock only returns the
+      // rows the query would yield, and the clause assertions below prove the
+      // hidden filter is part of the query.
       getMany: jest.fn().mockResolvedValue([
-        {
-          userId: "u3",
-          profileData: {
-            artistName: "Nova",
-            primaryGenre: "Electronic",
-            avatarImage: "avatar",
-            location: "Private city",
-            settings: { security: { shareProfileInDiscovery: false, hideSensitiveProfileDetails: true } },
-          },
-        },
         {
           userId: "u4",
           profileData: {
@@ -614,6 +641,8 @@ describe("blocklist service", () => {
             primaryGenre: "Soul",
             avatarImage: "avatar2",
             location: "Private city",
+            eliteScore: 42,
+            squadCount: 4,
             settings: { security: { shareProfileInDiscovery: true, hideSensitiveProfileDetails: true } },
           },
         },
@@ -624,10 +653,19 @@ describe("blocklist service", () => {
     const results = await searchUsers({ actorUserId: "u1", location: "Private" });
 
     expect(builder.andWhere).toHaveBeenCalledWith(expect.stringContaining("allowCollaboratorDiscovery"));
+    expect(builder.andWhere).toHaveBeenCalledWith(expect.stringContaining("shareProfileInDiscovery"));
     expect(builder.andWhere).toHaveBeenCalledWith(expect.stringContaining("hideSensitiveProfileDetails"), { loc: "%Private%" });
     expect(results).toEqual([
-      { userId: "u3", artistName: undefined, primaryGenre: undefined, avatarImage: undefined, location: undefined, profileSetupCompleted: false },
-      { userId: "u4", artistName: "Kai", primaryGenre: "Soul", avatarImage: "avatar2", location: undefined, profileSetupCompleted: false },
+      {
+        userId: "u4",
+        artistName: "Kai",
+        primaryGenre: "Soul",
+        avatarImage: "avatar2",
+        location: undefined,
+        eliteScore: 42,
+        squadCount: 4,
+        profileSetupCompleted: false,
+      },
     ]);
   });
 
@@ -644,6 +682,130 @@ describe("blocklist service", () => {
     }));
     const results = await searchUsers({ actorUserId: "u1" });
     expect(results.map((u) => u.userId)).toEqual(["u3"]);
+  });
+});
+
+describe("friend request service", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    repos.friends.findOneBy.mockReset();
+    // Block rows are cached globally for 30s; tests that assert the block
+    // guard must not leak those rows into the next case.
+    invalidateBlockCache();
+  });
+
+  it("creates a pending request owned by the sender", async () => {
+    repos.friends.findOneBy
+      .mockResolvedValueOnce(null) // caller has no row yet
+      .mockResolvedValueOnce(null); // no reverse request
+
+    await addFriend("sender", "recipient");
+
+    expect(repos.friends.create).toHaveBeenCalledWith({
+      userId: "sender",
+      friendId: "recipient",
+      status: "pending",
+    });
+    expect(repos.friends.save).toHaveBeenCalledWith({
+      userId: "sender",
+      friendId: "recipient",
+      status: "pending",
+    });
+  });
+
+  it("accepts a request as its recipient and writes both friendship rows", async () => {
+    const pending = {
+      userId: "sender",
+      friendId: "recipient",
+      status: "pending",
+    };
+    repos.friends.findOneBy.mockResolvedValueOnce(pending);
+
+    await respondToFriendRequest("recipient", "sender", "accepted");
+
+    // The pending row is addressed TO the caller, not owned by them.
+    expect(repos.friends.findOneBy).toHaveBeenCalledWith({
+      userId: "sender",
+      friendId: "recipient",
+    });
+    expect(pending.status).toBe("accepted");
+    expect(repos.friends.save).toHaveBeenCalledWith(pending);
+    // The recipient's own row is created so both sides list the friendship.
+    expect(mockRootQb.values).toHaveBeenCalledWith({
+      userId: "recipient",
+      friendId: "sender",
+      status: "accepted",
+    });
+  });
+
+  it("rejects accepting your own outgoing request", async () => {
+    // Only the sender's row exists; there is no request addressed to them.
+    repos.friends.findOneBy.mockResolvedValueOnce(null);
+
+    await expect(
+      respondToFriendRequest("sender", "recipient", "accepted"),
+    ).rejects.toThrow("No pending friend request");
+    expect(repos.friends.save).not.toHaveBeenCalled();
+  });
+
+  it("declines by deleting both directions of the request", async () => {
+    repos.friends.findOneBy.mockResolvedValueOnce({
+      userId: "sender",
+      friendId: "recipient",
+      status: "pending",
+    });
+
+    await respondToFriendRequest("recipient", "sender", "declined");
+
+    expect(mockRootQb.delete).toHaveBeenCalled();
+    expect(mockRootQb.from).toHaveBeenCalledWith("friends");
+    expect(mockRootQb.where).toHaveBeenCalledWith(
+      expect.stringContaining("user_id = :a AND friend_id = :b"),
+      { a: "sender", b: "recipient" },
+    );
+    expect(repos.friends.save).not.toHaveBeenCalled();
+  });
+
+  it("rejects a friend request when the sender blocked the recipient", async () => {
+    invalidateBlockCache();
+    setBlockRows([{ userId: "sender", blockedUserId: "recipient" }]);
+
+    await expect(addFriend("sender", "recipient")).rejects.toThrow(
+      "Cannot send a friend request to a blocked player",
+    );
+    expect(repos.friends.findOneBy).not.toHaveBeenCalled();
+    expect(repos.friends.save).not.toHaveBeenCalled();
+  });
+
+  it("rejects a friend request when the recipient blocked the sender", async () => {
+    invalidateBlockCache();
+    setBlockRows([{ userId: "recipient", blockedUserId: "sender" }]);
+
+    await expect(addFriend("sender", "recipient")).rejects.toThrow(
+      "Cannot send a friend request to a blocked player",
+    );
+    expect(repos.friends.save).not.toHaveBeenCalled();
+  });
+
+  it("accepts automatically when both users request each other", async () => {
+    const reverse = {
+      userId: "recipient",
+      friendId: "sender",
+      status: "pending",
+    };
+    repos.friends.findOneBy
+      .mockResolvedValueOnce(null) // caller has no row
+      .mockResolvedValueOnce(reverse); // the other user already asked
+
+    await addFriend("sender", "recipient");
+
+    expect(reverse.status).toBe("accepted");
+    expect(repos.friends.save).toHaveBeenCalledWith(reverse);
+    expect(mockRootQb.values).toHaveBeenCalledWith({
+      userId: "sender",
+      friendId: "recipient",
+      status: "accepted",
+    });
   });
 });
 

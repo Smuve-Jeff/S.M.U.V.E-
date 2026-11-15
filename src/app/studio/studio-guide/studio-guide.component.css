@@ -19,6 +19,14 @@
 }
 
 .sg-shell {
+  /*
+   * One content measure for both shells. The overlay is capped at 1180px so
+   * its gutter stays 24px; the routed page spans the whole window, so a wide
+   * Chrome desktop keeps a 1280px reading column and the gutters absorb the
+   * rest instead of stretching lesson copy across 1900px.
+   */
+  --sg-page-max: 1280px;
+  --sg-gutter: max(24px, calc((100% - var(--sg-page-max)) / 2));
   position: relative;
   display: flex;
   flex-direction: column;
@@ -57,10 +65,11 @@
 
 .sg-header {
   display: flex;
+  flex-wrap: wrap;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 20px;
-  padding: 22px 24px 16px;
+  gap: 12px 20px;
+  padding: 22px var(--sg-gutter) 16px;
   background: linear-gradient(180deg, rgba(93, 196, 194, 0.08), transparent);
 }
 
@@ -105,6 +114,7 @@
   font-style: italic;
   line-height: 1.12;
   letter-spacing: -0.01em;
+  text-wrap: balance;
 }
 
 .sg-lede {
@@ -113,6 +123,7 @@
   color: #aab4ca;
   font-size: 0.86rem;
   line-height: 1.5;
+  text-wrap: pretty;
 }
 
 /* S.M.U.V.E. Prime is the instructor, not a cheerful tooltip. Keep the voice
@@ -151,9 +162,12 @@
 
 .sg-head-side {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 14px;
-  flex: 0 0 auto;
+  justify-content: flex-end;
+  gap: 10px 14px;
+  flex: 0 1 auto;
+  min-width: 0;
 }
 
 .sg-total {
@@ -204,7 +218,7 @@
 
 .sg-progress {
   height: 4px;
-  margin: 0 24px;
+  margin: 0 var(--sg-gutter);
   overflow: hidden;
   background: rgba(255, 255, 255, 0.06);
   border-radius: 999px;
@@ -221,10 +235,11 @@
 .sg-tabs {
   display: flex;
   gap: 6px;
-  padding: 12px 20px;
+  padding: 12px var(--sg-gutter);
   overflow-x: auto;
   border-bottom: 1px solid rgba(255, 255, 255, 0.07);
   scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
 }
 
 .sg-tabs::-webkit-scrollbar {
@@ -286,7 +301,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  margin: 12px 20px 0;
+  margin: 12px var(--sg-gutter) 0;
   padding: 9px 12px;
   border: 1px solid rgba(255, 184, 0, 0.35);
   border-radius: 10px;
@@ -302,11 +317,16 @@
 .sg-scroll {
   flex: 1 1 auto;
   min-height: 0;
-  padding: 20px 24px 30px;
+  padding: 20px var(--sg-gutter) 30px;
   overflow-y: auto;
   overscroll-behavior: contain;
+  /* Opening a lesson changes the content height; a stable gutter keeps the
+     reading column from jumping when the scrollbar appears or disappears. */
+  scrollbar-gutter: stable;
   scrollbar-color: rgba(93, 196, 194, 0.5) transparent;
   scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
+  scroll-padding-block: 12px;
 }
 
 .sg-learn,
@@ -828,10 +848,12 @@
 }
 
 .sg-plain {
+  max-width: 78ch;
   margin: 12px 0;
   color: #c4cee1;
   font-size: 0.84rem;
   line-height: 1.6;
+  text-wrap: pretty;
 }
 
 .sg-lesson-grid {
@@ -1430,8 +1452,10 @@ input:focus-visible {
 }
 
 @media (max-width: 860px) {
+  /* Two-up paths read better than a four-card stack on portrait tablets and
+     narrow desktop windows; phones drop to a single column below. */
   .sg-track-tabs {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .sg-track-copy small {
@@ -1492,50 +1516,119 @@ input:focus-visible {
     border-radius: 0;
   }
 
+  /*
+   * Phone layout: the title gets the full width and the controls take their
+   * own row, so Back, Copy, sync and the standalone entry stop squeezing the
+   * headline into a 150px column. The lede is orientation copy the paths
+   * already carry; the instructor line stays because it is the voice of the
+   * Masterclass. Net effect on a 390x844 screen: a meaningful slice of the
+   * permanent chrome goes back to the lesson body.
+   */
   .sg-header {
-    padding: 16px 14px 12px;
-    gap: 10px;
+    flex-wrap: wrap;
+    gap: 8px 10px;
+    padding: max(14px, env(safe-area-inset-top, 0px))
+      max(14px, env(safe-area-inset-right, 0px)) 10px
+      max(14px, env(safe-area-inset-left, 0px));
   }
 
   .sg-brand {
+    flex: 1 1 100%;
     gap: 9px;
   }
 
   .sg-brand-icon {
-    flex-basis: 38px;
-    width: 38px;
-    height: 38px;
+    flex-basis: 36px;
+    width: 36px;
+    height: 36px;
     border-radius: 11px;
-    font-size: 22px;
+    font-size: 21px;
   }
 
   .sg-header h1 {
-    font-size: 1.15rem;
+    font-size: 1.1rem;
+    line-height: 1.15;
   }
 
   .sg-lede {
-    font-size: 0.76rem;
+    display: none;
   }
 
+  .sg-instructor {
+    margin-top: 7px;
+    padding: 6px 9px;
+    font-size: 0.72rem;
+  }
+
+  .sg-head-side {
+    flex: 1 1 100%;
+    width: 100%;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+
+  /* The running total moves onto the control row instead of vanishing. */
   .sg-total {
+    display: flex;
+    flex-direction: row;
+    align-items: baseline;
+    gap: 5px;
+    margin-right: auto;
+  }
+
+  .sg-total-value {
+    font-size: 1.05rem;
+  }
+
+  .sg-total-value small {
+    font-size: 0.72rem;
+  }
+
+  .sg-total-label {
+    margin-top: 0;
+    font-size: 8px;
+    letter-spacing: 0.12em;
+  }
+
+  /* The overlay is already full screen here, so the standalone entry only
+     competes with Back and Copy for the row. */
+  .sg-full-page {
     display: none;
   }
 
   .sg-close {
-    width: 38px;
-    height: 38px;
+    width: 42px;
+    height: 42px;
   }
 
   .sg-progress {
-    margin: 0 14px;
+    margin: 0 max(14px, env(safe-area-inset-right, 0px)) 0
+      max(14px, env(safe-area-inset-left, 0px));
   }
 
   .sg-tabs {
-    padding: 9px 12px;
+    padding: 9px max(12px, env(safe-area-inset-right, 0px)) 9px
+      max(12px, env(safe-area-inset-left, 0px));
+    scroll-snap-type: x proximity;
+    scroll-padding-inline: max(12px, env(safe-area-inset-left, 0px));
+  }
+
+  .sg-tab {
+    min-height: 44px;
+    scroll-snap-align: start;
   }
 
   .sg-scroll {
-    padding: 14px 14px 24px;
+    padding: 14px max(14px, env(safe-area-inset-right, 0px))
+      calc(20px + env(safe-area-inset-bottom, 0px))
+      max(14px, env(safe-area-inset-left, 0px));
+    scrollbar-gutter: auto;
+  }
+
+  .sg-storage-warning,
+  .sg-auto-banner {
+    margin-left: max(14px, env(safe-area-inset-left, 0px));
+    margin-right: max(14px, env(safe-area-inset-right, 0px));
   }
 
   .sg-track-hero {
@@ -1646,7 +1739,7 @@ input:focus-visible {
   display: flex;
   align-items: center;
   gap: 9px;
-  margin: 10px 24px 0;
+  margin: 10px var(--sg-gutter) 0;
   padding: 9px 12px;
   border: 1px solid rgba(93, 196, 194, 0.32);
   border-radius: 12px;
@@ -1730,7 +1823,6 @@ input:focus-visible {
 
   .sg-auto-banner {
     align-items: flex-start;
-    margin: 10px 16px 0;
   }
 
   .sg-auto-banner button {
@@ -1866,14 +1958,17 @@ input:focus-visible {
 }
 
 .sg-transmission-line {
+  max-width: 78ch;
   margin: 0;
   color: #e7dfc8;
   font-size: 0.82rem;
   font-style: italic;
   line-height: 1.55;
+  text-wrap: pretty;
 }
 
 .sg-transmission-whisper {
+  max-width: 78ch;
   margin: 7px 0 0;
   color: #9c8f74;
   font-size: 0.72rem;
@@ -2226,4 +2321,237 @@ input:focus-visible {
   flex: 0 0 auto;
   color: #7dd3fc;
   font-size: 18px;
+}
+
+/* ── Touch ergonomics (Android phones and tablets) ─────────────── */
+
+@media (pointer: coarse) {
+  .sg-shell button,
+  .sg-shell input {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .sg-shell button {
+    touch-action: manipulation;
+  }
+
+  /* Secondary controls sat at 28–34px. A thumb needs a real target. */
+  .sg-tab,
+  .sg-btn,
+  .sg-group-chip,
+  .sg-academy-card {
+    min-height: 44px;
+  }
+
+  .sg-close,
+  .sg-copy-link {
+    min-width: 44px;
+    height: 44px;
+  }
+
+  .sg-voice,
+  .sg-coach-btn,
+  .sg-destination-open {
+    min-height: 40px;
+  }
+
+  .sg-step-button {
+    min-height: 42px;
+    padding-block: 8px;
+  }
+
+  .sg-lesson-head {
+    min-height: 60px;
+  }
+}
+
+/* Hover transforms latch on touch screens after a tap. */
+@media (hover: none) {
+  .sg-track-tab:hover {
+    transform: none;
+  }
+}
+
+/* ── Short viewports: Chrome desktop windows and phones on their side ── */
+
+@media (max-height: 560px) {
+  .sg-lede {
+    display: none;
+  }
+
+  .sg-header {
+    align-items: center;
+    padding-top: 12px;
+    padding-bottom: 8px;
+  }
+
+  .sg-header h1 {
+    font-size: 1.1rem;
+  }
+
+  .sg-instructor {
+    margin-top: 6px;
+    padding: 6px 8px;
+  }
+
+  .sg-progress {
+    height: 3px;
+  }
+
+  .sg-tabs {
+    padding-top: 6px;
+    padding-bottom: 6px;
+  }
+
+  .sg-scroll {
+    padding-top: 12px;
+    padding-bottom: 18px;
+  }
+}
+
+/*
+ * Landscape Android: one compact header row, a two-column path picker and
+ * lesson body, and cutout-safe horizontal edges. The portrait header reflows
+ * onto two rows, which is the right call at 390px wide and the wrong one at
+ * 390px tall.
+ */
+@media (orientation: landscape) and (max-height: 560px) and (max-width: 1024px) {
+  .sg-backdrop {
+    padding: 0;
+  }
+
+  .sg-shell {
+    width: 100%;
+    height: 100%;
+    max-height: 100%;
+    border: 0;
+    border-radius: 0;
+  }
+
+  .sg-header {
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 10px;
+    padding: max(8px, env(safe-area-inset-top, 0px))
+      max(16px, env(safe-area-inset-right, 0px)) 8px
+      max(16px, env(safe-area-inset-left, 0px));
+  }
+
+  .sg-brand {
+    flex: 1 1 auto;
+    align-items: center;
+    gap: 9px;
+  }
+
+  .sg-brand-icon {
+    flex-basis: 32px;
+    width: 32px;
+    height: 32px;
+    border-radius: 9px;
+    font-size: 18px;
+  }
+
+  .sg-header h1 {
+    font-size: 1rem;
+  }
+
+  .sg-instructor,
+  .sg-total {
+    display: none;
+  }
+
+  .sg-head-side {
+    flex: 0 0 auto;
+    flex-wrap: nowrap;
+    width: auto;
+    gap: 8px;
+  }
+
+  .sg-copy-label {
+    display: none;
+  }
+
+  .sg-copy-link {
+    width: 44px;
+    padding: 0;
+  }
+
+  .sg-close {
+    width: 44px;
+    height: 44px;
+  }
+
+  .sg-progress {
+    margin: 0 max(16px, env(safe-area-inset-right, 0px)) 0
+      max(16px, env(safe-area-inset-left, 0px));
+  }
+
+  .sg-tabs {
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+  }
+
+  .sg-scroll {
+    padding: 12px max(16px, env(safe-area-inset-right, 0px))
+      calc(16px + env(safe-area-inset-bottom, 0px))
+      max(16px, env(safe-area-inset-left, 0px));
+  }
+
+  .sg-track-tabs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .sg-track-tab {
+    padding: 9px 10px;
+  }
+
+  .sg-track-icon {
+    flex-basis: 30px;
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    font-size: 17px;
+  }
+
+  .sg-track-copy small {
+    display: none;
+  }
+
+  .sg-track-hero {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 12px;
+    padding: 12px 14px;
+  }
+
+  .sg-track-hero h2 {
+    font-size: 1.15rem;
+  }
+
+  .sg-track-tagline {
+    margin-bottom: 6px;
+    font-size: 0.82rem;
+  }
+
+  .sg-track-ring {
+    display: none;
+  }
+
+  .sg-track-side {
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .sg-track-actions {
+    justify-content: flex-end;
+  }
+
+  .sg-lesson-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .sg-lesson-actions .sg-btn {
+    flex: 1 1 auto;
+  }
 }

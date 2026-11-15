@@ -437,6 +437,11 @@ export class AppComponent {
           'drum-machine',
           'performance',
           'mastering',
+          // The Masterclass is a full teaching workspace, not a Hub page. In the
+          // Hub frame the top bar and the Android dock took ~150px away from
+          // the lesson, and the guide's own header already owns the way back
+          // to the Studio.
+          'masterclass',
         ].includes(path) ||
         // The Studio is a full-window DAW on every device, not a page inside
         // the Hub. On desktop the Hub frame (top bar + sidebar + footer) cost a
@@ -794,6 +799,10 @@ export class AppComponent {
    */
   showUniversalHomeLink(): boolean {
     if (!this.isFullPageMode() || this.isAuthRoute()) return false;
+    // The Masterclass header carries its own Back-to-Studio control, and the
+    // floating pill (z-index 6000) paints over the lesson actions in the
+    // bottom-right corner of the full-window guide.
+    if (this.routeAnimState() === 'masterclass') return false;
     return !this.isStudioShellRoute();
   }
 

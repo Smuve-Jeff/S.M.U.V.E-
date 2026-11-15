@@ -43,6 +43,11 @@ interface PresenceMeta {
   profileSetupCompleted?: boolean;
   eliteScore?: number;
   squadCount?: number;
+  /** Live-stream identity, broadcast so peers can discover the stream. */
+  live?: boolean;
+  livePlatform?: string;
+  liveShareToken?: string;
+  liveGameId?: string;
   [key: string]: unknown;
 }
 
@@ -402,6 +407,17 @@ export const emitChallengeResponse = (challenge: {
 };
 
 /**
+ * Tell every connected client that the active-stream directory changed.
+ * REST start/end paths never touch the socket handlers, so this is what makes
+ * a peer's NET directory update immediately instead of on the next poll.
+ */
+export const emitLiveDirectoryChanged = (
+  reason: "started" | "ended",
+): void => {
+  ioServer?.emit("live_directory_changed", { reason, ts: Date.now() });
+};
+
+/**
  * Drop every live realtime connection for an account.
  *
  * Sockets authenticate once, at handshake, so a session revoked mid-connection
@@ -684,21 +700,37 @@ export const setupSocketIO = (httpServer: HttpServer): Server => {
     broadcastLobbyList();
 
     // ── Presence ──
-    socket.on("register_presence", (data: { metadata?: PresenceMeta } = {}) => {
-      presence.set(userId, {
-        socketId: socket.id,
-        metadata: data.metadata || {},
-      });
-      broadcastOnlineUsers();
-      void syncInbox(userId);
-    });
+    socket.on(
+      "register_presence",
+      (data: { metadata?: PresenceMeta; replace?: boolean } = {}) => {
+        // A user can hold more than one socket (social hub + matchmaking).
+        // Replacing metadata wholesale let the second socket wipe the live
+        // identity the first one published, so merge by default. Incognito
+        // explicitly replaces to drop the profile fields it must hide.
+        const previous = presence.get(userId)?.metadata ?? {};
+        presence.set(userId, {
+          socketId: socket.id,
+          metadata: data.replace
+            ? data.metadata || {}
+            : { ...previous, ...(data.metadata || {}) },
+        });
+        broadcastOnlineUsers();
+        void syncInbox(userId);
+      },
+    );
 
     socket.on("update_status", (data: { metadata?: PresenceMeta } = {}) => {
+      const metadata = data.metadata || {};
       const current = presence.get(userId);
       if (current) {
-        current.metadata = { ...current.metadata, ...(data.metadata || {}) };
-        broadcastOnlineUsers();
+        current.metadata = { ...current.metadata, ...metadata };
+      } else {
+        // A Go Live that lands before register_presence (fresh login, right
+        // after a reconnect) used to be dropped, leaving the host online but
+        // undiscoverable as live. Presence is cheap; create the row instead.
+        presence.set(userId, { socketId: socket.id, metadata });
       }
+      broadcastOnlineUsers();
     });
 
     // ── Rooms ──
@@ -2105,6 +2137,7 @@ export const setupSocketIO = (httpServer: HttpServer): Server => {
             },
           });
           broadcastOnlineUsers();
+          emitLiveDirectoryChanged("started");
         } catch (err) {
           socket.emit("live_stream_failed", {
             platform,
@@ -2126,6 +2159,7 @@ export const setupSocketIO = (httpServer: HttpServer): Server => {
           },
         });
         broadcastOnlineUsers();
+        emitLiveDirectoryChanged("ended");
         io.to(userId).emit("live_stream_ended", result);
         // Viewers in the live room must stop the player even if the REST
         // path was used to end the broadcast.

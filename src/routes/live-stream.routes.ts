@@ -5,12 +5,14 @@ import {
   LiveStreamPlatform,
   startLiveStream as issueStart,
   getCurrentLiveStream,
+  listActiveLiveStreams,
   endLiveStream,
   resolveViewerJoin,
   redeemViewerJoin,
 } from "@/services/live-stream.service";
 import { getIceConfig } from "@/services/turn.service";
 import type { AuthUser } from "@/types";
+import { emitLiveDirectoryChanged } from "@/socket";
 
 /**
  * Live-stream / Go-Live backend surface:
@@ -80,6 +82,9 @@ router.post(
             ? (req.body.payload as Record<string, unknown>)
             : null,
       });
+      // REST starts never hit the socket lifecycle handler, so announce the
+      // directory change here; peers refetch without waiting for a poll.
+      emitLiveDirectoryChanged("started");
       return res.status(201).json(row);
     } catch (err) {
       return next(err);
@@ -130,12 +135,30 @@ router.post(
       // so it must only be set for an explicit sweep. Passing the admin role
       // here used to end every artist's stream when one was targeted.
       const result = await endLiveStream(req.params.userId, sweepAll);
+      emitLiveDirectoryChanged("ended");
       return res.json(sweepAll ? { success: true, sweep: "all" } : result);
     } catch (err) {
       return next(err);
     }
   },
 );
+
+// GET /api/live-streams/active — authenticated discovery directory.
+// The share token is the same public token already embedded in share links,
+// so an online friend who missed the live presence event can still join.
+router.get("/live-streams/active", authenticate, async (req, res, next) => {
+  try {
+    const actor = lookupActor(req);
+    if (!actor) return res.status(401).json({ error: "auth required" });
+    const streams = await listActiveLiveStreams();
+    res.set("Cache-Control", "private, no-store");
+    return res.json(
+      streams.filter((row) => String(row.hostId) !== String(actor.userId)),
+    );
+  } catch (err) {
+    return next(err);
+  }
+});
 
 // GET /api/live-streams/ice — ICE servers for the WebRTC broadcast.
 // STUN is enough on most home networks; a relay is required when both peers

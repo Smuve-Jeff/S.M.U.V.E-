@@ -1,4 +1,4 @@
-import { Injectable, computed, inject, signal } from '@angular/core';
+import { Injectable, computed, effect, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { APP_SECURITY_CONFIG } from '../app.security';
@@ -7,6 +7,7 @@ import { UserProfileService } from './user-profile.service';
 import { NotificationService } from './notification.service';
 import { HapticService } from './haptic.service';
 import { SocialNetworkingService } from './social-networking.service';
+import type { Socket } from 'socket.io-client';
 
 /**
  * Mirrors backend LiveStreamPlatform. `smuve` is the native S.M.U.V.E Live
@@ -20,6 +21,16 @@ export const LIVE_STREAM_PLATFORMS: LiveStreamPlatform[] = [
   'kick',
   'youtube',
 ];
+
+/** One watchable entry in the discovery directory, from REST or presence. */
+export interface LiveDirectoryEntry {
+  shareToken: string;
+  hostId: string;
+  hostName: string;
+  platform: string;
+  gameId: string | null;
+  viewerJoins?: number;
+}
 
 export interface LiveStreamRecord {
   id: number;
@@ -62,6 +73,21 @@ export class LiveStreamService {
   /** Currently active stream for this host (null when offline). */
   readonly currentStream = signal<LiveStreamRecord | null>(null);
 
+  /** Server-authoritative active broadcasts (falls back to presence below). */
+  readonly activeStreams = signal<LiveStreamRecord[]>([]);
+
+  /** Guards against overlapping directory polls. */
+  private loadingActiveStreams = false;
+  /** Socket currently wired for live-directory updates. */
+  private directorySocket?: Socket;
+  /** Tracks socket transitions so a reconnect can trigger one catch-up fetch. */
+  private socketStateInitialized = false;
+  private socketWasConnected = false;
+  /** Coalesces socket signals into one immediate directory refetch. */
+  private readonly onDirectoryChanged = () => {
+    void this.loadActiveStreams();
+  };
+
   /** Last previewed stream from a `?live=` invite link (viewer mode). */
   readonly inboundPreview = signal<LiveStreamRecord | null>(null);
 
@@ -73,6 +99,105 @@ export class LiveStreamService {
    * OAuth popup for provider platforms. Null once live, cancelled or failed.
    */
   readonly pendingGolive = signal<LiveStreamPlatform | null>(null);
+
+  /**
+   * Everything watchable right now. REST covers hosts whose presence event
+   * was missed (fresh login, another server instance); presence adds live
+   * peers whose identity is fresher than the last directory fetch. Deduped by
+   * share token, newest viewer counts first, and never includes this host.
+   */
+  readonly liveDirectory = computed<LiveDirectoryEntry[]>(() => {
+    const selfId = this.profileService.profile().id;
+    const blocked = new Set(
+      this.social.blockedUsers().map((u) => String(u.userId))
+    );
+    const entries = new Map<string, LiveDirectoryEntry>();
+    for (const row of this.activeStreams()) {
+      if (!row?.active || !row.shareToken) continue;
+      if (selfId && String(row.hostId) === String(selfId)) continue;
+      if (blocked.has(String(row.hostId))) continue;
+      entries.set(row.shareToken, {
+        shareToken: row.shareToken,
+        hostId: row.hostId,
+        hostName: row.hostDisplayName || 'ANONYMOUS',
+        platform: row.platform,
+        gameId: row.gameId,
+        viewerJoins: row.viewerJoins,
+      });
+    }
+    for (const peer of this.social.liveNow()) {
+      const token = peer.liveShareToken;
+      if (!token || !peer.live || entries.has(token)) continue;
+      if (selfId && String(peer.userId) === String(selfId)) continue;
+      entries.set(token, {
+        shareToken: token,
+        hostId: peer.userId,
+        hostName: peer.artistName || 'ANONYMOUS',
+        platform: peer.livePlatform || 'smuve',
+        gameId: peer.liveGameId ?? null,
+      });
+    }
+    return [...entries.values()].sort(
+      (a, b) => (b.viewerJoins ?? 0) - (a.viewerJoins ?? 0)
+    );
+  });
+
+  constructor() {
+    // `register_presence` replaces presence metadata wholesale, so a socket
+    // reconnect would advertise the host as online but not live. Register the
+    // stream identity as a presence extra so every (re)connect carries it.
+    this.social.setPresenceExtrasProvider(() => this.livePresenceMetadata());
+
+    // Stream starts/ends arrive over the shared socket (including REST-driven
+    // ones via live_directory_changed), so refresh the directory immediately
+    // instead of waiting for the next poll. Rebind whenever the socket comes
+    // back after a disconnect or a re-login rebuilds it.
+    effect(() => {
+      const connected = this.social.socketConnected();
+      if (connected) this.bindDirectorySocket();
+      else this.unbindDirectorySocket();
+
+      // Start/end events are lost while the socket is down. Reconcile once on
+      // reconnect; the first run is not a reconnect (opening the surface
+      // already loads the directory).
+      if (this.socketStateInitialized && connected && !this.socketWasConnected) {
+        void this.loadActiveStreams();
+      }
+      this.socketStateInitialized = true;
+      this.socketWasConnected = connected;
+    });
+  }
+
+  private bindDirectorySocket(): void {
+    const socket = this.social.getSocket();
+    if (!socket || socket === this.directorySocket) return;
+    this.unbindDirectorySocket();
+    this.directorySocket = socket;
+    socket.on('live_stream_started', this.onDirectoryChanged);
+    socket.on('live_stream_ended', this.onDirectoryChanged);
+    socket.on('live_directory_changed', this.onDirectoryChanged);
+  }
+
+  private unbindDirectorySocket(): void {
+    const socket = this.directorySocket;
+    if (!socket) return;
+    socket.off('live_stream_started', this.onDirectoryChanged);
+    socket.off('live_stream_ended', this.onDirectoryChanged);
+    socket.off('live_directory_changed', this.onDirectoryChanged);
+    this.directorySocket = undefined;
+  }
+
+  /** Presence fields that make this host discoverable as a live stream. */
+  private livePresenceMetadata(): Record<string, unknown> {
+    const stream = this.currentStream();
+    if (!stream?.active) return {};
+    return {
+      live: true,
+      livePlatform: stream.platform,
+      liveShareToken: stream.shareToken,
+      liveGameId: stream.gameId ?? undefined,
+    };
+  }
 
   // ── Host-side lifecycle ────────────────────────────────────────────────
 
@@ -131,14 +256,9 @@ export class LiveStreamService {
       //    tiers, and camera/mic toggles are live the moment the stream
       //    row is issued (capture fails gracefully into simulation mode).
       void this.social.startStream(opts.platform);
-      // 3. Also tell the social-networking socket that we're going live
-      //    so presence broadcasts pick up the LIVE indicator.
-      this.social.updateStatus({
-        live: true,
-        livePlatform: opts.platform,
-        liveShareToken: issued.shareToken,
-        liveGameId: opts.gameId ?? undefined,
-      });
+      // 3. Also tell the social-networking socket that we're going live so
+      //    presence broadcasts carry the stream identity peers discover.
+      this.social.updateStatus(this.livePresenceMetadata());
       // Re-read the row while it is live so viewer joins and a stream ended
       // elsewhere reach this session instead of leaving a stale live pill.
       this.startStreamPoll();
@@ -461,7 +581,37 @@ export class LiveStreamService {
     const row = await this.refreshCurrentStream();
     if (!row?.active) return;
     void this.social.startStream(row.platform);
+    // Re-announce after a reload: the socket may have registered presence
+    // before the session was restored, leaving the host invisible as live.
+    this.social.updateStatus(this.livePresenceMetadata());
     this.startStreamPoll();
+  }
+
+  /**
+   * Load the server's active-stream directory. This is additive discovery:
+   * a transient failure keeps the last good list (and presence) instead of
+   * blanking the NET tab.
+   */
+  async loadActiveStreams(): Promise<void> {
+    if (this.loadingActiveStreams || !this.tokenService.jwtToken()) return;
+    this.loadingActiveStreams = true;
+    try {
+      const rows = await firstValueFrom(
+        this.http.get<LiveStreamRecord[]>(
+          `${APP_SECURITY_CONFIG.api_url}/live-streams/active`,
+          { headers: this.authHeaders() }
+        )
+      );
+      this.activeStreams.set(
+        Array.isArray(rows)
+          ? rows.filter((row) => !!row?.active && !!row.shareToken)
+          : []
+      );
+    } catch {
+      // Keep the previous directory; presence still covers online hosts.
+    } finally {
+      this.loadingActiveStreams = false;
+    }
   }
 
   /**
