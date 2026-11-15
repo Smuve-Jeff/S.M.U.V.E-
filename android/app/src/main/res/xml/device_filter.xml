@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- USB attach filter for class-compliant MIDI controllers (USB Audio class
+     0x01, MIDIStreaming subclass 0x03). Matching devices trigger the
+     USB_DEVICE_ATTACHED intent declared on MainActivity, which grants this
+     app USB permission implicitly — no manual pairing step. -->
+<resources>
+    <usb-device class="1" subclass="3" />
+</resources>

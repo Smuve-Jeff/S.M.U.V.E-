@@ -37,12 +37,35 @@ import java.util.Map;
 @CapacitorPlugin(name = "StudioNative")
 public class StudioNativePlugin extends Plugin {
     private MidiManager midiManager;
+    private MidiManager.DeviceCallback deviceCallback;
     private final Map<String, OpenedOutput> outputs = new HashMap<>();
     private final Map<String, OpenedInput> inputs = new HashMap<>();
 
     @Override
     public void load() {
         midiManager = (MidiManager) getContext().getSystemService(Context.MIDI_SERVICE);
+        if (midiManager == null) return;
+        // Hot-plug: a keyboard connected after boot must appear without a
+        // manual rescan. The web side re-enumerates on this event.
+        deviceCallback =
+                new MidiManager.DeviceCallback() {
+                    @Override
+                    public void onDeviceAdded(MidiDeviceInfo device) {
+                        emitMidiDevicesChanged();
+                    }
+
+                    @Override
+                    public void onDeviceRemoved(MidiDeviceInfo device) {
+                        emitMidiDevicesChanged();
+                    }
+                };
+        midiManager.registerDeviceCallback(
+                deviceCallback, new Handler(Looper.getMainLooper()));
+    }
+
+    private void emitMidiDevicesChanged() {
+        if (getBridge() == null) return;
+        getBridge().executeOnMainThread(() -> notifyListeners("midiDevicesChanged", new JSObject()));
     }
 
     @PluginMethod
@@ -263,6 +286,10 @@ public class StudioNativePlugin extends Plugin {
 
     @Override
     protected void handleOnDestroy() {
+        if (midiManager != null && deviceCallback != null) {
+            midiManager.unregisterDeviceCallback(deviceCallback);
+            deviceCallback = null;
+        }
         closeAllMidi();
         super.handleOnDestroy();
     }

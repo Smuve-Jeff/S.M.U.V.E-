@@ -26,6 +26,10 @@ interface NativeMidiPlugin {
     eventName: 'midiMessage',
     listener: (event: { deviceId: string; data: number[] }) => void,
   ): Promise<{ remove: () => Promise<void> }> | { remove: () => Promise<void> };
+  addListener(
+    eventName: 'midiDevicesChanged',
+    listener: () => void,
+  ): Promise<{ remove: () => Promise<void> }> | { remove: () => Promise<void> };
 }
 
 /**
@@ -40,6 +44,7 @@ export class NativeMidiService {
   private plugin: NativeMidiPlugin | null = null;
   private initPromise: Promise<boolean> | null = null;
   private listenerHandle: { remove: () => Promise<void> } | null = null;
+  private devicesChangedHandle: { remove: () => Promise<void> } | null = null;
   onMessage?: (data: number[], deviceId: string) => void;
 
   init(): Promise<boolean> {
@@ -91,10 +96,12 @@ export class NativeMidiService {
     try {
       await this.plugin.closeMidi();
       await this.listenerHandle?.remove();
+      await this.devicesChangedHandle?.remove();
     } catch {
       /* already closed */
     }
     this.listenerHandle = null;
+    this.devicesChangedHandle = null;
   }
 
   private async register(): Promise<boolean> {
@@ -110,6 +117,14 @@ export class NativeMidiService {
           this.onMessage?.(event.data, event.deviceId);
         }
       });
+      // A controller plugged in after boot re-enumerates without a rescan.
+      // Web MIDI keeps its own onstatechange path; this only covers native.
+      this.devicesChangedHandle = await plugin.addListener(
+        'midiDevicesChanged',
+        () => {
+          void this.refresh();
+        },
+      );
       this.available.set(true);
       return true;
     } catch {
