@@ -1168,6 +1168,38 @@ describe("ProjectWorkspaceService", () => {
     expect(service.audioIntegrity()?.ok).toBe(false);
   });
 
+  it('queues binary audio as plain arrays so the JSON sync survives', async () => {
+    authUser.set({ id: 'artist_1' });
+    const binaryBundle = {
+      ...makeBundle(),
+      metadata: { id: 'proj_sync', name: 'Sync Me', bpm: 120 },
+      audioAssets: [
+        {
+          id: 'take-1',
+          sampleRate: 44100,
+          channelCount: 1,
+          frameCount: 2,
+          duration: 1,
+          channels: [new Float32Array([0.1, -0.2])],
+        },
+      ],
+    };
+
+    await (service as any).queueCloudSync(binaryBundle);
+
+    expect(queueOperation).toHaveBeenCalledTimes(1);
+    const payload = queueOperation.mock.calls[0][2];
+    expect(payload.projectId).toBe('proj_sync');
+    const channels = payload.projectData.audioAssets[0].channels;
+    expect(Array.isArray(channels[0])).toBe(true);
+    // Float32 storage is approximate — the shape (plain array of samples)
+    // is what the sync contract needs, not bit-exact decimals.
+    expect(channels[0][0]).toBeCloseTo(0.1, 5);
+    expect(channels[0][1]).toBeCloseTo(-0.2, 5);
+    // The queued copy converts; the live binary bundle keeps its typed arrays.
+    expect(binaryBundle.audioAssets[0].channels[0]).toBeInstanceOf(Float32Array);
+  });
+
   it('rejects malformed imports before writing or replacing the active session', async () => {
     const before = tracks();
     await expect(service.importProjectBundle({ metadata: {}, tracks: [] } as any)).resolves.toBe(false);

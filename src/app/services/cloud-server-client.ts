@@ -1,4 +1,4 @@
-import { InjectionToken } from '@angular/core';
+import { InjectionToken, type Signal } from '@angular/core';
 import {
   ConflictRecord,
   RemoteSnapshot,
@@ -25,6 +25,15 @@ export interface CloudServerClient {
   pull(projectId: string): MaybePromise<RemoteSnapshot | null>;
   listProjects(): MaybePromise<RemoteSnapshot[]>;
   listSnapshots(projectId: string): MaybePromise<RemoteSnapshot[]>;
+  /**
+   * Multipart progress for the in-flight large push, when the transport
+   * reports one. Absent on transports that push in a single round-trip.
+   */
+  readonly uploadProgress?: Signal<{
+    uploadId: string;
+    doneParts: number;
+    totalParts: number;
+  } | null>;
 }
 
 export const CLOUD_SERVER = new InjectionToken<CloudServerClient>(

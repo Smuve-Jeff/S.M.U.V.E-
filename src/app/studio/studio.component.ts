@@ -2155,6 +2155,12 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
       );
     }
 
+    // Cross-device resume: a save from another device that landed after
+    // this device's copy offers a one-tap handoff instead of hiding in
+    // version history. Fire-and-forget — the check is best-effort and
+    // never blocks the canvas.
+    void this.checkCloudResume();
+
     // ── Seed an empty studio with a starter recipe ──
     // If the user opens Studio fresh and tracks() is empty, we apply
     // a curated 4-bar starter so the FIRST Play click produces audio.
@@ -3866,6 +3872,40 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
       this.snackbarService.info(
         "Cloud is unreachable — this version is saved on this device.",
       );
+    }
+  }
+
+  /**
+   * Boot-time handoff: when another device pushed a newer restorable
+   * version of the open set, offer it once with a Resume action that
+   * runs the same guarded restore as version history. Best-effort — a
+   * missing provider, a signed-out session or an unreachable cloud all
+   * mean "no prompt", never a crash.
+   */
+  private cloudResumeOffered = false;
+  async checkCloudResume(): Promise<void> {
+    if (this.cloudResumeOffered) return;
+    this.cloudResumeOffered = true;
+    try {
+      if (!this.authService.currentUser()) return;
+      const projectId = this.projectWorkspace.metadata()?.id;
+      if (!projectId) return;
+      if (!this.cloudSync.isCloudReachable()) return;
+      await this.cloudSync.refresh();
+      const localUpdated = this.projectWorkspace.metadata()?.updatedAt ?? 0;
+      const newer = this.cloudSync.newerRemoteSnapshot(projectId, localUpdated);
+      if (!newer?.data) return;
+      const device = newer.deviceName ?? "another device";
+      this.snackbarService.show({
+        message: `Newer version from ${device} — continue where you left off?`,
+        action: "Resume",
+        type: "info",
+        onAction: () => {
+          void this.restoreVersion(newer);
+        },
+      });
+    } catch (error) {
+      this.logger.warn("Studio: cloud resume check failed", error);
     }
   }
 

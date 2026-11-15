@@ -40,6 +40,7 @@ import { SmartSoundService } from "./smart-sound.service";
 import { AudioImportService } from "./audio-import.service";
 import { ComponentRecordingService } from "./component-recording.service";
 import { LoggingService } from "../services/logging.service";
+import { CloudSyncService } from "../services/cloud-sync.service";
 import { HistoryService } from "../services/history.service";
 
 describe("StudioComponent", () => {
@@ -372,6 +373,90 @@ describe("StudioComponent", () => {
 
   it("should create", () => {
     expect(component).toBeTruthy();
+  });
+
+  it("offers a one-tap resume when another device holds a newer version", async () => {
+    mockProjectWorkspace.metadata.set({
+      id: "proj_a",
+      name: "Rooftop Set",
+      updatedAt: 100,
+    });
+    const newer = {
+      id: "v9",
+      projectId: "proj_a",
+      deviceId: "dev_desktop",
+      deviceName: "Studio PC",
+      version: 9,
+      timestamp: 200,
+      data: { metadata: { id: "proj_a" } },
+      title: "Rooftop Set",
+      byteSize: 1,
+    };
+    const mockCloud = {
+      isCloudReachable: jest.fn(() => true),
+      refresh: jest.fn().mockResolvedValue({ ok: true }),
+      newerRemoteSnapshot: jest.fn(() => newer),
+    };
+    const injector = (component as any).injector;
+    const originalGet = injector.get.bind(injector);
+    jest
+      .spyOn(injector, "get")
+      .mockImplementation((token: any, ...rest: any[]) =>
+        token === CloudSyncService ? mockCloud : originalGet(token, ...rest),
+      );
+    (mockSnackbar as any).show = jest.fn();
+    const restoreSpy = jest
+      .spyOn(component, "restoreVersion")
+      .mockResolvedValue(undefined);
+    (component as any).cloudResumeOffered = false;
+    try {
+      await component.checkCloudResume();
+      expect(mockCloud.newerRemoteSnapshot).toHaveBeenCalledWith(
+        "proj_a",
+        100,
+      );
+      expect((mockSnackbar as any).show).toHaveBeenCalledWith(
+        expect.objectContaining({ action: "Resume", type: "info" }),
+      );
+      const onAction = (mockSnackbar as any).show.mock.calls[0][0].onAction;
+      onAction();
+      expect(restoreSpy).toHaveBeenCalledWith(newer);
+    } finally {
+      restoreSpy.mockRestore();
+      delete (mockSnackbar as any).show;
+    }
+  });
+
+  it("stays quiet when the local copy is already the newest", async () => {
+    mockProjectWorkspace.metadata.set({
+      id: "proj_a",
+      name: "Rooftop Set",
+      updatedAt: 500,
+    });
+    const mockCloud = {
+      isCloudReachable: jest.fn(() => true),
+      refresh: jest.fn().mockResolvedValue({ ok: true }),
+      newerRemoteSnapshot: jest.fn(() => null),
+    };
+    const injector = (component as any).injector;
+    const originalGet = injector.get.bind(injector);
+    jest
+      .spyOn(injector, "get")
+      .mockImplementation((token: any, ...rest: any[]) =>
+        token === CloudSyncService ? mockCloud : originalGet(token, ...rest),
+      );
+    (mockSnackbar as any).show = jest.fn();
+    (component as any).cloudResumeOffered = false;
+    try {
+      await component.checkCloudResume();
+      expect(mockCloud.newerRemoteSnapshot).toHaveBeenCalledWith(
+        "proj_a",
+        500,
+      );
+      expect((mockSnackbar as any).show).not.toHaveBeenCalled();
+    } finally {
+      delete (mockSnackbar as any).show;
+    }
   });
 
   it("uses expanded drum notes in the studio MIDI export without applying swing twice", () => {

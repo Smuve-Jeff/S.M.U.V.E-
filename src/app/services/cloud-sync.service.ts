@@ -65,6 +65,12 @@ export class CloudSyncService {
   /** Pull status (kept separate so the dashboard can show both). */
   readonly pullStatus = signal<SyncStatus>('idle');
 
+  /**
+   * Live multipart progress from the transport (null when it reports
+   * none — single-shot pushes and the mock stay null the whole way).
+   */
+  readonly uploadProgress = computed(() => this.cloud.uploadProgress?.() ?? null);
+
   /** Last successful push timestamp. */
   readonly lastSyncedAt = signal<number | null>(null);
 
@@ -282,17 +288,26 @@ export class CloudSyncService {
       return 'success';
     } catch (err) {
       this.logger.error('CloudSync: push failed', err);
-      this.pushStatus.set('error');
+      // Resume, don't drop: the payload goes back through the offline
+      // queue so a push that dies mid-upload is replayed after recovery
+      // instead of vanishing into an 'error' pill. Unrecoverable payloads
+      // (4xx) dead-letter there instead of retrying forever.
+      await this.offlineSync.queueOperation(
+        'UPDATE',
+        OFFLINE_PUSH_ENDPOINT,
+        { projectId, manifest, payload }
+      );
+      this.pushStatus.set('queued');
       this.appendTimeline({
         id: this.timelineId(),
         projectId,
         projectTitle: manifest.title,
         direction: 'push',
-        status: 'error',
+        status: 'queued',
         at: Date.now(),
-        note: 'Network error',
+        note: 'Upload failed mid-push — queued for retry',
       });
-      return 'error';
+      return 'queued';
     }
   }
 
@@ -529,6 +544,28 @@ export class CloudSyncService {
     } finally {
       this.refreshing = false;
     }
+  }
+
+  /**
+   * Newest snapshot for this project authored by ANOTHER device after the
+   * local copy was saved. This is the "continue on this device" check
+   * Studio runs at boot: snapshots without payload data cannot be
+   * restored, so they never prompt.
+   */
+  newerRemoteSnapshot(
+    projectId: string,
+    localUpdatedAt: number
+  ): RemoteSnapshot | null {
+    const candidates = this.listSnapshots(projectId).filter(
+      (snapshot) =>
+        snapshot.deviceId !== 'local' &&
+        snapshot.deviceId !== this.deviceId() &&
+        (snapshot.timestamp ?? 0) > localUpdatedAt &&
+        snapshot.data !== undefined &&
+        snapshot.data !== null
+    );
+    candidates.sort((a, b) => (b.timestamp ?? 0) - (a.timestamp ?? 0));
+    return candidates[0] ?? null;
   }
 
   /** Cached history for the synchronous version panels. */

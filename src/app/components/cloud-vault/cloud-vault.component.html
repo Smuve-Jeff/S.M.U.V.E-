@@ -42,6 +42,9 @@
     <span class="cv-status-meta">
       Conflicts: {{ cloud.conflictCount() }}
     </span>
+    <span class="cv-status-meta" *ngIf="cloud.uploadProgress() as progress">
+      Uploading part {{ progress.doneParts }}/{{ progress.totalParts }}
+    </span>
     <button
       type="button"
       class="cv-btn cv-btn-mini"

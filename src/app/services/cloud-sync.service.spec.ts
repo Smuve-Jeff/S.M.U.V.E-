@@ -230,3 +230,109 @@ describe('CloudSyncService (D1)', () => {
     expect(latest.data).not.toEqual({ demo: true });
   });
 });
+
+describe('CloudSyncService push resume', () => {
+  let sut: CloudSyncService;
+  let cloud: MockCloudServer;
+  let offline: StubOfflineSync;
+
+  beforeEach(() => {
+    if (typeof navigator !== 'undefined') {
+      Object.defineProperty(navigator, 'onLine', {
+        configurable: true,
+        get: () => true,
+      });
+    }
+    TestBed.configureTestingModule({
+      providers: [
+        CloudSyncService,
+        MockCloudServer,
+        { provide: CLOUD_SERVER, useExisting: MockCloudServer },
+        { provide: OfflineSyncService, useClass: StubOfflineSync },
+        { provide: LocalStorageService, useClass: StubStorage },
+      ],
+    });
+    sut = TestBed.inject(CloudSyncService);
+    cloud = TestBed.inject(MockCloudServer);
+    offline = TestBed.inject(OfflineSyncService) as unknown as StubOfflineSync;
+    cloud.__seed([]);
+  });
+
+  it('re-queues a failed push for replay instead of dropping it', async () => {
+    jest.spyOn(cloud, 'push').mockRejectedValueOnce(new Error('socket hang up'));
+
+    const status = await sut.push('pr', 'Resume Me', { take: 1 });
+
+    expect(status).toBe('queued');
+    expect(offline.queueOperation).toHaveBeenCalledWith(
+      'UPDATE',
+      '/cloud/push',
+      expect.objectContaining({
+        projectId: 'pr',
+        manifest: expect.objectContaining({ title: 'Resume Me', version: 1 }),
+        payload: { take: 1 },
+      }),
+    );
+    expect(sut.timeline()[0]).toMatchObject({
+      direction: 'push',
+      status: 'queued',
+    });
+  });
+
+  it('mirrors the transports multipart progress when it reports any', () => {
+    // The mock pushes in one round-trip, so there is never any progress.
+    expect(sut.uploadProgress()).toBeNull();
+  });
+});
+
+describe('CloudSyncService cross-device resume', () => {
+  let sut: CloudSyncService;
+  let cloud: MockCloudServer;
+
+  beforeEach(() => {
+    if (typeof navigator !== 'undefined') {
+      Object.defineProperty(navigator, 'onLine', {
+        configurable: true,
+        get: () => true,
+      });
+    }
+    TestBed.configureTestingModule({
+      providers: [
+        CloudSyncService,
+        MockCloudServer,
+        { provide: CLOUD_SERVER, useExisting: MockCloudServer },
+        { provide: OfflineSyncService, useClass: StubOfflineSync },
+        { provide: LocalStorageService, useClass: StubStorage },
+      ],
+    });
+    sut = TestBed.inject(CloudSyncService);
+    cloud = TestBed.inject(MockCloudServer);
+  });
+
+  function seedSnapshots() {
+    const mine = sut.deviceId();
+    cloud.__seed([
+      { projectId: 'px', deviceId: mine, version: 1, data: { v: 1 }, timestamp: 100, title: 'X', byteSize: 1 },
+      { projectId: 'px', deviceId: 'dev_desktop', version: 2, data: { v: 2 }, timestamp: 200, title: 'X', byteSize: 1 },
+      { projectId: 'px', deviceId: 'dev_desktop', version: 3, data: { v: 3 }, timestamp: 300, title: 'X', byteSize: 1 },
+      // Newer but unrestorable — carries no payload.
+      { projectId: 'px', deviceId: 'dev_desktop', version: 4, data: undefined, timestamp: 400, title: 'X', byteSize: 1 },
+      // Another project entirely — must not leak across.
+      { projectId: 'other', deviceId: 'dev_desktop', version: 9, data: { v: 9 }, timestamp: 900, title: 'Other', byteSize: 1 },
+    ]);
+    return sut.refresh();
+  }
+
+  it('picks the newest restorable snapshot from another device', async () => {
+    await seedSnapshots();
+    const found = sut.newerRemoteSnapshot('px', 150);
+    expect(found?.version).toBe(3);
+    expect(found?.deviceId).toBe('dev_desktop');
+  });
+
+  it('ignores snapshots older than the local copy and its own device', async () => {
+    await seedSnapshots();
+    expect(sut.newerRemoteSnapshot('px', 350)).toBeNull();
+    expect(sut.newerRemoteSnapshot('missing', 0)).toBeNull();
+  });
+});

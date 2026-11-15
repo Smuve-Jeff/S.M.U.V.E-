@@ -1573,6 +1573,23 @@ export class ProjectWorkspaceService {
     }
   }
 
+  /**
+   * Binary audio must never ride the JSON sync queue as a typed array:
+   * Float32Array channels stringify to `{"0":…}` index objects, so a
+   * desktop save would store a project whose takes restore as silence
+   * on mobile. Arrays survive the round-trip; the local binary record
+   * is untouched (this converts a copy, not the stored bundle).
+   */
+  private toJsonSafeBundle(bundle: ProjectBundle): ProjectBundle {
+    return JSON.parse(
+      JSON.stringify(bundle, (_key, value) =>
+        ArrayBuffer.isView(value) && !(value instanceof DataView)
+          ? Array.from(value as unknown as ArrayLike<number>)
+          : value,
+      ),
+    );
+  }
+
   private async queueCloudSync(bundle: ProjectBundle): Promise<void> {
     const userId = this.auth.currentUser()?.id;
     if (!userId) {
@@ -1587,7 +1604,7 @@ export class ProjectWorkspaceService {
         projectId: bundle.metadata.id,
         userId,
         title: bundle.metadata.name,
-        projectData: bundle,
+        projectData: this.toJsonSafeBundle(bundle),
       },
       { userId },
     );

@@ -184,3 +184,108 @@ describe("HttpCloudServer", () => {
     }
   });
 });
+
+describe("HttpCloudServer resumable resume", () => {
+  let service: HttpCloudServer;
+  let fetchMock: jest.Mock;
+  let originalFetch: typeof fetch | undefined;
+
+  const okJson = (body: unknown) => ({
+    ok: true,
+    status: 200,
+    json: async () => body,
+  });
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({});
+    service = TestBed.inject(HttpCloudServer);
+    localStorage.setItem(TOKEN_KEY, "test-jwt");
+    originalFetch = global.fetch;
+    fetchMock = jest.fn();
+    global.fetch = fetchMock as unknown as typeof fetch;
+  });
+
+  afterEach(() => {
+    localStorage.removeItem(TOKEN_KEY);
+    if (originalFetch) global.fetch = originalFetch;
+    else delete (global as { fetch?: unknown }).fetch;
+  });
+
+  function bigEnvelope() {
+    return envelope({ payload: { blob: "x".repeat(2 * 1024 * 1024 + 8) } });
+  }
+
+  it("retries a transient part failure in place instead of restarting", async () => {
+    let partCalls = 0;
+    fetchMock.mockImplementation(async (url: string, init: RequestInit) => {
+      if (url.endsWith("/uploads") && init.method === "POST") {
+        return okJson({ uploadId: "u1", key: "k1", partSize: 64 * 1024 * 1024 });
+      }
+      if (url.includes("/parts/")) {
+        partCalls += 1;
+        if (partCalls === 1) {
+          return { ok: false, status: 503, json: async () => ({}) };
+        }
+        return okJson({ etag: "e1" });
+      }
+      if (url.endsWith("/complete")) {
+        return okJson({ success: true, snapshot: snapshot() });
+      }
+      throw new Error(`unexpected call ${url}`);
+    });
+
+    const result = await service.push(bigEnvelope());
+
+    expect(result).toEqual({ success: true, snapshot: snapshot() });
+    // One failed attempt + one retry for the single part; no abort.
+    expect(partCalls).toBe(2);
+    const deletes = fetchMock.mock.calls.filter(([, init]) => init.method === "DELETE");
+    expect(deletes).toHaveLength(0);
+  });
+
+  it("fails fast on a refused part instead of burning retries", async () => {
+    let partCalls = 0;
+    fetchMock.mockImplementation(async (url: string, init: RequestInit) => {
+      if (url.endsWith("/uploads") && init.method === "POST") {
+        return okJson({ uploadId: "u1", key: "k1", partSize: 64 * 1024 * 1024 });
+      }
+      if (url.includes("/parts/")) {
+        partCalls += 1;
+        return { ok: false, status: 400, json: async () => ({ error: "bad key" }) };
+      }
+      if (init.method === "DELETE") return okJson({});
+      throw new Error(`unexpected call ${url}`);
+    });
+
+    await expect(service.push(bigEnvelope())).rejects.toMatchObject({ statusCode: 400 });
+    expect(partCalls).toBe(1);
+    expect(fetchMock.mock.calls.some(([, init]) => init.method === "DELETE")).toBe(true);
+  });
+
+  it("reports part progress while the upload runs and clears it after", async () => {
+    expect(service.uploadProgress()).toBeNull();
+    // ~6 MB payload with a 2 MB server part size: the 5 MB client floor
+    // makes it exactly two parts, so the march 0 → 1 is observable.
+    const seen: Array<number | null> = [];
+    fetchMock.mockImplementation(async (url: string, init: RequestInit) => {
+      if (url.endsWith("/uploads") && init.method === "POST") {
+        return okJson({ uploadId: "u9", key: "k9", partSize: 2 * 1024 * 1024 });
+      }
+      if (url.includes("/parts/")) {
+        const progress = service.uploadProgress();
+        seen.push(progress?.doneParts ?? null);
+        expect(progress).toEqual({ uploadId: "u9", doneParts: seen.length - 1, totalParts: 2 });
+        return okJson({ etag: "e" });
+      }
+      if (url.endsWith("/complete")) {
+        return okJson({ success: true, snapshot: snapshot() });
+      }
+      throw new Error(`unexpected call ${url}`);
+    });
+
+    const payload = { blob: "x".repeat(6 * 1024 * 1024) };
+    await service.push(envelope({ payload }));
+    expect(seen).toEqual([0, 1]);
+    expect(service.uploadProgress()).toBeNull();
+  });
+});
