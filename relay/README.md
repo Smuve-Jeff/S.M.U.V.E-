@@ -204,6 +204,13 @@ stopping while the process stays alive, and bytes resuming after the relay
 restarted ffmpeg itself — with the browser-side publish left connected
 throughout, which is what makes a relay restart invisible upstream.
 
+The same endpoint is also driven by a second, independent client:
+`relay/test/e2e-whip-muxer.test.mjs` publishes with ffmpeg's own `whip` muxer.
+One publisher is one set of SDP, ICE and DTLS choices, so this makes the
+endpoint's compatibility a property of the server rather than of werift. The
+`ffmpeg-static` build has no `whip` muxer (`Unknown format 'whip'`), so this test
+needs `RELAY_WHIP_FFMPEG_PATH` and skips without it.
+
 It skips when the binaries (or werift) are absent, so the normal suite never
 needs them. A tool that is set but does not run fails instead of skipping, and so
 does a run with `RELAY_E2E_REQUIRE_TOOLS=1` — CI sets that, because it has just
@@ -213,8 +220,9 @@ provisioned all three, so a skip there would mean the provisioning did not take.
 npm run test:relay:e2e:setup
 ```
 
-That installs `ffmpeg-static` and `werift` at the versions pinned in the script
-and downloads the pinned MediaMTX release into `node_modules/.e2e` (gitignored),
+That installs `ffmpeg-static` and `werift` at the versions pinned in the script,
+downloads the pinned MediaMTX release and a WHIP-capable ffmpeg build (~150 MB on
+linux-x64, of which only the binary is kept) into `node_modules/.e2e` (gitignored),
 then runs the suite. Already provisioned tools are reused, and anything whose
 version does not match the pins is replaced rather than trusted; `-- --force`
 re-fetches, and `-- --provision-only` stops after fetching. CI caches that
@@ -224,6 +232,7 @@ directory keyed on the script, so changing a pin invalidates the cache. If you a
 RELAY_FFMPEG_PATH=/path/to/ffmpeg \
 MEDIAMTX_PATH=/path/to/mediamtx \
 RELAY_WERIFT_PATH=/path/to/node_modules/werift \
+RELAY_WHIP_FFMPEG_PATH=/path/to/whip-capable/ffmpeg \
   npm run test:relay:e2e
 ```
 
@@ -232,7 +241,8 @@ session state, the alerts and the ingest byte count for that run — CI does thi
 and prints them when the job fails. If that directory cannot be written, the run
 fails on purpose: a red job with no logs is worse than one that says why.
 
-It uses ports 18554 (RTSP), 18889 (WHIP/HTTP), 18189 (ICE/UDP), 19355 (RTMP) and
-19997 (API), and cleans up after itself. The ingest it pushes to is that local
+The two files use separate ports — 18554/18889/18189/19355/19997 for the full
+path, 18754/18655/18290/19455/19998 for the second client — so they run at the
+same time. Each cleans up after itself. The ingest it pushes to is that local
 MediaMTX, never a provider; the WHIP hop is a real WebRTC connection, but not a
 real browser.

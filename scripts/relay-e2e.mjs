@@ -22,6 +22,7 @@ import {
   existsSync,
   mkdirSync,
   readFileSync,
+  renameSync,
   rmSync,
   writeFileSync,
 } from "node:fs";
@@ -33,6 +34,16 @@ const tools = path.join(root, "node_modules", ".e2e");
 const ffmpegPath = path.join(tools, "node_modules", "ffmpeg-static", "ffmpeg");
 const weriftPath = path.join(tools, "node_modules", "werift");
 const mediaMtxPath = path.join(tools, "mediamtx");
+
+/**
+ * A second WHIP client needs an ffmpeg that was built with the `whip` muxer.
+ * The static `ffmpeg-static` build does not have it — it answers `Unknown format
+ * 'whip'` — so the second-client test gets its own binary. BtbN's builds include
+ * it; only linux-x64 has a known asset, and elsewhere the test skips.
+ */
+const WHIP_TOOLS_DIR = "whip-ffmpeg";
+const WHIP_ASSET = "ffmpeg-master-latest-linux64-gpl";
+const whipFfmpegPath = path.join(tools, WHIP_TOOLS_DIR, "bin", "ffmpeg");
 
 /**
  * Pinned rather than "latest": CI caches this directory, and a cache that holds
@@ -142,6 +153,63 @@ function mediaMtxAsset() {
   };
 }
 
+function ffmpegHasWhipMuxer(binary) {
+  const result = spawnSync(binary, ["-hide_banner", "-muxers"], {
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "ignore"],
+  });
+  return result.status === 0 && /\bwhip\b/.test(result.stdout ?? "");
+}
+
+function ffmpegVersion(binary) {
+  const result = spawnSync(binary, ["-hide_banner", "-version"], {
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "ignore"],
+  });
+  return (result.stdout ?? "").split("\n")[0].trim() || "unknown version";
+}
+
+async function provisionWhipFfmpeg() {
+  if (process.platform !== "linux" || process.arch !== "x64") {
+    log(
+      `no WHIP-capable ffmpeg is known for ${process.platform}-${process.arch}; ` +
+        "the second-client check will skip",
+    );
+    return null;
+  }
+  if (existsSync(whipFfmpegPath) && ffmpegHasWhipMuxer(whipFfmpegPath) && !force) {
+    log(`WHIP-capable ffmpeg already provisioned (${ffmpegVersion(whipFfmpegPath)})`);
+    return whipFfmpegPath;
+  }
+  const asset = `${WHIP_ASSET}.tar.xz`;
+  const url = `https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/${asset}`;
+  log(`downloading a WHIP-capable ffmpeg (${asset}, ~150 MB)`);
+  const response = await fetch(url).catch((error) => {
+    fail(`could not download the WHIP-capable ffmpeg: ${error.message}`);
+  });
+  if (!response.ok) {
+    fail(`the WHIP-capable ffmpeg download failed with HTTP ${response.status} from ${url}`);
+  }
+  const archivePath = path.join(tools, asset);
+  writeFileSync(archivePath, Buffer.from(await response.arrayBuffer()));
+  const status = run("tar", ["-xJf", archivePath, "-C", tools]);
+  rmSync(archivePath, { force: true });
+  if (status !== 0) fail("could not extract the WHIP-capable ffmpeg from its tarball");
+  rmSync(path.join(tools, WHIP_TOOLS_DIR), { recursive: true, force: true });
+  renameSync(path.join(tools, WHIP_ASSET), path.join(tools, WHIP_TOOLS_DIR));
+  // The archive carries ffplay, ffprobe, docs and man pages: ~500 MB of it is
+  // never used here, and CI caches this directory.
+  for (const unused of ["bin/ffplay", "bin/ffprobe", "doc", "man", "presets"]) {
+    rmSync(path.join(tools, WHIP_TOOLS_DIR, unused), { recursive: true, force: true });
+  }
+  chmodSync(whipFfmpegPath, 0o755);
+  if (!ffmpegHasWhipMuxer(whipFfmpegPath)) {
+    fail(`${whipFfmpegPath} does not report a whip muxer; the master build may have changed`);
+  }
+  log(`WHIP-capable ffmpeg ready (${ffmpegVersion(whipFfmpegPath)})`);
+  return whipFfmpegPath;
+}
+
 function works(binary, flag) {
   for (const prefix of ["-", "--"]) {
     if (spawnSync(binary, [`${prefix}${flag}`], { stdio: "ignore" }).status === 0) {
@@ -181,10 +249,12 @@ async function provisionMediaMtx() {
 async function main() {
   provisionPackages();
   await provisionMediaMtx();
+  const whipFfmpeg = await provisionWhipFfmpeg();
 
   log(`ffmpeg:   ${ffmpegPath}`);
   log(`mediatmx: ${mediaMtxPath}`);
   log(`werift:   ${weriftPath}`);
+  if (whipFfmpeg) log(`whip ffmpeg: ${whipFfmpeg}`);
 
   if (provisionOnly) return 0;
 
@@ -197,6 +267,7 @@ async function main() {
       RELAY_FFMPEG_PATH: ffmpegPath,
       MEDIAMTX_PATH: mediaMtxPath,
       RELAY_WERIFT_PATH: weriftPath,
+      ...(whipFfmpeg ? { RELAY_WHIP_FFMPEG_PATH: whipFfmpeg } : {}),
     },
   });
 }
