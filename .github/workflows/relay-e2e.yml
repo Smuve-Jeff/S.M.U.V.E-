@@ -45,6 +45,16 @@ jobs:
         with:
           node-version-file: .nvmrc
 
+      # The tools are ~80 MB and only change when the provisioning script does
+      # (its pinned versions live there), so the key is a hash of that script.
+      - name: Cache the media tools
+        uses: actions/cache@v4
+        with:
+          path: node_modules/.e2e
+          key: relay-e2e-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('scripts/relay-e2e.mjs') }}
+          restore-keys: |
+            relay-e2e-${{ runner.os }}-${{ runner.arch }}-
+
       # The relay and its tests have no dependencies of their own, so `npm ci` is
       # deliberately skipped: the e2e setup fetches only what it needs (ffmpeg,
       # werift, MediaMTX) into the ignored tool directory.

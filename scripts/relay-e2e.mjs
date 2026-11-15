@@ -17,7 +17,14 @@
  * this script is a convenience, never a requirement.
  */
 import { spawnSync } from "node:child_process";
-import { chmodSync, existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import {
+  chmodSync,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -26,6 +33,14 @@ const tools = path.join(root, "node_modules", ".e2e");
 const ffmpegPath = path.join(tools, "node_modules", "ffmpeg-static", "ffmpeg");
 const weriftPath = path.join(tools, "node_modules", "werift");
 const mediaMtxPath = path.join(tools, "mediamtx");
+
+/**
+ * Pinned rather than "latest": CI caches this directory, and a cache that holds
+ * whatever npm resolved first would freeze an untested toolchain — or, worse,
+ * silently swap it when the cache misses. Bumping a version here invalidates the
+ * cache key, because the workflow keys on a hash of this file.
+ */
+const TOOL_PACKAGES = { "ffmpeg-static": "5.3.0", werift: "0.27.0" };
 
 const args = new Set(process.argv.slice(2));
 const force = args.has("--force");
@@ -50,14 +65,43 @@ function run(command, commandArgs, options = {}) {
 
 /** ffmpeg (from ffmpeg-static) and werift are npm packages; fetch them together
  * so installing one does not prune the other out of the tool directory. */
+/** Versions actually on disk, so a stale cache is noticed instead of trusted. */
+function installedVersions() {
+  const installed = {};
+  for (const name of Object.keys(TOOL_PACKAGES)) {
+    try {
+      const manifest = path.join(tools, "node_modules", name, "package.json");
+      installed[name] = JSON.parse(readFileSync(manifest, "utf8")).version;
+    } catch {
+      installed[name] = null;
+    }
+  }
+  return installed;
+}
+
 function provisionPackages() {
   const haveBoth = existsSync(ffmpegPath) && existsSync(weriftPath);
-  if (haveBoth && !force) {
-    log("ffmpeg and werift already provisioned");
+  const installed = installedVersions();
+  const pinned = Object.entries(TOOL_PACKAGES).every(
+    ([name, version]) => installed[name] === version,
+  );
+  if (haveBoth && pinned && !force) {
+    log(
+      `ffmpeg and werift already provisioned (${Object.entries(installed)
+        .map(([name, version]) => `${name}@${version}`)
+        .join(", ")})`,
+    );
     return;
   }
+  if (haveBoth && !pinned) {
+    log(
+      `installed tools do not match the pins (${Object.entries(installed)
+        .map(([name, version]) => `${name}@${version}`)
+        .join(", ")}); installing the pinned versions`,
+    );
+  }
   mkdirSync(tools, { recursive: true });
-  log("installing ffmpeg-static and werift (this is the slow step, ~80 MB)");
+  log("installing the pinned ffmpeg-static and werift (the slow step, ~80 MB)");
   const status = run("npm", [
     "install",
     "--prefix",
@@ -65,8 +109,7 @@ function provisionPackages() {
     "--no-save",
     "--no-audit",
     "--no-fund",
-    "ffmpeg-static",
-    "werift",
+    ...Object.entries(TOOL_PACKAGES).map(([name, version]) => `${name}@${version}`),
   ]);
   if (status !== 0) fail("npm could not install ffmpeg-static and werift");
   if (!existsSync(ffmpegPath)) fail(`ffmpeg-static did not produce ${ffmpegPath}`);

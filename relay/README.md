@@ -213,10 +213,12 @@ provisioned all three, so a skip there would mean the provisioning did not take.
 npm run test:relay:e2e:setup
 ```
 
-That installs `ffmpeg-static` and `werift` and downloads the pinned MediaMTX
-release into `node_modules/.e2e` (gitignored), then runs the suite. Already
-provisioned tools are reused; `-- --force` re-fetches, and `-- --provision-only`
-stops after fetching. If you already have them, point the suite at your own:
+That installs `ffmpeg-static` and `werift` at the versions pinned in the script
+and downloads the pinned MediaMTX release into `node_modules/.e2e` (gitignored),
+then runs the suite. Already provisioned tools are reused, and anything whose
+version does not match the pins is replaced rather than trusted; `-- --force`
+re-fetches, and `-- --provision-only` stops after fetching. CI caches that
+directory keyed on the script, so changing a pin invalidates the cache. If you already have them, point the suite at your own:
 
 ```bash
 RELAY_FFMPEG_PATH=/path/to/ffmpeg \
