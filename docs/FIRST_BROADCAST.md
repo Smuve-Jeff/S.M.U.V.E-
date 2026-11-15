@@ -137,9 +137,12 @@ npm run verify:streaming-schema
 It starts a throwaway PostgreSQL in `node_modules/.pgverify`, boots the compiled
 API twice and checks both answers: with nothing applied the boot must refuse with
 "The streaming_accounts table is missing", and after the migrations it must log
-`OAuth ready for twitch` and answer `/api/health` with 200. The provider
-credentials it passes are dummy strings, and the data directory is deleted when
-it finishes.
+`OAuth ready for twitch` and answer `/api/health` with 200. It also compares every
+entity's table against the migrated schema and fails on a missing table, a
+missing or extra column, or a nullability change — ignoring column lengths,
+default expressions and constraint names, which differ cosmetically and would
+otherwise bury a real gap. The provider credentials it passes are dummy strings,
+and the data directory is deleted when it finishes.
 
 ## 6. Register the Twitch application
 

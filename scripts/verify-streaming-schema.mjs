@@ -9,7 +9,15 @@
  *
  *   1. with an empty database, boot must fail and name the missing table;
  *   2. after the migrations, boot must reach `OAuth ready` and answer
- *      `/api/health` with 200.
+ *      `/api/health` with 200;
+ *   3. every entity's table carries the columns it declares.
+ *
+ * The third check is deliberately structural (tables, columns, nullability) and
+ * ignores column lengths, default expressions and constraint/index names.
+ * TypeORM's own diff reports 66 differences on a correct schema — the migrations
+ * say `VARCHAR(255)` and `DEFAULT CURRENT_TIMESTAMP` where entities say `varchar`
+ * and `now()`, and constraint names differ — so gating on that diff would be red
+ * for cosmetic reasons and hide the failures that actually break a deployment.
  *
  * Everything stays in node_modules: a portable PostgreSQL is installed into
  * `node_modules/.pgverify` and its data directory is deleted afterwards. The
@@ -192,7 +200,57 @@ async function main() {
     );
     await ds.destroy();
 
-    console.log("\n3) boot after the migrations — must serve");
+    console.log("\n3) every entity table matches the migrations");
+    const entityClasses = Object.values(
+      requireRoot(path.join(root, "Build/api/entities/index.js")),
+    ).filter((value) => typeof value === "function");
+    const withEntities = new DataSource({
+      type: "postgres",
+      url: DATABASE_URL,
+      synchronize: false,
+      entities: entityClasses,
+      migrations: [],
+    });
+    await withEntities.initialize();
+    const drift = [];
+    for (const meta of withEntities.entityMetadatas) {
+      const rows = await withEntities.query(
+        `SELECT column_name, is_nullable FROM information_schema.columns
+         WHERE table_schema = 'public' AND table_name = $1`,
+        [meta.tableName],
+      );
+      if (rows.length === 0) {
+        drift.push(`${meta.tableName}: table missing`);
+        continue;
+      }
+      const db = new Map(rows.map((row) => [row.column_name, row.is_nullable]));
+      const declared = new Map(
+        meta.columns.map((column) => [
+          column.databaseName,
+          column.isNullable ? "YES" : "NO",
+        ]),
+      );
+      const missing = [...declared.keys()].filter((name) => !db.has(name));
+      const extra = [...db.keys()].filter((name) => !declared.has(name));
+      const nullable = [...declared.entries()]
+        .filter(([name, value]) => db.has(name) && db.get(name) !== value)
+        .map(([name]) => name);
+      if (missing.length || extra.length || nullable.length) {
+        drift.push(
+          `${meta.tableName}: missing [${missing.join(", ")}] ` +
+            `extra [${extra.join(", ")}] nullability [${nullable.join(", ")}]`,
+        );
+      }
+    }
+    const compared = withEntities.entityMetadatas.length;
+    await withEntities.destroy();
+    check(
+      `all ${compared} entity tables match the migrations`,
+      drift.length === 0,
+      drift.join("; "),
+    );
+
+    console.log("\n4) boot after the migrations — must serve");
     const ready = await bootApi({ waitForExit: false });
     check(
       "boot reports the grants table ready",
