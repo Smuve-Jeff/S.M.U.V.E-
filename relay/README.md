@@ -21,7 +21,7 @@ The API server's `MEDIA_RELAY_URL` points at this service. Contract:
 | `POST` | `/sessions` | `{ rtmpUrl, streamKey }` | `201 { id, whipUrl }` |
 | `DELETE` | `/sessions/:id` | — | `204` |
 | `GET` | `/health` | — | `200 { status: ok, mediamtx, sessions, stalled }`, or `503 { status: degraded }` when MediaMTX is unreachable |
-| `GET` | `/sessions/:id` | — | `200 { ready, bytesReceived, tracks, bytesOut, bitrateKbps, drops, silentMs, recoveries, recovering, stalled, stalledForMs, … }` |
+| `GET` | `/sessions/:id` | — | `200 { ready, bytesReceived, tracks, bytesOut, bitrateKbps, drops, silentMs, recoveries, recovering, stalled, stalledForMs, recording, … }` |
 
 Every route except `/health` requires `Authorization: Bearer $RELAY_TOKEN`.
 
@@ -54,6 +54,8 @@ down or degraded, which is what catches the problem before a host goes live.
 | `EGRESS_AUDIO_BITRATE` | `128k` | Bitrate of the Opus → AAC re-encode; must look like `96k` (32k or more) |
 | `EGRESS_AUDIO_CHANNELS` | `2` | Channel count of that re-encode: `1` or `2` |
 | `ALERT_WEBHOOK_URL` | — | If set, stall, reconnect and give-up alerts are POSTed here as JSON |
+| `RECORDING_DIR` | — | Directory (a mounted volume) MediaMTX records broadcasts into; unset disables recording |
+| `RECORDING_RETENTION_HOURS` | `24` | Hours a recording is kept before MediaMTX deletes it; `0` keeps everything |
 
 ## Run it
 
@@ -185,6 +187,44 @@ SELFTEST_STREAM_KEY='live_...' \
 Kick has no equivalent flag, so leave the self-test on the local sink there and
 verify a real Kick push in the dashboard.
 
+## Recordings
+
+Broadcasts are recorded on the relay and stay there; nothing is uploaded. When
+the relay opens a broadcast's path it also tells MediaMTX to record it, so the
+file is written from the browser's own publish — before any relay egress — and
+it survives the session ending.
+
+| | |
+| --- | --- |
+| Where | `RECORDING_DIR/<session id>.mp4` |
+| Format | fragmented MP4, H.264 + Opus, exactly what the browser sent |
+| Segments | hourly, so a show longer than an hour continues in the next file |
+| Retention | `RECORDING_RETENTION_HOURS` (default 24), swept by the relay every minute; `0` keeps everything |
+| Self-tests | never recorded: they prove the path, they should not fill the volume |
+
+Unset `RECORDING_DIR` and nothing is recorded. In the compose file the volume is
+`recordings`, mounted at `/recordings` in **both** containers: MediaMTX writes
+there, and the relay needs write access there to delete expired files.
+
+Retention is the relay's own (`src/recording-store.mjs`), not MediaMTX's
+`recordDeleteAfter`, for two reasons found while building this:
+
+- MediaMTX counts its window against the segment still being written, so a
+  window shorter than the show deletes a live recording;
+- the relay deletes a session's path when its ffmpeg exits, which stops the
+  recorder — and MediaMTX's deletion with it — exactly when the file becomes
+  eligible.
+
+The sweeper only removes files whose last write is older than the window, so it
+cannot take a file a broadcast is still writing. If a recording is missing,
+check `docker compose logs relay` for `recording <id> into …` and for
+`recording retention: …` lines.
+
+The e2e suite proves the whole thing: `relay/test/e2e-recording.test.mjs`
+publishes over WHIP, asserts the file appears with H.264 and Opus, keeps growing
+while the show runs, survives a sweep inside the window, and is deleted once the
+window passes.
+
 ## Deploying for real
 
 - **TLS is not optional.** Browsers only expose WHIP publishing on an HTTPS
@@ -260,8 +300,9 @@ session state, the alerts and the ingest byte count for that run — CI does thi
 and prints them when the job fails. If that directory cannot be written, the run
 fails on purpose: a red job with no logs is worse than one that says why.
 
-The two files use separate ports — 18554/18889/18189/19355/19997 for the full
-path, 18754/18655/18290/19455/19998 for the second client — so they run at the
-same time. Each cleans up after itself. The ingest it pushes to is that local
+The files use separate ports — 18554/18889/18189/19355/19997 for the full
+path, 18754/18655/18290/19455/19998 for the second client,
+18764/18855/18390/19545/19990 for the audio re-encode and
+18652/18658/18293/19453/19995 for recordings — so they run at the same time. Each cleans up after itself. The ingest it pushes to is that local
 MediaMTX, never a provider; the WHIP hop is a real WebRTC connection, but not a
 real browser.

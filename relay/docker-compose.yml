@@ -7,6 +7,10 @@ services:
     restart: unless-stopped
     volumes:
       - ./mediamtx.yml:/mediamtx.yml:ro
+      # Broadcast recordings. The relay asks MediaMTX to record each session
+      # path into /recordings/<session>, and MediaMTX deletes them after the
+      # retention window.
+      - recordings:/recordings
     ports:
       # WHIP: where the browser publishes.
       - "8889:8889"
@@ -48,8 +52,16 @@ services:
       EGRESS_AUDIO_CHANNELS: ${EGRESS_AUDIO_CHANNELS:-2}
       ALERT_WEBHOOK_URL: ${ALERT_WEBHOOK_URL:-}
       FFMPEG_PATH: ffmpeg
+      # Record broadcasts into the volume mounted on mediamtx, keeping them for
+      # RECORDING_RETENTION_HOURS (0 keeps everything). Unset RECORDING_DIR to
+      # turn recording off entirely.
+      RECORDING_DIR: ${RECORDING_DIR-/recordings}
+      RECORDING_RETENTION_HOURS: ${RECORDING_RETENTION_HOURS:-24}
     volumes:
       - relay-state:/var/lib/relay
+      # The retention sweeper deletes finished recordings from the same volume
+      # MediaMTX writes them to.
+      - recordings:/recordings
     ports:
       # Control API: reachable by the S.M.U.V.E API only. Put it behind TLS or
       # a private network; it can open sessions with provider keys.
@@ -57,3 +69,4 @@ services:
 
 volumes:
   relay-state:
+  recordings:

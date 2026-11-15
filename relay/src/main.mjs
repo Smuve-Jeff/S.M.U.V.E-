@@ -1,6 +1,7 @@
 import { spawn } from "node:child_process";
 import { pushUrl } from "./destinations.mjs";
 import { MediaMtxClient } from "./mediamtx.mjs";
+import { RecordingStore } from "./recording-store.mjs";
 import { SessionStore } from "./state-store.mjs";
 import { createRelayServer } from "./server.mjs";
 import { SessionManager } from "./session-manager.mjs";
@@ -81,6 +82,14 @@ const onAlert = alertWebhook
     }
   : null;
 
+const recordingDir = (process.env.RECORDING_DIR || "").trim() || null;
+const recordings = recordingDir
+  ? new RecordingStore({
+      dir: recordingDir,
+      retentionHours: Number(process.env.RECORDING_RETENTION_HOURS ?? 24),
+    })
+  : null;
+
 const manager = new SessionManager({
   spawn,
   mediamtx: new MediaMtxClient({
@@ -95,12 +104,22 @@ const manager = new SessionManager({
   audioBitrate: (process.env.EGRESS_AUDIO_BITRATE || "").trim() || "128k",
   audioChannels: Number(process.env.EGRESS_AUDIO_CHANNELS ?? 2),
   ingestPath: selftestIngestPath,
+  recordingDir,
+  recordingRetentionHours: recordings?.retentionHours ?? 0,
   store,
   onAlert,
 });
 
 const restored = await manager.restore();
 if (store) console.log(`[relay] restored ${restored} session(s) from ${stateFile}`);
+
+// Recordings outlive their sessions: this deletes what the volume has kept for
+// longer than the window, including anything left by a previous run.
+const retention = recordings?.enabled
+  ? setInterval(() => void recordings.sweep(), 60_000)
+  : null;
+retention?.unref?.();
+if (recordings?.enabled) void recordings.sweep();
 
 const ttlMs = Number(process.env.SESSION_TTL_MINUTES || 360) * 60_000;
 const sweeper = setInterval(() => void manager.sweep(ttlMs), 60_000);
@@ -134,6 +153,7 @@ server.listen(port, () => {
         (selftestIngestPath ? ` (ingest inspected at path '${selftestIngestPath}')` : "")
       : "[relay] self-test disabled (SELFTEST_RTMP_URL is not set)",
   );
+  console.log(manager.recordingSummary());
   console.log(
     stallMs > 0
       ? `[relay] egress watchdog: ${stallMs / 1_000}s of silence${
@@ -151,6 +171,7 @@ async function shutdown(signal) {
   closing = true;
   console.log(`[relay] ${signal} received — closing sessions`);
   clearInterval(sweeper);
+  if (retention) clearInterval(retention);
   if (watchdog) clearInterval(watchdog);
   server.close();
   await manager.stopAll();

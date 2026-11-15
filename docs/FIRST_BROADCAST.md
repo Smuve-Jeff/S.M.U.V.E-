@@ -69,7 +69,7 @@ Checks:
   `set RELAY_TOKEN`; both are required in `docker-compose.yml`.
 - **`restored 0 session(s)` is not logged** → `RELAY_STATE_KEY` was empty, so
   persistence is off. Relaunch with the key, or accept that a relay restart ends
-  the push (step 12).
+  the push (step 13).
 - **ffmpeg present:** `docker compose exec relay ffmpeg -hide_banner -version | head -1`.
 
 ## 3. Put TLS in front of WHIP
@@ -311,7 +311,29 @@ copy-paste error, not a server problem.
 One platform at a time: while a push is live the panel shows **STOP** instead of
 **PUSH**, so stop the current push before switching channels.
 
-## 12. Restart the relay mid-broadcast
+## 12. Where the broadcast is recorded
+
+Every broadcast is recorded on the relay as `<RECORDING_DIR>/<session>.mp4`
+(fragmented MP4, H.264 + Opus), written by MediaMTX from the browser's own
+publish and kept for `RECORDING_RETENTION_HOURS` (default 24; `0` keeps
+everything). Self-tests are never recorded.
+
+Check one exists after a broadcast:
+
+```bash
+docker compose exec mediamtx ls -lh /recordings
+```
+
+The relay logs `recording <id> into /recordings (kept 24h)` when a session opens
+and `recording retention: deleted N recording(s)` when the sweeper clears
+expired files. If `RECORDING_DIR` is unset, recording is off and the startup log
+says so.
+
+Do not shorten retention below the length of a show: the sweeper only deletes
+files whose last write is older than the window, so a live recording is safe,
+but a very short window deletes completed recordings almost immediately.
+
+## 13. Restart the relay mid-broadcast
 
 With `RELAY_STATE_FILE` and `RELAY_STATE_KEY` set (step 2), an in-flight push
 survives a relay restart because MediaMTX and the browser's publish keep

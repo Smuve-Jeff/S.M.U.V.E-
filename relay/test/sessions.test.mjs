@@ -585,3 +585,101 @@ test("leaves a session that is pushing fine alone", async () => {
   assert.deepEqual(await manager.recover(45_000, Date.now() + 600_000), []);
   assert.equal(children[0].killed, false);
 });
+
+test("a broadcast asks MediaMTX to record it into the recording volume", async () => {
+  const added = [];
+  const logs = [];
+  const manager = new SessionManager({
+    spawn: () => fakeChild(),
+    mediamtx: {
+      addPath: async (id, options) => added.push({ id, options }),
+      deletePath: async () => {},
+    },
+    publicUrl: "https://relay.example.com",
+    rtspUrl: "rtsp://127.0.0.1:8554",
+    recordingDir: "/recordings/",
+    recordingRetentionHours: 24,
+    logger: { info: (line) => logs.push(line), warn() {}, error() {} },
+  });
+
+  const broadcast = await manager.create(destination);
+  const selftest = await manager.create(destination, { kind: "selftest" });
+
+  assert.deepEqual(added, [
+    {
+      id: broadcast.id,
+      options: {
+        record: true,
+        recordPath: "/recordings/%path",
+        recordFormat: "fmp4",
+        recordSegmentDuration: "1h",
+        // MediaMTX's own retention must stay off; the relay sweeps the volume.
+        recordDeleteAfter: "0s",
+      },
+    },
+    // A self-test proves the path; it must not fill the volume.
+    { id: selftest.id, options: undefined },
+  ]);
+  assert.deepEqual((await manager.status(broadcast.id)).recording, {
+    dir: "/recordings",
+    retentionHours: 24,
+  });
+  assert.equal((await manager.status(selftest.id)).recording, null);
+  assert.match(
+    logs.join("\n"),
+    new RegExp(`recording ${broadcast.id} into /recordings \\(kept 24h\\)`)
+  );
+});
+
+test("retention of 0 keeps recordings, and a relay without a volume does not record", async () => {
+  const added = [];
+  const keepEverything = new SessionManager({
+    spawn: () => fakeChild(),
+    mediamtx: {
+      addPath: async (id, options) => added.push({ id, options }),
+      deletePath: async () => {},
+    },
+    publicUrl: "https://relay.example.com",
+    rtspUrl: "rtsp://127.0.0.1:8554",
+    recordingDir: "/recordings",
+    recordingRetentionHours: 0,
+    logger: { info() {}, warn() {}, error() {} },
+  });
+  await keepEverything.create(destination);
+
+  // A window of 0 is still pinned, so MediaMTX keeps its 1d default out of it.
+  assert.equal(added[0].options.recordDeleteAfter, "0s");
+  assert.equal(
+    keepEverything.recordingSummary(),
+    "[relay] recording broadcasts to /recordings (kept until deleted)"
+  );
+
+  const { manager, added: plainAdded } = harness();
+  const session = await manager.create(destination);
+
+  assert.deepEqual(plainAdded, [session.id]);
+  assert.equal((await manager.status(session.id)).recording, null);
+  assert.equal(
+    manager.recordingSummary(),
+    "[relay] recording disabled (RECORDING_DIR is not set)"
+  );
+});
+
+test("a malformed retention is refused at startup", () => {
+  const build = (recordingRetentionHours) =>
+    new SessionManager({
+      spawn: () => fakeChild(),
+      mediamtx: { addPath: async () => {}, deletePath: async () => {} },
+      publicUrl: "https://relay.example.com",
+      rtspUrl: "rtsp://127.0.0.1:8554",
+      recordingDir: "/recordings",
+      recordingRetentionHours,
+    });
+
+  for (const bad of [-1, "soon", Number.NaN]) {
+    assert.throws(
+      () => build(bad),
+      /RECORDING_RETENTION_HOURS must be a number of hours/
+    );
+  }
+});

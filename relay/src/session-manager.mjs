@@ -38,6 +38,8 @@ export class SessionManager {
   #audioBitrate;
   #audioChannels;
   #ingestPath;
+  #recordingDir;
+  #recordingRetentionHours;
   #logger;
   #store;
   #onAlert;
@@ -71,6 +73,14 @@ export class SessionManager {
      * Null when the sink is a real provider: that cannot be inspected.
      */
     ingestPath = null,
+    /**
+     * Where MediaMTX writes broadcast recordings, from a volume mounted into
+     * the media server. Null disables recording: a relay without that volume
+     * must not ask MediaMTX to write into its own ephemeral filesystem.
+     */
+    recordingDir = null,
+    /** Hours a recording is kept before MediaMTX deletes it; 0 keeps it. */
+    recordingRetentionHours = 24,
   }) {
     if (typeof spawn !== "function") throw new Error("spawn is required");
     if (!mediamtx) throw new Error("mediamtx client is required");
@@ -99,6 +109,17 @@ export class SessionManager {
       typeof ingestPath === "string" && ingestPath.trim()
         ? ingestPath.trim().replace(/^\/+/, "")
         : null;
+    this.#recordingDir =
+      typeof recordingDir === "string" && recordingDir.trim()
+        ? recordingDir.trim().replace(/\/+$/, "")
+        : null;
+    const retention = Number(recordingRetentionHours);
+    if (!Number.isFinite(retention) || retention < 0) {
+      throw new Error(
+        `RECORDING_RETENTION_HOURS must be a number of hours, got "${recordingRetentionHours}"`,
+      );
+    }
+    this.#recordingRetentionHours = retention;
     this.#logger = logger;
     this.#store = store;
     this.#onAlert = typeof onAlert === "function" ? onAlert : null;
@@ -108,12 +129,27 @@ export class SessionManager {
   async create(input, { kind = "broadcast" } = {}) {
     const { rtmpUrl, streamKey } = validateDestination(input);
     const id = randomUUID().replace(/-/g, "");
-    await this.#mediamtx.addPath(id);
+    const recording = this.#recordingOptions(kind);
+    await this.#mediamtx.addPath(id, recording?.config);
+    if (recording) {
+      this.#logger.info?.(
+        `[relay] recording ${id} into ${recording.dir}` +
+          (this.#recordingRetentionHours > 0
+            ? ` (kept ${this.#recordingRetentionHours}h)`
+            : " (kept until deleted)"),
+      );
+    }
 
     const session = {
       id,
       kind,
       destination: pushUrl(rtmpUrl, streamKey),
+      // The file itself is named after the path (`<dir>/<id>.mp4`), and
+      // segmentation may add a timestamp, so what is reported is the directory
+      // MediaMTX writes into.
+      recording: recording
+        ? { dir: recording.dir, retentionHours: this.#recordingRetentionHours }
+        : null,
       createdAt: Date.now(),
       restarts: 0,
       stopped: false,
@@ -237,6 +273,44 @@ export class SessionManager {
     return restored;
   }
 
+  /**
+   * MediaMTX records the path the browser publishes to, so a broadcast is
+   * recorded as it is sent — before any relay egress. Self-tests are excluded:
+   * they exist to prove the path, not to fill the disk.
+   */
+  #recordingOptions(kind) {
+    if (!this.#recordingDir || kind === "selftest") return null;
+    return {
+      dir: this.#recordingDir,
+      config: {
+        record: true,
+        recordPath: `${this.#recordingDir}/%path`,
+        // fMP4 because a browser can play it and it survives a kill -9 without
+        // the trailing moov atom a plain MP4 needs.
+        recordFormat: "fmp4",
+        recordSegmentDuration: "1h",
+        // Explicitly off, because MediaMTX defaults to 1d: its window counts
+        // against the segment still being written (so a short window deletes a
+        // live recording) and its sweeper stops once the relay deletes the
+        // session's path. Retention is enforced by RecordingStore instead.
+        recordDeleteAfter: "0s",
+      },
+    };
+  }
+
+  /** One line for the startup log: where recordings go and how long they stay. */
+  recordingSummary() {
+    if (!this.#recordingDir) {
+      return "[relay] recording disabled (RECORDING_DIR is not set)";
+    }
+    return (
+      `[relay] recording broadcasts to ${this.#recordingDir}` +
+      (this.#recordingRetentionHours > 0
+        ? ` (kept ${this.#recordingRetentionHours}h)`
+        : " (kept until deleted)")
+    );
+  }
+
   async #persist() {
     if (!this.#store) return;
     const records = [...this.#sessions.values()].map((session) => ({
@@ -348,6 +422,7 @@ export class SessionManager {
       ready: !!path?.ready,
       bytesReceived: Number(path?.bytesReceived ?? 0),
       ingest,
+      recording: session.recording ?? null,
       tracks,
       // Egress (relay → provider), as opposed to bytesReceived above
       // (browser → MediaMTX). A session can be receiving fine and pushing

@@ -17,11 +17,16 @@ export class MediaMtxClient {
     this.#fetch = fetchImpl;
   }
 
-  /** `source: publisher` means "accept a publisher", nothing is pulled. */
-  async addPath(id) {
+  /**
+   * `source: publisher` means "accept a publisher", nothing is pulled.
+   * `options` is MediaMTX path configuration — the recording block, for a
+   * broadcast — so the relay decides per session rather than globally.
+   */
+  async addPath(id, options = {}) {
     await this.#request("POST", `/v3/config/paths/add/${encodeURIComponent(id)}`, {
       source: "publisher",
       sourceOnDemand: false,
+      ...options,
     });
   }
 
