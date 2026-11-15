@@ -1,5 +1,6 @@
 import { spawn } from "node:child_process";
 import { MediaMtxClient } from "./mediamtx.mjs";
+import { SessionStore } from "./state-store.mjs";
 import { createRelayServer } from "./server.mjs";
 import { SessionManager } from "./session-manager.mjs";
 
@@ -27,6 +28,19 @@ const selftestDestination = selftestRtmpUrl
     }
   : null;
 
+const stateFile = (process.env.RELAY_STATE_FILE || "").trim();
+const stateKey = (process.env.RELAY_STATE_KEY || "").trim();
+let store = null;
+if (stateFile) {
+  if (!stateKey) {
+    console.error(
+      "[relay] RELAY_STATE_FILE is set without RELAY_STATE_KEY: stored sessions contain stream keys, so persistence stays off.",
+    );
+  } else {
+    store = new SessionStore({ path: stateFile, key: stateKey });
+  }
+}
+
 const manager = new SessionManager({
   spawn,
   mediamtx: new MediaMtxClient({
@@ -37,7 +51,11 @@ const manager = new SessionManager({
   rtspUrl: process.env.MEDIAMTX_RTSP_URL || "rtsp://127.0.0.1:8554",
   ffmpegPath: process.env.FFMPEG_PATH || "ffmpeg",
   maxRestarts: Number(process.env.FFMPEG_MAX_RESTARTS ?? 5),
+  store,
 });
+
+const restored = await manager.restore();
+if (store) console.log(`[relay] restored ${restored} session(s) from ${stateFile}`);
 
 const ttlMs = Number(process.env.SESSION_TTL_MINUTES || 360) * 60_000;
 const sweeper = setInterval(() => void manager.sweep(ttlMs), 60_000);

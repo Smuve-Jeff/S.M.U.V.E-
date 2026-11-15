@@ -23,6 +23,7 @@ export class SessionManager {
   #ffmpegPath;
   #maxRestarts;
   #logger;
+  #store;
 
   constructor({
     spawn,
@@ -32,6 +33,8 @@ export class SessionManager {
     ffmpegPath = "ffmpeg",
     maxRestarts = 5,
     logger = console,
+    /** Optional SessionStore: keeps sessions across a relay restart. */
+    store = null,
   }) {
     if (typeof spawn !== "function") throw new Error("spawn is required");
     if (!mediamtx) throw new Error("mediamtx client is required");
@@ -43,6 +46,7 @@ export class SessionManager {
     this.#ffmpegPath = ffmpegPath;
     this.#maxRestarts = Math.max(0, Number(maxRestarts) || 0);
     this.#logger = logger;
+    this.#store = store;
   }
 
   async create(input, { kind = "broadcast" } = {}) {
@@ -64,6 +68,7 @@ export class SessionManager {
     this.#sessions.set(id, session);
     this.#startFfmpeg(session);
     this.#logger.info?.(`[relay] session ${id} open`);
+    await this.#persist();
     return { id, whipUrl: `${this.#publicUrl}/${id}/whip` };
   }
 
@@ -80,6 +85,82 @@ export class SessionManager {
 
   has(id) {
     return this.#sessions.has(id);
+  }
+
+  /**
+   * Re-attach to sessions that were pushing before this process started.
+   *
+   * MediaMTX outlives the relay, so the browser's WHIP publish is usually still
+   * live and its path still exists: only the RTSP→RTMP half disappeared. A
+   * stored session whose path is gone has no publisher and is dropped, which
+   * keeps the store honest without needing a shutdown hook to run.
+   */
+  async restore() {
+    if (!this.#store) return 0;
+    let records;
+    try {
+      records = await this.#store.load();
+    } catch (error) {
+      this.#logger.error?.(
+        `[relay] could not read stored sessions: ${error?.message ?? error}`,
+      );
+      return 0;
+    }
+
+    let restored = 0;
+    for (const record of records) {
+      const id = typeof record?.id === "string" ? record.id : "";
+      const destination =
+        typeof record?.destination === "string" ? record.destination : "";
+      if (!id || !destination) continue;
+
+      const path =
+        typeof this.#mediamtx.getPath === "function"
+          ? await this.#mediamtx.getPath(id).catch(() => null)
+          : null;
+      if (!path) {
+        this.#logger.info?.(
+          `[relay] dropping stored session ${id}: its publisher is gone`,
+        );
+        continue;
+      }
+
+      this.#sessions.set(id, {
+        id,
+        kind: record.kind === "selftest" ? "selftest" : "broadcast",
+        destination,
+        createdAt: Number(record.createdAt) || Date.now(),
+        restarts: 0,
+        stopped: false,
+        child: null,
+        timer: null,
+        error: null,
+      });
+      this.#startFfmpeg(this.#sessions.get(id));
+      restored += 1;
+      this.#logger.info?.(`[relay] restored session ${id}`);
+    }
+
+    await this.#persist();
+    return restored;
+  }
+
+  async #persist() {
+    if (!this.#store) return;
+    const records = [...this.#sessions.values()].map((session) => ({
+      id: session.id,
+      kind: session.kind,
+      destination: session.destination,
+      createdAt: session.createdAt,
+    }));
+    try {
+      await this.#store.save(records);
+    } catch (error) {
+      // Persistence is best effort: a full disk must not drop a live push.
+      this.#logger.error?.(
+        `[relay] could not persist sessions: ${error?.message ?? error}`,
+      );
+    }
   }
 
   /**
@@ -141,6 +222,7 @@ export class SessionManager {
       );
     }
     this.#logger.info?.(`[relay] session ${id} closed (${reason})`);
+    await this.#persist();
     return true;
   }
 

@@ -137,6 +137,73 @@ test("reports MediaMTX byte and track stats for a session", async () => {
   children[0].kill();
 });
 
+test("re-attaches stored sessions whose publisher is still connected", async () => {
+  const stored = [
+    {
+      id: "alive1",
+      kind: "broadcast",
+      destination: "rtmp://live.twitch.tv/app/live_alive_key",
+      createdAt: Date.now(),
+    },
+    {
+      id: "gone1",
+      kind: "broadcast",
+      destination: "rtmp://live.twitch.tv/app/live_gone_key",
+      createdAt: Date.now(),
+    },
+  ];
+  const { manager, calls } = harness({
+    store: { load: async () => stored, save: async () => {} },
+    mediamtx: {
+      addPath: async () => {},
+      deletePath: async () => {},
+      getPath: async (id) => (id === "alive1" ? { ready: true } : null),
+    },
+  });
+
+  const restored = await manager.restore();
+
+  assert.equal(restored, 1);
+  assert.equal(manager.has("alive1"), true);
+  assert.equal(manager.has("gone1"), false);
+  assert.equal(calls.length, 1);
+  assert.equal(
+    calls[0].args.at(-1),
+    "rtmp://live.twitch.tv/app/live_alive_key",
+  );
+  assert.ok(calls[0].args.includes("rtsp://127.0.0.1:8554/alive1"));
+});
+
+test("persists every session change so a restart can find them", async () => {
+  const saved = [];
+  const { manager } = harness({
+    store: { load: async () => [], save: async (records) => saved.push(records) },
+  });
+
+  const session = await manager.create(destination);
+  assert.equal(saved.at(-1).length, 1);
+  assert.equal(saved.at(-1)[0].id, session.id);
+
+  await manager.delete(session.id);
+  assert.deepEqual(saved.at(-1), []);
+});
+
+test("survives a store that cannot save", async () => {
+  const { manager, children } = harness({
+    store: {
+      load: async () => [],
+      save: async () => {
+        throw new Error("disk full");
+      },
+    },
+  });
+
+  const session = await manager.create(destination);
+
+  assert.equal(manager.has(session.id), true);
+  children[0].kill();
+});
+
 test("reports the media server as reachable or not", async () => {
   const reachable = harness({
     mediamtx: {

@@ -45,6 +45,8 @@ down or degraded, which is what catches the problem before a host goes live.
 | `SELFTEST_RTMP_URL` | — | RTMP sink the self-test pushes to; unset disables `/selftest` |
 | `SELFTEST_STREAM_KEY` | `selftest` | Key/id used for the self-test sink |
 | `SELFTEST_TTL_SECONDS` | `180` | How long a self-test session may stay open |
+| `RELAY_STATE_FILE` | — | Where to keep session records for restart recovery; unset disables it |
+| `RELAY_STATE_KEY` | — | Key that encrypts that file (required with `RELAY_STATE_FILE`) |
 
 ## Run it
 
@@ -63,6 +65,21 @@ MEDIA_RELAY_TOKEN=change-me
 The app's boot check reports the relay: a malformed URL stops the deploy, an
 absent one warns that PUSH answers 503, and a missing token warns that the relay
 is open.
+
+## Surviving a relay restart
+
+MediaMTX is a separate process, so when the relay restarts the browser's WHIP
+publish is usually still live and only the RTSP→RTMP half is missing. With
+`RELAY_STATE_FILE` and `RELAY_STATE_KEY` set, every session is written to that
+file (encrypted, 0600) and re-attached on boot: the same session id means the
+same WHIP URL keeps working, and ffmpeg is restarted against the path that is
+still publishing. A stored session whose MediaMTX path is gone has no publisher
+and is dropped, so the store never resurrects a finished broadcast.
+
+The file holds push URLs, which include provider stream keys — that is why it is
+encrypted and why persistence stays off unless a key is provided. If you would
+rather lose in-flight pushes than keep keys on disk, leave `RELAY_STATE_FILE`
+unset; nothing else changes.
 
 ## Self-test
 

@@ -32,8 +32,17 @@ services:
       # egress to the platform instead.
       SELFTEST_RTMP_URL: ${SELFTEST_RTMP_URL:-rtmp://mediamtx:1935/selftest}
       SELFTEST_STREAM_KEY: ${SELFTEST_STREAM_KEY:-selftest}
+      # Session recovery: keep in-flight pushes across a relay restart. The
+      # state file holds stream keys, so it is encrypted with RELAY_STATE_KEY.
+      RELAY_STATE_FILE: /var/lib/relay/sessions.json
+      RELAY_STATE_KEY: ${RELAY_STATE_KEY:-}
       FFMPEG_PATH: ffmpeg
+    volumes:
+      - relay-state:/var/lib/relay
     ports:
       # Control API: reachable by the S.M.U.V.E API only. Put it behind TLS or
       # a private network; it can open sessions with provider keys.
       - "8080:8080"
+
+volumes:
+  relay-state:
