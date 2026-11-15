@@ -1797,6 +1797,63 @@ describe("resolved-match lobby provisioning + in-match relays", () => {
       expect(toViewer.candidate.candidate).toBe("candidate:2");
     });
 
+    it("relays the host source switch to every watcher in the live room", async () => {
+      const [host, viewer] = pair(401, 402);
+      await Promise.all([connect(host), connect(viewer)]);
+
+      host.emit("live_stream_host_join", { token: "tok_live" });
+      await settle();
+      viewer.emit("live_stream_watch", { token: "tok_live" });
+      await settle();
+
+      const changedP = once<any>(viewer, "live_stream_source_changed");
+      host.emit("live_stream_source", {
+        token: "tok_live",
+        videoSource: "screen",
+        screenAudioOnly: true,
+      });
+      const changed = await changedP;
+      expect(changed.streamId).toBe(5);
+      expect(changed.streamToken).toBe("tok_live");
+      expect(changed.videoSource).toBe("screen");
+      expect(changed.screenAudioOnly).toBe(true);
+
+      // The host never hears its own announcement back.
+      let echoed = false;
+      host.on("live_stream_source_changed", () => {
+        echoed = true;
+      });
+      host.emit("live_stream_source", {
+        token: "tok_live",
+        videoSource: "camera",
+        screenAudioOnly: false,
+      });
+      await settle();
+      expect(echoed).toBe(false);
+    });
+
+    it("ignores source announcements from sockets that are not the host", async () => {
+      const [host, viewer] = pair(403, 404);
+      await Promise.all([connect(host), connect(viewer)]);
+
+      host.emit("live_stream_host_join", { token: "tok_live" });
+      await settle();
+      viewer.emit("live_stream_watch", { token: "tok_live" });
+      await settle();
+
+      let changed = false;
+      host.on("live_stream_source_changed", () => {
+        changed = true;
+      });
+      viewer.emit("live_stream_source", {
+        token: "tok_live",
+        videoSource: "screen",
+        screenAudioOnly: true,
+      });
+      await settle(300);
+      expect(changed).toBe(false);
+    });
+
     it("refuses offers from a socket that is not the stream host", async () => {
       const [host, viewer] = pair(303, 304);
       const intruder = mk(305);

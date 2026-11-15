@@ -1489,10 +1489,12 @@
 
       <!-- The host's camera/mic, delivered peer-to-peer over WebRTC. -->
       <div class="live-feed" [class.live-feed-live]="liveVideo.status() === 'live'">
-        <!-- Picture only: voice and game sound ride dedicated audio
-             elements below so each gets its own volume slider. -->
+        <!-- The display follows the host's picture — face on camera,
+             game stream on screen share — with a manual CAM/GAME override.
+             Voice and game sound ride dedicated audio elements below so
+             each gets its own volume slider. -->
         <video
-          *ngIf="viewerVideoStream() as feed"
+          *ngIf="viewerDisplayStream() as feed"
           class="live-feed-video"
           [srcObject]="feed"
           autoplay
@@ -1519,11 +1521,42 @@
           </button>
         </div>
         <div class="live-feed-badge" *ngIf="liveVideo.status() === 'live'">
-          <span class="live-dot"></span> LIVE FEED
+          <span class="live-dot"></span>
+          {{
+            liveVideo.hostSharingScreen() ? 'LIVE · GAME STREAM' : 'LIVE FEED'
+          }}
         </div>
       </div>
 
       <div class="live-feed-controls">
+        <div
+          class="live-mix"
+          *ngIf="viewerCameraStream() || viewerGameVideoStream()"
+        >
+          <button
+            type="button"
+            class="action-btn"
+            (click)="viewerShowGame.set(false)"
+            [disabled]="!viewerShowGame()"
+          >
+            CAM
+          </button>
+          <button
+            type="button"
+            class="action-btn"
+            (click)="viewerShowGame.set(true)"
+            [disabled]="
+              viewerShowGame() || !liveVideo.hostSharingScreen()
+            "
+            [title]="
+              liveVideo.hostSharingScreen()
+                ? 'Watch the game stream'
+                : 'The host is on camera — no game stream yet'
+            "
+          >
+            GAME
+          </button>
+        </div>
         <button
           type="button"
           class="action-btn"

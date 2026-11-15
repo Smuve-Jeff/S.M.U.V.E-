@@ -80,6 +80,15 @@ export interface StreamTelemetry {
 export type StreamQuality = '480p' | '720p' | '1080p';
 
 /** Resolution + bitrate targets per quality tier. */
+export interface HostStreamUpdate {
+  /** Rebuilt host media: camera and/or screen video, mic, system sound. */
+  stream: MediaStream;
+  /** Which picture the host is showing — the viewer's display follows it. */
+  videoSource: 'camera' | 'screen';
+  /** Viewers hear game sound only while this is set. */
+  screenAudioOnly: boolean;
+}
+
 export const STREAM_QUALITY_PRESETS: Record<
   StreamQuality,
   { width: number; height: number; bitrate: number }
@@ -208,6 +217,12 @@ export class SocialNetworkingService {
   );
   /** Mic track ids, so a switch back to camera drops system audio but keeps voice. */
   private micTrackIds = new Set<string>();
+
+  /** What a host audio track carries: ledger voice, or system sound. */
+  audioRoleOf(track: MediaStreamTrack): 'mic' | 'system' {
+    if (track.kind !== 'audio') return 'mic';
+    return this.micTrackIds.has(track.id) ? 'mic' : 'system';
+  }
   /**
    * Screen-audio-only mode: while the source is the shared screen, the
    * mic stays out of the viewers' mix — game sound only. The mic toggle
@@ -216,18 +231,19 @@ export class SocialNetworkingService {
   screenAudioOnly = signal(false);
   /** True while a camera/screen acquisition is in flight — the UI locks the switch until it lands. */
   switchingSource = signal(false);
-  /** Host-peer video senders refresh when the source track changes. */
-  private videoTrackListeners = new Set<(track: MediaStreamTrack) => void>();
+  /** Host-peer senders refresh when the source tracks change. */
+  private hostStreamListeners = new Set<(update: HostStreamUpdate) => void>();
 
   /**
-   * Subscribe to host video-track replacements (camera ↔ screen). The live
-   * video fan-out registers once per hosting session and swaps the video
-   * sender track on every viewer peer — no re-negotiation, no rejoin.
+   * Subscribe to host stream rebuilds (camera ↔ screen, game-only audio).
+   * The live video fan-out registers once per hosting session: it swaps
+   * every viewer peer's sender tracks by role and tells watchers which
+   * source is live — no re-negotiation, no rejoin.
    */
-  onVideoTrackReplaced(cb: (track: MediaStreamTrack) => void): () => void {
-    this.videoTrackListeners.add(cb);
+  onHostStreamReplaced(cb: (update: HostStreamUpdate) => void): () => void {
+    this.hostStreamListeners.add(cb);
     return () => {
-      this.videoTrackListeners.delete(cb);
+      this.hostStreamListeners.delete(cb);
     };
   }
 
@@ -1132,7 +1148,7 @@ export class SocialNetworkingService {
     return mic.length ? mic : stream.getAudioTracks();
   }
 
-  /** Publish a rebuilt host stream and push the video track to viewers. */
+  /** Publish a rebuilt host stream and push the update to viewers. */
   private setHostStream(
     stream: MediaStream,
     source: 'camera' | 'screen'
@@ -1141,11 +1157,14 @@ export class SocialNetworkingService {
     this.videoSource.set(source);
     this.cameraEnabled.set(true);
     this.applyMicState();
-    const video = stream.getVideoTracks()[0];
-    if (!video) return;
-    this.videoTrackListeners.forEach((cb) => {
+    const update: HostStreamUpdate = {
+      stream,
+      videoSource: source,
+      screenAudioOnly: this.screenAudioOnly(),
+    };
+    this.hostStreamListeners.forEach((cb) => {
       try {
-        cb(video);
+        cb(update);
       } catch {
         /* a doomed peer must not break the switch */
       }

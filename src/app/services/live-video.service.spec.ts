@@ -55,9 +55,11 @@ class FakePeerConnection {
   }
 
   senders: Array<{ track: any; replaceTrack: jest.Mock }> = [];
-  addTrack(track: any): void {
+  addTrack(track: any): { track: any; replaceTrack: jest.Mock } {
     this.tracks.push(track);
-    this.senders.push({ track, replaceTrack: jest.fn(async () => undefined) });
+    const sender = { track, replaceTrack: jest.fn(async () => undefined) };
+    this.senders.push(sender);
+    return sender;
   }
 
   getSenders(): Array<{ track: any; replaceTrack: jest.Mock }> {
@@ -96,11 +98,16 @@ class FakePeerConnection {
 
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
 
-const makeTrack = (kind: "audio" | "video") => ({
-  kind,
-  enabled: true,
-  stop: jest.fn(),
-});
+const makeTrack = (kind: "audio" | "video", role?: string) => {
+  const track: any = {
+    kind,
+    enabled: true,
+    stop: jest.fn(),
+    __role: role ?? (kind === "audio" ? "mic" : "camera"),
+  };
+  track.clone = jest.fn(() => makeTrack(kind, track.__role));
+  return track;
+};
 
 describe("LiveVideoService", () => {
   let service: LiveVideoService;
@@ -147,6 +154,7 @@ describe("LiveVideoService", () => {
     remoteAudio = makeTrack("audio");
     media = {
       getTracks: () => [videoTrack, audioTrack],
+      getVideoTracks: () => [videoTrack],
       getAudioTracks: () => [audioTrack],
     };
     remoteMedia = {
@@ -158,7 +166,9 @@ describe("LiveVideoService", () => {
       localStream: jest.fn(() => media),
       streamError: jest.fn(() => null),
       socketConnected: jest.fn(() => true),
-      onVideoTrackReplaced: jest.fn(() => () => undefined),
+      videoSource: jest.fn(() => "camera"),
+      audioRoleOf: jest.fn((t: any) => t.__role ?? "mic"),
+      onHostStreamReplaced: jest.fn(() => () => undefined),
     };
     http = {
       get: jest.fn(() =>
@@ -308,7 +318,9 @@ describe("LiveVideoService", () => {
 
     const pc = FakePeerConnection.instances[0];
     expect(pc).toBeDefined();
-    expect(pc.tracks).toEqual([videoTrack, audioTrack]);
+    // Live tracks first, then the silent game + system slots.
+    expect(pc.tracks.slice(0, 2)).toEqual([videoTrack, audioTrack]);
+    expect(pc.tracks).toHaveLength(4);
     expect(pc.config.iceServers).toEqual([{ urls: "stun:test" }]);
     const offer = socket.emitted.find(
       (entry) => entry.event === "live_webrtc_offer",
@@ -491,7 +503,7 @@ describe("LiveVideoService", () => {
     });
   });
 
-  it("swaps the video track on every viewer peer when the host switches source", async () => {
+  it("seeds silent game and system slots on every viewer peer", async () => {
     service.startHosting(stream);
     await flush();
     socket.trigger("live_stream_viewer_joined", {
@@ -503,18 +515,105 @@ describe("LiveVideoService", () => {
     await flush();
 
     const pc = FakePeerConnection.instances[0];
-    const screenTrack = makeTrack("video");
-    const listener = (social.onVideoTrackReplaced as jest.Mock).mock.calls[0][0];
-    listener(screenTrack);
+    // Camera + mic ride the live tracks; game + system start silent so a
+    // later switch is replaceTrack, never a re-offer.
+    expect(pc.senders).toHaveLength(4);
+    expect(
+      pc.senders.filter((s) => s.track.kind === "video")
+    ).toHaveLength(2);
+    expect(
+      pc.senders.filter((s) => s.track.kind === "audio")
+    ).toHaveLength(2);
+  });
+
+  it("swaps sender tracks by role and announces the source on switch", async () => {
+    service.startHosting(stream);
+    await flush();
+    socket.trigger("live_stream_viewer_joined", {
+      streamToken: "tok",
+      socketId: "viewer-1",
+      viewerName: "NOVA",
+      streamId: 5,
+    });
     await flush();
 
-    const videoSender = pc.senders.find((s) => s.track.kind === "video");
-    expect(videoSender?.replaceTrack).toHaveBeenCalledWith(screenTrack);
+    const screenTrack = makeTrack("video", "game");
+    const sysTrack = makeTrack("audio", "system");
+    (social.videoSource as jest.Mock).mockReturnValue("screen");
+    const listener = (social.onHostStreamReplaced as jest.Mock).mock.calls[0][0];
+    listener({
+      stream: {
+        getVideoTracks: () => [screenTrack],
+        getAudioTracks: () => [audioTrack, sysTrack],
+      },
+      videoSource: "screen",
+      screenAudioOnly: true,
+    });
+    await flush();
+
+    const slot = (role: string) =>
+      (service as any).hostPeers
+        .get("viewer-1")
+        .senders.find((s: any) => s.role === role).sender;
+    expect(slot("game").replaceTrack).toHaveBeenCalledWith(screenTrack);
+    expect(slot("system").replaceTrack).toHaveBeenCalledWith(sysTrack);
+    expect(slot("mic").replaceTrack).toHaveBeenCalledWith(audioTrack);
+    expect(socket.emitted).toContainEqual({
+      event: "live_stream_source",
+      data: { token: "tok", videoSource: "screen", screenAudioOnly: true },
+    });
+  });
+
+  it("lets the viewer display follow the host source announcement", async () => {
+    await service.watch("tok");
+    expect(service.hostSharingScreen()).toBe(false);
+
+    socket.trigger("live_stream_source_changed", {
+      streamId: 5,
+      streamToken: "tok",
+      videoSource: "screen",
+      screenAudioOnly: true,
+    });
+    await flush();
+    expect(service.hostSharingScreen()).toBe(true);
+    expect(service.hostScreenAudioOnly()).toBe(true);
+
+    // A stale announcement for another stream changes nothing.
+    socket.trigger("live_stream_source_changed", {
+      streamId: 9,
+      streamToken: "other",
+      videoSource: "screen",
+      screenAudioOnly: false,
+    });
+    socket.trigger("live_stream_source_changed", {
+      streamId: 5,
+      streamToken: "tok",
+      videoSource: "camera",
+      screenAudioOnly: false,
+    });
+    await flush();
+    expect(service.hostSharingScreen()).toBe(false);
+    expect(service.hostScreenAudioOnly()).toBe(false);
+  });
+
+  it("resets the viewer source state when watching stops", async () => {
+    await service.watch("tok");
+    socket.trigger("live_stream_source_changed", {
+      streamId: 5,
+      streamToken: "tok",
+      videoSource: "screen",
+      screenAudioOnly: true,
+    });
+    expect(service.hostSharingScreen()).toBe(true);
+
+    service.stopWatching();
+    expect(service.hostSharingScreen()).toBe(false);
+    expect(service.hostScreenAudioOnly()).toBe(false);
   });
 
   it("releases the source-switch subscription when hosting stops", async () => {
     const unsub = jest.fn();
-    (social.onVideoTrackReplaced as jest.Mock).mockReturnValueOnce(unsub);
+    (social.onHostStreamReplaced as jest.Mock).mockReturnValueOnce(unsub);
     service.startHosting(stream);
     await flush();
 

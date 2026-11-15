@@ -1234,35 +1234,81 @@ describe("ThaSpotComponent", () => {
       TestBed.inject(LiveVideoService).remoteStream.set(null);
     });
 
-    it("divides the watched feed into picture, voice and game streams", () => {
+    it("splits camera/game pictures and follows the host source", () => {
       const liveVideo = TestBed.inject(LiveVideoService);
-      const video = { kind: "video" };
+      const camera = { kind: "video", id: "cam" };
+      const game = { kind: "video", id: "game" };
       const mic = { kind: "audio", id: "mic" };
       const system = { kind: "audio", id: "sys" };
       liveVideo.remoteStream.set({
-        getVideoTracks: () => [video],
+        getVideoTracks: () => [camera, game],
         getAudioTracks: () => [mic, system],
       } as any);
       TestBed.flushEffects();
 
-      // Host contract: mic first, system sound second.
+      // Host contract: camera, game, mic, system.
+      expect(component.viewerCameraStream()?.getTracks()).toEqual([camera]);
+      expect(component.viewerGameVideoStream()?.getTracks()).toEqual([game]);
       expect(component.viewerVoiceStream()?.getTracks()).toEqual([mic]);
+      // Game sound stays hidden until the host actually shares the screen.
+      expect(component.viewerGameStream()).toBeNull();
+      expect(component.viewerShowGame()).toBe(false);
+      expect(component.viewerDisplayStream()?.getTracks()).toEqual([camera]);
+
+      liveVideo.hostSharingScreen.set(true);
+      TestBed.flushEffects();
+      expect(component.viewerShowGame()).toBe(true);
+      expect(component.viewerDisplayStream()?.getTracks()).toEqual([game]);
       expect(component.viewerGameStream()?.getTracks()).toEqual([system]);
-      expect(component.viewerVideoStream()?.getTracks()).toEqual([video]);
+
+      liveVideo.remoteStream.set(null);
+      TestBed.flushEffects();
+      expect(component.viewerCameraStream()).toBeNull();
+      expect(component.viewerGameVideoStream()).toBeNull();
+      expect(component.viewerVoiceStream()).toBeNull();
+      expect(component.viewerGameStream()).toBeNull();
+      expect(component.viewerDisplayStream()).toBeNull();
     });
 
-    it("shows voice only when the host is on camera", () => {
+    it("lets the viewer override the display until the next switch", () => {
       const liveVideo = TestBed.inject(LiveVideoService);
-      const video = { kind: "video" };
-      const mic = { kind: "audio", id: "mic" };
+      const camera = { kind: "video", id: "cam" };
+      const game = { kind: "video", id: "game" };
       liveVideo.remoteStream.set({
-        getVideoTracks: () => [video],
-        getAudioTracks: () => [mic],
+        getVideoTracks: () => [camera, game],
+        getAudioTracks: () => [],
       } as any);
       TestBed.flushEffects();
 
-      expect(component.viewerVoiceStream()?.getTracks()).toEqual([mic]);
-      expect(component.viewerGameStream()).toBeNull();
+      // Host is sharing: the display auto-follows to the game.
+      liveVideo.hostSharingScreen.set(true);
+      TestBed.flushEffects();
+      expect(component.viewerShowGame()).toBe(true);
+      expect(component.viewerDisplayStream()?.getTracks()).toEqual([game]);
+
+      // Manual CAM override holds until the next host announcement.
+      component.viewerShowGame.set(false);
+      TestBed.flushEffects();
+      expect(component.viewerDisplayStream()?.getTracks()).toEqual([camera]);
+
+      liveVideo.hostSharingScreen.set(false);
+      TestBed.flushEffects();
+      expect(component.viewerShowGame()).toBe(false);
+      expect(component.viewerDisplayStream()?.getTracks()).toEqual([camera]);
+    });
+
+    it("falls back to camera when the game slot is empty", () => {
+      const liveVideo = TestBed.inject(LiveVideoService);
+      const camera = { kind: "video", id: "cam" };
+      liveVideo.remoteStream.set({
+        getVideoTracks: () => [camera],
+        getAudioTracks: () => [],
+      } as any);
+      TestBed.flushEffects();
+
+      component.viewerShowGame.set(true);
+      TestBed.flushEffects();
+      expect(component.viewerDisplayStream()?.getTracks()).toEqual([camera]);
     });
   });
 });

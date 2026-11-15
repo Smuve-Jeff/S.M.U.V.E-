@@ -1421,16 +1421,29 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   /** Hosts the camera feed and plays an inbound shared stream. */
   public liveVideo = inject(LiveVideoService);
   /**
-   * Viewer mix split: the watched feed arrives as one mixed stream, so the
-   * player divides it — picture on the video element, VOICE (host mic) and
-   * GAME (screen system sound) each on a dedicated audio element with its
-   * own volume slider. Track order is the host's contract: mic first,
-   * system sound second (SocialNetworkingService.setVideoSource). Camera
-   * broadcasts carry voice only; the game row simply stays hidden.
+   * Viewer mix split: the host publishes camera and game (screen) video
+   * slots plus voice and system-sound audio slots, so the player divides
+   * the watched feed — the display follows whichever picture is live
+   * (camera face ↔ game stream), VOICE (host mic) and GAME (system sound)
+   * each get a dedicated audio element with its own volume slider. Slot
+   * order is the host's contract: camera, game, mic, system
+   * (LiveVideoService seeds silent slots so switches never re-negotiate).
    */
-  readonly viewerVideoStream = signal<MediaStream | null>(null);
+  readonly viewerCameraStream = signal<MediaStream | null>(null);
+  readonly viewerGameVideoStream = signal<MediaStream | null>(null);
   readonly viewerVoiceStream = signal<MediaStream | null>(null);
   readonly viewerGameStream = signal<MediaStream | null>(null);
+  /**
+   * Which picture the viewer display shows. Follows the host's source
+   * automatically; the CAM/GAME buttons override until the next switch.
+   */
+  readonly viewerShowGame = signal(false);
+  /** The picture on the viewer display right now. */
+  readonly viewerDisplayStream = computed(() =>
+    this.viewerShowGame()
+      ? (this.viewerGameVideoStream() ?? this.viewerCameraStream())
+      : (this.viewerCameraStream() ?? this.viewerGameVideoStream())
+  );
   /** True once this viewer has recorded a join for the inbound stream. */
   readonly liveJoined = signal(false);
   /** Human-readable live-video state for the join overlay. */
@@ -2148,23 +2161,34 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     effect(() => {
       this.activeHubTab.set(this.socialService.activeHubTab());
     });
-    // Divide the watched feed for the per-source mix sliders. jsdom has
-    // no MediaStream, so the split no-ops in tests and the empty state
-    // stays put.
+    // Divide the watched feed into display + per-source mix slots, and
+    // follow the host's picture: camera back to the face, screen to the
+    // game. jsdom has no MediaStream, so the split no-ops in tests and the
+    // empty state stays put.
     effect(() => {
       const feed = this.liveVideo.remoteStream();
       if (typeof MediaStream === 'undefined') return;
       const videoTracks = feed?.getVideoTracks() ?? [];
       const audioTracks = feed?.getAudioTracks() ?? [];
-      this.viewerVideoStream.set(
-        videoTracks.length ? new MediaStream(videoTracks) : null
+      this.viewerCameraStream.set(
+        videoTracks[0] ? new MediaStream([videoTracks[0]]) : null
+      );
+      this.viewerGameVideoStream.set(
+        videoTracks[1] ? new MediaStream([videoTracks[1]]) : null
       );
       this.viewerVoiceStream.set(
         audioTracks[0] ? new MediaStream([audioTracks[0]]) : null
       );
       this.viewerGameStream.set(
-        audioTracks[1] ? new MediaStream([audioTracks[1]]) : null
+        audioTracks[1] && this.liveVideo.hostSharingScreen()
+          ? new MediaStream([audioTracks[1]])
+          : null
       );
+    });
+    effect(() => {
+      // The next host switch re-follows; a manual CAM/GAME tap only lasts
+      // until then.
+      this.viewerShowGame.set(this.liveVideo.hostSharingScreen());
     });
     // Own the host feed for the whole time a stream is live, and release it
     // when the session ends. The service waits for the socket/camera itself.

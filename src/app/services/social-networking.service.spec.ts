@@ -690,8 +690,8 @@ describe('SocialNetworkingService video source (camera ↔ screen)', () => {
     const mic = makeTrack('audio', 'mic-1');
     getUserMedia.mockResolvedValue(fakeMedia([camVideo, mic]));
     await service.startStream('S.M.U.V.E.');
-    const onTrack = jest.fn();
-    service.onVideoTrackReplaced(onTrack);
+    const onUpdate = jest.fn();
+    service.onHostStreamReplaced(onUpdate);
 
     const screenVideo = makeTrack('video', 'screen-v');
     const sysAudio = makeTrack('audio', 'sys-a');
@@ -704,7 +704,12 @@ describe('SocialNetworkingService video source (camera ↔ screen)', () => {
       expect.arrayContaining([mic, sysAudio])
     );
     expect(camVideo.stop).toHaveBeenCalled();
-    expect(onTrack).toHaveBeenCalledWith(screenVideo);
+    expect(onUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({ videoSource: 'screen' })
+    );
+    expect(onUpdate.mock.calls[0][0].stream.getVideoTracks()[0]).toBe(
+      screenVideo
+    );
   });
 
   it('switches screen → camera and drops system audio but keeps the mic', async () => {
@@ -720,8 +725,8 @@ describe('SocialNetworkingService video source (camera ↔ screen)', () => {
 
     const camVideo2 = makeTrack('video', 'cam-v2');
     getUserMedia.mockResolvedValue(fakeMedia([camVideo2]));
-    const onTrack = jest.fn();
-    service.onVideoTrackReplaced(onTrack);
+    const onUpdate = jest.fn();
+    service.onHostStreamReplaced(onUpdate);
     await service.setVideoSource('camera');
 
     expect(service.videoSource()).toBe('camera');
@@ -729,7 +734,12 @@ describe('SocialNetworkingService video source (camera ↔ screen)', () => {
     expect(service.localStream()!.getAudioTracks()).toEqual([mic]);
     expect(sysAudio.stop).toHaveBeenCalled();
     expect(mic.stop).not.toHaveBeenCalled();
-    expect(onTrack).toHaveBeenCalledWith(camVideo2);
+    expect(onUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        videoSource: 'camera',
+        screenAudioOnly: false,
+      })
+    );
   });
 
   it('keeps the current source when the mid-show picker is cancelled', async () => {
@@ -988,6 +998,17 @@ describe('SocialNetworkingService screen audio only', () => {
     expect(service.micEnabled()).toBe(false);
     expect(mic.enabled).toBe(false);
     expect(sysAudio.enabled).toBe(true);
+  });
+
+  it('labels ledger voice as mic and anything else as system sound', async () => {
+    const camVideo = makeTrack('video', 'cam-v');
+    const mic = makeTrack('audio', 'mic-1');
+    getUserMedia.mockResolvedValue(fakeMedia([camVideo, mic]));
+    await service.startStream('S.M.U.V.E.');
+
+    expect(service.audioRoleOf(mic)).toBe('mic');
+    expect(service.audioRoleOf(makeTrack('audio', 'sys-a'))).toBe('system');
+    expect(service.audioRoleOf(camVideo)).toBe('mic');
   });
 
   it('resets screen-audio-only when the stream stops', async () => {

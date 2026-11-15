@@ -170,6 +170,7 @@ const RATE_LIMITS: Record<string, { windowMs: number; max: number }> = {
   live_stream_redeem: { windowMs: 10_000, max: 10 },
   live_stream_host_join: { windowMs: 10_000, max: 5 },
   live_stream_watch: { windowMs: 10_000, max: 10 },
+  live_stream_source: { windowMs: 10_000, max: 10 },
   live_webrtc: { windowMs: 1_000, max: 40 },
 };
 
@@ -2406,6 +2407,34 @@ export const setupSocketIO = (httpServer: HttpServer): Server => {
         socketId: socket.id,
       });
     });
+
+    // The host switched camera/screen (or toggled game-only audio): tell
+    // every watcher in the live room so viewers can follow the display and
+    // reveal the game mix slider. Token-checked like the WebRTC relay.
+    socket.on(
+      "live_stream_source",
+      (
+        data: {
+          token?: string;
+          videoSource?: unknown;
+          screenAudioOnly?: unknown;
+        } = {},
+      ) => {
+        const host = liveHosts.get(socket.id);
+        if (!host) return;
+        if (data?.token !== host.token) return;
+        if (isRateLimited(userId, "live_stream_source")) return;
+        socket.to(getLiveRoom(host.streamId)).emit(
+          "live_stream_source_changed",
+          {
+            streamId: host.streamId,
+            streamToken: host.token,
+            videoSource: data?.videoSource === "screen" ? "screen" : "camera",
+            screenAudioOnly: data?.screenAudioOnly === true,
+          },
+        );
+      },
+    );
 
     socket.on("live_stream_host_leave", () => {
       const host = liveHosts.get(socket.id);
