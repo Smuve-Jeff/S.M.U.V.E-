@@ -90,6 +90,11 @@ const ICE_CACHE_MS = 10 * 60_000;
 // Stats are sampled rather than streamed: a few seconds is plenty for a
 // dashboard and keeps getStats() off the media path.
 const STATS_POLL_MS = 4_000;
+// A connected peer that stops delivering frames is worse than a dead one: the
+// player keeps a LIVE badge over a frozen picture. Inbound bytes are sampled and
+// the feed is rebuilt when they stop moving.
+const VIEWER_STALL_SAMPLE_MS = 3_000;
+const VIEWER_STALL_LIMIT_MS = 9_000;
 
 @Injectable({ providedIn: "root" })
 export class LiveVideoService {
@@ -177,6 +182,9 @@ export class LiveVideoService {
   private viewerTimeout: ReturnType<typeof setTimeout> | null = null;
   private viewerPoll: ReturnType<typeof setInterval> | null = null;
   private viewerRejoinTimer: ReturnType<typeof setTimeout> | null = null;
+  private viewerStallTimer: ReturnType<typeof setInterval> | null = null;
+  private viewerStallBytes = -1;
+  private viewerStallAt = 0;
 
   private iceServers: RTCIceServer[] = FALLBACK_ICE_SERVERS;
   private iceConfig?: Promise<void>;
@@ -839,7 +847,15 @@ export class LiveVideoService {
     // A host that reconnected (new socket, new peer) re-offers. Ignoring it
     // because "we already have a peer" is what left viewers frozen on a dead
     // connection for the rest of the broadcast.
-    if (this.viewerPc && !this.isViewerPeerDead(this.viewerPc)) return;
+    // A stalled peer still reports "connected", so it has to be replaceable:
+    // otherwise the host's fresh offer is ignored and the viewer stays frozen.
+    if (
+      this.viewerPc &&
+      !this.isViewerPeerDead(this.viewerPc) &&
+      !this.recovering()
+    ) {
+      return;
+    }
     if (this.viewerPc) this.dropViewerPeer("waiting");
     void this.acceptOffer(sdp);
   };
@@ -857,6 +873,7 @@ export class LiveVideoService {
    * token and the source state survive, so the next offer resumes the feed.
    */
   private dropViewerPeer(status: LiveFeedStatus = "connecting"): void {
+    this.stopViewerStallWatch();
     this.viewerPc?.close();
     this.viewerPc = undefined;
     this.viewerPendingIce = [];
@@ -966,6 +983,7 @@ export class LiveVideoService {
       // Every m-line exists by now, so the split can be built deterministically
       // even on browsers that fire few (or late) ontrack events.
       this.publishViewerFeed(pc);
+      this.startViewerStallWatch(pc);
     } catch (err) {
       console.error("[LiveVideo] Could not answer the host feed", err);
       this.failViewer("COULD NOT NEGOTIATE THE HOST FEED");
@@ -996,6 +1014,67 @@ export class LiveVideoService {
     tracks
       .filter((track) => track.kind === "audio")
       .forEach((track) => (track.enabled = !this.isMuted()));
+  }
+
+  /**
+   * Watch the inbound video for progress. `connectionState` can stay
+   * "connected" while the host's capture died, a relay went quiet or a network
+   * handoff stopped forwarding frames; without this the viewer sits on a frozen
+   * picture with a LIVE badge and nothing ever rebuilds the feed.
+   */
+  private startViewerStallWatch(pc: RTCPeerConnection): void {
+    this.stopViewerStallWatch();
+    this.viewerStallBytes = -1;
+    this.viewerStallAt = Date.now();
+    this.viewerStallTimer = setInterval(() => {
+      if (this.viewerPc !== pc) return;
+      void this.sampleViewerProgress(pc);
+    }, VIEWER_STALL_SAMPLE_MS);
+  }
+
+  private stopViewerStallWatch(): void {
+    if (this.viewerStallTimer !== null) clearInterval(this.viewerStallTimer);
+    this.viewerStallTimer = null;
+  }
+
+  private async sampleViewerProgress(pc: RTCPeerConnection): Promise<void> {
+    let bytes = 0;
+    let hasInbound = false;
+    try {
+      const report = await pc.getStats();
+      report.forEach((entry) => {
+        const stat = entry as {
+          type?: string;
+          kind?: string;
+          bytesReceived?: number;
+        };
+        if (stat.type !== "inbound-rtp" || stat.kind !== "video") return;
+        hasInbound = true;
+        bytes += Number(stat.bytesReceived ?? 0);
+      });
+    } catch {
+      return;
+    }
+    if (this.viewerPc !== pc) return;
+    // No inbound video yet means the peer is still negotiating, not stalled.
+    if (!hasInbound) {
+      this.viewerStallAt = Date.now();
+      return;
+    }
+    if (bytes > this.viewerStallBytes) {
+      this.viewerStallBytes = bytes;
+      this.viewerStallAt = Date.now();
+      return;
+    }
+    if (Date.now() - this.viewerStallAt < VIEWER_STALL_LIMIT_MS) return;
+    if (this.status() !== "live") {
+      this.viewerStallAt = Date.now();
+      return;
+    }
+    this.recovering.set(true);
+    this.feedError.set("FEED STALLED — REBUILDING…");
+    this.dropViewerPeer("waiting");
+    this.requestFreshOffer();
   }
 
   private onIce = (data: SocketPayload) => {
@@ -1081,6 +1160,7 @@ export class LiveVideoService {
 
   private failViewer(message: string): void {
     this.clearViewerTimeout();
+    this.stopViewerStallWatch();
     this.viewerPc?.close();
     this.viewerPc = undefined;
     this.viewerPendingIce = [];
@@ -1091,6 +1171,7 @@ export class LiveVideoService {
 
   private finishViewing(status: LiveFeedStatus, message: string | null): void {
     this.clearViewerTimeout();
+    this.stopViewerStallWatch();
     if (this.viewerRejoinTimer !== null) {
       clearTimeout(this.viewerRejoinTimer);
       this.viewerRejoinTimer = null;
