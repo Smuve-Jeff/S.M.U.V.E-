@@ -308,6 +308,10 @@ interface RelaySessionSnapshot {
   bytesOut: number;
   stalled: boolean;
   stalledForMs: number;
+  bitrateKbps: number;
+  drops: number;
+  silentMs: number;
+  lastDropAt: string | null;
   running: boolean;
   error: string | null;
 }
@@ -340,6 +344,10 @@ async function readRelaySession(
     bytesOut?: unknown;
     stalled?: unknown;
     stalledForMs?: unknown;
+    bitrateKbps?: unknown;
+    drops?: unknown;
+    silentMs?: unknown;
+    lastDropAt?: unknown;
     running?: unknown;
     error?: unknown;
   };
@@ -355,6 +363,10 @@ async function readRelaySession(
     bytesOut: Number(payload.bytesOut ?? 0) || 0,
     stalled: payload.stalled === true,
     stalledForMs: Number(payload.stalledForMs ?? 0) || 0,
+    bitrateKbps: Number(payload.bitrateKbps ?? 0) || 0,
+    drops: Number(payload.drops ?? 0) || 0,
+    silentMs: Number(payload.silentMs ?? 0) || 0,
+    lastDropAt: typeof payload.lastDropAt === "string" ? payload.lastDropAt : null,
     running: payload.running === true,
     error: typeof payload.error === "string" ? payload.error : null,
   };
@@ -381,6 +393,13 @@ export interface IngestStatus {
   /** The relay saw this session's egress go silent. */
   stalled: boolean;
   stalledForMs: number;
+  /** kbit/s the relay measures ffmpeg writing towards the provider. */
+  bitrateKbps: number;
+  /** Egress drops this session has already recovered from. */
+  drops: number;
+  /** Total time spent silent across those drops. */
+  silentMs: number;
+  lastDropAt: string | null;
   error: string | null;
 }
 
@@ -393,6 +412,10 @@ export async function ingestStatus(relayId: string): Promise<IngestStatus> {
     bytesOut: snapshot.bytesOut,
     stalled: snapshot.stalled,
     stalledForMs: snapshot.stalledForMs,
+    bitrateKbps: snapshot.bitrateKbps,
+    drops: snapshot.drops,
+    silentMs: snapshot.silentMs,
+    lastDropAt: snapshot.lastDropAt,
     error: snapshot.error,
   };
 }

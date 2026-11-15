@@ -69,6 +69,13 @@ export class BroadcastIngestService {
     stalledForMs: 0,
   });
 
+  /** What the provider is actually receiving, as the relay measures it. */
+  readonly quality = signal<{
+    bitrateKbps: number;
+    drops: number;
+    silentMs: number;
+  }>({ bitrateKbps: 0, drops: 0, silentMs: 0 });
+
   /** Result of the last relay self-test, shown next to the button. */
   readonly selfTest = signal<{ status: 'idle' | 'running' | 'pass' | 'fail'; detail: string }>({
     status: 'idle',
@@ -211,19 +218,30 @@ export class BroadcastIngestService {
     if (this.egressTimer) clearInterval(this.egressTimer);
     this.egressTimer = null;
     this.stall.set({ stalled: false, stalledForMs: 0 });
+    this.quality.set({ bitrateKbps: 0, drops: 0, silentMs: 0 });
   }
 
   private async refreshEgress(relayId: string): Promise<void> {
     try {
       const status = await firstValueFrom(
-        this.http.get<{ stalled?: boolean; stalledForMs?: number }>(
-          this.endpoint(`/ingest/${encodeURIComponent(relayId)}`),
-          { headers: this.headers() },
-        ),
+        this.http.get<{
+          stalled?: boolean;
+          stalledForMs?: number;
+          bitrateKbps?: number;
+          drops?: number;
+          silentMs?: number;
+        }>(this.endpoint(`/ingest/${encodeURIComponent(relayId)}`), {
+          headers: this.headers(),
+        }),
       );
       this.stall.set({
         stalled: status?.stalled === true,
         stalledForMs: Number(status?.stalledForMs ?? 0) || 0,
+      });
+      this.quality.set({
+        bitrateKbps: Number(status?.bitrateKbps ?? 0) || 0,
+        drops: Number(status?.drops ?? 0) || 0,
+        silentMs: Number(status?.silentMs ?? 0) || 0,
       });
     } catch (error) {
       // A session the relay no longer knows about is not a stall: stop asking.
@@ -237,6 +255,24 @@ export class BroadcastIngestService {
     if (!stalled) return '';
     const seconds = Math.max(1, Math.round(stalledForMs / 1_000));
     return `PROVIDER SILENT FOR ${seconds}S — THE RELAY IS STILL RECEIVING, SO CHECK ITS RTMP EGRESS`;
+  }
+
+  /**
+   * One line of evidence that the provider is being fed: the bitrate the relay
+   * measures on the egress side, and how many drops this push has survived.
+   */
+  qualityNote(): string {
+    if (this.state() !== 'live') return '';
+    const { bitrateKbps, drops, silentMs } = this.quality();
+    const rate =
+      bitrateKbps > 0
+        ? `${Math.round(bitrateKbps).toLocaleString('en-US')} KBPS`
+        : 'NO BYTES YET';
+    const history =
+      drops === 0
+        ? 'NO DROPS'
+        : `${drops} DROP${drops === 1 ? '' : 'S'} (${Math.round(silentMs / 1_000)}S SILENT)`;
+    return `EGRESS ${rate} · ${history}`;
   }
 
   /**

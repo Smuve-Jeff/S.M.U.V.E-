@@ -21,7 +21,7 @@ The API server's `MEDIA_RELAY_URL` points at this service. Contract:
 | `POST` | `/sessions` | `{ rtmpUrl, streamKey }` | `201 { id, whipUrl }` |
 | `DELETE` | `/sessions/:id` | — | `204` |
 | `GET` | `/health` | — | `200 { status: ok, mediamtx, sessions, stalled }`, or `503 { status: degraded }` when MediaMTX is unreachable |
-| `GET` | `/sessions/:id` | — | `200 { ready, bytesReceived, tracks, bytesOut, stalled, stalledForMs, … }` |
+| `GET` | `/sessions/:id` | — | `200 { ready, bytesReceived, tracks, bytesOut, bitrateKbps, drops, silentMs, stalled, stalledForMs, … }` |
 
 Every route except `/health` requires `Authorization: Bearer $RELAY_TOKEN`.
 
@@ -89,6 +89,11 @@ is over, so ffmpeg is started with `-progress pipe:1` and the relay watches its
   the host's back would be its own surprise. Stop and re-push, or let the host
   see it.
 - When bytes move again the flag clears and `session.recovered` is emitted.
+- The same progress stream gives a quality readout: `bitrateKbps` is the
+  smoothed rate of ffmpeg's byte deltas (samples closer than 250 ms are treated
+  as buffered chunks, not a spike), and each completed stall is kept as a drop
+  (`drops`, `silentMs`, `lastDropAt`, last 20 per session). A push that hiccuped
+  twice is a different story from one that has been clean.
 - A session that has never reported bytes is left alone — it is still connecting
   and ffmpeg's own retry loop already owns that case.
 

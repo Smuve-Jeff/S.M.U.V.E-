@@ -72,8 +72,15 @@ export class SessionManager {
       bytesOut: 0,
       lastBytesAt: null,
       stalled: false,
+      stalledSince: null,
       alerts: 0,
       progressBuffer: "",
+      // Quality readout: kbit/s from ffmpeg's own byte deltas, and the history
+      // of egress drops this session has already survived.
+      bitrateKbps: 0,
+      lastSampleAt: null,
+      drops: [],
+      silentMs: 0,
     };
     this.#sessions.set(id, session);
     this.#startFfmpeg(session);
@@ -150,8 +157,13 @@ export class SessionManager {
         bytesOut: 0,
         lastBytesAt: null,
         stalled: false,
+        stalledSince: null,
         alerts: 0,
         progressBuffer: "",
+        bitrateKbps: 0,
+        lastSampleAt: null,
+        drops: [],
+        silentMs: 0,
       });
       this.#startFfmpeg(this.#sessions.get(id));
       restored += 1;
@@ -227,6 +239,10 @@ export class SessionManager {
       bytesOut: session.bytesOut,
       stalled: session.stalled,
       stalledForMs: session.stalledForMs ?? 0,
+      bitrateKbps: session.bitrateKbps ?? 0,
+      drops: session.drops?.length ?? 0,
+      silentMs: session.silentMs ?? 0,
+      lastDropAt: session.drops?.at(-1)?.at ?? null,
     };
   }
 
@@ -276,12 +292,14 @@ export class SessionManager {
     const flagged = [];
     for (const session of this.#sessions.values()) {
       if (!session.child || session.stalled) continue;
-      if (!session.lastBytesAt || session.bytesOut <= 0) continue;
+      if (session.lastBytesAt === null || session.bytesOut <= 0) continue;
       const silentFor = now - session.lastBytesAt;
       if (silentFor < windowMs) continue;
 
       session.stalled = true;
       session.stalledForMs = silentFor;
+      // Silence started at the last byte, not at the moment we noticed.
+      session.stalledSince = session.lastBytesAt;
       session.alerts += 1;
       flagged.push(session.id);
       this.#logger.error?.(
@@ -324,9 +342,32 @@ export class SessionManager {
       if (!match) continue;
       const size = Number(match[1]);
       if (!Number.isFinite(size) || size <= session.bytesOut) continue;
+      const now = Date.now();
+      const deltaBytes = size - session.bytesOut;
+      // ffmpeg emits a block every ~0.5s. Anything faster is buffered chunks
+      // arriving together, which would read as a fake bitrate spike.
+      if (session.lastSampleAt !== null && now - session.lastSampleAt >= 250) {
+        const instant = (deltaBytes * 8) / (now - session.lastSampleAt);
+        session.bitrateKbps = Math.round(
+          session.bitrateKbps ? session.bitrateKbps * 0.4 + instant * 0.6 : instant,
+        );
+        session.lastSampleAt = now;
+      } else if (session.lastSampleAt === null) {
+        session.lastSampleAt = now;
+      }
       session.bytesOut = size;
-      session.lastBytesAt = Date.now();
+      session.lastBytesAt = now;
       if (session.stalled) {
+        // One completed drop, kept as history: a push that hiccuped twice is a
+        // different story from one that has been clean.
+        const durationMs = Math.max(
+          0,
+          now - (session.stalledSince ?? now - (session.stalledForMs ?? 0)),
+        );
+        session.drops.push({ at: new Date(now).toISOString(), durationMs });
+        if (session.drops.length > 20) session.drops.shift();
+        session.silentMs = (session.silentMs ?? 0) + durationMs;
+        session.stalledSince = null;
         const silentFor = session.stalledForMs ?? 0;
         session.stalled = false;
         session.stalledForMs = 0;

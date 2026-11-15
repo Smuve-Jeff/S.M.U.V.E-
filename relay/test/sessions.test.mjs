@@ -349,3 +349,56 @@ test("survives an alert handler that throws", async () => {
 
   assert.deepEqual(await manager.watchdog(15_000, Date.now() + 20_000), [session.id]);
 });
+
+test("reports the egress bitrate ffmpeg is achieving", async () => {
+  mock.timers.enable({ apis: ["Date"] });
+  try {
+    const { manager, children } = harness();
+    const session = await manager.create(destination);
+
+    progress(children[0], 1024);
+    mock.timers.tick(1_000);
+    // 1024 bytes in one second: 8192 bits/s, so ~8 kbit/s.
+    progress(children[0], 2048);
+
+    assert.equal((await manager.status(session.id)).bitrateKbps, 8);
+
+    // Chunks that arrive together are buffered data, not a spike.
+    progress(children[0], 500_000);
+    assert.equal((await manager.status(session.id)).bitrateKbps, 8);
+  } finally {
+    mock.timers.reset();
+  }
+});
+
+test("keeps a history of the egress drops a session recovers from", async () => {
+  mock.timers.enable({ apis: ["Date"] });
+  try {
+    const alerts = [];
+    const { manager, children } = harness({ onAlert: (alert) => alerts.push(alert) });
+    const session = await manager.create(destination);
+
+    progress(children[0], 1024);
+    await manager.watchdog(15_000, Date.now() + 20_000);
+    mock.timers.tick(20_000);
+    progress(children[0], 8192);
+
+    let status = await manager.status(session.id);
+    assert.equal(status.stalled, false);
+    assert.equal(status.drops, 1);
+    assert.ok(status.silentMs >= 20_000);
+    assert.match(status.lastDropAt, /^\d{4}-/);
+    assert.equal(alerts.at(-1).event, "session.recovered");
+
+    // A second interruption is its own entry, not a taller first one.
+    await manager.watchdog(15_000, Date.now() + 20_000);
+    mock.timers.tick(5_000);
+    progress(children[0], 16384);
+
+    status = await manager.status(session.id);
+    assert.equal(status.drops, 2);
+    assert.ok(status.silentMs >= 25_000);
+  } finally {
+    mock.timers.reset();
+  }
+});

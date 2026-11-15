@@ -253,6 +253,10 @@ Checks, in order:
   within a few seconds of the relay alerting, and
   `curl -s http://127.0.0.1:8080/health` showing `"stalled": 1` is the same
   signal.
+- The panel also carries a live quality line, e.g.
+  `EGRESS 3,140 KBPS · NO DROPS`. A rate near zero means the provider is
+  receiving nothing even if the panel has not flagged a stall yet; any drop
+  count above zero means the push already went silent once and recovered.
 
 Stop with **STOP**; the snackbar reads `BROADCAST PUSH STOPPED`, Twitch reports
 the stream offline within ~10 seconds, and the relay session is deleted. Ending

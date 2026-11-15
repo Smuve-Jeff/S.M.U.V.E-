@@ -4580,6 +4580,9 @@
 .account-note.warn {
   color: #ffd166;
 }
+.account-note.quality {
+  color: #7fd8ff;
+}
 .stream-audio-warning {
   display: flex;
   align-items: center;
