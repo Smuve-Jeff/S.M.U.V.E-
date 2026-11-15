@@ -223,6 +223,10 @@ RELAY_WERIFT_PATH=/path/to/node_modules/werift \
   npm run test:relay:e2e
 ```
 
+Set `RELAY_E2E_LOGS_DIR` to keep the MediaMTX log, the relay's own log, the last
+session state, the alerts and the ingest byte count for that run — CI does this
+and prints them when the job fails.
+
 It uses ports 18554 (RTSP), 18889 (WHIP/HTTP), 18189 (ICE/UDP), 19355 (RTMP) and
 19997 (API), and cleans up after itself. The ingest it pushes to is that local
 MediaMTX, never a provider; the WHIP hop is a real WebRTC connection, but not a

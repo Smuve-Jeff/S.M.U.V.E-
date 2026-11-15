@@ -57,3 +57,28 @@ jobs:
         run: npm run test:relay:e2e:setup
         env:
           CI: true
+          RELAY_E2E_LOGS_DIR: ${{ runner.temp }}/relay-e2e-logs
+
+      # A red run has to explain itself: the media server's log and the relay's
+      # own decisions are the difference between "the test failed" and a cause.
+      - name: Print the media path logs
+        if: failure()
+        run: |
+          dir="${{ runner.temp }}/relay-e2e-logs"
+          if [ ! -d "$dir" ]; then
+            echo "No diagnostics were written to $dir"
+            exit 0
+          fi
+          for file in "$dir"/*; do
+            echo "::group::$(basename "$file")"
+            tail -n 200 "$file"
+            echo "::endgroup::"
+          done
+
+      - name: Upload the media path logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: relay-e2e-logs
+          path: ${{ runner.temp }}/relay-e2e-logs
+          if-no-files-found: warn

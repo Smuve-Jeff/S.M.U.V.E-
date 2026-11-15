@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawn, spawnSync } from "node:child_process";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -41,6 +41,9 @@ const API_PORT = 19997;
 const WHIP_PORT = 18889;
 const ICE_PORT = 18189;
 const API = `http://127.0.0.1:${API_PORT}`;
+// Set by CI: the logs and last-known state are written here on every run, so a
+// red job can be diagnosed from its own output instead of a local re-run.
+const diagnosticDir = process.env.RELAY_E2E_LOGS_DIR || null;
 const SINK_PATH = "live/e2e_key_123";
 
 const installed = (binary) =>
@@ -133,8 +136,15 @@ test(
       stdio: ["ignore", "pipe", "pipe"],
     });
     let mediaLog = "";
-    media.stdout.on("data", (chunk) => (mediaLog += chunk));
-    media.stderr.on("data", (chunk) => (mediaLog += chunk));
+    // The test itself polls a path that does not exist yet, and MediaMTX logs an
+    // ERR per 404. Keeping those would bury the lines a failed run is read for.
+    const keepMediaLine = (chunk) =>
+      String(chunk)
+        .split("\n")
+        .filter((line) => !/\[API\] path not found/.test(line))
+        .join("\n");
+    media.stdout.on("data", (chunk) => (mediaLog += keepMediaLine(chunk)));
+    media.stderr.on("data", (chunk) => (mediaLog += keepMediaLine(chunk)));
 
     const alerts = [];
     const relayLog = [];
@@ -167,7 +177,26 @@ test(
     });
 
     let whip = null;
+    let session = null;
     t.after(async () => {
+      // Read the state before tearing anything down: evidence that only exists
+      // mid-run is exactly what a failed job needs to explain itself.
+      if (diagnosticDir) {
+        const status = session
+          ? await manager.status(session.id).catch(() => null)
+          : null;
+        const files = {
+          "mediamtx.log": mediaLog || "(no output)\n",
+          "relay.log": relayLog.join("\n") || "(no output)\n",
+          "session.json": `${JSON.stringify(status, null, 2)}\n`,
+          "alerts.json": `${JSON.stringify(alerts, null, 2)}\n`,
+          "ingest-bytes.txt": `${await sinkBytes().catch(() => "unavailable")}\n`,
+        };
+        await mkdir(diagnosticDir, { recursive: true });
+        for (const [name, body] of Object.entries(files)) {
+          await writeFile(join(diagnosticDir, name), body);
+        }
+      }
       await manager.stopAll().catch(() => {});
       await whip?.stop().catch(() => {});
       media.kill("SIGKILL");
@@ -185,7 +214,7 @@ test(
       { label: `MediaMTX on :${RTSP_PORT}/:${WHIP_PORT}/:${API_PORT}` },
     );
 
-    const session = await manager.create({
+    session = await manager.create({
       rtmpUrl: `rtmp://127.0.0.1:${RTMP_PORT}/live`,
       streamKey: "e2e_key_123",
     });
