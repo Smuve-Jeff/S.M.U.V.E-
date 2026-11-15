@@ -22,6 +22,7 @@ import gameInviteRoutes from "@/routes/game-invite.routes";
 import liveStreamRoutes from "@/routes/live-stream.routes";
 import roomRoutes from "@/routes/room.routes";
 import streamAccountRoutes from "@/routes/stream-account.routes";
+import broadcastRoutes from "@/routes/broadcast.routes";
 import cloudRoutes from "@/routes/cloud.routes";
 
 const app = express();
@@ -151,6 +152,8 @@ app.use("/api/rooms", roomRoutes);
 // Linked streaming accounts (Twitch / YouTube OAuth). The callback under this
 // prefix is the provider redirect target, so it must not require a session.
 app.use("/api/stream-accounts", streamAccountRoutes);
+// Broadcast push: destination readiness plus WHIP→RTMP relay sessions.
+app.use("/api/broadcast", broadcastRoutes);
 app.use("/api/cloud", cloudRoutes);
 // Live-stream / Go-Live surfaces. Mounted at /api/users for per-host
 // authorization, plus a public /api/live-streams prefix for the

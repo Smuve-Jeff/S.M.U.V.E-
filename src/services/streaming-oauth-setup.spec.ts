@@ -7,6 +7,9 @@ const base: StreamingOAuthSetupInput = {
   apiPublicUrl: "https://smuve.example.com",
   nodeEnv: "production",
   oauthTokenKey: "",
+  mediaRelayUrl: "https://relay.example.com",
+  mediaRelayToken: "relay-token",
+  twitchRtmpUrl: "rtmp://live.twitch.tv/app",
   credentials: [
     { platform: "twitch", clientId: "twitch-id", clientSecret: "twitch-secret" },
     { platform: "youtube", clientId: "google-id", clientSecret: "google-secret" },
@@ -89,5 +92,24 @@ describe("streaming OAuth deploy check", () => {
     const report = withInput({ oauthTokenKey: "a".repeat(64) });
 
     expect(report.warnings.join(" ")).not.toContain("OAUTH_TOKEN_KEY is set but");
+  });
+
+  it("fails a relay URL that is not an http(s) address", () => {
+    const report = withInput({ mediaRelayUrl: "relay.example.com" });
+
+    expect(report.problems.join(" ")).toContain("MEDIA_RELAY_URL");
+  });
+
+  it("warns that a missing relay disables pushing", () => {
+    const report = withInput({ mediaRelayUrl: "" });
+
+    expect(report.problems).toEqual([]);
+    expect(report.warnings.join(" ")).toContain("answers 503");
+  });
+
+  it("fails a Twitch ingest URL that is not RTMP", () => {
+    const report = withInput({ twitchRtmpUrl: "https://live.twitch.tv/app" });
+
+    expect(report.problems.join(" ")).toContain("TWITCH_RTMP_URL");
   });
 });

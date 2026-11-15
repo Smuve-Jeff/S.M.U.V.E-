@@ -323,6 +323,60 @@ export async function completeStreamingAuthorization(
   return toDto(await rows.save(rows.create(values)));
 }
 
+export interface AccountAccessToken {
+  accessToken: string;
+  refreshed: boolean;
+}
+
+/**
+ * A usable access token for a stored grant, refreshed and persisted when it is
+ * at or near expiry. Sync and the broadcast push share this, so a token goes
+ * stale (and is renewed) the same way in both.
+ */
+export async function accessTokenForAccount(
+  account: StreamingAccount,
+): Promise<AccountAccessToken> {
+  const provider = PROVIDERS[account.platform];
+  if (!provider) {
+    throw new AppError(400, "That streaming account is not supported.");
+  }
+  const expiring =
+    !account.expiresAt ||
+    account.expiresAt.getTime() - Date.now() <= REFRESH_MARGIN_MS;
+  if (!expiring || !account.refreshToken) {
+    return { accessToken: openSecret(account.accessToken), refreshed: false };
+  }
+
+  const credentials = provider.credentials();
+  if (!credentials) {
+    throw new AppError(
+      503,
+      `${provider.label} OAuth is not configured on this server.`,
+    );
+  }
+  const tokens = await postForm(provider.tokenUrl, {
+    client_id: credentials.clientId,
+    client_secret: credentials.clientSecret,
+    grant_type: "refresh_token",
+    refresh_token: openSecret(account.refreshToken),
+  });
+  const accessToken = requireAccessToken(tokens);
+  account.accessToken = sealSecret(accessToken);
+  if (typeof tokens.refresh_token === "string" && tokens.refresh_token) {
+    account.refreshToken = sealSecret(tokens.refresh_token);
+  }
+  account.expiresAt = expiryFrom(tokens);
+  await repository().update(
+    { id: account.id },
+    {
+      accessToken: account.accessToken,
+      refreshToken: account.refreshToken,
+      expiresAt: account.expiresAt,
+    },
+  );
+  return { accessToken, refreshed: true };
+}
+
 export async function listStreamingAccounts(
   userId: number | string,
 ): Promise<StreamingConnectionDto[]> {
@@ -349,43 +403,10 @@ export async function syncStreamingAccounts(
   const disconnected: StreamingProvider[] = [];
 
   for (const account of accounts) {
-    const provider = PROVIDERS[account.platform];
-    if (!provider) continue;
-    const credentials = provider.credentials();
-    const expiring =
-      !account.expiresAt ||
-      account.expiresAt.getTime() - Date.now() <= REFRESH_MARGIN_MS;
-
-    if (!expiring || !account.refreshToken || !credentials) {
-      account.lastSyncedAt = new Date();
-      await rows.update({ id: account.id }, { lastSyncedAt: account.lastSyncedAt });
-      continue;
-    }
-
+    if (!PROVIDERS[account.platform]) continue;
     try {
-      const tokens = await postForm(provider.tokenUrl, {
-        client_id: credentials.clientId,
-        client_secret: credentials.clientSecret,
-        grant_type: "refresh_token",
-        refresh_token: openSecret(account.refreshToken),
-      });
-      const accessToken = requireAccessToken(tokens);
-      account.accessToken = sealSecret(accessToken);
-      if (typeof tokens.refresh_token === "string" && tokens.refresh_token) {
-        account.refreshToken = sealSecret(tokens.refresh_token);
-      }
-      account.expiresAt = expiryFrom(tokens);
-      account.lastSyncedAt = new Date();
-      await rows.update(
-        { id: account.id },
-        {
-          accessToken: account.accessToken,
-          refreshToken: account.refreshToken,
-          expiresAt: account.expiresAt,
-          lastSyncedAt: account.lastSyncedAt,
-        },
-      );
-      refreshed += 1;
+      const { refreshed: wasRefreshed } = await accessTokenForAccount(account);
+      if (wasRefreshed) refreshed += 1;
     } catch (error) {
       const detail = error instanceof AppError ? error.details : undefined;
       const providerError = (detail as { providerError?: string } | undefined)
@@ -402,7 +423,10 @@ export async function syncStreamingAccounts(
           error instanceof Error ? error.message : String(error)
         }`,
       );
+      continue;
     }
+    account.lastSyncedAt = new Date();
+    await rows.update({ id: account.id }, { lastSyncedAt: account.lastSyncedAt });
   }
 
   return {

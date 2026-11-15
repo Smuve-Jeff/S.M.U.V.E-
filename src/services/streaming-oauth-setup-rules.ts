@@ -30,6 +30,11 @@ export interface StreamingOAuthSetupInput {
     clientId: string;
     clientSecret: string;
   }[];
+  /** WHIP→RTMP relay control API; blank means push is disabled. */
+  mediaRelayUrl: string;
+  mediaRelayToken: string;
+  /** Twitch ingest base the relay pushes to. */
+  twitchRtmpUrl: string;
   table: "ready" | "missing" | "unavailable";
   tableDetail?: string;
 }
@@ -111,6 +116,36 @@ export function inspectStreamingOAuthSetup(
   if (enabled && !key) {
     warnings.push(
       "OAUTH_TOKEN_KEY is not set: stored tokens are sealed with a key derived from JWT_SECRET, so rotating JWT_SECRET requires reconnecting every account.",
+    );
+  }
+
+  const relay = input.mediaRelayUrl.trim();
+  if (relay) {
+    let relayUrl: URL | null = null;
+    try {
+      relayUrl = new URL(relay);
+    } catch {
+      relayUrl = null;
+    }
+    if (!relayUrl || (relayUrl.protocol !== "http:" && relayUrl.protocol !== "https:")) {
+      problems.push(
+        `MEDIA_RELAY_URL must be the absolute http(s) address of the relay control API (got "${input.mediaRelayUrl}").`,
+      );
+    }
+    if (!input.mediaRelayToken.trim()) {
+      warnings.push(
+        "MEDIA_RELAY_TOKEN is not set: anyone who can reach the relay can open sessions on it.",
+      );
+    }
+  } else {
+    warnings.push(
+      "MEDIA_RELAY_URL is not set: pushing a broadcast to Twitch or Kick answers 503 until a relay is configured.",
+    );
+  }
+
+  if (!/^rtmps?:\/\//i.test(input.twitchRtmpUrl.trim())) {
+    problems.push(
+      `TWITCH_RTMP_URL must be an rtmp(s) ingest URL (got "${input.twitchRtmpUrl}").`,
     );
   }
 

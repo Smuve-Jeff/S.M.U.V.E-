@@ -1,0 +1,212 @@
+import { HttpClient } from '@angular/common/http';
+import { Injectable, effect, inject, signal } from '@angular/core';
+import { firstValueFrom } from 'rxjs';
+import { APP_SECURITY_CONFIG } from '../app.security';
+import { SocialNetworkingService } from './social-networking.service';
+import { SnackbarService } from './snackbar.service';
+import { TokenService } from './token.service';
+import { UserProfileService } from './user-profile.service';
+import { WhipPublisher } from './whip-publisher';
+
+export type IngestPlatform = 'twitch' | 'kick';
+
+interface DestinationStatusDto {
+  platform?: string;
+  ready?: boolean;
+  detail?: string;
+}
+
+interface DestinationsResponse {
+  platforms?: DestinationStatusDto[];
+  relayConfigured?: boolean;
+}
+
+interface IngestSessionDto {
+  platform?: string;
+  relayId?: string;
+  whipUrl?: string;
+}
+
+/**
+ * Push the host's capture to a connected channel.
+ *
+ * The server resolves the provider's RTMP destination (Twitch over Helix, Kick
+ * from the dashboard values the host pasted) and opens a relay session; the
+ * browser only ever receives a WHIP URL, never a stream key. Destination state
+ * is re-read on sign-in so the panel shows what is actually ready.
+ */
+@Injectable({ providedIn: 'root' })
+export class BroadcastIngestService {
+  private readonly http = inject(HttpClient);
+  private readonly tokenService = inject(TokenService);
+  private readonly profile = inject(UserProfileService);
+  private readonly social = inject(SocialNetworkingService);
+  private readonly snackbar = inject(SnackbarService);
+  private readonly whip = inject(WhipPublisher);
+
+  readonly platforms: readonly { id: IngestPlatform; label: string }[] = [
+    { id: 'twitch', label: 'TWITCH' },
+    { id: 'kick', label: 'KICK' },
+  ];
+
+  readonly destinations = signal<
+    Partial<Record<IngestPlatform, DestinationStatusDto>>
+  >({});
+  readonly relayConfigured = signal(true);
+  readonly loading = signal(false);
+  /** The platform whose push is starting, if any. */
+  readonly pushing = signal<IngestPlatform | null>(null);
+  readonly state = this.whip.state;
+  readonly error = this.whip.error;
+
+  private relayId: string | null = null;
+
+  constructor() {
+    effect(() => {
+      const userId = this.profile.profile()?.id ?? '';
+      if (!userId) {
+        this.destinations.set({});
+        return;
+      }
+      void this.load();
+    });
+
+    // A camera ↔ game switch replaces the outgoing video track in place, which
+    // is what keeps the provider feed alive across the switch.
+    effect(() => {
+      this.social.videoSource();
+      if (!this.relayId) return;
+      const stream = this.social.localStream();
+      this.whip.replaceVideoTrack(stream?.getVideoTracks()[0] ?? null);
+    });
+
+    // The push is part of the broadcast: ending the stream ends it too.
+    effect(() => {
+      if (this.social.isStreaming() || !this.relayId) return;
+      void this.stop();
+    });
+  }
+
+  ready(platform: IngestPlatform): boolean {
+    return !!this.destinations()[platform]?.ready;
+  }
+
+  detail(platform: IngestPlatform): string {
+    return this.destinations()[platform]?.detail ?? '';
+  }
+
+  async load(): Promise<void> {
+    this.loading.set(true);
+    try {
+      const response = await firstValueFrom(
+        this.http.get<DestinationsResponse>(this.endpoint('/destinations'), {
+          headers: this.headers(),
+        }),
+      );
+      const next: Partial<Record<IngestPlatform, DestinationStatusDto>> = {};
+      for (const row of response?.platforms ?? []) {
+        const id = String(row.platform ?? '').toLowerCase() as IngestPlatform;
+        if (id === 'twitch' || id === 'kick') next[id] = row;
+      }
+      this.destinations.set(next);
+      this.relayConfigured.set(response?.relayConfigured !== false);
+    } catch {
+      // Signed out or offline: the panel keeps its last known state.
+    } finally {
+      this.loading.set(false);
+    }
+  }
+
+  /** Store the Kick URL + key; the key is never echoed back. */
+  async saveKick(rtmpUrl: string, streamKey: string): Promise<boolean> {
+    try {
+      const status = await firstValueFrom(
+        this.http.put<DestinationStatusDto>(
+          this.endpoint('/destinations/kick'),
+          { rtmpUrl, streamKey },
+          { headers: this.headers() },
+        ),
+      );
+      this.destinations.update((current) => ({ ...current, kick: status }));
+      this.snackbar.success('KICK DESTINATION SAVED');
+      return true;
+    } catch (error) {
+      this.snackbar.error(this.describe(error));
+      return false;
+    }
+  }
+
+  async start(platform: IngestPlatform): Promise<void> {
+    const stream = this.social.localStream();
+    if (!stream) {
+      this.snackbar.warning('NO CAPTURE YET — SWITCH THE CAMERA ON FIRST');
+      return;
+    }
+    this.pushing.set(platform);
+    try {
+      const session = await firstValueFrom(
+        this.http.post<IngestSessionDto>(
+          this.endpoint(`/ingest/${platform}`),
+          {},
+          { headers: this.headers() },
+        ),
+      );
+      if (!session?.whipUrl) throw new Error('THE RELAY RETURNED NO PUBLISH URL');
+      this.relayId = session.relayId ?? null;
+      const started = await this.whip.start(session.whipUrl, stream);
+      if (!started) {
+        await this.releaseRelay();
+        this.snackbar.error(
+          this.whip.error() ?? `${platform.toUpperCase()} PUSH FAILED`,
+        );
+        return;
+      }
+      this.snackbar.success(`PUSHING TO ${platform.toUpperCase()}`);
+    } catch (error) {
+      this.snackbar.error(this.describe(error));
+    } finally {
+      this.pushing.set(null);
+    }
+  }
+
+  async stop(): Promise<void> {
+    await this.whip.stop();
+    await this.releaseRelay();
+    this.snackbar.info('BROADCAST PUSH STOPPED');
+  }
+
+  private async releaseRelay(): Promise<void> {
+    const id = this.relayId;
+    this.relayId = null;
+    if (!id) return;
+    try {
+      await firstValueFrom(
+        this.http.delete(this.endpoint(`/ingest/${encodeURIComponent(id)}`), {
+          headers: this.headers(),
+        }),
+      );
+    } catch {
+      // The relay's idle timeout closes a session we could not tear down.
+    }
+  }
+
+  /** Prefer the server's own sentence over a status code. */
+  private describe(error: unknown): string {
+    const body = (error as { error?: { error?: unknown } } | null)?.error;
+    const message = typeof body?.error === 'string' ? body.error.trim() : '';
+    if (message) return message.toUpperCase();
+    const fallback = (error as { message?: unknown } | null)?.message;
+    return typeof fallback === 'string' && fallback.trim()
+      ? fallback.trim().toUpperCase()
+      : 'BROADCAST PUSH FAILED';
+  }
+
+  private endpoint(path = ''): string {
+    return `${APP_SECURITY_CONFIG.api_url}/broadcast${path}`;
+  }
+
+  private headers(): Record<string, string> {
+    const token = this.tokenService.jwtToken();
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  }
+}

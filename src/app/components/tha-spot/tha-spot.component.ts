@@ -37,6 +37,7 @@ import { ChallengeInboxService } from "../../services/challenge-inbox.service";
 import { PeerNetworkingService } from "../../services/peer-networking.service";
 import { SnackbarService } from "../../services/snackbar.service";
 import { StreamingPlatformsService } from "../../services/streaming-platforms.service";
+import { BroadcastIngestService } from "../../services/broadcast-ingest.service";
 import { MatchmakingService } from "../../hub/matchmaking.service";
 import { ActivatedRoute, Router } from "@angular/router";
 import { DailyMissionsService } from "../../services/daily-missions.service";
@@ -1422,6 +1423,9 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   /** Hosts the camera feed and plays an inbound shared stream. */
   public liveVideo = inject(LiveVideoService);
   public platformsService = inject(StreamingPlatformsService);
+  public ingest = inject(BroadcastIngestService);
+  readonly kickRtmpUrl = signal('');
+  readonly kickStreamKey = signal('');
   /**
    * Viewer mix split: the host publishes camera and game (screen) video
    * slots plus voice and system-sound audio slots, so the player divides
@@ -4210,6 +4214,18 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
       this.scrollContainer.nativeElement.scrollTop =
         this.scrollContainer.nativeElement.scrollHeight;
     }
+  }
+
+  /**
+   * Keep the Kick destination on the server so the stream key never has to be
+   * typed again, and drop it from this component's state once it is saved.
+   */
+  async saveKickDestination(): Promise<void> {
+    const saved = await this.ingest.saveKick(
+      this.kickRtmpUrl().trim(),
+      this.kickStreamKey().trim(),
+    );
+    if (saved) this.kickStreamKey.set("");
   }
 
   /**

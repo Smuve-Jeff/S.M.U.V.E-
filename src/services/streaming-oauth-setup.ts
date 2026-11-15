@@ -1,9 +1,12 @@
 import {
   API_PUBLIC_URL,
   NODE_ENV,
+  MEDIA_RELAY_TOKEN,
+  MEDIA_RELAY_URL,
   OAUTH_TOKEN_KEY,
   TWITCH_CLIENT_ID,
   TWITCH_CLIENT_SECRET,
+  TWITCH_RTMP_URL,
   YOUTUBE_CLIENT_ID,
   YOUTUBE_CLIENT_SECRET,
 } from "@/config/env";
@@ -52,6 +55,9 @@ export async function assertStreamingOAuthSetup(): Promise<void> {
     apiPublicUrl: API_PUBLIC_URL,
     nodeEnv: NODE_ENV,
     oauthTokenKey: OAUTH_TOKEN_KEY,
+    mediaRelayUrl: MEDIA_RELAY_URL,
+    mediaRelayToken: MEDIA_RELAY_TOKEN,
+    twitchRtmpUrl: TWITCH_RTMP_URL,
     credentials: [
       {
         platform: "twitch",

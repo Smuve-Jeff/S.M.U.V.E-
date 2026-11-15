@@ -131,6 +131,8 @@ describe("ThaSpotComponent", () => {
       clearFriendLive: jest.fn(),
       reconnectSocket: jest.fn(),
       localStream: signal(null),
+      videoSource: signal("camera"),
+      isStreaming: signal(false),
       streamError: signal(null),
       captureBlocked: signal(false),
       loadFriends: jest.fn(),

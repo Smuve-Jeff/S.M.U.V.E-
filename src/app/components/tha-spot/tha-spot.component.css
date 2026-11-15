@@ -4548,6 +4548,32 @@
   padding: 0.2rem 0.45rem;
   font-size: 0.55rem;
 }
+.stream-push {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+.account-input {
+  flex: 1 1 40%;
+  min-width: 0;
+  padding: 0.25rem 0.4rem;
+  border: 1px solid rgba(var(--neon-cyan-rgb), 0.22);
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.35);
+  color: #e8fbff;
+  font-family: inherit;
+  font-size: 0.55rem;
+  letter-spacing: 0.04em;
+}
+.account-input::placeholder {
+  color: rgba(232, 251, 255, 0.4);
+}
+.account-note {
+  margin: 0;
+  color: #ff8f8f;
+  font-size: 0.55rem;
+  letter-spacing: 0.06em;
+}
 .stream-audio-warning {
   display: flex;
   align-items: center;

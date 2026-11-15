@@ -59,6 +59,18 @@ export const YOUTUBE_CLIENT_SECRET =
  *  blank the key is derived from JWT_SECRET under a distinct label. */
 export const OAUTH_TOKEN_KEY = process.env.OAUTH_TOKEN_KEY || "";
 
+// ── Broadcast push (WHIP → RTMP relay) ─────────────────────────────────────
+// Twitch and Kick only accept RTMP(S), which a browser cannot send. The host
+// publishes WHIP to a relay that pushes RTMP to the provider, so this is the
+// control API of that relay:
+//   POST   {MEDIA_RELAY_URL}/sessions  { rtmpUrl, streamKey } -> { id, whipUrl }
+//   DELETE {MEDIA_RELAY_URL}/sessions/:id
+export const MEDIA_RELAY_URL = process.env.MEDIA_RELAY_URL || "";
+export const MEDIA_RELAY_TOKEN = process.env.MEDIA_RELAY_TOKEN || "";
+/** Twitch ingest base; the stream key is appended by the relay. */
+export const TWITCH_RTMP_URL =
+  process.env.TWITCH_RTMP_URL || "rtmp://live.twitch.tv/app";
+
 /** How long a password-reset link stays valid. */
 export const PASSWORD_RESET_TTL_MINUTES =
   Number(process.env.PASSWORD_RESET_TTL_MINUTES) || 30;

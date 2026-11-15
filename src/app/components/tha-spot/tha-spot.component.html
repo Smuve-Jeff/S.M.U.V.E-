@@ -3186,6 +3186,75 @@
                 </button>
               </div>
             </div>
+            <div class="stream-push">
+              <div class="stream-accounts-head">
+                <span class="quality-readout">BROADCAST PUSH</span>
+                <span class="accounts-count">
+                  {{
+                    ingest.relayConfigured()
+                      ? 'RELAY READY'
+                      : 'NO RELAY CONFIGURED'
+                  }}
+                </span>
+                <button
+                  class="quality-btn"
+                  (click)="ingest.load()"
+                  [disabled]="ingest.loading()"
+                  title="Re-read the destinations this account can push to"
+                >
+                  CHECK
+                </button>
+              </div>
+              <div class="account-row" *ngFor="let target of ingest.platforms">
+                <span class="account-name">{{ target.label }}</span>
+                <span class="account-state" [class.on]="ingest.ready(target.id)">
+                  {{
+                    ingest.detail(target.id) ||
+                      (ingest.ready(target.id) ? 'READY' : 'NOT READY')
+                  }}
+                </span>
+                <button
+                  class="quality-btn"
+                  *ngIf="ingest.state() !== 'live'"
+                  (click)="ingest.start(target.id)"
+                  [disabled]="
+                    !ingest.ready(target.id) || ingest.pushing() !== null
+                  "
+                  title="Publish the current capture to this channel"
+                >
+                  PUSH
+                </button>
+                <button
+                  class="quality-btn"
+                  *ngIf="ingest.state() === 'live'"
+                  (click)="ingest.stop()"
+                >
+                  STOP
+                </button>
+              </div>
+              <div class="account-row kick-destination">
+                <span class="account-name">KICK URL + KEY</span>
+                <input
+                  class="account-input"
+                  placeholder="rtmps://.../app"
+                  [value]="kickRtmpUrl()"
+                  (input)="kickRtmpUrl.set($any($event.target).value)"
+                />
+                <input
+                  class="account-input"
+                  type="password"
+                  placeholder="STREAM KEY"
+                  [value]="kickStreamKey()"
+                  (input)="kickStreamKey.set($any($event.target).value)"
+                />
+                <button class="quality-btn" (click)="saveKickDestination()">
+                  SAVE
+                </button>
+              </div>
+              <p class="account-note" *ngIf="ingest.error()">
+                {{ ingest.error() }}
+              </p>
+            </div>
             <div class="platform-grid">
               <button class="platform-btn twitch" (click)="goLive('Twitch')">
                 TWITCH

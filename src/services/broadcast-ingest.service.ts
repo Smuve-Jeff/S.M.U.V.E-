@@ -1,0 +1,273 @@
+import {
+  MEDIA_RELAY_TOKEN,
+  MEDIA_RELAY_URL,
+  TWITCH_CLIENT_ID,
+  TWITCH_RTMP_URL,
+} from "@/config/env";
+import { AppDataSource } from "@/database/data-source";
+import { StreamingAccount } from "@/entities/StreamingAccount";
+import {
+  StreamingDestination,
+  type IngestPlatform,
+} from "@/entities/StreamingDestination";
+import { AppError } from "@/lib";
+import { openSecret, sealSecret } from "@/lib/secret-box";
+import { accessTokenForAccount } from "@/services/streaming-oauth.service";
+
+export const INGEST_PLATFORMS = ["twitch", "kick"] as const;
+
+export interface DestinationStatus {
+  platform: IngestPlatform;
+  ready: boolean;
+  /** What the host sees next to the platform: an account or the next step. */
+  detail: string;
+}
+
+export interface DestinationOverview {
+  platforms: DestinationStatus[];
+  /** False means every push answers 503 until a relay is configured. */
+  relayConfigured: boolean;
+}
+
+export interface IngestSession {
+  platform: IngestPlatform;
+  relayId: string;
+  /** WHIP endpoint the browser publishes to. */
+  whipUrl: string;
+}
+
+/** Resolved destination. Never leaves the server. */
+interface IngestDestination {
+  platform: IngestPlatform;
+  rtmpUrl: string;
+  streamKey: string;
+}
+
+const accountRepository = () =>
+  AppDataSource.getRepository<StreamingAccount>("StreamingAccount");
+
+const destinationRepository = () =>
+  AppDataSource.getRepository<StreamingDestination>("StreamingDestination");
+
+function asPlatform(value: string): IngestPlatform {
+  const key = String(value || "").toLowerCase();
+  if (!(INGEST_PLATFORMS as readonly string[]).includes(key)) {
+    throw new AppError(404, `${key || "That"} is not a broadcast destination.`);
+  }
+  return key as IngestPlatform;
+}
+
+function relayConfiguration(): { base: string; token: string } | null {
+  const base = MEDIA_RELAY_URL.trim().replace(/\/+$/, "");
+  return base ? { base, token: MEDIA_RELAY_TOKEN.trim() } : null;
+}
+
+async function callRelay(
+  relay: { base: string; token: string },
+  path: string,
+  init: RequestInit,
+): Promise<Response> {
+  const headers: Record<string, string> = { ...(init.headers as Record<string, string>) };
+  if (relay.token) headers.Authorization = `Bearer ${relay.token}`;
+  return fetch(`${relay.base}${path}`, { ...init, headers });
+}
+
+/**
+ * Twitch hands out the key over Helix, so nothing here has to be stored: the
+ * key is read at push time with the scope the connect flow already asked for.
+ */
+async function twitchDestination(userId: number): Promise<IngestDestination> {
+  const account = await accountRepository().findOne({
+    where: { userId, platform: "twitch" },
+  });
+  if (!account) {
+    throw new AppError(409, "Connect your Twitch channel before pushing a broadcast.");
+  }
+  const { accessToken } = await accessTokenForAccount(account);
+  const response = await fetch(
+    `https://api.twitch.tv/helix/streams/key?broadcaster_id=${encodeURIComponent(account.providerAccountId)}`,
+    {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Client-Id": TWITCH_CLIENT_ID,
+      },
+    },
+  );
+  if (!response.ok) {
+    throw new AppError(
+      502,
+      response.status === 401 || response.status === 403
+        ? "Twitch refused the channel link — reconnect Twitch and try again."
+        : "Twitch did not return your stream key.",
+    );
+  }
+  const body = (await response.json()) as {
+    data?: { stream_key?: string }[];
+  };
+  const streamKey = body.data?.[0]?.stream_key;
+  if (!streamKey) {
+    throw new AppError(502, "Twitch did not return your stream key.");
+  }
+  return { platform: "twitch", rtmpUrl: TWITCH_RTMP_URL, streamKey };
+}
+
+async function kickDestination(userId: number): Promise<IngestDestination> {
+  const row = await destinationRepository().findOne({
+    where: { userId, platform: "kick" },
+  });
+  if (!row) {
+    throw new AppError(
+      409,
+      "Add your Kick stream URL and key before pushing a broadcast.",
+    );
+  }
+  return {
+    platform: "kick",
+    rtmpUrl: row.rtmpUrl,
+    streamKey: openSecret(row.streamKey),
+  };
+}
+
+export async function destinationOverview(
+  userId: number | string,
+): Promise<DestinationOverview> {
+  const owner = Number(userId);
+  const [twitchAccount, kickRow] = await Promise.all([
+    accountRepository().findOne({ where: { userId: owner, platform: "twitch" } }),
+    destinationRepository().findOne({ where: { userId: owner, platform: "kick" } }),
+  ]);
+
+  const status = (
+    platform: IngestPlatform,
+    detail: string,
+  ): DestinationStatus => ({ platform, ready: !!detail, detail });
+
+  return {
+    relayConfigured: !!relayConfiguration(),
+    platforms: [
+      twitchAccount
+        ? status("twitch", `TWITCH — ${twitchAccount.displayName}`)
+        : status("twitch", ""),
+      kickRow ? status("kick", `KICK — ${ingestHost(kickRow.rtmpUrl)}`) : status("kick", ""),
+    ],
+  };
+}
+
+function ingestHost(rtmpUrl: string): string {
+  try {
+    return new URL(rtmpUrl).host || "INGEST SET";
+  } catch {
+    return "INGEST SET";
+  }
+}
+
+/**
+ * Store the Kick destination the host copied from their dashboard. Both values
+ * are checked here because a typo would otherwise surface as a silent failure
+ * in the middle of a broadcast.
+ */
+export async function saveKickDestination(
+  userId: number | string,
+  input: { rtmpUrl?: unknown; streamKey?: unknown },
+): Promise<DestinationStatus> {
+  const rtmpUrl = typeof input.rtmpUrl === "string" ? input.rtmpUrl.trim() : "";
+  const streamKey =
+    typeof input.streamKey === "string" ? input.streamKey.trim() : "";
+
+  if (!/^rtmps?:\/\/\S+$/i.test(rtmpUrl)) {
+    throw new AppError(
+      400,
+      "The Kick stream URL must be the rtmps:// address from your creator dashboard.",
+    );
+  }
+  if (!/^[A-Za-z0-9_-]{8,200}$/.test(streamKey)) {
+    throw new AppError(400, "That does not look like a Kick stream key.");
+  }
+
+  const owner = Number(userId);
+  const rows = destinationRepository();
+  const existing = await rows.findOne({ where: { userId: owner, platform: "kick" } });
+  const values = {
+    userId: owner,
+    platform: "kick" as const,
+    rtmpUrl,
+    streamKey: sealSecret(streamKey),
+  };
+  if (existing) await rows.update({ id: existing.id }, values);
+  else await rows.save(rows.create(values));
+
+  return { platform: "kick", ready: true, detail: `KICK — ${ingestHost(rtmpUrl)}` };
+}
+
+export async function clearKickDestination(userId: number | string): Promise<void> {
+  await destinationRepository().delete({ userId: Number(userId), platform: "kick" });
+}
+
+/**
+ * Ask the relay to open a session that pulls the browser's WHIP publish and
+ * pushes it to the provider's RTMP ingest.
+ *
+ * The stream key never reaches the browser: the relay receives it server to
+ * server, and the host only gets the WHIP URL to publish to.
+ */
+export async function startIngestSession(
+  userId: number | string,
+  platform: string,
+): Promise<IngestSession> {
+  const key = asPlatform(platform);
+  const relay = relayConfiguration();
+  if (!relay) {
+    throw new AppError(
+      503,
+      "Broadcast push is not configured on this server. Set MEDIA_RELAY_URL to a WHIP→RTMP relay.",
+    );
+  }
+  const owner = Number(userId);
+  const destination =
+    key === "twitch" ? await twitchDestination(owner) : await kickDestination(owner);
+
+  const response = await callRelay(relay, "/sessions", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify({
+      rtmpUrl: destination.rtmpUrl,
+      streamKey: destination.streamKey,
+    }),
+  });
+  const payload = (await response.json().catch(() => ({}))) as {
+    id?: unknown;
+    whipUrl?: unknown;
+  };
+  if (!response.ok) {
+    throw new AppError(
+      502,
+      `The broadcast relay refused the session (HTTP ${response.status}).`,
+    );
+  }
+  const id = typeof payload.id === "string" ? payload.id : "";
+  const whipUrl = typeof payload.whipUrl === "string" ? payload.whipUrl : "";
+  if (!id || !/^https?:\/\//i.test(whipUrl)) {
+    throw new AppError(502, "The broadcast relay returned an unusable session.");
+  }
+  return { platform: key, relayId: id, whipUrl };
+}
+
+/** Close the relay session; a missing relay just means nothing to tear down. */
+export async function stopIngestSession(relayId: string): Promise<void> {
+  const relay = relayConfiguration();
+  const id = String(relayId || "");
+  if (!relay || !/^[A-Za-z0-9_-]{1,128}$/.test(id)) return;
+  try {
+    await callRelay(relay, `/sessions/${encodeURIComponent(id)}`, {
+      method: "DELETE",
+    });
+  } catch (error) {
+    // The relay dropping a session is not worth failing the host's stop press:
+    // its own idle timeout cleans up the ffmpeg process.
+    console.error(
+      `[broadcast] relay session ${id} was not closed: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+    );
+  }
+}
