@@ -942,6 +942,45 @@ export class SampleLibraryComponent implements OnInit {
     }
   }
 
+  /** Factory seed packs with one-tap install; hidden once installed. */
+  private readonly factoryPackLabels: Record<string, string> = {
+    "smuve-trap-kit": "Trap Kit",
+    "smuve-house-kit": "House Kit",
+    "smuve-lofi-kit": "Lo-Fi Kit",
+  };
+  private readonly installingFactory = signal<Set<string>>(new Set());
+  factoryPackState = computed(() => {
+    const installed = new Set(this.packService.packs().map((p) => p.id));
+    const installing = this.installingFactory();
+    return SamplePackService.FACTORY_PACK_IDS.map((id) => ({
+      id,
+      label: this.factoryPackLabels[id] ?? id,
+      installed: installed.has(id),
+      installing: installing.has(id),
+    }));
+  });
+
+  async installFactoryPack(packId: string): Promise<void> {
+    this.installingFactory.update((ids) => new Set(ids).add(packId));
+    try {
+      const result = await this.packService.installFactoryPack(packId);
+      if (result.ok && result.packId) {
+        this.haptic.medium();
+        this.snackbar.success("Pack installed — find it on the packs shelf.");
+        this.selectPack(`community:${result.packId}`);
+      } else {
+        this.haptic.heavy();
+        this.snackbar.error(result.error ?? "Could not install the pack.");
+      }
+    } finally {
+      this.installingFactory.update((ids) => {
+        const next = new Set(ids);
+        next.delete(packId);
+        return next;
+      });
+    }
+  }
+
   /** Install from a manifest plus its sibling audio, picked in one dialog. */
   async installPackFiles(event: Event): Promise<void> {
     const input = event.target as HTMLInputElement | null;

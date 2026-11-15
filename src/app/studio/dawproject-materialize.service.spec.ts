@@ -255,6 +255,70 @@ describe("DawprojectMaterializeService", () => {
     expect(summary.warnings.join(" ")).toMatch(/no audio was embedded/);
   });
 
+  it("streams long audio instead of caching the whole buffer", async () => {
+    setup();
+    const bytes = new Uint8Array([82, 73, 70, 70]);
+    const result = parsedResult(
+      [
+        midiTrack({
+          id: "a1",
+          name: "Long Take",
+          type: "audio",
+          clips: [{ name: "Take", start: 0, length: 16, audioId: "audio-1" }],
+        }),
+      ],
+      { audio: [{ id: "audio-1", path: "audio/t.wav", data: bytes }] },
+    );
+    const decode = jest.fn(async () => ({ duration: 30 }) as AudioBuffer);
+    const stream = jest.fn(() => ({
+      streamer: { fake: true },
+      sampleRate: 44100,
+      channels: 1,
+      duration: 30,
+    }));
+
+    const summary = await service.materialize(result, decode, stream);
+
+    expect(stream).toHaveBeenCalledTimes(1);
+    expect(summary.audioClipCount).toBe(1);
+    const clipArg = musicManager.addClipToTrack.mock.calls[0][1];
+    expect(clipArg).toMatchObject({
+      type: "audio",
+      clipOriginSeconds: 0,
+      clipLengthSeconds: 30,
+      clipSampleRate: 44100,
+      clipChannels: 1,
+    });
+    expect(clipArg.clipStreamer).toEqual({ fake: true });
+    // The full buffer is not pinned when streaming.
+    expect(musicManager.stemAudioCache.size).toBe(0);
+  });
+
+  it("caches long audio when streaming is unavailable", async () => {
+    setup();
+    const bytes = new Uint8Array([82, 73, 70, 70]);
+    const result = parsedResult(
+      [
+        midiTrack({
+          id: "a1",
+          name: "Long Take",
+          type: "audio",
+          clips: [{ name: "Take", start: 0, length: 16, audioId: "audio-1" }],
+        }),
+      ],
+      { audio: [{ id: "audio-1", path: "audio/t.wav", data: bytes }] },
+    );
+    const decode = jest.fn(async () => ({ duration: 30 }) as AudioBuffer);
+
+    // jsdom has no URL.createObjectURL, so the default streamer declines.
+    const summary = await service.materialize(result, decode);
+
+    expect(summary.audioClipCount).toBe(1);
+    const clipArg = musicManager.addClipToTrack.mock.calls[0][1];
+    expect(clipArg.clipStreamer).toBeUndefined();
+    expect(musicManager.stemAudioCache.size).toBe(1);
+  });
+
   it("falls back to engine decode when no decoder is injected", async () => {
     setup();
     decodeAudioData.mockResolvedValue({ duration: 4 } as AudioBuffer);

@@ -71,6 +71,34 @@ function parseDbToLinear(db: number): number {
   return Math.pow(10, Math.max(-60, Math.min(12, db)) / 20);
 }
 
+/**
+ * A TempoAutomation block is a static tempo for us, but its first point is
+ * a better guess than the header when a song ramps: adopt it and say so.
+ */
+function applyTempoAutomation(
+  arrangement: Element,
+  headerTempo: number,
+  warnings: string[],
+): number {
+  const automation = firstChild(arrangement, "TempoAutomation");
+  if (!automation) return headerTempo;
+  const point =
+    childElements(automation, "RealPoint")[0] ??
+    childElements(automation, "Point")[0];
+  const value = num(attr(point, "value"), NaN);
+  if (point && Number.isFinite(value) && value >= 20 && value <= 300) {
+    const adopted = Math.round(value * 10) / 10;
+    if (adopted !== headerTempo) {
+      warnings.push(
+        `Tempo automation is not applied; using its first point (${adopted} BPM) instead of the header tempo.`,
+      );
+    }
+    return adopted;
+  }
+  warnings.push("Tempo automation is not applied; the header tempo is used.");
+  return headerTempo;
+}
+
 function parseChannel(track: Element): ChannelMix {
   const mix: ChannelMix = { gain: 1, pan: 0, muted: false, soloed: false };
   const channel = firstChild(track, "Channel");
@@ -89,20 +117,26 @@ function parseChannel(track: Element): ChannelMix {
   const volume = firstChild(channel, "Volume");
   if (volume) {
     const value = num(attr(volume, "value"), 1);
+    const unit = attr(volume, "unit") ?? "linear";
+    // Some serializers write a dB number while stamping unit="linear"
+    // (negative linear gain is physically meaningless), so treat any
+    // negative linear value as dB. Bitwig/Studio One write dB properly.
     mix.gain =
-      attr(volume, "unit") === "db" ? parseDbToLinear(value) : Math.max(0, value);
+      unit === "db" || value < 0 ? parseDbToLinear(value) : Math.max(0, value);
   }
-  // First instrument-role device lends its name; materialization still maps
-  // to a stock instrument, so this is provenance, not a promise.
+  // Only an instrument-role device lends its name: FX chains (EQ,
+  // compressors) must not masquerade as the track instrument.
+  // Materialization still maps to a stock instrument, so this is
+  // provenance, not a promise.
   const devices = firstChild(channel, "Devices");
   if (devices) {
     for (const device of Array.from(devices.children)) {
       const role = device.getAttribute("deviceRole") ?? device.getAttribute("role");
       const name =
         device.getAttribute("deviceName") ?? device.getAttribute("name");
-      if (name && (role === "instrument" || !mix.instrumentName)) {
+      if (name && role === "instrument") {
         mix.instrumentName = name;
-        if (role === "instrument") break;
+        break;
       }
     }
   }
@@ -126,18 +160,18 @@ function parseNote(note: Element, toSteps: (value: number) => number): Dawprojec
 
 function parseClip(
   clip: Element,
-  toSteps: (value: number) => number,
-  toBars: (value: number) => number,
+  toContentSteps: (value: number) => number,
+  toLaneBars: (value: number) => number,
   newAudioId: () => string,
 ): { clip: DawprojectClip; audioPath: string | null; audioId: string | null } {
-  const start = toBars(num(attr(clip, "time"), 0));
-  const length = Math.max(0, toBars(num(attr(clip, "duration"), 0)));
+  const start = toLaneBars(num(attr(clip, "time"), 0));
+  const length = Math.max(0, toLaneBars(num(attr(clip, "duration"), 0)));
   const name = attr(clip, "name") ?? "";
   const notesEl = firstChild(clip, "Notes");
   if (notesEl) {
     const notes: DawprojectNote[] = [];
     for (const noteEl of childElements(notesEl, "Note")) {
-      const parsed = parseNote(noteEl, toSteps);
+      const parsed = parseNote(noteEl, toContentSteps);
       if (!parsed) continue;
       // Absolute on the studio grid; clips that spill past their edge keep
       // their events (the exporter clamps, other DAWs do not).
@@ -176,7 +210,7 @@ export function parseDawprojectXml(xml: string): DawprojectImportResult {
   }
 
   const transport = firstChild(root, "Transport");
-  const tempo = num(attr(firstChild(transport, "Tempo"), "value"), 120);
+  let tempo = num(attr(firstChild(transport, "Tempo"), "value"), 120);
   const meter = firstChild(transport, "TimeSignature");
   const numerator = Math.max(1, Math.round(num(attr(meter, "numerator"), 4)));
   const denominator = num(attr(meter, "denominator"), 4);
@@ -199,6 +233,19 @@ export function parseDawprojectXml(xml: string): DawprojectImportResult {
   if (arrangement) {
     const walk = (lanes: Element) => {
       for (const child of Array.from(lanes.children)) {
+        // Flat serializers attach Clips directly, with no per-track Lanes
+        // wrapper around them (dawproject-py, and some device exporters).
+        if (child.tagName === "Clips") {
+          const ref = child.getAttribute("track");
+          if (ref) {
+            const list = lanesByTrack.get(ref) ?? [];
+            list.push(child);
+            lanesByTrack.set(ref, list);
+          } else {
+            untrackedClips.push(...childElements(child, "Clip"));
+          }
+          continue;
+        }
         if (child.tagName !== "Lanes") continue;
         const ref = child.getAttribute("track");
         const clips = firstChild(child, "Clips");
@@ -213,9 +260,7 @@ export function parseDawprojectXml(xml: string): DawprojectImportResult {
       }
     };
     for (const lanes of childElements(arrangement, "Lanes")) walk(lanes);
-    if (firstChild(arrangement, "TempoAutomation")) {
-      warnings.push("Tempo automation is not applied; the header tempo is used.");
-    }
+    tempo = applyTempoAutomation(arrangement, tempo, warnings);
     if (firstChild(arrangement, "TimeSignatureAutomation")) {
       warnings.push("Meter automation is not applied; the header meter is used.");
     }
@@ -231,15 +276,25 @@ export function parseDawprojectXml(xml: string): DawprojectImportResult {
   const audio: DawprojectAudio[] = [];
   const audioPaths: string[] = [];
 
-  const tracks: DawprojectTrack[] = trackEls.map((trackEl, index) => {
+  const tracks: DawprojectTrack[] = trackEls.flatMap((trackEl, index) => {
     const id = attr(trackEl, "id") ?? `track-${index}`;
     const contentType = attr(trackEl, "contentType") ?? "";
     const types = contentType.split(",").map((t) => t.trim());
     const isAudio = types.includes("audio");
     const mix = parseChannel(trackEl);
+    const trackName = attr(trackEl, "name") ?? `Track ${index + 1}`;
+    // Mixer routing tracks (master/bus) hold no playable content; carrying
+    // them in as silent MIDI channels would only litter the project.
+    const role = firstChild(trackEl, "Channel")?.getAttribute("role");
+    if (role === "master" || role === "bus") {
+      warnings.push(
+        `Skipped the "${trackName}" ${role} track: mixer routing has no playable mapping.`,
+      );
+      return [];
+    }
     const track: DawprojectTrack = {
       id,
-      name: attr(trackEl, "name") ?? `Track ${index + 1}`,
+      name: trackName,
       type: isAudio ? "audio" : "midi",
       color: attr(trackEl, "color") ?? undefined,
       instrumentName: mix.instrumentName,
@@ -266,7 +321,8 @@ export function parseDawprojectXml(xml: string): DawprojectImportResult {
     const clipEls =
       laneEls.length > 0
         ? laneEls.flatMap((lanes) => {
-            const clips = firstChild(lanes, "Clips");
+            const clips =
+              lanes.tagName === "Clips" ? lanes : firstChild(lanes, "Clips");
             return clips ? childElements(clips, "Clip") : [];
           })
         : index === 0
@@ -275,11 +331,14 @@ export function parseDawprojectXml(xml: string): DawprojectImportResult {
     for (const clipEl of clipEls) {
       const laneUnit =
         clipEl.closest("Lanes")?.getAttribute("timeUnit") ?? "beats";
-      const laneBeats = (value: number) => toBeats(value, laneUnit, tempo);
+      // The clip's own content can run on a different clock than the lane
+      // (third-party files mix seconds lanes with beats content).
+      const contentUnit =
+        clipEl.getAttribute("contentTimeUnit") ?? laneUnit;
       const parsed = parseClip(
         clipEl,
-        (value) => laneBeats(value) * STEPS_PER_BEAT,
-        (value) => laneBeats(value) / 4,
+        (value) => toBeats(value, contentUnit, tempo) * STEPS_PER_BEAT,
+        (value) => toBeats(value, laneUnit, tempo) / 4,
         newAudioId,
       );
       track.clips.push(parsed.clip);

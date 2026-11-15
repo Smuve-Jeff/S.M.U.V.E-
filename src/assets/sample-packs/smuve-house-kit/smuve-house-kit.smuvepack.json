@@ -1,0 +1,88 @@
+{
+  "format": "smuve-pack",
+  "id": "smuve-house-kit",
+  "name": "Smuvé House Kit",
+  "version": "1.0.0",
+  "author": "S.M.U.V.E. Factory",
+  "description": "Four-on-the-floor essentials: driving kick, garage clap, open hats, a minor stab and a plucky bass.",
+  "genre": "house",
+  "samples": [
+    {
+      "file": "house-kick.wav",
+      "name": "HOUSE KICK",
+      "category": "drum",
+      "tags": [
+        "house",
+        "kick",
+        "four-floor"
+      ]
+    },
+    {
+      "file": "house-clap.wav",
+      "name": "HOUSE CLAP",
+      "category": "drum",
+      "tags": [
+        "house",
+        "clap"
+      ]
+    },
+    {
+      "file": "house-hat-closed.wav",
+      "name": "HOUSE HAT",
+      "category": "drum",
+      "tags": [
+        "house",
+        "hi-hat",
+        "closed"
+      ]
+    },
+    {
+      "file": "house-hat-open.wav",
+      "name": "HOUSE OPEN HAT",
+      "category": "drum",
+      "tags": [
+        "house",
+        "hi-hat",
+        "open"
+      ]
+    },
+    {
+      "file": "house-stab.wav",
+      "name": "HOUSE STAB",
+      "category": "keys",
+      "tags": [
+        "house",
+        "chord",
+        "stab"
+      ]
+    },
+    {
+      "file": "house-bass.wav",
+      "name": "HOUSE BASS",
+      "category": "bass",
+      "tags": [
+        "house",
+        "bass",
+        "pluck"
+      ]
+    },
+    {
+      "file": "house-shaker.wav",
+      "name": "HOUSE SHAKER",
+      "category": "drum",
+      "tags": [
+        "house",
+        "shaker"
+      ]
+    },
+    {
+      "file": "house-rim.wav",
+      "name": "HOUSE RIM",
+      "category": "drum",
+      "tags": [
+        "house",
+        "rim"
+      ]
+    }
+  ]
+}

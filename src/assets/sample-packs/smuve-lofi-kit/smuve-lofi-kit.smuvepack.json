@@ -1,0 +1,85 @@
+{
+  "format": "smuve-pack",
+  "id": "smuve-lofi-kit",
+  "name": "Smuvé Lo-Fi Kit",
+  "version": "1.0.0",
+  "author": "S.M.U.V.E. Factory",
+  "description": "Dusty lo-fi one-shots: soft kick, lazy snare, ticking hats, warm EP, mellow bass and a woodblock.",
+  "genre": "lo-fi",
+  "samples": [
+    {
+      "file": "lofi-kick.wav",
+      "name": "LOFI KICK",
+      "category": "drum",
+      "tags": [
+        "lo-fi",
+        "kick",
+        "soft"
+      ]
+    },
+    {
+      "file": "lofi-snare.wav",
+      "name": "LOFI SNARE",
+      "category": "drum",
+      "tags": [
+        "lo-fi",
+        "snare"
+      ]
+    },
+    {
+      "file": "lofi-hat.wav",
+      "name": "LOFI HAT",
+      "category": "drum",
+      "tags": [
+        "lo-fi",
+        "hi-hat"
+      ]
+    },
+    {
+      "file": "lofi-shaker.wav",
+      "name": "LOFI SHAKER",
+      "category": "drum",
+      "tags": [
+        "lo-fi",
+        "shaker"
+      ]
+    },
+    {
+      "file": "lofi-ep.wav",
+      "name": "LOFI EP",
+      "category": "keys",
+      "tags": [
+        "lo-fi",
+        "keys",
+        "rhodes"
+      ]
+    },
+    {
+      "file": "lofi-bass.wav",
+      "name": "LOFI BASS",
+      "category": "bass",
+      "tags": [
+        "lo-fi",
+        "bass"
+      ]
+    },
+    {
+      "file": "lofi-woodblock.wav",
+      "name": "LOFI WOODBLOCK",
+      "category": "drum",
+      "tags": [
+        "lo-fi",
+        "percussion"
+      ]
+    },
+    {
+      "file": "lofi-clap.wav",
+      "name": "LOFI CLAP",
+      "category": "drum",
+      "tags": [
+        "lo-fi",
+        "clap"
+      ]
+    }
+  ]
+}

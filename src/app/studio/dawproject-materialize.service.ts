@@ -1,6 +1,7 @@
 import { Injectable, inject } from "@angular/core";
 import { AudioEngineService } from "../services/audio-engine.service";
 import { InstrumentsService } from "../services/instruments.service";
+import { createSampleStreamer } from "../services/sample-streamer.service";
 import { LoggingService } from "../services/logging.service";
 import {
   MusicManagerService,
@@ -43,6 +44,26 @@ export type DawprojectAudioDecoder = (
   data: Uint8Array,
 ) => Promise<AudioBuffer | null>;
 
+/**
+ * Streaming attachment for long audio: keeps a bounded resident window
+ * instead of pinning the whole decoded buffer. Mirrors the audio import's
+ * >10s SampleStreamer path. Injectable so specs need no object URLs.
+ */
+export interface DawprojectStreamAttachment {
+  streamer: unknown;
+  sampleRate: number;
+  channels: number;
+  duration: number;
+}
+
+export type DawprojectAudioStreamer = (
+  data: Uint8Array,
+  decoded: AudioBuffer,
+) => DawprojectStreamAttachment | null;
+
+/** Above this decoded duration the full buffer is not cached; it streams. */
+const STREAM_AUDIO_SECONDS = 10;
+
 @Injectable({ providedIn: "root" })
 export class DawprojectMaterializeService {
   private readonly musicManager = inject(MusicManagerService);
@@ -58,6 +79,7 @@ export class DawprojectMaterializeService {
   async materialize(
     result: DawprojectImportResult,
     decode?: DawprojectAudioDecoder,
+    stream?: DawprojectAudioStreamer,
   ): Promise<DawprojectMaterializeSummary> {
     const summary: DawprojectMaterializeSummary = {
       trackCount: 0,
@@ -69,6 +91,7 @@ export class DawprojectMaterializeService {
       warnings: [...result.warnings],
     };
     const decodeAudio = decode ?? ((data) => this.decodeAudioData(data));
+    const streamAudio = stream ?? ((data, decoded) => this.streamAudioData(data, decoded));
 
     summary.tempoBpm = this.applyTempo(result.project.tempo);
 
@@ -134,6 +157,7 @@ export class DawprojectMaterializeService {
           parsed,
           audioByRef,
           decodeAudio,
+          streamAudio,
           summary,
         );
         if (made === 0) {
@@ -236,6 +260,7 @@ export class DawprojectMaterializeService {
     parsed: DawprojectTrack,
     audioByRef: Map<string, DawprojectAudio>,
     decodeAudio: DawprojectAudioDecoder,
+    streamAudio: DawprojectAudioStreamer,
     summary: DawprojectMaterializeSummary,
   ): Promise<number> {
     let made = 0;
@@ -271,15 +296,40 @@ export class DawprojectMaterializeService {
         MIN_CLIP_BARS,
         buffer.duration / secondsPerBar,
       );
-      this.musicManager.stemAudioCache.set(clipId, buffer);
-      this.musicManager.addClipToTrack(trackId, {
-        id: clipId,
-        name: clip.name || parsed.name,
-        start: Math.max(0, clip.start),
-        length: Math.max(MIN_CLIP_BARS, clip.length || fallbackBars),
-        type: "audio",
-        audioRefId: clipId,
-      });
+      const clipName = clip.name || parsed.name;
+      const clipStart = Math.max(0, clip.start);
+      const clipLength = Math.max(MIN_CLIP_BARS, clip.length || fallbackBars);
+      // Long audio streams from a bounded resident window instead of
+      // pinning the whole decoded buffer (phones OOM on full-song takes).
+      const attachment =
+        buffer.duration > STREAM_AUDIO_SECONDS
+          ? streamAudio(bytes, buffer)
+          : null;
+      if (attachment) {
+        this.musicManager.addClipToTrack(trackId, {
+          id: clipId,
+          name: clipName,
+          start: clipStart,
+          length: clipLength,
+          type: "audio",
+          audioRefId: clipId,
+          clipStreamer: attachment.streamer,
+          clipOriginSeconds: 0,
+          clipLengthSeconds: attachment.duration,
+          clipSampleRate: attachment.sampleRate,
+          clipChannels: attachment.channels,
+        });
+      } else {
+        this.musicManager.stemAudioCache.set(clipId, buffer);
+        this.musicManager.addClipToTrack(trackId, {
+          id: clipId,
+          name: clipName,
+          start: clipStart,
+          length: clipLength,
+          type: "audio",
+          audioRefId: clipId,
+        });
+      }
       made++;
       summary.audioClipCount++;
     }
@@ -324,6 +374,43 @@ export class DawprojectMaterializeService {
       );
     } catch (error) {
       this.logger.warn("DAWproject audio decode failed", error);
+      return null;
+    }
+  }
+
+  private streamAudioData(
+    data: Uint8Array,
+    decoded: AudioBuffer,
+  ): DawprojectStreamAttachment | null {
+    try {
+      if (
+        typeof URL === "undefined" ||
+        typeof URL.createObjectURL !== "function"
+      ) {
+        return null;
+      }
+      const url = URL.createObjectURL(
+        new Blob([data.slice(0)], { type: "audio/wav" }),
+      );
+      const streamer = createSampleStreamer({
+        maxResidentSeconds: 30,
+        shortSampleThresholdSeconds: 10,
+      });
+      const copy = data.slice(0);
+      if (!streamer.attachWavSource(url, copy.buffer as ArrayBuffer)) {
+        URL.revokeObjectURL(url);
+        return null;
+      }
+      streamer.setPlayhead(0);
+      const resident = streamer.getResidentBuffer();
+      return {
+        streamer,
+        sampleRate: resident?.sampleRate ?? decoded.sampleRate,
+        channels: resident?.numberOfChannels ?? decoded.numberOfChannels,
+        duration: streamer.getDuration() || decoded.duration,
+      };
+    } catch (error) {
+      this.logger.warn("DAWproject audio stream attach failed", error);
       return null;
     }
   }

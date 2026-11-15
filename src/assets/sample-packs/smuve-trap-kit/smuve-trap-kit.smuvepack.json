@@ -1,0 +1,86 @@
+{
+  "format": "smuve-pack",
+  "id": "smuve-trap-kit",
+  "name": "Smuvé Trap Kit",
+  "version": "1.0.0",
+  "author": "S.M.U.V.E. Factory",
+  "description": "Punchy trap drums and an 808 built for phone speakers: hard kick, snappy snare, tight hats and a saturated sub.",
+  "genre": "trap",
+  "samples": [
+    {
+      "file": "trap-kick.wav",
+      "name": "TRAP KICK",
+      "category": "drum",
+      "tags": [
+        "trap",
+        "kick"
+      ]
+    },
+    {
+      "file": "trap-808.wav",
+      "name": "TRAP 808",
+      "category": "bass",
+      "tags": [
+        "trap",
+        "808",
+        "sub"
+      ]
+    },
+    {
+      "file": "trap-snare.wav",
+      "name": "TRAP SNARE",
+      "category": "drum",
+      "tags": [
+        "trap",
+        "snare"
+      ]
+    },
+    {
+      "file": "trap-clap.wav",
+      "name": "TRAP CLAP",
+      "category": "drum",
+      "tags": [
+        "trap",
+        "clap"
+      ]
+    },
+    {
+      "file": "trap-hat-closed.wav",
+      "name": "TRAP HAT",
+      "category": "drum",
+      "tags": [
+        "trap",
+        "hi-hat",
+        "closed"
+      ]
+    },
+    {
+      "file": "trap-hat-open.wav",
+      "name": "TRAP OPEN HAT",
+      "category": "drum",
+      "tags": [
+        "trap",
+        "hi-hat",
+        "open"
+      ]
+    },
+    {
+      "file": "trap-rim.wav",
+      "name": "TRAP RIM",
+      "category": "drum",
+      "tags": [
+        "trap",
+        "rim"
+      ]
+    },
+    {
+      "file": "trap-shaker.wav",
+      "name": "TRAP SHAKER",
+      "category": "drum",
+      "tags": [
+        "trap",
+        "shaker"
+      ]
+    }
+  ]
+}

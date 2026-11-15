@@ -231,3 +231,109 @@ describe("validateSamplePackManifest", () => {
     expect(validateSamplePackManifest(badTags).ok).toBe(false);
   });
 });
+
+describe("SamplePackService.installFactoryPack", () => {
+  let store: Map<string, any>;
+  let service: SamplePackService;
+  let fetchMock: jest.Mock;
+  let originalFetch: typeof fetch | undefined;
+
+  const manifest = {
+    format: "smuve-pack",
+    id: "smuve-trap-kit",
+    name: "Smuvé Trap Kit",
+    version: "1.0.0",
+    author: "S.M.U.V.E. Factory",
+    description: "Trap drums.",
+    genre: "trap",
+    samples: [{ file: "trap-kick.wav", name: "TRAP KICK", category: "drum" }],
+  };
+  const wavBytes = () => {
+    const bytes = new Uint8Array(44);
+    bytes.set([82, 73, 70, 70], 0);
+    bytes.set([87, 65, 86, 69], 8);
+    return bytes;
+  };
+
+  beforeEach(() => {
+    store = new Map();
+    localStorage.removeItem(PACKS_KEY);
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({
+      providers: [
+        {
+          provide: LocalStorageService,
+          useValue: {
+            persistenceStatus: jest.fn().mockResolvedValue("ready"),
+            saveItem: jest.fn(async (_store: string, item: any) => {
+              store.set(item.id, item);
+            }),
+            getItem: jest.fn(async (_store: string, id: string) => store.get(id) ?? null),
+            deleteItem: jest.fn(async (_store: string, id: string) => {
+              store.delete(id);
+            }),
+            deleteItems: jest.fn(async (_store: string, ids: string[]) => {
+              ids.forEach((id) => store.delete(id));
+            }),
+          },
+        },
+        {
+          provide: LoggingService,
+          useValue: { info: jest.fn(), error: jest.fn(), warn: jest.fn() },
+        },
+      ],
+    });
+    service = TestBed.inject(SamplePackService);
+    originalFetch = global.fetch;
+    fetchMock = jest.fn(async (url: string) => {
+      if (url.endsWith(".smuvepack.json")) {
+        return { ok: true, json: async () => manifest };
+      }
+      return { ok: true, blob: async () => new Blob([wavBytes()]) };
+    });
+    global.fetch = fetchMock as unknown as typeof fetch;
+  });
+
+  afterEach(() => {
+    localStorage.removeItem(PACKS_KEY);
+    if (originalFetch) global.fetch = originalFetch;
+    else delete (global as { fetch?: unknown }).fetch;
+  });
+
+  it("installs a factory pack from assets through the normal path", async () => {
+    const result = await service.installFactoryPack("smuve-trap-kit");
+
+    expect(result).toEqual({ ok: true, packId: "smuve-trap-kit" });
+    expect(service.packs()).toHaveLength(1);
+    expect(store.has("pack:smuve-trap-kit/trap-kick.wav")).toBe(true);
+    expect(fetchMock).toHaveBeenCalledWith(
+      "assets/sample-packs/smuve-trap-kit/smuve-trap-kit.smuvepack.json",
+    );
+  });
+
+  it("rejects unknown packs and refuses to double-install", async () => {
+    await expect(service.installFactoryPack("nope")).resolves.toMatchObject({
+      ok: false,
+    });
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    await service.installFactoryPack("smuve-trap-kit");
+    await expect(
+      service.installFactoryPack("smuve-trap-kit"),
+    ).resolves.toMatchObject({ ok: false, error: expect.stringMatching(/Already installed/) });
+  });
+
+  it("reports undownloadable audio", async () => {
+    fetchMock.mockImplementation(async (url: string) => {
+      if (url.endsWith(".smuvepack.json")) {
+        return { ok: true, json: async () => manifest };
+      }
+      return { ok: false };
+    });
+
+    await expect(
+      service.installFactoryPack("smuve-trap-kit"),
+    ).resolves.toMatchObject({ ok: false, error: expect.stringMatching(/trap-kick/) });
+    expect(service.packs()).toHaveLength(0);
+  });
+});

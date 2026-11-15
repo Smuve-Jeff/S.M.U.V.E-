@@ -78,8 +78,13 @@ public class StudioNativePlugin extends Plugin {
         for (MidiDeviceInfo info : midiManager.getDevices()) {
             JSObject device = new JSObject();
             device.put("id", String.valueOf(info.getId()));
-            device.put("name", info.getProperties().getString(MidiDeviceInfo.PROPERTY_NAME));
-            device.put("manufacturer", info.getProperties().getString(MidiDeviceInfo.PROPERTY_MANUFACTURER));
+            // Some class-compliant devices leave the USB string descriptors
+            // blank, and JSONObject drops null values — default before
+            // bridging so the web side never renders "undefined".
+            String name = info.getProperties().getString(MidiDeviceInfo.PROPERTY_NAME);
+            String manufacturer = info.getProperties().getString(MidiDeviceInfo.PROPERTY_MANUFACTURER);
+            device.put("name", name != null ? name : "MIDI Device");
+            device.put("manufacturer", manufacturer != null ? manufacturer : "Unknown");
             JSArray sendPorts = new JSArray();
             JSArray receivePorts = new JSArray();
             for (MidiDeviceInfo.PortInfo port : info.getPorts()) {

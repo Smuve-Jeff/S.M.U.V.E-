@@ -97,6 +97,20 @@
       hidden
       aria-label="Pick a pack manifest and its audio files"
     />
+    <ng-container *ngFor="let factory of factoryPackState()">
+      <button
+        *ngIf="!factory.installed"
+        type="button"
+        class="sl-fav-filter"
+        (click)="installFactoryPack(factory.id)"
+        [disabled]="factory.installing"
+        [attr.aria-label]="'Install the ' + factory.label + ' factory pack'"
+        [title]="'Install the ' + factory.label + ' factory pack'"
+      >
+        <span class="material-symbols-outlined" aria-hidden="true">download</span>
+        {{ factory.installing ? "Installing…" : factory.label }}
+      </button>
+    </ng-container>
     <ng-container *ngIf="selectedCommunityPack() as community">
       <button
         type="button"

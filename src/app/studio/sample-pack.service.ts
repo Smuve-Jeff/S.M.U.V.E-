@@ -223,6 +223,64 @@ export class SamplePackService {
     return { ok: true, packId: manifest.id };
   }
 
+  /** Factory seed packs shipped in `assets/sample-packs` (no file dialog). */
+  static readonly FACTORY_PACK_IDS = [
+    "smuve-trap-kit",
+    "smuve-house-kit",
+    "smuve-lofi-kit",
+  ] as const;
+
+  /**
+   * Install a factory pack straight from assets. The fetched files go
+   * through the same validation + persist path as a manual install, so a
+   * factory pack uninstalls and exports exactly like a community pack.
+   */
+  async installFactoryPack(packId: string): Promise<PackInstallResult> {
+    if (
+      !(SamplePackService.FACTORY_PACK_IDS as readonly string[]).includes(packId)
+    ) {
+      return { ok: false, error: "Unknown factory pack." };
+    }
+    if (this.packs().some((pack) => pack.id === packId)) {
+      return {
+        ok: false,
+        error: "Already installed — uninstall it first to reinstall.",
+      };
+    }
+    try {
+      const base = `assets/sample-packs/${packId}`;
+      const manifestRes = await fetch(`${base}/${packId}.smuvepack.json`);
+      if (!manifestRes.ok) {
+        return { ok: false, error: "The factory pack could not be downloaded." };
+      }
+      const manifestJson = (await manifestRes.json()) as {
+        samples?: Array<{ file?: string }>;
+      };
+      const listed = Array.isArray(manifestJson.samples)
+        ? manifestJson.samples
+        : [];
+      const files: File[] = [
+        new File([JSON.stringify(manifestJson)], `${packId}.smuvepack.json`, {
+          type: "application/json",
+        }),
+      ];
+      for (const sample of listed) {
+        if (typeof sample?.file !== "string") {
+          return { ok: false, error: "The factory pack manifest is invalid." };
+        }
+        const audioRes = await fetch(`${base}/${sample.file}`);
+        if (!audioRes.ok) {
+          return { ok: false, error: `Could not download "${sample.file}".` };
+        }
+        files.push(new File([await audioRes.blob()], sample.file));
+      }
+      return this.installFromFiles(files);
+    } catch (error) {
+      this.logger.error("Failed to install factory sample pack", error);
+      return { ok: false, error: "The factory pack could not be installed." };
+    }
+  }
+
   /** Remove the manifest and delete every stored blob of the pack. */
   async uninstall(packId: string): Promise<void> {
     const pack = this.packs().find((entry) => entry.id === packId);
