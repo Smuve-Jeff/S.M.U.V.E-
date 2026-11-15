@@ -1,5 +1,6 @@
 import {
   FfmpegVideoExportService,
+  buildConcatArgs,
   buildMp4Args,
   validateMp4Bytes,
   validateMp4Blob,
@@ -92,6 +93,38 @@ describe('buildMp4Args', () => {
   });
 });
 
+describe('buildMp4Args trim', () => {
+  it('trims the recorder tail guard to the requested section length', () => {
+    const args = buildMp4Args('in.webm', 'out.mp4', { trimSeconds: 120 });
+    expect(args.slice(args.indexOf('-t'), args.indexOf('-t') + 2)).toEqual([
+      '-t',
+      '120.000',
+    ]);
+  });
+
+  it('does not add a trim when no duration is requested', () => {
+    expect(buildMp4Args('in.webm', 'out.mp4')).not.toContain('-t');
+  });
+});
+
+describe('buildConcatArgs', () => {
+  it('stream-copies matching MP4 sections', () => {
+    const args = buildConcatArgs('list.txt', 'film.mp4', { copy: true });
+    expect(args).toEqual([
+      '-y', '-f', 'concat', '-safe', '0', '-i', 'list.txt',
+      '-c', 'copy', '-movflags', '+faststart', 'film.mp4',
+    ]);
+  });
+
+  it('re-encodes mismatched sections into one H.264/AAC master', () => {
+    const args = buildConcatArgs('list.txt', 'film.mp4');
+    expect(args).toContain('libx264');
+    expect(args).toContain('aac');
+    expect(args).toContain('+faststart');
+    expect(args[args.length - 1]).toBe('film.mp4');
+  });
+});
+
 describe('FfmpegVideoExportService', () => {
   let svc: FfmpegVideoExportService;
 
@@ -137,6 +170,76 @@ describe('FfmpegVideoExportService', () => {
     const ffmpeg = fakeFfmpeg(fakeMp4(), 1);
     svc.ffmpegLoader = async () => ({ ffmpeg, fetchFile: async () => new Uint8Array([1]) });
     await expect(svc.transcodeToMp4(new Blob(['x']))).rejects.toThrow(/exited with code 1/);
+  });
+
+  it('stitches MP4 sections with stream copy and cleans the in-memory files', async () => {
+    const mp4 = fakeMp4();
+    const ffmpeg = fakeFfmpeg(mp4);
+    svc.ffmpegLoader = async () => ({
+      ffmpeg,
+      fetchFile: async (input: Blob) => new Uint8Array(await input.arrayBuffer()),
+    });
+
+    const out = await svc.stitchToMp4([
+      new Blob([mp4 as BlobPart], { type: 'video/mp4' }),
+      new Blob([mp4 as BlobPart], { type: 'video/mp4' }),
+    ]);
+
+    expect(ffmpeg.calls[0]).toEqual(
+      expect.arrayContaining(['-f', 'concat', '-c', 'copy'])
+    );
+    expect(ffmpeg.written.size).toBe(0);
+    await expect(validateMp4Blob(out)).resolves.toMatchObject({ valid: true });
+  });
+
+  it('falls back to re-encoding when a stream copy yields invalid bytes', async () => {
+    const mp4 = fakeMp4();
+    const ffmpeg = fakeFfmpeg(mp4);
+    (ffmpeg.exec as jest.Mock).mockImplementation(async (args: string[]) => {
+      ffmpeg.calls.push(args);
+      if (args.includes('copy')) {
+        (ffmpeg.readFile as jest.Mock).mockResolvedValueOnce(
+          new Uint8Array([0x1a, 0x45, 0xdf, 0xa3, 1, 2, 3])
+        );
+      }
+      return 0;
+    });
+    svc.ffmpegLoader = async () => ({
+      ffmpeg,
+      fetchFile: async (input: Blob) => new Uint8Array(await input.arrayBuffer()),
+    });
+
+    const out = await svc.stitchToMp4([
+      new Blob([mp4 as BlobPart], { type: 'video/mp4' }),
+      new Blob([mp4 as BlobPart], { type: 'video/mp4' }),
+    ]);
+
+    expect(ffmpeg.calls).toHaveLength(2);
+    expect(ffmpeg.calls[1]).toContain('libx264');
+    await expect(validateMp4Blob(out)).resolves.toMatchObject({ valid: true });
+  });
+
+  it('re-encodes WebM sections into an MP4 master', async () => {
+    const mp4 = fakeMp4();
+    const ffmpeg = fakeFfmpeg(mp4);
+    svc.ffmpegLoader = async () => ({
+      ffmpeg,
+      fetchFile: async (input: Blob) => new Uint8Array(await input.arrayBuffer()),
+    });
+
+    const out = await svc.stitchToMp4([
+      new Blob([new Uint8Array([0x1a, 0x45, 0xdf, 0xa3])], { type: 'video/webm' }),
+      new Blob([new Uint8Array([0x1a, 0x45, 0xdf, 0xa3])], { type: 'video/webm' }),
+    ]);
+
+    expect(ffmpeg.calls[0]).toContain('libx264');
+    await expect(validateMp4Blob(out)).resolves.toMatchObject({ valid: true });
+  });
+
+  it('refuses to stitch fewer than two sections', async () => {
+    await expect(
+      svc.stitchToMp4([new Blob(['one'], { type: 'video/mp4' })])
+    ).rejects.toThrow(/at least two/);
   });
 
   it('refuses an empty capture without loading FFmpeg', async () => {

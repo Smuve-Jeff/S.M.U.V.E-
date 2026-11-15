@@ -161,6 +161,44 @@ describe('VideoEngineService project snapshot', () => {
       expect(report).toEqual({ clips: 1, markers: 1, clipsMissingMedia: 0 });
     });
 
+    it('round-trips the Music Video Maker bar choice', () => {
+      const first = createEngine();
+      first.musicBarsPerPart.set(32);
+
+      const snapshot = first.snapshot();
+      expect(snapshot.musicBarsPerPart).toBe(32);
+
+      const second = createEngine();
+      second.restore(snapshot);
+      expect(second.musicBarsPerPart()).toBe(32);
+    });
+
+    it('opens older projects at the default bar choice', () => {
+      const first = createEngine();
+      const snapshot: CinemaSnapshot = {
+        ...first.snapshot(),
+        musicBarsPerPart: undefined,
+      };
+
+      const second = createEngine();
+      second.musicBarsPerPart.set(32);
+      second.restore(snapshot);
+
+      expect(second.musicBarsPerPart()).toBe(16);
+    });
+
+    it('rejects an unsupported stored bar count', () => {
+      const engine = createEngine();
+      const snapshot: CinemaSnapshot = {
+        ...engine.snapshot(),
+        musicBarsPerPart: 12 as CinemaSnapshot['musicBarsPerPart'],
+      };
+
+      engine.restore(snapshot);
+
+      expect(engine.musicBarsPerPart()).toBe(16);
+    });
+
     it('reports which clips came back without media', () => {
       const first = createEngine();
       first.addClip('t1', clip({ url: 'blob:take-1' }));

@@ -26,6 +26,7 @@ import {
   SpriteSheetOptions,
   SpriteSheetResult,
 } from './videoAnalysis';
+import { assessSource, SourceAssessment } from './sourceQuality';
 
 export class CinemaEngine {
   private videoUploader: VideoUploader;
@@ -60,6 +61,22 @@ export class CinemaEngine {
    */
   extractVideoMetadata(file: File, timeoutMs?: number): Promise<VideoMetadata> {
     return this.videoUploader.extractMetadata(file, timeoutMs);
+  }
+
+  /**
+   * Measure a file and turn those measurements into delivery advice.
+   *
+   * The assessment is deliberately derived from real metadata only. It flags
+   * long-form runtimes that a single 120s browser pass cannot cover and sources
+   * whose 4K master would be an upscale, rather than guessing a codec or rate
+   * the browser does not expose.
+   */
+  async assessVideo(
+    file: File,
+    timeoutMs?: number
+  ): Promise<{ metadata: VideoMetadata; assessment: SourceAssessment }> {
+    const metadata = await this.extractVideoMetadata(file, timeoutMs);
+    return { metadata, assessment: assessSource(metadata) };
   }
 
   /**

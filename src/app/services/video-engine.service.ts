@@ -1,5 +1,10 @@
 import { Injectable, signal, computed, inject } from '@angular/core';
 import { AudioEngineService } from './audio-engine.service';
+import {
+  DEFAULT_MUSIC_BARS_PER_PART,
+  sanitizeMusicBarsPerPart,
+  type MusicBarsPerPart,
+} from './export-ranges';
 import type { ViewerHealthThresholds } from './viewer-health';
 
 export type ProductionMode = 'movie' | 'music' | 'stream' | 'vlog';
@@ -315,13 +320,13 @@ export interface VideoTrack {
  * of being read as if it were the current shape and silently losing whatever it
  * carried that this build does not know about.
  */
-export const CINEMA_SNAPSHOT_VERSION = 2;
+export const CINEMA_SNAPSHOT_VERSION = 3;
 
 /**
  * Oldest snapshot format this build can still read.
  *
  * Bumping the written version must not orphan projects an artist already saved:
- * v1 records are upgraded on load (the new effect fields take their defaults)
+ * v1 and v2 records are upgraded on load (newer fields take their defaults)
  * rather than refused, which is what the version check used to do.
  */
 export const CINEMA_SNAPSHOT_MIN_VERSION = 1;
@@ -346,6 +351,8 @@ export interface CinemaSnapshot {
   currentTime: number;
   safeZoneEnabled: boolean;
   snapToBeat: boolean;
+  /** Whole-bar length selected for Music Video Maker delivery parts. */
+  musicBarsPerPart?: MusicBarsPerPart;
   lowerThird: LowerThird;
   markers: SceneMarker[];
   captions?: import('./clip-captions').CaptionCue[];
@@ -726,6 +733,11 @@ export class VideoEngineService {
   barSeconds = computed(() => this.beatSeconds() * 4);
   /** When on, clip placement and dragging snap to the nearest beat. */
   snapToBeat = signal(false);
+  /**
+   * Music Video Maker delivery length, in whole 4/4 bars. It lives on the
+   * engine so the project snapshot carries it beside the beat grid.
+   */
+  musicBarsPerPart = signal<MusicBarsPerPart>(DEFAULT_MUSIC_BARS_PER_PART);
 
   // ── Scene / act / section markers ──────────────────────────────────────
 
@@ -1926,6 +1938,7 @@ export class VideoEngineService {
       currentTime: this.currentTime(),
       safeZoneEnabled: this.safeZoneEnabled(),
       snapToBeat: this.snapToBeat(),
+      musicBarsPerPart: this.musicBarsPerPart(),
       lowerThird: { ...this.lowerThird() },
       audioOverlay: this.audioBedMeta(),
       markers: this.markers().map((marker) => ({ ...marker })),
@@ -2063,6 +2076,11 @@ export class VideoEngineService {
     if (typeof snapshot.snapToBeat === 'boolean') {
       this.snapToBeat.set(snapshot.snapToBeat);
     }
+    // Older projects carry no bar choice: open them at the default rather than
+    // inheriting whatever the previously open project had selected.
+    this.musicBarsPerPart.set(
+      sanitizeMusicBarsPerPart(snapshot.musicBarsPerPart)
+    );
     if (snapshot.productionMode) {
       this.productionMode.set(snapshot.productionMode);
     }

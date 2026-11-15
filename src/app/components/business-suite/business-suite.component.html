@@ -481,6 +481,8 @@
         <button
           type="button"
           (click)="$event.stopPropagation(); startModule(module.type)"
+          (keydown.enter)="$event.stopPropagation()"
+          (keydown.space)="$event.stopPropagation()"
           class="mt-6 btn-pro btn-pro-outline w-full text-[9px] font-black uppercase tracking-widest"
         >
           {{ activePipelineFor(module.type) ? 'RESUME' : 'INITIALIZE' }}

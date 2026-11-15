@@ -191,6 +191,53 @@ describe('BusinessPipelineDetailComponent', () => {
     );
   });
 
+  it('keeps locked-stage steps read-only until their turn', async () => {
+    const step = {
+      id: 'later-step',
+      title: 'Future paperwork',
+      description: '',
+      status: 'Pending' as const,
+      aiGuidance: '',
+      actionType: 'External' as const,
+    };
+    const base = pipeline();
+    pipelines.set([
+      {
+        ...base,
+        currentStageIndex: 0,
+        stages: [
+          base.stages[0],
+          base.stages[1],
+          { ...base.stages[2], steps: [step] },
+        ],
+      },
+    ]);
+    fixture.detectChanges();
+    component.selectStage(2);
+    fixture.detectChanges();
+
+    expect(text()).toContain('Reviewing an upcoming phase');
+    expect(text()).toContain('This phase unlocks');
+    const labels = Array.from(
+      (fixture.nativeElement as HTMLElement).querySelectorAll('button')
+    ).map((button) => button.textContent?.trim());
+    expect(labels).not.toContain('Mark Complete');
+    expect(labels).not.toContain('Run External');
+
+    // The template is not the only gate: direct calls must be refused too.
+    component.completeStep(step);
+    component.performAction(step);
+
+    const service = TestBed.inject(BusinessPipelineService) as unknown as {
+      updateStep: jest.Mock;
+    };
+    const dialog = TestBed.inject(InteractionDialogService) as unknown as {
+      alert: jest.Mock;
+    };
+    expect(service.updateStep).not.toHaveBeenCalled();
+    expect(dialog.alert).not.toHaveBeenCalled();
+  });
+
   it('renames the pathway from its own header', async () => {
     const rename = jest.fn().mockResolvedValue(true);
     (TestBed.inject(BusinessPipelineService) as any).renamePipeline = rename;

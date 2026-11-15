@@ -14,6 +14,10 @@ import {
   type AiVfxSectionPlan,
 } from './ai-vfx';
 import {
+  sanitizeMusicBarsPerPart,
+  type MusicBarsPerPart,
+} from './export-ranges';
+import {
   sanitizeDirectorShotPlan,
   type DirectorShotPlan,
 } from './director-shot-plan';
@@ -32,6 +36,8 @@ export interface CinemaProjectSummary {
   presetName: string;
   clipCount: number;
   markerCount: number;
+  /** Music Video Maker delivery length saved with the edit. */
+  musicBarsPerPart: MusicBarsPerPart;
   /** Clips saved without media — they need re-ingesting when reopened. */
   needsMediaCount: number;
 }
@@ -152,6 +158,20 @@ export class CinemaProjectService {
       : (this.projects().find((project) => project.id === id) ?? null);
   });
 
+  /**
+   * The last project auto-resume read but did not open, kept for a manual retry
+   * after the artist cancels the replacement guard. It survives route changes
+   * because this service does; it is cleared by opening or saving a project.
+   */
+  pendingResumeId = signal<string | null>(null);
+
+  pendingResumeProject = computed(() => {
+    const id = this.pendingResumeId();
+    return id === null
+      ? null
+      : (this.projects().find((project) => project.id === id) ?? null);
+  });
+
   hasProjects = computed(() => this.projects().length > 0);
 
   storageAvailable = computed(() => this.storageState() === 'ready');
@@ -222,13 +242,22 @@ export class CinemaProjectService {
     this.resumeConsumed = true;
 
     const id = this.readStoredProjectId();
-    if (!id) return null;
+    if (!id) {
+      this.pendingResumeId.set(null);
+      return null;
+    }
 
     const projects = await this.refresh();
-    if (projects.some((project) => project.id === id)) return id;
+    if (projects.some((project) => project.id === id)) {
+      // Kept after this one-shot read so a cancelled guard can still offer a
+      // manual "Resume last project" action for the rest of the session.
+      this.pendingResumeId.set(id);
+      return id;
+    }
 
     // Deleted in another tab, or storage was cleared: forget it rather than
     // retrying a dead pointer on every load.
+    this.pendingResumeId.set(null);
     this.writeStoredProjectId(null);
     return null;
   }
@@ -323,6 +352,7 @@ export class CinemaProjectService {
         presetName: this.engine.deliveryPreset().name,
         clipCount: this.countClips(snapshot),
         markerCount: snapshot.markers.length,
+        musicBarsPerPart: sanitizeMusicBarsPerPart(snapshot.musicBarsPerPart),
         needsMediaCount: this.countClipsWithoutMedia(snapshot, supplied),
         snapshot,
       };
@@ -338,6 +368,7 @@ export class CinemaProjectService {
 
       await this.storage.saveItem(STORE, record);
       this.setActiveProject(record.id);
+      this.pendingResumeId.set(null);
       await this.refresh();
 
       const footage =
@@ -402,6 +433,7 @@ export class CinemaProjectService {
 
       const report = this.engine.restore(record.snapshot);
       this.setActiveProject(record.id);
+      this.pendingResumeId.set(null);
 
       const media = await this.loadMedia(
         record.id,
@@ -484,6 +516,7 @@ export class CinemaProjectService {
         }
       }
       if (this.activeProjectId() === id) this.setActiveProject(null);
+      if (this.pendingResumeId() === id) this.pendingResumeId.set(null);
       await this.refresh();
       return true;
     } catch (error) {
@@ -512,6 +545,11 @@ export class CinemaProjectService {
       presetName: record.presetName,
       clipCount: record.clipCount ?? 0,
       markerCount: record.markerCount ?? 0,
+      // Older records have no summary field; their snapshot (or the default)
+      // is still the saved choice. A malformed value falls back to 16.
+      musicBarsPerPart: sanitizeMusicBarsPerPart(
+        record.musicBarsPerPart ?? record.snapshot?.musicBarsPerPart
+      ),
       needsMediaCount: record.needsMediaCount ?? 0,
     };
   }

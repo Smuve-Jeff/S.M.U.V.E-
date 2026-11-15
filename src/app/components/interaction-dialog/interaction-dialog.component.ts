@@ -49,7 +49,7 @@ import { InteractionDialogService } from '../../services/interaction-dialog.serv
             </div>
             <button
               type="button"
-              class="w-10 h-10 rounded-xl border border-border text-text-dim hover:text-text-main transition-all"
+              class="w-11 h-11 shrink-0 rounded-xl border border-border text-text-dim hover:text-text-main transition-all"
               aria-label="Close dialog"
               (click)="dialog.cancel()"
             >
@@ -91,7 +91,7 @@ import { InteractionDialogService } from '../../services/interaction-dialog.serv
         >
           <button
             type="button"
-            class="px-4 py-3 rounded-2xl border border-border text-[11px] font-bold uppercase tracking-[0.2em] text-text-main hover:border-brand-primary transition-all"
+            class="min-h-11 px-4 py-3 rounded-2xl border border-border text-[11px] font-bold uppercase tracking-[0.2em] text-text-main hover:border-brand-primary transition-all"
             (click)="dialog.cancel()"
           >
             {{ active.cancelLabel || 'Cancel' }}
@@ -99,14 +99,14 @@ import { InteractionDialogService } from '../../services/interaction-dialog.serv
           <button
             *ngIf="active.type === 'confirm' && active.alternateLabel"
             type="button"
-            class="px-4 py-3 rounded-2xl border border-red-500/30 text-[11px] font-bold uppercase tracking-[0.2em] text-red-400 hover:border-red-400 hover:bg-red-500/10 transition-all"
+            class="min-h-11 px-4 py-3 rounded-2xl border border-red-500/30 text-[11px] font-bold uppercase tracking-[0.2em] text-red-400 hover:border-red-400 hover:bg-red-500/10 transition-all"
             (click)="dialog.settle('alternate')"
           >
             {{ active.alternateLabel }}
           </button>
           <button
             type="button"
-            class="px-4 py-3 rounded-2xl text-[11px] font-bold uppercase tracking-[0.2em] transition-all"
+            class="min-h-11 px-4 py-3 rounded-2xl text-[11px] font-bold uppercase tracking-[0.2em] transition-all"
             [class.bg-red-500]="active.tone === 'danger'"
             [class.text-white]="active.tone === 'danger'"
             [class.bg-brand-primary]="active.tone !== 'danger'"

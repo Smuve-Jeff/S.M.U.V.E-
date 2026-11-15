@@ -80,6 +80,14 @@ export class BusinessPipelineDetailComponent implements OnInit {
       this.selectedStageIndex() !== this.pipeline()?.currentStageIndex
   );
 
+  /** The return link must not call an upcoming, locked phase "finished". */
+  reviewingStageLabel = computed(() => {
+    const stage = this.displayStage();
+    return stage?.status === 'Completed'
+      ? 'Reviewing a finished phase · return to the open one'
+      : 'Reviewing an upcoming phase · return to the open one';
+  });
+
   selectStage(index: number): void {
     this.selectedStageIndex.set(index);
   }
@@ -158,9 +166,10 @@ export class BusinessPipelineDetailComponent implements OnInit {
   completeStep(step: BusinessStep) {
     const p = this.pipeline();
     const s = this.displayStage();
-    if (p && s) {
-      void this.bizService.updateStep(p.id, s.id, step.id, 'Completed');
-    }
+    // Upcoming stages are read-only. Without this, the timeline let an artist
+    // mark work complete two phases before its prerequisites existed.
+    if (!p || !s || this.stageState(s) === 'upcoming') return;
+    void this.bizService.updateStep(p.id, s.id, step.id, 'Completed');
   }
 
   /**
@@ -177,6 +186,8 @@ export class BusinessPipelineDetailComponent implements OnInit {
   }
 
   performAction(step: BusinessStep) {
+    const stage = this.displayStage();
+    if (!stage || this.stageState(stage) === 'upcoming') return;
     if (step.actionType === 'Design') {
       this.activeModuleAction.set('Design');
     } else if (step.actionType === 'Template') {

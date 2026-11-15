@@ -66,9 +66,10 @@ export class BusinessPipelineService {
     if (typeof hydrated === 'function' && !hydrated()) return;
 
     const profile = this.profileService.profile();
-    if (Array.isArray((profile as any).businessPipelines)) {
-      this.activePipelines.set((profile as any).businessPipelines);
-    }
+    const pipelines = profile?.businessPipelines;
+    // A profile without the field is a different (usually fresh) account, not
+    // permission to keep showing the previous account's pathways.
+    this.activePipelines.set(Array.isArray(pipelines) ? [...pipelines] : []);
   }
 
   async initializeModule(
@@ -296,7 +297,7 @@ export class BusinessPipelineService {
     await this.profileService.updateProfile({
       ...profile,
       businessPipelines: pipelines,
-    } as any);
+    });
   }
 
   private getStagesForType(type: BusinessPipelineType): BusinessStage[] {

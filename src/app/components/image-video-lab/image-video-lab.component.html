@@ -73,7 +73,7 @@
         <select
           class="export-window-select"
           aria-label="Video export capture window in seconds"
-          [disabled]="isExporting()"
+          [disabled]="isExporting() || isQueueing()"
           [ngModel]="exportWindow()"
           (ngModelChange)="exportWindow.set(+$event)"
         >
@@ -83,11 +83,34 @@
         </select>
       </label>
       <label class="export-window">
+        <span class="export-window-label">Start</span>
+        <input
+          class="export-window-select export-start-input"
+          type="number"
+          min="0"
+          step="1"
+          [max]="videoEngine.duration()"
+          [disabled]="isExporting() || isQueueing()"
+          [ngModel]="exportStart()"
+          (ngModelChange)="setExportStart($event)"
+          aria-label="Export start time in seconds"
+        />
+      </label>
+      <button
+        type="button"
+        class="export-playhead"
+        [disabled]="isExporting() || isQueueing()"
+        (click)="usePlayheadAsExportStart()"
+        title="Use the current playhead as the next master's start"
+      >
+        FROM PLAYHEAD
+      </button>
+      <label class="export-window">
         <span class="export-window-label">Raster</span>
         <select
           class="export-window-select"
           aria-label="Export resolution"
-          [disabled]="isExporting()"
+          [disabled]="isExporting() || isQueueing()"
           [ngModel]="exportScale()"
           (ngModelChange)="exportScale.set($event)"
         >
@@ -101,7 +124,7 @@
         <select
           class="export-window-select"
           aria-label="Export frame rate"
-          [disabled]="isExporting()"
+          [disabled]="isExporting() || isQueueing()"
           [ngModel]="exportFps()"
           (ngModelChange)="exportFps.set(+$event)"
         >
@@ -115,7 +138,7 @@
         <select
           class="export-window-select"
           aria-label="Export codec"
-          [disabled]="isExporting()"
+          [disabled]="isExporting() || isQueueing()"
           [ngModel]="exportCodec()"
           (ngModelChange)="exportCodec.set($event)"
         >
@@ -125,6 +148,7 @@
         </select>
       </label>
       <span class="export-summary">{{ exportSummary() }}</span>
+      <span class="export-summary">{{ exportRangeLabel() }}</span>
       <span class="export-summary">{{ watermarkStatus() }}</span>
       <button
         (click)="videoEngine.togglePlay()"
@@ -141,13 +165,263 @@
       </button>
       <button
         (click)="exportVideo()"
-        [disabled]="isExporting()"
+        [disabled]="isExporting() || isQueueing()"
         class="btn-pro btn-pro-primary text-[9px] md:text-[10px] font-black tracking-widest px-4 md:px-8 h-11 md:h-12 flex-grow md:flex-grow-0"
       >
         {{ isExporting() ? 'RENDERING ' + exportProgress() + '%' : 'EXPORT VIDEO' }}
       </button>
+      <button
+        type="button"
+        (click)="openFilmMaker()"
+        class="export-queue"
+        title="Choose delivery parts, export a manifest, and stitch the master"
+      >
+        {{ makerButtonLabel() }}
+      </button>
+      @if (isQueueing()) {
+        <button
+          type="button"
+          (click)="cancelExportQueue()"
+          class="export-queue export-queue-stop"
+        >
+          STOP
+        </button>
+      }
     </div>
   </header>
+
+  @if (sourceQuality(); as source) {
+    <p class="source-advisory" role="status">
+      <strong>{{ source.tier.toUpperCase() }} SOURCE</strong>
+      <span
+        >· {{ source.recommendedMaster.width }}×{{
+          source.recommendedMaster.height
+        }}
+        MASTER</span
+      >
+      @if (source.estimatedBitrateMbps !== null) {
+        <span>· {{ source.estimatedBitrateMbps }} MBPS</span>
+      } @else {
+        <span>· BITRATE UNKNOWN</span>
+      }
+      @if (source.warnings.length) {
+        <span class="source-advisory-warning">{{ source.warnings[0] }}</span>
+      }
+    </p>
+  }
+  @if (exportRangeNotice()) {
+    <p class="source-advisory export-range-advisory" role="status">
+      {{ exportRangeNotice() }}
+    </p>
+  }
+
+  @if (showFilmMaker()) {
+    <section class="film-maker" [attr.aria-label]="makerName()">
+      <header class="film-maker-head">
+        <div>
+          <span class="upgrade-eyebrow">{{ makerEyebrow() }}</span>
+          <h2 class="film-maker-title">{{ makerTitle() }}</h2>
+          <p class="film-maker-copy">
+            {{ cinemaProjects.activeProject()?.name ?? 'Untitled Film' }} ·
+            {{ activePreset().name }} ·
+            {{ exportDimensions().width }}×{{ exportDimensions().height }} ·
+            {{ exportFps() }}fps · {{ exportCodec().toUpperCase() }}
+            @if (isMusicVideoMode()) {
+              · {{ videoEngine.bpm().toFixed(1) }} BPM ·
+              {{ musicBarsPerSection() }} BARS/PART
+            }
+          </p>
+        </div>
+        <button
+          type="button"
+          class="film-maker-close"
+          (click)="closeFilmMaker()"
+        >
+          CLOSE
+        </button>
+      </header>
+
+      <div class="film-maker-grid">
+        <section class="film-maker-panel" [attr.aria-label]="makerPickerLabel()">
+          <div class="film-maker-panel-head">
+            <strong>01 · {{ makerPickerLabel() }}</strong>
+            <span
+              >{{ selectedRangeCount() }} /
+              {{ availableExportRanges().length }}</span
+            >
+          </div>
+          <div class="film-maker-range">
+            <label class="film-maker-field">
+              <span>START (SECONDS)</span>
+              <input
+                type="number"
+                min="0"
+                step="1"
+                [max]="videoEngine.duration()"
+                [disabled]="isExporting() || isQueueing()"
+                [ngModel]="exportStart()"
+                (ngModelChange)="setExportStart($event)"
+                aria-label="Film Maker export start in seconds"
+              />
+            </label>
+            @if (isMusicVideoMode()) {
+              <label class="film-maker-field">
+                <span>BARS / PART</span>
+                <select
+                  [disabled]="isExporting() || isQueueing()"
+                  [ngModel]="musicBarsPerPart()"
+                  (ngModelChange)="setMusicBarsPerPart($event)"
+                  aria-label="Bars per Music Video Maker part"
+                >
+                  @for (bars of musicBarsPerPartOptions; track bars) {
+                    <option [value]="bars">{{ bars }} bars</option>
+                  }
+                </select>
+              </label>
+            }
+            <span class="film-maker-range-end"
+              >TO {{ formatClock(videoEngine.duration()) }}</span
+            >
+          </div>
+          @if (isMusicVideoMode()) {
+            <p class="film-maker-help">
+              Each part is {{ musicBarsPerSection() }} bars at
+              {{ videoEngine.bpm().toFixed(1) }} BPM and starts on a bar line.
+              @if (musicBarsPerSection() !== musicBarsPerPart()) {
+                {{ musicBarsPerPart() }} requested; the 120s capture cap fits
+                {{ musicBarsPerSection() }}.
+              }
+              Unchecked parts are skipped; the master runs to the end of the
+              song.
+            </p>
+          } @else {
+            <p class="film-maker-help">
+              Each section is up to 120 seconds; unchecked sections are skipped.
+              The master runs from the start offset to the end of the timeline.
+            </p>
+          }
+          <div class="film-maker-bulk">
+            <button type="button" (click)="selectAllExportRanges()">ALL</button>
+            <button type="button" (click)="clearExportRangeSelection()">
+              NONE
+            </button>
+          </div>
+          <div class="film-maker-list" role="group" aria-label="Export sections">
+            @for (range of availableExportRanges(); track range.index) {
+              <label
+                class="film-maker-row"
+                [class.is-selected]="isExportRangeSelected(range.index)"
+              >
+                <input
+                  type="checkbox"
+                  [checked]="isExportRangeSelected(range.index)"
+                  (change)="toggleExportRange(range.index)"
+                  [disabled]="isExporting() || isQueueing()"
+                />
+                <span class="film-maker-part">{{ rangeGroupLabel(range) }}</span>
+                <span class="film-maker-time"
+                  >{{ formatClock(range.start) }}–{{ formatClock(range.end) }}</span
+                >
+                <span class="film-maker-length">{{ formatClock(range.seconds) }}</span>
+              </label>
+            } @empty {
+              <p class="film-maker-help">
+                No sections available. Set an export start before the end of the
+                timeline.
+              </p>
+            }
+          </div>
+          <button
+            type="button"
+            class="film-maker-primary"
+            (click)="queueSelectedRanges()"
+            [disabled]="
+              isExporting() || isQueueing() || selectedRangeCount() === 0
+            "
+          >
+            @if (isQueueing()) {
+              QUEUE {{ queueCompleted() }}/{{ queueTotal() }}
+            } @else {
+              QUEUE {{ selectedRangeCount() }} {{ makerUnit() }}
+            }
+          </button>
+          <div class="film-maker-meta">
+            <span
+              >{{ renderedSectionCount() }} / {{ exportSections().length }}
+              RENDERED</span
+            >
+            <button
+              type="button"
+              class="film-maker-secondary"
+              (click)="downloadExportManifest()"
+              [disabled]="!exportManifestReady()"
+            >
+              DOWNLOAD MANIFEST
+            </button>
+          </div>
+        </section>
+
+        <section class="film-maker-panel" aria-label="Stitch sections">
+          <div class="film-maker-panel-head">
+            <strong>02 · Stitch the master</strong>
+          </div>
+          <p class="film-maker-help">
+            Select the downloaded section files. They are ordered by part
+            filename. MP4 sections are joined without re-encoding; mixed formats
+            are re-encoded into one MP4. Browser stitching is capped at 1.5 GB.
+          </p>
+          <label class="film-maker-file">
+            <span>CHOOSE SECTION FILES</span>
+            <input
+              type="file"
+              multiple
+              accept="video/mp4,video/webm,video/quicktime,.mp4,.webm,.mov"
+              (change)="onStitchFiles($event)"
+              [disabled]="isStitching() || isExporting() || isQueueing()"
+            />
+          </label>
+          @if (stitchFiles().length) {
+            <ul class="film-maker-file-list">
+              @for (file of stitchFiles(); track $index) {
+                <li>
+                  <span>{{ file.name }}</span>
+                  <span>{{ formatBytes(file.size) }}</span>
+                </li>
+              }
+            </ul>
+          }
+          <button
+            type="button"
+            class="film-maker-primary"
+            (click)="stitchFilm()"
+            [disabled]="
+              isStitching() ||
+              isExporting() ||
+              isQueueing() ||
+              stitchFiles().length < 2
+            "
+          >
+            @if (isStitching()) {
+              STITCHING {{ stitchProgress() }}%
+            } @else {
+              STITCH TO MP4
+            }
+          </button>
+          <div class="film-maker-meta">
+            <button
+              type="button"
+              class="film-maker-secondary"
+              (click)="clearStitchFiles()"
+              [disabled]="!stitchFiles().length || isStitching()"
+            >
+              CLEAR
+            </button>
+            <span role="status" aria-live="polite">{{ stitchStatus() }}</span>
+          </div>
+        </section>
+      </div>
+    </section>
+  }
 
   <!--
     The production blueprint is a disclosure on the stacked layout: it is the
@@ -1217,6 +1491,21 @@
             </button>
           </div>
 
+          @if (resumableLastProject(); as pending) {
+            <button
+              type="button"
+              class="director-button project-resume-last"
+              [disabled]="cinemaProjects.isBusy()"
+              [attr.aria-label]="'Resume last project ' + pending.name"
+              (click)="resumePendingProject()"
+            >
+              <span class="material-symbols-outlined" aria-hidden="true"
+                >history</span
+              >
+              <span>RESUME LAST PROJECT · {{ pending.name }}</span>
+            </button>
+          }
+
           @if (cinemaProjects.storageNotice(); as storageNotice) {
             <p class="camera-error">{{ storageNotice }}</p>
           } @else if (!cinemaProjects.hasProjects()) {
@@ -1231,27 +1520,48 @@
                   class="project-card"
                   [class.active]="cinemaProjects.activeProjectId() === project.id"
                 >
-                  <button
-                    type="button"
-                    class="project-open"
-                    [attr.aria-label]="'Open ' + project.name"
-                    (click)="openProject(project.id)"
-                  >
-                    <span class="project-name">{{ project.name }}</span>
-                    <span class="project-meta"
-                      >{{ project.presetName }} · {{ project.clipCount }} clip(s) ·
-                      {{ project.markerCount }} marker(s)</span
+                  <div class="project-body">
+                    <button
+                      type="button"
+                      class="project-open"
+                      [attr.aria-label]="'Open ' + project.name"
+                      (click)="openProjectFromCard(project, $event)"
                     >
-                    <span class="project-meta"
-                      >{{ project.updatedAt | date: 'MMM d, h:mm a' }}</span
-                    >
-                    @if (project.needsMediaCount > 0) {
-                      <span class="project-warning"
-                        >{{ project.needsMediaCount }} clip(s) need media
-                        re-ingested</span
+                      <span class="project-name">{{ project.name }}</span>
+                      <span class="project-meta"
+                        >{{ project.presetName }} · {{ project.clipCount }} clip(s) ·
+                        {{ project.markerCount }} marker(s)</span
                       >
-                    }
-                  </button>
+                      <span class="project-meta"
+                        >{{ project.updatedAt | date: 'MMM d, h:mm a' }}</span
+                      >
+                      @if (project.needsMediaCount > 0) {
+                        <span class="project-warning"
+                          >{{ project.needsMediaCount }} clip(s) need media
+                          re-ingested</span
+                        >
+                      }
+                    </button>
+                    <button
+                      type="button"
+                      class="project-maker"
+                      (click)="openProjectMaker(project, $event)"
+                    >
+                      <span>
+                        {{
+                          project.productionMode === 'music'
+                            ? 'MUSIC MAKER'
+                            : 'FILM MAKER'
+                        }}
+                        · {{ project.musicBarsPerPart }} BARS/PART
+                      </span>
+                      <span
+                        class="material-symbols-outlined project-maker-icon"
+                        aria-hidden="true"
+                        >tune</span
+                      >
+                    </button>
+                  </div>
                   <button
                     type="button"
                     class="project-delete"
@@ -1909,7 +2219,7 @@
             <select
               class="bg-transparent text-[10px] font-black text-text-main outline-none"
               aria-label="Still image hold duration"
-              [disabled]="isExporting()"
+              [disabled]="isExporting() || isQueueing()"
               [ngModel]="stillHold()"
               (ngModelChange)="stillHold.set(+$event)"
             >

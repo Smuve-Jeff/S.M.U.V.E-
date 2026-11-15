@@ -29,6 +29,14 @@ export {
   spriteBackgroundStyle,
   toSpriteSheetMeta,
 } from './videoAnalysis';
+export { assessSource, MASTER_CAPTURE_WINDOW_SECONDS } from './sourceQuality';
+export type {
+  MasterRecommendation,
+  RuntimeClass,
+  SourceAssessment,
+  SourceOrientation,
+  SourceTier,
+} from './sourceQuality';
 export type {
   VideoMetadata,
   ThumbnailOptions,

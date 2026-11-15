@@ -91,6 +91,18 @@ describe('BusinessPipelineService', () => {
     ]);
   });
 
+  it('clears the previous record’s pathways when the next profile owns none', () => {
+    load(profile({ businessPipelines: [completedPipeline] }));
+    expect(service.activePipelines()).toHaveLength(1);
+
+    // Signing into a fresh account installs a profile with no pathways. The
+    // previous account's rows must not stay on screen under the new identity.
+    profileSignal.set(profile());
+    TestBed.flushEffects();
+
+    expect(service.activePipelines()).toEqual([]);
+  });
+
   it('starts a new pipeline once the previous one is completed', async () => {
     load(profile({ businessPipelines: [completedPipeline] } as any));
 

@@ -135,10 +135,15 @@
               class="stage-return"
               (click)="showCurrentStage()"
             >
-              Reviewing a finished phase · return to the open one
+              {{ reviewingStageLabel() }}
             </button>
           </ng-template>
         </div>
+
+        <p *ngIf="stageState(stage) === 'upcoming'" class="stage-empty">
+          This phase unlocks after the open phase is complete. Its steps are
+          read-only for now.
+        </p>
 
         <p *ngIf="stage.steps.length === 0" class="stage-empty">
           This phase has no steps recorded.
@@ -174,14 +179,17 @@
 
                 <div class="pipeline-step-actions flex gap-3">
                   <button
-                    *ngIf="step.actionType"
+                    *ngIf="step.actionType && stageState(stage) !== 'upcoming'"
                     (click)="performAction(step)"
                     class="px-4 py-2 bg-brand-primary text-black text-[9px] font-black uppercase tracking-widest rounded-lg hover:scale-105 transition-all"
                   >
                     Run {{ step.actionType }}
                   </button>
                   <button
-                    *ngIf="step.status !== 'Completed'"
+                    *ngIf="
+                      step.status !== 'Completed' &&
+                      stageState(stage) !== 'upcoming'
+                    "
                     (click)="completeStep(step)"
                     class="px-4 py-2 bg-white/5 border border-white/10 text-white text-[9px] font-black uppercase tracking-widest rounded-lg hover:border-brand-primary transition-all"
                   >

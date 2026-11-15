@@ -37,6 +37,8 @@ export interface Mp4TranscodeOptions {
   crf?: number;
   preset?: string;
   audioBitrate?: string;
+  /** Trim the output to this many seconds (queue sections carry a tail guard). */
+  trimSeconds?: number;
   onProgress?: (progress: number) => void;
 }
 
@@ -145,12 +147,52 @@ export async function validateMp4Blob(blob: Blob): Promise<Mp4Validation> {
 }
 
 /** FFmpeg argument list for the WebM capture → H.264/AAC MP4 transcode. */
+/**
+ * FFmpeg arguments for concatenating already-encoded sections.
+ *
+ * Stream copy is lossless and fast when every part is MP4 with matching
+ * parameters. The re-encode fallback gives mixed or incompatible sections one
+ * consistent H.264/AAC master.
+ */
+export function buildConcatArgs(
+  list = 'concat-list.txt',
+  output = 'output.mp4',
+  options: { copy?: boolean } = {},
+): string[] {
+  // -y replaces any partial output left by a failed stream-copy attempt.
+  const input = ['-y', '-f', 'concat', '-safe', '0', '-i', list];
+  if (options.copy) {
+    return [...input, '-c', 'copy', '-movflags', '+faststart', output];
+  }
+  return [
+    ...input,
+    '-c:v', 'libx264',
+    '-pix_fmt', 'yuv420p',
+    '-crf', '18',
+    '-preset', 'veryfast',
+    '-c:a', 'aac',
+    '-b:a', '192k',
+    '-movflags', '+faststart',
+    output,
+  ];
+}
+
+/** Browser stitching is bounded by wasm memory, not by the timeline. */
+export const MAX_STITCH_BYTES = 1_500_000_000;
+
+export interface Mp4ConcatOptions {
+  onProgress?: (progress: number) => void;
+}
+
 export function buildMp4Args(
   input = 'input.webm',
   output = 'output.mp4',
   options: Mp4TranscodeOptions = {},
 ): string[] {
   const crf = Number.isFinite(options.crf) ? Math.round(options.crf!) : 20;
+  const trim = Number.isFinite(options.trimSeconds)
+    ? Math.max(0, options.trimSeconds!)
+    : null;
   return [
     '-i', input,
     // x264 needs even dimensions for yuv420p; odd rasters are nudged down
@@ -163,6 +205,7 @@ export function buildMp4Args(
     '-c:a', 'aac',
     '-b:a', options.audioBitrate || '192k',
     '-movflags', '+faststart',
+    ...(trim ? ['-t', trim.toFixed(3)] : []),
     '-shortest',
     output,
   ];
@@ -234,6 +277,101 @@ export class FfmpegVideoExportService {
       `FFmpeg MP4 export ready: ${validation.size} bytes, brand=${validation.brand ?? '?'}`,
     );
     return new Blob([outputBytes as BlobPart], { type: 'video/mp4' });
+  }
+
+  /**
+   * Join downloaded sections into one MP4.
+   *
+   * MP4 sections with matching parameters take the stream-copy path, so the
+   * join adds no generation loss. Anything else is re-encoded to a consistent
+   * H.264/AAC master. The bytes are held in wasm memory, so a feature-size
+   * join is rejected with a clear limit instead of crashing the tab.
+   */
+  async stitchToMp4(inputs: Blob[], options: Mp4ConcatOptions = {}): Promise<Blob> {
+    if (!inputs || inputs.length < 2) {
+      throw new Error('Choose at least two exported sections to stitch.');
+    }
+    const totalBytes = inputs.reduce((sum, input) => sum + (input?.size || 0), 0);
+    if (totalBytes <= 0) {
+      throw new Error('The selected sections are empty.');
+    }
+    if (totalBytes > MAX_STITCH_BYTES) {
+      throw new Error(
+        'The selected sections are too large for browser stitching. Use a desktop editor for this master.'
+      );
+    }
+
+    const { ffmpeg, fetchFile } = await this.loadFfmpeg(options.onProgress);
+    const listName = 'concat-list.txt';
+    const outputName = 'output.mp4';
+    const parts = inputs.map((input, index) => {
+      const type = (input.type || '').toLowerCase();
+      const extension = type.includes('webm') ? 'webm' : type.includes('mp4') ? 'mp4' : 'bin';
+      return `part-${String(index).padStart(3, '0')}.${extension}`;
+    });
+    const canCopy = inputs.every((input) => (input.type || '').toLowerCase().includes('mp4'));
+
+    try {
+      for (let index = 0; index < inputs.length; index += 1) {
+        await ffmpeg.writeFile(parts[index], await fetchFile(inputs[index]));
+      }
+      const list = parts.map((part) => `file '${part}'`).join('\n') + '\n';
+      await ffmpeg.writeFile(listName, new TextEncoder().encode(list));
+
+      let bytes: Uint8Array | null = null;
+      if (canCopy) {
+        try {
+          const exitCode = await ffmpeg.exec(
+            buildConcatArgs(listName, outputName, { copy: true }),
+          );
+          if (exitCode === 0) {
+            bytes = await this.readOutput(ffmpeg, outputName);
+            // A structurally invalid copy is as unusable as a failed one;
+            // fall through to the re-encode instead of shipping it.
+            if (!validateMp4Bytes(bytes).valid) bytes = null;
+          }
+        } catch {
+          // A copy join can fail when the sections disagree on codec
+          // parameters; the re-encode below is the recovery path.
+        }
+      }
+
+      if (!bytes) {
+        // The copy attempt may have left a file behind; start the re-encode
+        // from a clean path even though -y also protects it.
+        try { await ffmpeg.deleteFile(outputName); } catch { /* no copy output */ }
+        const exitCode = await ffmpeg.exec(
+          buildConcatArgs(listName, outputName, { copy: false }),
+        );
+        if (exitCode !== 0) {
+          throw new Error(`FFmpeg could not stitch the sections (code ${exitCode}).`);
+        }
+        bytes = await this.readOutput(ffmpeg, outputName);
+      }
+
+      const validation = validateMp4Bytes(bytes);
+      if (!validation.valid) {
+        throw new Error(`FFmpeg produced an invalid stitched MP4: ${validation.reason}.`);
+      }
+      this.logger?.info(
+        `Film stitch ready: ${inputs.length} sections, ${validation.size} bytes.`,
+      );
+      return new Blob([bytes as BlobPart], { type: 'video/mp4' });
+    } finally {
+      for (const part of parts) {
+        try { await ffmpeg.deleteFile(part); } catch { /* already gone */ }
+      }
+      try { await ffmpeg.deleteFile(listName); } catch { /* already gone */ }
+      try { await ffmpeg.deleteFile(outputName); } catch { /* already gone */ }
+    }
+  }
+
+  private async readOutput(ffmpeg: FfmpegLike, path: string): Promise<Uint8Array> {
+    const data = await ffmpeg.readFile(path);
+    if (typeof data === 'string' || !data || data.length === 0) {
+      throw new Error('FFmpeg produced no stitched output.');
+    }
+    return data;
   }
 
   /** Single transcode pass against an already-loaded FFmpeg instance. */

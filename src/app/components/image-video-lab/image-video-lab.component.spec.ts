@@ -25,6 +25,7 @@ import {
   CameraCaptureService,
 } from '../../services/camera-capture.service';
 import { CinemaProjectService } from '../../services/cinema-project.service';
+import { InteractionDialogService } from '../../services/interaction-dialog.service';
 import { CinemaEngineService } from '../../services/cinema-engine.service';
 import { SpeechSynthesisService } from '../../services/speech-synthesis.service';
 describe('ImageVideoLabComponent', () => {
@@ -126,7 +127,10 @@ describe('ImageVideoLabComponent', () => {
       currentTime: signal(0),
       duration: signal(7200),
       bpm: signal(120),
-      productionMode: signal<'movie' | 'stream' | 'vlog'>('movie'),
+      beatSeconds: signal(0.5),
+      barSeconds: signal(2),
+      musicBarsPerPart: signal(16),
+      productionMode: signal<'movie' | 'music' | 'stream' | 'vlog'>('movie'),
       deliveryPreset: signal({
         id: 'movie-cinema-4k',
         mode: 'movie',
@@ -203,6 +207,7 @@ describe('ImageVideoLabComponent', () => {
       trackOfClip: jest.fn().mockReturnValue({ id: 't1', name: 'Visuals', locked: false }),
       moveClip: jest.fn(),
       snapToBeat: signal(false),
+      snapTime: jest.fn((time: number) => time),
       // Marker surface for the ruler chips (tap = jump, double-tap = remove).
       addMarker: jest.fn(() => 'mk-1'),
       markers: signal<unknown[]>([]),
@@ -254,6 +259,18 @@ describe('ImageVideoLabComponent', () => {
             'Built for long-form scenes, theatrical pacing, and soundtrack-driven storytelling.',
         },
         {
+          id: 'music-video-master',
+          mode: 'music',
+          name: 'Music Video Master',
+          aspectRatio: '16:9',
+          width: 1920,
+          height: 1080,
+          duration: 180,
+          target: 'YouTube / Vevo',
+          description:
+            'Built for beat-locked performance cuts and vertical cutdowns.',
+        },
+        {
           id: 'stream-live-landscape',
           mode: 'stream',
           name: 'Live Stream Landscape',
@@ -278,7 +295,8 @@ describe('ImageVideoLabComponent', () => {
             'Tuned for quick vertical edits, teaser cuts, and mobile-native updates.',
         },
       ]),
-      setProductionMode: jest.fn((mode: 'movie' | 'stream' | 'vlog') => {
+      setProductionMode: jest.fn(
+        (mode: 'movie' | 'music' | 'stream' | 'vlog') => {
         const presetMap = {
           movie: {
             id: 'movie-cinema-4k',
@@ -291,6 +309,18 @@ describe('ImageVideoLabComponent', () => {
             target: 'Full-Length Film',
             description:
               'Built for long-form scenes, theatrical pacing, and soundtrack-driven storytelling.',
+          },
+          music: {
+            id: 'music-video-master',
+            mode: 'music',
+            name: 'Music Video Master',
+            aspectRatio: '16:9',
+            width: 1920,
+            height: 1080,
+            duration: 180,
+            target: 'YouTube / Vevo',
+            description:
+              'Built for beat-locked performance cuts and vertical cutdowns.',
           },
           stream: {
             id: 'stream-live-landscape',
@@ -321,7 +351,8 @@ describe('ImageVideoLabComponent', () => {
         videoEngine.productionMode.set(mode);
         videoEngine.deliveryPreset.set(presetMap[mode] as any);
         videoEngine.duration.set(presetMap[mode].duration);
-      }),
+        },
+      ),
       applyDeliveryPreset: jest.fn((presetId: string) => {
         if (presetId === 'vlog-mobile-story') {
           videoEngine.productionMode.set('vlog');
@@ -340,6 +371,29 @@ describe('ImageVideoLabComponent', () => {
           videoEngine.duration.set(900);
         }
       }),
+      // The component fingerprints this with the Director plan to decide
+      // whether replacing the open project would lose unsaved edits.
+      snapshot: jest.fn(() => ({
+        version: 3,
+        productionMode: videoEngine.productionMode(),
+        deliveryPresetId: videoEngine.deliveryPreset().id,
+        duration: videoEngine.duration(),
+        currentTime: videoEngine.currentTime(),
+        safeZoneEnabled: videoEngine.safeZoneEnabled(),
+        snapToBeat: videoEngine.snapToBeat(),
+        musicBarsPerPart: videoEngine.musicBarsPerPart(),
+        lowerThird: videoEngine.lowerThird(),
+        audioOverlay: videoEngine.audioOverlay()
+          ? {
+              name: videoEngine.audioOverlay()!.name,
+              volume: videoEngine.audioOverlayVolume(),
+              loop: videoEngine.audioOverlayLoop(),
+            }
+          : null,
+        markers: videoEngine.markers(),
+        captions: videoEngine.captions(),
+        tracks: videoEngine.tracks(),
+      })),
     };
 
     const cameraStream = signal<MediaStream | null>(null);
@@ -523,6 +577,9 @@ describe('ImageVideoLabComponent', () => {
 
     const ffmpegExport = {
       transcodeToMp4: jest.fn(async (blob: Blob) => blob),
+      stitchToMp4: jest.fn(
+        async () => new Blob(['stitched'], { type: 'video/mp4' })
+      ),
     };
 
     /**
@@ -532,12 +589,30 @@ describe('ImageVideoLabComponent', () => {
      */
     const projectList = signal<Array<{ id: string; name: string }>>([]);
     const activeProjectId = signal<string | null>(null);
+    const pendingResumeId = signal<string | null>(null);
+    const projectDialog = {
+      confirm: jest.fn(
+        async (_request: { title?: string; message?: string }) => true
+      ),
+      confirmWithAlternate: jest.fn(
+        async (_request: {
+          title?: string;
+          message?: string;
+        }): Promise<'confirm' | 'alternate' | 'cancel'> => 'confirm'
+      ),
+    };
     const cinemaProjects = {
       projects: projectList,
       activeProjectId,
       activeProject: computed(
         () =>
           projectList().find((project) => project.id === activeProjectId()) ??
+          null
+      ),
+      pendingResumeId,
+      pendingResumeProject: computed(
+        () =>
+          projectList().find((project) => project.id === pendingResumeId()) ??
           null
       ),
       hasProjects: computed(() => projectList().length > 0),
@@ -627,6 +702,7 @@ describe('ImageVideoLabComponent', () => {
         { provide: FfmpegVideoExportService, useValue: ffmpegExport },
         { provide: CameraCaptureService, useValue: camera },
         { provide: CinemaProjectService, useValue: cinemaProjects },
+        { provide: InteractionDialogService, useValue: projectDialog },
         { provide: SpeechSynthesisService, useValue: speechSynthesis },
         { provide: CinemaEngineService, useValue: cinemaEngine },
         { provide: DirectorCoachService, useValue: coach },
@@ -657,9 +733,11 @@ describe('ImageVideoLabComponent', () => {
       exportService,
       ffmpegExport,
       cinemaProjects,
+      projectDialog,
       speechSynthesis,
       projectList,
       activeProjectId,
+      pendingResumeId,
       fixture,
       video,
       /** Render one preview frame on demand (the rAF loop is stubbed out). */
@@ -1084,6 +1162,36 @@ describe('ImageVideoLabComponent', () => {
     );
     expect(component.aiFeedback()).toContain('0:47');
     expect(component.aiFeedback()).toContain('1920×1080');
+  });
+
+  it('assesses a measured take for upscale and long-form delivery risk', async () => {
+    const { component, videoEngine, cinemaEngine } = await createComponent();
+    videoEngine.addClip.mockReturnValue('clip-assessed');
+    videoEngine.findClip.mockReturnValue({
+      id: 'clip-assessed',
+      effects: { trimStart: 0, trimEnd: 0, speed: 1 },
+    } as never);
+    cinemaEngine.measureVideo.mockResolvedValueOnce({
+      duration: 7200,
+      width: 1280,
+      height: 720,
+      aspectRatio: 1.7778,
+      type: 'video/mp4',
+      size: 1_500_000_000,
+      filename: 'feature-cut.mp4',
+    });
+
+    await component.onFileUpload({
+      target: { files: [{ name: 'feature-cut.mp4', type: 'video/mp4' }] },
+    });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    const assessment = component.sourceQuality();
+    expect(assessment?.tier).toBe('hd');
+    expect(assessment?.runtimeClass).toBe('feature');
+    expect(assessment?.longForm).toBe(true);
+    expect(assessment?.warnings.join(' ')).toContain('section by section');
+    expect(component.aiFeedback()).toContain('HD SOURCE');
   });
 
   it('puts the captured frame on the clip it belongs to', async () => {
@@ -3706,6 +3814,297 @@ describe('ImageVideoLabComponent', () => {
    * is passed, which name is seeded back, and what the director line says.
    */
   describe('projects', () => {
+    const projectSummary = (overrides: Record<string, unknown> = {}) => ({
+      id: 'p1',
+      name: 'Neon Cut',
+      createdAt: 1,
+      updatedAt: 2,
+      productionMode: 'music',
+      presetName: 'Music Video Master',
+      clipCount: 0,
+      markerCount: 0,
+      musicBarsPerPart: 32,
+      needsMediaCount: 0,
+      ...overrides,
+    });
+
+    it('opens a project card Maker at the saved bar choice', async () => {
+      const {
+        component,
+        cinemaProjects,
+        projectList,
+        activeProjectId,
+        videoEngine,
+      } = await createComponent();
+      const project = projectSummary();
+      projectList.set([project as any]);
+      videoEngine.duration.set(100);
+      cinemaProjects.open.mockImplementationOnce(async () => {
+        activeProjectId.set(project.id);
+        videoEngine.productionMode.set('music');
+        return { ok: true, message: 'PROJECT OPENED: NEON CUT.' };
+      });
+
+      await component.openProjectMaker(project as any);
+
+      expect(cinemaProjects.open).toHaveBeenCalledWith('p1');
+      expect(component.showFilmMaker()).toBe(true);
+      expect(component.musicBarsPerPart()).toBe(32);
+      expect(component.isMusicVideoMode()).toBe(true);
+      expect(component.aiFeedback()).toContain('MUSIC VIDEO MAKER READY');
+    });
+
+    it('leaves the Maker closed when the card project cannot open', async () => {
+      const { component, cinemaProjects, projectList } = await createComponent();
+      const project = projectSummary({ id: 'p2' });
+      projectList.set([project as any]);
+      cinemaProjects.open.mockResolvedValueOnce({
+        ok: false,
+        message: 'PROJECT COULD NOT BE OPENED.',
+      });
+
+      await component.openProjectMaker(project as any);
+
+      expect(component.showFilmMaker()).toBe(false);
+      expect(component.aiFeedback()).toContain('COULD NOT BE OPENED');
+    });
+
+    const openDirtyProject = async () => {
+      const handles = await createComponent();
+      const current = projectSummary();
+      const next = projectSummary({
+        id: 'p2',
+        name: 'Second Cut',
+        musicBarsPerPart: 8,
+      });
+      handles.projectList.set([current, next] as any);
+      handles.activeProjectId.set(current.id);
+      // Open it once so the clean fingerprint is the project's saved state.
+      await handles.component.openProject(current.id);
+      handles.cinemaProjects.open.mockClear();
+      // A duration change stands in for any timeline edit.
+      handles.videoEngine.duration.set(120);
+      return { ...handles, current, next };
+    };
+
+    it('warns before replacing unsaved edits and keeps everything on cancel', async () => {
+      const { component, cinemaProjects, projectDialog, next } =
+        await openDirtyProject();
+      projectDialog.confirmWithAlternate.mockResolvedValueOnce('cancel');
+
+      await component.openProjectMaker(next as any);
+
+      expect(projectDialog.confirmWithAlternate).toHaveBeenCalledTimes(1);
+      const request = projectDialog.confirmWithAlternate.mock.calls[0][0];
+      expect(request.title).toBe('Unsaved project changes');
+      expect(request.message).toContain('Neon Cut');
+      expect(request.message).toContain('Second Cut');
+      expect(request.confirmLabel).toBe('Save & open');
+      expect(request.alternateLabel).toBe('Discard & open');
+      expect(cinemaProjects.save).not.toHaveBeenCalled();
+      expect(cinemaProjects.open).not.toHaveBeenCalled();
+      expect(component.showFilmMaker()).toBe(false);
+      expect(component.aiFeedback()).toContain('OPEN CANCELLED');
+    });
+
+    it('saves the current project before opening the chosen one', async () => {
+      const {
+        component,
+        cinemaProjects,
+        projectDialog,
+        activeProjectId,
+        videoEngine,
+        next,
+      } = await openDirtyProject();
+      projectDialog.confirmWithAlternate.mockResolvedValueOnce('confirm');
+      cinemaProjects.open.mockImplementationOnce(async () => {
+        activeProjectId.set(next.id);
+        videoEngine.productionMode.set('music');
+        return { ok: true, message: 'PROJECT OPENED: SECOND CUT.' };
+      });
+
+      await component.openProjectMaker(next as any);
+
+      expect(cinemaProjects.save).toHaveBeenCalledTimes(1);
+      expect(cinemaProjects.open).toHaveBeenCalledWith('p2');
+      expect(cinemaProjects.save.mock.invocationCallOrder[0]).toBeLessThan(
+        cinemaProjects.open.mock.invocationCallOrder[0]
+      );
+      expect(component.showFilmMaker()).toBe(true);
+      expect(component.musicBarsPerPart()).toBe(8);
+    });
+
+    it('keeps the current project when new edits arrive during the save', async () => {
+      const {
+        component,
+        cinemaProjects,
+        projectDialog,
+        videoEngine,
+        next,
+      } = await openDirtyProject();
+      projectDialog.confirmWithAlternate.mockResolvedValueOnce('confirm');
+      cinemaProjects.save.mockImplementationOnce(async () => {
+        // The artist keeps working while the write is in flight.
+        videoEngine.duration.set(130);
+        return { ok: true, id: 'p1', message: 'PROJECT SAVED: NEON CUT.' };
+      });
+
+      await component.openProjectMaker(next as any);
+
+      expect(cinemaProjects.open).not.toHaveBeenCalled();
+      expect(component.showFilmMaker()).toBe(false);
+      expect(component.aiFeedback()).toContain('NEW EDITS ARRIVED');
+    });
+
+    it('does not open when saving first fails', async () => {
+      const { component, cinemaProjects, projectDialog, next } =
+        await openDirtyProject();
+      projectDialog.confirmWithAlternate.mockResolvedValueOnce('confirm');
+      cinemaProjects.save.mockResolvedValueOnce({
+        ok: false,
+        id: null,
+        message: 'Project storage is locked by another open tab.',
+      });
+
+      await component.openProjectMaker(next as any);
+
+      expect(cinemaProjects.open).not.toHaveBeenCalled();
+      expect(component.showFilmMaker()).toBe(false);
+      expect(component.aiFeedback()).toContain('LOCKED BY ANOTHER OPEN TAB');
+    });
+
+    it('discards only when the artist explicitly chooses to', async () => {
+      const {
+        component,
+        cinemaProjects,
+        projectDialog,
+        activeProjectId,
+        videoEngine,
+        next,
+      } = await openDirtyProject();
+      projectDialog.confirmWithAlternate.mockResolvedValueOnce('alternate');
+      cinemaProjects.open.mockImplementationOnce(async () => {
+        activeProjectId.set(next.id);
+        videoEngine.productionMode.set('music');
+        return { ok: true, message: 'PROJECT OPENED: SECOND CUT.' };
+      });
+
+      await component.openProjectMaker(next as any);
+
+      expect(cinemaProjects.save).not.toHaveBeenCalled();
+      expect(cinemaProjects.open).toHaveBeenCalledWith('p2');
+      expect(component.showFilmMaker()).toBe(true);
+    });
+
+    it('guards a normal project-card open with the same save-first choice', async () => {
+      const {
+        component,
+        cinemaProjects,
+        projectDialog,
+        activeProjectId,
+        videoEngine,
+        next,
+      } = await openDirtyProject();
+      projectDialog.confirmWithAlternate.mockResolvedValueOnce('confirm');
+      cinemaProjects.open.mockImplementationOnce(async () => {
+        activeProjectId.set(next.id);
+        videoEngine.productionMode.set('music');
+        return { ok: true, message: 'PROJECT OPENED: SECOND CUT.' };
+      });
+
+      await component.openProjectFromCard(next as any);
+
+      expect(cinemaProjects.save).toHaveBeenCalledTimes(1);
+      expect(cinemaProjects.open).toHaveBeenCalledWith('p2');
+      expect(cinemaProjects.save.mock.invocationCallOrder[0]).toBeLessThan(
+        cinemaProjects.open.mock.invocationCallOrder[0]
+      );
+      expect(component.projectName()).toBe('Second Cut');
+    });
+
+    it('leaves a normal card open untouched when the guard is cancelled', async () => {
+      const { component, cinemaProjects, projectDialog, next } =
+        await openDirtyProject();
+      projectDialog.confirmWithAlternate.mockResolvedValueOnce('cancel');
+
+      await component.openProjectFromCard(next as any);
+
+      expect(cinemaProjects.save).not.toHaveBeenCalled();
+      expect(cinemaProjects.open).not.toHaveBeenCalled();
+      expect(component.aiFeedback()).toContain('OPEN CANCELLED');
+    });
+
+    it('does not warn when a clean project only has its playhead moved', async () => {
+      const {
+        component,
+        cinemaProjects,
+        projectDialog,
+        activeProjectId,
+        videoEngine,
+        next,
+      } = await createComponent().then(async (handles) => {
+        const current = projectSummary();
+        const next = projectSummary({
+          id: 'p2',
+          name: 'Second Cut',
+          musicBarsPerPart: 8,
+        });
+        handles.projectList.set([current, next] as any);
+        handles.activeProjectId.set(current.id);
+        await handles.component.openProject(current.id);
+        handles.cinemaProjects.open.mockClear();
+        // Scrubbing changes the pointer, not the edit.
+        handles.videoEngine.currentTime.set(42);
+        return { ...handles, next };
+      });
+      cinemaProjects.open.mockImplementationOnce(async () => {
+        activeProjectId.set(next.id);
+        videoEngine.productionMode.set('music');
+        return { ok: true, message: 'PROJECT OPENED: SECOND CUT.' };
+      });
+
+      await component.openProjectMaker(next as any);
+
+      expect(projectDialog.confirmWithAlternate).not.toHaveBeenCalled();
+      expect(cinemaProjects.open).toHaveBeenCalledWith('p2');
+      expect(component.showFilmMaker()).toBe(true);
+    });
+
+    it('uses the last save as the clean point for the guard', async () => {
+      const {
+        component,
+        cinemaProjects,
+        projectDialog,
+        activeProjectId,
+        videoEngine,
+        next,
+      } = await createComponent().then(async (handles) => {
+        const current = projectSummary();
+        const next = projectSummary({
+          id: 'p2',
+          name: 'Second Cut',
+          musicBarsPerPart: 8,
+        });
+        handles.projectList.set([current, next] as any);
+        handles.activeProjectId.set(current.id);
+        handles.videoEngine.duration.set(45);
+        await handles.component.saveProject();
+        handles.cinemaProjects.open.mockClear();
+        return { ...handles, next };
+      });
+      cinemaProjects.open.mockImplementationOnce(async () => {
+        activeProjectId.set(next.id);
+        videoEngine.productionMode.set('music');
+        return { ok: true, message: 'PROJECT OPENED: SECOND CUT.' };
+      });
+
+      await component.openProjectMaker(next as any);
+
+      expect(projectDialog.confirmWithAlternate).not.toHaveBeenCalled();
+      expect(cinemaProjects.open).toHaveBeenCalledWith('p2');
+      expect(component.showFilmMaker()).toBe(true);
+    });
+
     it('saves under the typed name and reports the outcome', async () => {
       const { component, cinemaProjects } = await createComponent();
       component.projectName.set('Feature Cut');
@@ -4026,6 +4425,133 @@ describe('ImageVideoLabComponent', () => {
       expect(component.director.sectionVfxPlan()?.title).toBe('Saved FX');
     });
 
+    it('warns before resume replaces an unsaved scratch timeline', async () => {
+      const {
+        component,
+        cinemaProjects,
+        projectDialog,
+        projectList,
+        videoEngine,
+      } = await createComponent();
+      projectList.set([{ id: 'p2', name: 'Act Two' }]);
+      cinemaProjects.takeResumableProjectId.mockResolvedValueOnce('p2');
+      videoEngine.markers.set([
+        { id: 'm1', time: 1, label: 'Verse', color: '#fff' },
+      ]);
+      projectDialog.confirmWithAlternate.mockResolvedValueOnce('cancel');
+
+      await component.resumeLastProject();
+
+      expect(projectDialog.confirmWithAlternate).toHaveBeenCalledTimes(1);
+      expect(projectDialog.confirmWithAlternate.mock.calls[0][0].message).toContain(
+        'This timeline has work that is not saved'
+      );
+      expect(cinemaProjects.open).not.toHaveBeenCalled();
+      expect(component.resumingProject()).toBe(false);
+      expect(component.aiFeedback()).toContain('OPEN CANCELLED');
+    });
+
+    it('resumes after the scratch timeline is explicitly discarded', async () => {
+      const {
+        component,
+        cinemaProjects,
+        projectDialog,
+        projectList,
+        activeProjectId,
+        videoEngine,
+      } = await createComponent();
+      projectList.set([{ id: 'p2', name: 'Act Two' }]);
+      cinemaProjects.takeResumableProjectId.mockResolvedValueOnce('p2');
+      videoEngine.markers.set([
+        { id: 'm1', time: 1, label: 'Verse', color: '#fff' },
+      ]);
+      projectDialog.confirmWithAlternate.mockResolvedValueOnce('alternate');
+      cinemaProjects.open.mockImplementationOnce(async () => {
+        activeProjectId.set('p2');
+        return { ok: true, message: 'PROJECT OPENED: ACT TWO.' };
+      });
+
+      await component.resumeLastProject();
+
+      expect(cinemaProjects.save).not.toHaveBeenCalled();
+      expect(cinemaProjects.open).toHaveBeenCalledWith('p2');
+      expect(component.projectName()).toBe('Act Two');
+      expect(component.resumingProject()).toBe(false);
+    });
+
+    it('saves scratch work before resuming when asked', async () => {
+      const {
+        component,
+        cinemaProjects,
+        projectDialog,
+        projectList,
+        activeProjectId,
+        videoEngine,
+      } = await createComponent();
+      projectList.set([{ id: 'p2', name: 'Act Two' }]);
+      cinemaProjects.takeResumableProjectId.mockResolvedValueOnce('p2');
+      videoEngine.markers.set([
+        { id: 'm1', time: 1, label: 'Verse', color: '#fff' },
+      ]);
+      projectDialog.confirmWithAlternate.mockResolvedValueOnce('confirm');
+      cinemaProjects.save.mockImplementationOnce(async () => {
+        activeProjectId.set('p-new');
+        return { ok: true, id: 'p-new', message: 'PROJECT SAVED: SCRATCH.' };
+      });
+      cinemaProjects.open.mockImplementationOnce(async () => {
+        activeProjectId.set('p2');
+        return { ok: true, message: 'PROJECT OPENED: ACT TWO.' };
+      });
+
+      await component.resumeLastProject();
+
+      expect(cinemaProjects.save).toHaveBeenCalledTimes(1);
+      expect(cinemaProjects.open).toHaveBeenCalledWith('p2');
+      expect(component.projectName()).toBe('Act Two');
+    });
+
+    it('offers a manual resume after the automatic prompt is cancelled', async () => {
+      const {
+        component,
+        cinemaProjects,
+        projectDialog,
+        projectList,
+        activeProjectId,
+        pendingResumeId,
+        videoEngine,
+      } = await createComponent();
+      projectList.set([{ id: 'p2', name: 'Act Two' }]);
+      cinemaProjects.takeResumableProjectId.mockImplementationOnce(async () => {
+        pendingResumeId.set('p2');
+        return 'p2';
+      });
+      videoEngine.markers.set([
+        { id: 'm1', time: 1, label: 'Verse', color: '#fff' },
+      ]);
+      projectDialog.confirmWithAlternate.mockResolvedValueOnce('cancel');
+
+      await component.resumeLastProject();
+
+      // The automatic read is spent, but the target stays reachable manually.
+      expect(cinemaProjects.open).not.toHaveBeenCalled();
+      expect(pendingResumeId()).toBe('p2');
+      expect(component.resumableLastProject()?.name).toBe('Act Two');
+
+      projectDialog.confirmWithAlternate.mockResolvedValueOnce('alternate');
+      cinemaProjects.open.mockImplementationOnce(async () => {
+        activeProjectId.set('p2');
+        pendingResumeId.set(null);
+        return { ok: true, message: 'PROJECT OPENED: ACT TWO.' };
+      });
+
+      await component.resumePendingProject();
+
+      expect(cinemaProjects.open).toHaveBeenCalledWith('p2');
+      expect(component.projectName()).toBe('Act Two');
+      expect(pendingResumeId()).toBeNull();
+      expect(component.resumingProject()).toBe(false);
+    });
+
     it('names the saved project and holds the resume state while it loads', async () => {
       const { component, cinemaProjects, projectList } = await createComponent();
       let finishOpen!: (outcome: { ok: boolean; message: string }) => void;
@@ -4181,6 +4707,332 @@ describe('ImageVideoLabComponent', () => {
       expect(component.exportWindow()).toBe(120);
     });
 
+    it('walks the remaining timeline in 120-second sections', async () => {
+      const { component, videoEngine } = await createComponent();
+      videoEngine.duration.set(250);
+      component.exportStart.set(0);
+      const run = jest
+        .spyOn(component as any, 'runExportRange')
+        .mockResolvedValue(true);
+
+      expect(component.queuedRangeCount()).toBe(3);
+      await component.queueExportRanges();
+
+      expect(run).toHaveBeenNthCalledWith(1, 0, 120, expect.any(String));
+      expect(run).toHaveBeenNthCalledWith(2, 120, 120, expect.any(String));
+      expect(run).toHaveBeenNthCalledWith(3, 240, 10, expect.any(String));
+      expect(component.queueCompleted()).toBe(3);
+      expect(component.queueTotal()).toBe(3);
+      // The queue walks the start forward; it restores the operator's value.
+      expect(component.exportStart()).toBe(0);
+      expect(component.isQueueing()).toBe(false);
+      expect(component.aiFeedback()).toContain('EXPORT QUEUE COMPLETE');
+    });
+
+    it('stops the queue at the first failed section', async () => {
+      const { component, videoEngine } = await createComponent();
+      videoEngine.duration.set(250);
+      const run = jest
+        .spyOn(component as any, 'runExportRange')
+        .mockResolvedValueOnce(true)
+        .mockResolvedValueOnce(false);
+
+      await component.queueExportRanges();
+
+      expect(run).toHaveBeenCalledTimes(2);
+      expect(component.queueCompleted()).toBe(1);
+      expect(component.isQueueing()).toBe(false);
+      expect(component.aiFeedback()).toContain(
+        'EXPORT QUEUE STOPPED AT SECTION 2 OF 3'
+      );
+      expect(component.exportSections().map((section) => section.status)).toEqual([
+        'rendered',
+        'failed',
+        'skipped',
+      ]);
+    });
+
+    it('finishes the current section before cancelling the queue', async () => {
+      const { component, videoEngine } = await createComponent();
+      videoEngine.duration.set(250);
+      let resolveFirst!: (ok: boolean) => void;
+      const run = jest
+        .spyOn(component as any, 'runExportRange')
+        .mockImplementationOnce(
+          () =>
+            new Promise<boolean>((resolve) => {
+              resolveFirst = resolve;
+            })
+        )
+        .mockResolvedValue(true);
+
+      const queue = component.queueExportRanges();
+      await Promise.resolve();
+      expect(component.isQueueing()).toBe(true);
+
+      component.cancelExportQueue();
+      expect(component.aiFeedback()).toContain(
+        'WILL STOP AFTER THE CURRENT SECTION'
+      );
+
+      resolveFirst(true);
+      await queue;
+
+      expect(run).toHaveBeenCalledTimes(1);
+      expect(component.isQueueing()).toBe(false);
+      expect(component.aiFeedback()).toContain('STOPPED AFTER 1 OF 3 SECTIONS');
+      expect(component.exportSections().map((section) => section.status)).toEqual([
+        'rendered',
+        'skipped',
+        'skipped',
+      ]);
+    });
+
+    it('opens Film Maker with all sections selected and queues only checks', async () => {
+      const { component, videoEngine } = await createComponent();
+      videoEngine.duration.set(250);
+      const run = jest
+        .spyOn(component as any, 'runExportRange')
+        .mockResolvedValue(true);
+
+      component.openFilmMaker();
+      expect(component.showFilmMaker()).toBe(true);
+      expect(component.selectedRangeCount()).toBe(3);
+
+      component.toggleExportRange(1);
+      expect(component.selectedRangeCount()).toBe(2);
+      await component.queueSelectedRanges();
+
+      expect(run).toHaveBeenNthCalledWith(1, 0, 120, expect.any(String));
+      expect(run).toHaveBeenNthCalledWith(2, 240, 10, expect.any(String));
+      expect(component.exportSections().length).toBe(2);
+    });
+
+    it('cuts music videos on bars and stamps the beat grid into the manifest', async () => {
+      const { component, videoEngine, exportService } =
+        await createComponent();
+      component.selectProductionMode('music');
+      videoEngine.duration.set(100);
+      component.exportStart.set(0);
+      const run = jest
+        .spyOn(component as any, 'runExportRange')
+        .mockImplementation(async (_start, _seconds, hint) => {
+          component.lastExportFileName.set(`${hint}.mp4`);
+          return true;
+        });
+
+      component.openFilmMaker();
+
+      expect(component.isMusicVideoMode()).toBe(true);
+      expect(component.makerButtonLabel()).toBe('MUSIC VIDEO MAKER');
+      expect(component.makerTitle()).toContain('beat-locked');
+      expect(component.musicBarsPerSection()).toBe(16);
+      expect(component.availableExportRanges()).toEqual([
+        { index: 0, start: 0, seconds: 32, end: 32 },
+        { index: 1, start: 32, seconds: 32, end: 64 },
+        { index: 2, start: 64, seconds: 32, end: 96 },
+        { index: 3, start: 96, seconds: 4, end: 100 },
+      ]);
+      expect(component.rangeGroupLabel(component.availableExportRanges()[0])).toBe(
+        'BAR 1–16'
+      );
+
+      await component.queueSelectedRanges();
+      expect(run).toHaveBeenNthCalledWith(1, 0, 32, expect.any(String));
+      expect(run).toHaveBeenNthCalledWith(4, 96, 4, expect.any(String));
+
+      component.downloadExportManifest();
+      const blob = exportService.downloadBlob.mock.calls[0][0] as Blob;
+      const manifest = JSON.parse(
+        new TextDecoder().decode(new Uint8Array(await blob.arrayBuffer()))
+      );
+      expect(manifest.productionMode).toBe('music');
+      expect(manifest.sectionSeconds).toBe(32);
+      expect(manifest.music).toEqual({
+        bpm: 120,
+        beatSeconds: 0.5,
+        barSeconds: 2,
+        barsPerSection: 16,
+      });
+      expect(exportService.downloadBlob).toHaveBeenCalledWith(
+        expect.any(Blob),
+        expect.stringMatching(/^smuve_music_video_manifest_/)
+      );
+    });
+
+    it('offers 4, 8, 16, and 32-bar parts and replans the music video', async () => {
+      const { component, videoEngine } = await createComponent();
+      component.selectProductionMode('music');
+      videoEngine.duration.set(100);
+      component.openFilmMaker();
+
+      expect(component.musicBarsPerPartOptions).toEqual([4, 8, 16, 32]);
+
+      component.setMusicBarsPerPart(8);
+
+      expect(component.musicBarsPerPart()).toBe(8);
+      expect(component.musicBarsPerSection()).toBe(8);
+      expect(component.availableExportRanges()[0]).toEqual({
+        index: 0,
+        start: 0,
+        seconds: 16,
+        end: 16,
+      });
+      expect(component.availableExportRanges()).toHaveLength(7);
+      expect(component.selectedRangeCount()).toBe(7);
+      expect(
+        component.rangeGroupLabel(component.availableExportRanges()[0])
+      ).toBe('BAR 1–8');
+    });
+
+    it('caps an oversized bar choice at the recorder window', async () => {
+      const { component, videoEngine } = await createComponent();
+      component.selectProductionMode('music');
+      videoEngine.duration.set(400);
+      videoEngine.bpm.set(30);
+      videoEngine.barSeconds.set(8);
+      component.openFilmMaker();
+
+      component.setMusicBarsPerPart(32);
+
+      expect(component.musicBarsPerPart()).toBe(32);
+      expect(component.musicBarsPerSection()).toBe(15);
+      expect(component.availableExportRanges()[0].seconds).toBe(120);
+      expect(component.makerSectionSummary()).toContain('15 BARS');
+    });
+
+    it('downloads a manifest mapping rendered files to timecodes', async () => {
+      const { component, videoEngine, exportService } =
+        await createComponent();
+      videoEngine.duration.set(250);
+      const run = jest
+        .spyOn(component as any, 'runExportRange')
+        .mockImplementation(async (_start, _seconds, hint) => {
+          component.lastExportFileName.set(`${hint}.mp4`);
+          return true;
+        });
+
+      await component.queueExportRanges();
+      component.downloadExportManifest();
+
+      expect(run).toHaveBeenCalledTimes(3);
+      expect(exportService.downloadBlob).toHaveBeenCalledWith(
+        expect.any(Blob),
+        expect.stringMatching(/\.json$/)
+      );
+      const blob = exportService.downloadBlob.mock.calls[0][0] as Blob;
+      const bytes = new Uint8Array(await blob.arrayBuffer());
+      const manifest = JSON.parse(new TextDecoder().decode(bytes));
+      expect(manifest.format).toBe('smuve-film-manifest/v1');
+      expect(manifest.sectionSeconds).toBe(120);
+      expect(manifest.sections).toHaveLength(3);
+      expect(manifest.sections[0]).toMatchObject({
+        start: 0,
+        end: 120,
+        status: 'rendered',
+      });
+      expect(manifest.sections[0].fileName).toMatch(/\.mp4$/);
+    });
+
+    it('orders staged stitch files by part filename', async () => {
+      const { component } = await createComponent();
+      const input = document.createElement('input');
+      Object.defineProperty(input, 'files', {
+        value: [
+          new File(['two'], 'part-002.mp4', { type: 'video/mp4' }),
+          new File(['one'], 'part-001.mp4', { type: 'video/mp4' }),
+        ],
+      });
+
+      component.onStitchFiles({ target: input } as unknown as Event);
+
+      expect(component.stitchFiles().map((file) => file.name)).toEqual([
+        'part-001.mp4',
+        'part-002.mp4',
+      ]);
+    });
+
+    it('stitches staged sections into one downloaded MP4', async () => {
+      const { component, exportService, ffmpegExport } =
+        await createComponent();
+      const sections = [
+        new File(['one'], 'part-001.mp4', { type: 'video/mp4' }),
+        new File(['two'], 'part-002.mp4', { type: 'video/mp4' }),
+      ];
+      component.stitchFiles.set(sections);
+
+      await component.stitchFilm();
+
+      expect(ffmpegExport.stitchToMp4).toHaveBeenCalledWith(
+        sections,
+        expect.objectContaining({ onProgress: expect.any(Function) })
+      );
+      expect(exportService.downloadBlob).toHaveBeenCalledWith(
+        expect.any(Blob),
+        expect.stringMatching(/\.mp4$/)
+      );
+      expect(component.stitchStatus()).toContain('STITCHED 2 SECTIONS');
+      expect(component.stitchProgress()).toBe(100);
+    });
+
+    it('starts a master at the selected timeline offset', async () => {
+      const { component, videoEngine } = await createComponent();
+      videoEngine.duration.set(7200);
+      component.exportStart.set(3600);
+      component.exportWindow.set(30);
+
+      expect(component.exportPlan()).toEqual(
+        expect.objectContaining({ start: 3600, seconds: 30, end: 3630 })
+      );
+      expect(component.exportRangeLabel()).toContain('1:00:00');
+      expect(component.exportRangeNotice()).toContain('NEXT PASS');
+    });
+
+    it('seeks to the selected start instead of always capturing from zero', async () => {
+      const { component, videoEngine, exportService } =
+        await createComponent();
+      const { complete } = installRecorder(exportService);
+      jest.useFakeTimers();
+      videoEngine.duration.set(7200);
+      component.exportStart.set(180);
+      component.exportWindow.set(5);
+
+      const run = component.exportVideo();
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(videoEngine.seek).toHaveBeenCalledWith(180);
+      expect(component.aiFeedback()).toContain('FROM 3:00');
+      jest.advanceTimersByTime(5250);
+      complete(new Blob(['video-bytes'], { type: 'video/webm' }));
+      await run;
+    });
+
+    it('clamps a range that would run past the end of the timeline', async () => {
+      const { component, videoEngine } = await createComponent();
+      videoEngine.duration.set(12);
+      component.setExportStart(20);
+      component.exportWindow.set(5);
+
+      expect(component.exportStart()).toBeCloseTo(11.95);
+      const plan = component.exportPlan();
+      expect(plan.start).toBeCloseTo(11.95);
+      expect(plan.seconds).toBeCloseTo(0.05);
+      expect(plan.end).toBeCloseTo(12);
+    });
+
+    it('arms the next range from the playhead', async () => {
+      const { component, videoEngine } = await createComponent();
+      component.exportStart.set(0);
+      videoEngine.currentTime.set(245.4);
+      videoEngine.snapTime.mockReturnValue(246);
+
+      component.usePlayheadAsExportStart();
+
+      expect(component.exportStart()).toBe(246);
+      expect(component.aiFeedback()).toContain('EXPORT START SET TO 4:06');
+    });
+
     it('records the user-selected capture window off the master canvas', async () => {
       const { component, videoEngine, exportService } =
         await createComponent();
@@ -4267,6 +5119,17 @@ describe('ImageVideoLabComponent', () => {
       expect(exportService.setClipAudioLevel).toHaveBeenLastCalledWith(0);
     });
 
+    it('rates film and music masters above social cuts at the same raster', async () => {
+      const { component, videoEngine } = await createComponent();
+      component.exportScale.set('2160p');
+      component.exportFps.set(30);
+      const master = component.exportBitrate();
+      expect(master).toBeGreaterThan(26_000_000);
+
+      videoEngine.productionMode.set('stream');
+      expect(component.exportBitrate()).toBeLessThan(master);
+    });
+
     it('honours a manual raster rung and rates the encoder for it', async () => {
       const { component } = await createComponent();
 
@@ -4317,7 +5180,10 @@ describe('ImageVideoLabComponent', () => {
       complete(new Blob(['webm-bytes'], { type: 'video/webm' }));
       await run;
 
-      expect(ffmpegExport.transcodeToMp4).toHaveBeenCalled();
+      expect(ffmpegExport.transcodeToMp4).toHaveBeenCalledWith(
+        expect.any(Blob),
+        expect.objectContaining({ crf: 18, preset: 'fast' })
+      );
       expect(exportService.downloadBlob).toHaveBeenCalledWith(
         expect.any(Blob),
         expect.stringMatching(/\.mp4$/)

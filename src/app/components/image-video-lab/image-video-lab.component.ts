@@ -51,6 +51,16 @@ import {
 } from '../../services/video-engine.service';
 import { ExportService } from '../../services/export.service';
 import { FfmpegVideoExportService } from '../../services/ffmpeg-video-export.service';
+import {
+  MUSIC_BARS_PER_PART_OPTIONS,
+  buildFilmManifest,
+  planMasterRanges,
+  planMusicVideoRanges,
+  sanitizeMusicBarsPerPart,
+  type FilmSectionRecord,
+  type MasterExportRange,
+} from '../../services/export-ranges';
+import { assessSource, MASTER_CAPTURE_WINDOW_SECONDS, type SourceAssessment } from 'cinema-engine';
 import { KEYFRAME_EASINGS, KEYFRAME_PROPERTIES, evaluateKeyframes, type KeyframeEasing, type KeyframeProperty } from '../../services/clip-keyframes';
 import { applyChromaKey, DEFAULT_CHROMA_KEY, type ChromaKeySettings } from '../../services/chroma-key';
 import { pipTransform, type ClipMaskSettings } from '../../services/clip-mask';
@@ -72,6 +82,7 @@ import {
   type CoachState,
 } from '../../services/director-coach.service';
 import { CinemaEngineService } from '../../services/cinema-engine.service';
+import { InteractionDialogService } from '../../services/interaction-dialog.service';
 import {
   LAB_LESSONS,
   LAB_TUTORIAL_SRC,
@@ -96,6 +107,7 @@ import {
 import {
   AUDIO_BED_MEDIA_ID,
   CinemaProjectService,
+  type CinemaProjectSummary,
 } from '../../services/cinema-project.service';
 import {
   CAPTURE_QUALITIES,
@@ -192,6 +204,12 @@ const EXPORT_MAX_EDGE = 4096;
 const EXPORT_MAX_PIXELS = 8_300_000;
 /** Bits per encoded pixel-second - the camera recorder's own tuning. */
 const EXPORT_BITS_PER_PIXEL = 0.12;
+/**
+ * Film and music masters get a richer encoder target than a social cut. The
+ * extra 25% costs file size, but keeps grain and colour gradients intact in
+ * exactly the two modes a viewer is most likely to watch on a large screen.
+ */
+const EXPORT_MASTER_BITS_PER_PIXEL = 0.15;
 const EXPORT_MIN_BITS_PER_SECOND = 6_000_000;
 const EXPORT_MAX_BITS_PER_SECOND = 60_000_000;
 /** Frame rates offered for a capture. */
@@ -323,6 +341,7 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
   /** Persisted per-preset viewer-health overrides. */
   private viewerHealthSettings = inject(ViewerHealthSettingsService);
   public cinemaProjects = inject(CinemaProjectService);
+  private readonly projectDialog = inject(InteractionDialogService);
 
   @ViewChild('previewCanvas') previewCanvas!: ElementRef<HTMLCanvasElement>;
   /** Native player exposed in the monitor for reliable Chrome/Android playback. */
@@ -557,7 +576,32 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
   private originalTimelineDuration: number | null = null;
   /** Seconds of real-time timeline captured per video export. */
   exportWindow = signal(DEFAULT_EXPORT_WINDOW);
+  /** Timeline offset the next master starts from; ranges serve long pieces. */
+  exportStart = signal(0);
   exportProgress = signal(0);
+  /** Quality report for the last measured source, shown with the master controls. */
+  sourceQuality = signal<SourceAssessment | null>(null);
+  /** True while the queue is walking the timeline section by section. */
+  isQueueing = signal(false);
+  /** Sections completed and planned, for the queue button. */
+  queueCompleted = signal(0);
+  queueTotal = signal(0);
+  private exportQueueCancelled = false;
+  /** Film Maker: range picker, manifest, and section stitcher. */
+  showFilmMaker = signal(false);
+  /**
+   * Requested bars per Music Video Maker part. It lives on the engine so the
+   * project snapshot saves and restores it with the beat grid.
+   */
+  readonly musicBarsPerPart = this.videoEngine.musicBarsPerPart;
+  readonly musicBarsPerPartOptions = MUSIC_BARS_PER_PART_OPTIONS;
+  selectedRangeIndexes = signal<ReadonlySet<number>>(new Set());
+  exportSections = signal<FilmSectionRecord[]>([]);
+  lastExportFileName = signal<string | null>(null);
+  stitchFiles = signal<File[]>([]);
+  isStitching = signal(false);
+  stitchProgress = signal(0);
+  stitchStatus = signal<string | null>(null);
   /** Raster target for the master, independent of the preview's 1080p cap. */
   exportScale = signal<ExportScale>('auto');
   /** Capture frame rate for the master. */
@@ -603,14 +647,149 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
   /** Encoder target for that raster, shown before a take starts. */
   exportBitrate = computed(() => {
     const { width, height } = this.exportDimensions();
-    const raw = Math.round(
-      width * height * this.exportFps() * EXPORT_BITS_PER_PIXEL
-    );
+    const mode = this.videoEngine.productionMode();
+    const bitsPerPixel =
+      mode === 'movie' || mode === 'music'
+        ? EXPORT_MASTER_BITS_PER_PIXEL
+        : EXPORT_BITS_PER_PIXEL;
+    const raw = Math.round(width * height * this.exportFps() * bitsPerPixel);
     return Math.min(
       EXPORT_MAX_BITS_PER_SECOND,
       Math.max(EXPORT_MIN_BITS_PER_SECOND, raw)
     );
   });
+
+  /**
+   * The exact range the next master will cover.
+   *
+   * Clamped to the timeline so a start near the tail cannot ask the recorder
+   * for seconds that do not exist. A two-hour feature is still captured in
+   * passes; this is what lets each pass begin anywhere instead of always at 0.
+   */
+  exportPlan = computed(() => {
+    const timeline = Math.max(0, this.videoEngine.duration());
+    const latestStart = Math.max(0, timeline - MIN_ACTIVE_CLIP_DURATION);
+    const start = Math.min(Math.max(0, this.exportStart()), latestStart);
+    const seconds = Math.min(
+      Math.max(0, this.exportWindow()),
+      Math.max(0, timeline - start)
+    );
+    return {
+      start,
+      seconds,
+      end: start + seconds,
+      timeline,
+      coversTimeline: start <= 0.001 && seconds >= timeline - 0.001,
+    };
+  });
+
+  /** Human-readable range for the master controls. */
+  exportRangeLabel = computed(() => {
+    const plan = this.exportPlan();
+    return `${this.formatClock(plan.start)}–${this.formatClock(
+      plan.end
+    )} of ${this.formatClock(plan.timeline)}`;
+  });
+
+  /**
+   * Long-form guidance only while there is still timeline left to capture. A
+   * range that ends at the tail is a complete pass, not another section.
+   */
+  exportRangeNotice = computed(() => {
+    // Music videos are delivered on bar-aligned parts, not long-form passes.
+    if (this.isMusicVideoMode()) return '';
+    const plan = this.exportPlan();
+    if (plan.timeline <= MASTER_CAPTURE_WINDOW_SECONDS) return '';
+    if (plan.seconds <= 0) {
+      return 'THE PLAYHEAD IS AT THE END. SET AN EARLIER EXPORT START.';
+    }
+    if (plan.end >= plan.timeline - 0.05) return '';
+    return `LONG-FORM RANGE: THIS MASTER STOPS AT ${this.formatClock(
+      plan.end
+    )}. SET START TO ${this.formatClock(plan.end)} FOR THE NEXT PASS.`;
+  });
+
+  /** The Maker follows the active production mode rather than a second route. */
+  isMusicVideoMode = computed(
+    () => this.videoEngine.productionMode() === 'music'
+  );
+  makerName = computed(() =>
+    this.isMusicVideoMode() ? 'Music Video Maker' : 'Film Maker'
+  );
+  makerButtonLabel = computed(() =>
+    this.isMusicVideoMode() ? 'MUSIC VIDEO MAKER' : 'FILM MAKER'
+  );
+  makerEyebrow = computed(() => `${this.makerName()} · Delivery`);
+  makerTitle = computed(() =>
+    this.isMusicVideoMode()
+      ? 'Cut the song into beat-locked parts'
+      : 'Build the master from sections'
+  );
+  makerPickerLabel = computed(() =>
+    this.isMusicVideoMode() ? 'Bar picker' : 'Section picker'
+  );
+  makerUnit = computed(() => (this.isMusicVideoMode() ? 'PARTS' : 'SECTIONS'));
+
+  /** Whole bars that fit inside one recorder pass at the current tempo. */
+  musicBarsPerSection = computed(() => {
+    const bar = this.videoEngine.barSeconds();
+    const safeBar = Number.isFinite(bar) && bar > 0 ? bar : 2;
+    const requested = this.musicBarsPerPart();
+    return Math.max(
+      1,
+      Math.min(
+        requested,
+        Math.floor(MASTER_CAPTURE_WINDOW_SECONDS / safeBar + 1e-9)
+      )
+    );
+  });
+  makerSectionSeconds = computed(() =>
+    this.isMusicVideoMode()
+      ? this.musicBarsPerSection() * this.videoEngine.barSeconds()
+      : MASTER_CAPTURE_WINDOW_SECONDS
+  );
+  makerSectionSummary = computed(() =>
+    this.isMusicVideoMode()
+      ? `${this.musicBarsPerSection()} BARS AT ${this.videoEngine
+          .bpm()
+          .toFixed(1)} BPM`
+      : `UP TO ${MASTER_CAPTURE_WINDOW_SECONDS}s`
+  );
+
+  /** Sections available from the current export start, on the mode's grid. */
+  availableExportRanges = computed(() =>
+    this.isMusicVideoMode()
+      ? planMusicVideoRanges(
+          this.exportStart(),
+          this.videoEngine.duration(),
+          this.videoEngine.bpm(),
+          this.musicBarsPerPart(),
+          MASTER_CAPTURE_WINDOW_SECONDS
+        )
+      : planMasterRanges(
+          this.exportStart(),
+          this.videoEngine.duration(),
+          MASTER_CAPTURE_WINDOW_SECONDS
+        )
+  );
+
+  selectedExportRanges = computed(() => {
+    const selected = this.selectedRangeIndexes();
+    return this.availableExportRanges().filter((range) =>
+      selected.has(range.index)
+    );
+  });
+
+  selectedRangeCount = computed(() => this.selectedExportRanges().length);
+
+  /** How many delivery parts the queue would capture from the current start. */
+  queuedRangeCount = computed(() => this.availableExportRanges().length);
+
+  exportManifestReady = computed(() => this.exportSections().length > 0);
+
+  renderedSectionCount = computed(
+    () => this.exportSections().filter((section) => section.status === 'rendered').length
+  );
 
   /** One-line statement of what the next download will be. */
   exportSummary = computed(() => {
@@ -1885,13 +2064,97 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
   /** The stored project's name, shown once the project list has loaded. */
   resumingProjectName = signal('');
 
+  /**
+   * Fingerprint of the open edit at its last save/open. `null` until a project
+   * has been loaded or saved this session, so an untracked scratch timeline is
+   * not mistaken for a clean project.
+   */
+  private savedProjectSignature = signal<string | null>(null);
+
+  /**
+   * Whether replacing the open project would drop edits that are not stored.
+   * Only project content counts: moving the playhead is not an edit, and undo
+   * back to the saved state clears this again.
+   */
+  hasUnsavedProjectChanges = computed(() => {
+    if (this.cinemaProjects.activeProjectId() === null) return false;
+    const saved = this.savedProjectSignature();
+    return saved !== null && this.projectContentSignature() !== saved;
+  });
+
+  /**
+   * The replacement guard's full answer: an attached project is compared with
+   * its saved snapshot, while a detached scratch timeline is unsaved whenever
+   * it holds actual work.
+   */
+  hasUnsavedProjectWork = computed(() => {
+    if (this.cinemaProjects.activeProjectId() !== null) {
+      return this.hasUnsavedProjectChanges();
+    }
+    return this.hasScratchProjectContent();
+  });
+
+  /** The pending last-project target, unless it is already the open project. */
+  resumableLastProject = computed(() => {
+    const project = this.cinemaProjects.pendingResumeProject();
+    return project && this.cinemaProjects.activeProjectId() !== project.id
+      ? project
+      : null;
+  });
+
+  private hasScratchProjectContent(): boolean {
+    const snapshot = this.videoEngine.snapshot();
+    return (
+      (snapshot.tracks ?? []).some((track) => (track.clips?.length ?? 0) > 0) ||
+      (snapshot.markers?.length ?? 0) > 0 ||
+      (snapshot.captions?.length ?? 0) > 0 ||
+      !!snapshot.audioOverlay ||
+      snapshot.lowerThird?.enabled === true ||
+      this.director.sectionVfxPlan() !== null ||
+      this.director.shotPlanRecord() !== null
+    );
+  }
+
+  /**
+   * A stable copy of everything a save would persist. The playhead is pinned to
+   * null so scrubbing alone never looks like an unsaved edit, and blob URLs are
+   * already omitted by the engine snapshot because they do not survive a reload.
+   */
+  private projectContentSignature(): string {
+    return JSON.stringify({
+      ...this.videoEngine.snapshot(),
+      currentTime: null,
+      director: {
+        sectionVfxPlan: this.director.sectionVfxPlan(),
+        shotPlan: this.director.shotPlanRecord(),
+      },
+      // Persisted metadata alone cannot tell two takes of the same file apart.
+      // These session URLs make a replaced bed or clip count as an edit too.
+      media: {
+        audioBedUrl: this.videoEngine.audioOverlay()?.url ?? null,
+        clipUrls: this.videoEngine
+          .tracks()
+          .flatMap((track) =>
+            track.clips.map((clip) => [clip.id, clip.url ?? ''])
+          ),
+      },
+    });
+  }
+
+  private rememberSavedProject(): void {
+    this.savedProjectSignature.set(this.projectContentSignature());
+  }
+
   /** Save the current edit, creating a project the first time. */
-  async saveProject(): Promise<void> {
+  async saveProject(): Promise<boolean> {
     const footage = await this.collectTimelineMedia();
     // The bed is part of the mix, not a clip, so it is stored under the
     // project's reserved media key rather than being collected as footage.
     const bed = await this.collectAudioBed();
     if (bed) footage.set(AUDIO_BED_MEDIA_ID, bed);
+    // Fix the clean point before the write starts. An edit made while the save
+    // is in flight is not in the stored snapshot, so it must stay dirty.
+    const savedSignature = this.projectContentSignature();
     const outcome = await this.cinemaProjects.save(
       this.projectName(),
       this.cinemaProjects.activeProjectId(),
@@ -1903,15 +2166,18 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
       const saved = this.cinemaProjects.activeProject();
       if (saved) this.projectName.set(saved.name);
       this.aiFeedback.set(outcome.message);
-      return;
+      this.savedProjectSignature.set(savedSignature);
+      return true;
     }
     this.aiFeedback.set(outcome.message.toUpperCase());
+    return false;
   }
 
   /**
    * Reopen the project that was open when the page last unloaded. The pointer
    * is consumed once by the project service, so returning to the lab later in
-   * the same session does not replace an edit started since.
+   * the same session does not replace an edit started since. A detached scratch
+   * timeline with work gets the replacement guard before anything opens.
    */
   async resumeLastProject(): Promise<void> {
     this.resumingProjectName.set('');
@@ -1923,11 +2189,17 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     // The service just refreshed the project list, so the name is available
     // before the longer project open begins. No summary means no stored
     // name to show; the overlay keeps its generic wording.
-    this.resumingProjectName.set(
-      this.cinemaProjects
-        .projects()
-        .find((project) => project.id === id)?.name ?? ''
-    );
+    const project = this.cinemaProjects
+      .projects()
+      .find((candidate) => candidate.id === id);
+    const targetName = project?.name ?? 'THE LAST PROJECT';
+    if (this.hasUnsavedProjectWork()) {
+      // The resume overlay covers the lab; lift it so the artist can answer
+      // the guard, then restore it only if the open will actually run.
+      this.resumingProject.set(false);
+      if (!(await this.confirmProjectReplacement(targetName))) return;
+    }
+    this.resumingProjectName.set(project?.name ?? '');
     this.resumingProject.set(true);
     try {
       await this.openProject(id);
@@ -1935,6 +2207,113 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
       this.resumingProject.set(false);
       this.resumingProjectName.set('');
     }
+  }
+
+  /**
+   * Confirm replacing the current edit. Returns true when the caller may open
+   * the target; a cancel, a failed save, or edits that raced the save all keep
+   * the artist where they are.
+   */
+  private async confirmProjectReplacement(
+    targetName: string
+  ): Promise<boolean> {
+    if (!this.hasUnsavedProjectWork()) return true;
+
+    const activeId = this.cinemaProjects.activeProjectId();
+    const currentName =
+      activeId === null
+        ? 'THIS EDIT'
+        : this.cinemaProjects.activeProject()?.name ?? 'THE CURRENT PROJECT';
+    const choice = await this.projectDialog.confirmWithAlternate({
+      title: 'Unsaved project changes',
+      message:
+        activeId === null
+          ? `This timeline has work that is not saved. Save it before opening “${targetName}”?`
+          : `“${currentName}” has edits that are not saved. Save them before opening “${targetName}”?`,
+      confirmLabel: 'Save & open',
+      alternateLabel: 'Discard & open',
+      cancelLabel: 'Keep editing',
+    });
+    if (choice === 'cancel') {
+      this.aiFeedback.set(
+        activeId === null
+          ? 'OPEN CANCELLED — SAVE THIS EDIT FIRST.'
+          : `OPEN CANCELLED — SAVE “${currentName}” FIRST.`
+      );
+      return false;
+    }
+    if (choice === 'confirm') {
+      if (!(await this.saveProject())) return false;
+      // A save that succeeds while the artist is still editing is not a clean
+      // handoff: the target would replace the newer, unstored work.
+      if (this.hasUnsavedProjectWork()) {
+        this.aiFeedback.set(
+          'SAVE FINISHED, BUT NEW EDITS ARRIVED — OPEN CANCELLED.'
+        );
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /**
+   * Open a saved project from its card after the unsaved-work guard. This is
+   * the ordinary open path; `openProject()` is the raw replacement used only
+   * after a guard has already approved it.
+   */
+  async openProjectFromCard(
+    project: CinemaProjectSummary,
+    event?: Event
+  ): Promise<void> {
+    event?.stopPropagation();
+    if (!(await this.confirmProjectReplacement(project.name))) return;
+    await this.openProject(project.id);
+  }
+
+  /**
+   * Retry the last project after an automatic resume was cancelled. The service
+   * keeps the target for the session even though the automatic one-shot has
+   * already been consumed.
+   */
+  async resumePendingProject(): Promise<void> {
+    const project = this.resumableLastProject();
+    if (!project || this.cinemaProjects.isBusy()) return;
+    if (!(await this.confirmProjectReplacement(project.name))) return;
+
+    this.resumingProjectName.set(project.name);
+    this.resumingProject.set(true);
+    try {
+      await this.openProject(project.id);
+    } finally {
+      this.resumingProject.set(false);
+      this.resumingProjectName.set('');
+    }
+  }
+
+  /**
+   * Open a saved project straight into its Maker, at the bar choice the card
+   * displays. This is the card-level shortcut: it never opens the Maker for a
+   * project that failed to load.
+   */
+  async openProjectMaker(
+    project: CinemaProjectSummary,
+    event?: Event
+  ): Promise<void> {
+    event?.stopPropagation();
+    if (this.cinemaProjects.activeProjectId() !== project.id) {
+      if (!(await this.confirmProjectReplacement(project.name))) return;
+      await this.openProject(project.id);
+      if (this.cinemaProjects.activeProjectId() !== project.id) return;
+    }
+    // The summary is what the operator just clicked; apply it after restore so
+    // a legacy record and its card can never disagree.
+    this.musicBarsPerPart.set(
+      sanitizeMusicBarsPerPart(project.musicBarsPerPart)
+    );
+    this.openFilmMaker();
+    this.aiFeedback.set(
+      `${this.makerName().toUpperCase()} READY: ${project.name.toUpperCase()} · ${this.musicBarsPerPart()} BARS/PART.`
+    );
   }
 
   /** Replace the current edit with a stored project. */
@@ -1953,6 +2332,10 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
       this.evictUnusedMedia();
       this.adoptStoredMedia(outcome.media);
       await this.restoreAudioBed(outcome.audioBed);
+      // The reopened project may have a different mode, duration, or bar
+      // choice; re-plan the Maker instead of leaving stale selected indices.
+      if (this.showFilmMaker()) this.selectAllExportRanges();
+      this.rememberSavedProject();
     }
     this.aiFeedback.set(outcome.message.toUpperCase());
   }
@@ -2011,6 +2394,7 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
    */
   startNewProject(): void {
     this.cinemaProjects.startNew();
+    this.savedProjectSignature.set(null);
     this.projectName.set('');
     this.aiFeedback.set(
       'NEW PROJECT. THE CURRENT EDIT STAYS ON THE TIMELINE UNTIL YOU SAVE IT.'
@@ -3062,7 +3446,7 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     link.remove();
   }
 
-  private formatBytes(bytes: number): string {
+  formatBytes(bytes: number): string {
     if (!Number.isFinite(bytes) || bytes <= 0) return '0 KB';
     const megabytes = bytes / (1024 * 1024);
     return megabytes >= 1
@@ -5515,14 +5899,359 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     ctx.restore();
   }
 
+  /** Clamp a typed start so every pass still has room to record. */
+  setExportStart(value: number | string): void {
+    const parsed = Number(value);
+    const latest = Math.max(
+      0,
+      this.videoEngine.duration() - MIN_ACTIVE_CLIP_DURATION
+    );
+    this.exportStart.set(
+      Math.min(Math.max(0, Number.isFinite(parsed) ? parsed : 0), latest)
+    );
+    // A changed start means the checked indices point at different sections.
+    if (this.showFilmMaker()) this.selectAllExportRanges();
+  }
+
+  /** Use the playhead - beat-snapped when the grid is armed - as the start. */
+  usePlayheadAsExportStart(): void {
+    const start = this.videoEngine.snapTime(this.videoEngine.currentTime());
+    this.setExportStart(start);
+    this.aiFeedback.set(
+      `EXPORT START SET TO ${this.formatClock(
+        this.exportStart()
+      )}. THE NEXT MASTER BEGINS THERE.`
+    );
+  }
+
+  /** Open the Film Maker workspace with every current section selected. */
+  openFilmMaker(): void {
+    this.showFilmMaker.set(true);
+    this.selectAllExportRanges();
+  }
+
+  closeFilmMaker(): void {
+    this.showFilmMaker.set(false);
+  }
+
+  /** Choose how many bars one Music Video Maker part should span. */
+  setMusicBarsPerPart(value: number | string): void {
+    this.musicBarsPerPart.set(sanitizeMusicBarsPerPart(value));
+    // The bar length changes every part boundary, so re-check the new plan.
+    if (this.showFilmMaker()) this.selectAllExportRanges();
+  }
+
+  isExportRangeSelected(index: number): boolean {
+    return this.selectedRangeIndexes().has(index);
+  }
+
+  /** Part number for film, bar span for a music video. */
+  rangeGroupLabel(range: MasterExportRange): string {
+    if (!this.isMusicVideoMode()) return `PART ${range.index + 1}`;
+    const bar = this.videoEngine.barSeconds();
+    if (!Number.isFinite(bar) || bar <= 0) return `PART ${range.index + 1}`;
+    const startBar = Math.floor(range.start / bar + 1e-6) + 1;
+    const endBar = Math.max(startBar, Math.ceil(range.end / bar - 1e-6));
+    return `BAR ${startBar}–${endBar}`;
+  }
+
+  toggleExportRange(index: number): void {
+    this.selectedRangeIndexes.update((selected) => {
+      const next = new Set(selected);
+      if (next.has(index)) next.delete(index);
+      else next.add(index);
+      return next;
+    });
+  }
+
+  selectAllExportRanges(): void {
+    this.selectedRangeIndexes.set(
+      new Set(this.availableExportRanges().map((range) => range.index))
+    );
+  }
+
+  clearExportRangeSelection(): void {
+    this.selectedRangeIndexes.set(new Set());
+  }
+
+  /** Queue only the checked sections, keeping the panel open for progress. */
+  async queueSelectedRanges(): Promise<void> {
+    const ranges = this.selectedExportRanges();
+    if (!ranges.length) {
+      this.aiFeedback.set('SELECT AT LEAST ONE SECTION TO QUEUE.');
+      return;
+    }
+    await this.queueExportRanges(ranges);
+  }
+
+  /**
+   * Capture sections in order, downloading each before starting the next.
+   * Long renders stay bounded by one section's memory, and the queue stops
+   * cleanly on the first failed capture. Every attempt is recorded in the
+   * manifest, including sections that were never reached.
+   */
+  async queueExportRanges(
+    ranges: readonly MasterExportRange[] = this.availableExportRanges()
+  ): Promise<void> {
+    if (this.isExporting() || this.isQueueing()) return;
+    if (!ranges.length) {
+      this.aiFeedback.set(
+        'NOTHING TO QUEUE: SET AN EXPORT START BEFORE THE END OF THE TIMELINE.'
+      );
+      return;
+    }
+
+    const records: FilmSectionRecord[] = ranges.map((range) => ({
+      ...range,
+      fileName: null,
+      status: 'pending',
+    }));
+    this.exportSections.set(records);
+
+    this.isQueueing.set(true);
+    this.exportQueueCancelled = false;
+    this.queueTotal.set(records.length);
+    this.queueCompleted.set(0);
+    this.aiFeedback.set(
+      `EXPORT QUEUE ARMED: ${records.length} ${this.makerUnit()} OF ${this.makerSectionSummary()}. EACH PART DOWNLOADS WHEN IT FINISHES.`
+    );
+
+    const stamp = this.exportStamp();
+    const originalStart = this.exportStart();
+    let completed = 0;
+    try {
+      for (const record of records) {
+        if (this.exportQueueCancelled) break;
+        this.exportStart.set(record.start);
+        const fileNameHint = `smuve_${this.videoEngine.productionMode()}_${this.activePreset().id}_${stamp}_part-${String(
+          record.index + 1
+        ).padStart(3, '0')}_${this.fileTime(record.start)}`;
+        const ok = await this.runExportRange(
+          record.start,
+          record.seconds,
+          fileNameHint
+        );
+        if (!ok) {
+          this.updateSectionRecord(record.index, { status: 'failed' });
+          this.aiFeedback.update(
+            (message) =>
+              `${message} EXPORT QUEUE STOPPED AT SECTION ${record.index + 1} OF ${records.length}.`
+          );
+          break;
+        }
+        this.updateSectionRecord(record.index, {
+          status: 'rendered',
+          fileName: this.lastExportFileName(),
+        });
+        completed += 1;
+        this.queueCompleted.set(completed);
+        if (completed < records.length) {
+          this.aiFeedback.set(
+            `SECTION ${completed}/${records.length} COMPLETE. NEXT SECTION STARTS AT ${this.formatClock(record.end)}.`
+          );
+        }
+      }
+
+      if (completed < records.length) {
+        this.markPendingSectionsSkipped();
+      }
+
+      if (this.exportQueueCancelled) {
+        this.aiFeedback.set(
+          `EXPORT QUEUE STOPPED AFTER ${completed} OF ${records.length} SECTIONS.`
+        );
+      } else if (completed === records.length) {
+        this.aiFeedback.set(
+          `EXPORT QUEUE COMPLETE: ${completed} SECTIONS DOWNLOADED. DOWNLOAD THE MANIFEST BEFORE STITCHING.`
+        );
+      }
+    } finally {
+      // The queue walked the start through every section; put it back where
+      // the operator left it so the header still describes the next master.
+      this.exportStart.set(originalStart);
+      this.isQueueing.set(false);
+    }
+  }
+
+  /** Let the current section finish, then stop the queue. */
+  cancelExportQueue(): void {
+    if (!this.isQueueing()) return;
+    this.exportQueueCancelled = true;
+    this.aiFeedback.set('EXPORT QUEUE WILL STOP AFTER THE CURRENT SECTION.');
+  }
+
+  /** Download the JSON manifest that maps each file back to its timecode. */
+  downloadExportManifest(): void {
+    const sections = this.exportSections();
+    if (!sections.length) {
+      this.aiFeedback.set('NO SECTIONS YET. QUEUE A RANGE BEFORE DOWNLOADING A MANIFEST.');
+      return;
+    }
+
+    const preset = this.activePreset();
+    const { width, height } = this.exportDimensions();
+    const manifest = buildFilmManifest(
+      {
+        project: this.cinemaProjects.activeProject()?.name ?? 'Untitled Film',
+        productionMode: this.videoEngine.productionMode(),
+        presetId: preset.id,
+        presetName: preset.name,
+        width,
+        height,
+        fps: this.exportFps(),
+        codec: this.exportCodec(),
+        bitrate: this.exportBitrate(),
+        sectionSeconds: this.makerSectionSeconds(),
+        music: this.isMusicVideoMode()
+          ? {
+              bpm: this.videoEngine.bpm(),
+              beatSeconds: this.videoEngine.beatSeconds(),
+              barSeconds: this.videoEngine.barSeconds(),
+              barsPerSection: this.musicBarsPerSection(),
+            }
+          : undefined,
+      },
+      sections
+    );
+    const prefix = this.isMusicVideoMode()
+      ? 'smuve_music_video_manifest'
+      : 'smuve_film_manifest';
+    this.exportService.downloadBlob(
+      new Blob([manifest], { type: 'application/json' }),
+      `${prefix}_${this.exportStamp()}.json`
+    );
+    this.aiFeedback.set(
+      `${this.makerName().toUpperCase()} MANIFEST DOWNLOADED FOR ${sections.length} ${
+        sections.length === 1 ? 'PART' : 'PARTS'
+      }. KEEP IT WITH THE MASTER FILES.`
+    );
+  }
+
+  /** Validate and stage downloaded section files for stitching. */
+  onStitchFiles(event: Event): void {
+    const input = event.target as HTMLInputElement | null;
+    const files = Array.from(input?.files ?? [])
+      .filter(
+        (file) =>
+          file.type.startsWith('video/') || /\.(mp4|webm|mov)$/i.test(file.name)
+      )
+      // Queue filenames carry part numbers; sorting makes the master follow
+      // the timeline instead of the order the picker happened to return.
+      .sort((a, b) =>
+        a.name.localeCompare(b.name, undefined, { numeric: true })
+      );
+    if (input) input.value = '';
+    this.stitchFiles.set(files);
+    this.stitchStatus.set(
+      files.length
+        ? `${files.length} SECTION${files.length === 1 ? '' : 'S'} READY TO STITCH.`
+        : 'CHOOSE AT LEAST TWO MP4 OR WEBM SECTIONS.'
+    );
+  }
+
+  clearStitchFiles(): void {
+    this.stitchFiles.set([]);
+    this.stitchProgress.set(0);
+    this.stitchStatus.set(null);
+  }
+
+  /** Join the staged sections into one MP4 master. */
+  async stitchFilm(): Promise<void> {
+    if (this.isStitching() || this.isExporting() || this.isQueueing()) return;
+    const files = this.stitchFiles();
+    if (files.length < 2) {
+      this.stitchStatus.set('CHOOSE AT LEAST TWO SECTIONS TO STITCH.');
+      return;
+    }
+    if (!this.ffmpegExport) {
+      this.stitchStatus.set('THE MP4 ENCODER IS NOT AVAILABLE IN THIS BROWSER.');
+      return;
+    }
+
+    this.isStitching.set(true);
+    this.stitchProgress.set(0);
+    this.stitchStatus.set(`STITCHING ${files.length} SECTIONS...`);
+    try {
+      const blob = await this.ffmpegExport.stitchToMp4(files, {
+        onProgress: (progress) =>
+          this.stitchProgress.set(Math.min(99, Math.round(progress * 100))),
+      });
+      this.stitchProgress.set(100);
+      this.exportService.downloadBlob(
+        blob,
+        `smuve_${this.isMusicVideoMode() ? 'music_video' : 'film'}_stitched_${this.exportStamp()}.mp4`
+      );
+      this.stitchStatus.set(
+        `STITCHED ${files.length} SECTIONS INTO ONE MP4 MASTER.`
+      );
+    } catch (error: any) {
+      this.stitchStatus.set(
+        error?.message
+          ? String(error.message).toUpperCase()
+          : 'THE SECTIONS COULD NOT BE STITCHED.'
+      );
+    } finally {
+      this.isStitching.set(false);
+    }
+  }
+
+  private updateSectionRecord(
+    index: number,
+    patch: Partial<Pick<FilmSectionRecord, 'fileName' | 'status'>>
+  ): void {
+    this.exportSections.update((sections) =>
+      sections.map((section) =>
+        section.index === index ? { ...section, ...patch } : section
+      )
+    );
+  }
+
+  private markPendingSectionsSkipped(): void {
+    this.exportSections.update((sections) =>
+      sections.map((section) =>
+        section.status === 'pending'
+          ? { ...section, status: 'skipped' }
+          : section
+      )
+    );
+  }
+
+  private exportStamp(): string {
+    const now = new Date();
+    const pad = (value: number) => String(value).padStart(2, '0');
+    return `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(
+      now.getDate()
+    )}_${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+  }
+
+  private fileTime(seconds: number): string {
+    return this.formatClock(seconds).replace(/:/g, '-');
+  }
+
   /**
    * Capture a real video master straight off the preview canvas. The renderer
    * runs in real time (`canvas.captureStream`), so the window is an explicit,
    * user-selected number of seconds instead of an invisible constant.
    */
-  async exportVideo() {
-    if (this.isExporting()) return;
-    const seconds = this.exportWindow();
+  async exportVideo(): Promise<void> {
+    if (this.isExporting() || this.isQueueing()) return;
+    const plan = this.exportPlan();
+    if (plan.seconds <= 0) {
+      this.aiFeedback.set(
+        'NOTHING TO EXPORT: SET AN EXPORT START BEFORE THE END OF THE TIMELINE.'
+      );
+      return;
+    }
+    await this.runExportRange(plan.start, plan.seconds);
+  }
+
+  /** Record one contiguous range and resolve true only when it downloads. */
+  private async runExportRange(
+    start: number,
+    seconds: number,
+    fileNameHint?: string
+  ): Promise<boolean> {
+    this.lastExportFileName.set(null);
     const { width, height } = this.exportDimensions();
     const fps = this.exportFps();
     const wantsMp4 = this.exportCodec() === 'mp4';
@@ -5536,13 +6265,15 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
           height +
           '.'
       );
-      return;
+      return false;
     }
 
     this.isExporting.set(true);
     this.exportProgress.set(0);
     this.aiFeedback.set(
-      `INITIALIZING ${seconds}s ${this.exportCodec().toUpperCase()} EXPORT AT ${width}x${height} ${fps}FPS. STAND BY FOR ELITE CAPTURE.`
+      `INITIALIZING ${seconds}s ${this.exportCodec().toUpperCase()} EXPORT FROM ${this.formatClock(
+        start
+      )} AT ${width}x${height} ${fps}FPS. STAND BY FOR ELITE CAPTURE.`
     );
 
     const wasPlaying = this.videoEngine.isPlaying();
@@ -5574,12 +6305,12 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
           ? String(error.message).toUpperCase()
           : 'VIDEO EXPORT COULD NOT START ON THIS BROWSER.'
       );
-      return;
+      return false;
     }
 
-    // Capture from the top of the timeline so the master always starts at 0.
+    // Park at the selected offset so each pass covers the range it claims.
     this.videoEngine.pause();
-    this.videoEngine.seek(0);
+    this.videoEngine.seek(start);
     this.videoEngine.play();
 
     const startedAt = Date.now();
@@ -5605,7 +6336,7 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
         this.aiFeedback.set(
           'EXPORT PRODUCED NO VIDEO FRAMES. KEEP THIS TAB VISIBLE AND RETRY.'
         );
-        return;
+        return false;
       }
 
       // The recorder's WebM capture is only an intermediate: transcode it to
@@ -5619,7 +6350,17 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
           `CAPTURE COMPLETE - ENCODING ${width}x${height} ${fps}FPS H.264 MP4. STAND BY.`
         );
         try {
+          const masterMode =
+            this.videoEngine.productionMode() === 'movie' ||
+            this.videoEngine.productionMode() === 'music';
           deliverable = await this.ffmpegExport.transcodeToMp4(blob, {
+            // A delivery master keeps more of the captured detail than a
+            // social cut; the capture bitrate already bounded the source.
+            crf: masterMode ? 18 : 20,
+            preset: masterMode ? 'fast' : 'veryfast',
+            // The recorder runs a 250ms tail guard; trim it so queued
+            // sections stay exactly contiguous when they are joined.
+            trimSeconds: seconds,
             onProgress: (p) =>
               this.exportProgress.set(Math.min(99, 50 + Math.round(p * 49))),
           });
@@ -5635,10 +6376,11 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
       const extension = transcoded
         ? 'mp4'
         : this.extensionForMime(session.mimeType || blob.type, 'webm');
-      this.exportService.downloadBlob(
-        deliverable,
-        `smuve_${this.videoEngine.productionMode()}_${this.activePreset().id}_${Date.now()}.${extension}`
-      );
+      const fileName = fileNameHint
+        ? `${fileNameHint}.${extension}`
+        : `smuve_${this.videoEngine.productionMode()}_${this.activePreset().id}_${Date.now()}.${extension}`;
+      this.lastExportFileName.set(fileName);
+      this.exportService.downloadBlob(deliverable, fileName);
       this.aiFeedback.set(
         transcoded
           ? `VIDEO EXPORT COMPLETE - ${width}x${height} ${fps}FPS MP4/H.264 MASTER IS READY FOR DEPLOYMENT.`
@@ -5646,6 +6388,7 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
             ? `VIDEO EXPORT COMPLETE - ${width}x${height} ${fps}FPS ${extension.toUpperCase()} MASTER IS READY FOR DEPLOYMENT. MP4 ENCODER UNAVAILABLE, KEPT THE ORIGINAL CAPTURE.`
             : `VIDEO EXPORT COMPLETE - ${width}x${height} ${fps}FPS WEBM MASTER IS READY. FAST CODEC SELECTED; TRANSCODE OUTSIDE THE BROWSER IF YOU NEED MP4.`
       );
+      return true;
     } catch (error: any) {
       clearTimeout(stopTimer);
       clearInterval(ticker);
@@ -5654,6 +6397,7 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
       this.aiFeedback.set(
         'VIDEO EXPORT FAILED. TRY A SHORTER CAPTURE WINDOW.'
       );
+      return false;
     } finally {
       this.releaseExportCanvas();
       this.isExporting.set(false);
@@ -5734,6 +6478,7 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     if (input) input.value = '';
     if (!file) return;
 
+    this.sourceQuality.set(null);
     const kind = this.classifyIngest(file);
     if (!kind) {
       this.aiFeedback.set(
@@ -5837,6 +6582,9 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     const clip = this.videoEngine.findClip(clipId);
     if (!clip) return;
 
+    const assessment = assessSource(metadata);
+    this.sourceQuality.set(assessment);
+
     const duration = Math.max(
       MIN_ACTIVE_CLIP_DURATION,
       Math.min(metadata.duration, this.videoEngine.duration())
@@ -5850,7 +6598,7 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
       },
     });
     this.aiFeedback.set(
-      `UPLOAD SUCCESS: ${file.name} · ${this.formatSeconds(duration)} · ${metadata.width}×${metadata.height} mapped into the ${this.activePreset().name} workflow.`
+      `UPLOAD SUCCESS: ${file.name} · ${this.formatSeconds(duration)} · ${metadata.width}×${metadata.height} · ${assessment.tier.toUpperCase()} SOURCE mapped into the ${this.activePreset().name} workflow.`
     );
   }
 
@@ -6975,6 +7723,7 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
 
   selectProductionMode(mode: ProductionMode) {
     this.videoEngine.setProductionMode(mode);
+    if (this.showFilmMaker()) this.selectAllExportRanges();
     this.aiFeedback.set(
       `${mode.toUpperCase()} PRODUCTION MODE ACTIVE. ${this.videoEngine.deliveryPreset().description}`
     );
@@ -7005,6 +7754,7 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
 
   selectDeliveryPreset(presetId: string) {
     this.videoEngine.applyDeliveryPreset(presetId);
+    if (this.showFilmMaker()) this.selectAllExportRanges();
     this.aiFeedback.set(
       `${this.activePreset().name.toUpperCase()} loaded for ${this.activePreset().target.toUpperCase()}.`
     );
@@ -7045,6 +7795,19 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     const minutes = Math.floor(safe / 60);
     const seconds = safe % 60;
     return `${minutes}:${String(seconds).padStart(2, '0')}`;
+  }
+
+  /** Range label that keeps hours legible on a feature-length timeline. */
+  formatClock(totalSeconds: number): string {
+    const safe = Math.max(0, Math.floor(totalSeconds));
+    const hours = Math.floor(safe / 3600);
+    const minutes = Math.floor((safe % 3600) / 60);
+    const seconds = safe % 60;
+    return hours > 0
+      ? `${hours}:${String(minutes).padStart(2, '0')}:${String(
+          seconds
+        ).padStart(2, '0')}`
+      : `${minutes}:${String(seconds).padStart(2, '0')}`;
   }
 
   private resolveTrimAmount(duration: number): number {

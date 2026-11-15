@@ -140,6 +140,27 @@ describe('CinemaProjectService', () => {
       expect(service.projects()[0].createdAt).toBe(createdAt);
     });
 
+    it('publishes the saved Music Video Maker bar choice in the project list', async () => {
+      const { service, engine } = createHarness();
+      engine.setProductionMode('music');
+      engine.musicBarsPerPart.set(32);
+      const saved = await service.save('Neon Cut');
+
+      expect(service.projects()[0].musicBarsPerPart).toBe(32);
+
+      // A record written before the summary field existed still has its choice
+      // in the snapshot.
+      const record = stored.get(saved.id!);
+      delete record.musicBarsPerPart;
+      await service.refresh();
+      expect(service.projects()[0].musicBarsPerPart).toBe(32);
+
+      // An older snapshot has no choice at all; the card reports the default.
+      delete record.snapshot.musicBarsPerPart;
+      await service.refresh();
+      expect(service.projects()[0].musicBarsPerPart).toBe(16);
+    });
+
     it('says up front how many clips will need re-ingesting', async () => {
       const { service, engine } = createHarness();
       engine.addClip('t1', clip({ url: 'blob:take-1' }));
@@ -264,6 +285,22 @@ describe('CinemaProjectService', () => {
         engine.tracks().find((track) => track.id === 't1')!.clips
       ).toHaveLength(2);
       expect(service.activeProjectId()).toBe(saved.id);
+    });
+
+    it('keeps the Music Video Maker bar choice with the project', async () => {
+      const { service, engine } = createHarness();
+      engine.setProductionMode('music');
+      engine.musicBarsPerPart.set(32);
+      const saved = await service.save('Neon Cut');
+
+      expect(stored.get(saved.id!)?.snapshot.musicBarsPerPart).toBe(32);
+
+      // A different choice in the open editor must not leak into the reopen.
+      engine.musicBarsPerPart.set(4);
+      const opened = await service.open(saved.id!);
+
+      expect(opened.ok).toBe(true);
+      expect(engine.musicBarsPerPart()).toBe(32);
     });
 
     it('stores the Director section plan and hands it back on open', async () => {
@@ -474,6 +511,31 @@ describe('CinemaProjectService', () => {
       await expect(service.takeResumableProjectId()).resolves.toBe(saved.id);
 
       expect(service.hasResumableProject()).toBe(false);
+    });
+
+    it('keeps a cancelled auto-resume target available for a manual retry', async () => {
+      const { service } = createHarness();
+      const saved = await service.save('Feature Cut');
+
+      await expect(service.takeResumableProjectId()).resolves.toBe(saved.id);
+      expect(service.pendingResumeProject()?.id).toBe(saved.id);
+
+      // The automatic path is one-shot, but the manual retry was not consumed.
+      await expect(service.takeResumableProjectId()).resolves.toBeNull();
+      expect(service.pendingResumeProject()?.name).toBe('Feature Cut');
+
+      await service.open(saved.id!);
+      expect(service.pendingResumeProject()).toBeNull();
+    });
+
+    it('forgets a pending retry when that project is removed', async () => {
+      const { service } = createHarness();
+      const saved = await service.save('Feature Cut');
+      await service.takeResumableProjectId();
+
+      await service.remove(saved.id!);
+
+      expect(service.pendingResumeProject()).toBeNull();
     });
 
     it('only offers a resume once per document', async () => {

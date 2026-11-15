@@ -242,6 +242,29 @@ describe('BusinessSuiteComponent', () => {
     );
   });
 
+  it('starts a module once when its card button is activated by keyboard', async () => {
+    const nativeElement = await create(profile());
+    const button = nativeElement.querySelector(
+      '.biz-module-card button'
+    ) as HTMLButtonElement;
+    const start = jest
+      .spyOn(component, 'startModule')
+      .mockResolvedValue(undefined);
+
+    // Enter on the inner button bubbles to the card's own keydown handler.
+    // Both running would open the naming prompt twice.
+    button.dispatchEvent(
+      new KeyboardEvent('keydown', {
+        key: 'Enter',
+        bubbles: true,
+        cancelable: true,
+      })
+    );
+    button.click();
+
+    expect(start).toHaveBeenCalledTimes(1);
+  });
+
   it('does not promise to resume an archived pathway', async () => {
     const nativeElement = await create(profile());
     bizMock.activePipelines.set([

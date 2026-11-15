@@ -13,6 +13,7 @@ import {
 } from './ai.types';
 import { MarketingCampaign } from './marketing.types';
 import { CareerPitch, CareerVenue } from './career.types';
+import type { BusinessPipeline } from './business.types';
 import {
   buildMusicalDnaContext,
   buildMusicalDnaTeachingContext,
@@ -553,6 +554,8 @@ export interface UserProfile {
    * `MusicalDnaService` and `MusicalDna` in `musical-dna.types.ts`.
    */
   musicalDna?: MusicalDnaState;
+  /** Staged infrastructure pathways created and tracked by the Business Suite. */
+  businessPipelines?: BusinessPipeline[];
   /** Latest evidence-derived career lifecycle view, refreshed on profile writes. */
   artistLifecycleSnapshot?: ArtistLifecycleSnapshot;
   /** Bounded history of meaningful lifecycle/readiness changes. */
