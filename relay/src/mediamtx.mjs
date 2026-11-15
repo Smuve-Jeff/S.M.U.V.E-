@@ -25,6 +25,18 @@ export class MediaMtxClient {
     });
   }
 
+  /** Cheap reachability probe used by /health. */
+  async ping() {
+    try {
+      const response = await this.#fetch(`${this.#apiUrl}/v3/paths/list`, {
+        signal: AbortSignal.timeout(2_000),
+      });
+      return response.ok;
+    } catch {
+      return false;
+    }
+  }
+
   /** `ready` plus byte counters: how a self-test proves media arrived. */
   async getPath(id) {
     try {

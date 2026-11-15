@@ -83,6 +83,24 @@ export class SessionManager {
   }
 
   /**
+   * Is the media server this relay depends on actually there? A relay that can
+   * open sessions but cannot reach MediaMTX fails every publish silently, so
+   * the app's boot check asks this before a host goes live.
+   */
+  async health() {
+    if (typeof this.#mediamtx.ping !== "function") {
+      return { mediamtx: "unknown", detail: null };
+    }
+    const reachable = await this.#mediamtx.ping().catch(() => false);
+    return reachable
+      ? { mediamtx: "reachable", detail: null }
+      : {
+          mediamtx: "unreachable",
+          detail: "MediaMTX did not answer its control API",
+        };
+  }
+
+  /**
    * Live view of one session for a self-test: MediaMTX reports whether the
    * browser's publish became readable and how many bytes it carried, which is
    * the difference between "the URL was accepted" and "media arrived".

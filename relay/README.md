@@ -20,9 +20,15 @@ The API server's `MEDIA_RELAY_URL` points at this service. Contract:
 | --- | --- | --- | --- |
 | `POST` | `/sessions` | `{ rtmpUrl, streamKey }` | `201 { id, whipUrl }` |
 | `DELETE` | `/sessions/:id` | — | `204` |
-| `GET` | `/health` | — | `200 { status, sessions }` |
+| `GET` | `/health` | — | `200 { status: ok, mediamtx }`, or `503 { status: degraded }` when MediaMTX is unreachable |
 
 Every route except `/health` requires `Authorization: Bearer $RELAY_TOKEN`.
+
+`/health` probes MediaMTX rather than just reporting liveness: a relay that can
+accept sessions but cannot reach its media server fails every publish, so it
+answers `503` with `mediamtx: unreachable` instead of claiming to be fine. The
+S.M.U.V.E API calls this at boot and refuses to start when a configured relay is
+down or degraded, which is what catches the problem before a host goes live.
 
 ## Configuration
 

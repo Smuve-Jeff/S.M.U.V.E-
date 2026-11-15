@@ -67,6 +67,9 @@ export const OAUTH_TOKEN_KEY = process.env.OAUTH_TOKEN_KEY || "";
 //   DELETE {MEDIA_RELAY_URL}/sessions/:id
 export const MEDIA_RELAY_URL = process.env.MEDIA_RELAY_URL || "";
 export const MEDIA_RELAY_TOKEN = process.env.MEDIA_RELAY_TOKEN || "";
+/** How long the boot check waits for the relay's health endpoint. */
+export const MEDIA_RELAY_PROBE_TIMEOUT_MS =
+  Number(process.env.MEDIA_RELAY_PROBE_TIMEOUT_MS) || 3_000;
 /** Twitch ingest base; the stream key is appended by the relay. */
 export const TWITCH_RTMP_URL =
   process.env.TWITCH_RTMP_URL || "rtmp://live.twitch.tv/app";

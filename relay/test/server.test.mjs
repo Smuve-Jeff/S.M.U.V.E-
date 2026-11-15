@@ -140,6 +140,37 @@ test("rejects a body that is not JSON", async () => {
   assert.equal(response.status, 400);
 });
 
+test("reports ok when MediaMTX answers", async () => {
+  const { base } = await startServer();
+  const server = servers.at(-1);
+
+  const response = await fetch(`${base}/health`);
+
+  assert.equal(response.status, 200);
+  const body = await response.json();
+  assert.equal(body.status, "ok");
+  assert.ok(server);
+});
+
+test("reports degraded, as a 503, when MediaMTX is unreachable", async () => {
+  const { base } = await startServer({
+    manager: {
+      list: () => [],
+      health: async () => ({
+        mediamtx: "unreachable",
+        detail: "MediaMTX did not answer its control API",
+      }),
+    },
+  });
+
+  const response = await fetch(`${base}/health`);
+
+  assert.equal(response.status, 503);
+  const body = await response.json();
+  assert.equal(body.status, "degraded");
+  assert.equal(body.mediamtx, "unreachable");
+});
+
 test("answers 503 for a self-test when no sink is configured", async () => {
   const { base } = await startServer();
 

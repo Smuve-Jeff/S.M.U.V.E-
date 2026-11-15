@@ -10,6 +10,7 @@ const base: StreamingOAuthSetupInput = {
   mediaRelayUrl: "https://relay.example.com",
   mediaRelayToken: "relay-token",
   twitchRtmpUrl: "rtmp://live.twitch.tv/app",
+  relayProbe: "ok" as const,
   credentials: [
     { platform: "twitch", clientId: "twitch-id", clientSecret: "twitch-secret" },
     { platform: "youtube", clientId: "google-id", clientSecret: "google-secret" },
@@ -111,5 +112,24 @@ describe("streaming OAuth deploy check", () => {
     const report = withInput({ twitchRtmpUrl: "https://live.twitch.tv/app" });
 
     expect(report.problems.join(" ")).toContain("TWITCH_RTMP_URL");
+  });
+
+  it("fails when the relay cannot reach its media server", () => {
+    const report = withInput({ relayProbe: "degraded" });
+
+    expect(report.problems.join(" ")).toContain("MEDIAMTX_API_URL");
+  });
+
+  it("fails when the configured relay does not answer", () => {
+    const report = withInput({ relayProbe: "unreachable" });
+
+    expect(report.problems.join(" ")).toContain("did not answer its health probe");
+  });
+
+  it("does not probe a relay that is not configured", () => {
+    const report = withInput({ mediaRelayUrl: "", relayProbe: "unreachable" });
+
+    expect(report.problems).toEqual([]);
+    expect(report.warnings.join(" ")).toContain("MEDIA_RELAY_URL is not set");
   });
 });

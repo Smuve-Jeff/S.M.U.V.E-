@@ -35,6 +35,8 @@ export interface StreamingOAuthSetupInput {
   mediaRelayToken: string;
   /** Twitch ingest base the relay pushes to. */
   twitchRtmpUrl: string;
+  /** Result of the relay's own health probe, when a relay is configured. */
+  relayProbe: "ok" | "degraded" | "unreachable";
   table: "ready" | "missing" | "unavailable";
   tableDetail?: string;
 }
@@ -130,6 +132,15 @@ export function inspectStreamingOAuthSetup(
     if (!relayUrl || (relayUrl.protocol !== "http:" && relayUrl.protocol !== "https:")) {
       problems.push(
         `MEDIA_RELAY_URL must be the absolute http(s) address of the relay control API (got "${input.mediaRelayUrl}").`,
+      );
+    }
+    if (input.relayProbe === "degraded") {
+      problems.push(
+        "The broadcast relay is up but cannot reach MediaMTX, so every push would fail. Fix MEDIAMTX_API_URL (or the media server) before a host goes live.",
+      );
+    } else if (input.relayProbe === "unreachable") {
+      problems.push(
+        `The broadcast relay at ${relay} did not answer its health probe. Start it, or clear MEDIA_RELAY_URL to disable pushing.`,
       );
     }
     if (!input.mediaRelayToken.trim()) {

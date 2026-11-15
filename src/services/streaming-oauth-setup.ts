@@ -1,6 +1,7 @@
 import {
   API_PUBLIC_URL,
   NODE_ENV,
+  MEDIA_RELAY_PROBE_TIMEOUT_MS,
   MEDIA_RELAY_TOKEN,
   MEDIA_RELAY_URL,
   OAUTH_TOKEN_KEY,
@@ -16,6 +17,42 @@ import {
   STREAMING_ACCOUNTS_TABLE,
   type StreamingOAuthSetupInput,
 } from "@/services/streaming-oauth-setup-rules";
+
+type RelayProbe = "ok" | "degraded" | "unreachable";
+
+/**
+ * Ask the relay whether it (and the MediaMTX behind it) is ready.
+ *
+ * Called once at boot: a relay that is configured but cannot reach its media
+ * server would accept sessions and drop every stream, which is worse than
+ * refusing to start.
+ */
+async function probeRelay(
+  relayUrl: string,
+  token: string,
+): Promise<RelayProbe> {
+  const base = relayUrl.trim().replace(/\/+$/, "");
+  if (!base) return "unreachable";
+  try {
+    const headers: Record<string, string> = { Accept: "application/json" };
+    if (token.trim()) headers.Authorization = `Bearer ${token.trim()}`;
+    const response = await fetch(`${base}/health`, {
+      headers,
+      signal: AbortSignal.timeout(MEDIA_RELAY_PROBE_TIMEOUT_MS),
+    });
+    if (response.ok) return "ok";
+    // A 503 is the relay reporting a degraded media server; anything else is a
+    // relay we cannot trust (auth, wrong URL, not a relay at all).
+    return response.status === 503 ? "degraded" : "unreachable";
+  } catch (error) {
+    console.warn(
+      `[stream-accounts] relay health probe failed: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+    );
+    return "unreachable";
+  }
+}
 
 async function probeTable(): Promise<{
   state: StreamingOAuthSetupInput["table"];
@@ -51,6 +88,9 @@ async function probeTable(): Promise<{
  */
 export async function assertStreamingOAuthSetup(): Promise<void> {
   const table = await probeTable();
+  const relayProbe = MEDIA_RELAY_URL
+    ? await probeRelay(MEDIA_RELAY_URL, MEDIA_RELAY_TOKEN)
+    : "unreachable";
   const report = inspectStreamingOAuthSetup({
     apiPublicUrl: API_PUBLIC_URL,
     nodeEnv: NODE_ENV,
@@ -58,6 +98,7 @@ export async function assertStreamingOAuthSetup(): Promise<void> {
     mediaRelayUrl: MEDIA_RELAY_URL,
     mediaRelayToken: MEDIA_RELAY_TOKEN,
     twitchRtmpUrl: TWITCH_RTMP_URL,
+    relayProbe,
     credentials: [
       {
         platform: "twitch",

@@ -60,9 +60,13 @@ export function createRelayServer({
       const url = new URL(req.url ?? "/", "http://relay.local");
 
       if (req.method === "GET" && url.pathname === "/health") {
-        return send(res, 200, {
-          status: "ok",
+        const health = await manager.health?.();
+        const degraded = health?.mediamtx === "unreachable";
+        return send(res, degraded ? 503 : 200, {
+          status: degraded ? "degraded" : "ok",
           sessions: manager.list().length,
+          mediamtx: health?.mediamtx ?? "unknown",
+          detail: health?.detail ?? null,
         });
       }
 

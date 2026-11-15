@@ -137,6 +137,31 @@ test("reports MediaMTX byte and track stats for a session", async () => {
   children[0].kill();
 });
 
+test("reports the media server as reachable or not", async () => {
+  const reachable = harness({
+    mediamtx: {
+      addPath: async () => {},
+      deletePath: async () => {},
+      ping: async () => true,
+    },
+  });
+  assert.deepEqual(await reachable.manager.health(), {
+    mediamtx: "reachable",
+    detail: null,
+  });
+
+  const broken = harness({
+    mediamtx: {
+      addPath: async () => {},
+      deletePath: async () => {},
+      ping: async () => false,
+    },
+  });
+  const health = await broken.manager.health();
+  assert.equal(health.mediamtx, "unreachable");
+  assert.match(health.detail, /control API/);
+});
+
 test("sweeps sessions that outlive their configured lifetime", async () => {
   const { manager, deleted } = harness();
   const session = await manager.create(destination);
