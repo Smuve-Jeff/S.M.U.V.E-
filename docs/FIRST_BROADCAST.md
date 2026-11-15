@@ -128,6 +128,19 @@ Two tables must exist: `streaming_accounts` and `streaming_destinations`.
 Verify with `psql "$DATABASE_URL" -c '\d streaming_accounts'`. The boot check
 detects a missing table by error code and names it; it does not migrate for you.
 
+To prove that gate without a database of your own:
+
+```bash
+npm run verify:streaming-schema
+```
+
+It starts a throwaway PostgreSQL in `node_modules/.pgverify`, boots the compiled
+API twice and checks both answers: with nothing applied the boot must refuse with
+"The streaming_accounts table is missing", and after the migrations it must log
+`OAuth ready for twitch` and answer `/api/health` with 200. The provider
+credentials it passes are dummy strings, and the data directory is deleted when
+it finishes.
+
 ## 6. Register the Twitch application
 
 In the Twitch developer console create (or open) the app and set:

@@ -279,6 +279,7 @@ Never commit real secrets; `.env*` is gitignored except `.env.example`.
 | `npm run start` | Serve the built Angular bundle |
 | `npm run start:unified` | Run the unified Angular + API server (`Build/api/server.js`) |
 | `npm test` | Jest (Angular + server projects) |
+| `npm run verify:streaming-schema` | Prove the streaming schema gate on a throwaway PostgreSQL (refuses without the table, serves with it) |
 | `npm run test:e2e:samples` | Playwright: factory samples load, decode, and produce non-silent master output |
 | `npm run lint` / `npm run format` | ESLint / Prettier |
 | `npx playwright test` | E2E suites in `tests/e2e` |
