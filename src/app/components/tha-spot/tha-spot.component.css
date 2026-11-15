@@ -5054,3 +5054,114 @@
     letter-spacing: 0.04em;
   }
 }
+
+
+/* ── Presence-backed live discovery (NET tab) ───────── */
+.live-now {
+  padding: 0.6rem 0.65rem;
+  margin-bottom: 0.75rem;
+  border: 1px solid rgba(var(--neon-pink-rgb), 0.35);
+  border-radius: 10px;
+  background: rgba(var(--neon-pink-rgb), 0.06);
+}
+.live-now h5 {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0 0 0.5rem;
+  font-size: 0.62rem;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--neon-pink);
+}
+.live-now .live-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--success-green);
+  box-shadow: 0 0 6px var(--success-green);
+  animation: status-pulse 1.5s ease-in-out infinite;
+}
+.live-chip {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 0.3rem;
+  padding: 0 0.35rem;
+  border-radius: 999px;
+  font-size: 0.52rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  color: #fff;
+  background: rgba(var(--neon-pink-rgb), 0.8);
+}
+.action-btn.live-watch {
+  background: rgba(var(--neon-pink-rgb), 0.22);
+  border-color: rgba(var(--neon-pink-rgb), 0.55);
+  color: var(--neon-pink);
+}
+.action-btn.live-watch:hover {
+  background: rgba(var(--neon-pink-rgb), 0.35);
+}
+
+/* Discovery result rows: show the public profile data returned by search. */
+.discovery-section .user-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.5rem 0;
+}
+
+.discovery-section .user-info {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  min-width: 0;
+}
+
+.discovery-section .user-avatar {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 0.65rem;
+  object-fit: cover;
+  flex: 0 0 auto;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.discovery-section .user-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.discovery-section .user-name {
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.discovery-section .user-location {
+  font-size: 0.7rem;
+  opacity: 0.75;
+}
+
+/* Incoming friend-request count on the NET tab. */
+.net-request-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.1rem;
+  height: 1.1rem;
+  margin-left: 0.35rem;
+  padding: 0 0.3rem;
+  border-radius: 999px;
+  background: #ef4444;
+  color: #fff;
+  font-size: 0.6rem;
+  font-weight: 800;
+  line-height: 1;
+  vertical-align: middle;
+}

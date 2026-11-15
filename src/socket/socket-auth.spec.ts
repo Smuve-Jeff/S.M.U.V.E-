@@ -1,5 +1,6 @@
 import { createServer } from "node:http";
 import type { AddressInfo } from "node:net";
+import express from "express";
 import { io as ioClient } from "socket.io-client";
 import jwt from "jsonwebtoken";
 import {
@@ -12,8 +13,14 @@ import {
   endLiveStream,
   findStreamByToken,
   resolveViewerJoin,
+  startLiveStream,
 } from "@/services/live-stream.service";
-import { provisionChallengeLobby, setupSocketIO } from "./index";
+import {
+  emitFriendRequestReceived,
+  provisionChallengeLobby,
+  setupSocketIO,
+} from "./index";
+import liveStreamRoutes from "@/routes/live-stream.routes";
 
 // The socket server only touches the database inside handlers (presence sync,
 // studio collab) — never during the connection/auth handshake — so a stub
@@ -97,6 +104,8 @@ jest.mock("@/services/studio-collab.service", () => ({
 }));
 
 jest.mock("@/services/live-stream.service", () => ({
+  LIVE_STREAM_PLATFORMS: ["smuve", "twitch", "kick", "youtube"],
+  listActiveLiveStreams: jest.fn(async () => []),
   startLiveStream: jest.fn(async (input: any) => ({
     id: 1,
     shareToken: "tok_test",
@@ -202,7 +211,10 @@ describe("socket.io handshake + JWT auth", () => {
   const clients: ReturnType<typeof ioClient>[] = [];
 
   beforeAll(async () => {
-    httpServer = createServer();
+    const app = express();
+    app.use(express.json());
+    app.use("/api", liveStreamRoutes);
+    httpServer = createServer(app);
     setupSocketIO(httpServer);
     await new Promise<void>((resolve) => httpServer.listen(0, resolve));
     port = (httpServer.address() as AddressInfo).port;
@@ -230,6 +242,24 @@ describe("socket.io handshake + JWT auth", () => {
       client.once("connect", () => resolve());
       client.once("connect_error", (error) => reject(error));
     });
+
+  it("delivers a friend-request event only to the recipient", async () => {
+    const recipient = mk(801);
+    const bystander = mk(802);
+    await Promise.all([connect(recipient), connect(bystander)]);
+
+    const received = new Promise<any>((resolve) => {
+      recipient.once("friend_request_received", resolve);
+    });
+    const leaked = jest.fn();
+    bystander.on("friend_request_received", leaked);
+
+    emitFriendRequestReceived({ toUserId: "801", fromUserId: "999" });
+
+    await expect(received).resolves.toEqual({ fromUserId: "999" });
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(leaked).not.toHaveBeenCalled();
+  });
 
   it("accepts a client that presents a valid JWT", (done) => {
     const token = jwt.sign(
@@ -1027,6 +1057,196 @@ describe("socket.io handshake + JWT auth", () => {
       startPresence();
     });
     clientB.on("connect_error", () => failFast("client B"));
+  });
+
+  it("notifies other users when a host starts and ends a live stream", async () => {
+    const host = mk(501);
+    const peer = mk(502);
+    await Promise.all([connect(host), connect(peer)]);
+
+    const waitForDirectory = (reason: "started" | "ended") =>
+      new Promise<{ reason: string }>((resolve, reject) => {
+        const timer = setTimeout(() => {
+          peer.off("live_directory_changed", handler);
+          reject(new Error(`no live_directory_changed(${reason}) event`));
+        }, 5000);
+        const handler = (data: { reason?: string }) => {
+          if (data?.reason !== reason) return;
+          clearTimeout(timer);
+          peer.off("live_directory_changed", handler);
+          resolve(data as { reason: string });
+        };
+        peer.on("live_directory_changed", handler);
+      });
+
+    const startedP = waitForDirectory("started");
+    host.emit("live_stream_start", {
+      platform: "smuve",
+      gameId: "halo",
+    });
+    const started = await startedP;
+    expect(started.reason).toBe("started");
+    expect(jest.mocked(startLiveStream)).toHaveBeenCalledWith(
+      expect.objectContaining({
+        hostId: "501",
+        platform: "smuve",
+        gameId: "halo",
+      }),
+    );
+
+    const endedP = waitForDirectory("ended");
+    host.emit("live_stream_end", {});
+    const ended = await endedP;
+    expect(ended.reason).toBe("ended");
+    expect(jest.mocked(endLiveStream)).toHaveBeenCalledWith("501", false);
+  });
+
+  it("broadcasts live identity in users_online after a Go Live update_status", async () => {
+    const host = mk(701);
+    const peer = mk(702);
+    await Promise.all([connect(host), connect(peer)]);
+
+    const waitForPresence = (
+      predicate: (user: any) => boolean,
+      label: string,
+    ) =>
+      new Promise<any>((resolve, reject) => {
+        const timer = setTimeout(() => {
+          peer.off("users_online", handler);
+          reject(new Error(`no users_online payload: ${label}`));
+        }, 5000);
+        const handler = (users: any[]) => {
+          if (!Array.isArray(users)) return;
+          const found = users.find(
+            (u) => String(u.userId) === "701" && predicate(u),
+          );
+          if (!found) return;
+          clearTimeout(timer);
+          peer.off("users_online", handler);
+          resolve(found);
+        };
+        peer.on("users_online", handler);
+      });
+
+    const liveP = waitForPresence(
+      (u) => u.live === true && u.liveShareToken === "tok_presence",
+      "live metadata",
+    );
+    host.emit("register_presence", {
+      userId: "701",
+      metadata: { artistName: "HOST" },
+    });
+    host.emit("update_status", {
+      metadata: {
+        live: true,
+        livePlatform: "smuve",
+        liveShareToken: "tok_presence",
+        liveGameId: "halo",
+      },
+    });
+    const live = await liveP;
+    expect(live).toMatchObject({
+      artistName: "HOST",
+      live: true,
+      livePlatform: "smuve",
+      liveShareToken: "tok_presence",
+      liveGameId: "halo",
+    });
+
+    // A second socket for the same user (the matchmaking client) must MERGE
+    // its presence metadata, not wipe the live identity the host published.
+    const survivorP = waitForPresence(
+      (u) =>
+        u.live === true &&
+        u.liveShareToken === "tok_presence" &&
+        u.status === "online",
+      "live metadata after a second socket loads",
+    );
+    const matchmaking = mk(701);
+    await connect(matchmaking);
+    matchmaking.emit("register_presence", {
+      userId: "701",
+      metadata: { artistName: "HOST", status: "online" },
+    });
+    const survivor = await survivorP;
+    expect(survivor.live).toBe(true);
+
+    const endedP = waitForPresence((u) => u.live === false, "live false");
+    host.emit("update_status", { metadata: { live: false } });
+    const ended = await endedP;
+    expect(ended.live).toBe(false);
+  });
+
+  it("broadcasts live_directory_changed for REST-driven start and end", async () => {
+    const hostToken = jwt.sign(
+      { userId: 601, role: "user", tv: 0 },
+      process.env.JWT_SECRET!,
+    );
+    const host = ioClient(url(), {
+      auth: { token: hostToken },
+      transports: ["websocket", "polling"],
+    });
+    clients.push(host);
+    const peer = mk(602);
+    await Promise.all([connect(host), connect(peer)]);
+
+    const waitForDirectory = (reason: "started" | "ended") =>
+      new Promise<{ reason: string }>((resolve, reject) => {
+        const timer = setTimeout(() => {
+          peer.off("live_directory_changed", handler);
+          reject(new Error(`no live_directory_changed(${reason}) event`));
+        }, 5000);
+        const handler = (data: { reason?: string }) => {
+          if (data?.reason !== reason) return;
+          clearTimeout(timer);
+          peer.off("live_directory_changed", handler);
+          resolve(data as { reason: string });
+        };
+        peer.on("live_directory_changed", handler);
+      });
+
+    const headers = {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${hostToken}`,
+    };
+
+    const startedP = waitForDirectory("started");
+    const startRes = await fetch(`${url()}/api/users/601/live-streams`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        platform: "smuve",
+        gameId: "halo",
+        hostDisplayName: "HOST",
+      }),
+    });
+    if (startRes.status !== 201) {
+      throw new Error(
+        `start failed: ${startRes.status} ${await startRes.text()}`,
+      );
+    }
+    const started = await startedP;
+    expect(started.reason).toBe("started");
+    expect(jest.mocked(startLiveStream)).toHaveBeenCalledWith(
+      expect.objectContaining({
+        hostId: "601",
+        platform: "smuve",
+        gameId: "halo",
+      }),
+    );
+
+    const endedP = waitForDirectory("ended");
+    const endRes = await fetch(`${url()}/api/users/601/live-streams/end`, {
+      method: "POST",
+      headers,
+      body: "{}",
+    });
+    if (endRes.status !== 200) {
+      throw new Error(`end failed: ${endRes.status} ${await endRes.text()}`);
+    }
+    const ended = await endedP;
+    expect(ended.reason).toBe("ended");
+    expect(jest.mocked(endLiveStream)).toHaveBeenCalledWith("601", false);
   });
 
   it("ends the host live stream when their last socket disconnects", (done) => {

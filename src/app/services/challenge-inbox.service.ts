@@ -233,6 +233,37 @@ export class ChallengeInboxService {
   }
 
   /**
+   * Friend requests were just marked read server-side (the friends list was
+   * fetched). Mirror that on the loaded strip without another round trip.
+   */
+  markFriendRequestsRead(): void {
+    this.notifications.update((list) => {
+      let changed = false;
+      const next = list.map((n) => {
+        if (n.type !== "friend_request" || n.read) return n;
+        changed = true;
+        return { ...n, read: true };
+      });
+      return changed ? next : list;
+    });
+  }
+
+  /** Drop request notifications that are no longer actionable. */
+  removeFriendRequestsFrom(otherUserId: string): void {
+    const target = String(otherUserId);
+    this.notifications.update((list) => {
+      const next = list.filter(
+        (n) =>
+          !(
+            n.type === "friend_request" &&
+            String(n.payload?.fromUserId) === target
+          ),
+      );
+      return next.length === list.length ? list : next;
+    });
+  }
+
+  /**
    * Send a challenge to a user. Persists to server via both socket and REST.
    * UI updates come back via socket `challenge_inbox_sync` (recipient) or
    * local state (sender echo).

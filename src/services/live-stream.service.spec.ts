@@ -79,6 +79,7 @@ import {
   startLiveStream,
   endLiveStream,
   getCurrentLiveStream,
+  listActiveLiveStreams,
   resolveViewerJoin,
   redeemViewerJoin,
   generateShareToken,
@@ -220,6 +221,21 @@ describe("live-stream service", () => {
       await expect(redeemViewerJoin(issued.shareToken)).rejects.toMatchObject({
         statusCode: 410,
       });
+    });
+  });
+
+  describe("listActiveLiveStreams", () => {
+    it("lists only active rows for the discovery directory", async () => {
+      await startLiveStream({ hostId: "h1", platform: "smuve" });
+      await startLiveStream({ hostId: "h2", platform: "twitch" });
+      await endLiveStream("h1");
+
+      const active = await listActiveLiveStreams();
+
+      expect(active).toHaveLength(1);
+      expect(active[0].hostId).toBe("h2");
+      expect(active[0].active).toBe(true);
+      expect(active[0].shareUrl).toContain(active[0].shareToken);
     });
   });
 

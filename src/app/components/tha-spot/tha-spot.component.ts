@@ -58,6 +58,7 @@ import { FormatTimePipe } from "./format-time.pipe";
 
 const LIVE_CLOCK_INTERVAL_MS = 60000;
 const FEED_REFRESH_INTERVAL_MS = 300000;
+const LIVE_DIRECTORY_REFRESH_INTERVAL_MS = 20000;
 
 @Component({
   selector: "app-tha-spot",
@@ -1645,6 +1646,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   private queryParamSubscription?: Subscription;
   private clockId?: any;
   private feedRefreshId?: any;
+  private liveDirectoryRefreshId?: any;
   private readonly messageHandler = (event: MessageEvent) =>
     this.onMessage(event);
   private particleInterval?: any;
@@ -2019,6 +2021,16 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
       );
     });
   });
+  /** Incoming requests waiting on this user, used by the NET tab badge. */
+  incomingFriendRequestCount = computed(
+    () =>
+      this.socialService
+        .friendsDirectory()
+        .filter(
+          (friend) =>
+            friend.status === 'pending' && friend.direction !== 'outgoing',
+        ).length,
+  );
   selectedDmUser = computed(() =>
     [
       ...this.onlineUsers(),
@@ -2190,11 +2202,17 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     // link and the STOP control instead of orphaning the server row.
     void this.liveStream.restoreActiveStream();
     this.socialService.loadFriends();
+    // Populate the block list so live discovery filters blocked hosts.
+    void this.socialService.loadBlockedUsers();
+    // Server-backed directory: finds live streams even when presence missed
+    // the announcement (fresh login, another app instance).
+    void this.liveStream.loadActiveStreams();
     this.securityService.getCSRFToken();
     this.loadFeed();
     this.loadFeaturedUsers();
     this.startLiveClock();
     this.startFeedRefresh();
+    this.startLiveDirectoryRefresh();
     window.addEventListener("message", this.messageHandler);
     // Real-time challenges from other users surface on the in-hub
     // ACCEPT/DECLINE banner, not just the inbox toast.
@@ -2382,6 +2400,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     this.queryParamSubscription?.unsubscribe();
     if (this.clockId) clearInterval(this.clockId);
     if (this.feedRefreshId) clearInterval(this.feedRefreshId);
+    if (this.liveDirectoryRefreshId) clearInterval(this.liveDirectoryRefreshId);
     if (this.particleInterval) clearInterval(this.particleInterval);
     if (this.heroBgInterval) clearInterval(this.heroBgInterval);
     this.cardObserver?.disconnect();
@@ -2794,6 +2813,30 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
    * stream.lobbyId room), so we don't race against the local lobby
    * state here.
    */
+  /** Watch a live peer discovered from presence, reusing the inbound overlay. */
+  async watchPeerLive(user: OnlineUser): Promise<void> {
+    await this.watchLiveToken(user?.liveShareToken);
+  }
+
+  /** Watch any directory entry (server or presence) by its share token. */
+  async watchLiveToken(token: string | null | undefined): Promise<void> {
+    if (!token) return;
+    const row = await this.liveStream.peekViewerToken(token);
+    if (!row) {
+      this.snackbarService.warning("LIVE STREAM ENDED OR UNAVAILABLE");
+      // Prune the stale directory entry so the next viewer does not click it.
+      void this.liveStream.loadActiveStreams();
+      return;
+    }
+    if (row.gameId) {
+      this.pendingGameId = row.gameId;
+      this.applyPendingGameSelection();
+    }
+    if (row.lobbyId) this.matchmaking.joinLobby(row.lobbyId);
+    this.liveJoined.set(false);
+    void this.liveVideo.watch(row.shareToken);
+  }
+
   async redeemInboundLiveToken(): Promise<void> {
     const preview = this.inboundLivePreview();
     if (!preview) return;
@@ -3184,6 +3227,33 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
       () => this.loadFeed(true),
       FEED_REFRESH_INTERVAL_MS,
     );
+  }
+
+  /**
+   * Fallback poll for the stream directory: runs only while the NET tab is
+   * open and the socket is disconnected. Socket events handle normal updates;
+   * this covers an outage or a socket that never came up.
+   */
+  private startLiveDirectoryRefresh(): void {
+    this.liveDirectoryRefreshId = window.setInterval(
+      () => this.refreshLiveDirectoryIfVisible(),
+      LIVE_DIRECTORY_REFRESH_INTERVAL_MS,
+    );
+  }
+
+  /** One directory poll tick. Public so the fallback gate is testable. */
+  refreshLiveDirectoryIfVisible(): void {
+    if (this.activeHubTab() !== "friends" || !this.showRivalHub()) return;
+    // While connected, live_stream_started / live_stream_ended /
+    // live_directory_changed already keep the list current.
+    if (this.socialService.socketConnected()) return;
+    if (
+      typeof document !== "undefined" &&
+      document.visibilityState === "hidden"
+    ) {
+      return;
+    }
+    void this.liveStream.loadActiveStreams();
   }
 
   /**
@@ -3818,6 +3888,13 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     tab: "room" | "dm" | "stream" | "friends" | "party" | "ai" | "ops",
   ) {
     this.activeHubTab.set(tab);
+    if (tab === "friends") {
+      // Refresh discovery when the NET tab opens so streams that started
+      // after login are visible without a reload, and re-read blocks so a
+      // newly blocked host cannot linger in the directory.
+      void this.socialService.loadBlockedUsers();
+      void this.liveStream.loadActiveStreams();
+    }
     if (tab === "ops") {
       // Ops is a card stack, not a chat log: scrolling to the bottom hides the
       // streak header and the first contract.
@@ -3833,6 +3910,13 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
       this.dmTargetUserId.set(this.onlineUsers()[0].userId);
     }
     setTimeout(() => this.scrollToBottom(), 50);
+  }
+
+  /** Refresh both halves of the NET tab: friend links + live directory. */
+  refreshNetDirectory(): void {
+    void this.socialService.loadFriends();
+    void this.socialService.loadBlockedUsers();
+    void this.liveStream.loadActiveStreams();
   }
 
   /** Accept a pending squad invite and jump into the party tab. */

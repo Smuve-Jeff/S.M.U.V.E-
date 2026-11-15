@@ -64,6 +64,8 @@ describe('SocialNetworkingService', () => {
           provide: ChallengeInboxService,
           useValue: {
             bindSocket: jest.fn(),
+            markFriendRequestsRead: jest.fn(),
+            removeFriendRequestsFrom: jest.fn(),
           },
         },
         {
@@ -136,6 +138,146 @@ describe('SocialNetworkingService', () => {
       toUserId: 'other-user',
       message: 'hello online',
     });
+  });
+
+  it('publishes live identity with register_presence on every (re)connect', () => {
+    service.setPresenceExtrasProvider(() => ({
+      live: true,
+      livePlatform: 'smuve',
+      liveShareToken: 'share-token',
+      liveGameId: 'halo',
+    }));
+
+    serverEvent('connect');
+
+    expect(mockSocket.emit).toHaveBeenCalledWith('register_presence', {
+      userId: 'test-id',
+      metadata: expect.objectContaining({
+        artistName: 'Test Artist',
+        live: true,
+        liveShareToken: 'share-token',
+      }),
+    });
+  });
+
+  it('queues a status update while offline and flushes it after reconnect', () => {
+    mockSocket.connected = false;
+    service.updateStatus({ live: true, liveShareToken: 'share-token' });
+    expect(mockSocket.emit).not.toHaveBeenCalledWith(
+      'update_status',
+      expect.anything()
+    );
+
+    mockSocket.connected = true;
+    serverEvent('connect');
+
+    expect(mockSocket.emit).toHaveBeenCalledWith('update_status', {
+      userId: 'test-id',
+      metadata: expect.objectContaining({
+        live: true,
+        liveShareToken: 'share-token',
+      }),
+    });
+  });
+
+  it('merges live presence onto the friends directory for discovery', () => {
+    service.friends.set([
+      { userId: 'friend-1', artistName: 'FRIEND', status: 'accepted' },
+    ]);
+    service.onlineUsers.set([
+      {
+        userId: 'friend-1',
+        artistName: 'FRIEND',
+        live: true,
+        livePlatform: 'smuve',
+        liveShareToken: 'share-token',
+        liveGameId: 'halo',
+      },
+    ]);
+
+    expect(service.friendsDirectory()[0]).toEqual(
+      expect.objectContaining({
+        userId: 'friend-1',
+        live: true,
+        livePlatform: 'smuve',
+        liveShareToken: 'share-token',
+        liveGameId: 'halo',
+      })
+    );
+    expect(service.liveNow()).toHaveLength(1);
+  });
+
+  it('filters blocked users from every users_online broadcast', () => {
+    service.blockedUsers.set([{ userId: 'rival-1', artistName: 'RIVAL' }]);
+
+    serverEvent('users_online', [
+      { userId: 'test-id', artistName: 'Test Artist' },
+      { userId: 'rival-1', artistName: 'RIVAL' },
+      { userId: 'keep-1', artistName: 'KEEP' },
+    ]);
+
+    expect(service.onlineUsers().map((u) => u.userId)).toEqual(['keep-1']);
+  });
+
+  it('clears loaded friend-request notifications when the server marks them read', () => {
+    serverEvent('friend_requests_read');
+
+    expect(
+      TestBed.inject(ChallengeInboxService).markFriendRequestsRead,
+    ).toHaveBeenCalled();
+  });
+
+  it('removes a resolved friend request from the loaded inbox', () => {
+    serverEvent('friend_request_resolved', { otherUserId: 'sender-1' });
+
+    expect(
+      TestBed.inject(ChallengeInboxService).removeFriendRequestsFrom,
+    ).toHaveBeenCalledWith('sender-1');
+  });
+
+  it('reloads friends when a friend request arrives over the socket', async () => {
+    serverEvent('friend_request_received', { fromUserId: 'sender-1' });
+
+    const request = TestBed.inject(HttpTestingController).expectOne(
+      (r) => r.method === 'GET' && r.url.endsWith('/users/test-id/friends'),
+    );
+    request.flush([
+      {
+        userId: 'sender-1',
+        artistName: 'SENDER',
+        status: 'pending',
+        direction: 'incoming',
+      },
+    ]);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(service.friends()).toEqual([
+      expect.objectContaining({
+        userId: 'sender-1',
+        status: 'pending',
+        direction: 'incoming',
+      }),
+    ]);
+  });
+
+  it('hides live broadcasts from blocked users', () => {
+    service.blockedUsers.set([{ userId: 'rival-1', artistName: 'RIVAL' }]);
+    service.onlineUsers.set([
+      {
+        userId: 'rival-1',
+        artistName: 'RIVAL',
+        live: true,
+        liveShareToken: 'tok-a',
+      },
+      {
+        userId: 'keep-1',
+        artistName: 'KEEP',
+        live: true,
+        liveShareToken: 'tok-b',
+      },
+    ]);
+
+    expect(service.liveNow().map((u) => u.userId)).toEqual(['keep-1']);
   });
 
   it('emits studio session events through the socket', () => {

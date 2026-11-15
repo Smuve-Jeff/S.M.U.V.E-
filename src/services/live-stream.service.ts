@@ -166,6 +166,22 @@ export const getCurrentLiveStream = async (
 };
 
 /**
+ * Active broadcasts for the discovery directory. Presence is per-process and
+ * only covers connected clients, so this DB read is what lets a viewer who
+ * just signed in (or missed the presence broadcast) still find a live stream.
+ */
+export const listActiveLiveStreams = async (
+  limit = 50
+): Promise<LiveStreamRow[]> => {
+  const rows = await repo().streams.find({
+    where: { active: true },
+    order: { startedAt: "DESC" },
+    take: Math.min(Math.max(Math.trunc(limit), 1), 100),
+  });
+  return rows.map(rowToWire);
+};
+
+/**
  * Mark the host's currently active stream as ended. Idempotent: returns 0
  * if no active row exists so the caller doesn't have to double-check.
  */

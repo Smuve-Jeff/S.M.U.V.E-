@@ -60,6 +60,8 @@ export interface OnlineUserRow {
   primaryGenre?: string;
   avatarImage?: string;
   location?: string;
+  eliteScore?: number;
+  squadCount?: number;
   profileSetupCompleted?: boolean;
   online?: boolean;
 }
@@ -212,12 +214,16 @@ const profileToOnlineUser = (
   const security = (d.settings as any)?.security ?? {};
   const shareProfile = security.shareProfileInDiscovery !== false;
   const hideSensitive = security.hideSensitiveProfileDetails !== false;
+  const eliteScore = Number(d.eliteScore);
+  const squadCount = Number(d.squadCount);
   return {
     userId: p.userId,
     artistName: shareProfile ? (d.artistName as string) || undefined : undefined,
     primaryGenre: shareProfile ? (d.primaryGenre as string) || undefined : undefined,
     avatarImage: shareProfile ? (d.avatarImage as string) || undefined : undefined,
     location: shareProfile && !hideSensitive ? (d.location as string) || undefined : undefined,
+    ...(shareProfile && Number.isFinite(eliteScore) ? { eliteScore } : {}),
+    ...(shareProfile && Number.isFinite(squadCount) ? { squadCount } : {}),
     profileSetupCompleted: d.profileSetupCompleted === true,
     ...extra,
   };
@@ -233,9 +239,15 @@ export const searchUsers = async (opts: {
   qb.andWhere(
     `COALESCE(p.profile_data->'settings'->'security'->>'allowCollaboratorDiscovery', 'true') <> 'false'`,
   );
+  // A hidden discovery profile must not surface at all: blanking the name in
+  // the response still exposed the account id and made search results look
+  // broken. Excluding the row is what the setting promises.
+  qb.andWhere(
+    `COALESCE(p.profile_data->'settings'->'security'->>'shareProfileInDiscovery', 'true') <> 'false'`,
+  );
   if (opts.q && typeof opts.q === "string") {
     qb.andWhere(
-      `(p.profile_data->>'artistName' ILIKE :q OR p.profile_data->>'primaryGenre' ILIKE :q)`,
+      `(p.profile_data->>'artistName' ILIKE :q OR p.profile_data->>'primaryGenre' ILIKE :q OR (COALESCE(p.profile_data->'settings'->'security'->>'hideSensitiveProfileDetails', 'true') = 'false' AND p.profile_data->>'location' ILIKE :q))`,
       { q: `%${opts.q}%` },
     );
   }
@@ -266,6 +278,9 @@ export const featuredUsers = async (
     .andWhere(
       `COALESCE(p.profile_data->'settings'->'security'->>'allowCollaboratorDiscovery', 'true') <> 'false'`,
     )
+    .andWhere(
+      `COALESCE(p.profile_data->'settings'->'security'->>'shareProfileInDiscovery', 'true') <> 'false'`,
+    )
     .orderBy("p.updated_at", "DESC")
     .take(10)
     .getMany();
@@ -279,14 +294,26 @@ export const featuredUsers = async (
 
 export interface FriendRow extends OnlineUserRow {
   status?: string;
+  /**
+   * `outgoing` when the caller sent the pending request, `incoming` when the
+   * other user did. Absent for accepted friends.
+   */
+  direction?: "incoming" | "outgoing";
 }
 
-/** GET /api/users/:userId/friends */
+/**
+ * GET /api/users/:userId/friends
+ *
+ * Returns accepted friends, the caller's outgoing pending requests, and the
+ * incoming pending requests other users sent. Previously only rows owned by
+ * the caller were read, so a recipient never saw a friend request at all while
+ * the sender was offered APPROVE/DENY on their own request.
+ */
 export const listFriends = async (userId: string): Promise<FriendRow[]> => {
   // LEFT JOIN user_profiles: a friend who hasn't saved a profile yet must still
   // appear (falling back to their account name) instead of being silently
   // dropped from the list by an INNER JOIN.
-  const qb = await AppDataSource.createQueryBuilder()
+  const outgoingRows = await AppDataSource.createQueryBuilder()
     .select([
       `COALESCE(u.user_id, usr.id::text) as "userId"`,
       `u.profile_data->>'artistName' as "artistName"`,
@@ -301,34 +328,95 @@ export const listFriends = async (userId: string): Promise<FriendRow[]> => {
     .leftJoin("users", "usr", "f.friend_id = usr.id::text")
     .where("f.user_id = :userId", { userId })
     .getRawMany();
-  return filterBlocked(
-    userId,
-    qb.map((r) => ({
-      userId: r.userId,
+
+  // Pending rows addressed TO this user are the incoming requests. Accepted /
+  // declined reverse rows are not listed: an accepted friendship already has
+  // the caller's own row, and declined requests are deleted.
+  const incomingRows = await AppDataSource.createQueryBuilder()
+    .select([
+      `f.user_id as "userId"`,
+      `u.profile_data->>'artistName' as "artistName"`,
+      `u.profile_data->>'primaryGenre' as "primaryGenre"`,
+      `u.profile_data->>'avatarImage' as "avatarImage"`,
+      `u.profile_data->>'location' as "location"`,
+      `usr.name as "fallbackName"`,
+      `f.status as "status"`,
+    ])
+    .from("friends", "f")
+    .leftJoin("user_profiles", "u", "f.user_id = u.user_id")
+    .leftJoin("users", "usr", "f.user_id = usr.id::text")
+    .where("f.friend_id = :userId AND f.status = 'pending'", { userId })
+    .getRawMany();
+
+  const byId = new Map<string, FriendRow>();
+  for (const r of outgoingRows) {
+    if (!r.userId) continue;
+    const id = String(r.userId);
+    byId.set(id, {
+      userId: id,
       artistName: r.artistName || r.fallbackName || undefined,
       primaryGenre: r.primaryGenre || undefined,
       avatarImage: r.avatarImage || undefined,
       location: r.location || undefined,
       status: r.status || undefined,
-    })),
-  );
+      ...(r.status === "pending"
+        ? { direction: "outgoing" as const }
+        : {}),
+    });
+  }
+  for (const r of incomingRows) {
+    if (!r.userId) continue;
+    const id = String(r.userId);
+    if (byId.has(id)) continue;
+    byId.set(id, {
+      userId: id,
+      artistName: r.artistName || r.fallbackName || undefined,
+      primaryGenre: r.primaryGenre || undefined,
+      avatarImage: r.avatarImage || undefined,
+      location: r.location || undefined,
+      status: r.status || undefined,
+      direction: "incoming",
+    });
+  }
+  return filterBlocked(userId, [...byId.values()]);
 };
 
 /** POST /api/users/:userId/friends/:friendId */
 export const addFriend = async (
   userId: string,
   friendId: string,
-): Promise<{ success: boolean }> => {
+): Promise<{ success: boolean; requested?: boolean; accepted?: boolean }> => {
   if (userId === friendId) {
     throw new AppError(400, "Cannot friend yourself");
   }
-  const existing = await repo().friends.findOneBy({ userId, friendId });
-  if (!existing) {
-    await repo().friends.save(
-      repo().friends.create({ userId, friendId, status: "pending" }),
-    );
+  // Blocks are mutual for delivery. A friend request must not be a way around
+  // that, whether the sender or the recipient placed the block.
+  if (await isEitherBlocked(userId, friendId)) {
+    throw new AppError(403, "Cannot send a friend request to a blocked player");
   }
-  return { success: true };
+  const existing = await repo().friends.findOneBy({ userId, friendId });
+  if (existing) return { success: true };
+
+  const reverse = await repo().friends.findOneBy({ userId: friendId, friendId: userId });
+  if (reverse?.status === "accepted") {
+    // Repair a half-written friendship instead of creating a pending request
+    // against someone who is already a friend.
+    await upsertFriend({ userId, friendId, status: "accepted" });
+    return { success: true, accepted: true };
+  }
+  if (reverse?.status === "pending") {
+    // Both users asked for each other: accept instead of leaving two pending
+    // rows that each side sees with the wrong direction.
+    reverse.status = "accepted";
+    await repo().friends.save(reverse);
+    await upsertFriend({ userId, friendId, status: "accepted" });
+    return { success: true, accepted: true };
+  }
+
+  await repo().friends.save(
+    repo().friends.create({ userId, friendId, status: "pending" }),
+  );
+  return { success: true, requested: true };
 };
 
 // Upsert the reverse row with ENTITY-PROPERTY keys (column-name keys would
@@ -367,6 +455,18 @@ export const respondToFriendRequest = async (
     );
   }
 
+  // Only the recipient can answer a request. The request row lives on the
+  // sender's side (`sender -> recipient`), so the caller must have a matching
+  // pending row addressed to them. Without this check the sender could PATCH
+  // their own outgoing request straight to accepted.
+  const reverse = await repo().friends.findOneBy({
+    userId: friendId,
+    friendId: userId,
+  });
+  if (!reverse || reverse.status !== "pending") {
+    throw new AppError(404, "No pending friend request");
+  }
+
   if (status === "declined") {
     await AppDataSource.createQueryBuilder()
       .delete()
@@ -379,14 +479,8 @@ export const respondToFriendRequest = async (
     return { success: true, message: "Connection declined." };
   }
 
-  await AppDataSource.createQueryBuilder()
-    .update("friends")
-    .set({ status })
-    .where("user_id = :userId AND friend_id = :friendId", {
-      userId: friendId,
-      friendId: userId,
-    })
-    .execute();
+  reverse.status = status;
+  await repo().friends.save(reverse);
   await upsertFriend({ userId, friendId, status });
   return { success: true };
 };
@@ -751,6 +845,44 @@ export const markNotificationRead = async (
   if (!result.affected) {
     throw new AppError(404, "Notification not found");
   }
+  return { success: true };
+};
+
+/**
+ * Mark every unread friend-request notification read for one user. Called when
+ * the friends list is fetched so the request has actually been seen.
+ */
+export const markFriendRequestNotificationsRead = async (
+  userId: string,
+): Promise<{ success: boolean; updated: number }> => {
+  const result = await AppDataSource.createQueryBuilder()
+    .update("notifications")
+    .set({ isRead: true })
+    .where(
+      "user_id = :userId AND type = 'friend_request' AND is_read = false",
+      { userId },
+    )
+    .execute();
+  return { success: true, updated: result?.affected ?? 0 };
+};
+
+/**
+ * Drop the friend-request notifications between two users once the request is
+ * accepted, declined, cancelled, or the friendship is removed.
+ */
+export const clearFriendRequestNotifications = async (
+  userId: string,
+  otherUserId: string,
+): Promise<{ success: boolean }> => {
+  await AppDataSource.createQueryBuilder()
+    .delete()
+    .from("notifications")
+    .where("type = 'friend_request'")
+    .andWhere(
+      "((user_id = :userId AND payload->>'fromUserId' = :otherUserId) OR (user_id = :otherUserId AND payload->>'fromUserId' = :userId))",
+      { userId, otherUserId },
+    )
+    .execute();
   return { success: true };
 };
 

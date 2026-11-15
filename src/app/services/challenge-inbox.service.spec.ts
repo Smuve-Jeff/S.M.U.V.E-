@@ -138,6 +138,83 @@ describe("ChallengeInboxService challenge lifecycle", () => {
     );
   });
 
+  it("clears unread friend requests without touching other notifications", () => {
+    service.notifications.set([
+      {
+        id: 1,
+        type: "friend_request",
+        title: "New friend request",
+        body: "",
+        payload: {},
+        read: false,
+        timestamp: 1,
+      },
+      {
+        id: 2,
+        type: "challenge_incoming",
+        title: "Challenge",
+        body: "",
+        payload: {},
+        read: false,
+        timestamp: 2,
+      },
+      {
+        id: 3,
+        type: "friend_request",
+        title: "Already read",
+        body: "",
+        payload: {},
+        read: true,
+        timestamp: 3,
+      },
+    ]);
+
+    service.markFriendRequestsRead();
+
+    expect(service.notifications().map((n) => n.read)).toEqual([
+      true,
+      false,
+      true,
+    ]);
+    expect(service.unreadCount()).toBe(1);
+  });
+
+  it("removes resolved friend requests but keeps other notifications", () => {
+    service.notifications.set([
+      {
+        id: 1,
+        type: "friend_request",
+        title: "New friend request",
+        body: "",
+        payload: { fromUserId: "u2" },
+        read: false,
+        timestamp: 1,
+      },
+      {
+        id: 2,
+        type: "challenge_incoming",
+        title: "Challenge",
+        body: "",
+        payload: {},
+        read: false,
+        timestamp: 2,
+      },
+      {
+        id: 3,
+        type: "friend_request",
+        title: "Other request",
+        body: "",
+        payload: { fromUserId: "u3" },
+        read: false,
+        timestamp: 3,
+      },
+    ]);
+
+    service.removeFriendRequestsFrom("u2");
+
+    expect(service.notifications().map((n) => n.id)).toEqual([2, 3]);
+  });
+
   it("rejects sending a challenge to yourself before making a request", async () => {
     await expect(service.challengePlayer("u1", "pacman")).resolves.toBe(false);
     expect(socket.emit).not.toHaveBeenCalled();
