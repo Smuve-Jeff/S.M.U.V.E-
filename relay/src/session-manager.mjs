@@ -24,6 +24,7 @@ export class SessionManager {
   #maxRestarts;
   #logger;
   #store;
+  #onAlert;
 
   constructor({
     spawn,
@@ -35,6 +36,8 @@ export class SessionManager {
     logger = console,
     /** Optional SessionStore: keeps sessions across a relay restart. */
     store = null,
+    /** Called when a session's egress stalls or recovers. */
+    onAlert = null,
   }) {
     if (typeof spawn !== "function") throw new Error("spawn is required");
     if (!mediamtx) throw new Error("mediamtx client is required");
@@ -47,6 +50,7 @@ export class SessionManager {
     this.#maxRestarts = Math.max(0, Number(maxRestarts) || 0);
     this.#logger = logger;
     this.#store = store;
+    this.#onAlert = typeof onAlert === "function" ? onAlert : null;
   }
 
   async create(input, { kind = "broadcast" } = {}) {
@@ -64,6 +68,12 @@ export class SessionManager {
       child: null,
       timer: null,
       error: null,
+      // Egress watchdog: bytes ffmpeg last reported writing to the provider.
+      bytesOut: 0,
+      lastBytesAt: null,
+      stalled: false,
+      alerts: 0,
+      progressBuffer: "",
     };
     this.#sessions.set(id, session);
     this.#startFfmpeg(session);
@@ -80,6 +90,8 @@ export class SessionManager {
       restarts: session.restarts,
       running: !!session.child,
       error: session.error,
+      bytesOut: session.bytesOut,
+      stalled: session.stalled,
     }));
   }
 
@@ -135,6 +147,11 @@ export class SessionManager {
         child: null,
         timer: null,
         error: null,
+        bytesOut: 0,
+        lastBytesAt: null,
+        stalled: false,
+        alerts: 0,
+        progressBuffer: "",
       });
       this.#startFfmpeg(this.#sessions.get(id));
       restored += 1;
@@ -204,6 +221,12 @@ export class SessionManager {
       ready: !!path?.ready,
       bytesReceived: Number(path?.bytesReceived ?? 0),
       tracks,
+      // Egress (relay → provider), as opposed to bytesReceived above
+      // (browser → MediaMTX). A session can be receiving fine and pushing
+      // nothing, which is exactly what the watchdog watches for.
+      bytesOut: session.bytesOut,
+      stalled: session.stalled,
+      stalledForMs: session.stalledForMs ?? 0,
     };
   }
 
@@ -234,6 +257,95 @@ export class SessionManager {
     );
   }
 
+  /**
+   * Flag sessions that were pushing and then went silent.
+   *
+   * `bytesReceived` proves the browser is still sending to MediaMTX; it says
+   * nothing about whether the provider is getting anything, because ffmpeg can
+   * sit connected and write nothing after the RTMP side dies. ffmpeg's own
+   * `-progress` output is the only honest egress signal, so a session that has
+   * reported bytes and then stopped for a full window is alerted once, and
+   * alerted again when it recovers.
+   *
+   * A session that has never reported bytes is left alone: it is either still
+   * connecting or ffmpeg's own retry loop is already handling it.
+   */
+  async watchdog(stallMs, now = Date.now()) {
+    const windowMs = Number(stallMs);
+    if (!Number.isFinite(windowMs) || windowMs <= 0) return [];
+    const flagged = [];
+    for (const session of this.#sessions.values()) {
+      if (!session.child || session.stalled) continue;
+      if (!session.lastBytesAt || session.bytesOut <= 0) continue;
+      const silentFor = now - session.lastBytesAt;
+      if (silentFor < windowMs) continue;
+
+      session.stalled = true;
+      session.stalledForMs = silentFor;
+      session.alerts += 1;
+      flagged.push(session.id);
+      this.#logger.error?.(
+        `[relay] ALERT session ${session.id} has sent nothing to the provider for ${Math.round(
+          silentFor / 1000,
+        )}s (last total_size ${session.bytesOut})`,
+      );
+      this.#alert({
+        event: "session.stalled",
+        sessionId: session.id,
+        kind: session.kind,
+        bytesOut: session.bytesOut,
+        stalledForMs: silentFor,
+      });
+    }
+    return flagged;
+  }
+
+  #alert(payload) {
+    if (!this.#onAlert) return;
+    try {
+      const result = this.#onAlert({ ...payload, at: new Date().toISOString() });
+      if (result && typeof result.catch === "function") result.catch(() => {});
+    } catch (error) {
+      this.#logger.error?.(`[relay] alert handler failed: ${error?.message ?? error}`);
+    }
+  }
+
+  /**
+   * ffmpeg writes `key=value` blocks to stdout every ~0.5s when started with
+   * `-progress pipe:1`; `total_size` is what it has written to the FLV muxer,
+   * i.e. the provider side. Chunks split lines, so keep the remainder.
+   */
+  #readProgress(session, chunk) {
+    session.progressBuffer = (session.progressBuffer + String(chunk)).slice(-4096);
+    const lines = session.progressBuffer.split("\n");
+    session.progressBuffer = lines.pop() ?? "";
+    for (const line of lines) {
+      const match = /^total_size=(\d+)\s*$/.exec(line.trim());
+      if (!match) continue;
+      const size = Number(match[1]);
+      if (!Number.isFinite(size) || size <= session.bytesOut) continue;
+      session.bytesOut = size;
+      session.lastBytesAt = Date.now();
+      if (session.stalled) {
+        const silentFor = session.stalledForMs ?? 0;
+        session.stalled = false;
+        session.stalledForMs = 0;
+        this.#logger.warn?.(
+          `[relay] session ${session.id} egress recovered at ${size} bytes (was silent for ${Math.round(
+            silentFor / 1000,
+          )}s)`,
+        );
+        this.#alert({
+          event: "session.recovered",
+          sessionId: session.id,
+          kind: session.kind,
+          bytesOut: size,
+          stalledForMs: silentFor,
+        });
+      }
+    }
+  }
+
   /** Close sessions that have been open longer than the configured lifetime. */
   async sweep(maxAgeMs) {
     if (!Number.isFinite(maxAgeMs)) return;
@@ -252,6 +364,9 @@ export class SessionManager {
         "-nostdin",
         "-loglevel",
         "error",
+        "-nostats",
+        "-progress",
+        "pipe:1",
         "-rtsp_transport",
         "tcp",
         "-i",
@@ -262,10 +377,11 @@ export class SessionManager {
         "flv",
         session.destination,
       ],
-      { stdio: ["ignore", "ignore", "pipe"] },
+      { stdio: ["ignore", "pipe", "pipe"] },
     );
     session.child = child;
 
+    child.stdout?.on?.("data", (chunk) => this.#readProgress(session, chunk));
     child.stderr?.on?.("data", (chunk) => {
       // Keep the last line for the session list instead of flooding logs.
       session.error = String(chunk).trim().slice(0, 300) || session.error;

@@ -152,6 +152,25 @@ test("reports ok when MediaMTX answers", async () => {
   assert.ok(server);
 });
 
+test("counts stalled sessions without calling itself degraded", async () => {
+  const { base } = await startServer({
+    manager: {
+      list: () => [
+        { id: "a", stalled: true },
+        { id: "b", stalled: false },
+      ],
+      health: async () => ({ mediamtx: "reachable", detail: null }),
+    },
+  });
+
+  const response = await fetch(`${base}/health`);
+
+  assert.equal(response.status, 200);
+  const body = await response.json();
+  assert.equal(body.sessions, 2);
+  assert.equal(body.stalled, 1);
+});
+
 test("reports degraded, as a 503, when MediaMTX is unreachable", async () => {
   const { base } = await startServer({
     manager: {

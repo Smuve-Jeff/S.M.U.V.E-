@@ -5,6 +5,7 @@ import { SessionManager } from "../src/session-manager.mjs";
 
 function fakeChild() {
   const child = new EventEmitter();
+  child.stdout = new EventEmitter();
   child.stderr = new EventEmitter();
   child.killed = false;
   child.kill = (signal) => {
@@ -56,6 +57,9 @@ test("opens a path and pushes RTSP to the provider's RTMP ingest", async () => {
     "-nostdin",
     "-loglevel",
     "error",
+    "-nostats",
+    "-progress",
+    "pipe:1",
     "-rtsp_transport",
     "tcp",
     "-i",
@@ -247,4 +251,101 @@ test("refuses a destination before touching the media server", async () => {
   );
   assert.deepEqual(added, []);
   assert.equal(manager.list().length, 0);
+});
+
+/** Feed ffmpeg's `-progress` output the way a real process would. */
+function progress(child, totalSize) {
+  child.stdout.emit("data", `frame=12\nfps=25\ntotal_size=${totalSize}\nout_time_ms=480000\n`);
+}
+
+test("alerts when a session that was pushing goes silent", async () => {
+  const alerts = [];
+  const { manager, children } = harness({ onAlert: (alert) => alerts.push(alert) });
+  const session = await manager.create(destination);
+
+  progress(children[0], 1024);
+  assert.deepEqual(await manager.watchdog(15_000), []);
+  const flagged = await manager.watchdog(15_000, Date.now() + 20_000);
+
+  assert.deepEqual(flagged, [session.id]);
+  assert.equal(alerts.length, 1);
+  assert.equal(alerts[0].event, "session.stalled");
+  assert.equal(alerts[0].sessionId, session.id);
+  assert.equal(alerts[0].bytesOut, 1024);
+  assert.match(alerts[0].at, /^\d{4}-/);
+
+  // Once, not once per tick.
+  assert.deepEqual(await manager.watchdog(15_000, Date.now() + 60_000), []);
+  assert.equal(alerts.length, 1);
+
+  const status = await manager.status(session.id);
+  assert.equal(status.stalled, true);
+  assert.equal(status.bytesOut, 1024);
+  assert.ok(status.stalledForMs >= 20_000);
+  assert.equal(manager.list()[0].stalled, true);
+});
+
+test("leaves a session alone until it has actually pushed something", async () => {
+  const alerts = [];
+  const { manager } = harness({ onAlert: (alert) => alerts.push(alert) });
+  const session = await manager.create(destination);
+
+  // No progress yet: ffmpeg is still connecting, and its retry loop owns that.
+  assert.deepEqual(await manager.watchdog(15_000, Date.now() + 120_000), []);
+  assert.equal(alerts.length, 0);
+  assert.equal((await manager.status(session.id)).stalled, false);
+});
+
+test("clears the alert when bytes start moving again", async () => {
+  const alerts = [];
+  const { manager, children } = harness({ onAlert: (alert) => alerts.push(alert) });
+  const session = await manager.create(destination);
+
+  progress(children[0], 1024);
+  await manager.watchdog(15_000, Date.now() + 20_000);
+  progress(children[0], 4096);
+
+  assert.equal((await manager.status(session.id)).stalled, false);
+  assert.equal(alerts.length, 2);
+  assert.equal(alerts[1].event, "session.recovered");
+  assert.equal(alerts[1].bytesOut, 4096);
+
+  // Re-alerting requires a fresh silence window.
+  assert.deepEqual(await manager.watchdog(15_000), []);
+});
+
+test("ignores a total_size that does not advance", async () => {
+  const { manager, children } = harness();
+  const session = await manager.create(destination);
+
+  progress(children[0], 2048);
+  progress(children[0], 2048);
+
+  const status = await manager.status(session.id);
+  assert.equal(status.bytesOut, 2048);
+  assert.equal(status.stalled, false);
+});
+
+test("does nothing when the watchdog is switched off", async () => {
+  const alerts = [];
+  const { manager, children } = harness({ onAlert: (alert) => alerts.push(alert) });
+  await manager.create(destination);
+
+  progress(children[0], 1024);
+
+  assert.deepEqual(await manager.watchdog(0, Date.now() + 600_000), []);
+  assert.equal(alerts.length, 0);
+});
+
+test("survives an alert handler that throws", async () => {
+  const { manager, children } = harness({
+    onAlert: () => {
+      throw new Error("webhook exploded");
+    },
+  });
+  const session = await manager.create(destination);
+
+  progress(children[0], 1024);
+
+  assert.deepEqual(await manager.watchdog(15_000, Date.now() + 20_000), [session.id]);
 });

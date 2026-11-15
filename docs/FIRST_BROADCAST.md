@@ -244,6 +244,12 @@ Checks, in order:
   and, once bytes flow, the RTSP reader ffmpeg opened.
 - Switching camera ↔ game keeps the feed alive (the video track is replaced in
   place rather than republishing).
+- The relay's startup log announced
+  `[relay] egress watchdog: 15s of silence`; during the push, nothing should say
+  `[relay] ALERT session …`. If it does, the browser is still uploading but the
+  provider has stopped receiving — check outbound RTMP from the relay host, then
+  stop and re-push. `curl -s http://127.0.0.1:8080/health` showing
+  `"stalled": 1` is the same signal.
 
 Stop with **STOP**; the snackbar reads `BROADCAST PUSH STOPPED`, Twitch reports
 the stream offline within ~10 seconds, and the relay session is deleted. Ending

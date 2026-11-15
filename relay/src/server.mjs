@@ -62,9 +62,13 @@ export function createRelayServer({
       if (req.method === "GET" && url.pathname === "/health") {
         const health = await manager.health?.();
         const degraded = health?.mediamtx === "unreachable";
+        const sessions = manager.list();
         return send(res, degraded ? 503 : 200, {
           status: degraded ? "degraded" : "ok",
-          sessions: manager.list().length,
+          sessions: sessions.length,
+          // A stalled session is not degraded: new broadcasts still work, but
+          // an operator's probe can see that one is silent.
+          stalled: sessions.filter((session) => session.stalled).length,
           mediamtx: health?.mediamtx ?? "unknown",
           detail: health?.detail ?? null,
         });

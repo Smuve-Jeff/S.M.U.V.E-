@@ -41,6 +41,25 @@ if (stateFile) {
   }
 }
 
+const alertWebhook = (process.env.ALERT_WEBHOOK_URL || "").trim();
+const onAlert = alertWebhook
+  ? async (alert) => {
+      try {
+        const response = await fetch(alertWebhook, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(alert),
+          signal: AbortSignal.timeout(5_000),
+        });
+        if (!response.ok) {
+          console.error(`[relay] alert webhook answered ${response.status}`);
+        }
+      } catch (error) {
+        console.error(`[relay] alert webhook failed: ${error?.message ?? error}`);
+      }
+    }
+  : null;
+
 const manager = new SessionManager({
   spawn,
   mediamtx: new MediaMtxClient({
@@ -52,6 +71,7 @@ const manager = new SessionManager({
   ffmpegPath: process.env.FFMPEG_PATH || "ffmpeg",
   maxRestarts: Number(process.env.FFMPEG_MAX_RESTARTS ?? 5),
   store,
+  onAlert,
 });
 
 const restored = await manager.restore();
@@ -60,6 +80,17 @@ if (store) console.log(`[relay] restored ${restored} session(s) from ${stateFile
 const ttlMs = Number(process.env.SESSION_TTL_MINUTES || 360) * 60_000;
 const sweeper = setInterval(() => void manager.sweep(ttlMs), 60_000);
 sweeper.unref();
+
+// Egress watchdog: a session that was pushing and then went silent is the one
+// failure nobody notices until the show is over.
+const stallMs = Math.max(0, Number(process.env.EGRESS_STALL_SECONDS ?? 15)) * 1_000;
+const watchdog = stallMs
+  ? setInterval(
+      () => void manager.watchdog(stallMs),
+      Math.max(1_000, Math.min(5_000, stallMs / 3)),
+    )
+  : null;
+watchdog?.unref?.();
 
 const server = createRelayServer({
   manager,
@@ -75,6 +106,11 @@ server.listen(port, () => {
       ? `[relay] self-test sink: ${selftestDestination.rtmpUrl}`
       : "[relay] self-test disabled (SELFTEST_RTMP_URL is not set)",
   );
+  console.log(
+    stallMs > 0
+      ? `[relay] egress watchdog: ${stallMs / 1_000}s of silence${alertWebhook ? `, alerting ${alertWebhook}` : ""}`
+      : "[relay] egress watchdog disabled (EGRESS_STALL_SECONDS=0)",
+  );
 });
 
 let closing = false;
@@ -83,6 +119,7 @@ async function shutdown(signal) {
   closing = true;
   console.log(`[relay] ${signal} received — closing sessions`);
   clearInterval(sweeper);
+  if (watchdog) clearInterval(watchdog);
   server.close();
   await manager.stopAll();
   process.exit(0);

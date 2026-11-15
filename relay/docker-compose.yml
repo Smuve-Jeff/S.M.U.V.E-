@@ -36,6 +36,9 @@ services:
       # state file holds stream keys, so it is encrypted with RELAY_STATE_KEY.
       RELAY_STATE_FILE: /var/lib/relay/sessions.json
       RELAY_STATE_KEY: ${RELAY_STATE_KEY:-}
+      # Alert when a live session stops sending to the provider.
+      EGRESS_STALL_SECONDS: ${EGRESS_STALL_SECONDS:-15}
+      ALERT_WEBHOOK_URL: ${ALERT_WEBHOOK_URL:-}
       FFMPEG_PATH: ffmpeg
     volumes:
       - relay-state:/var/lib/relay
