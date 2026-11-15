@@ -79,6 +79,33 @@ const skip = !installed(FFMPEG)
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
+const TEARDOWN_LIMIT_MS = 10_000;
+
+/**
+ * Teardown must never outlast the test. A child that ignores SIGTERM (or a
+ * socket that never closes) would otherwise hold the job open until CI kills it,
+ * turning an obvious failure into a twenty-minute wait with no logs. Returns the
+ * value, or undefined if it gave up — teardown results are never asserted on.
+ */
+async function bounded(work, label, ms = TEARDOWN_LIMIT_MS) {
+  let timer;
+  const givingUp = new Promise((resolve) => {
+    timer = setTimeout(() => resolve("timeout"), ms);
+    timer.unref?.();
+  });
+  const settled = Promise.resolve(work).then(
+    (value) => ({ value }),
+    () => ({ value: undefined }),
+  );
+  const winner = await Promise.race([settled, givingUp]);
+  clearTimeout(timer);
+  if (winner === "timeout") {
+    console.warn(`[relay-e2e] ${label} did not finish within ${ms} ms; giving up`);
+    return undefined;
+  }
+  return winner.value;
+}
+
 async function until(check, { timeoutMs = 20_000, everyMs = 250, label }) {
   const deadline = Date.now() + timeoutMs;
   for (;;) {
@@ -178,29 +205,42 @@ test(
 
     let whip = null;
     let session = null;
+    // Read the state before teardown: evidence that only exists mid-run is
+    // exactly what a failed job needs to explain itself.
+    const writeDiagnostics = async (status) => {
+      const files = {
+        "mediamtx.log": mediaLog || "(no output)\n",
+        "relay.log": relayLog.join("\n") || "(no output)\n",
+        "session.json": `${JSON.stringify(status ?? null, null, 2)}\n`,
+        "alerts.json": `${JSON.stringify(alerts, null, 2)}\n`,
+        "ingest-bytes.txt": `${await sinkBytes().catch(() => "unavailable")}\n`,
+      };
+      await mkdir(diagnosticDir, { recursive: true });
+      for (const [name, body] of Object.entries(files)) {
+        await writeFile(join(diagnosticDir, name), body);
+      }
+    };
+
     t.after(async () => {
-      // Read the state before tearing anything down: evidence that only exists
-      // mid-run is exactly what a failed job needs to explain itself.
+      // Every step is bounded so a wedged child costs seconds, not the job.
+      const status = session
+        ? await bounded(manager.status(session.id), "reading the session status")
+        : null;
       if (diagnosticDir) {
-        const status = session
-          ? await manager.status(session.id).catch(() => null)
-          : null;
-        const files = {
-          "mediamtx.log": mediaLog || "(no output)\n",
-          "relay.log": relayLog.join("\n") || "(no output)\n",
-          "session.json": `${JSON.stringify(status, null, 2)}\n`,
-          "alerts.json": `${JSON.stringify(alerts, null, 2)}\n`,
-          "ingest-bytes.txt": `${await sinkBytes().catch(() => "unavailable")}\n`,
-        };
-        await mkdir(diagnosticDir, { recursive: true });
-        for (const [name, body] of Object.entries(files)) {
-          await writeFile(join(diagnosticDir, name), body);
+        await bounded(writeDiagnostics(status), "writing diagnostics");
+      }
+      await bounded(manager.stopAll(), "stopping the relay sessions");
+      await bounded(whip?.stop(), "closing the WHIP publish");
+      media.kill("SIGKILL");
+      // Backstop for a child that ignored every polite request above.
+      if (status?.pid) {
+        try {
+          process.kill(status.pid, "SIGKILL");
+        } catch {
+          // Already gone, which is the usual case.
         }
       }
-      await manager.stopAll().catch(() => {});
-      await whip?.stop().catch(() => {});
-      media.kill("SIGKILL");
-      await rm(dir, { recursive: true, force: true });
+      await bounded(rm(dir, { recursive: true, force: true }), "removing the temp directory");
     });
 
     await until(

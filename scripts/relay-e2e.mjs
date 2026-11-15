@@ -146,18 +146,16 @@ async function main() {
   if (provisionOnly) return 0;
 
   log("running the end-to-end media suite");
-  return run(
-    process.execPath,
-    ["--test", "relay/test/e2e-media.test.mjs"],
-    {
-      env: {
-        ...process.env,
-        RELAY_FFMPEG_PATH: ffmpegPath,
-        MEDIAMTX_PATH: mediaMtxPath,
-        RELAY_WERIFT_PATH: weriftPath,
-      },
+  // Through npm so there is one definition of the command (it carries the
+  // --test-force-exit that keeps a wedged child from holding the job open).
+  return run("npm", ["run", "test:relay:e2e"], {
+    env: {
+      ...process.env,
+      RELAY_FFMPEG_PATH: ffmpegPath,
+      MEDIAMTX_PATH: mediaMtxPath,
+      RELAY_WERIFT_PATH: weriftPath,
     },
-  );
+  });
 }
 
 main()
