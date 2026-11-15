@@ -1446,12 +1446,15 @@ describe("socket.io handshake + JWT auth", () => {
       auth: { token },
       transports: ["websocket", "polling"],
     });
+    // The row must survive the drop and close when the grace expires.
+    process.env.LIVE_HOST_DROP_GRACE_MS = "200";
     let settled = false;
     let timer: ReturnType<typeof setTimeout> | undefined = undefined;
     let poll: ReturnType<typeof setInterval> | undefined = undefined;
     const finish = (err?: Error) => {
       if (settled) return;
       settled = true;
+      delete process.env.LIVE_HOST_DROP_GRACE_MS;
       clearTimeout(timer);
       clearInterval(poll);
       client.close();
@@ -2021,6 +2024,29 @@ describe("resolved-match lobby provisioning + in-match relays", () => {
       host.close();
       const ended = await endedP;
       expect(ended.streamId).toBe(5);
+      delete process.env.LIVE_HOST_DROP_GRACE_MS;
+    });
+
+    it("keeps the row when the host reconnects inside the grace window", async () => {
+      process.env.LIVE_HOST_DROP_GRACE_MS = "300";
+      const [host, viewer] = pair(351, 352);
+      await Promise.all([connect(host), connect(viewer)]);
+      host.emit("live_stream_host_join", { token: "tok_live" });
+      await settle();
+      viewer.emit("live_stream_watch", { token: "tok_live" });
+      await settle();
+
+      host.close();
+      const returning = mk(351);
+      joined.push(returning);
+      await connect(returning);
+      returning.emit("live_stream_host_join", { token: "tok_live" });
+      await settle(700);
+
+      const ends = (endLiveStream as jest.Mock).mock.calls.filter(
+        ([hostId]) => hostId === "351",
+      );
+      expect(ends).toHaveLength(0);
       delete process.env.LIVE_HOST_DROP_GRACE_MS;
     });
 

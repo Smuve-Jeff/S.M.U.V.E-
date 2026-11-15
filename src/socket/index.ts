@@ -111,16 +111,37 @@ const hostDropGraceMs = (): number => {
   const configured = Number(process.env.LIVE_HOST_DROP_GRACE_MS);
   return Number.isFinite(configured) && configured > 0 ? configured : 30_000;
 };
-const hostDropTimers = new Map<number, ReturnType<typeof setTimeout>>();
+interface HostDropLease {
+  timer: ReturnType<typeof setTimeout>;
+  hostId: string;
+}
+const hostDropTimers = new Map<number, HostDropLease>();
+/** Broadcasts whose host is only known from presence, keyed by user. */
+const presenceHostEndTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
 const cancelHostDropGrace = (streamId: number): void => {
-  const timer = hostDropTimers.get(streamId);
-  if (!timer) return;
-  clearTimeout(timer);
+  const lease = hostDropTimers.get(streamId);
+  if (!lease) return;
+  clearTimeout(lease.timer);
   hostDropTimers.delete(streamId);
 };
 
-const scheduleHostDropGrace = (streamId: number): void => {
+const cancelPresenceHostEnd = (userId: string): void => {
+  const timer = presenceHostEndTimers.get(userId);
+  if (!timer) return;
+  clearTimeout(timer);
+  presenceHostEndTimers.delete(userId);
+};
+
+/**
+ * The host's socket is gone: give them the grace window to come back, then
+ * close the room AND the row.
+ *
+ * Emitting only the room event used to leave the row active, so the broadcast
+ * stayed in the directory, its share link still resolved to a host who would
+ * never offer, and friends kept a card for a stream that was over.
+ */
+const scheduleHostDropGrace = (streamId: number, hostId: string): void => {
   cancelHostDropGrace(streamId);
   const timer = setTimeout(() => {
     hostDropTimers.delete(streamId);
@@ -131,8 +152,42 @@ const scheduleHostDropGrace = (streamId: number): void => {
     if (stillHosted) return;
     liveSources.delete(streamId);
     ioServer?.to(getLiveRoom(streamId)).emit("live_stream_ended", { streamId });
+    // The cursor is already gone, so the row has to be found by host id.
+    void endStreamAndRetireCard(hostId).catch(() => undefined);
   }, hostDropGraceMs());
-  hostDropTimers.set(streamId, timer);
+  hostDropTimers.set(streamId, { timer, hostId });
+};
+
+/**
+ * Same grace for a host that is live only in presence — a broadcast started
+ * from the legacy socket event never registers a relay socket. Their row is
+ * closed only if they have not come back by the time it expires.
+ */
+const schedulePresenceHostEnd = (
+  userId: string,
+  isStillLive: () => boolean,
+): void => {
+  cancelPresenceHostEnd(userId);
+  const timer = setTimeout(() => {
+    presenceHostEndTimers.delete(userId);
+    if (isStillLive()) return;
+    void (async () => {
+      try {
+        const row = await Promise.resolve(getCurrentLiveStream(userId)).catch(
+          () => null,
+        );
+        if (row) {
+          ioServer
+            ?.to(getLiveRoom(Number(row.id)))
+            .emit("live_stream_ended", { streamId: Number(row.id) });
+        }
+        await endStreamAndRetireCard(userId);
+      } catch {
+        /* the next presence sync closes the row if this one could not */
+      }
+    })();
+  }, hostDropGraceMs());
+  presenceHostEndTimers.set(userId, timer);
 };
 
 export interface LiveStreamAnnouncement {
@@ -932,6 +987,7 @@ export const setupSocketIO = (httpServer: HttpServer): Server => {
           }
           socket.join(getLiveRoom(stream.id));
           cancelHostDropGrace(stream.id);
+          cancelPresenceHostEnd(String(userId));
           liveHosts.set(socket.id, {
             userId: String(userId),
             hostId: String(stream.hostId),
@@ -1067,6 +1123,7 @@ export const setupSocketIO = (httpServer: HttpServer): Server => {
       if (!host) return;
       liveHosts.delete(socket.id);
       liveSources.delete(host.streamId);
+      cancelHostDropGrace(host.streamId);
       socket.leave(getLiveRoom(host.streamId));
       socket.to(getLiveRoom(host.streamId)).emit("live_stream_ended", {
         streamId: host.streamId,
@@ -2673,6 +2730,7 @@ export const setupSocketIO = (httpServer: HttpServer): Server => {
           // Tell the host the share URL right away so they can paste it
           // into the popup landing page or copy from the side panel.
           socket.emit("live_stream_started", issued);
+          cancelPresenceHostEnd(String(userId));
           // Broadcast presence metadata so peers see a "LIVE" indicator.
           presence.set(userId, {
             socketId: socket.id,
@@ -2718,7 +2776,9 @@ export const setupSocketIO = (httpServer: HttpServer): Server => {
         // Viewers in the live room must stop the player even if the REST
         // path was used to end the broadcast.
         liveHosts.delete(socket.id);
+        cancelPresenceHostEnd(String(userId));
         if (result?.streamId) {
+          cancelHostDropGrace(Number(result.streamId));
           io.to(getLiveRoom(result.streamId)).emit("live_stream_ended", result);
         }
       } catch (err) {
@@ -2856,7 +2916,7 @@ export const setupSocketIO = (httpServer: HttpServer): Server => {
       if (hostRelay) {
         liveHosts.delete(socket.id);
         liveSources.delete(hostRelay.streamId);
-        scheduleHostDropGrace(hostRelay.streamId);
+        scheduleHostDropGrace(hostRelay.streamId, hostRelay.hostId);
       }
       const userSockets = socketIdsByUser.get(userId);
       userSockets?.delete(socket.id);
@@ -2916,12 +2976,16 @@ export const setupSocketIO = (httpServer: HttpServer): Server => {
           });
         }
       });
-      // End the host live stream when their LAST socket disconnects.
-      // Presence was already deleted in that case, so the captured flag is
-      // the only reliable signal; when other sockets remain the user is
-      // still online and their stream stays up.
-      if (isLastSocket && wasLive) {
-        void endStreamAndRetireCard(userId).catch(() => undefined);
+      // A host that is gone must lose the row — but not instantly. A phone
+      // that locks its screen, a closed lid or a one-second tunnel drop all
+      // look like this, and ending at once deactivated the row the host's
+      // re-registration needs, so a brief blip killed the share link for good.
+      // The grace timer decides, and coming back inside it cancels the end.
+      if (isLastSocket && wasLive && !hostRelay) {
+        schedulePresenceHostEnd(
+          userId,
+          () => !!presence.get(userId)?.metadata?.live,
+        );
       }
     });
   });
