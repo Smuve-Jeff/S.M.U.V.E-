@@ -1,0 +1,59 @@
+name: Relay Media Path E2E
+
+# The relay's unit tests mock the media server, so they cannot catch a real
+# WebRTC, RTSP or RTMP break. This job runs the end-to-end suite, which publishes
+# over WHIP with a Node client, relays through MediaMTX and ffmpeg into an ingest,
+# then stops ffmpeg and checks it recovers. It provisions those three tools
+# itself, so the job needs no cached binaries and no provider credentials.
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'relay/**'
+      - 'scripts/relay-e2e.mjs'
+      - 'package.json'
+      - '.nvmrc'
+      - '.github/workflows/relay-e2e.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'relay/**'
+      - 'scripts/relay-e2e.mjs'
+      - 'package.json'
+      - '.nvmrc'
+      - '.github/workflows/relay-e2e.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: relay-e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  relay:
+    name: WHIP publish relays to RTMP, stalls, and recovers
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Use project Node version
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      # The relay and its tests have no dependencies of their own, so `npm ci` is
+      # deliberately skipped: the e2e setup fetches only what it needs (ffmpeg,
+      # werift, MediaMTX) into the ignored tool directory.
+      - name: Check the relay's own suites
+        run: npm run test:relay
+        env:
+          CI: true
+
+      - name: Provision ffmpeg, MediaMTX, werift and run the media path
+        run: npm run test:relay:e2e:setup
+        env:
+          CI: true
