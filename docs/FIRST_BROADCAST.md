@@ -326,12 +326,14 @@ throttling have therefore never run, and they fail in ways the server never sees
 Do this once on the real origin, before a show, with the browser you will actually
 broadcast from.
 
-**The codec is the highest-risk item.** The relay's ffmpeg is `-c copy`, so the
-browser's codec goes straight into FLV — H.264 survives, VP8/VP9/AV1 do not. The
-publisher therefore restricts the video transceiver to H.264 with
-`setCodecPreferences`, and refuses the push outright when the browser has no H.264
-encoder. That preference is still advisory per spec, and browsers too old to
-implement it are left alone, so check the codec rather than trusting the code.
+**The codec is the highest-risk item.** The relay copies video and re-encodes
+audio (`-c:v copy -c:a aac`): FLV can carry H.264 but not Opus, and a single
+`-c copy` made the muxer refuse to write a header at all, so a host with a
+microphone reached the provider with nothing. The publisher therefore restricts the
+video transceiver to H.264 with `setCodecPreferences`, and refuses the push
+outright when the browser has no H.264 encoder. That preference is still advisory
+per spec, and browsers too old to implement it are left alone, so check the codec
+rather than trusting the code.
 
 1. **Secure context.** On the real origin, `window.isSecureContext` in the console
    is `true` and `navigator.mediaDevices` exists. On a plain `http://` origin
@@ -363,12 +365,14 @@ implement it are left alone, so check the codec rather than trusting the code.
      "$MEDIA_RELAY_URL/sessions/<session-id>" | jq '{ready, tracks, bytesReceived}'
    ```
 
-   `tracks` must be `["H264"]`. If it is `VP8`, `VP9` or `AV1`, this browser
-   ignored the publisher's preference (or predates `setCodecPreferences`): the
-   media reaches MediaMTX but cannot be copied into FLV, and `session.error` on the
-   same response carries ffmpeg's complaint (`Could not write header`, or a codec
-   tag error). Record what your browser negotiated — that is the finding this
-   checklist exists for.
+   `tracks` must contain `H264`. With the microphone on it reads
+   `["H264", "Opus"]`, which is expected: the relay re-encodes that Opus to AAC on
+   the way out. If video reads `VP8`, `VP9` or `AV1`, this browser ignored the
+   publisher's preference (or predates `setCodecPreferences`): the media reaches
+   MediaMTX but cannot be copied into FLV, and `session.error` on the same response
+   carries ffmpeg's complaint (`Could not write header`, or a codec tag error).
+   Record what your browser negotiated — that is the finding this checklist exists
+   for.
 6. **Bytes on both sides.** `bytesReceived` climbs in the response above, the
    panel shows `EGRESS <n> KBPS · NO DROPS`, and `docker compose logs mediamtx`
    shows the WHIP session gaining an RTSP reader. `bytesReceived` rising with no
@@ -446,8 +450,10 @@ Three failures are worth recognising on sight:
 - [ ] Real PUSH shows video on the public channel
 - [ ] STOP returns the channel to offline
 - [ ] Relay restart mid-push keeps the feed alive
-- [ ] Browser hop checked once on the real origin: `tracks` is `H264`, ICE
+- [ ] Browser hop checked once on the real origin: `tracks` contains `H264`, ICE
       `connected`, one `POST …/whip` and one `DELETE` per push
+- [ ] Audio reaches the provider (the relay re-encodes Opus to AAC; a video-only
+      push is not evidence for this)
 
 The last item that has never been exercised is a full show over a real network
 for an hour: watch the relay's ffmpeg for reconnects and the app for the viewer

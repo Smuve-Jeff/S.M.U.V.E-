@@ -508,8 +508,17 @@ export class SessionManager {
         "tcp",
         "-i",
         `${this.#rtspUrl}/${session.id}`,
-        "-c",
+        // The browser sends Opus, and FLV cannot carry it: with `-c copy` the
+        // muxer refuses to write a header at all ("Audio codec opus not
+        // compatible with flv"), so a push from a host with a microphone never
+        // reaches the provider. Video is still copied — H.264 is what WebRTC
+        // negotiates and what the ingest expects — and only audio is encoded.
+        "-c:v",
         "copy",
+        "-c:a",
+        "aac",
+        "-b:a",
+        "128k",
         "-f",
         "flv",
         session.destination,

@@ -76,6 +76,10 @@ is open.
 
 ## Watching a live push
 
+Video is copied through unchanged; audio is re-encoded from Opus to AAC, because
+FLV cannot carry Opus at all — with a single `-c copy` the muxer refuses to write a
+header and the push never leaves the relay.
+
 MediaMTX's `bytesReceived` proves the browser is still sending; it says nothing
 about the provider, because ffmpeg can stay connected and write nothing after
 the RTMP side dies. That is the failure with no visible symptom until the show
