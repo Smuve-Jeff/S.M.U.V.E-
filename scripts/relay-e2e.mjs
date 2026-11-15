@@ -42,7 +42,17 @@ const mediaMtxPath = path.join(tools, "mediamtx");
  * it; only linux-x64 has a known asset, and elsewhere the test skips.
  */
 const WHIP_TOOLS_DIR = "whip-ffmpeg";
-const WHIP_ASSET = "ffmpeg-master-latest-linux64-gpl";
+/**
+ * A dated BtbN autobuild with a version-named asset, not their moving `latest`
+ * tag: the tag serves the same bytes forever, so a cold cache gets the exact
+ * binary this test was written against rather than whatever was published that
+ * morning. Both halves move together — the asset name carries the commit — so
+ * overriding either one means overriding both.
+ */
+const WHIP_BUILD_TAG =
+  process.env.E2E_WHIP_FFMPEG_TAG || "autobuild-2026-11-15-12-40";
+const WHIP_ASSET =
+  process.env.E2E_WHIP_FFMPEG_ASSET || "ffmpeg-N-128915-g3d16b774d7-linux64-gpl";
 const whipFfmpegPath = path.join(tools, WHIP_TOOLS_DIR, "bin", "ffmpeg");
 
 /**
@@ -182,8 +192,8 @@ async function provisionWhipFfmpeg() {
     return whipFfmpegPath;
   }
   const asset = `${WHIP_ASSET}.tar.xz`;
-  const url = `https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/${asset}`;
-  log(`downloading a WHIP-capable ffmpeg (${asset}, ~150 MB)`);
+  const url = `https://github.com/BtbN/FFmpeg-Builds/releases/download/${WHIP_BUILD_TAG}/${asset}`;
+  log(`downloading a WHIP-capable ffmpeg (${WHIP_BUILD_TAG}, ~150 MB)`);
   const response = await fetch(url).catch((error) => {
     fail(`could not download the WHIP-capable ffmpeg: ${error.message}`);
   });

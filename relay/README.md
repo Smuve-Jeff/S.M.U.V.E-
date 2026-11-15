@@ -222,7 +222,10 @@ npm run test:relay:e2e:setup
 
 That installs `ffmpeg-static` and `werift` at the versions pinned in the script,
 downloads the pinned MediaMTX release and a WHIP-capable ffmpeg build (~150 MB on
-linux-x64, of which only the binary is kept) into `node_modules/.e2e` (gitignored),
+linux-x64, of which only the binary is kept) into `node_modules/.e2e` (gitignored).
+The ffmpeg build is pinned by dated autobuild tag *and* version-named asset, so a
+cold cache fetches the exact binary the test was written against rather than a
+moving `latest`; `E2E_WHIP_FFMPEG_TAG` and `E2E_WHIP_FFMPEG_ASSET` move both.
 then runs the suite. Already provisioned tools are reused, and anything whose
 version does not match the pins is replaced rather than trusted; `-- --force`
 re-fetches, and `-- --provision-only` stops after fetching. CI caches that
