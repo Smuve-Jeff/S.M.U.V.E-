@@ -196,16 +196,25 @@ The decision-level suite needs neither ffmpeg nor a media server:
 npm run test:relay        # or: node --test relay/test
 ```
 
-The end-to-end suite runs real processes — ffmpeg pulling RTSP, MediaMTX
-terminating it, ffmpeg pushing RTMP into an ingest — and proves the three states
-this relay exists to handle: bytes flowing, bytes stopping while the process
-stays alive, and bytes resuming after the relay restarted ffmpeg itself. It
-skips when the binaries are absent, so the normal suite never needs them:
+The end-to-end suite runs real processes along the path a host takes: a WHIP
+publisher (Node + [werift](https://github.com/shinyoshiaki/werift-webrtc),
+sending real H.264 RTP) → MediaMTX → the relay's ffmpeg → an RTMP ingest. It
+proves the three states this relay exists to handle: bytes flowing, bytes
+stopping while the process stays alive, and bytes resuming after the relay
+restarted ffmpeg itself — with the browser-side publish left connected
+throughout, which is what makes a relay restart invisible upstream.
+
+It skips when the binaries (or werift) are absent, so the normal suite never
+needs them:
 
 ```bash
-RELAY_FFMPEG_PATH=/path/to/ffmpeg MEDIAMTX_PATH=/path/to/mediamtx \
+RELAY_FFMPEG_PATH=/path/to/ffmpeg \
+MEDIAMTX_PATH=/path/to/mediamtx \
+RELAY_WERIFT_PATH=/path/to/node_modules/werift \
   npm run test:relay:e2e
 ```
 
-It uses ports 18554 (RTSP), 19355 (RTMP) and 19997 (API) and cleans up after
-itself; the ingest it pushes to is that local MediaMTX, never a provider.
+It uses ports 18554 (RTSP), 18889 (WHIP/HTTP), 18189 (ICE/UDP), 19355 (RTMP) and
+19997 (API), and cleans up after itself. The ingest it pushes to is that local
+MediaMTX, never a provider; the WHIP hop is a real WebRTC connection, but not a
+real browser.
