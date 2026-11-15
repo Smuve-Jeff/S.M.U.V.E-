@@ -1,0 +1,14 @@
+{
+  "name": "smuve-broadcast-relay",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "WHIP ingest (MediaMTX) plus an ffmpeg RTMP push, controlled over the contract the S.M.U.V.E API expects.",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node src/main.mjs",
+    "test": "node --test test"
+  }
+}

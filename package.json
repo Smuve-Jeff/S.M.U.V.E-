@@ -18,6 +18,7 @@
     "start": "serve -s Build/browser -l tcp://0.0.0.0:${PORT:-4200}",
     "preview": "npm run build && npm run start -- -l 4200",
     "test": "NODE_OPTIONS=--max-old-space-size=4096 jest",
+    "test:relay": "node --test relay/test",
     "test:e2e:samples": "playwright test tests/e2e/factory-samples.spec.ts",
     "audit:links": "node scripts/audit-links.mjs",
     "audit:tha-spot-artwork": "node scripts/audit-tha-spot-artwork.cjs",

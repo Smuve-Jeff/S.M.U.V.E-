@@ -1,0 +1,32 @@
+# MediaMTX configuration for the S.M.U.V.E broadcast relay.
+#
+# Only two things are exposed: WHIP on 8889 (the browser's publish endpoint) and
+# the WebRTC UDP port. RTSP and the control API are reachable only from the
+# relay container on the compose network — the API accepts arbitrary path
+# creation, so it must never be published.
+logLevel: info
+logDestinations: [stdout]
+
+api: yes
+apiAddress: 0.0.0.0:9997
+
+rtsp: yes
+rtspAddress: 0.0.0.0:8554
+rtspTransports: [tcp]
+
+webrtc: yes
+webrtcAddress: :8889
+webrtcAllowOrigins: ['*']
+# The browser gathers candidates against this hostname. Set it to the public
+# name of this relay; the default also advertises the interface addresses.
+webrtcAdditionalHosts: []
+webrtcLocalUDPAddress: :8189
+
+# Not used by this relay: no HLS/RTMP/SRT surface to secure.
+hls: no
+rtmp: no
+srt: no
+
+paths:
+  # Sessions are created dynamically through the API, one path each.
+  all_others:

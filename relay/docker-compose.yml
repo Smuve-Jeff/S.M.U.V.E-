@@ -1,0 +1,34 @@
+# Two processes, one host: MediaMTX terminates the browser's WHIP publish, and
+# the relay spawns an ffmpeg per session that pushes RTSP → RTMP(S) at the
+# provider. The API server talks only to the control API on :8080.
+services:
+  mediamtx:
+    image: bluenviron/mediamtx:1.11.3
+    restart: unless-stopped
+    volumes:
+      - ./mediamtx.yml:/mediamtx.yml:ro
+    ports:
+      # WHIP: where the browser publishes.
+      - "8889:8889"
+      # WebRTC media.
+      - "8189:8189/udp"
+    # RTSP (8554) and the API (9997) are intentionally not published.
+
+  relay:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      - mediamtx
+    environment:
+      # Public https origin of the WHIP endpoint, e.g. https://relay.example.com
+      PUBLIC_RELAY_URL: ${PUBLIC_RELAY_URL:?set PUBLIC_RELAY_URL}
+      # Must match MEDIA_RELAY_TOKEN in the S.M.U.V.E API environment.
+      RELAY_TOKEN: ${RELAY_TOKEN:?set RELAY_TOKEN}
+      MEDIAMTX_API_URL: http://mediamtx:9997
+      MEDIAMTX_RTSP_URL: rtsp://mediamtx:8554
+      SESSION_TTL_MINUTES: ${SESSION_TTL_MINUTES:-360}
+      FFMPEG_PATH: ffmpeg
+    ports:
+      # Control API: reachable by the S.M.U.V.E API only. Put it behind TLS or
+      # a private network; it can open sessions with provider keys.
+      - "8080:8080"
