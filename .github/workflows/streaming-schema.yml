@@ -1,0 +1,71 @@
+name: Streaming Schema Gate
+
+# The API refuses to boot when `streaming_accounts` is missing, which is the last
+# line of defence before a host presses Connect. This job proves that gate on a
+# throwaway PostgreSQL: with no migrations the boot must fail and name the table,
+# and after them it must reach `OAuth ready` and answer /api/health with 200.
+#
+# It needs no database, no provider credentials and no secrets — only the
+# compiled API and a portable PostgreSQL that the script installs itself.
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'src/database/migrations/**'
+      - 'src/entities/Streaming*.ts'
+      - 'src/entities/index.ts'
+      - 'src/services/streaming-*.ts'
+      - 'src/config/env.ts'
+      - 'scripts/verify-streaming-schema.mjs'
+      - 'package.json'
+      - '.nvmrc'
+      - '.github/workflows/streaming-schema.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'src/database/migrations/**'
+      - 'src/entities/Streaming*.ts'
+      - 'src/entities/index.ts'
+      - 'src/services/streaming-*.ts'
+      - 'src/config/env.ts'
+      - 'scripts/verify-streaming-schema.mjs'
+      - 'package.json'
+      - '.nvmrc'
+      - '.github/workflows/streaming-schema.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: streaming-schema-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  schema:
+    name: Boot refuses without the grants table, serves with it
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Use project Node version
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci --legacy-peer-deps
+
+      # Explicit rather than left to the script's fallback, so a compile failure
+      # is reported as itself instead of as a schema-gate failure. Note the order:
+      # `ng build` wipes Build/, so the server build comes last.
+      - name: Build the API
+        run: npm run build:server
+
+      - name: Prove the schema gate
+        run: npm run verify:streaming-schema
+        env:
+          CI: true
