@@ -193,7 +193,7 @@ verify a real Kick push in the dashboard.
 The decision-level suite needs neither ffmpeg nor a media server:
 
 ```bash
-npm run test:relay        # or: node --test relay/test
+npm run test:relay        # or: node --test "relay/test/**/*.test.mjs"
 ```
 
 The end-to-end suite runs real processes along the path a host takes: a WHIP
