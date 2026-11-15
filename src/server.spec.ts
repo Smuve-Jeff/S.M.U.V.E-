@@ -62,6 +62,9 @@ jest.mock("@/services", () => ({
 // only need the export to exist.
 jest.mock("@/socket", () => ({
   setupSocketIO: jest.fn(),
+  setFriendLiveNotifier: jest.fn(),
+  setFriendLiveEndNotifier: jest.fn(),
+  announceFriendLiveEnded: jest.fn(),
   disconnectUserSockets: jest.fn(),
   emitLiveDirectoryChanged: jest.fn(),
 }));

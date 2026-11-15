@@ -12,7 +12,11 @@ import {
 } from "@/services/live-stream.service";
 import { getIceConfig } from "@/services/turn.service";
 import type { AuthUser } from "@/types";
-import { announceFriendWentLive, emitLiveDirectoryChanged } from "@/socket";
+import {
+  announceFriendLiveEnded,
+  announceFriendWentLive,
+  emitLiveDirectoryChanged,
+} from "@/socket";
 
 /**
  * Live-stream / Go-Live backend surface:
@@ -142,7 +146,15 @@ router.post(
       // `isAdmin` makes the service ignore hostId and end EVERY active row,
       // so it must only be set for an explicit sweep. Passing the admin role
       // here used to end every artist's stream when one was targeted.
+      // Read the token before the row is deactivated: a friend holding this
+      // broadcast's join card must not be left offering WATCH.
+      const ending = await getCurrentLiveStream(req.params.userId).catch(
+        () => null,
+      );
       const result = await endLiveStream(req.params.userId, sweepAll);
+      if (ending?.shareToken) {
+        void announceFriendLiveEnded(req.params.userId, ending.shareToken);
+      }
       emitLiveDirectoryChanged("ended");
       return res.json(sweepAll ? { success: true, sweep: "all" } : result);
     } catch (err) {

@@ -516,6 +516,18 @@ export class SocialNetworkingService {
       }
     );
 
+    this.socket.on(
+      'friend_live_ended',
+      (data: { shareToken?: string } = {}) => {
+        // Retire only the card for the room that closed: a different friend
+        // may have gone live in the meantime.
+        const current = this.friendWentLive();
+        if (!current || !data?.shareToken) return;
+        if (current.shareToken !== data.shareToken) return;
+        this.friendWentLive.set(null);
+      }
+    );
+
     this.socket.on('friend_request_received', (data: { fromUserId?: string }) => {
       if (!data?.fromUserId) return;
       // The event only carries the sender id; reload so the request appears in

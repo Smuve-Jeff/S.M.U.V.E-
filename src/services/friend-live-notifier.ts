@@ -49,3 +49,28 @@ export const notifyFriendsWentLive = async (
     }
   }
 };
+
+/**
+ * Tell friends the broadcast they were invited to has closed.
+ *
+ * Without this a join card keeps offering WATCH after the room is gone, and
+ * tapping it only reaches a dead stream. Only online friends need the event:
+ * the inbox copy of the card is pruned by the presence sync.
+ */
+export const notifyFriendsLiveEnded = async (
+  hostId: string,
+  shareToken: string,
+): Promise<void> => {
+  if (!shareToken) return;
+  const friends = await listFriends(String(hostId));
+  const payload = {
+    hostId: String(hostId),
+    shareToken,
+    ts: Date.now(),
+  };
+  for (const friend of friends) {
+    if (friend.status && friend.status !== "accepted") continue;
+    if (!friend.userId) continue;
+    emitToUser(String(friend.userId), "friend_live_ended", payload);
+  }
+};

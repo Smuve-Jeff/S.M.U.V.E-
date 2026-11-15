@@ -2,7 +2,11 @@ import { createServer } from "node:http";
 import app from "@/app";
 import { DB_NAME, NODE_ENV, PORT } from "@/config/env";
 import { AppDataSource } from "@/database/data-source";
-import { setFriendLiveNotifier, setupSocketIO } from "@/socket";
+import {
+  setFriendLiveEndNotifier,
+  setFriendLiveNotifier,
+  setupSocketIO,
+} from "@/socket";
 import { logEmailConfiguration } from "@/services/email.service";
 
 async function main() {
@@ -16,10 +20,11 @@ async function main() {
     // Loaded here, at boot: the notifier owns the entity-backed friend query,
     // so a static import would drag TypeORM entities into every module that
     // merely imports this entrypoint (the unified-app tests included).
-    const { notifyFriendsWentLive } = await import(
+    const { notifyFriendsWentLive, notifyFriendsLiveEnded } = await import(
       "@/services/friend-live-notifier"
     );
     setFriendLiveNotifier(notifyFriendsWentLive);
+    setFriendLiveEndNotifier(notifyFriendsLiveEnded);
 
     server.listen(PORT, () => {
       console.log(`[api] http://localhost:${PORT} (${NODE_ENV})`);

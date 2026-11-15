@@ -13,6 +13,7 @@ import {
 import {
   endLiveStream,
   findStreamByToken,
+  getCurrentLiveStream,
   resolveViewerJoin,
   startLiveStream,
 } from "@/services/live-stream.service";
@@ -20,6 +21,7 @@ import {
   announceFriendWentLive,
   emitFriendRequestReceived,
   provisionChallengeLobby,
+  setFriendLiveEndNotifier,
   setFriendLiveNotifier,
   setupSocketIO,
 } from "./index";
@@ -2093,6 +2095,24 @@ describe("resolved-match lobby provisioning + in-match relays", () => {
       });
       await settle(300);
       expect(offers).toHaveLength(0);
+    });
+
+    it("retires the friend cards pointing at the stream it just ended", async () => {
+      const endNotifier = jest.fn().mockResolvedValue(undefined);
+      setFriendLiveEndNotifier(endNotifier);
+      (getCurrentLiveStream as jest.Mock).mockResolvedValueOnce({
+        shareToken: "tok_live",
+      });
+      const [host] = pair(351, 352);
+      await connect(host);
+      host.emit("live_stream_host_join", { token: "tok_live" });
+      await settle();
+
+      host.emit("live_stream_end", {});
+      await settle();
+
+      expect(endNotifier).toHaveBeenCalledWith("351", "tok_live");
+      setFriendLiveEndNotifier(null);
     });
   });
 });

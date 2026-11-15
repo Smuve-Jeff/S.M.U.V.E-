@@ -29,6 +29,7 @@ import {
 import {
   endLiveStream,
   findStreamByToken,
+  getCurrentLiveStream,
   resolveViewerJoin,
   redeemViewerJoin,
   startLiveStream,
@@ -159,6 +160,20 @@ export const setFriendLiveNotifier = (
   friendLiveNotifier = notifier;
 };
 
+/** Told when a broadcast closes, so a held join card can be retired. */
+export type FriendLiveEndNotifier = (
+  hostId: string,
+  shareToken: string,
+) => Promise<void>;
+
+let friendLiveEndNotifier: FriendLiveEndNotifier | null = null;
+
+export const setFriendLiveEndNotifier = (
+  notifier: FriendLiveEndNotifier | null,
+): void => {
+  friendLiveEndNotifier = notifier;
+};
+
 /** Whether a user currently holds at least one socket. */
 export const isUserOnline = (userId: string): boolean => {
   const room = ioServer?.sockets.adapter.rooms.get(String(userId));
@@ -179,6 +194,38 @@ export const emitToUser = (
  * online friend gets a join card instead of having to notice the LIVE badge.
  * Best effort: presence and the live directory stay the source of truth.
  */
+/**
+ * Tell the host's accepted friends that a broadcast closed. Best effort: a
+ * stale card is a nuisance, never a broken broadcast.
+ */
+export const announceFriendLiveEnded = async (
+  hostId: string,
+  shareToken: string,
+): Promise<void> => {
+  if (!ioServer || !shareToken || !friendLiveEndNotifier) return;
+  try {
+    await friendLiveEndNotifier(String(hostId), shareToken);
+  } catch {
+    /* the presence sync prunes the card on the next reconnect */
+  }
+};
+
+/**
+ * End the host's stream and retire the card its friends are holding: the
+ * token has to be read before the row is deactivated.
+ */
+const endStreamAndRetireCard = async (
+  hostId: string,
+  isAdmin = false,
+): Promise<{ success: boolean; streamId: number | null }> => {
+  const token = await getCurrentLiveStream(hostId)
+    .then((row) => row?.shareToken ?? null)
+    .catch(() => null);
+  const result = await endLiveStream(hostId, isAdmin);
+  if (token) void announceFriendLiveEnded(hostId, token);
+  return result;
+};
+
 export const announceFriendWentLive = async (
   hostId: string,
   stream: LiveStreamAnnouncement,
@@ -2657,7 +2704,7 @@ export const setupSocketIO = (httpServer: HttpServer): Server => {
     socket.on("live_stream_end", async (_data: { streamId?: number } = {}) => {
       if (isRateLimited(userId, "live_stream_end")) return;
       try {
-        const result = await endLiveStream(userId, false);
+        const result = await endStreamAndRetireCard(userId);
         presence.set(userId, {
           socketId: socket.id,
           metadata: {
@@ -2874,7 +2921,7 @@ export const setupSocketIO = (httpServer: HttpServer): Server => {
       // the only reliable signal; when other sockets remain the user is
       // still online and their stream stays up.
       if (isLastSocket && wasLive) {
-        void endLiveStream(userId, false).catch(() => undefined);
+        void endStreamAndRetireCard(userId).catch(() => undefined);
       }
     });
   });

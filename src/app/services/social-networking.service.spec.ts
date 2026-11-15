@@ -122,6 +122,22 @@ describe('SocialNetworkingService', () => {
     expect(service.friendWentLive()).toBeNull();
   });
 
+  it('drops the go-live card when that broadcast ends', () => {
+    serverEvent('friend_went_live', {
+      hostId: 42,
+      hostDisplayName: 'NOVA',
+      shareToken: 'tok_friend',
+    });
+    expect(service.friendWentLive()?.shareToken).toBe('tok_friend');
+
+    // A different room closing must not dismiss the card we are showing.
+    serverEvent('friend_live_ended', { shareToken: 'tok_other' });
+    expect(service.friendWentLive()?.shareToken).toBe('tok_friend');
+
+    serverEvent('friend_live_ended', { shareToken: 'tok_friend' });
+    expect(service.friendWentLive()).toBeNull();
+  });
+
   it('binds the inbox as soon as the authenticated socket is created', () => {
     expect(TestBed.inject(ChallengeInboxService).bindSocket).toHaveBeenCalledWith(mockSocket);
   });

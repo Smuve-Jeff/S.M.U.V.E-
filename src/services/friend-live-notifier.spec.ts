@@ -9,7 +9,10 @@ jest.mock("@/socket", () => ({
 
 import { emitToUser, isUserOnline } from "@/socket";
 import { listFriends, persistNotification } from "./social.service";
-import { notifyFriendsWentLive } from "./friend-live-notifier";
+import {
+  notifyFriendsLiveEnded,
+  notifyFriendsWentLive,
+} from "./friend-live-notifier";
 
 const listFriendsMock = listFriends as jest.Mock;
 const persistMock = persistNotification as jest.Mock;
@@ -115,5 +118,27 @@ describe("notifyFriendsWentLive", () => {
   it("does nothing without a share token", async () => {
     await notifyFriendsWentLive("321", { shareToken: "" });
     expect(listFriendsMock).not.toHaveBeenCalled();
+  });
+
+  it("tells accepted friends the room closed", async () => {
+    listFriendsMock.mockResolvedValue([
+      { userId: "322", status: "accepted" },
+      { userId: "324", status: "pending" },
+    ]);
+
+    await notifyFriendsLiveEnded("321", "tok_live");
+
+    expect(emitMock).toHaveBeenCalledTimes(1);
+    expect(emitMock).toHaveBeenCalledWith(
+      "322",
+      "friend_live_ended",
+      expect.objectContaining({ hostId: "321", shareToken: "tok_live" }),
+    );
+  });
+
+  it("skips the end announcement without a token", async () => {
+    await notifyFriendsLiveEnded("321", "");
+    expect(listFriendsMock).not.toHaveBeenCalled();
+    expect(emitMock).not.toHaveBeenCalled();
   });
 });
