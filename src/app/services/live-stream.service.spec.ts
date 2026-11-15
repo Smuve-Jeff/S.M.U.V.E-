@@ -247,6 +247,38 @@ describe('LiveStreamService', () => {
       expect(openedPopups).toEqual([]);
     });
 
+    it('goes live on tiktok through the same popup contract', async () => {
+      service = TestBed.inject(LiveStreamService);
+      tokenRef = { value: 'TKN' };
+      profileRef = { value: { id: '77', artistName: 'JEFF' } };
+      httpResponses.push({
+        id: 1,
+        shareToken: 'tok',
+        hostId: '77',
+        hostDisplayName: 'JEFF',
+        platform: 'tiktok',
+        gameId: null,
+        lobbyId: null,
+        payload: {},
+        active: true,
+        startedAt: new Date().toISOString(),
+        endedAt: null,
+        viewerJoins: 0,
+        shareUrl: 'https://x',
+      });
+      const result = await service.golive({ platform: 'tiktok' });
+      expect(result?.platform).toBe('tiktok');
+      expect(messageListeners.length).toBe(1);
+      messageListeners[0](
+        new MessageEvent('message', {
+          data: { type: 'TIKTOK_AUTH_SUCCESS', platform: 'tiktok' },
+          origin: 'http://localhost',
+        })
+      );
+      expect(service.currentStream()?.active).toBe(true);
+      expect(messageListeners.length).toBe(0); // listener self-removed
+    });
+
     it('finalizes when the popup posts back success', async () => {
       service = TestBed.inject(LiveStreamService);
       tokenRef = { value: 'TKN' };

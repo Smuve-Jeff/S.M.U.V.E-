@@ -762,6 +762,91 @@ describe('SocialNetworkingService video source (camera ↔ screen)', () => {
     expect(getDisplayMedia).not.toHaveBeenCalled();
   });
 
+  it('ignores a second switch while one is already in flight', async () => {
+    const camVideo = makeTrack('video', 'cam-v');
+    const mic = makeTrack('audio', 'mic-1');
+    getUserMedia.mockResolvedValue(fakeMedia([camVideo, mic]));
+    await service.startStream('S.M.U.V.E.');
+
+    let resolveDisplay!: (value: any) => void;
+    getDisplayMedia.mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveDisplay = resolve;
+      })
+    );
+    const first = service.setVideoSource('screen');
+    expect(service.switchingSource()).toBe(true);
+    // Same destination, still the old source: only the in-flight guard
+    // can refuse this — and it must, or two pickers open.
+    await service.setVideoSource('screen');
+    expect(getDisplayMedia).toHaveBeenCalledTimes(1);
+
+    const screenVideo = makeTrack('video', 'screen-v');
+    resolveDisplay(fakeMedia([screenVideo]));
+    await first;
+    expect(service.switchingSource()).toBe(false);
+    expect(service.localStream()!.getVideoTracks()[0]).toBe(screenVideo);
+  });
+
+  it('releases a late-resolving switch when the session ends first', async () => {
+    const camVideo = makeTrack('video', 'cam-v');
+    const mic = makeTrack('audio', 'mic-1');
+    getUserMedia.mockResolvedValue(fakeMedia([camVideo, mic]));
+    await service.startStream('S.M.U.V.E.');
+
+    let resolveDisplay!: (value: any) => void;
+    getDisplayMedia.mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveDisplay = resolve;
+      })
+    );
+    const pending = service.setVideoSource('screen');
+    service.stopStream();
+    const screenVideo = makeTrack('video', 'screen-v');
+    const sysAudio = makeTrack('audio', 'sys-a');
+    resolveDisplay(fakeMedia([screenVideo, sysAudio]));
+    await pending;
+
+    // Nothing published into the dead session; the fresh tracks released.
+    expect(service.localStream()).toBeNull();
+    expect(service.videoSource()).toBe('camera');
+    expect(screenVideo.stop).toHaveBeenCalled();
+    expect(sysAudio.stop).toHaveBeenCalled();
+  });
+
+  it('ignores the ended event of a replaced screen track', async () => {
+    const camVideo = makeTrack('video', 'cam-v');
+    const mic = makeTrack('audio', 'mic-1');
+    getUserMedia.mockResolvedValue(fakeMedia([camVideo, mic]));
+    await service.startStream('S.M.U.V.E.');
+
+    const screenVideo1 = makeTrack('video', 'screen-v1');
+    getDisplayMedia.mockResolvedValue(fakeMedia([screenVideo1]));
+    await service.setVideoSource('screen');
+    const endedStale = screenVideo1.addEventListener.mock.calls.find(
+      ([event]: any[]) => event === 'ended'
+    )?.[1];
+    expect(endedStale).toBeDefined();
+
+    const camVideo2 = makeTrack('video', 'cam-v2');
+    getUserMedia.mockResolvedValue(fakeMedia([camVideo2]));
+    await service.setVideoSource('camera');
+
+    // Back on screen with a fresh track — the stale one's goodbye
+    // must not yank this session anywhere.
+    const screenVideo2 = makeTrack('video', 'screen-v2');
+    getDisplayMedia.mockResolvedValue(fakeMedia([screenVideo2]));
+    await service.setVideoSource('screen');
+    const capturesBefore = getUserMedia.mock.calls.length;
+    endedStale();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(service.videoSource()).toBe('screen');
+    expect(service.localStream()!.getVideoTracks()[0]).toBe(screenVideo2);
+    expect(getUserMedia.mock.calls.length).toBe(capturesBefore);
+  });
+
   it('falls back to camera when the user stops sharing in the browser', async () => {
     const camVideo = makeTrack('video', 'cam-v');
     const mic = makeTrack('audio', 'mic-1');

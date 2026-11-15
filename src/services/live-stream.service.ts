@@ -8,7 +8,7 @@ import { randomBytes } from "node:crypto";
  *
  * `smuve` is the native S.M.U.V.E Live surface: there is no third-party
  * OAuth popup because the share link itself is the broadcast. The other
- * three mirror the OAuth popup stub in routes/auth.routes.ts — extending
+ * others mirror the OAuth popup stub in routes/auth.routes.ts — extending
  * one contract goes hand-in-hand with extending the other.
  */
 export const LIVE_STREAM_PLATFORMS = [
@@ -16,6 +16,7 @@ export const LIVE_STREAM_PLATFORMS = [
   "twitch",
   "kick",
   "youtube",
+  "tiktok",
 ] as const;
 export type LiveStreamPlatform = (typeof LIVE_STREAM_PLATFORMS)[number];
 

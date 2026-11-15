@@ -214,6 +214,8 @@ export class SocialNetworkingService {
    * keeps working underneath and takes over again on camera or on exit.
    */
   screenAudioOnly = signal(false);
+  /** True while a camera/screen acquisition is in flight — the UI locks the switch until it lands. */
+  switchingSource = signal(false);
   /** Host-peer video senders refresh when the source track changes. */
   private videoTrackListeners = new Set<(track: MediaStreamTrack) => void>();
 
@@ -1015,7 +1017,14 @@ export class SocialNetworkingService {
       throw new Error('SCREEN_CAPTURE_NO_VIDEO_TRACK');
     }
     video.addEventListener('ended', () => {
-      if (this.videoSource() === 'screen' && this.isStreaming()) {
+      // Identity-checked: only the track that is STILL the live picture
+      // falls back. A replaced track ending late (or a double-tap
+      // loser's track) must never yank a newer session back to camera.
+      if (
+        this.videoSource() === 'screen' &&
+        this.isStreaming() &&
+        this.localStream()?.getVideoTracks()[0] === video
+      ) {
         void this.setVideoSource('camera').catch(() => undefined);
       }
     });
@@ -1050,7 +1059,24 @@ export class SocialNetworkingService {
    * the audience watches straight through the cut, chat uninterrupted.
    */
   async setVideoSource(source: 'camera' | 'screen'): Promise<void> {
-    if (!this.isStreaming() || this.videoSource() === source) return;
+    if (
+      !this.isStreaming() ||
+      this.videoSource() === source ||
+      this.switchingSource()
+    ) {
+      return;
+    }
+    this.switchingSource.set(true);
+    try {
+      await this.switchVideoSource(source);
+    } finally {
+      this.switchingSource.set(false);
+    }
+  }
+
+  private async switchVideoSource(
+    source: 'camera' | 'screen'
+  ): Promise<void> {
     if (source === 'screen' && !this.screenShareSupported()) {
       this.streamError.set(
         'SCREEN_SHARE_UNSUPPORTED — USE DESKTOP CHROME, EDGE OR SAFARI'
@@ -1076,6 +1102,12 @@ export class SocialNetworkingService {
       } else {
         const video = await this.acquireCameraTrack(preset);
         next = new MediaStream([video, ...this.micAudioOf(current)]);
+      }
+      if (!this.isStreaming()) {
+        // The session ended while the picker was open: release the fresh
+        // tracks instead of publishing them into a dead broadcast.
+        next.getTracks().forEach((t) => t.stop());
+        return;
       }
       this.setHostStream(next, source);
       previousVideo?.stop();

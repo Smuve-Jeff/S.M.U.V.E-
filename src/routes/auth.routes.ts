@@ -175,6 +175,7 @@ const CONNECT_PLATFORMS = [
   "twitch",
   "kick",
   "youtube",
+  "tiktok",
   "instagram",
   "discord",
   "x",

@@ -4122,6 +4122,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
       Twitch: "twitch",
       Kick: "kick",
       YouTube: "youtube",
+      TikTok: "tiktok",
     };
     const target = targets[platform];
     if (!target) {

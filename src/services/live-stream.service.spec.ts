@@ -131,6 +131,13 @@ describe("live-stream service", () => {
       expect(row.active).toBe(true);
     });
 
+    it("accepts tiktok like the other third-party destinations", async () => {
+      const row = await startLiveStream({ hostId: "42", platform: "tiktok" });
+      expect(row.platform).toBe("tiktok");
+      expect(row.active).toBe(true);
+      expect(row.shareUrl).toContain(`live=${row.shareToken}`);
+    });
+
     it("accepts the native smuve destination", async () => {
       const row = await startLiveStream({ hostId: "42", platform: "smuve" });
       expect(row.platform).toBe("smuve");

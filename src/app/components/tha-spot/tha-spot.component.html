@@ -3076,7 +3076,7 @@
               <button
                 class="av-btn"
                 (click)="socialService.setVideoSource(socialService.videoSource() === 'camera' ? 'screen' : 'camera')"
-                [disabled]="!socialService.screenShareSupported()"
+                [disabled]="!socialService.screenShareSupported() || socialService.switchingSource()"
                 [title]="socialService.videoSource() === 'camera' ? 'Switch to screen share — viewers keep watching' : 'Switch back to camera'"
               >
                 <span class="material-symbols-outlined">{{

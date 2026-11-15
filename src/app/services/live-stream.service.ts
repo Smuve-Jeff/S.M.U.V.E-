@@ -13,13 +13,19 @@ import type { Socket } from 'socket.io-client';
  * Mirrors backend LiveStreamPlatform. `smuve` is the native S.M.U.V.E Live
  * destination (share link only, no OAuth popup).
  */
-export type LiveStreamPlatform = 'smuve' | 'twitch' | 'kick' | 'youtube';
+export type LiveStreamPlatform =
+  | 'smuve'
+  | 'twitch'
+  | 'kick'
+  | 'youtube'
+  | 'tiktok';
 
 export const LIVE_STREAM_PLATFORMS: LiveStreamPlatform[] = [
   'smuve',
   'twitch',
   'kick',
   'youtube',
+  'tiktok',
 ];
 
 /** One watchable entry in the discovery directory, from REST or presence. */
