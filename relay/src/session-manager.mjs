@@ -107,6 +107,7 @@ export class SessionManager {
       createdAt: new Date(session.createdAt).toISOString(),
       restarts: session.restarts,
       running: !!session.child,
+      pid: session.child?.pid ?? null,
       error: session.error,
       bytesOut: session.bytesOut,
       stalled: session.stalled,
@@ -244,6 +245,7 @@ export class SessionManager {
       kind: session.kind,
       createdAt: new Date(session.createdAt).toISOString(),
       running: !!session.child,
+      pid: session.child?.pid ?? null,
       restarts: session.restarts,
       error: session.error,
       ready: !!path?.ready,
@@ -391,8 +393,10 @@ export class SessionManager {
         silentForMs: silentFor,
         attempt: session.recoveries,
       });
-      // The exit handler sees `recovering` and re-spawns instead of closing.
-      session.child.kill?.("SIGTERM");
+      // SIGKILL, not SIGTERM: a stalled ffmpeg can be wedged or stopped, and a
+      // graceful stop that never happens is the failure we are fixing. There is
+      // nothing to flush — the stream is already not going out.
+      session.child.kill?.("SIGKILL");
     }
     return restarted;
   }

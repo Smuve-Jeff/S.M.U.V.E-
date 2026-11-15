@@ -5,6 +5,7 @@ import { SessionManager } from "../src/session-manager.mjs";
 
 function fakeChild() {
   const child = new EventEmitter();
+  child.pid = 4242;
   child.stdout = new EventEmitter();
   child.stderr = new EventEmitter();
   child.killed = false;
@@ -419,6 +420,8 @@ test("restarts ffmpeg after the grace period and pushes again", async () => {
     assert.deepEqual(await manager.recover(45_000, Date.now() + 30_000), []);
     assert.equal(children[0].killed, false);
 
+    assert.equal((await manager.status(session.id)).pid, 4242);
+
     assert.deepEqual(await manager.recover(45_000, Date.now() + 60_000), [
       session.id,
     ]);
@@ -428,6 +431,8 @@ test("restarts ffmpeg after the grace period and pushes again", async () => {
 
     let status = await manager.status(session.id);
     assert.equal(status.recoveries, 1);
+    // No child between the kill and the re-spawn, so no pid to report.
+    assert.equal(status.pid, null);
     assert.equal(status.recovering, false);
     assert.equal(status.stalled, false);
     assert.match(status.lastRecoveryAt, /^\d{4}-/);

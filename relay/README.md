@@ -90,6 +90,10 @@ is over, so ffmpeg is started with `-progress pipe:1` and the relay watches its
 - If the silence outlasts `EGRESS_RECOVER_AFTER_SECONDS` (default 45), the relay
   restarts that session's ffmpeg itself, up to `EGRESS_MAX_RECOVERIES` times
   (`session.recovering`, then `session.reconnected` on the first bytes back).
+  The restart is a `SIGKILL`: the process is stalled by definition, and a
+  graceful stop that a wedged ffmpeg never processes is the failure being
+  fixed. `GET /sessions/:id` reports the ffmpeg `pid` so an operator can look at
+  the process the relay is talking about.
   The MediaMTX path and the WHIP URL are untouched, so the browser keeps
   publishing and only the RTMP half reconnects — the provider sees a gap of
   roughly the grace period plus one second. After the attempt cap the session
@@ -186,8 +190,22 @@ verify a real Kick push in the dashboard.
 
 ## Tests
 
-No media server or ffmpeg is needed:
+The decision-level suite needs neither ffmpeg nor a media server:
 
 ```bash
-node --test test
+npm run test:relay        # or: node --test relay/test
 ```
+
+The end-to-end suite runs real processes — ffmpeg pulling RTSP, MediaMTX
+terminating it, ffmpeg pushing RTMP into an ingest — and proves the three states
+this relay exists to handle: bytes flowing, bytes stopping while the process
+stays alive, and bytes resuming after the relay restarted ffmpeg itself. It
+skips when the binaries are absent, so the normal suite never needs them:
+
+```bash
+RELAY_FFMPEG_PATH=/path/to/ffmpeg MEDIAMTX_PATH=/path/to/mediamtx \
+  npm run test:relay:e2e
+```
+
+It uses ports 18554 (RTSP), 19355 (RTMP) and 19997 (API) and cleans up after
+itself; the ingest it pushes to is that local MediaMTX, never a provider.
