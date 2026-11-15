@@ -53,7 +53,16 @@ test("a tampered record is refused", async () => {
 
   const parsed = JSON.parse(await readFile(path, "utf8"));
   const record = parsed.sessions[0];
-  parsed.sessions[0] = record.slice(0, -2) + (record.endsWith("A") ? "BB" : "AA");
+  const [iv, tag, body] = record.split(".");
+  // Flip a decoded byte rather than editing the base64 text. Replacing the last
+  // characters can change only the padding bits a decoder discards, which leaves
+  // the ciphertext byte-identical — roughly one record in four hundred — so the
+  // test would pass tampering that GCM never saw.
+  const bytes = Buffer.from(body, "base64url");
+  bytes[0] ^= 0xff;
+  const tampered = [iv, tag, bytes.toString("base64url")].join(".");
+  assert.notEqual(tampered, record);
+  parsed.sessions[0] = tampered;
   await writeFile(path, JSON.stringify(parsed));
 
   await assert.rejects(new SessionStore({ path, key: "state-key" }).load());
