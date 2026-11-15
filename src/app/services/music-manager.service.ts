@@ -5109,14 +5109,26 @@ export class MusicManagerService {
                 stepsToTicks(swungNote.microOffset ?? 0);
               const microTime = time + tickSeconds(swungTicks + startOffsetTicks);
               const baseFreq = 440 * Math.pow(2, (n.midi - 69) / 12);
-              const freq = baseFreq * Math.pow(2, (n.pitchBend ?? 0) / 12);
+              // Per-pad tune rides in the drum note params (semitones); it
+              // shifts both ends of a glide so a tuned 808 still slides.
+              const tuneRaw = Number((n as any).params?.tune ?? 0);
+              const tune = Number.isFinite(tuneRaw)
+                ? Math.max(-24, Math.min(24, tuneRaw))
+                : 0;
+              const freq = baseFreq * Math.pow(2, ((n.pitchBend ?? 0) + tune) / 12);
               // Slide notes: glide from the base pitch to the pitch-bend target
               const glideTo =
                 n.isSlide && (n.pitchBend ?? 0) !== 0
                   ? freq
                   : undefined;
+              // The voice must START at the un-bent pitch: starting at the
+              // bent frequency made every slide a no-op (start == target).
+              const startFreq =
+                glideTo !== undefined
+                  ? baseFreq * Math.pow(2, tune / 12)
+                  : freq;
               const synthParams = glideTo !== undefined
-                ? { ...t.synthParams, glideTo: baseFreq * Math.pow(2, (n.pitchBend ?? 0) / 12) }
+                ? { ...t.synthParams, glideTo: baseFreq * Math.pow(2, ((n.pitchBend ?? 0) + tune) / 12) }
                 : t.synthParams;
 
               // Articulation-driven length multiplier
@@ -5286,7 +5298,7 @@ export class MusicManagerService {
               for (let hit = 0; hit < ratchet; hit++) {
                 this.engine.triggerAttack(
                   t.id,
-                  freq,
+                  startFreq,
                   time + tickSeconds(swungTicks + startOffsetTicks + ratchetOffsetTicks(hit, ratchet)),
                   n.velocity,
                   ratchetDuration,

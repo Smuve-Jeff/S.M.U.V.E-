@@ -289,3 +289,58 @@ describe('LiveEngineService', () => {
     expect(service.activeInstrument()).toBe('grand-piano');
   });
 });
+
+describe('LiveEngineService portamento', () => {
+  let service: LiveEngineService;
+
+  const mockAudioEngine = {
+    ctx: { currentTime: 0, state: 'running' } as any,
+    tempo: { set: jest.fn(), value: 120 } as any,
+    onScheduleStep: undefined,
+    resume: jest.fn(),
+    masterAnalyser: null,
+    masterGain: { connect: jest.fn() },
+  };
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({
+      providers: [
+        LiveEngineService,
+        InstrumentsService,
+        {
+          provide: LoggingService,
+          useValue: { info: jest.fn(), warn: jest.fn(), error: jest.fn() },
+        },
+        { provide: AudioEngineService, useValue: mockAudioEngine },
+      ],
+    });
+    service = TestBed.inject(LiveEngineService);
+  });
+
+  it('starts with glide off and clamps the glide time', () => {
+    expect(service.portamento()).toBe(0);
+    service.setPortamento(2);
+    expect(service.portamento()).toBe(0.5);
+    service.setPortamento(-1);
+    expect(service.portamento()).toBe(0);
+    service.setPortamento(NaN);
+    expect(service.portamento()).toBe(0);
+  });
+
+  it('pushes the glide time onto the live instrument', async () => {
+    await service.setInstrument('analog-warmth');
+    const node = (service as any).currentInstrumentNode;
+    service.setPortamento(0.08);
+    expect(service.portamento()).toBeCloseTo(0.08, 5);
+    expect(node.set).toHaveBeenCalledWith({ portamento: 0.08 });
+  });
+
+  it('routes portamento through updateParameter like cutoff', async () => {
+    await service.setInstrument('analog-warmth');
+    service.updateParameter('portamento', 0.12);
+    expect(service.portamento()).toBeCloseTo(0.12, 5);
+    expect((service as any).currentInstrumentNode.set).toHaveBeenCalledWith({
+      portamento: 0.12,
+    });
+  });
+});

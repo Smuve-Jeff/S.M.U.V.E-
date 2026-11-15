@@ -2002,6 +2002,29 @@ describe("ExportService", () => {
       expect(audioEngineMock.scheduleOfflineNote.mock.calls[0][3]).toBeCloseTo(0.1875);
     });
 
+    it("starts bounced slide notes at the un-bent pitch so the glide is audible", async () => {
+      const recording = recordingContext();
+      audioEngineMock.scheduleOfflineNote.mockClear();
+      await render(recording, [track({ notes: [
+        { id: 'slide', step: 0, midi: 45, length: 4, velocity: 0.8, isSlide: true, pitchBend: 7 },
+      ] })]);
+      const call = audioEngineMock.scheduleOfflineNote.mock.calls[0];
+      expect(call[2]).toBeCloseTo(110, 5);
+      expect(call[6].glideTo).toBeCloseTo(110 * Math.pow(2, 7 / 12), 4);
+      expect(call[6].glideTo).toBeGreaterThan(call[2]);
+    });
+
+    it("shifts bounced drum notes by the per-pad tune", async () => {
+      const recording = recordingContext();
+      audioEngineMock.scheduleOfflineNote.mockClear();
+      await render(recording, [track({ notes: [
+        { id: 'tuned', step: 0, midi: 36, length: 1, velocity: 0.8, params: { tune: 12 } },
+      ] })]);
+      const call = audioEngineMock.scheduleOfflineNote.mock.calls[0];
+      expect(call[2]).toBeCloseTo(65.406 * 2, 2);
+      expect(call[6]?.glideTo).toBeUndefined();
+    });
+
     it("renders the actual five-step drum cycle throughout the mix", async () => {
       const recording = recordingContext();
       const realManager = Object.create(MusicManagerService.prototype) as MusicManagerService;

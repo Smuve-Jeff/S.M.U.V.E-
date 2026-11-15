@@ -278,6 +278,7 @@
             class="dm-step"
             [disabled]="currentBar() * 16 + s >= polymeter()"
             [class.on]="getPadStep(pad.id, currentBar() * 16 + s).active"
+            [class.slide]="getPadStep(pad.id, currentBar() * 16 + s).slide"
             [class.beat-end]="s === 3 || s === 7 || s === 11"
             [class.bar-end]="s === 15"
             [class.current]="isGlobalStep(currentBar() * 16 + s)"
@@ -334,13 +335,20 @@
           [value]="pad.params.pan"
           (valueChange)="updatePadParam(pad.id, 'pan', $event)"
         ></app-knob>
-        <app-knob
-          label="Decay"
-          [min]="0.01"
-          [max]="2"
-          [value]="pad.params.decay"
-          (valueChange)="updatePadParam(pad.id, 'decay', $event)"
-        ></app-knob>
+                  <app-knob
+            label="Decay"
+            [min]="0.01"
+            [max]="2"
+            [value]="pad.params.decay"
+            (valueChange)="updatePadParam(pad.id, 'decay', $event)"
+          ></app-knob>
+          <app-knob
+            label="Tune"
+            [min]="-12"
+            [max]="12"
+            [value]="pad.params.tune ?? 0"
+            (valueChange)="updatePadParam(pad.id, 'tune', $event)"
+          ></app-knob>
       </div>
 
       <!-- One-shot import/export: the pad keeps its kit identity, while the
@@ -452,7 +460,7 @@
         </button>
       </div>
 
-      <!-- ═══ Pro: Drum Kit Swap (TR-808 / TR-909 / LinnDrum / SP-1200 / Acoustic / Lo-Fi) ═══ -->
+      <!-- ═══ Pro: Drum Kit Swap (TR-808 / TR-909 / LinnDrum / SP-1200 / Acoustic / Lo-Fi / Drill 808 / Phonk) ═══ -->
       <section class="dm-kit-bar" aria-label="Drum kit selector">
         <div class="dm-kit-bar-label">
           <span class="material-symbols-outlined">graphic_eq</span>
@@ -670,6 +678,36 @@
         (input)="updateSelectedStepRatchet(+$any($event.target).value)"
       />
     </label>
+    <div class="dm-step-sheet-field dm-slide-row">
+      <span>808 Slide
+        <strong>{{
+          selectedStepSlide()
+            ? (selectedStepSlideSemitones() > 0 ? '+' : '') +
+              selectedStepSlideSemitones() + ' st'
+            : 'off'
+        }}</strong></span>
+      <div class="dm-slide-controls">
+        <button
+          type="button"
+          class="dm-slide-toggle"
+          [class.active]="selectedStepSlide()"
+          [attr.aria-pressed]="selectedStepSlide()"
+          (click)="updateSelectedStepSlide(!selectedStepSlide())"
+        >
+          {{ selectedStepSlide() ? 'Sliding' : 'Slide' }}
+        </button>
+        <input
+          type="range"
+          min="-12"
+          max="12"
+          step="1"
+          [disabled]="!selectedStepSlide()"
+          [value]="selectedStepSlideSemitones()"
+          (input)="updateSelectedStepSlideSemitones(+$any($event.target).value)"
+          aria-label="Slide bend in semitones"
+        />
+      </div>
+    </div>
     <div studio-sheet-actions class="dm-step-sheet-actions">
       <button type="button" class="studio-ghost-button" (click)="closeStepSheet()">Done</button>
     </div>

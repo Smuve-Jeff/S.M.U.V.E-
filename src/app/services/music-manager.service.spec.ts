@@ -3066,3 +3066,104 @@ describe('MusicManagerService per-scene follow rules', () => {
     });
   });
 });
+
+describe('MusicManagerService slide glide + pad tune', () => {
+  let service: MusicManagerService;
+  const engineMock = {
+    tempo: signal(120),
+    visualStep: signal(0),
+    setSongLengthSteps: jest.fn(),
+    triggerAttack: jest.fn(),
+    setBaseFaderGain: jest.fn(),
+    updateTrack: jest.fn(),
+    stop: jest.fn(),
+    onScheduleStep: undefined as any,
+  };
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({
+      providers: [
+        MusicManagerService,
+        HistoryService,
+        { provide: AudioEngineService, useValue: engineMock },
+        { provide: ProjectService, useValue: { currentProject: signal(null) } },
+        { provide: PluginStoreService, useValue: { preload: jest.fn() } },
+        { provide: InstrumentsService, useValue: { getPresets: () => [] } },
+        { provide: StemSeparationService, useValue: {} },
+        { provide: StudioRecordingEngineService, useValue: {} },
+        {
+          provide: LoggingService,
+          useValue: { info: jest.fn(), warn: jest.fn(), error: jest.fn() },
+        },
+        {
+          provide: TakeManagerService,
+          useValue: { getCompNotesForStepNow: () => [] },
+        },
+      ],
+    });
+    service = TestBed.inject(MusicManagerService);
+    service.tracks.set([
+      {
+        id: 'track-1',
+        name: 'Bass',
+        type: 'midi',
+        instrumentId: 'slide-808-sub',
+        muted: false,
+        soloed: false,
+        volume: 0.8,
+        gain: 0.8,
+        pan: 0,
+        clips: [],
+        notes: [],
+        steps: new Array(64).fill(false),
+        fxSlots: [],
+        sendA: 0,
+        sendB: 0,
+        effects: [],
+        patternSlots: [],
+        activePatternSlotId: null,
+      } as any,
+    ]);
+    engineMock.triggerAttack.mockClear();
+  });
+
+  it('starts a slide note at the un-bent pitch so the glide is audible', () => {
+    const track = service.tracks()[0];
+    track.notes = [
+      { id: 'slide', midi: 45, step: 0, length: 4, velocity: 0.8, isSlide: true, pitchBend: 7 },
+    ];
+    service.tracks.set([...service.tracks()]);
+    service.playStep(0, 1, 0.25);
+
+    const call = engineMock.triggerAttack.mock.calls.find((entry) => entry[0] === track.id)!;
+    expect(call[1]).toBeCloseTo(110, 5);
+    expect(call[9].glideTo).toBeCloseTo(110 * Math.pow(2, 7 / 12), 4);
+    expect(call[9].glideTo).toBeGreaterThan(call[1]);
+  });
+
+  it('shifts a tuned note by the per-pad tune in semitones', () => {
+    const track = service.tracks()[0];
+    track.notes = [
+      { id: 'tuned', midi: 36, step: 0, length: 1, velocity: 0.8, params: { tune: 12 } },
+    ];
+    service.tracks.set([...service.tracks()]);
+    service.playStep(0, 1, 0.25);
+
+    const call = engineMock.triggerAttack.mock.calls.find((entry) => entry[0] === track.id)!;
+    expect(call[1]).toBeCloseTo(65.406 * 2, 2);
+    expect(call[9]?.glideTo).toBeUndefined();
+  });
+
+  it('glides a tuned slide from the tuned base to the tuned target', () => {
+    const track = service.tracks()[0];
+    track.notes = [
+      { id: 'slide-tuned', midi: 45, step: 0, length: 4, velocity: 0.8, isSlide: true, pitchBend: 12, params: { tune: -12 } },
+    ];
+    service.tracks.set([...service.tracks()]);
+    service.playStep(0, 1, 0.25);
+
+    const call = engineMock.triggerAttack.mock.calls.find((entry) => entry[0] === track.id)!;
+    expect(call[1]).toBeCloseTo(55, 4);
+    expect(call[9].glideTo).toBeCloseTo(110, 4);
+  });
+});

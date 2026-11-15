@@ -48,6 +48,15 @@ export const BEAT_SAMPLE_PACKS: readonly BeatSamplePack[] = [
     melody: 'cyber-stab',
   },
   {
+    id: 'drill-slide',
+    label: 'Drill Slide 808s',
+    libraryPack: 'Club Arsenal',
+    drums: 'trap-kit-elite',
+    bass: 'slide-808-sub',
+    chords: 'dx7-electric-piano',
+    melody: 'phonk-bell',
+  },
+  {
     id: 'club',
     label: 'Club Arsenal',
     libraryPack: 'Club Arsenal',
@@ -97,9 +106,13 @@ export const BEAT_SAMPLE_PACKS: readonly BeatSamplePack[] = [
 /** Genre → the shelves to draw from, most apt first. */
 const GENRE_PACKS: readonly { pattern: RegExp; packs: readonly string[] }[] = [
   {
+    pattern: /drill|slide 808|uk drill|ny drill/,
+    packs: ['drill-slide', 'trap-808', 'starter'],
+  },
+  {
     pattern:
-      /trap|drill|phonk|hip hop|hip-hop|rap|grime|jersey|cloud rap|emo rap|boom bap/,
-    packs: ['trap-808', 'starter', 'club'],
+      /trap|phonk|hip hop|hip-hop|rap|grime|jersey|cloud rap|emo rap|boom bap/,
+    packs: ['trap-808', 'drill-slide', 'starter', 'club'],
   },
   {
     pattern:

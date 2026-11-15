@@ -1703,7 +1703,11 @@ export class ExportService {
       }
 
       const baseFreq = 440 * Math.pow(2, ((n.midi ?? 60) - 69) / 12);
-      const freq = baseFreq * Math.pow(2, (n.pitchBend ?? 0) / 12);
+      const tuneRaw = Number((n as any).params?.tune ?? 0);
+      const tune = Number.isFinite(tuneRaw)
+        ? Math.max(-24, Math.min(24, tuneRaw))
+        : 0;
+      const freq = baseFreq * Math.pow(2, ((n.pitchBend ?? 0) + tune) / 12);
 
       // Articulation-driven length multiplier — same table as live playStep
       let lengthMul = 1.0;
@@ -1731,14 +1735,20 @@ export class ExportService {
         continue;
       }
 
-      // Slide notes: glide from the base pitch to the pitch-bend target
+      // Slide notes: glide from the base pitch to the pitch-bend target.
+      // The voice starts at the un-bent pitch: starting at the bent
+      // frequency made every bounced slide a no-op (start == target).
       const glideTo =
         n.isSlide && (n.pitchBend ?? 0) !== 0
-          ? baseFreq * Math.pow(2, (n.pitchBend ?? 0) / 12)
+          ? baseFreq * Math.pow(2, ((n.pitchBend ?? 0) + tune) / 12)
           : undefined;
+      const startFreq =
+        glideTo !== undefined
+          ? baseFreq * Math.pow(2, tune / 12)
+          : freq;
       const voiceParams =
         glideTo !== undefined
-          ? { ...params, glideTo: baseFreq * Math.pow(2, (n.pitchBend ?? 0) / 12) }
+          ? { ...params, glideTo: baseFreq * Math.pow(2, ((n.pitchBend ?? 0) + tune) / 12) }
           : params;
 
       const notePan = ccPan;
@@ -1754,7 +1764,7 @@ export class ExportService {
         this.engine.scheduleOfflineNote(
           ctx,
           master,
-          freq,
+          startFreq,
           timing.timeAtStep(hitStep),
           n.velocity ?? 0.8,
           dur,

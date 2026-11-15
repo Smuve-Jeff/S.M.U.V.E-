@@ -394,6 +394,15 @@
   border-radius: 50%;
   margin-bottom: 8px;
 }
+/* Sliding 808 steps glow amber so glides read at a glance on the grid. */
+.dm-step.on.slide {
+  background: linear-gradient(180deg, #f59e0b 0%, #b45309 100%);
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.55);
+}
+.dm-step.on.slide::after {
+  width: 16px;
+  border-radius: 4px;
+}
 .dm-step:hover:not(.on):not(:disabled) {
   background: var(--teal-100);
 }
@@ -1333,6 +1342,33 @@
   justify-content: flex-end;
   width: 100%;
   margin-top: 18px;
+}
+
+.dm-slide-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.dm-slide-controls input[type='range'] {
+  flex: 1;
+}
+.dm-slide-toggle {
+  flex-shrink: 0;
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: 10px;
+  border: 1px solid var(--ivory-line);
+  background: var(--ivory-panel);
+  color: var(--espresso-muted);
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.dm-slide-toggle.active {
+  background: linear-gradient(180deg, #f59e0b 0%, #b45309 100%);
+  border-color: #b45309;
+  color: #fff;
 }
 
 @media (max-width: 768px) {

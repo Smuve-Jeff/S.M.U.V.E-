@@ -52,6 +52,10 @@ interface DrumStyle {
   patterns: Record<number, number[]>;
   /** Velocity shaping for that style (0..1) */
   velocity: number;
+  /** Steps that glide into their pitch (808 slides): midi -> step indices. */
+  slides?: Record<number, number[]>;
+  /** Semitone bend for slide steps (default +2, the piano-roll convention). */
+  slideSemitones?: number;
 }
 
 /**
@@ -97,6 +101,8 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
     step: number;
     velocity: number;
     probability: number;
+    isSlide?: boolean;
+    pitchBend?: number;
     params: any;
   }> = [];
   private stepLongPressTimer: ReturnType<typeof setTimeout> | null = null;
@@ -133,6 +139,9 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
   public selectedStepIndex = signal(0);
   public selectedStepRatchet = signal(1);
   public selectedStepProbability = signal(1);
+  /** Step-sheet 808 slide: whether the selected step glides + by how much. */
+  public selectedStepSlide = signal(false);
+  public selectedStepSlideSemitones = signal(2);
   public inspectorCollapsed = signal(false);
   public padsCollapsed = signal(false);
   public highDensity = computed(
@@ -220,6 +229,9 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
         39: [9, 11],
       },
       velocity: 0.92,
+      // The 808 drops a whole step on the pickups into each downbeat.
+      slides: { 36: [3, 11] },
+      slideSemitones: -2,
     },
     {
       id: "techno",
@@ -248,6 +260,38 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
         41: [12],
       },
       velocity: 0.65,
+    },
+    {
+      id: "jersey",
+      label: "Jersey Club",
+      emoji: "🌀",
+      // Bouncy triplet-kick bounce under a break snare
+      patterns: {
+        36: [0, 7, 8],
+        38: [4, 12],
+        42: [0, 2, 4, 6, 8, 10, 12, 14],
+        46: [14],
+        49: [0],
+        39: [2, 6, 10, 14],
+      },
+      velocity: 0.88,
+    },
+    {
+      id: "amapiano",
+      label: "Amapiano",
+      emoji: "🪘",
+      // Four-on-the-floor log-drum pulse with lifting slides into the bar
+      patterns: {
+        36: [0, 4, 8, 12],
+        38: [4, 12],
+        42: Array.from({ length: 16 }, (_, i) => i),
+        46: [2, 6, 10, 14],
+        54: [3, 7, 11, 15],
+        60: [0, 5, 10],
+      },
+      velocity: 0.86,
+      slides: { 36: [8, 12] },
+      slideSemitones: 2,
     },
   ];
   selectedDrumStyle = signal<DrumStyle>(this.drumStyles[0]);
@@ -749,6 +793,134 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
         },
       },
     },
+    {
+      id: "drill808",
+      label: "Drill 808",
+      glyph: "🧊",
+      hint: "Sliding sub 808s · tight snare · crisp hats",
+      params: {
+        36: {
+          decay: 0.7,
+          cutoff: 500,
+          resonance: 2.0,
+          saturation: 0.5,
+          compression: 0.3,
+        },
+        38: {
+          decay: 0.16,
+          cutoff: 8500,
+          resonance: 1.2,
+          saturation: 0.3,
+          compression: 0.5,
+        },
+        39: {
+          decay: 0.14,
+          cutoff: 6000,
+          resonance: 1.0,
+          saturation: 0.3,
+          compression: 0.4,
+        },
+        42: {
+          decay: 0.05,
+          cutoff: 11000,
+          resonance: 0.4,
+          saturation: 0.15,
+          compression: 0.2,
+        },
+        46: {
+          decay: 0.22,
+          cutoff: 9000,
+          resonance: 0.4,
+          saturation: 0.15,
+          compression: 0.2,
+        },
+        41: {
+          decay: 0.45,
+          cutoff: 2800,
+          resonance: 2.2,
+          saturation: 0.35,
+          compression: 0.2,
+        },
+        43: {
+          decay: 0.35,
+          cutoff: 3200,
+          resonance: 2.2,
+          saturation: 0.35,
+          compression: 0.2,
+        },
+        49: {
+          decay: 0.35,
+          cutoff: 12000,
+          resonance: 0.8,
+          saturation: 0.2,
+          compression: 0.1,
+        },
+      },
+    },
+    {
+      id: "phonk",
+      label: "Phonk",
+      glyph: "🌒",
+      hint: "Cowbell bounce · dark gritty low-end",
+      params: {
+        36: {
+          decay: 0.5,
+          cutoff: 400,
+          resonance: 3.0,
+          saturation: 0.7,
+          compression: 0.4,
+        },
+        38: {
+          decay: 0.2,
+          cutoff: 5000,
+          resonance: 1.8,
+          saturation: 0.6,
+          compression: 0.5,
+        },
+        39: {
+          decay: 0.22,
+          cutoff: 4200,
+          resonance: 2.2,
+          saturation: 0.7,
+          compression: 0.5,
+        },
+        42: {
+          decay: 0.06,
+          cutoff: 7500,
+          resonance: 1.2,
+          saturation: 0.4,
+          compression: 0.3,
+        },
+        46: {
+          decay: 0.24,
+          cutoff: 6800,
+          resonance: 1.0,
+          saturation: 0.35,
+          compression: 0.3,
+        },
+        41: {
+          decay: 0.35,
+          cutoff: 2600,
+          resonance: 2.4,
+          saturation: 0.5,
+          compression: 0.2,
+        },
+        43: {
+          decay: 0.3,
+          cutoff: 3000,
+          resonance: 2.4,
+          saturation: 0.5,
+          compression: 0.2,
+        },
+        49: {
+          decay: 0.4,
+          cutoff: 9500,
+          resonance: 1.2,
+          saturation: 0.4,
+          compression: 0.1,
+        },
+      },
+    },
   ];
   selectedKitId = signal<string>("tr808");
 
@@ -796,6 +968,8 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
     this.selectedStepIndex.set(this.resolveStepIdx(stepIndex));
     this.selectedStepProbability.set(step.probability);
     this.selectedStepRatchet.set(Number((step as any).ratchet ?? 1));
+    this.selectedStepSlide.set(!!(step as any).slide);
+    this.selectedStepSlideSemitones.set(Number((step as any).slideSemitones ?? 2));
     if (!step.active) {
       this.snack.info("Turn on this step before editing its settings");
       return;
@@ -847,6 +1021,8 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
       step: n.step,
       velocity: n.velocity,
       probability: n.probability,
+      isSlide: (n as any).isSlide,
+      pitchBend: (n as any).pitchBend,
       params: { ...(n.params ?? {}) },
     }));
     this.snack.success(`Pattern copied · ${this.stepClipboard.length} hits`);
@@ -867,6 +1043,8 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
         length: 1,
         velocity: n.velocity,
         probability: n.probability,
+        isSlide: n.isSlide,
+        pitchBend: n.pitchBend,
         params: { ...n.params },
       });
     });
@@ -906,6 +1084,7 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
       id: `pad-${b.midi}`,
       params: {
         semitone: 0,
+        tune: 0,
         decay: 0.3,
         pan: 0,
         cutoff: 15000,
@@ -1018,7 +1197,46 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
       velocity: note?.velocity ?? 0.8,
       probability: note?.probability ?? 1.0,
       ratchet: Number((note?.params as any)?.ratchet ?? 1),
+      slide: !!(note as any)?.isSlide,
+      slideSemitones: Number((note as any)?.pitchBend ?? 2),
     };
+  }
+
+  /**
+   * Toggle the 808 slide on the selected step. Turning it on glides from the
+   * step's own pitch by the sheet's semitone bend; turning it off clears the
+   * bend so the step stops detuned instead of lingering sharp or flat.
+   */
+  updateSelectedStepSlide(on: boolean): void {
+    this.selectedStepSlide.set(on);
+    const pad = this.selectedPad();
+    const track = this.getDrumTrack();
+    if (!pad || !track) return;
+    const note = track.notes.find(
+      (n) => n.midi === pad.midi && n.step === this.selectedStepIndex(),
+    );
+    if (note)
+      this.musicManager.updateNote(
+        track.id,
+        note.id,
+        on
+          ? { isSlide: true, pitchBend: this.selectedStepSlideSemitones() }
+          : { isSlide: false, pitchBend: 0 },
+      );
+  }
+
+  /** Semitone bend for a sliding step (±12 = ±1 octave). */
+  updateSelectedStepSlideSemitones(value: number): void {
+    const semis = Math.max(-12, Math.min(12, Math.round(value)));
+    this.selectedStepSlideSemitones.set(semis);
+    if (!this.selectedStepSlide()) return;
+    const pad = this.selectedPad();
+    const track = this.getDrumTrack();
+    if (!pad || !track) return;
+    const note = track.notes.find(
+      (n) => n.midi === pad.midi && n.step === this.selectedStepIndex(),
+    );
+    if (note) this.musicManager.updateNote(track.id, note.id, { pitchBend: semis });
   }
 
   isStepPlaying(pad: DrumPad) {
@@ -1141,10 +1359,27 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
             length: n.length,
             velocity: n.velocity,
             probability: n.probability,
+            isSlide: (n as any).isSlide,
+            pitchBend: (n as any).pitchBend,
             params: { ...n.params },
           });
         });
       });
+      // Authored 808 slides: the style names which bar steps glide, applied
+      // across all four bars so the duplicated pattern slides everywhere.
+      const semis = style.slideSemitones ?? 2;
+      const full = this.getDrumTrack();
+      for (const [midiStr, steps] of Object.entries(style.slides ?? {})) {
+        const midi = Number(midiStr);
+        full?.notes
+          .filter((n) => n.midi === midi && steps.includes(n.step % 16))
+          .forEach((n) => {
+            this.musicManager.updateNote(track.id, n.id, {
+              isSlide: true,
+              pitchBend: semis,
+            });
+          });
+      }
     }
     this.snack.success(
       `${style.emoji} ${style.label} pattern loaded · swing ${this.swingPercent()}%`,
@@ -1222,6 +1457,8 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
           length: n.length,
           velocity: n.velocity,
           probability: n.probability,
+          isSlide: (n as any).isSlide,
+          pitchBend: (n as any).pitchBend,
           params: { ...n.params },
         });
       }
@@ -1566,7 +1803,13 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
     const track = this.getDrumTrack();
     if (!track) return;
     this.audioEngine.resume();
-    const freq = 440 * Math.pow(2, (pad.midi - 69) / 12);
+    // Per-pad tune preview: the audition matches the sequencer, where the
+    // same semitone offset rides into every scheduled voice (see playStep).
+    const tuneRaw = Number(pad.params?.tune ?? 0);
+    const tune = Number.isFinite(tuneRaw)
+      ? Math.max(-24, Math.min(24, tuneRaw))
+      : 0;
+    const freq = 440 * Math.pow(2, (pad.midi - 69) / 12) * Math.pow(2, tune / 12);
     const sampleBuffer =
       pad.sampleBuffer ??
       (pad.sampleRefId

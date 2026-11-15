@@ -59,6 +59,9 @@ export class LiveEngineService {
   /** Sample map used to build a fresh MPE sampler per note. */
   private sampleMap: Record<string, string> | null = null;
 
+  /** Live glide between legato notes in seconds (0 = off). The 808 feel. */
+  portamento = signal(0);
+
   // AI Assisted Performance State
   scaleLock = signal(true);
   currentScale = signal<number[]>([0, 2, 4, 5, 7, 9, 11]); // C Major
@@ -353,6 +356,7 @@ export class LiveEngineService {
           release: config.release,
         },
       });
+      this.applyPortamento(this.currentInstrumentNode);
       this.connectToFilter(this.currentInstrumentNode, config.cutoff || 2000);
     } else if ((preset.type === 'sample' || preset.type === 'hybrid') && preset.zones?.length) {
       const sampleMap: Record<string, string> = {};
@@ -424,6 +428,7 @@ export class LiveEngineService {
     if (preset?.type === 'synth' && preset.synth) {
       const config = preset.synth;
       node = new Tone.Synth({
+        portamento: this.portamento(),
         oscillator: { type: config.type as any },
         envelope: {
           attack: config.attack,
@@ -521,12 +526,42 @@ export class LiveEngineService {
     this.mpeVoices.forEach((voice) => this.applyVoicePitch(voice));
   }
 
+  /**
+   * Push the live glide time onto a node. Tone accepts `portamento` through
+   * `set` on both PolySynth and MonoSynth voices; the try/catch keeps older
+   * or mocked nodes from throwing on an unknown property.
+   */
+  private applyPortamento(node: unknown): void {
+    try {
+      (node as any)?.set?.({ portamento: this.portamento() });
+    } catch {
+      /* node does not expose portamento */
+    }
+  }
+
+  /**
+   * Live 808-style glide for the current instrument (and every MPE voice
+   * spawned after it). Seconds of glide between legato notes, 0 = off.
+   */
+  setPortamento(seconds: number): void {
+    const clamped = Number.isFinite(seconds)
+      ? Math.max(0, Math.min(0.5, seconds))
+      : 0;
+    this.portamento.set(clamped);
+    if (this.currentInstrumentNode) this.applyPortamento(this.currentInstrumentNode);
+    this.mpeVoices.forEach((voice) => this.applyPortamento(voice.node));
+  }
+
   updateParameter(param: string, value: number) {
     if (!this.currentInstrumentNode) return;
     if (param === 'cutoff' && this.filterNode)
       this.filterNode.frequency.value = value;
     if (param === 'resonance' && this.filterNode)
       this.filterNode.Q.value = value;
+    if (param === 'portamento') {
+      this.setPortamento(value);
+      return;
+    }
 
     if (
       param === 'attack' ||

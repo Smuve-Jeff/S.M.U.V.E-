@@ -524,3 +524,164 @@ describe("DrumMachineComponent", () => {
     expect(lastChoke()).toBe(1);
   });
 });
+
+describe("DrumMachineComponent 808 slides, tune, kits and styles", () => {
+  let component: DrumMachineComponent;
+  let fixture: ComponentFixture<DrumMachineComponent>;
+
+  const mockAudioSession = createMockAudioSession();
+
+  const mockMusicManager = {
+    tracks: signal<any[]>([
+      { id: MusicManagerService.DRUM_TRACK_ID, type: "drum", instrumentId: "synth-kit", name: "Drums", notes: [] },
+    ]),
+    selectedTrackId: signal<string | null>(MusicManagerService.DRUM_TRACK_ID),
+    requestCrossLink: jest.fn(),
+    stemAudioCache: new Map<string, AudioBuffer>(),
+    currentStep: signal(0),
+    drumStepAt: (track: any, step: number, patternStep = step) => patternStep % (track.drumPatternLength ?? 64),
+    applyTrackPatch: jest.fn(),
+    addNoteToTrack: jest.fn((trackId: string, note: any) => {
+      const tracks = mockMusicManager.tracks();
+      const track = tracks.find((t) => t.id === trackId);
+      if (track) {
+        track.notes.push(note);
+        mockMusicManager.tracks.set([...tracks]);
+      }
+    }),
+    removeNotes: jest.fn((trackId: string, noteIds: string[]) => {
+      const tracks = mockMusicManager.tracks();
+      const track = tracks.find((t) => t.id === trackId);
+      if (track) {
+        track.notes = track.notes.filter((n) => !noteIds.includes(n.id));
+        mockMusicManager.tracks.set([...tracks]);
+      }
+    }),
+    updateNote: jest.fn((trackId: string, noteId: string, patch: any) => {
+      const tracks = mockMusicManager.tracks();
+      const track = tracks.find((t) => t.id === trackId);
+      if (track) {
+        const note = track.notes.find((n) => n.id === noteId);
+        if (note) Object.assign(note, patch);
+        mockMusicManager.tracks.set([...tracks]);
+      }
+    }),
+  };
+
+  const mockAudioEngine = createMockAudioEngine();
+  const mockHaptic = { ...createMockHapticService(), velocity: jest.fn() };
+  const mockInstruments = {
+    isSamplePreset: jest.fn(() => false),
+    getPresetSample: jest.fn(),
+    loadPresetSample: jest.fn(),
+  };
+  const mockAiService = { generateStrategicDecree: jest.fn(), roastComponent: jest.fn() };
+
+  beforeEach(async () => {
+    mockMusicManager.tracks.set([
+      { id: MusicManagerService.DRUM_TRACK_ID, type: "drum", instrumentId: "synth-kit", name: "Drums", notes: [] },
+    ]);
+    mockMusicManager.selectedTrackId.set(MusicManagerService.DRUM_TRACK_ID);
+    mockMusicManager.stemAudioCache.clear();
+    (mockAudioEngine.triggerAttack as jest.Mock)?.mockClear?.();
+    await TestBed.configureTestingModule({
+      imports: [DrumMachineComponent, CommonModule, FormsModule],
+      providers: [
+        provideRouter([]),
+        { provide: AudioSessionService, useValue: mockAudioSession },
+        { provide: MusicManagerService, useValue: mockMusicManager },
+        { provide: AudioEngineService, useValue: mockAudioEngine },
+        { provide: HistoryService, useValue: { execute: jest.fn(), coalesce: jest.fn() } },
+        { provide: InstrumentsService, useValue: mockInstruments },
+        { provide: HapticService, useValue: mockHaptic },
+        { provide: AiService, useValue: mockAiService },
+      ],
+    }).compileComponents();
+    fixture = TestBed.createComponent(DrumMachineComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+  });
+
+  it("ships jersey club and amapiano styles with drill 808 slides", () => {
+    const ids = component.drumStyles.map((style) => style.id);
+    expect(ids).toEqual(expect.arrayContaining(["trap", "drill", "jersey", "amapiano"]));
+    const drill = component.drumStyles.find((style) => style.id === "drill")!;
+    expect(drill.slides?.[36]).toEqual([3, 11]);
+    expect(drill.slideSemitones).toBe(-2);
+    const amapiano = component.drumStyles.find((style) => style.id === "amapiano")!;
+    expect(amapiano.slides?.[36]).toEqual([8, 12]);
+  });
+
+  it("marks drill kick pickups as slides across all four bars", () => {
+    component.setDrumStyle(component.drumStyles.find((style) => style.id === "drill")!);
+    component.applyDrumStyle();
+
+    const track = mockMusicManager.tracks()[0];
+    const slides = track.notes.filter((n) => n.midi === 36 && n.isSlide);
+    expect(slides.map((n) => n.step).sort((a, b) => a - b)).toEqual(
+      [3, 11, 19, 27, 35, 43, 51, 59],
+    );
+    slides.forEach((n) => expect(n.pitchBend).toBe(-2));
+    // Non-slide kick steps stay straight.
+    expect(track.notes.find((n) => n.midi === 36 && n.step === 0).isSlide).toBeFalsy();
+  });
+
+  it("toggles an 808 slide from the step sheet and clears the bend when off", () => {
+    component.toggleStep("pad-36", 0);
+    component.openStepSheet(component.pads().find((p) => p.id === "pad-36")!, 0);
+    expect(component.stepSheetOpen()).toBe(true);
+
+    component.updateSelectedStepSlide(true);
+    let note = mockMusicManager.tracks()[0].notes.find((n) => n.midi === 36 && n.step === 0);
+    expect(note.isSlide).toBe(true);
+    expect(note.pitchBend).toBe(2);
+
+    component.updateSelectedStepSlideSemitones(-5);
+    note = mockMusicManager.tracks()[0].notes.find((n) => n.midi === 36 && n.step === 0);
+    expect(note.pitchBend).toBe(-5);
+
+    component.updateSelectedStepSlide(false);
+    note = mockMusicManager.tracks()[0].notes.find((n) => n.midi === 36 && n.step === 0);
+    expect(note.isSlide).toBe(false);
+    expect(note.pitchBend).toBe(0);
+    expect(component.getPadStep("pad-36", 0).slide).toBe(false);
+  });
+
+  it("carries the per-pad tune into new steps and the pad audition", () => {
+    component.updatePadParam("pad-36", "tune", 12);
+    component.toggleStep("pad-36", 0);
+    const note = mockMusicManager.tracks()[0].notes.find((n) => n.midi === 36 && n.step === 0);
+    expect(note.params.tune).toBe(12);
+
+    const kick = component.pads().find((pad) => pad.midi === 36)!;
+    component.triggerPad(kick);
+    const calls = (mockAudioEngine.triggerAttack as jest.Mock).mock.calls;
+    const last = calls[calls.length - 1];
+    expect(last[1]).toBeCloseTo(65.406 * 2, 1);
+  });
+
+  it("applies the drill 808 and phonk kits", () => {
+    component.applyKit("drill808");
+    expect(component.selectedKitId()).toBe("drill808");
+    const kick = component.pads().find((pad) => pad.midi === 36)!;
+    expect(kick.params.decay).toBe(0.7);
+
+    component.applyKit("phonk");
+    expect(component.selectedKitId()).toBe("phonk");
+    const clap = component.pads().find((pad) => pad.midi === 39)!;
+    expect(clap.params.saturation).toBe(0.7);
+  });
+
+  it("carries slides through copy and paste", () => {
+    component.toggleStep("pad-36", 0);
+    component.openStepSheet(component.pads().find((p) => p.id === "pad-36")!, 0);
+    component.updateSelectedStepSlide(true);
+    component.copyPattern();
+    component.toggleStep("pad-36", 0);
+    component.pastePattern();
+
+    const note = mockMusicManager.tracks()[0].notes.find((n) => n.midi === 36 && n.step === 0);
+    expect(note.isSlide).toBe(true);
+    expect(note.pitchBend).toBe(2);
+  });
+});
