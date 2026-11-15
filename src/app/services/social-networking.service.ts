@@ -385,10 +385,12 @@ export class SocialNetworkingService {
       'friend_request_resolved',
       (data: { otherUserId?: string }) => {
         if (!data?.otherUserId) return;
-        // Accepted, declined, or cancelled: drop the stale request row.
+        // Accepted, declined, cancelled, or blocked: drop the stale request
+        // row and reconcile the friends list for the other side too.
         this.injector
           .get(ChallengeInboxService, null)
           ?.removeFriendRequestsFrom?.(data.otherUserId);
+        void this.loadFriends();
       },
     );
 

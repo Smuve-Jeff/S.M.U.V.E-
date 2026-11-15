@@ -43,6 +43,7 @@ jest.mock("@/socket", () => ({
   emitFriendRequestReceived: jest.fn(),
   emitFriendRequestResolved: jest.fn(),
   emitFriendRequestsRead: jest.fn(),
+  refreshOnlinePresence: jest.fn(),
 }));
 
 const app = express();
@@ -183,6 +184,43 @@ describe("social challenge HTTP routes", () => {
     });
     expect(services.respondToChallenge).toHaveBeenCalledWith(41, "accepted", "99");
     expect(socket.emitChallengeResponse).not.toHaveBeenCalled();
+  });
+
+  it("clears pending requests when a block is placed", async () => {
+    (globalThis as any).__socialRouteActor = { userId: 7, role: "user" };
+    (services.blockUser as jest.Mock).mockResolvedValue({
+      success: true,
+      blockedUserId: "12",
+    });
+
+    const response = await fetch(`${baseUrl}/api/users/7/blocks/12`, {
+      method: "PUT",
+    });
+
+    expect(response.status).toBe(200);
+    expect(services.blockUser).toHaveBeenCalledWith("7", "12");
+    expect(services.clearFriendRequestNotifications).toHaveBeenCalledWith(
+      "7",
+      "12",
+    );
+    expect(socket.emitFriendRequestResolved).toHaveBeenCalledWith("7", "12");
+    expect(socket.refreshOnlinePresence).toHaveBeenCalled();
+  });
+
+  it("refreshes personalized presence when a block is removed", async () => {
+    (globalThis as any).__socialRouteActor = { userId: 7, role: "user" };
+    (services.unblockUser as jest.Mock).mockResolvedValue({
+      success: true,
+      blockedUserId: "12",
+    });
+
+    const response = await fetch(`${baseUrl}/api/users/7/blocks/12`, {
+      method: "DELETE",
+    });
+
+    expect(response.status).toBe(200);
+    expect(services.unblockUser).toHaveBeenCalledWith("7", "12");
+    expect(socket.refreshOnlinePresence).toHaveBeenCalled();
   });
 
   it("rejects challenge routes outside the authenticated user's ownership", async () => {

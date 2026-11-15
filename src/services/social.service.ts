@@ -143,6 +143,26 @@ export const blockUser = async (
     .orIgnore()
     .execute();
   invalidateBlockCache();
+  // A pending request is no longer actionable between blocked users. Remove
+  // both directions and their notifications; accepted friendships stay hidden
+  // by filterBlocked so an unblock restores them.
+  try {
+    await AppDataSource.createQueryBuilder()
+      .delete()
+      .from("friends")
+      .where(
+        "status = 'pending' AND ((user_id = :userId AND friend_id = :blockedUserId) OR (user_id = :blockedUserId AND friend_id = :userId))",
+        { userId, blockedUserId },
+      )
+      .execute();
+  } catch (err) {
+    console.error("Block pending-request cleanup failed:", err);
+  }
+  try {
+    await clearFriendRequestNotifications(userId, blockedUserId);
+  } catch (err) {
+    console.error("Block friend-request notification cleanup failed:", err);
+  }
   return { success: true, blockedUserId };
 };
 
@@ -195,15 +215,22 @@ export const listBlockedUsers = async (
   }));
 };
 
-/** Strip users the actor has blocked from a discovery list. */
+/**
+ * Strip blocked pairs from a discovery list in EITHER direction. Filtering
+ * only the actor's own blocks left the blocked user able to see the blocker
+ * in friends, search, and featured results.
+ */
 export const filterBlocked = async (
   userId: string,
   users: OnlineUserRow[],
 ): Promise<OnlineUserRow[]> => {
   const cache = await loadBlockedPairs();
-  const myBlocks = cache.get(userId);
-  if (!myBlocks || myBlocks.size === 0) return users;
-  return users.filter((user) => !myBlocks.has(user.userId));
+  const hidden = new Set<string>(cache.get(userId) ?? []);
+  for (const [otherId, blocked] of cache) {
+    if (blocked.has(userId)) hidden.add(otherId);
+  }
+  if (hidden.size === 0) return users;
+  return users.filter((user) => !hidden.has(String(user.userId)));
 };
 
 const profileToOnlineUser = (

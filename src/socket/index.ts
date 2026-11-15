@@ -11,6 +11,7 @@ import {
   buildSessionSyncPayload,
   createChallenge,
   createStudioSession,
+  filterBlocked,
   hasStudioPermission,
   isEitherBlocked,
   listRoomMessages,
@@ -213,6 +214,7 @@ function validSocketId(value: unknown): value is string {
  * realtime events to users through this handle (e.g. challenge responses).
  */
 let ioServer: Server | null = null;
+let refreshPresence: (() => void) | null = null;
 
 // ── Shared party/lobby registry (module scope) ────────────────────────────
 // Lives beside ioServer so HTTP routes (challenge accept) can provision a
@@ -393,6 +395,11 @@ export const emitFriendRequestReceived = (request: {
   ioServer.to(String(request.toUserId)).emit("friend_request_received", {
     fromUserId: String(request.fromUserId),
   });
+};
+
+/** Recompute personalized presence after a block/unblock changes visibility. */
+export const refreshOnlinePresence = (): void => {
+  refreshPresence?.();
 };
 
 /** Tell a user their friend-request notifications were bulk-marked read. */
@@ -594,14 +601,35 @@ export const setupSocketIO = (httpServer: HttpServer): Server => {
     }
   };
 
-  const broadcastOnlineUsers = () => {
+  /**
+   * Presence is personalized per recipient: blocks must hide both sides of a
+   * pair, and a global broadcast cannot do that without leaking the account.
+   * The block cache is shared and TTL-bounded, so this stays in-memory.
+   */
+  const broadcastOnlineUsers = async () => {
     const users = Array.from(presence.entries()).map(([userId, data]) => ({
       userId,
       ...data.metadata,
       online: true,
       currentRoom: userRooms.get(userId) ?? null,
     }));
-    io.emit("users_online", users);
+    // Every authenticated socket, not just registered-presence users: a client
+    // that has connected but not yet registered must still receive the roster.
+    for (const recipientId of socketIdsByUser.keys()) {
+      let visible: unknown[] = users;
+      try {
+        // Mutual: hides the account the recipient blocked AND the account
+        // that blocked the recipient.
+        visible = await filterBlocked(recipientId, users);
+      } catch (err) {
+        // A cache failure must not erase the roster for everyone.
+        console.error("Presence block filtering failed:", err);
+      }
+      io.to(recipientId).emit("users_online", visible);
+    }
+  };
+  refreshPresence = () => {
+    void broadcastOnlineUsers();
   };
 
   /**
@@ -747,7 +775,7 @@ export const setupSocketIO = (httpServer: HttpServer): Server => {
             ? data.metadata || {}
             : { ...previous, ...(data.metadata || {}) },
         });
-        broadcastOnlineUsers();
+        void broadcastOnlineUsers();
         void syncInbox(userId);
       },
     );
@@ -763,7 +791,7 @@ export const setupSocketIO = (httpServer: HttpServer): Server => {
         // undiscoverable as live. Presence is cheap; create the row instead.
         presence.set(userId, { socketId: socket.id, metadata });
       }
-      broadcastOnlineUsers();
+      void broadcastOnlineUsers();
     });
 
     // ── Rooms ──
@@ -780,7 +808,7 @@ export const setupSocketIO = (httpServer: HttpServer): Server => {
       // this room (join_room leaves all other rooms first, so each online
       // user belongs to exactly one room at a time).
       userRooms.set(userId, roomId);
-      broadcastOnlineUsers();
+      void broadcastOnlineUsers();
       // Deliver persisted history to the joining client only.
       try {
         const history = await listRoomMessages(roomId, 50);
@@ -2169,7 +2197,7 @@ export const setupSocketIO = (httpServer: HttpServer): Server => {
               liveGameId: issued.gameId ?? undefined,
             },
           });
-          broadcastOnlineUsers();
+          void broadcastOnlineUsers();
           emitLiveDirectoryChanged("started");
         } catch (err) {
           socket.emit("live_stream_failed", {
@@ -2191,7 +2219,7 @@ export const setupSocketIO = (httpServer: HttpServer): Server => {
             live: false,
           },
         });
-        broadcastOnlineUsers();
+        void broadcastOnlineUsers();
         emitLiveDirectoryChanged("ended");
         io.to(userId).emit("live_stream_ended", result);
         // Viewers in the live room must stop the player even if the REST
@@ -2555,7 +2583,7 @@ export const setupSocketIO = (httpServer: HttpServer): Server => {
         presence.delete(userId);
         userRooms.delete(userId);
         rateBuckets.delete(userId);
-        broadcastOnlineUsers();
+        void broadcastOnlineUsers();
       }
       matchmakingQueues.forEach((queue, gameId) => {
         matchmakingQueues.set(

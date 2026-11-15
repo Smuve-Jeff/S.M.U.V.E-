@@ -8,6 +8,7 @@ import {
   emitFriendRequestReceived,
   emitFriendRequestResolved,
   emitFriendRequestsRead,
+  refreshOnlinePresence,
 } from "@/socket";
 import {
   addFriend,
@@ -116,12 +117,29 @@ router.get("/:userId/blocks", own, async (req, res) => {
 
 // PUT /api/users/:userId/blocks/:blockedUserId — block a player
 router.put("/:userId/blocks/:blockedUserId", own, async (req, res) => {
-  res.json(await blockUser(req.params.userId, req.params.blockedUserId));
+  const blocked = await blockUser(
+    req.params.userId,
+    req.params.blockedUserId,
+  );
+  // Clear any loaded request row for both sides; blockUser already deleted the
+  // stored pending rows and notifications.
+  await resolveFriendRequestNotifications(
+    req.params.userId,
+    req.params.blockedUserId,
+  );
+  // Presence is personalized by the blocklist, so both rosters must recompute.
+  refreshOnlinePresence();
+  res.json(blocked);
 });
 
 // DELETE /api/users/:userId/blocks/:blockedUserId — unblock a player
 router.delete("/:userId/blocks/:blockedUserId", own, async (req, res) => {
-  res.json(await unblockUser(req.params.userId, req.params.blockedUserId));
+  const unblocked = await unblockUser(
+    req.params.userId,
+    req.params.blockedUserId,
+  );
+  refreshOnlinePresence();
+  res.json(unblocked);
 });
 
 // POST /api/users/:userId/friends/:friendId
