@@ -734,6 +734,102 @@ describe('SocialNetworkingService video source (camera ↔ screen)', () => {
     expect(service.streamError()).toBeNull();
   });
 
+  it('retries capture and clears the error once the camera is granted', async () => {
+    getUserMedia.mockRejectedValue(
+      Object.assign(new Error('denied'), { name: 'NotAllowedError' })
+    );
+    await service.startStream('S.M.U.V.E.');
+    expect(service.localStream()).toBeNull();
+    expect(service.streamError()).toContain('CAMERA_OR_MIC_DENIED');
+
+    const camVideo = makeTrack('video', 'cam-retry');
+    const mic = makeTrack('audio', 'mic-retry');
+    getUserMedia.mockResolvedValue(fakeMedia([camVideo, mic]));
+
+    await expect(service.retryHostMedia()).resolves.toBe(true);
+    expect(service.streamError()).toBeNull();
+    expect(service.localStream()!.getVideoTracks()[0]).toBe(camVideo);
+  });
+
+  it('reports a still-denied retry instead of pretending it worked', async () => {
+    getUserMedia.mockRejectedValue(
+      Object.assign(new Error('denied'), { name: 'NotAllowedError' })
+    );
+    await service.startStream('S.M.U.V.E.');
+
+    await expect(service.retryHostMedia()).resolves.toBe(false);
+    expect(service.localStream()).toBeNull();
+    expect(service.streamError()).toContain('CAMERA_OR_MIC_DENIED');
+  });
+
+  it('flags a hard-blocked camera so the host knows a retry cannot re-prompt', async () => {
+    const query = jest.fn(async () => ({
+      state: 'denied' as PermissionState,
+    }));
+    Object.defineProperty(navigator, 'permissions', {
+      value: { query },
+      configurable: true,
+    });
+    getUserMedia.mockRejectedValue(
+      Object.assign(new Error('denied'), { name: 'NotAllowedError' })
+    );
+
+    try {
+      await service.startStream('S.M.U.V.E.');
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      expect(service.captureBlocked()).toBe(true);
+      expect(query).toHaveBeenCalledWith({ name: 'camera' });
+    } finally {
+      delete (navigator as unknown as { permissions?: unknown }).permissions;
+    }
+  });
+
+  it('stays unblocked when the permission can still prompt', async () => {
+    const query = jest.fn(async () => ({
+      state: 'prompt' as PermissionState,
+    }));
+    Object.defineProperty(navigator, 'permissions', {
+      value: { query },
+      configurable: true,
+    });
+    getUserMedia.mockRejectedValue(
+      Object.assign(new Error('denied'), { name: 'NotAllowedError' })
+    );
+
+    try {
+      await service.startStream('S.M.U.V.E.');
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      // A refusal that can still prompt is not a block: keep RETRY honest.
+      expect(service.captureBlocked()).toBe(false);
+    } finally {
+      delete (navigator as unknown as { permissions?: unknown }).permissions;
+    }
+  });
+
+  it('clears the block flag once capture succeeds', async () => {
+    Object.defineProperty(navigator, 'permissions', {
+      value: {
+        query: jest.fn(async () => ({ state: 'denied' as PermissionState })),
+      },
+      configurable: true,
+    });
+
+    try {
+      getUserMedia.mockRejectedValue(
+        Object.assign(new Error('denied'), { name: 'NotAllowedError' })
+      );
+      await service.startStream('S.M.U.V.E.');
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      expect(service.captureBlocked()).toBe(true);
+
+      getUserMedia.mockResolvedValue(fakeMedia([makeTrack('video', 'cam-ok')]));
+      await expect(service.retryHostMedia()).resolves.toBe(true);
+      expect(service.captureBlocked()).toBe(false);
+    } finally {
+      delete (navigator as unknown as { permissions?: unknown }).permissions;
+    }
+  });
+
   it('switches camera → screen live, keeps the mic and notifies viewers', async () => {
     const camVideo = makeTrack('video', 'cam-v');
     const mic = makeTrack('audio', 'mic-1');

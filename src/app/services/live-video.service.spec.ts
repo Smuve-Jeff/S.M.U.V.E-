@@ -1,5 +1,6 @@
 jest.mock("socket.io-client", () => ({ io: jest.fn() }));
 
+import { signal } from "@angular/core";
 import { TestBed } from "@angular/core/testing";
 import { HttpClient } from "@angular/common/http";
 import { of } from "rxjs";
@@ -131,6 +132,7 @@ describe("LiveVideoService", () => {
     localStream: jest.Mock;
     streamError: jest.Mock;
     socketConnected: jest.Mock;
+    retryHostMedia: jest.Mock;
   };
   let http: { get: jest.Mock };
   let videoTrack: ReturnType<typeof makeTrack>;
@@ -191,6 +193,7 @@ describe("LiveVideoService", () => {
       getSocket: jest.fn(() => socket as any),
       localStream: jest.fn(() => media),
       streamError: jest.fn(() => null),
+      retryHostMedia: jest.fn(async () => true),
       socketConnected: jest.fn(() => true),
       videoSource: jest.fn(() => "camera"),
       screenAudioOnly: jest.fn(() => false),
@@ -521,6 +524,90 @@ describe("LiveVideoService", () => {
     });
     expect(socket.emitted).toHaveLength(0);
     expect(guest.listenerCount("live_webrtc_offer")).toBeGreaterThan(0);
+    (io as jest.Mock).mockReset();
+  });
+
+  it("retries the host's capture on demand", async () => {
+    await expect(service.retryHostFeed()).resolves.toBe(true);
+    expect(social.retryHostMedia).toHaveBeenCalledTimes(1);
+
+    (social.retryHostMedia as jest.Mock).mockResolvedValueOnce(false);
+    await expect(service.retryHostFeed()).resolves.toBe(false);
+  });
+
+  it("reports a host feed that capture never produced", () => {
+    // The real service reads these as signals; a mock function never
+    // invalidates the cached computed, so drive a real signal here.
+    const media = signal<MediaStream | null>(null);
+    (social as unknown as { localStream: typeof media }).localStream = media;
+
+    expect(service.hostFeedMissing()).toBe(true);
+
+    media.set({
+      getVideoTracks: () => [{ readyState: "ended" }],
+    } as unknown as MediaStream);
+    expect(service.hostFeedMissing()).toBe(true);
+
+    media.set({
+      getVideoTracks: () => [{ readyState: "live" }],
+    } as unknown as MediaStream);
+    expect(service.hostFeedMissing()).toBe(false);
+
+    media.set(null);
+  });
+
+  it("passes a hard-blocked camera through to the hosting surfaces", () => {
+    const blocked = signal(false);
+    (social as unknown as { captureBlocked: typeof blocked }).captureBlocked =
+      blocked;
+
+    expect(service.hostFeedBlocked()).toBe(false);
+    blocked.set(true);
+    expect(service.hostFeedBlocked()).toBe(true);
+    blocked.set(false);
+  });
+
+  it("surfaces the platform's capture failure reason", () => {
+    const error = signal<string | null>(
+      "CAMERA_OR_MIC_DENIED — CHECK BROWSER PERMISSIONS",
+    );
+    (social as unknown as { streamError: typeof error }).streamError = error;
+
+    expect(service.hostFeedError()).toContain("CAMERA_OR_MIC_DENIED");
+    error.set(null);
+  });
+
+  it("reports the viewer transport from the socket it bound", async () => {
+    await service.watch("tok");
+    expect(service.viewerTransportUp()).toBe(true);
+
+    socket.trigger("disconnect");
+    expect(service.viewerTransportUp()).toBe(false);
+
+    socket.trigger("connect");
+    expect(service.viewerTransportUp()).toBe(true);
+    service.stopWatching();
+  });
+
+  it("reconnects a share-link guest's own transport", async () => {
+    const guest = new FakeSocket();
+    guest.connected = false;
+    (social.getSocket as jest.Mock).mockReturnValue(null);
+    (io as jest.Mock).mockImplementation(() => {
+      guest.connected = true;
+      return guest;
+    });
+
+    await service.watch("tok");
+    // A guest has no social socket; the banner has to follow the guest one.
+    expect(service.viewerTransportUp()).toBe(true);
+
+    guest.connected = false;
+    guest.trigger("disconnect");
+    expect(service.viewerTransportUp()).toBe(false);
+
+    service.reconnectViewerTransport();
+    expect(guest.connect).toHaveBeenCalled();
     (io as jest.Mock).mockReset();
   });
 

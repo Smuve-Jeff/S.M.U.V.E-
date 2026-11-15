@@ -1,4 +1,4 @@
-import { Injectable, inject, signal } from "@angular/core";
+import { Injectable, computed, inject, signal } from "@angular/core";
 import { HttpClient } from "@angular/common/http";
 import { firstValueFrom } from "rxjs";
 import { io, type Socket } from "socket.io-client";
@@ -107,6 +107,44 @@ export class LiveVideoService {
   readonly hostSharingScreen = signal(false);
   /** True while a dropped inbound feed is being rebuilt (drives the banner). */
   readonly recovering = signal(false);
+  /**
+   * The host has no live video to send: capture never started, was refused,
+   * or its track ended. Every hosting surface warns the host from this, so a
+   * broadcast with an empty room is never mistaken for a working one.
+   */
+  readonly hostFeedMissing = computed(() => {
+    const media = this.social.localStream();
+    if (!media) return true;
+    return !media.getVideoTracks().some((track) => track.readyState === "live");
+  });
+
+  /** Why capture failed, when the platform reported a reason. */
+  readonly hostFeedError = computed(() => this.social.streamError());
+
+  /**
+   * The browser has the camera hard-blocked, so a retry cannot re-prompt.
+   * The host has to allow the site in browser settings first.
+   */
+  readonly hostFeedBlocked = computed(() => this.social.captureBlocked());
+
+  /**
+   * One-tap retry behind the host warning: re-ask for camera/mic and offer to
+   * any viewer that joined while there was nothing to send. Returns whether
+   * capture is producing video now.
+   */
+  async retryHostFeed(): Promise<boolean> {
+    const ok = await this.social.retryHostMedia();
+    if (ok) this.flushPendingViewers();
+    return ok;
+  }
+
+  /**
+   * Whether the viewer's own signaling transport is up — the social socket
+   * for a signed-in viewer, the token-scoped guest socket for a share-link
+   * visitor. A guest has no social socket at all, so presence state is the
+   * wrong thing to hang a "connection lost" banner on.
+   */
+  readonly viewerTransportUp = signal(false);
   /** Whether the host cut their mic from the viewers' mix. */
   readonly hostScreenAudioOnly = signal(false);
   /** TURN relay state reported alongside the ICE configuration. */
@@ -1125,6 +1163,9 @@ export class LiveVideoService {
     this.viewerNames.clear();
     this.viewerConnections.set([]);
     this.boundSocket = socket;
+    this.viewerTransportUp.set(socket.connected);
+    socket.on("connect", this.onViewerTransportUp);
+    socket.on("disconnect", this.onViewerTransportDown);
     socket.on("live_stream_viewer_joined", this.onViewerJoined);
     socket.on("live_stream_viewer_left", this.onViewerLeft);
     socket.on("live_webrtc_offer", this.onOffer);
@@ -1141,6 +1182,8 @@ export class LiveVideoService {
   private unbindSocket(): void {
     const socket = this.boundSocket;
     if (!socket) return;
+    socket.off("connect", this.onViewerTransportUp);
+    socket.off("disconnect", this.onViewerTransportDown);
     socket.off("live_stream_viewer_joined", this.onViewerJoined);
     socket.off("live_stream_viewer_left", this.onViewerLeft);
     socket.off("live_webrtc_offer", this.onOffer);
@@ -1153,6 +1196,33 @@ export class LiveVideoService {
     socket.off("live_stream_ended", this.onStreamEnded);
     socket.off("connect", this.onSocketConnect);
     this.boundSocket = undefined;
+    this.viewerTransportUp.set(false);
+  }
+
+  private onViewerTransportUp = () => {
+    this.viewerTransportUp.set(true);
+  };
+
+  private onViewerTransportDown = () => {
+    this.viewerTransportUp.set(false);
+  };
+
+  /**
+   * Banner action: bring the viewer's own signaling transport back up. The
+   * social socket is preferred when the viewer has an account; a share-link
+   * guest reconnects the token-scoped socket instead.
+   */
+  reconnectViewerTransport(): void {
+    const social = this.social.getSocket();
+    if (social) {
+      // Optional call: a socket the social service has not finished building
+      // (and a test double) may not expose connect().
+      if (!social.connected) social.connect?.();
+      return;
+    }
+    if (this.guestSocket && !this.guestSocket.connected) {
+      this.guestSocket.connect?.();
+    }
   }
 
   /**
@@ -1200,6 +1270,9 @@ export class LiveVideoService {
       reconnectionDelay: 1500,
       auth: (cb) => cb({ liveToken: this.viewerToken ?? token }),
     });
+    created.on("connect", this.onViewerTransportUp);
+    created.on("disconnect", this.onViewerTransportDown);
+    if (created.connected) this.viewerTransportUp.set(true);
     this.guestSocket = created;
     return created;
   }

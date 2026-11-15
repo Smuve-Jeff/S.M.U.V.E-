@@ -214,6 +214,13 @@ export class SocialNetworkingService {
 
   // ── Real media capture (getUserMedia) + quality tiers ──
   localStream = signal<MediaStream | null>(null);
+  /**
+   * The browser (or the OS) refuses capture outright: the site permission is
+   * `denied`, so a retry cannot raise a prompt and the host has to change it
+   * in browser settings. Distinct from a one-off refusal, which a retry can
+   * still fix.
+   */
+  captureBlocked = signal(false);
   streamQuality = signal<StreamQuality>('720p');
   cameraEnabled = signal(true);
   micEnabled = signal(true);
@@ -1027,12 +1034,10 @@ export class SocialNetworkingService {
     if (!this.localStream()) {
       try {
         await this.acquireHostMedia();
-      } catch (err: any) {
-        this.streamError.set(
-          err?.name === 'NotAllowedError'
-            ? 'CAMERA_OR_MIC_DENIED — CHECK BROWSER PERMISSIONS'
-            : 'MEDIA_CAPTURE_UNAVAILABLE — USING SIMULATION ONLY'
-        );
+        this.captureBlocked.set(false);
+      } catch (err: unknown) {
+        this.streamError.set(this.describeCaptureError(err));
+        void this.refreshCaptureBlocked();
       }
     }
 
@@ -1054,6 +1059,54 @@ export class SocialNetworkingService {
         this.generateSimulatedComment();
       }
     }, 3000);
+  }
+
+  /**
+   * One-tap capture retry from the host's "no feed" warning: ask for
+   * camera/mic again after a refusal, without restarting the broadcast.
+   * Returns whether there is now media to send.
+   */
+  async retryHostMedia(): Promise<boolean> {
+    this.streamError.set(null);
+    if (this.localStream()) return true;
+    try {
+      await this.acquireHostMedia();
+      this.captureBlocked.set(false);
+    } catch (err: unknown) {
+      this.streamError.set(this.describeCaptureError(err));
+      // Re-probe: the host may have unblocked the site since the last attempt.
+      await this.refreshCaptureBlocked();
+    }
+    return !!this.localStream();
+  }
+
+  /**
+   * Ask the Permissions API whether the camera is hard-blocked. Unsupported
+   * browsers (Safari, some webviews) throw or omit it — unknown reads as "not
+   * blocked", so the retry stays offered rather than telling the host
+   * something we cannot verify.
+   */
+  private async refreshCaptureBlocked(): Promise<void> {
+    const permissions = (
+      navigator as Navigator & { permissions?: Permissions }
+    ).permissions;
+    if (!permissions?.query) return;
+    try {
+      const camera = await permissions.query({
+        name: 'camera' as PermissionName,
+      });
+      this.captureBlocked.set(camera.state === 'denied');
+    } catch {
+      this.captureBlocked.set(false);
+    }
+  }
+
+  /** Operator-facing reason for a failed capture, shared by every caller. */
+  private describeCaptureError(err: unknown): string {
+    const name = (err as { name?: string } | null)?.name;
+    return name === 'NotAllowedError'
+      ? 'CAMERA_OR_MIC_DENIED — CHECK BROWSER PERMISSIONS'
+      : 'MEDIA_CAPTURE_UNAVAILABLE — USING SIMULATION ONLY';
   }
 
   /** Stop the stream and release camera/mic. */

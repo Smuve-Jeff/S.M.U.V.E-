@@ -642,6 +642,35 @@ export class LiveStreamService {
   }
 
   /**
+   * Open the viewer surface straight from a share token when the preview
+   * lookup could not answer (API hiccup, guest rate limit, cold start).
+   *
+   * The token is the capability, and the signaling socket re-validates it on
+   * join — so a failed REST peek must not leave a viewer with no player at
+   * all when the peer-to-peer feed would have worked.
+   */
+  openInboundFallback(token: string): void {
+    if (!token) return;
+    const current = this.inboundPreview();
+    if (current?.shareToken === token) return;
+    this.inboundPreview.set({
+      id: 0,
+      shareToken: token,
+      hostId: '',
+      hostDisplayName: null,
+      platform: 'smuve',
+      gameId: null,
+      lobbyId: null,
+      payload: null,
+      active: true,
+      startedAt: new Date().toISOString(),
+      endedAt: null,
+      viewerJoins: 0,
+      shareUrl: '',
+    });
+  }
+
+  /**
    * Viewer taps the inbound join overlay → record the redeem (server
    * increments `viewerJoins`) and return the host + lobby context so the
    * UI can navigate the viewer into the host's split-screen session.

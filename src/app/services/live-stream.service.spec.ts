@@ -464,6 +464,42 @@ describe('LiveStreamService', () => {
       expect(service.inboundPreview()).toBeNull();
     });
 
+    it('opens the viewer surface from the token when the peek fails', () => {
+      service = TestBed.inject(LiveStreamService);
+      service.inboundPreview.set(null);
+
+      service.openInboundFallback('tok_fallback');
+
+      const preview = service.inboundPreview();
+      expect(preview?.shareToken).toBe('tok_fallback');
+      expect(preview?.platform).toBe('smuve');
+      expect(preview?.active).toBe(true);
+    });
+
+    it('does not overwrite a resolved preview for the same token', () => {
+      service = TestBed.inject(LiveStreamService);
+      service.inboundPreview.set({
+        id: 9,
+        shareToken: 'tok_known',
+        hostId: 'h',
+        hostDisplayName: 'NOVA',
+        platform: 'twitch',
+        gameId: 'tekken',
+        lobbyId: null,
+        payload: {},
+        active: true,
+        startedAt: new Date().toISOString(),
+        endedAt: null,
+        viewerJoins: 3,
+        shareUrl: 'https://x',
+      });
+
+      service.openInboundFallback('tok_known');
+
+      expect(service.inboundPreview()?.hostDisplayName).toBe('NOVA');
+      expect(service.inboundPreview()?.viewerJoins).toBe(3);
+    });
+
     it('redeem returns the row and increments the inbound preview', async () => {
       service = TestBed.inject(LiveStreamService);
       const row = {

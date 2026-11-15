@@ -1457,6 +1457,38 @@
     </button>
   </div>
 
+  <!-- The host's capture failed: the room is live but has nothing to send. -->
+  <div
+    *ngIf="hostFeedMissing()"
+    class="live-no-media-bar"
+    role="alert"
+    aria-live="assertive"
+  >
+    <span class="material-symbols-outlined">videocam_off</span>
+    <div class="live-no-media-copy">
+      <strong>NO CAMERA OR MIC — VIEWERS HAVE NOTHING TO WATCH</strong>
+      <span class="live-no-media-reason" *ngIf="liveVideo.hostFeedBlocked()">
+        CAMERA BLOCKED FOR THIS SITE — ALLOW IT IN BROWSER SETTINGS, THEN
+        RETRY (A RETRY CANNOT RE-PROMPT WHILE IT STAYS BLOCKED)
+      </span>
+      <ng-container *ngIf="!liveVideo.hostFeedBlocked()">
+        <span class="live-no-media-reason" *ngIf="liveVideo.hostFeedError() as err">
+          {{ err }}
+        </span>
+        <span class="live-no-media-reason" *ngIf="!liveVideo.hostFeedError()">
+          CAPTURE DID NOT START — ALLOW CAMERA/MIC ACCESS AND GO LIVE AGAIN
+        </span>
+      </ng-container>
+    </div>
+    <button
+      type="button"
+      class="action-btn live-no-media-retry"
+      (click)="retryHostCapture()"
+    >
+      RETRY CAMERA
+    </button>
+  </div>
+
   <!-- ════════════ JOIN-LIVE OVERLAY (inbound live= link) ════════════ -->
   <div
     *ngIf="inboundLivePreview() as livePreview"
@@ -1524,7 +1556,7 @@
           <span class="material-symbols-outlined">sync_problem</span>
           <p>
             {{
-              socialService.socketConnected()
+              liveVideo.recovering()
                 ? 'FEED DROPPED — RECONNECTING…'
                 : 'CONNECTION LOST — RECONNECTING…'
             }}

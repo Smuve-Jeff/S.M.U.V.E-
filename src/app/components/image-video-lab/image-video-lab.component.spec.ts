@@ -28,6 +28,7 @@ import { CinemaProjectService } from '../../services/cinema-project.service';
 import { InteractionDialogService } from '../../services/interaction-dialog.service';
 import { CinemaEngineService } from '../../services/cinema-engine.service';
 import { SpeechSynthesisService } from '../../services/speech-synthesis.service';
+import { SocialNetworkingService } from '../../services/social-networking.service';
 describe('ImageVideoLabComponent', () => {
   /** Shared 2D context stub so render assertions can inspect the draw calls. */
   let ctxStub: Record<string, jest.Mock | string | number>;
@@ -6620,6 +6621,55 @@ describe('ImageVideoLabComponent', () => {
       expect(ai.generateShotVideo).toHaveBeenCalledTimes(1);
       expect(component.aiFeedback()).toContain('AUTO-DIRECT PAUSED');
       expect(component.autoDirectProgress()).toBeNull();
+    });
+  });
+
+  describe('host capture warning', () => {
+    const liveRow = {
+      id: 3,
+      shareToken: 'tok_lab',
+      hostId: '1',
+      hostDisplayName: 'NOVA',
+      platform: 'smuve' as const,
+      gameId: null,
+      lobbyId: null,
+      payload: null,
+      active: true,
+      startedAt: new Date().toISOString(),
+      endedAt: null,
+      viewerJoins: 0,
+      shareUrl: 'https://x',
+    };
+
+    it('warns on air when capture produced no video', async () => {
+      const { component, fixture } = await createComponent();
+      const social = TestBed.inject(SocialNetworkingService);
+      component.liveStream.currentStream.set(liveRow);
+
+      // On air with no local media: the room exists but has nothing to send.
+      expect(component.hostFeedMissing()).toBe(true);
+
+      social.localStream.set({
+        getVideoTracks: () => [{ readyState: 'live' }],
+      } as unknown as MediaStream);
+      expect(component.hostFeedMissing()).toBe(false);
+
+      social.localStream.set(null);
+      component.liveStream.currentStream.set(null);
+      expect(component.hostFeedMissing()).toBe(false);
+      fixture.destroy();
+    });
+
+    it('retries capture from the warning', async () => {
+      const { component, fixture } = await createComponent();
+      const retry = jest
+        .spyOn(component.liveVideo, 'retryHostFeed')
+        .mockResolvedValue(true);
+
+      await component.retryHostCapture();
+
+      expect(retry).toHaveBeenCalled();
+      fixture.destroy();
     });
   });
 

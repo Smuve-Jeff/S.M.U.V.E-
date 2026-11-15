@@ -1184,6 +1184,17 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
   lowerThird = computed(() => this.videoEngine.lowerThird());
   countdownLabel = computed(() => this.videoEngine.countdownLabel());
   broadcastStream = computed(() => this.liveStream.currentStream());
+  /**
+   * On air with no capture running: viewers get a room with nothing in it.
+   * Same source of truth as Tha Spot, so both consoles warn alike.
+   */
+  hostFeedMissing = computed(
+    () => !!this.broadcastStream()?.active && this.liveVideo.hostFeedMissing()
+  );
+  /** One-tap capture retry from the on-air warning. */
+  async retryHostCapture(): Promise<void> {
+    await this.liveVideo.retryHostFeed();
+  }
   templates = [
     {
       name: 'Cinematic Noir',

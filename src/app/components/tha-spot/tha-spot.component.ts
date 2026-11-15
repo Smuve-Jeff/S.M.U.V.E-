@@ -1457,6 +1457,32 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     return !!track && track.readyState !== "ended" && track.muted !== true;
   }
 
+  /** One-tap capture retry from the host warning. */
+  async retryHostCapture(): Promise<void> {
+    const ok = await this.liveVideo.retryHostFeed();
+    if (ok) {
+      this.snackbarService.success("CAMERA/MIC BACK ONLINE — VIEWERS CAN WATCH");
+      return;
+    }
+    this.snackbarService.warning(
+      this.liveVideo.hostFeedBlocked()
+        ? "CAMERA BLOCKED — ALLOW THIS SITE IN BROWSER SETTINGS, THEN RETRY"
+        : this.liveVideo.hostFeedError() || "CAMERA/MIC STILL UNAVAILABLE"
+    );
+  }
+
+  /**
+   * The host is broadcasting but capture is not running, so every viewer joins
+   * a room with nothing to watch. The service keeps "streaming" in simulation
+   * mode when the camera or mic is refused, which used to leave the host with
+   * a live pill and no hint that the feed was empty.
+   */
+  readonly hostFeedMissing = computed(
+    () =>
+      !!this.liveStream.currentStream()?.active &&
+      this.liveVideo.hostFeedMissing()
+  );
+
   /**
    * The inbound feed or its transport dropped and is being rebuilt. Shown as
    * a banner with a manual reconnect so a viewer is never left guessing.
@@ -1464,7 +1490,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   readonly liveFeedReconnecting = computed(
     () =>
       !!this.liveVideo.watchingToken() &&
-      (this.liveVideo.recovering() || !this.socialService.socketConnected())
+      (this.liveVideo.recovering() || !this.liveVideo.viewerTransportUp())
   );
 
   /** True once this viewer has recorded a join for the inbound stream. */
@@ -2433,11 +2459,12 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
           // surface the from= param separately.
           void this.liveStream.peekViewerToken(liveToken).then((row) => {
             if (!row) {
-              // 404/410 are the normal "stream ended" answers. Say so instead
-              // of silently dropping the invite link.
-              this.snackbarService.warning(
-                "LIVE STREAM ENDED OR UNAVAILABLE",
-              );
+              // A failed lookup is not a verdict: open the player from the
+              // token so the viewer still gets the feed, and let the signaling
+              // reply say whether the room has actually ended.
+              this.liveStream.openInboundFallback(liveToken);
+              this.liveJoined.set(false);
+              void this.liveVideo.watch(liveToken);
               return;
             }
             // Start the video player immediately: the overlay is the viewer
@@ -2910,7 +2937,13 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     if (!token) return;
     const row = await this.liveStream.peekViewerToken(token);
     if (!row) {
-      this.snackbarService.warning("LIVE STREAM ENDED OR UNAVAILABLE");
+      // The preview lookup failing is not proof the broadcast is over — an
+      // offline API or a guest rate limit answers the same way. Open the
+      // player from the token and let signaling report the real state, so a
+      // working feed is never withheld because one REST call missed.
+      this.liveStream.openInboundFallback(token);
+      this.liveJoined.set(false);
+      void this.liveVideo.watch(token);
       // Prune the stale directory entry so the next viewer does not click it.
       void this.liveStream.loadActiveStreams();
       return;
@@ -2938,7 +2971,10 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
 
   /** Reconnect banner action: wake the transport and rebuild the feed now. */
   reconnectLiveFeed(): void {
+    // Both are needed and both are safe: the social reconnect rebuilds a
+    // severed account socket, the viewer one covers share-link guests.
     this.socialService.reconnectSocket();
+    this.liveVideo.reconnectViewerTransport();
     this.liveVideo.retryViewerFeed();
   }
 

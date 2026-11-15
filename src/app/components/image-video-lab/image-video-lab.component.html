@@ -2124,6 +2124,36 @@
                 <span class="text-text-main normal-case">{{ stream.shareUrl }}</span>
               </p>
 
+              @if (hostFeedMissing()) {
+                <p
+                  class="flex items-start gap-2 rounded-md border border-brand-danger/60 bg-brand-danger/10 px-2 py-1.5 text-[9px] font-black uppercase tracking-[0.14em] text-brand-danger"
+                  role="alert"
+                  aria-live="assertive"
+                >
+                  <span class="material-symbols-outlined text-[14px] leading-none"
+                    >videocam_off</span
+                  >
+                  <span class="min-w-0 flex-1">
+                    NO CAMERA OR MIC — VIEWERS HAVE NOTHING TO WATCH
+                    <span class="mt-0.5 block text-[8px] font-bold tracking-[0.08em] opacity-80">
+                      {{
+                        liveVideo.hostFeedBlocked()
+                          ? 'CAMERA BLOCKED FOR THIS SITE — ALLOW IT IN BROWSER SETTINGS, THEN RETRY (A RETRY CANNOT RE-PROMPT WHILE IT STAYS BLOCKED)'
+                          : liveVideo.hostFeedError() ||
+                            'CAPTURE DID NOT START — ALLOW CAMERA/MIC ACCESS AND GO LIVE AGAIN'
+                      }}
+                    </span>
+                  </span>
+                  <button
+                    type="button"
+                    class="shrink-0 rounded-lg border border-brand-danger/60 px-2 py-1 text-[8px] font-black uppercase tracking-[0.14em] text-brand-danger hover:bg-brand-danger/15 transition-all"
+                    (click)="retryHostCapture()"
+                  >
+                    Retry Camera
+                  </button>
+                </p>
+              }
+
               <!-- Shared relay health + per-viewer media path. -->
               <app-live-relay-strip />
             } @else {

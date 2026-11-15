@@ -128,6 +128,9 @@ describe("ThaSpotComponent", () => {
       friendWentLive: signal(null),
       clearFriendLive: jest.fn(),
       reconnectSocket: jest.fn(),
+      localStream: signal(null),
+      streamError: signal(null),
+      captureBlocked: signal(false),
       loadFriends: jest.fn(),
       joinParty: jest.fn(),
       joinRoom: jest.fn(),
@@ -235,7 +238,12 @@ describe("ThaSpotComponent", () => {
         { provide: PeerNetworkingService, useValue: peerServiceMock },
         {
           provide: SnackbarService,
-          useValue: { info: jest.fn(), success: jest.fn(), error: jest.fn() },
+          useValue: {
+            info: jest.fn(),
+            success: jest.fn(),
+            warning: jest.fn(),
+            error: jest.fn(),
+          },
         },
         { provide: MatchmakingService, useValue: matchmakingMock },
         { provide: DailyMissionsService, useValue: {} },
@@ -1216,6 +1224,86 @@ describe("ThaSpotComponent", () => {
     });
   });
 
+  describe("host capture warning", () => {
+    it("warns while live with no capture at all", () => {
+      component.liveStream.currentStream.set({
+        id: 1,
+        shareToken: "tok_live",
+        hostId: "1",
+        hostDisplayName: "NOVA",
+        platform: "smuve",
+        gameId: null,
+        lobbyId: null,
+        payload: null,
+        active: true,
+        startedAt: new Date().toISOString(),
+        endedAt: null,
+        viewerJoins: 0,
+        shareUrl: "https://x",
+      });
+
+      expect(component.hostFeedMissing()).toBe(true);
+    });
+
+    it("stays quiet once a live camera track is running", () => {
+      component.liveStream.currentStream.set({
+        id: 1,
+        shareToken: "tok_live",
+        hostId: "1",
+        hostDisplayName: "NOVA",
+        platform: "smuve",
+        gameId: null,
+        lobbyId: null,
+        payload: null,
+        active: true,
+        startedAt: new Date().toISOString(),
+        endedAt: null,
+        viewerJoins: 0,
+        shareUrl: "https://x",
+      });
+      socialServiceMock.localStream.set({
+        getVideoTracks: () => [{ readyState: "live" }],
+      } as unknown as MediaStream);
+
+      expect(component.hostFeedMissing()).toBe(false);
+    });
+
+    it("retries capture on tap and reports the outcome", async () => {
+      const liveVideo = TestBed.inject(LiveVideoService);
+      const snackbar = TestBed.inject(SnackbarService);
+      const retry = jest
+        .spyOn(liveVideo, "retryHostFeed")
+        .mockResolvedValue(true);
+
+      await component.retryHostCapture();
+      expect(retry).toHaveBeenCalled();
+      expect(snackbar.success).toHaveBeenCalledWith(
+        "CAMERA/MIC BACK ONLINE — VIEWERS CAN WATCH",
+      );
+
+      retry.mockResolvedValueOnce(false);
+      await component.retryHostCapture();
+      expect(snackbar.warning).toHaveBeenCalled();
+
+      // A hard block cannot be re-prompted: say so instead of "still
+      // unavailable", which reads like the button is broken.
+      const blocked = jest
+        .spyOn(liveVideo, "hostFeedBlocked")
+        .mockReturnValue(true);
+      retry.mockResolvedValueOnce(false);
+      await component.retryHostCapture();
+      expect(snackbar.warning).toHaveBeenLastCalledWith(
+        "CAMERA BLOCKED — ALLOW THIS SITE IN BROWSER SETTINGS, THEN RETRY",
+      );
+      blocked.mockRestore();
+    });
+
+    it("stays quiet when the host is not live", () => {
+      component.liveStream.currentStream.set(null);
+      expect(component.hostFeedMissing()).toBe(false);
+    });
+  });
+
   describe("live reconnect banner", () => {
     it("stays hidden while nothing is being watched", () => {
       expect(component.liveFeedReconnecting()).toBe(false);
@@ -1224,7 +1312,10 @@ describe("ThaSpotComponent", () => {
     it("shows while a dropped feed or transport is being rebuilt", () => {
       const liveVideo = TestBed.inject(LiveVideoService);
       liveVideo.watchingToken.set("tok_live");
-      socialServiceMock.socketConnected.set(true);
+      liveVideo.viewerTransportUp.set(true);
+      // Presence is not the transport: an anonymous viewer has no social
+      // socket at all, and must not be told its connection is lost.
+      socialServiceMock.socketConnected.set(false);
 
       expect(component.liveFeedReconnecting()).toBe(false);
 
@@ -1232,21 +1323,43 @@ describe("ThaSpotComponent", () => {
       expect(component.liveFeedReconnecting()).toBe(true);
 
       liveVideo.recovering.set(false);
-      socialServiceMock.socketConnected.set(false);
+      liveVideo.viewerTransportUp.set(false);
       expect(component.liveFeedReconnecting()).toBe(true);
 
-      socialServiceMock.socketConnected.set(true);
+      liveVideo.viewerTransportUp.set(true);
       expect(component.liveFeedReconnecting()).toBe(false);
     });
 
     it("wakes the transport and forces a fresh feed on tap", () => {
       const liveVideo = TestBed.inject(LiveVideoService);
       const retry = jest.spyOn(liveVideo, "retryViewerFeed");
+      const transport = jest.spyOn(liveVideo, "reconnectViewerTransport");
 
       component.reconnectLiveFeed();
 
       expect(socialServiceMock.reconnectSocket).toHaveBeenCalled();
+      expect(transport).toHaveBeenCalled();
       expect(retry).toHaveBeenCalled();
+    });
+
+    it("opens the player from the token when the preview lookup fails", async () => {
+      const liveVideo = TestBed.inject(LiveVideoService);
+      const watch = jest.spyOn(liveVideo, "watch").mockResolvedValue(undefined);
+      jest
+        .spyOn(component.liveStream, "peekViewerToken")
+        .mockResolvedValue(null);
+      jest
+        .spyOn(component.liveStream, "loadActiveStreams")
+        .mockResolvedValue(undefined);
+
+      await component.watchLiveToken("tok_fallback");
+
+      // A failed REST peek must not cost a viewer the feed: the player opens
+      // from the token and signaling decides whether the room is really gone.
+      expect(component.liveStream.inboundPreview()?.shareToken).toBe(
+        "tok_fallback",
+      );
+      expect(watch).toHaveBeenCalledWith("tok_fallback");
     });
   });
 
