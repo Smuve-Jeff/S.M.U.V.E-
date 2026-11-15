@@ -5,6 +5,7 @@ import { io as ioClient } from "socket.io-client";
 import jwt from "jsonwebtoken";
 import {
   createChallenge,
+  filterBlocked,
   isEitherBlocked,
   listRoomMessages,
   persistRoomMessage,
@@ -1100,6 +1101,67 @@ describe("socket.io handshake + JWT auth", () => {
     const ended = await endedP;
     expect(ended.reason).toBe("ended");
     expect(jest.mocked(endLiveStream)).toHaveBeenCalledWith("501", false);
+  });
+
+  it("sends each connected user a differently filtered presence roster", async () => {
+    const clientA = mk(301);
+    const clientB = mk(302);
+    await Promise.all([connect(clientA), connect(clientB)]);
+    clientA.emit("register_presence", {
+      userId: "301",
+      metadata: { artistName: "A" },
+    });
+    clientB.emit("register_presence", {
+      userId: "302",
+      metadata: { artistName: "B" },
+    });
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
+    jest.mocked(filterBlocked).mockImplementation(async (recipientId, users) =>
+      String(recipientId) === "301"
+        ? users.filter((u) => String(u.userId) !== "302")
+        : users,
+    );
+
+    const waitForRoster = (
+      client: ReturnType<typeof mk>,
+      predicate: (users: any[]) => boolean,
+      label: string,
+    ) =>
+      new Promise<any[]>((resolve, reject) => {
+        const timer = setTimeout(() => {
+          client.off("users_online", handler);
+          reject(new Error(`no filtered users_online payload: ${label}`));
+        }, 5000);
+        const handler = (users: any[]) => {
+          if (!Array.isArray(users) || !predicate(users)) return;
+          clearTimeout(timer);
+          client.off("users_online", handler);
+          resolve(users);
+        };
+        client.on("users_online", handler);
+      });
+
+    const rosterA = waitForRoster(
+      clientA,
+      (users) => users.every((u) => u.userId !== "302"),
+      "A hides B",
+    );
+    const rosterB = waitForRoster(
+      clientB,
+      (users) => users.some((u) => u.userId === "301"),
+      "B sees A",
+    );
+
+    clientB.emit("update_status", { metadata: { artistName: "B2" } });
+
+    const [usersA, usersB] = await Promise.all([rosterA, rosterB]);
+    expect(usersA.map((u) => u.userId)).not.toContain("302");
+    expect(usersB.map((u) => u.userId)).toContain("301");
+
+    jest
+      .mocked(filterBlocked)
+      .mockImplementation(async (_userId, users) => users);
   });
 
   it("broadcasts live identity in users_online after a Go Live update_status", async () => {
