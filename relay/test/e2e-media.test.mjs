@@ -226,9 +226,31 @@ test(
       const status = session
         ? await bounded(manager.status(session.id), "reading the session status")
         : null;
+
+      // Diagnostics were asked for, so they have to arrive: a job that goes red
+      // with an empty log directory is worse than one that says why it is empty.
+      let diagnosticsError = null;
       if (diagnosticDir) {
-        await bounded(writeDiagnostics(status), "writing diagnostics");
+        const written = Symbol("written");
+        const outcome = await bounded(
+          writeDiagnostics(status).then(
+            () => written,
+            (error) => {
+              diagnosticsError = error;
+              return written;
+            },
+          ),
+          "writing diagnostics",
+        );
+        // `bounded` returns undefined only when it gave up, which is its own
+        // reason to fail: the logs are as missing as if writing had thrown.
+        if (outcome !== written && !diagnosticsError) {
+          diagnosticsError = new Error(
+            `did not finish within ${TEARDOWN_LIMIT_MS} ms`,
+          );
+        }
       }
+
       await bounded(manager.stopAll(), "stopping the relay sessions");
       await bounded(whip?.stop(), "closing the WHIP publish");
       media.kill("SIGKILL");
@@ -241,6 +263,15 @@ test(
         }
       }
       await bounded(rm(dir, { recursive: true, force: true }), "removing the temp directory");
+
+      if (diagnosticsError) {
+        throw new Error(
+          `could not write this run's diagnostics to ${diagnosticDir}: ` +
+            `${diagnosticsError.message}\n` +
+            "The media path itself may have passed; this failure is only about " +
+            "the logs, because a red job with no evidence cannot be diagnosed.",
+        );
+      }
     });
 
     await until(
