@@ -347,17 +347,32 @@ export class BroadcastIngestService {
       // Long enough for ICE, an RTSP connection and a few seconds of frames.
       await new Promise((resolve) => setTimeout(resolve, 6_000));
       const status = await firstValueFrom(
-        this.http.get<{ ready?: boolean; bytesReceived?: number; tracks?: unknown[] }>(
-          this.endpoint(`/selftest/${relayId}`),
-          { headers: this.headers() },
-        ),
+        this.http.get<{
+          ready?: boolean;
+          bytesReceived?: number;
+          tracks?: unknown[];
+          ingest?: {
+            audio?: { codec?: string } | null;
+            problem?: string | null;
+          } | null;
+        }>(this.endpoint(`/selftest/${relayId}`), { headers: this.headers() }),
       );
       const bytes = Number(status?.bytesReceived ?? 0);
       const tracks = Array.isArray(status?.tracks) ? status.tracks.length : 0;
       if (status?.ready && bytes > 0) {
+        // What the ingest received is the part the channel would show and the
+        // operator cannot see: an AAC encode that never produced audio looks
+        // exactly like a healthy push from here otherwise.
+        const ingest = status.ingest ?? null;
+        const codec = ingest?.audio?.codec ?? null;
+        const audioNote = !ingest
+          ? ''
+          : codec
+            ? ` · AUDIO ${codec}`
+            : ` · ${(ingest.problem ?? 'NO AUDIO AT THE INGEST').toUpperCase()}`;
         this.selfTest.set({
           status: 'pass',
-          detail: `MEDIA CONFIRMED — ${Math.max(1, Math.round(bytes / 1024))} KB, ${tracks} TRACK${tracks === 1 ? '' : 'S'}`,
+          detail: `MEDIA CONFIRMED — ${Math.max(1, Math.round(bytes / 1024))} KB, ${tracks} TRACK${tracks === 1 ? '' : 'S'}${audioNote}`,
         });
         this.snackbar.success('SELF-TEST PASSED');
       } else {

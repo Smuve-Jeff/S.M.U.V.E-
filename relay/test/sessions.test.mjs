@@ -101,6 +101,74 @@ test("audio settings are configurable, and bad values are refused", async () => 
   );
 });
 
+test("a self-test reports what the ingest received, audio included", async () => {
+  const logs = [];
+  const getPath = async (id) =>
+    id === "selftest/selftest"
+      ? { ready: true, tracks: ["H264", "MPEG-4 Audio"], bytesReceived: 900 }
+      : { ready: true, tracks: ["H264", "Opus"], bytesReceived: 1200 };
+  const manager = new SessionManager({
+    spawn: () => fakeChild(),
+    mediamtx: { addPath: async () => {}, deletePath: async () => {}, getPath },
+    publicUrl: "https://relay.example.com",
+    rtspUrl: "rtsp://127.0.0.1:8554",
+    ingestPath: "selftest/selftest",
+    logger: { info: (line) => logs.push(line), warn() {}, error() {} },
+  });
+
+  const session = await manager.create(destination, { kind: "selftest" });
+  const status = await manager.status(session.id);
+
+  assert.equal(status.ingest.path, "selftest/selftest");
+  assert.deepEqual(status.ingest.tracks, ["H264", "MPEG-4 Audio"]);
+  assert.deepEqual(status.ingest.audio, {
+    track: "MPEG-4 Audio",
+    codec: "AAC",
+  });
+  assert.equal(status.ingest.problem, null);
+  assert.match(
+    logs.join("\n"),
+    /selftest ingest: H264 \+ MPEG-4 Audio \(AAC\), 1 KB/
+  );
+});
+
+test("a self-test whose ingest lost the audio says so", async () => {
+  const getPath = async (id) =>
+    id === "selftest/selftest"
+      ? { ready: true, tracks: ["H264"], bytesReceived: 900 }
+      : { ready: true, tracks: ["H264", "Opus"], bytesReceived: 1200 };
+  const manager = new SessionManager({
+    spawn: () => fakeChild(),
+    mediamtx: { addPath: async () => {}, deletePath: async () => {}, getPath },
+    publicUrl: "https://relay.example.com",
+    rtspUrl: "rtsp://127.0.0.1:8554",
+    ingestPath: "selftest/selftest",
+    logger: { info() {}, warn() {}, error() {} },
+  });
+
+  const session = await manager.create(destination, { kind: "selftest" });
+  const status = await manager.status(session.id);
+
+  assert.equal(status.ingest.audio, null);
+  assert.equal(status.ingest.problem, "video reached the ingest but audio did not");
+});
+
+test("a live push is not probed as if it were a self-test", async () => {
+  const getPath = async () => ({ ready: true, tracks: ["H264"], bytesReceived: 5 });
+  const manager = new SessionManager({
+    spawn: () => fakeChild(),
+    mediamtx: { addPath: async () => {}, deletePath: async () => {}, getPath },
+    publicUrl: "https://relay.example.com",
+    rtspUrl: "rtsp://127.0.0.1:8554",
+    ingestPath: "selftest/selftest",
+  });
+
+  const session = await manager.create(destination);
+  const status = await manager.status(session.id);
+
+  assert.equal(status.ingest, null);
+});
+
 test("deleting a session kills ffmpeg and its publish path", async () => {
   const { manager, children, deleted } = harness();
   const session = await manager.create(destination);

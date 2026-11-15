@@ -257,12 +257,30 @@ export interface SelfTestSession {
   whipUrl: string;
 }
 
+/**
+ * What the self-test's ingest received, as opposed to what the browser sent.
+ * Only present when the sink is the relay's own MediaMTX: a provider ingest has
+ * no API to ask, so the relay reports null rather than pretending.
+ */
+export interface SelfTestIngest {
+  path: string;
+  reachable: boolean;
+  /** MediaMTX's names, e.g. `H264`, `MPEG-4 Audio`. */
+  tracks: string[];
+  bytesReceived: number;
+  /** The audio track that arrived, with the codec an operator knows. */
+  audio: { track: string; codec: string } | null;
+  /** Why the ingest is incomplete, or null when it is not. */
+  problem: string | null;
+}
+
 export interface SelfTestStatus {
   ready: boolean;
   bytesReceived: number;
   tracks: string[];
   running: boolean;
   error: string | null;
+  ingest: SelfTestIngest | null;
 }
 
 /**
@@ -300,10 +318,35 @@ export async function startSelfTest(): Promise<SelfTestSession> {
 }
 
 /** What the relay currently knows about one of its sessions. */
+/** Parses the relay's ingest report, ignoring anything malformed. */
+function readRelayIngest(value: unknown): SelfTestIngest | null {
+  if (!value || typeof value !== 'object') return null;
+  const raw = value as Record<string, unknown>;
+  const audio =
+    raw.audio && typeof raw.audio === 'object'
+      ? (raw.audio as Record<string, unknown>)
+      : null;
+  return {
+    path: typeof raw.path === 'string' ? raw.path : '',
+    reachable: raw.reachable === true,
+    tracks: Array.isArray(raw.tracks) ? raw.tracks.map((track) => String(track)) : [],
+    bytesReceived: Number(raw.bytesReceived ?? 0) || 0,
+    audio:
+      audio && typeof audio.codec === 'string'
+        ? {
+            track: typeof audio.track === 'string' ? audio.track : '',
+            codec: audio.codec,
+          }
+        : null,
+    problem: typeof raw.problem === 'string' ? raw.problem : null,
+  };
+}
+
 interface RelaySessionSnapshot {
   ready: boolean;
   bytesReceived: number;
   tracks: string[];
+  ingest: SelfTestIngest | null;
   /** Bytes ffmpeg has written towards the provider — the egress truth. */
   bytesOut: number;
   stalled: boolean;
@@ -358,6 +401,7 @@ async function readRelaySession(
     recoveryGaveUp?: unknown;
     running?: unknown;
     error?: unknown;
+    ingest?: unknown;
   };
   if (!response.ok) {
     throw new AppError(502, `The relay could not report on the ${label}.`);
@@ -368,6 +412,7 @@ async function readRelaySession(
     tracks: Array.isArray(payload.tracks)
       ? payload.tracks.map((track) => String(track))
       : [],
+    ingest: readRelayIngest(payload.ingest),
     bytesOut: Number(payload.bytesOut ?? 0) || 0,
     stalled: payload.stalled === true,
     stalledForMs: Number(payload.stalledForMs ?? 0) || 0,
@@ -394,6 +439,7 @@ export async function selfTestStatus(relayId: string): Promise<SelfTestStatus> {
     tracks: snapshot.tracks,
     running: snapshot.running,
     error: snapshot.error,
+    ingest: snapshot.ingest,
   };
 }
 

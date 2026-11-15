@@ -193,11 +193,17 @@ arrived.
 Pass looks like:
 
 ```text
-MEDIA CONFIRMED — 412 KB, 1 TRACK
+MEDIA CONFIRMED — 412 KB, 2 TRACKS · AUDIO AAC
 ```
 
 That byte count is the whole point: it separates "the URL was accepted" from
-"video reached the RTMP side". No camera, no game and no stream key are
+"media reached the RTMP side". The audio suffix is the second half of it: the
+pattern carries a tone, the relay re-encodes that Opus to AAC, and — when the sink
+is the stack's own MediaMTX — the relay reads back what the *ingest* received and
+says which codec arrived. An encode that silently produced no audio track reads
+`MEDIA CONFIRMED — … · VIDEO REACHED THE INGEST BUT AUDIO DID NOT` instead of
+looking healthy. With a provider sink there is no API to ask, so the suffix is
+simply absent. No camera, no game and no stream key are
 involved, and the sink is the stack's own `rtmp://mediamtx:1935/selftest`, so
 this cannot appear on your channel.
 
@@ -209,6 +215,7 @@ Failures, in the order they usually happen:
 | `THE RELAY RETURNED NO TEST SESSION` | Relay answered without a session | Read the relay logs; check 8080 reachability from the API |
 | `The relay refused the self-test (SELFTEST_RTMP_URL is not configured on this relay).` | Sink unset | Set `SELFTEST_RTMP_URL` (compose defaults it to the local sink) |
 | `THIS BROWSER CANNOT GENERATE A TEST PATTERN` | No `canvas.captureStream` (very old browser) | Use a current Chrome/Firefox/Safari |
+| `MEDIA CONFIRMED — … · VIDEO REACHED THE INGEST BUT AUDIO DID NOT` | The re-encode produced no audio track at the sink | Check `EGRESS_AUDIO_BITRATE` / `EGRESS_AUDIO_CHANNELS`; the relay logged `[relay] selftest ingest:` with what it saw |
 | 429 | More than 20 push attempts in a minute for this account | Wait a minute |
 
 Cross-check on the relay without the app:
@@ -219,7 +226,10 @@ curl -s -H "Authorization: Bearer $RELAY_TOKEN" \
 ```
 
 `ready: true` with `bytesReceived` above zero and a non-empty `tracks` array is
-the same evidence the panel shows.
+the same evidence the panel shows about what the browser sent. The same response
+carries `ingest` — what the sink received — including `ingest.audio.codec` and a
+`problem` string when the audio did not arrive, and the relay logs
+`[relay] selftest ingest: H264 + MPEG-4 Audio (AAC), <n> KB` once per self-test.
 
 ## 9. Prove egress to Twitch with the bandwidth test
 

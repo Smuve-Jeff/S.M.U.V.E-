@@ -16,6 +16,17 @@ const RECOVERY_DELAY_MS = 1_000;
  * loop exists for. Once it has been running for a while, an exit means the
  * provider dropped us and the session is closed rather than silently retried.
  */
+/** MediaMTX track names for audio, and what an operator calls those codecs. */
+const AUDIO_TRACK = /audio|opus|g722|pcmu|pcma/i;
+const AUDIO_CODEC_NAMES = {
+  "MPEG-4 Audio": "AAC",
+  "MPEG-1/2 Audio": "MP3",
+  Opus: "Opus",
+  G722: "G722",
+  PCMU: "PCMU",
+  PCMA: "PCMA",
+};
+
 export class SessionManager {
   #sessions = new Map();
   #spawn;
@@ -26,6 +37,7 @@ export class SessionManager {
   #maxRestarts;
   #audioBitrate;
   #audioChannels;
+  #ingestPath;
   #logger;
   #store;
   #onAlert;
@@ -52,6 +64,13 @@ export class SessionManager {
      */
     audioBitrate = "128k",
     audioChannels = 2,
+    /**
+     * MediaMTX path a self-test pushes into, when the sink is this relay's own
+     * media server. Its `/v3/paths/get` then reports what the ingest actually
+     * received — the audio codec in particular, which is invisible otherwise.
+     * Null when the sink is a real provider: that cannot be inspected.
+     */
+    ingestPath = null,
   }) {
     if (typeof spawn !== "function") throw new Error("spawn is required");
     if (!mediamtx) throw new Error("mediamtx client is required");
@@ -76,6 +95,10 @@ export class SessionManager {
     this.#maxRestarts = Math.max(0, Number(maxRestarts) || 0);
     this.#audioBitrate = bitrate;
     this.#audioChannels = channels;
+    this.#ingestPath =
+      typeof ingestPath === "string" && ingestPath.trim()
+        ? ingestPath.trim().replace(/^\/+/, "")
+        : null;
     this.#logger = logger;
     this.#store = store;
     this.#onAlert = typeof onAlert === "function" ? onAlert : null;
@@ -251,6 +274,56 @@ export class SessionManager {
   }
 
   /**
+   * What the ingest received, rather than what the browser sent.
+   *
+   * A self-test publishes into this relay's own MediaMTX, so the control API that
+   * reports the source path reports the sink path too. That is the only place the
+   * re-encoded audio is visible: the sink's `tracks` read "MPEG-4 Audio" when the
+   * AAC arrived, and stay empty when the muxer or the encode produced nothing an
+   * ingest could use. A provider ingest has no such API, so this returns null.
+   */
+  async #ingestStatus(session, sourceTracks) {
+    if (!this.#ingestPath || session.kind !== "selftest") return null;
+    const sink =
+      typeof this.#mediamtx.getPath === "function"
+        ? await this.#mediamtx.getPath(this.#ingestPath).catch(() => null)
+        : null;
+    const tracks = Array.isArray(sink?.tracks) ? sink.tracks.map(String) : [];
+    const bytesReceived = Number(sink?.bytesReceived ?? 0);
+    const audioTrack = tracks.find((track) => AUDIO_TRACK.test(track)) ?? null;
+    const audio = audioTrack
+      ? { track: audioTrack, codec: AUDIO_CODEC_NAMES[audioTrack] ?? audioTrack }
+      : null;
+    const sourceHadAudio = sourceTracks.some((track) => AUDIO_TRACK.test(String(track)));
+
+    let problem = null;
+    if (!sink) problem = "the ingest has not received the stream yet";
+    else if (tracks.length === 0) problem = "the ingest has no tracks yet";
+    else if (!audio && sourceHadAudio) problem = "video reached the ingest but audio did not";
+
+    // Said once per session, so a failed self-test reads from the relay log
+    // without anyone watching the channel.
+    if (!session.ingestLogged && bytesReceived > 0) {
+      session.ingestLogged = true;
+      const summary = tracks.join(" + ") || "no tracks";
+      const kb = Math.round(bytesReceived / 1024);
+      this.#logger.info?.(
+        `[relay] selftest ingest: ${summary}${audio ? ` (${audio.codec})` : ""}, ${kb} KB` +
+          (problem ? ` — ${problem}` : ""),
+      );
+    }
+
+    return {
+      path: this.#ingestPath,
+      reachable: !!sink,
+      tracks,
+      bytesReceived,
+      audio,
+      problem,
+    };
+  }
+
+  /**
    * Live view of one session for a self-test: MediaMTX reports whether the
    * browser's publish became readable and how many bytes it carried, which is
    * the difference between "the URL was accepted" and "media arrived".
@@ -263,6 +336,7 @@ export class SessionManager {
         ? await this.#mediamtx.getPath(id).catch(() => null)
         : null;
     const tracks = Array.isArray(path?.tracks) ? path.tracks : [];
+    const ingest = await this.#ingestStatus(session, tracks);
     return {
       id,
       kind: session.kind,
@@ -273,6 +347,7 @@ export class SessionManager {
       error: session.error,
       ready: !!path?.ready,
       bytesReceived: Number(path?.bytesReceived ?? 0),
+      ingest,
       tracks,
       // Egress (relay → provider), as opposed to bytesReceived above
       // (browser → MediaMTX). A session can be receiving fine and pushing

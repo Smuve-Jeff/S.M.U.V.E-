@@ -1,4 +1,5 @@
 import { spawn } from "node:child_process";
+import { pushUrl } from "./destinations.mjs";
 import { MediaMtxClient } from "./mediamtx.mjs";
 import { SessionStore } from "./state-store.mjs";
 import { createRelayServer } from "./server.mjs";
@@ -27,6 +28,26 @@ const selftestDestination = selftestRtmpUrl
       streamKey: process.env.SELFTEST_STREAM_KEY || "selftest",
     }
   : null;
+
+/**
+ * A self-test sink that is this relay's own MediaMTX can be inspected: the same
+ * control API reports what the sink received, including the re-encoded audio.
+ * With a provider sink (Twitch's bandwidth-test ingest, say) there is nothing to
+ * ask, so the relay says so instead of guessing.
+ */
+const selftestIngestPath = (() => {
+  if (!selftestDestination) return null;
+  try {
+    const sink = new URL(
+      pushUrl(selftestDestination.rtmpUrl, selftestDestination.streamKey),
+    );
+    const api = new URL(process.env.MEDIAMTX_API_URL || "http://127.0.0.1:9997");
+    if (sink.hostname !== api.hostname) return null;
+    return sink.pathname.replace(/^\/+/, "");
+  } catch {
+    return null;
+  }
+})();
 
 const stateFile = (process.env.RELAY_STATE_FILE || "").trim();
 const stateKey = (process.env.RELAY_STATE_KEY || "").trim();
@@ -73,6 +94,7 @@ const manager = new SessionManager({
   maxRecoveries: Number(process.env.EGRESS_MAX_RECOVERIES ?? 2),
   audioBitrate: (process.env.EGRESS_AUDIO_BITRATE || "").trim() || "128k",
   audioChannels: Number(process.env.EGRESS_AUDIO_CHANNELS ?? 2),
+  ingestPath: selftestIngestPath,
   store,
   onAlert,
 });
@@ -108,7 +130,8 @@ server.listen(port, () => {
   console.log(`[relay] publishing under ${publicUrl}/<session>/whip`);
   console.log(
     selftestDestination
-      ? `[relay] self-test sink: ${selftestDestination.rtmpUrl}`
+      ? `[relay] self-test sink: ${selftestDestination.rtmpUrl}` +
+        (selftestIngestPath ? ` (ingest inspected at path '${selftestIngestPath}')` : "")
       : "[relay] self-test disabled (SELFTEST_RTMP_URL is not set)",
   );
   console.log(

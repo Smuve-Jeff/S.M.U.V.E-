@@ -159,6 +159,14 @@ PUSH panel: pressing **SELF-TEST** publishes a generated colour-bar pattern with
 the same WHIP publisher a real host uses, waits six seconds, and shows
 `MEDIA CONFIRMED — <n> KB, <n> TRACKS` or the reason it failed.
 
+When the sink is this relay's own MediaMTX, `GET /sessions/:id` also carries
+`ingest`: the sink's `tracks`, its `bytesReceived`, the audio codec that actually
+arrived (`MPEG-4 Audio` is AAC) and a `problem` string when audio did not reach it.
+The relay logs the same once per self-test —
+`[relay] selftest ingest: H264 + MPEG-4 Audio (AAC), 3160 KB` — so a broken audio
+encode is visible from the log without watching the channel. A provider sink has no
+such API, so `ingest` is null rather than a guess.
+
 That exercises the whole path — browser encode → WHIP → MediaMTX → ffmpeg →
 RTMP — without a camera, a game or a provider stream key. By default the push
 target is this compose stack's own RTMP listener (`rtmp://mediamtx:1935/selftest`),
