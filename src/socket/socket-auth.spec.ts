@@ -1722,6 +1722,15 @@ describe("resolved-match lobby provisioning + in-match relays", () => {
         client.on(event, handler);
       });
     const settle = (ms = 120) => new Promise((r) => setTimeout(r, ms));
+    // Share-link visitors have no account: their handshake proves the token.
+    const mkGuest = (liveToken: string) => {
+      const client = ioClient(url(), {
+        auth: { liveToken },
+        transports: ["websocket", "polling"],
+      });
+      joined.push(client);
+      return client;
+    };
 
     beforeEach(() => {
       (findStreamByToken as jest.Mock).mockResolvedValue(liveRow());
@@ -1852,6 +1861,70 @@ describe("resolved-match lobby provisioning + in-match relays", () => {
       });
       await settle(300);
       expect(changed).toBe(false);
+    });
+
+    it("admits a share-link guest and lets it watch without an account", async () => {
+      const host = mk(311);
+      const guest = mkGuest("tok_live");
+      joined.push(host);
+      (findStreamByToken as jest.Mock).mockResolvedValue(
+        liveRow({ hostId: "311" }),
+      );
+      (resolveViewerJoin as jest.Mock).mockResolvedValue(
+        liveRow({ hostId: "311" }),
+      );
+      await Promise.all([connect(host), connect(guest)]);
+
+      host.emit("live_stream_host_join", { token: "tok_live" });
+      await settle();
+
+      const joinedP = once<{ socketId: string }>(
+        host,
+        "live_stream_viewer_joined",
+      );
+      const okP = once<{ streamId: number }>(guest, "live_stream_watch_ok");
+      guest.emit("live_stream_watch", { token: "tok_live" });
+      const [viewerJoined, ok] = await Promise.all([joinedP, okP]);
+      expect(ok.streamId).toBe(5);
+      expect(viewerJoined.socketId).toBe(guest.id);
+
+      // Guest sockets get no social surface at all.
+      let lobbySeen = false;
+      guest.on("lobby_list", () => {
+        lobbySeen = true;
+      });
+      guest.emit("register_presence", { userId: "999", metadata: {} });
+      await settle();
+      expect(lobbySeen).toBe(false);
+    });
+
+    it("refuses a guest handshake whose share token is not a live stream", async () => {
+      (findStreamByToken as jest.Mock).mockResolvedValue(null);
+      const guest = mkGuest("bogus_token");
+      await expect(connect(guest)).rejects.toThrow();
+    });
+
+    it("replays the host's live picture to a viewer who joins after the switch", async () => {
+      const [host, viewer] = pair(321, 322);
+      await Promise.all([connect(host), connect(viewer)]);
+
+      host.emit("live_stream_host_join", { token: "tok_live" });
+      await settle();
+      host.emit("live_stream_source", {
+        token: "tok_live",
+        videoSource: "screen",
+        screenAudioOnly: true,
+      });
+      await settle();
+
+      const okP = once<{ videoSource?: string; screenAudioOnly?: boolean }>(
+        viewer,
+        "live_stream_watch_ok",
+      );
+      viewer.emit("live_stream_watch", { token: "tok_live" });
+      const ok = await okP;
+      expect(ok.videoSource).toBe("screen");
+      expect(ok.screenAudioOnly).toBe(true);
     });
 
     it("refuses offers from a socket that is not the stream host", async () => {

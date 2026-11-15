@@ -1,7 +1,7 @@
 import { Injectable, inject, signal } from "@angular/core";
 import { HttpClient } from "@angular/common/http";
 import { firstValueFrom } from "rxjs";
-import { Socket } from "socket.io-client";
+import { io, type Socket } from "socket.io-client";
 import { APP_SECURITY_CONFIG } from "../app.security";
 import {
   SocialNetworkingService,
@@ -116,6 +116,7 @@ export class LiveVideoService {
 
   private boundSocket?: Socket;
   private hostSocket?: Socket;
+  private guestSocket?: Socket;
   private videoTrackUnsub: (() => void) | null = null;
   private hostToken: string | null = null;
   private hostStreamId: number | null = null;
@@ -191,13 +192,25 @@ export class LiveVideoService {
    */
   private onHostStreamUpdate(update: HostStreamUpdate): void {
     this.replaceHostTracks(update.stream);
+    this.announceHostSource(update);
+  }
+
+  /**
+   * Tell the room (and the server's replay cache) which picture is live.
+   * Sent on every switch, and again whenever the host socket registers —
+   * a broadcast that went live already sharing the game screen never
+   * otherwise produces an announcement, so late viewers saw black.
+   */
+  private announceHostSource(
+    update?: Pick<HostStreamUpdate, "videoSource" | "screenAudioOnly">,
+  ): void {
     const socket = this.hostSocket;
     const token = this.hostToken;
     if (!socket?.connected || !token) return;
     socket.emit("live_stream_source", {
       token,
-      videoSource: update.videoSource,
-      screenAudioOnly: update.screenAudioOnly,
+      videoSource: update?.videoSource ?? this.social.videoSource(),
+      screenAudioOnly: update?.screenAudioOnly ?? this.social.screenAudioOnly(),
     });
   }
 
@@ -225,28 +238,6 @@ export class LiveVideoService {
           });
         }
       }
-    }
-  }
-
-  /**
-   * Seed a silent slot for a role the host is not publishing yet. Cloning
-   * the live track keeps the slot's m-line up from the first peer while
-   * sending nothing — the later switch is replaceTrack, never a re-offer.
-   */
-  private seedSilentSlot(
-    entry: HostPeer,
-    source: MediaStreamTrack | undefined,
-    role: "game" | "system",
-  ): void {
-    if (!source || typeof source.clone !== "function") return;
-    if (entry.senders.some((s) => s.role === role)) return;
-    const ghost = source.clone();
-    ghost.enabled = false;
-    try {
-      const sender = entry.pc.addTrack(ghost);
-      entry.senders.push({ sender, role });
-    } catch {
-      /* a peer that will not take another m-line keeps today's tracks */
     }
   }
 
@@ -280,6 +271,7 @@ export class LiveVideoService {
     this.bindSocket(socket);
     this.hostSocket = socket;
     socket.emit("live_stream_host_join", { token });
+    this.announceHostSource();
     this.scheduleHostMediaFlush(token);
     this.startStatsPolling();
     // Fetch early so the dashboard can report relay health before the first
@@ -397,37 +389,52 @@ export class LiveVideoService {
       rttMs: null,
       kbps: null,
     });
-    // The host's only video track rides the camera slot — unless the peer
-    // is born mid-screen-share, in which case it IS the game picture.
-    const sharing = this.social.videoSource() === "screen";
-    const videoRole = sharing ? "game" : "camera";
+    // Canonical slot order — camera, game, mic, system — no matter which
+    // source is live. The audience splits the feed by position, so a
+    // broadcast that goes live already sharing the screen must still
+    // negotiate the camera m-line first or the two pictures swap places.
+    // Roles the host is not publishing ride silent clones, so every later
+    // switch is a replaceTrack instead of a re-negotiation.
     const videoTrack = media.getVideoTracks()[0];
-    // Silent slots for the roles missing from this stream: later switches
-    // replaceTrack into them instead of re-negotiating a new m-line.
-    const presentRoles = new Set<string>();
-    media.getTracks().forEach((track) => {
-      const sender = pc.addTrack(track, media);
-      const role =
-        track.kind === "video"
-          ? videoRole
-          : this.social.audioRoleOf(track) === "system"
-            ? "system"
-            : "mic";
-      entry.senders.push({ sender, role });
-      presentRoles.add(role);
-    });
-    if (!presentRoles.has("game") && videoTrack) {
-      this.seedSilentSlot(entry, videoTrack, "game");
+    const liveVideoRole: "camera" | "game" =
+      this.social.videoSource() === "screen" ? "game" : "camera";
+    const audioTracks = media.getAudioTracks();
+    const micTrack = audioTracks.find(
+      (track) => this.social.audioRoleOf(track) === "mic",
+    );
+    const systemTrack = audioTracks.find(
+      (track) => this.social.audioRoleOf(track) === "system",
+    );
+    const addSlot = (
+      track: MediaStreamTrack,
+      role: HostPeer["senders"][number]["role"],
+    ): void => {
+      entry.senders.push({ sender: pc.addTrack(track, media), role });
+    };
+    const addSilentSlot = (
+      source: MediaStreamTrack | undefined,
+      role: HostPeer["senders"][number]["role"],
+    ): void => {
+      if (!source) return;
+      const ghost = source.clone();
+      ghost.enabled = false;
+      addSlot(ghost, role);
+    };
+
+    if (videoTrack) {
+      if (liveVideoRole === "camera") {
+        addSlot(videoTrack, "camera");
+        addSilentSlot(videoTrack, "game");
+      } else {
+        addSilentSlot(videoTrack, "camera");
+        addSlot(videoTrack, "game");
+      }
     }
-    if (!presentRoles.has("system")) {
-      this.seedSilentSlot(
-        entry,
-        media
-          .getAudioTracks()
-          .find((t) => this.social.audioRoleOf(t) === "mic"),
-        "system",
-      );
-    }
+    const audioSource = micTrack ?? audioTracks[0];
+    if (micTrack) addSlot(micTrack, "mic");
+    else addSilentSlot(audioSource, "mic");
+    if (systemTrack) addSlot(systemTrack, "system");
+    else addSilentSlot(audioSource, "system");
 
     pc.onicecandidate = (event) => {
       if (!event.candidate || !this.hostSocket) return;
@@ -711,7 +718,7 @@ export class LiveVideoService {
     this.feedError.set(null);
     this.isMuted.set(true);
 
-    const socket = await this.waitForSocket();
+    const socket = await this.waitForViewerSocket(token);
     if (!socket) {
       this.failViewer("LIVE CONNECTION UNAVAILABLE");
       return;
@@ -754,6 +761,12 @@ export class LiveVideoService {
   private onWatchOk = (data: SocketPayload) => {
     if (!this.viewerToken || data?.streamToken !== this.viewerToken) return;
     if (this.status() === "connecting") this.status.set("waiting");
+    // The switch event is transient; the join reply replays the picture that
+    // is live right now so a late viewer never starts on a stale slot.
+    if (data?.videoSource === "screen" || data?.videoSource === "camera") {
+      this.hostSharingScreen.set(data.videoSource === "screen");
+      this.hostScreenAudioOnly.set(data?.screenAudioOnly === true);
+    }
   };
 
   private onWatchFailed = (data: SocketPayload) => {
@@ -789,13 +802,13 @@ export class LiveVideoService {
     const pc = new RTCPeerConnection({ iceServers: this.iceServers });
     this.viewerPc = pc;
     pc.ontrack = (event) => {
-      const stream = event.streams[0] ?? new MediaStream([event.track]);
-      this.remoteStream.set(stream);
-      this.status.set("live");
-      this.clearViewerTimeout();
-      stream
-        .getAudioTracks()
-        .forEach((track) => (track.enabled = !this.isMuted()));
+      const track = event.track;
+      // A camera ↔ screen switch replaces the host's sender track: the
+      // receiver unmutes with no new ontrack, so republish on the event.
+      const republish = () => this.publishViewerFeed(pc);
+      track.addEventListener?.("unmute", republish);
+      track.addEventListener?.("mute", republish);
+      this.publishViewerFeed(pc);
     };
     pc.onicecandidate = (event) => {
       if (!event.candidate || !this.boundSocket) return;
@@ -824,10 +837,37 @@ export class LiveVideoService {
         token,
         sdp: { type: "answer", sdp: answerSdp },
       });
+      // Every m-line exists by now, so the split can be built deterministically
+      // even on browsers that fire few (or late) ontrack events.
+      this.publishViewerFeed(pc);
     } catch (err) {
       console.error("[LiveVideo] Could not answer the host feed", err);
       this.failViewer("COULD NOT NEGOTIATE THE HOST FEED");
     }
+  }
+
+  /**
+   * Rebuild the inbound feed from the peer's receivers.
+   *
+   * `ontrack` fires once per m-line and every host track travels in one
+   * remote MediaStream, so setting that stream directly leaves the viewer
+   * split stuck on whatever arrived first — a later camera → game switch has
+   * nowhere to land. Receivers keep m-line order (camera, game, mic, system),
+   * which is exactly the slot contract the player splits on.
+   */
+  private publishViewerFeed(pc: RTCPeerConnection): void {
+    if (this.viewerPc !== pc) return;
+    const tracks = pc
+      .getReceivers()
+      .map((receiver) => receiver.track)
+      .filter((track): track is MediaStreamTrack => !!track);
+    if (!tracks.length) return;
+    this.remoteStream.set(new MediaStream(tracks));
+    this.status.set("live");
+    this.clearViewerTimeout();
+    tracks
+      .filter((track) => track.kind === "audio")
+      .forEach((track) => (track.enabled = !this.isMuted()));
   }
 
   private onIce = (data: SocketPayload) => {
@@ -886,6 +926,7 @@ export class LiveVideoService {
     if (!socket?.connected) return;
     if (this.hostToken) {
       socket.emit("live_stream_host_join", { token: this.hostToken });
+      this.announceHostSource();
     }
     const token = this.viewerToken;
     if (token) {
@@ -1017,6 +1058,55 @@ export class LiveVideoService {
     socket.off("live_stream_ended", this.onStreamEnded);
     socket.off("connect", this.onSocketConnect);
     this.boundSocket = undefined;
+  }
+
+  /**
+   * The viewer's signaling socket. Signed-in viewers reuse the social
+   * socket; a share-link visitor with no account gets a token-scoped guest
+   * socket, so "anyone with the link" can actually watch.
+   */
+  private async waitForViewerSocket(token: string): Promise<Socket | null> {
+    const socialSocket = this.social.getSocket();
+    if (socialSocket) return this.awaitSocket(socialSocket);
+    if (this.guestSocket?.connected) return this.guestSocket;
+    return this.awaitSocket(this.ensureGuestSocket(token));
+  }
+
+  private awaitSocket(socket: Socket, timeoutMs = SOCKET_WAIT_MS): Promise<Socket | null> {
+    if (socket.connected) return Promise.resolve(socket);
+    const startedAt = Date.now();
+    return new Promise((resolve) => {
+      const poll = setInterval(() => {
+        if (socket.connected) {
+          clearInterval(poll);
+          resolve(socket);
+          return;
+        }
+        if (Date.now() - startedAt >= timeoutMs) {
+          clearInterval(poll);
+          resolve(null);
+        }
+      }, 250);
+    });
+  }
+
+  /** Guest signaling socket, authenticated by the share token itself. */
+  private ensureGuestSocket(token: string): Socket {
+    const existing = this.guestSocket;
+    if (existing) {
+      existing.auth = { liveToken: token };
+      if (!existing.connected) existing.connect();
+      return existing;
+    }
+    const created = io(APP_SECURITY_CONFIG.socket_url, {
+      transports: ["websocket", "polling"],
+      reconnection: true,
+      reconnectionAttempts: 10,
+      reconnectionDelay: 1500,
+      auth: (cb) => cb({ liveToken: this.viewerToken ?? token }),
+    });
+    this.guestSocket = created;
+    return created;
   }
 
   private async waitForSocket(

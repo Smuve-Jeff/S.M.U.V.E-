@@ -1226,6 +1226,12 @@ describe("ThaSpotComponent", () => {
         getTracks() {
           return [...this.tracks];
         }
+        getVideoTracks() {
+          return this.tracks.filter((t: any) => t.kind === "video");
+        }
+        getAudioTracks() {
+          return this.tracks.filter((t: any) => t.kind === "audio");
+        }
       };
     });
 
@@ -1295,6 +1301,23 @@ describe("ThaSpotComponent", () => {
       TestBed.flushEffects();
       expect(component.viewerShowGame()).toBe(false);
       expect(component.viewerDisplayStream()?.getTracks()).toEqual([camera]);
+    });
+
+    it("never shows a silent slot the host is not publishing", () => {
+      const liveVideo = TestBed.inject(LiveVideoService);
+      // The host went live already sharing the screen: the camera slot is
+      // its disabled placeholder, so showing it is a black screen.
+      const camera = { kind: "video", id: "cam", muted: true };
+      const game = { kind: "video", id: "game", muted: false };
+      liveVideo.remoteStream.set({
+        getVideoTracks: () => [camera, game],
+        getAudioTracks: () => [],
+      } as any);
+      TestBed.flushEffects();
+
+      component.viewerShowGame.set(false);
+      TestBed.flushEffects();
+      expect(component.viewerDisplayStream()?.getTracks()).toEqual([game]);
     });
 
     it("falls back to camera when the game slot is empty", () => {

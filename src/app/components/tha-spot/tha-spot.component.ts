@@ -1439,11 +1439,24 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
    */
   readonly viewerShowGame = signal(false);
   /** The picture on the viewer display right now. */
-  readonly viewerDisplayStream = computed(() =>
-    this.viewerShowGame()
-      ? (this.viewerGameVideoStream() ?? this.viewerCameraStream())
-      : (this.viewerCameraStream() ?? this.viewerGameVideoStream())
-  );
+  readonly viewerDisplayStream = computed(() => {
+    const camera = this.viewerCameraStream();
+    const game = this.viewerGameVideoStream();
+    const preferred = this.viewerShowGame() ? game : camera;
+    const alternate = this.viewerShowGame() ? camera : game;
+    // A slot the host is not publishing carries only a disabled placeholder
+    // (muted receiver). Showing it is a black screen, so fall back to the
+    // picture that is actually live.
+    if (this.isCarryingMedia(preferred)) return preferred;
+    if (this.isCarryingMedia(alternate)) return alternate;
+    return preferred ?? alternate;
+  });
+  /** A slot whose video track is live and unmuted is carrying real frames. */
+  private isCarryingMedia(stream: MediaStream | null): boolean {
+    const track = stream?.getVideoTracks?.()[0];
+    return !!track && track.readyState !== "ended" && track.muted !== true;
+  }
+
   /** True once this viewer has recorded a join for the inbound stream. */
   readonly liveJoined = signal(false);
   /** Human-readable live-video state for the join overlay. */

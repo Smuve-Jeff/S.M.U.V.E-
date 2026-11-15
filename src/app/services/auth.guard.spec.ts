@@ -38,6 +38,51 @@ describe('authGuard', () => {
     });
   });
 
+  describe('live share links', () => {
+    const runGuard = (url: string) => {
+      const navigate = jest.fn();
+      TestBed.configureTestingModule({
+        providers: [
+          {
+            provide: AuthService,
+            useValue: {
+              isAuthenticated: jest.fn().mockReturnValue(false),
+              currentUser: jest.fn().mockReturnValue(null),
+            },
+          },
+          { provide: Router, useValue: { navigate } },
+        ],
+      });
+      const result = TestBed.runInInjectionContext(() =>
+        authGuard({ data: {} } as any, { url } as any)
+      );
+      return { result, navigate };
+    };
+
+    it('lets an anonymous viewer open a live share link', () => {
+      const { result, navigate } = runGuard(
+        '/tha-spot?live=tok_abc123&from=301'
+      );
+      expect(result).toBe(true);
+      expect(navigate).not.toHaveBeenCalled();
+    });
+
+    it('still sends an anonymous visitor without a token to login', () => {
+      const { result, navigate } = runGuard('/tha-spot');
+      expect(result).toBe(false);
+      expect(navigate).toHaveBeenCalledWith(['/login'], {
+        queryParams: { returnUrl: '/tha-spot' },
+        replaceUrl: true,
+      });
+    });
+
+    it('does not open account-only routes on a live link', () => {
+      const { result, navigate } = runGuard('/business?live=tok_abc123');
+      expect(result).toBe(false);
+      expect(navigate).toHaveBeenCalled();
+    });
+  });
+
   describe('guest clearance', () => {
     const guestUser = {
       id: 'guest_123',

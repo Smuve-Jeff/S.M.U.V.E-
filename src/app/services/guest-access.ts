@@ -49,6 +49,31 @@ export const GUEST_ALLOWED_ROUTES: readonly string[] = [
   'artist',
 ];
 
+/**
+ * Route prefixes an anonymous visitor may open with a live share link.
+ *
+ * A live share URL is a capability: whoever holds it was invited to watch.
+ * Requiring an account first is why an external viewer clicking a shared
+ * link never reached the player, so the viewer surface opens for exactly the
+ * URL that carries a stream token — nothing else does.
+ */
+export const PUBLIC_LIVE_ROUTES: readonly string[] = ['tha-spot'];
+
+/** Whether this URL carries a live share token (`?live=…`). */
+export function isLiveShareLink(url: string): boolean {
+  const query = (url || '').split('#')[0].split('?')[1] ?? '';
+  if (!query) return false;
+  return Boolean(new URLSearchParams(query).get('live')?.trim());
+}
+
+/** Whether an anonymous visitor may open this live share link. */
+export function isAnonymousLiveRoute(url: string): boolean {
+  return (
+    isLiveShareLink(url) &&
+    PUBLIC_LIVE_ROUTES.includes(primaryRouteSegment(url))
+  );
+}
+
 /** First path segment of a router URL, ignoring query/fragment and slashes. */
 export function primaryRouteSegment(url: string): string {
   return (url || '')

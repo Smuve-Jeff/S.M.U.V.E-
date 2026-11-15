@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type { Server as HttpServer } from "node:http";
-import { Server } from "socket.io";
+import { Server, type Socket } from "socket.io";
 import jwt from "jsonwebtoken";
 import { JWT_SECRET } from "@/config/env";
 import { AppDataSource } from "@/database/data-source";
@@ -90,6 +90,16 @@ interface LiveRelayInfo {
 
 const liveHosts = new Map<string, LiveRelayInfo>();
 const liveViewers = new Map<string, LiveRelayInfo>();
+/**
+ * Last camera/screen announcement per stream. The live event is transient, so
+ * a viewer who joins after the switch would otherwise show the stale picture
+ * (black, when the host went live already sharing the game screen) until the
+ * host switched again. Replayed in `live_stream_watch_ok`.
+ */
+const liveSources = new Map<
+  number,
+  { videoSource: "camera" | "screen"; screenAudioOnly: boolean }
+>();
 
 interface RelaySdp {
   type: "offer" | "answer";
@@ -720,6 +730,281 @@ export const setupSocketIO = (httpServer: HttpServer): Server => {
   // Give the module-level directory/provisioning code access to names.
   resolvePresenceMeta = (userId: string) => getSenderMeta(userId);
 
+  /**
+   * Live-video signaling: host registration, viewer joins, camera ↔ screen
+   * source announcements, and the SDP/ICE relay between the two proven roles.
+   * Registered for signed-in sockets, and for share-link guest viewers — who
+   * get exactly these handlers and nothing else.
+   */
+  const registerLiveSignaling = (socket: Socket, userId: string): void => {
+    // ── Live-video signaling ──
+    // The host registers its socket for its own stream; viewers register to
+    // watch. SDP and ICE are relayed only between those two proven roles.
+    socket.on(
+      "live_stream_host_join",
+      async (data: { token?: string } = {}) => {
+        const token = typeof data?.token === "string" ? data.token : "";
+        if (!token) return;
+        if (isRateLimited(userId, "live_stream_host_join")) return;
+        try {
+          const stream = await findStreamByToken(token);
+          if (
+            !stream ||
+            !stream.active ||
+            String(stream.hostId) !== String(userId)
+          ) {
+            socket.emit("live_stream_watch_failed", {
+              token,
+              error: "not_host",
+            });
+            return;
+          }
+          socket.join(getLiveRoom(stream.id));
+          liveHosts.set(socket.id, {
+            userId: String(userId),
+            hostId: String(stream.hostId),
+            streamId: stream.id,
+            token,
+          });
+          // A host that arrives after viewers must still offer to them.
+          liveViewers.forEach((viewer, viewerSocketId) => {
+            if (viewer.streamId !== stream.id) return;
+            socket.emit("live_stream_viewer_joined", {
+              streamId: stream.id,
+              streamToken: token,
+              socketId: viewerSocketId,
+              viewerId: viewer.userId,
+            });
+          });
+        } catch {
+          socket.emit("live_stream_watch_failed", {
+            token,
+            error: "unavailable",
+          });
+        }
+      },
+    );
+
+    socket.on(
+      "live_stream_watch",
+      async (data: { token?: string } = {}) => {
+        const token = typeof data?.token === "string" ? data.token : "";
+        if (!token) return;
+        if (isRateLimited(userId, "live_stream_watch")) {
+          socket.emit("live_stream_watch_failed", {
+            token,
+            error: "rate_limited",
+          });
+          return;
+        }
+        try {
+          const row = await resolveViewerJoin(token);
+          const streamId = Number(row.id);
+          const room = io.sockets.adapter.rooms.get(getLiveRoom(streamId));
+          const alreadyWatching =
+            liveViewers.get(socket.id)?.streamId === streamId;
+          if (
+            !alreadyWatching &&
+            (room?.size ?? 0) >= LIVE_MAX_VIEWERS + 1
+          ) {
+            socket.emit("live_stream_watch_failed", {
+              token,
+              error: "stream_full",
+            });
+            return;
+          }
+          socket.join(getLiveRoom(streamId));
+          liveViewers.set(socket.id, {
+            userId: String(userId),
+            hostId: String(row.hostId),
+            streamId,
+            token,
+          });
+          socket.emit("live_stream_watch_ok", {
+            streamId,
+            streamToken: token,
+            hostId: row.hostId,
+            hostDisplayName: row.hostDisplayName,
+            platform: row.platform,
+            // Late joiners start on the picture that is actually live.
+            ...(liveSources.get(streamId) ?? {}),
+          });
+          // The host creates one peer connection per viewer socket.
+          io.to(row.hostId).emit("live_stream_viewer_joined", {
+            streamId,
+            streamToken: token,
+            socketId: socket.id,
+            viewerId: String(userId),
+            viewerName: getSenderMeta(userId).artistName || undefined,
+          });
+        } catch (err) {
+          const statusCode = (err as { statusCode?: number })?.statusCode;
+          socket.emit("live_stream_watch_failed", {
+            token,
+            error: statusCode === 410 ? "ended" : "unavailable",
+          });
+        }
+      },
+    );
+
+    socket.on("live_stream_unwatch", () => {
+      const viewer = liveViewers.get(socket.id);
+      if (!viewer) return;
+      liveViewers.delete(socket.id);
+      socket.leave(getLiveRoom(viewer.streamId));
+      io.to(viewer.hostId).emit("live_stream_viewer_left", {
+        streamId: viewer.streamId,
+        socketId: socket.id,
+      });
+    });
+
+    // The host switched camera/screen (or toggled game-only audio): tell
+    // every watcher in the live room so viewers can follow the display and
+    // reveal the game mix slider. Token-checked like the WebRTC relay.
+    socket.on(
+      "live_stream_source",
+      (
+        data: {
+          token?: string;
+          videoSource?: unknown;
+          screenAudioOnly?: unknown;
+        } = {},
+      ) => {
+        const host = liveHosts.get(socket.id);
+        if (!host) return;
+        if (data?.token !== host.token) return;
+        if (isRateLimited(userId, "live_stream_source")) return;
+        const videoSource =
+          data?.videoSource === "screen" ? "screen" : "camera";
+        const screenAudioOnly = data?.screenAudioOnly === true;
+        liveSources.set(host.streamId, { videoSource, screenAudioOnly });
+        socket.to(getLiveRoom(host.streamId)).emit(
+          "live_stream_source_changed",
+          {
+            streamId: host.streamId,
+            streamToken: host.token,
+            videoSource,
+            screenAudioOnly,
+          },
+        );
+      },
+    );
+
+    socket.on("live_stream_host_leave", () => {
+      const host = liveHosts.get(socket.id);
+      if (!host) return;
+      liveHosts.delete(socket.id);
+      liveSources.delete(host.streamId);
+      socket.leave(getLiveRoom(host.streamId));
+      socket.to(getLiveRoom(host.streamId)).emit("live_stream_ended", {
+        streamId: host.streamId,
+      });
+    });
+
+    socket.on(
+      "live_webrtc_offer",
+      (data: { token?: string; toSocketId?: string; sdp?: unknown } = {}) => {
+        const host = liveHosts.get(socket.id);
+        if (!host) return;
+        if (data?.token !== host.token) return;
+        const target =
+          typeof data?.toSocketId === "string" ? data.toSocketId : "";
+        const sdp = parseRelaySdp(data?.sdp, "offer");
+        if (!target || !sdp) return;
+        if (isRateLimited(userId, "live_webrtc")) return;
+        if (liveViewers.get(target)?.streamId !== host.streamId) return;
+        io.to(target).emit("live_webrtc_offer", {
+          streamId: host.streamId,
+          streamToken: host.token,
+          fromSocketId: socket.id,
+          sdp,
+        });
+      },
+    );
+
+    socket.on(
+      "live_webrtc_answer",
+      (data: { token?: string; sdp?: unknown } = {}) => {
+        const viewer = liveViewers.get(socket.id);
+        if (!viewer) return;
+        if (data?.token !== viewer.token) return;
+        const sdp = parseRelaySdp(data?.sdp, "answer");
+        if (!sdp) return;
+        if (isRateLimited(userId, "live_webrtc")) return;
+        for (const hostSocketId of hostSocketsFor(viewer.streamId)) {
+          io.to(hostSocketId).emit("live_webrtc_answer", {
+            streamId: viewer.streamId,
+            streamToken: viewer.token,
+            fromSocketId: socket.id,
+            sdp,
+          });
+        }
+      },
+    );
+
+    socket.on(
+      "live_webrtc_ice",
+      (data: { token?: string; toSocketId?: string; candidate?: unknown } = {}) => {
+        if (isRateLimited(userId, "live_webrtc")) return;
+        const candidate = parseRelayCandidate(data?.candidate);
+        if (!candidate) return;
+
+        // Host → viewer (requires an explicit, still-registered viewer).
+        const host = liveHosts.get(socket.id);
+        if (host) {
+          if (data?.token !== host.token) return;
+          const target =
+            typeof data?.toSocketId === "string" ? data.toSocketId : "";
+          if (!target || liveViewers.get(target)?.streamId !== host.streamId) {
+            return;
+          }
+          io.to(target).emit("live_webrtc_ice", {
+            streamId: host.streamId,
+            streamToken: host.token,
+            fromSocketId: socket.id,
+            candidate,
+          });
+          return;
+        }
+
+        // Viewer → host.
+        const viewer = liveViewers.get(socket.id);
+        if (!viewer) return;
+        if (data?.token !== viewer.token) return;
+        for (const hostSocketId of hostSocketsFor(viewer.streamId)) {
+          io.to(hostSocketId).emit("live_webrtc_ice", {
+            streamId: viewer.streamId,
+            streamToken: viewer.token,
+            fromSocketId: socket.id,
+            candidate,
+          });
+        }
+      },
+    );
+
+    socket.on(
+      "live_stream_feed_unavailable",
+      (data: { token?: string; toSocketId?: string; reason?: string } = {}) => {
+        const host = liveHosts.get(socket.id);
+        if (!host || data?.token !== host.token) return;
+        const target =
+          typeof data?.toSocketId === "string" ? data.toSocketId : "";
+        if (!target || liveViewers.get(target)?.streamId !== host.streamId) {
+          return;
+        }
+        io.to(target).emit("live_stream_feed_unavailable", {
+          streamId: host.streamId,
+          streamToken: host.token,
+          reason:
+            typeof data?.reason === "string"
+              ? data.reason.slice(0, 120)
+              : undefined,
+        });
+      },
+    );
+
+  };
+
   // Authenticate the handshake in middleware so an unauthenticated or
   // garbage-token client is rejected with `connect_error` instead of
   // briefly connecting and then being disconnected from the connection
@@ -727,6 +1012,26 @@ export const setupSocketIO = (httpServer: HttpServer): Server => {
   io.use(async (socket, next) => {
     const user = getSender(socket);
     if (!user) {
+      // A share-link viewer usually has no account. Let a live share token
+      // stand in for one: the socket is admitted as a guest and is wired to
+      // the live signaling handlers only (see the connection handler).
+      const liveToken =
+        typeof socket.handshake.auth?.liveToken === "string"
+          ? socket.handshake.auth.liveToken
+          : "";
+      if (liveToken) {
+        try {
+          const stream = await findStreamByToken(liveToken);
+          if (stream?.active) {
+            (socket as unknown as { liveGuestToken?: string }).liveGuestToken =
+              liveToken;
+            next();
+            return;
+          }
+        } catch {
+          /* fall through to the normal rejection */
+        }
+      }
       next(new Error("unauthorized"));
       return;
     }
@@ -747,6 +1052,15 @@ export const setupSocketIO = (httpServer: HttpServer): Server => {
   });
 
   io.on("connection", (socket) => {
+    // Share-link guests verified by their live token in the handshake: they
+    // can join a stream room and answer the host's offer, and that is all.
+    if ((socket as unknown as { liveGuestToken?: string }).liveGuestToken) {
+      registerLiveSignaling(socket, `guest:${socket.id}`);
+      socket.on("disconnect", () => {
+        liveViewers.delete(socket.id);
+      });
+      return;
+    }
     const user = (socket as unknown as { authUser?: AuthUser }).authUser;
     if (!user) {
       socket.disconnect();
@@ -2289,264 +2603,7 @@ export const setupSocketIO = (httpServer: HttpServer): Server => {
       }
     });
 
-    // ── Live-video signaling ──
-    // The host registers its socket for its own stream; viewers register to
-    // watch. SDP and ICE are relayed only between those two proven roles.
-    socket.on(
-      "live_stream_host_join",
-      async (data: { token?: string } = {}) => {
-        const token = typeof data?.token === "string" ? data.token : "";
-        if (!token) return;
-        if (isRateLimited(userId, "live_stream_host_join")) return;
-        try {
-          const stream = await findStreamByToken(token);
-          if (
-            !stream ||
-            !stream.active ||
-            String(stream.hostId) !== String(userId)
-          ) {
-            socket.emit("live_stream_watch_failed", {
-              token,
-              error: "not_host",
-            });
-            return;
-          }
-          socket.join(getLiveRoom(stream.id));
-          liveHosts.set(socket.id, {
-            userId: String(userId),
-            hostId: String(stream.hostId),
-            streamId: stream.id,
-            token,
-          });
-          // A host that arrives after viewers must still offer to them.
-          liveViewers.forEach((viewer, viewerSocketId) => {
-            if (viewer.streamId !== stream.id) return;
-            socket.emit("live_stream_viewer_joined", {
-              streamId: stream.id,
-              streamToken: token,
-              socketId: viewerSocketId,
-              viewerId: viewer.userId,
-            });
-          });
-        } catch {
-          socket.emit("live_stream_watch_failed", {
-            token,
-            error: "unavailable",
-          });
-        }
-      },
-    );
-
-    socket.on(
-      "live_stream_watch",
-      async (data: { token?: string } = {}) => {
-        const token = typeof data?.token === "string" ? data.token : "";
-        if (!token) return;
-        if (isRateLimited(userId, "live_stream_watch")) {
-          socket.emit("live_stream_watch_failed", {
-            token,
-            error: "rate_limited",
-          });
-          return;
-        }
-        try {
-          const row = await resolveViewerJoin(token);
-          const streamId = Number(row.id);
-          const room = io.sockets.adapter.rooms.get(getLiveRoom(streamId));
-          const alreadyWatching =
-            liveViewers.get(socket.id)?.streamId === streamId;
-          if (
-            !alreadyWatching &&
-            (room?.size ?? 0) >= LIVE_MAX_VIEWERS + 1
-          ) {
-            socket.emit("live_stream_watch_failed", {
-              token,
-              error: "stream_full",
-            });
-            return;
-          }
-          socket.join(getLiveRoom(streamId));
-          liveViewers.set(socket.id, {
-            userId: String(userId),
-            hostId: String(row.hostId),
-            streamId,
-            token,
-          });
-          socket.emit("live_stream_watch_ok", {
-            streamId,
-            streamToken: token,
-            hostId: row.hostId,
-            hostDisplayName: row.hostDisplayName,
-            platform: row.platform,
-          });
-          // The host creates one peer connection per viewer socket.
-          io.to(row.hostId).emit("live_stream_viewer_joined", {
-            streamId,
-            streamToken: token,
-            socketId: socket.id,
-            viewerId: String(userId),
-            viewerName: getSenderMeta(userId).artistName || undefined,
-          });
-        } catch (err) {
-          const statusCode = (err as { statusCode?: number })?.statusCode;
-          socket.emit("live_stream_watch_failed", {
-            token,
-            error: statusCode === 410 ? "ended" : "unavailable",
-          });
-        }
-      },
-    );
-
-    socket.on("live_stream_unwatch", () => {
-      const viewer = liveViewers.get(socket.id);
-      if (!viewer) return;
-      liveViewers.delete(socket.id);
-      socket.leave(getLiveRoom(viewer.streamId));
-      io.to(viewer.hostId).emit("live_stream_viewer_left", {
-        streamId: viewer.streamId,
-        socketId: socket.id,
-      });
-    });
-
-    // The host switched camera/screen (or toggled game-only audio): tell
-    // every watcher in the live room so viewers can follow the display and
-    // reveal the game mix slider. Token-checked like the WebRTC relay.
-    socket.on(
-      "live_stream_source",
-      (
-        data: {
-          token?: string;
-          videoSource?: unknown;
-          screenAudioOnly?: unknown;
-        } = {},
-      ) => {
-        const host = liveHosts.get(socket.id);
-        if (!host) return;
-        if (data?.token !== host.token) return;
-        if (isRateLimited(userId, "live_stream_source")) return;
-        socket.to(getLiveRoom(host.streamId)).emit(
-          "live_stream_source_changed",
-          {
-            streamId: host.streamId,
-            streamToken: host.token,
-            videoSource: data?.videoSource === "screen" ? "screen" : "camera",
-            screenAudioOnly: data?.screenAudioOnly === true,
-          },
-        );
-      },
-    );
-
-    socket.on("live_stream_host_leave", () => {
-      const host = liveHosts.get(socket.id);
-      if (!host) return;
-      liveHosts.delete(socket.id);
-      socket.leave(getLiveRoom(host.streamId));
-      socket.to(getLiveRoom(host.streamId)).emit("live_stream_ended", {
-        streamId: host.streamId,
-      });
-    });
-
-    socket.on(
-      "live_webrtc_offer",
-      (data: { token?: string; toSocketId?: string; sdp?: unknown } = {}) => {
-        const host = liveHosts.get(socket.id);
-        if (!host) return;
-        if (data?.token !== host.token) return;
-        const target =
-          typeof data?.toSocketId === "string" ? data.toSocketId : "";
-        const sdp = parseRelaySdp(data?.sdp, "offer");
-        if (!target || !sdp) return;
-        if (isRateLimited(userId, "live_webrtc")) return;
-        if (liveViewers.get(target)?.streamId !== host.streamId) return;
-        io.to(target).emit("live_webrtc_offer", {
-          streamId: host.streamId,
-          streamToken: host.token,
-          fromSocketId: socket.id,
-          sdp,
-        });
-      },
-    );
-
-    socket.on(
-      "live_webrtc_answer",
-      (data: { token?: string; sdp?: unknown } = {}) => {
-        const viewer = liveViewers.get(socket.id);
-        if (!viewer) return;
-        if (data?.token !== viewer.token) return;
-        const sdp = parseRelaySdp(data?.sdp, "answer");
-        if (!sdp) return;
-        if (isRateLimited(userId, "live_webrtc")) return;
-        for (const hostSocketId of hostSocketsFor(viewer.streamId)) {
-          io.to(hostSocketId).emit("live_webrtc_answer", {
-            streamId: viewer.streamId,
-            streamToken: viewer.token,
-            fromSocketId: socket.id,
-            sdp,
-          });
-        }
-      },
-    );
-
-    socket.on(
-      "live_webrtc_ice",
-      (data: { token?: string; toSocketId?: string; candidate?: unknown } = {}) => {
-        if (isRateLimited(userId, "live_webrtc")) return;
-        const candidate = parseRelayCandidate(data?.candidate);
-        if (!candidate) return;
-
-        // Host → viewer (requires an explicit, still-registered viewer).
-        const host = liveHosts.get(socket.id);
-        if (host) {
-          if (data?.token !== host.token) return;
-          const target =
-            typeof data?.toSocketId === "string" ? data.toSocketId : "";
-          if (!target || liveViewers.get(target)?.streamId !== host.streamId) {
-            return;
-          }
-          io.to(target).emit("live_webrtc_ice", {
-            streamId: host.streamId,
-            streamToken: host.token,
-            fromSocketId: socket.id,
-            candidate,
-          });
-          return;
-        }
-
-        // Viewer → host.
-        const viewer = liveViewers.get(socket.id);
-        if (!viewer) return;
-        if (data?.token !== viewer.token) return;
-        for (const hostSocketId of hostSocketsFor(viewer.streamId)) {
-          io.to(hostSocketId).emit("live_webrtc_ice", {
-            streamId: viewer.streamId,
-            streamToken: viewer.token,
-            fromSocketId: socket.id,
-            candidate,
-          });
-        }
-      },
-    );
-
-    socket.on(
-      "live_stream_feed_unavailable",
-      (data: { token?: string; toSocketId?: string; reason?: string } = {}) => {
-        const host = liveHosts.get(socket.id);
-        if (!host || data?.token !== host.token) return;
-        const target =
-          typeof data?.toSocketId === "string" ? data.toSocketId : "";
-        if (!target || liveViewers.get(target)?.streamId !== host.streamId) {
-          return;
-        }
-        io.to(target).emit("live_stream_feed_unavailable", {
-          streamId: host.streamId,
-          streamToken: host.token,
-          reason:
-            typeof data?.reason === "string"
-              ? data.reason.slice(0, 120)
-              : undefined,
-        });
-      },
-    );
+    registerLiveSignaling(socket, userId);
 
     // ── Legacy squad handlers (kept for compatibility) ──
     socket.on("INITIALIZE_SQUAD", () => {
@@ -2604,6 +2661,15 @@ export const setupSocketIO = (httpServer: HttpServer): Server => {
       // live-stream teardown must know whether this user was streaming,
       // even when their last socket just took the presence row with it.
       const wasLive = !!presence.get(userId)?.metadata?.live;
+      // Relay bookkeeping must not outlive the socket: a stale viewer entry
+      // makes the host offer to a dead socket, and a stale host entry would
+      // keep replaying a broadcast nobody is serving.
+      liveViewers.delete(socket.id);
+      const hostRelay = liveHosts.get(socket.id);
+      if (hostRelay) {
+        liveHosts.delete(socket.id);
+        liveSources.delete(hostRelay.streamId);
+      }
       const userSockets = socketIdsByUser.get(userId);
       userSockets?.delete(socket.id);
       const isLastSocket = !userSockets || userSockets.size === 0;

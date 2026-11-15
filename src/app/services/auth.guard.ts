@@ -1,13 +1,20 @@
 import { inject } from '@angular/core';
 import { Router, CanActivateFn, CanActivateChildFn } from '@angular/router';
 import { AuthService } from './auth.service';
-import { isGuestRouteAllowed, isGuestUser } from './guest-access';
+import {
+  isAnonymousLiveRoute,
+  isGuestRouteAllowed,
+  isGuestUser,
+} from './guest-access';
 
 export const authGuard: CanActivateFn = (route, state) => {
   const authService = inject(AuthService);
   const router = inject(Router);
 
   if (!authService.isAuthenticated()) {
+    // A shared live link is a capability, not an account: external viewers
+    // watch without signing in, and the live viewer uses a guest socket.
+    if (isAnonymousLiveRoute(state.url)) return true;
     router.navigate(['/login'], {
       queryParams: { returnUrl: state.url || '/hub' },
       replaceUrl: true,
