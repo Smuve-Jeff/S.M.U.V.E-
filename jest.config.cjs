@@ -13,6 +13,11 @@ module.exports = {
   // room to collect those exits; a real leaked handle still exceeds this and
   // still surfaces the warning.
   workerGracefulExitTimeout: 3000,
+  // A heavy suite (smuve-tv, vocal-suite, ...) can sit just under the heap cap
+  // and crash a worker while its neighbour runs, which Jest reports as
+  // "Test suite failed to run" with zero failing tests. Recycle workers that
+  // grow past this so a busy full run stays a real pass/fail signal.
+  workerIdleMemoryLimit: '1200MB',
   testPathIgnorePatterns: [
     '<rootDir>/node_modules/',
     '<rootDir>/dist/',

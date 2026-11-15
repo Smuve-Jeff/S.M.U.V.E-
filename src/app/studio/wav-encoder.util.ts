@@ -105,6 +105,61 @@ export class WavEncoder {
     }
   }
 
+  /**
+   * Same encoding as {@link encodeMultiChannel}, but hands back the bytes so a
+   * caller can store or archive them without turning a Blob back into an
+   * ArrayBuffer (which is asynchronous and loses the synchronous path).
+   */
+  static encodeMultiChannelBytes(
+    channels: Float32Array[],
+    format: WavFormat,
+    sampleRate: number,
+    options: WavEncodeOptions = {},
+  ): Uint8Array<ArrayBuffer> {
+    const dither = !!options.dither;
+    const numChannels = channels.length;
+    WavEncoder.validateChannels(channels);
+    switch (format) {
+      case "wav-16":
+        return WavEncoder.encodeBytesInternal(
+          channels,
+          numChannels,
+          sampleRate,
+          16,
+          false,
+          dither,
+        );
+      case "wav-24":
+        return WavEncoder.encodeBytesInternal(
+          channels,
+          numChannels,
+          sampleRate,
+          24,
+          false,
+          dither,
+        );
+      case "wav-32-float":
+        return WavEncoder.encodeBytesInternal(
+          channels,
+          numChannels,
+          sampleRate,
+          32,
+          true,
+          dither,
+        );
+      case "wav-32":
+        return WavEncoder.encodeBytesInternal(
+          channels,
+          numChannels,
+          sampleRate,
+          32,
+          false,
+          dither,
+        );
+    }
+    throw new Error(`Unsupported WAV format: ${String(format)}`);
+  }
+
   private static encodeInternal(
     channels: Float32Array[],
     numChannels: number,
@@ -113,6 +168,29 @@ export class WavEncoder {
     isFloat: boolean,
     dither = false,
   ): Blob {
+    return new Blob(
+      [
+        WavEncoder.encodeBytesInternal(
+          channels,
+          numChannels,
+          sampleRate,
+          bitDepth,
+          isFloat,
+          dither,
+        ),
+      ],
+      { type: "audio/wav" },
+    );
+  }
+
+  private static encodeBytesInternal(
+    channels: Float32Array[],
+    numChannels: number,
+    sampleRate: number,
+    bitDepth: WavBitDepth,
+    isFloat: boolean,
+    dither = false,
+  ): Uint8Array<ArrayBuffer> {
     const bytesPerSample = bitDepth / 8;
     const numFrames = channels[0].length;
     const dataLength = numFrames * numChannels * bytesPerSample;
@@ -234,7 +312,7 @@ export class WavEncoder {
       }
     }
 
-    return new Blob([view], { type: "audio/wav" });
+    return new Uint8Array(arrayBuffer);
   }
 
   private static writeString(view: DataView, offset: number, string: string) {

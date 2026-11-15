@@ -20,13 +20,18 @@ import { SidechainRoutingService, type SidechainRoute } from "./sidechain-routin
 import { TempoMapService, type TempoMarker } from "./tempo-map.service";
 import { MeterMapService, type MeterMarker } from "./meter-map.service";
 import { VcaBusService, type VcaAssignments, type VcaBus } from "./vca-bus.service";
-import { PROJECT_FORMAT_VERSION, buildProjectArchive } from "./project-archive.util";
+import {
+  PROJECT_FORMAT_VERSION,
+  buildProjectArchive,
+  type ImportedProjectBundle,
+} from "./project-archive.util";
 import {
   describeAudioIntegrityFailure,
   inspectProjectAudioIntegrity,
   type AudioIntegrityIssue,
   type ProjectAudioIntegrityReport,
 } from "./project-integrity.util";
+import { PROJECT_BACKING_TRACK } from "./project-backing-track.token";
 
 export interface ProjectMetadata {
   id: string;
@@ -337,6 +342,13 @@ export class ProjectWorkspaceService {
   private readonly destroyRef = inject(DestroyRef);
   private readonly tempoMap = inject(TempoMapService);
   private readonly meterMap = inject(MeterMapService);
+  /**
+   * Optional: only hosts with the vocal services store guide tracks. The port
+   * keeps audio bytes out of the JSON bundle while still tying them to a set.
+   */
+  private readonly backingTrack = inject(PROJECT_BACKING_TRACK, {
+    optional: true,
+  });
   private readonly markers = inject(ArrangementMarkersService);
   private readonly vcaBuses = inject(VcaBusService);
   private readonly sidechainRouting = inject(SidechainRoutingService);
@@ -721,6 +733,7 @@ export class ProjectWorkspaceService {
       const stored = this.toStoredBundle(snapshot, "autosave");
       await this.requirePersistence();
       await this.storage.saveItem("projects", stored);
+      await this.persistBackingTrack(snapshot.metadata.id);
       await this.tryQueueCloudSync(snapshot.metadata, snapshot);
       this.lastAutoSave.set(stored.savedAt);
       this.markPersistenceClean(snapshot, "autosave", stored.savedAt);
@@ -764,6 +777,7 @@ export class ProjectWorkspaceService {
       const stored = this.toStoredBundle(bundle, "manual");
       await this.requirePersistence();
       await this.storage.saveItem("projects", stored);
+      await this.persistBackingTrack(bundle.metadata.id);
       this.markPersistenceClean(bundle, "manual", stored.savedAt);
       this.versionCount.update((v) => v + 1);
       await this.projectService.refresh();
@@ -794,6 +808,27 @@ export class ProjectWorkspaceService {
       throw error;
     } finally {
       this.isSaving.set(false);
+    }
+  }
+
+  /** A copy of an imported bundle without the archive's in-memory media. */
+  private withoutImportedMedia(bundle: ProjectBundle): ProjectBundle {
+    if (!(bundle as ImportedProjectBundle).importedBackingTrack) return bundle;
+    const { importedBackingTrack: _media, ...rest } =
+      bundle as ImportedProjectBundle;
+    return rest as ProjectBundle;
+  }
+
+  /**
+   * Keep the set's guide track with the set. Best-effort by design: a refused
+   * media write must never turn a stored project into a failed save.
+   */
+  private async persistBackingTrack(projectId: string): Promise<void> {
+    if (!this.backingTrack) return;
+    try {
+      await this.backingTrack.persistProject(projectId);
+    } catch (error) {
+      this.logger.warn("ProjectWorkspace: backing track not stored", error);
     }
   }
 
@@ -966,6 +1001,14 @@ export class ProjectWorkspaceService {
   async deleteLocalProject(projectId: string): Promise<boolean> {
     try {
       await this.projectService.refresh();
+      void this.backingTrack
+        ?.forgetProject(projectId)
+        .catch((error) =>
+          this.logger.warn(
+            "ProjectWorkspace: backing track delete failed",
+            error,
+          ),
+        );
       const removed = await this.projectService.remove(`project_${projectId}`);
       if (removed) return true;
       // Fallback: a set that only has autosave/recovery records is not in
@@ -1075,7 +1118,12 @@ export class ProjectWorkspaceService {
         return true;
       }
       await this.requirePersistence();
-      const stored = this.toStoredBundle(bundle, "import");
+      // The archive's guide track is media, not project JSON: keep it out of
+      // the stored record and let restoreFromSnapshot adopt it.
+      const stored = this.toStoredBundle(
+        this.withoutImportedMedia(bundle),
+        "import",
+      );
       await this.storage.saveItem("projects", stored);
       await this.projectService.refresh();
       await this.storage.saveItem("offline_local_cache", {
@@ -1200,7 +1248,10 @@ export class ProjectWorkspaceService {
         30 * 24 * 60 * 60 * 1000,
       );
     }
-    const blob = buildProjectArchive(bundle);
+    const blob = buildProjectArchive(
+      bundle,
+      this.backingTrack?.archiveFile() ?? null,
+    );
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -1672,6 +1723,27 @@ export class ProjectWorkspaceService {
     this.logger.info(
       "ProjectWorkspace: Restored project " +
         (bundle.metadata?.name ?? "Untitled"),
+    );
+    // The guide track lives beside the bundle, so it is fetched rather than
+    // restored: a slow decode must not delay the project opening, and a set
+    // without one simply keeps the artist where they are. An imported archive
+    // carries its own file, which is adopted into this project's media first.
+    const importedBacking = (bundle as ImportedProjectBundle)
+      .importedBackingTrack;
+    if (importedBacking) {
+      // Drop the Blob from the in-memory bundle: every later snapshot would
+      // otherwise drag the whole file into the project record.
+      delete (bundle as { importedBackingTrack?: unknown })
+        .importedBackingTrack;
+    }
+    void (importedBacking
+      ? this.backingTrack?.adoptProject(bundle.metadata.id, importedBacking, {
+          // A guest import is cleared to write nothing to this device.
+          persist: !this.isGuestSession,
+        })
+      : this.backingTrack?.restoreProject(bundle.metadata.id)
+    )?.catch((error: unknown) =>
+      this.logger.warn("ProjectWorkspace: backing track restore failed", error),
     );
   }
 

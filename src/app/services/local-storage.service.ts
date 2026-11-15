@@ -36,7 +36,7 @@ export type StorageDurability =
 })
 export class LocalStorageService {
   private dbName = 'SMUVE_OFFLINE_DB';
-  private dbVersion = 8;
+  private dbVersion = 9;
   private db: IDBDatabase | null = null;
   /** Why persistence is unavailable, when it is. Null while everything works. */
   private unavailableReason: Exclude<PersistenceState, 'ready'> | null = null;
@@ -104,6 +104,13 @@ export class LocalStorageService {
       // DBs get it on upgrade.
       if (!db.objectStoreNames.contains('recording_chunks')) {
         db.createObjectStore('recording_chunks', { keyPath: 'id' });
+      }
+      // Media uploaded for one set (a guide track the artist sings against).
+      // It lives beside the project rather than inside the JSON bundle because
+      // a decoded instrumental is far too large to serialise on every save.
+      // Added in v9 — earlier DBs get it on upgrade.
+      if (!db.objectStoreNames.contains('project_media')) {
+        db.createObjectStore('project_media', { keyPath: 'id' });
       }
       if (!db.objectStoreNames.contains('performance_takes')) {
         // PerformanceRecordingService persists takes here (audio blobs are

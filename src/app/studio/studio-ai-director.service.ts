@@ -34,6 +34,7 @@ import {
   type ProjectBundle,
 } from './project-workspace.service';
 import { buildProjectArchive } from './project-archive.util';
+import { PROJECT_BACKING_TRACK } from './project-backing-track.token';
 import { SmartSoundService } from './smart-sound.service';
 import { SmartProductionFoundationsService } from './smart-production-foundations.service';
 import { PerformanceRecordingService } from './performance-recording.service';
@@ -163,6 +164,8 @@ export class StudioAiDirectorService {
   private takeManager = inject(TakeManagerService);
   private audioRecorder = inject(AudioRecorderService);
   private workspace = inject(ProjectWorkspaceService);
+  /** Optional: a checkpoint carries the set's guide track when vocals are loaded. */
+  private backingTrack = inject(PROJECT_BACKING_TRACK, { optional: true });
   private foundations = inject(SmartProductionFoundationsService);
   private performanceRecording = inject(PerformanceRecordingService);
   private audioImport = inject(AudioImportService);
@@ -447,7 +450,10 @@ export class StudioAiDirectorService {
       throw new Error(`Checkpoint ${target.label} is not a full project bundle, so it cannot be exported as a .smuve file. Restore it for its tempo/key metadata instead.`);
     }
     const bundle = materialized as unknown as ProjectBundle;
-    const blob = buildProjectArchive(bundle);
+    const blob = buildProjectArchive(
+      bundle,
+      this.backingTrack?.archiveFile() ?? null,
+    );
     const metadata = bundle.metadata as unknown as Record<string, unknown>;
     const project = String(metadata.name || this.music.projectName || 'Elite_Session').replace(/[^\w.-]/g, '_');
     const label = target.label.replace(/[^\w.-]/g, '_') || 'latest';

@@ -11,6 +11,7 @@ import { MusicManagerService } from "../../services/music-manager.service";
 import { InteractionDialogService } from "../../services/interaction-dialog.service";
 import { SmartRecordingService } from "../smart-recording.service";
 import { RecordingStatusService } from "../recording-status.service";
+import { VocalBackingTrackService } from "../backing-track.service";
 
 describe("AudioRecorderViewComponent", () => {
   let component: AudioRecorderViewComponent;
@@ -74,6 +75,26 @@ describe("AudioRecorderViewComponent", () => {
     endRecording: jest.fn(),
   };
 
+  const mockBacking = {
+    track: signal<any>(null),
+    isPlaying: signal(false),
+    loop: signal(false),
+    levelPercent: signal(80),
+    positionSeconds: signal(0),
+    positionLabel: signal("0:00"),
+    durationLabel: signal("0:00"),
+    lastError: signal<string | null>(null),
+    loadFile: jest.fn().mockResolvedValue(true),
+    play: jest.fn().mockReturnValue(true),
+    restart: jest.fn().mockReturnValue(true),
+    stop: jest.fn(),
+    clear: jest.fn(),
+    setLevel: jest.fn(),
+    toggleLoop: jest.fn(),
+    addToArrangement: jest.fn(() => "beat"),
+    hasTrack: jest.fn(() => mockBacking.track() !== null),
+  };
+
   const rec = (over: Partial<Record<string, unknown>> = {}) => ({
     id: "rec_1",
     name: "Take One",
@@ -99,6 +120,7 @@ describe("AudioRecorderViewComponent", () => {
         { provide: InteractionDialogService, useValue: mockDialog },
         { provide: SmartRecordingService, useValue: mockSmartRecording },
         { provide: RecordingStatusService, useValue: mockRecordingStatus },
+        { provide: VocalBackingTrackService, useValue: mockBacking },
       ],
       schemas: [NO_ERRORS_SCHEMA],
     }).compileComponents();
@@ -110,6 +132,54 @@ describe("AudioRecorderViewComponent", () => {
 
   it("should create", () => {
     expect(component).toBeTruthy();
+  });
+
+  it("clicks one bar of count-in before the take is armed", async () => {
+    jest.useFakeTimers();
+    (component as any).audioContext = mockAudioEngine.ctx;
+
+    const run = (component as any).runCountIn();
+
+    expect(component.captureState()).toBe("counting");
+    // 4/4 at the default 120 BPM: one accent plus three clicks.
+    expect(mockAudioEngine.ctx.createOscillator).toHaveBeenCalledTimes(4);
+
+    jest.advanceTimersByTime(2100);
+    await expect(run).resolves.toBe(true);
+    expect(component.countInRemaining()).toBeNull();
+    jest.useRealTimers();
+  });
+
+  it("cancels a running count-in instead of arming over the click", async () => {
+    (component as any).audioContext = mockAudioEngine.ctx;
+    component.captureState.set("counting");
+
+    await component.toggleRecord();
+
+    expect(component.captureState()).toBe("idle");
+    expect(mockRecorder.startRecording).not.toHaveBeenCalled();
+    expect(mockBacking.stop).toHaveBeenCalled();
+  });
+
+  it("skips the count-in when it is switched off", async () => {
+    component.toggleCountIn();
+    (component as any).audioContext = mockAudioEngine.ctx;
+
+    await expect((component as any).runCountIn()).resolves.toBe(true);
+
+    expect(component.captureState()).toBe("idle");
+    expect(mockAudioEngine.ctx.createOscillator).not.toHaveBeenCalled();
+  });
+
+  it("adds a loaded backing track to the arrangement", () => {
+    mockBacking.track.set({ name: "beat", buffer: { duration: 10 } });
+
+    component.addBackingToArrangement();
+
+    expect(mockBacking.addToArrangement).toHaveBeenCalled();
+    expect(mockSnackbar.success).toHaveBeenCalledWith(
+      '"beat" added to the arrangement',
+    );
   });
 
   it("surfaces latency calibration next to the record control", () => {

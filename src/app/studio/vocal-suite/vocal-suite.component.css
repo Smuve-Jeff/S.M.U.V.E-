@@ -233,6 +233,69 @@ main canvas {
   box-shadow: 0 0 14px rgba(168, 85, 247, 0.3);
 }
 
+/* Trim handles over the take waveform. The overlay is a ruler, so it must not
+   eat the canvas' pointer events — only the two handles do. */
+.vs-edit-spectrogram {
+  touch-action: none;
+}
+
+.vs-trim-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.vs-trim-shade {
+  position: absolute;
+  inset-block: 0;
+  left: 0;
+  background: rgba(7, 6, 13, 0.68);
+}
+
+.vs-trim-shade--right {
+  left: auto;
+  right: 0;
+}
+
+.vs-trim-frame {
+  position: absolute;
+  inset-block: 0;
+  border-left: 1px solid rgba(192, 132, 252, 0.9);
+  border-right: 1px solid rgba(192, 132, 252, 0.9);
+  box-shadow: inset 0 0 18px rgba(168, 85, 247, 0.18);
+}
+
+.vs-trim-handle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 22px;
+  margin-left: -11px;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: ew-resize;
+  pointer-events: auto;
+  touch-action: none;
+}
+
+.vs-trim-handle::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 6px;
+  height: 44px;
+  transform: translate(-50%, -50%);
+  border-radius: 999px;
+  background: #c084fc;
+  box-shadow: 0 0 12px rgba(192, 132, 252, 0.65);
+}
+
+.vs-trim-handle:focus-visible::after {
+  background: #ffffff;
+}
+
 .vs-edit-actions button {
   transition: transform 0.14s ease, background 0.16s ease, box-shadow 0.2s ease;
 }

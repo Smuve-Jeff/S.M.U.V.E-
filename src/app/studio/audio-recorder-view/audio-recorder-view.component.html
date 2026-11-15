@@ -401,6 +401,111 @@
     </p>
   }
 
+  <!-- BACKING TRACK — perform against a custom upload. The guide is monitored
+       only; every take still records the microphone (or the processed chain). -->
+  <section class="arv-backing" aria-label="Backing track">
+    <div class="arv-backing-head">
+      <div>
+        <span class="arv-backing-title">Backing Track</span>
+        <p class="arv-backing-sub">
+          Load any audio file and perform against it. The guide is monitored
+          only and never recorded into the take. REC restarts it from the top
+          after the count-in.
+        </p>
+      </div>
+      <div class="arv-backing-actions">
+        <label class="arv-control-btn">
+          {{ backing.hasTrack() ? 'REPLACE' : 'LOAD AUDIO' }}
+          <input
+            type="file"
+            accept="audio/*,.wav,.mp3,.ogg,.flac,.aiff,.m4a"
+            hidden
+            (change)="onBackingFile($event)"
+            aria-label="Load a backing track"
+          />
+        </label>
+        <button
+          *ngIf="backing.hasTrack()"
+          type="button"
+          class="arv-control-btn"
+          (click)="addBackingToArrangement()"
+          aria-label="Add the backing track to the arrangement"
+        >
+          ADD TO SONG
+        </button>
+        <button
+          *ngIf="backing.hasTrack()"
+          type="button"
+          class="arv-control-btn"
+          (click)="clearBacking()"
+          aria-label="Remove the backing track"
+        >
+          CLEAR
+        </button>
+      </div>
+    </div>
+
+    <div *ngIf="backing.track() as track" class="arv-backing-row">
+      <button
+        type="button"
+        class="arv-control-btn"
+        [class.arv-control-active]="backing.isPlaying()"
+        (click)="toggleBackingPlayback()"
+        [attr.aria-pressed]="backing.isPlaying()"
+        [attr.aria-label]="backing.isPlaying() ? 'Pause the backing track' : 'Play the backing track'"
+      >
+        <span class="material-symbols-outlined" style="font-size: 16px">{{
+          backing.isPlaying() ? 'pause' : 'play_arrow'
+        }}</span>
+        {{ backing.isPlaying() ? 'PAUSE' : 'PLAY' }}
+      </button>
+      <span class="arv-backing-name">{{ track.name }}</span>
+      <span class="arv-backing-time"
+        >{{ backing.positionLabel() }} / {{ backing.durationLabel() }}</span
+      >
+      <label class="arv-backing-level">
+        <span>LEVEL</span>
+        <input
+          type="range"
+          min="0"
+          max="100"
+          step="1"
+          [ngModel]="backing.levelPercent()"
+          (ngModelChange)="setBackingLevel($event)"
+          aria-label="Backing track level"
+        />
+        <span class="arv-backing-time">{{ backing.levelPercent() }}%</span>
+      </label>
+      <button
+        type="button"
+        class="arv-control-btn"
+        [class.arv-control-active]="backing.loop()"
+        (click)="toggleBackingLoop()"
+        [attr.aria-pressed]="backing.loop()"
+        aria-label="Loop the backing track"
+      >
+        LOOP
+      </button>
+    </div>
+
+    <p *ngIf="backing.lastError() as error" role="alert" class="arv-backing-error">
+      {{ error }}
+    </p>
+
+    <label class="arv-backing-countin">
+      <input
+        type="checkbox"
+        [checked]="countInEnabled()"
+        (change)="toggleCountIn()"
+        aria-label="Play a one-bar count-in before recording"
+      />
+      One-bar count-in before the take
+      @if (countInRemaining(); as remaining) {
+        <span class="arv-backing-count" role="status">{{ remaining }}</span>
+      }
+    </label>
+  </section>
+
   @if (latestRecording(); as lastTake) {
     <section class="arv-latest-take" aria-label="Latest take actions">
       <div class="arv-latest-take-copy">

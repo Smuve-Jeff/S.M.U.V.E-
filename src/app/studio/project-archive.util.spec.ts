@@ -69,6 +69,31 @@ describe("project archive", () => {
     expect(right[2]).toBeCloseTo(0.6, 5);
   });
 
+  it("carries the uploaded guide track and returns it on import", async () => {
+    const blob = buildProjectArchive(makeBundle(), {
+      name: "Bedroom Beat",
+      mimeType: "audio/mpeg",
+      data: new Uint8Array([7, 8, 9]),
+    });
+
+    const restored = readProjectArchive(await blob.arrayBuffer());
+
+    expect(restored.importedBackingTrack?.name).toBe("Bedroom Beat");
+    expect(restored.importedBackingTrack?.blob.type).toBe("audio/mpeg");
+    const bytes = await restored.importedBackingTrack!.blob.arrayBuffer();
+    expect(Array.from(new Uint8Array(bytes))).toEqual([7, 8, 9]);
+    // Archive plumbing never leaks into the bundle stored as a project.
+    expect((restored as { media?: unknown }).media).toBeUndefined();
+  });
+
+  it("leaves the media entry out when the set has no guide track", async () => {
+    const restored = readProjectArchive(
+      await buildProjectArchive(makeBundle()).arrayBuffer(),
+    );
+
+    expect(restored.importedBackingTrack).toBeUndefined();
+  });
+
   it("rejects an archive whose audio bytes were corrupted", async () => {
     const bytes = new Uint8Array(
       await buildProjectArchive(makeBundle()).arrayBuffer(),

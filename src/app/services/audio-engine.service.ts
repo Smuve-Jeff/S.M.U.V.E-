@@ -5691,6 +5691,17 @@ export class AudioEngineService {
   }
 
   /** Seek within the current song/pattern or enabled A/B loop. */
+  /**
+   * AudioContext time of the transport's first scheduled step (0 when stopped).
+   *
+   * A preview that starts the transport must place its own audio on the same
+   * sample as the song's downbeat; without this anchor it can only guess at the
+   * engine's internal schedule and lands tens of milliseconds off.
+   */
+  transportStartTime(): number {
+    return this.isPlaying() ? this.nextNoteTime : 0;
+  }
+
   seekToStep(step: number): number | null {
     if (!Number.isFinite(step) || this.isRecording() || this.isCountIn()) return null;
     const length = Math.max(1, this.playMode() === 'song' ? this.songLengthSteps() : this.loopLengthSteps());

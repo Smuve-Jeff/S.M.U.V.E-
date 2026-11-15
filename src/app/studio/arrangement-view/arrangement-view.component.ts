@@ -30,6 +30,7 @@ import { claimKeyEvent } from "../shared/keyboard-claim";
 import { StudioFocusService } from "../shared/studio-focus.service";
 import { EnhancedTouchGestureService } from "../../services/enhanced-touch-gesture.service";
 import { StudioTrack, StudioClip } from "../../types/studio.types";
+import { trimClipContent } from "../clip-trim.util";
 import {
   StemSeparationService,
   Stems,
@@ -761,9 +762,23 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
       return;
     }
     if (!['select', 'draw', 'trim', 'slip'].includes(this.editMode())) return;
+    // A clip edge is a trim handle at any zoom: the pointer only has to land in
+    // the last 8 px of the clip, so a recorded vocal can be trimmed without
+    // switching tools first.
+    const clipStart = clip.start || 0;
+    const clipLength = clip.length || 4;
+    const edgeZone = 8 / Math.max(1, this.barWidth());
+    const nearStart = barX <= clipStart + edgeZone;
+    const nearEnd = barX >= clipStart + clipLength - edgeZone;
     const mode = this.editMode() === 'trim'
-      ? (barX < clip.start + clip.length / 2 ? 'trim-start' : 'trim-end')
-      : this.editMode() === 'slip' ? 'slip' : 'move';
+      ? (barX < clipStart + clipLength / 2 ? 'trim-start' : 'trim-end')
+      : this.editMode() === 'slip'
+        ? 'slip'
+        : nearStart
+          ? 'trim-start'
+          : nearEnd
+            ? 'trim-end'
+            : 'move';
     const target = e.currentTarget as HTMLElement | null;
     target?.setPointerCapture?.(e.pointerId);
     this.activeClipGesture = {
@@ -811,21 +826,26 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
     const patch: Partial<StudioClip> = {};
     if (gesture.mode === 'move') {
       patch.start = Math.max(0, gesture.initialStart + snapped);
-    } else if (gesture.mode === 'trim-start') {
-      const start = Math.max(0, Math.min(gesture.initialStart + snapped, gesture.initialStart + gesture.initialLength - 0.25));
-      const shift = start - gesture.initialStart;
-      patch.start = start;
-      patch.length = gesture.initialLength - shift;
-      if (clip.type === 'audio') {
-        const secondsPerBar = 60 / this.musicManager.engine.tempo() * 4;
-        if (clip.clipStreamer) {
-          patch.clipOriginSeconds = Math.max(0, (clip.clipOriginSeconds ?? 0) + shift * secondsPerBar);
-        } else {
-          patch.offset = Math.max(0, gesture.initialOffset + shift * secondsPerBar);
-        }
-      }
-    } else if (gesture.mode === 'trim-end') {
-      patch.length = Math.max(0.25, gesture.initialLength + snapped);
+    } else if (gesture.mode === 'trim-start' || gesture.mode === 'trim-end') {
+      // Content-aware: the read position follows a left-edge trim, and neither
+      // edge may promise audio the clip's buffer does not hold.
+      const secondsPerBar = (60 / this.musicManager.engine.tempo()) * 4;
+      const trim = trimClipContent(
+        {
+          type: clip.type,
+          start: gesture.initialStart,
+          length: gesture.initialLength,
+          offset: gesture.initialOffset,
+          clipOriginSeconds: clip.clipOriginSeconds ?? 0,
+          streamed: !!clip.clipStreamer,
+          audioDurationSeconds: this.clipAudioDuration(clip),
+          secondsPerBar,
+        },
+        gesture.mode === 'trim-start' ? 'start' : 'end',
+        snapped,
+      );
+      if (!trim) return;
+      Object.assign(patch, trim);
     } else if (clip.type === 'audio') {
       const secondsPerBar = 60 / this.musicManager.engine.tempo() * 4;
       if (clip.clipStreamer) {
@@ -1382,36 +1402,37 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
 
   /**
    * Trim every selected clip by `deltaBars` on the given edge.
-   * 'start' shrinks/grows the clip's left edge (start + length adjust),
-   * 'end' adjusts the right edge (length only). Clamped so a clip can
-   * never collapse below a quarter bar or start before bar 0.
+   *
+   * Audio clips trim their *content*: the read position follows the left edge so
+   * the sung audio stays where it was performed instead of sliding with the
+   * clip. MIDI clips stay pure geometry. Clamped so a clip can never collapse
+   * below a quarter bar, start before bar 0, or stretch past the audio it holds.
    */
   trimSelected(edge: "start" | "end", deltaBars: number): void {
     const ids = Array.from(this.selectedClipIds());
     if (ids.length === 0) return;
+    const secondsPerBar = (60 / this.musicManager.engine.tempo()) * 4;
     let changed = 0;
     ids.forEach((id) => {
       const found = this.findClipOwner(id);
       if (!found) return;
       const { track, clip } = found;
-      const start = clip.start || 0;
-      const length = clip.length || 4;
-      let nextStart = start;
-      let nextLength = length;
-
-      if (edge === "start") {
-        nextStart = Math.max(0, start + deltaBars);
-        const actualDelta = nextStart - start;
-        nextLength = Math.max(0.25, length - actualDelta);
-      } else {
-        nextLength = Math.max(0.25, length + deltaBars);
-      }
-
-      if (nextStart === start && nextLength === length) return;
-      this.musicManager.updateClip(track.id, id, {
-        start: nextStart,
-        length: nextLength,
-      });
+      const patch = trimClipContent(
+        {
+          type: clip.type,
+          start: clip.start || 0,
+          length: clip.length || 4,
+          offset: clip.offset ?? 0,
+          clipOriginSeconds: clip.clipOriginSeconds ?? 0,
+          streamed: !!clip.clipStreamer,
+          audioDurationSeconds: this.clipAudioDuration(clip),
+          secondsPerBar,
+        },
+        edge,
+        deltaBars,
+      );
+      if (!patch) return;
+      this.musicManager.updateClip(track.id, id, patch);
       changed++;
     });
     if (changed > 0) {
@@ -1423,6 +1444,19 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
         }`,
       );
     }
+  }
+
+  /**
+   * Decoded length of a clip's audio, when the project still holds it.
+   * `stemAudioCache` owns the PCM by clip/asset id; legacy clips carry it inline.
+   */
+  private clipAudioDuration(clip: StudioClip): number | undefined {
+    const ref = (clip as any).audioRefId;
+    const cached = ref ? this.musicManager.stemAudioCache?.get?.(ref) : null;
+    const duration = cached?.duration ?? (clip as any).audioData?.duration;
+    return typeof duration === "number" && Number.isFinite(duration) && duration > 0
+      ? duration
+      : undefined;
   }
 
   /**

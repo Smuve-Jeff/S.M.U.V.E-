@@ -23,6 +23,8 @@ import { GlobalErrorHandler } from './services/error-handler.service';
 import { ArtistLifecycleAlertService } from './services/artist-lifecycle-alert.service';
 import { CLOUD_SERVER } from './services/cloud-server-client';
 import { HttpCloudServer } from './services/http-cloud-server';
+import { VocalBackingTrackService } from './studio/backing-track.service';
+import { PROJECT_BACKING_TRACK } from './studio/project-backing-track.token';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -54,6 +56,13 @@ export const appConfig: ApplicationConfig = {
     TokenService,
     LoginConfirmationService,
     { provide: CLOUD_SERVER, useClass: HttpCloudServer },
+    /*
+     * The workspace stores each set's uploaded guide track through this port,
+     * so a set reopens with its backing instead of asking for the file again.
+     * Registering it here keeps the workspace free of a direct dependency on
+     * the vocal chain.
+     */
+    { provide: PROJECT_BACKING_TRACK, useExisting: VocalBackingTrackService },
     /*
      * Angular falls back to its built-in handler unless one is provided, and
      * the built-in one only logs to the console. Without this registration the

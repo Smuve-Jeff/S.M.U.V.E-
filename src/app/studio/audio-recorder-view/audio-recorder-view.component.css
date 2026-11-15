@@ -2067,3 +2067,119 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* ---------- BACKING TRACK ---------- */
+.arv-backing {
+  border: 1px solid var(--ivory-line);
+  background: var(--ivory-paper);
+  border-radius: 14px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.arv-backing-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.arv-backing-title {
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--espresso-text);
+}
+
+.arv-backing-sub {
+  margin: 4px 0 0;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--espresso-muted);
+  max-width: 52ch;
+}
+
+.arv-backing-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.arv-backing-actions label {
+  cursor: pointer;
+}
+
+.arv-backing-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.arv-backing-name {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--espresso-text);
+}
+
+.arv-backing-time {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--espresso-muted);
+}
+
+.arv-backing-level {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: var(--espresso-muted);
+}
+
+.arv-backing-level input {
+  width: 88px;
+  accent-color: var(--teal-500);
+}
+
+.arv-backing-error {
+  margin: 0;
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #b91c1c;
+}
+
+.arv-backing-countin {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--espresso-muted);
+}
+
+.arv-backing-countin input {
+  accent-color: var(--teal-500);
+}
+
+.arv-backing-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  background: var(--teal-500);
+  color: #fff;
+  font-family: var(--font-mono);
+  font-size: 12px;
+}

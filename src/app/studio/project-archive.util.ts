@@ -16,6 +16,30 @@ import { buildZip, crc32, type ZipEntry } from "./zip.util";
  */
 export const PROJECT_FORMAT_VERSION = 2;
 export const PROJECT_MANIFEST_NAME = "project.json";
+/** Path inside the ZIP for the set's uploaded guide track. */
+export const PROJECT_BACKING_ENTRY = "media/backing-track.bin";
+
+/** A guide track as the archive carries it: original bytes, not decoded audio. */
+export interface ArchiveMediaFile {
+  name: string;
+  data: Uint8Array;
+  mimeType?: string;
+}
+
+/** A guide track pulled back out of an archive, ready for media storage. */
+export interface ImportedBackingTrack {
+  name: string;
+  blob: Blob;
+}
+
+/**
+ * A bundle read from disk. A `.smuve` archive can also carry the uploaded
+ * guide track; it arrives as a Blob for the caller to adopt into that project's
+ * media, and is never part of the JSON record.
+ */
+export type ImportedProjectBundle = ProjectBundle & {
+  importedBackingTrack?: ImportedBackingTrack;
+};
 
 interface ArchiveAudioDescriptor extends Omit<SerializedAudioAsset, "channels"> {
   /** Path inside the ZIP, e.g. `audio/0000.f32`. */
@@ -25,12 +49,23 @@ interface ArchiveAudioDescriptor extends Omit<SerializedAudioAsset, "channels"> 
 interface ArchiveManifest extends Omit<ProjectBundle, "audioAssets"> {
   formatVersion: number;
   audioAssets: ArchiveAudioDescriptor[];
+  media?: { backingTrack?: { name: string; mimeType: string; file: string } };
 }
 
-/** Build the ZIP blob an artist downloads as `.smuve`. */
-export function buildProjectArchive(bundle: ProjectBundle): Blob {
+/**
+ * Build the ZIP blob an artist downloads as `.smuve`.
+ *
+ * `backingTrack` carries the uploaded guide the set was sung against. Its raw
+ * file bytes are stored rather than a decoded buffer, so the archive stays
+ * small and the importing device decodes with its own audio context.
+ */
+export function buildProjectArchive(
+  bundle: ProjectBundle,
+  backingTrack?: ArchiveMediaFile | null,
+): Blob {
   const entries: ZipEntry[] = [];
   const audioAssets: ArchiveAudioDescriptor[] = [];
+  let media: ArchiveManifest["media"];
 
   (bundle.audioAssets ?? []).forEach((asset, index) => {
     const channels = Array.isArray(asset.channels) ? asset.channels : [];
@@ -62,10 +97,23 @@ export function buildProjectArchive(bundle: ProjectBundle): Blob {
     });
   });
 
+  if (backingTrack?.data?.byteLength) {
+    // STORE, like the audio: the file is already compressed by its own codec.
+    entries.push({ name: PROJECT_BACKING_ENTRY, data: backingTrack.data });
+    media = {
+      backingTrack: {
+        name: backingTrack.name || "Backing track",
+        mimeType: backingTrack.mimeType || "application/octet-stream",
+        file: PROJECT_BACKING_ENTRY,
+      },
+    };
+  }
+
   const manifest: ArchiveManifest = {
     ...bundle,
     formatVersion: PROJECT_FORMAT_VERSION,
     audioAssets,
+    ...(media ? { media } : {}),
   };
   entries.unshift({
     name: PROJECT_MANIFEST_NAME,
@@ -93,19 +141,21 @@ export function isProjectArchive(bytes: ArrayBuffer | Uint8Array): boolean {
  * Accepting both is what makes old exports still re-importable after the
  * format change.
  */
-export async function readProjectFile(file: Blob): Promise<ProjectBundle> {
+export async function readProjectFile(
+  file: Blob,
+): Promise<ImportedProjectBundle> {
   const buffer = await file.arrayBuffer();
   if (isProjectArchive(buffer)) return readProjectArchive(buffer);
   const text = new TextDecoder()
     .decode(new Uint8Array(buffer))
     .replace(/^\uFEFF/, "");
-  return JSON.parse(text) as ProjectBundle;
+  return JSON.parse(text) as ImportedProjectBundle;
 }
 
 /** Parse a ZIP `.smuve` archive back into an in-memory project bundle. */
 export function readProjectArchive(
   bytes: ArrayBuffer | Uint8Array,
-): ProjectBundle {
+): ImportedProjectBundle {
   const entries = readZipEntries(
     bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes),
   );
@@ -167,10 +217,27 @@ export function readProjectArchive(
     },
   );
 
-  return {
-    ...manifest,
-    audioAssets,
-  } as ProjectBundle;
+  // `media` is archive plumbing, not song state: never spread it into the
+  // bundle that gets stored as the project record.
+  const { media, ...rest } = manifest;
+  const restored = { ...rest, audioAssets } as ImportedProjectBundle;
+  const backing = media?.backingTrack;
+  if (backing?.file) {
+    const data = entries.get(backing.file);
+    if (data && data.byteLength > 0) {
+      // Copy into a plain ArrayBuffer: the ZIP entry is a view over the whole
+      // archive, which must not be pinned in memory by this Blob.
+      const copy = new Uint8Array(data.byteLength);
+      copy.set(data);
+      restored.importedBackingTrack = {
+        name: backing.name || "Backing track",
+        blob: new Blob([copy.buffer], {
+          type: backing.mimeType || "application/octet-stream",
+        }),
+      };
+    }
+  }
+  return restored;
 }
 
 /** Minimal ZIP reader for archives this app writes (STORE entries). */

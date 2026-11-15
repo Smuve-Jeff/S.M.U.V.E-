@@ -383,6 +383,17 @@ export class MicrophoneService implements OnDestroy {
   }
 
   /**
+   * The stream the artist is actually singing through — the finished vocal
+   * chain when one is attached, else the raw input.
+   *
+   * Shared with the studio capture engine so a WAV take records exactly the
+   * signal the recorder's MediaRecorder would have captured, just losslessly.
+   */
+  getCaptureStream(): MediaStream | null {
+    return this.activeRecordingStream();
+  }
+
+  /**
    * Route the finished vocal chain into the recorder's capture bus.   * Safe to call repeatedly with the same node — the previous feed is
    * replaced instead of summed, which would otherwise double the signal.
    */

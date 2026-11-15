@@ -114,6 +114,7 @@ describe("ArrangementViewComponent", () => {
     toggleMute: jest.fn(),
     toggleSolo: jest.fn(),
     takesExpanded: signal({}),
+    stemAudioCache: new Map<string, any>(),
     addTrack: jest.fn(),
     updateClip: jest.fn(),
     copyClips: jest.fn(() => 1),
@@ -707,6 +708,80 @@ describe("ArrangementViewComponent", () => {
     expect(mockMusicManager.updateClip).toHaveBeenCalledWith("1", "clip-1", {
       start: 0,
       length: 3.75,
+    });
+  });
+
+  it("trims an audio clip's content instead of sliding it", () => {
+    mockMusicManager.tracks.set([
+      {
+        id: "1",
+        name: "Vox",
+        clips: [
+          {
+            id: "clip-1",
+            start: 4,
+            length: 4,
+            name: "Vocal Take 1",
+            type: "audio",
+            offset: 3,
+          },
+        ],
+        mute: false,
+        solo: false,
+      },
+    ]);
+    component.selectedClipIds.set(new Set(["clip-1"]));
+
+    component.trimSelected("start", 0.5);
+
+    // 124 BPM: half a bar is ~0.968 s, so the read position advances by that
+    // much and the sung audio keeps its place in the song.
+    const secondsPerBar = (60 / 124) * 4;
+    expect(mockMusicManager.updateClip).toHaveBeenCalledWith("1", "clip-1", {
+      start: 4.5,
+      length: 3.5,
+      offset: 3 + 0.5 * secondsPerBar,
+    });
+  });
+
+  it("starts a trim when a pointer lands on a clip edge and drags it", () => {
+    const clip = {
+      id: "clip-1",
+      start: 0,
+      length: 4,
+      name: "Vocal Take 1",
+      type: "audio",
+      offset: 0,
+    };
+    mockMusicManager.tracks.set([
+      { id: "1", name: "Vox", clips: [clip], mute: false, solo: false },
+    ]);
+    component.barWidth.set(100);
+
+    component.onClipPointerDown(
+      {
+        stopPropagation: jest.fn(),
+        shiftKey: false,
+        button: 0,
+        clientX: 400,
+        pointerId: 7,
+        currentTarget: null,
+      } as any,
+      "1",
+      clip as any,
+      3.99,
+    );
+
+    expect((component as any).activeClipGesture.mode).toBe("trim-end");
+
+    component.onGridPointerMove({
+      pointerId: 7,
+      clientX: 350,
+    } as any);
+
+    expect(mockMusicManager.updateClip).toHaveBeenCalledWith("1", "clip-1", {
+      start: 0,
+      length: 3.5,
     });
   });
 

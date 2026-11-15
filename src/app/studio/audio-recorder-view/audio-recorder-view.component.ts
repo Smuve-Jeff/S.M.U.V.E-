@@ -24,6 +24,13 @@ import { StudioVisualSchedulerService } from "../shared/studio-visual-scheduler.
 import { SmartRecordingService } from "../smart-recording.service";
 import { RecordingStatusService } from "../recording-status.service";
 import { PermissionService } from "../../services/permission.service";
+import { VocalBackingTrackService } from "../backing-track.service";
+import {
+  countInBeats,
+  countInBeatSeconds,
+  countInDurationSeconds,
+  scheduleCountInClicks,
+} from "../count-in.util";
 import { MicPermissionState, micPermissionNotice } from "./mic-permission";
 import {
   readPreferredInputDeviceId,
@@ -88,6 +95,8 @@ export class AudioRecorderViewComponent
   /** Registers this view's capture with the Studio-wide REC readout. */
   private readonly recordingStatus = inject(RecordingStatusService);
   private readonly captureStatusOwner = "audio-recorder";
+  /** Custom uploaded guide track — monitored, never captured into the take. */
+  public readonly backing = inject(VocalBackingTrackService);
 
   @ViewChild("waveformCanvas")
   waveformCanvasRef!: ElementRef<HTMLCanvasElement>;
@@ -185,8 +194,14 @@ export class AudioRecorderViewComponent
   isRecording = this.recorder.isRecording;
   recordingCount = computed(() => this.recordings().length);
   captureState = signal<
-    "idle" | "requesting" | "recording" | "stopping" | "error"
+    "idle" | "counting" | "requesting" | "recording" | "stopping" | "error"
   >("idle");
+  /** One-bar count-in before the take; on by default so a guide has a downbeat. */
+  countInEnabled = signal(true);
+  /** Beats left in the running count-in (null when none is running). */
+  countInRemaining = signal<number | null>(null);
+  /** Bumped whenever a count-in is cancelled, so a stale timer cannot arm. */
+  private countInToken = 0;
   captureError = signal<string | null>(null);
   inputDevices = signal<Array<{ deviceId: string; label: string }>>([]);
   /**
@@ -221,8 +236,9 @@ export class AudioRecorderViewComponent
   });
   deviceSwitchLocked = computed(
     () =>
-      ["requesting", "recording", "stopping"].includes(this.captureState()) ||
-      this.isRecording(),
+      ["counting", "requesting", "recording", "stopping"].includes(
+        this.captureState(),
+      ) || this.isRecording(),
   );
   capturePathLabel = signal("Raw microphone input");
   latestRecording = computed(() => this.recordings()[0] ?? null);
@@ -282,6 +298,8 @@ export class AudioRecorderViewComponent
       return "No input device";
     }
     switch (this.captureState()) {
+      case "counting":
+        return "Count-in — starting now";
       case "requesting":
         return "Requesting microphone";
       case "recording":
@@ -430,6 +448,105 @@ export class AudioRecorderViewComponent
 
   setNoiseGateThreshold(value: number): void {
     this.noiseGateThreshold.set(Math.max(-80, Math.min(-20, value)));
+  }
+
+  // ── Backing track + count-in ─────────────────────────────
+
+  toggleCountIn(): void {
+    this.countInEnabled.update((enabled) => !enabled);
+  }
+
+  /** Load a custom audio file to perform against. */
+  async onBackingFile(event: Event): Promise<void> {
+    const input = event.target as HTMLInputElement | null;
+    const file = input?.files?.[0];
+    // Clear the picker so choosing the same file again still fires `change`.
+    if (input) input.value = "";
+    if (!file) return;
+    const loaded = await this.backing.loadFile(file);
+    if (loaded) {
+      this.snackbar.success(`Backing track loaded — ${file.name}`);
+    } else {
+      this.snackbar.error(
+        this.backing.lastError() ?? "Could not read that audio file",
+      );
+    }
+  }
+
+  toggleBackingPlayback(): void {
+    this.haptic.light();
+    if (this.backing.isPlaying()) {
+      this.backing.stop();
+      return;
+    }
+    this.backing.play(this.backing.positionSeconds());
+  }
+
+  setBackingLevel(percent: number): void {
+    this.backing.setLevel(percent);
+  }
+
+  toggleBackingLoop(): void {
+    this.haptic.light();
+    this.backing.toggleLoop();
+  }
+
+  addBackingToArrangement(): void {
+    const name = this.backing.addToArrangement();
+    if (name) this.snackbar.success(`"${name}" added to the arrangement`);
+  }
+
+  clearBacking(): void {
+    this.backing.clear();
+    this.snackbar.info("Backing track removed");
+  }
+
+  /** Project tempo, read defensively so a host without a transport still clicks. */
+  private tempoBpm(): number {
+    const tempo = (this.audioEngine as any)?.tempo;
+    const value = typeof tempo === "function" ? tempo() : null;
+    return typeof value === "number" && Number.isFinite(value) && value > 0
+      ? value
+      : 120;
+  }
+
+  /** Stop a running count-in without arming anything. */
+  private cancelCountIn(): void {
+    this.countInToken += 1;
+    this.countInRemaining.set(null);
+  }
+
+  /**
+   * Click one bar before capture. Returns false when the artist cancels, so the
+   * caller leaves the take unarmed instead of recording over the count.
+   */
+  private async runCountIn(): Promise<boolean> {
+    const ctx = this.audioContext;
+    if (!this.countInEnabled() || !ctx) return true;
+    const tempo = this.tempoBpm();
+    const beats = countInBeats(1);
+    const beatSeconds = countInBeatSeconds(tempo);
+    const totalSeconds = countInDurationSeconds(1, tempo);
+    if (!(totalSeconds > 0)) return true;
+
+    const token = ++this.countInToken;
+    const startAt = ctx.currentTime + 0.08;
+    scheduleCountInClicks(ctx, {
+      beats,
+      beatSeconds,
+      startAt,
+      onError: (error) =>
+        this.logger.warn("Could not schedule the count-in click", error),
+    });
+    this.captureState.set("counting");
+    this.countInRemaining.set(beats);
+    await new Promise<void>((resolve) =>
+      setTimeout(resolve, totalSeconds * 1000 + 30),
+    );
+    this.countInRemaining.set(null);
+    if (token !== this.countInToken) return false;
+    this.captureState.set("requesting");
+    return true;
   }
 
   setInputTrim(value: number): void {
@@ -595,6 +712,8 @@ export class AudioRecorderViewComponent
   ngOnDestroy(): void {
     // Stop any in-flight backfill from touching signals after teardown.
     this.disposed = true;
+    this.cancelCountIn();
+    this.backing.stop();
     this.clearElapsedTimer();
     this.clearRecordingElapsedTimer();
     this.stopLevelMeter();
@@ -902,6 +1021,7 @@ export class AudioRecorderViewComponent
         : "The microphone disconnected mid-take. The take was stopped — check the input before recording again.",
     );
     this.recorder.stopRecording();
+    this.backing.stop();
     this.clearElapsedTimer();
     this.stopWaveform();
     this.clearRecordingElapsedTimer();
@@ -1096,10 +1216,22 @@ export class AudioRecorderViewComponent
   }
 
   async toggleRecord(): Promise<void> {
+    // Checked before the start guard: the count-in runs *inside* the arming
+    // call, so a second press must still be able to cancel it.
+    if (this.captureState() === "counting") {
+      this.haptic.medium();
+      this.cancelCountIn();
+      this.captureState.set("idle");
+      this.backing.stop();
+      this.snackbar.info("Count-in cancelled");
+      return;
+    }
     if (this.startingRecording || this.captureState() === "requesting" || this.captureState() === "stopping") return;
     this.haptic.medium();
     if (this.isRecording() || this.captureState() === "recording") {
       this.captureState.set("stopping");
+      this.cancelCountIn();
+      this.backing.stop();
       this.recorder.stopRecording();
       this.clearElapsedTimer();
       this.stopWaveform();
@@ -1131,8 +1263,15 @@ export class AudioRecorderViewComponent
       this.restoreInputTrimForDevice(this.selectedInputId());
       void this.refreshMonitorOutputs();
       this.startLevelMeter(this.currentStream()!);
+      // A bar of click first, so the take and the guide share a downbeat.
+      if (!(await this.runCountIn())) {
+        this.captureState.set("idle");
+        this.snackbar.info("Count-in cancelled");
+        return;
+      }
       const captureStream =
         this.captureDestination?.stream ?? this.currentStream()!;
+      if (this.backing.hasTrack()) this.backing.restart();
       await this.recorder.startRecording(captureStream);
       this.startedAt = Date.now();
       this.captureState.set("recording");
