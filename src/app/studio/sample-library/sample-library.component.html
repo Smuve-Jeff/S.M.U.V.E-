@@ -76,6 +76,51 @@
     </button>
   </p>
 
+  <!-- COMMUNITY PACKS -->
+  <div class="sl-pack-tools">
+    <button
+      type="button"
+      class="sl-fav-filter"
+      (click)="packFileInput.click()"
+      aria-label="Install a community sample pack"
+      title="Install a .smuvepack.json manifest plus its audio files"
+    >
+      <span class="material-symbols-outlined" aria-hidden="true">folder_open</span>
+      Install pack
+    </button>
+    <input
+      #packFileInput
+      type="file"
+      multiple
+      accept=".smuvepack.json,.wav,.mp3,.ogg,audio/wav,audio/mpeg,audio/ogg"
+      (change)="installPackFiles($event)"
+      hidden
+      aria-label="Pick a pack manifest and its audio files"
+    />
+    <ng-container *ngIf="selectedCommunityPack() as community">
+      <button
+        type="button"
+        class="sl-fav-filter"
+        (click)="exportSelectedPack()"
+        [attr.aria-label]="'Share ' + community.name"
+        title="Download the manifest plus its audio to share"
+      >
+        <span class="material-symbols-outlined" aria-hidden="true">share</span>
+        Share
+      </button>
+      <button
+        type="button"
+        class="sl-fav-filter"
+        (click)="uninstallSelectedPack()"
+        [attr.aria-label]="'Uninstall ' + community.name"
+        title="Remove the pack and its stored audio"
+      >
+        <span class="material-symbols-outlined" aria-hidden="true">delete</span>
+        Uninstall
+      </button>
+    </ng-container>
+  </div>
+
   <!-- GRID -->
   <div class="sl-grid studio-module-scroll" role="list">
     <article
@@ -105,7 +150,7 @@
       </div>
       <div class="sl-card-body">
         <div class="sl-card-name">{{ sample.name }}</div>
-        <div class="sl-card-pack">{{ packFor(sample) }}</div>
+        <div class="sl-card-pack">{{ packLabel(sample) }}</div>
         <div class="sl-card-tags">
           <button
             *ngFor="let tag of sample.tags.slice(0, 3)"

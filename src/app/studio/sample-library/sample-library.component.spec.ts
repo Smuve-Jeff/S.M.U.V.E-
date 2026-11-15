@@ -6,6 +6,8 @@ import { MusicManagerService } from "../../services/music-manager.service";
 import { AudioEngineService } from "../../services/audio-engine.service";
 import { SnackbarService } from "../../services/snackbar.service";
 import { HapticService } from "../../services/haptic.service";
+import { SamplePackService } from "../sample-pack.service";
+import { SamplerStateService } from "../sampler-state.service";
 
 describe("SampleLibraryComponent", () => {
   let component: SampleLibraryComponent;
@@ -44,8 +46,38 @@ describe("SampleLibraryComponent", () => {
 
   const mockHaptic = { light: jest.fn(), medium: jest.fn(), heavy: jest.fn() };
 
+  const communityPack = {
+    format: "smuve-pack",
+    id: "night-drums",
+    name: "Night Drums",
+    version: "1.0.0",
+    author: "Test Press",
+    description: "Dark drums.",
+    genre: "trap",
+    samples: [
+      { file: "kick.wav", name: "NIGHT KICK", category: "drum", tags: ["kick"] },
+    ],
+    installedAt: 1,
+    blobIds: ["pack:night-drums/kick.wav"],
+    totalBytes: 64,
+  };
+
+  const mockPackService = {
+    packs: signal<any[]>([]),
+    installFromFiles: jest.fn(),
+    uninstall: jest.fn(),
+    readSample: jest.fn(),
+    buildExport: jest.fn(),
+  };
+
+  const mockSamplerState = {
+    loadSlices: jest.fn().mockResolvedValue([60]),
+  };
+
   beforeEach(async () => {
     jest.clearAllMocks();
+    mockPackService.packs.set([]);
+    mockPackService.readSample.mockResolvedValue(null);
     await TestBed.configureTestingModule({
       imports: [SampleLibraryComponent],
       providers: [
@@ -54,6 +86,8 @@ describe("SampleLibraryComponent", () => {
         { provide: AudioEngineService, useValue: mockAudioEngine },
         { provide: SnackbarService, useValue: mockSnackbar },
         { provide: HapticService, useValue: mockHaptic },
+        { provide: SamplePackService, useValue: mockPackService },
+        { provide: SamplerStateService, useValue: mockSamplerState },
       ],
       schemas: [NO_ERRORS_SCHEMA],
     }).compileComponents();
@@ -256,5 +290,86 @@ describe("SampleLibraryComponent", () => {
     component.dragSampleId.set("kick");
     component.onDragEnd();
     expect(component.dragSampleId()).toBeNull();
+  });
+
+  it("shelves an installed community pack beside the factory packs", () => {
+    mockPackService.packs.set([communityPack]);
+
+    const packs = component.packs();
+    const community = packs.find((pack) => pack.id === "community:night-drums");
+    expect(community?.label).toBe("Night Drums");
+    expect(community?.count).toBe(1);
+
+    component.selectPack("community:night-drums");
+    expect(component.filteredSamples().map((sample) => sample.id)).toEqual([
+      "pack:night-drums/kick.wav",
+    ]);
+    expect(component.packLabel(component.filteredSamples()[0])).toBe(
+      "Night Drums",
+    );
+    component.selectPack("all");
+  });
+
+  it("previews a community sample with its real audio", async () => {
+    const bytes = new Uint8Array(64);
+    mockPackService.readSample.mockResolvedValue({
+      arrayBuffer: jest.fn().mockResolvedValue(bytes.buffer),
+    });
+    mockPackService.packs.set([communityPack]);
+
+    await component.previewSample("pack:night-drums/kick.wav");
+
+    expect(mockPackService.readSample).toHaveBeenCalledWith(
+      "night-drums",
+      "kick.wav",
+    );
+    expect(component.previewingId()).toBe("pack:night-drums/kick.wav");
+  });
+
+  it("loads a community sample onto the sampler pads", async () => {
+    const bytes = new Uint8Array(64);
+    mockPackService.readSample.mockResolvedValue({
+      arrayBuffer: jest.fn().mockResolvedValue(bytes.buffer),
+    });
+    mockPackService.packs.set([communityPack]);
+
+    component.loadSample("pack:night-drums/kick.wav");
+    await new Promise((resolve) => setTimeout(resolve, 20));
+
+    expect(mockSamplerState.loadSlices).toHaveBeenCalledTimes(1);
+    expect(mockSnackbar.success).toHaveBeenCalledWith(
+      expect.stringMatching(/NIGHT KICK → sampler pad 60/),
+    );
+  });
+
+  it("installs a picked pack and selects its shelf", async () => {
+    mockPackService.installFromFiles.mockResolvedValue({
+      ok: true,
+      packId: "night-drums",
+    });
+
+    await component.installPackFiles({
+      target: { files: [new File(["{}"], "a.smuvepack.json")], value: "" },
+    } as any);
+
+    expect(mockPackService.installFromFiles).toHaveBeenCalledTimes(1);
+    expect(mockSnackbar.success).toHaveBeenCalled();
+    expect(component.selectedPack()).toBe("community:night-drums");
+  });
+
+  it("reports an install refusal instead of switching shelf", async () => {
+    mockPackService.installFromFiles.mockResolvedValue({
+      ok: false,
+      error: "No pack manifest found (a .smuvepack.json file).",
+    });
+
+    await component.installPackFiles({
+      target: { files: [new File(["x"], "x.txt")], value: "" },
+    } as any);
+
+    expect(mockSnackbar.error).toHaveBeenCalledWith(
+      "No pack manifest found (a .smuvepack.json file).",
+    );
+    expect(component.selectedPack()).toBe("all");
   });
 });

@@ -6,6 +6,8 @@ import { MusicManagerService } from "../../services/music-manager.service";
 import { AudioEngineService } from "../../services/audio-engine.service";
 import { SnackbarService } from "../../services/snackbar.service";
 import { HapticService } from "../../services/haptic.service";
+import { SamplePackService } from "../sample-pack.service";
+import { SamplerStateService } from "../sampler-state.service";
 
 interface LibraryCategory {
   id: string;
@@ -37,6 +39,8 @@ export class SampleLibraryComponent implements OnInit {
   private audioEngine = inject(AudioEngineService);
   private snackbar = inject(SnackbarService);
   private haptic = inject(HapticService);
+  private packService = inject(SamplePackService);
+  private samplerState = inject(SamplerStateService);
 
   private static readonly FAVORITES_KEY = "smuve_sample_favorites_v1";
 
@@ -415,6 +419,25 @@ export class SampleLibraryComponent implements OnInit {
     ];
   });
 
+  /**
+   * Installed community packs flattened into the grid's entry shape. Kept
+   * separate from the factory catalog so search, tags, favorites and the
+   * pack filter all keep working without touching the factory code path.
+   */
+  packEntries = computed(() =>
+    this.packService.packs().flatMap((pack) =>
+      pack.samples.map((sample) => ({
+        id: `pack:${pack.id}/${sample.file}`,
+        name: sample.name,
+        category: sample.category,
+        tags: sample.tags ?? [],
+        icon: "audio_file",
+        pack: `community:${pack.id}`,
+        packAudio: { packId: pack.id, file: sample.file },
+      })),
+    ),
+  );
+
   /** Factory packs group the shelf into coherent production palettes. */
   packs = computed<LibraryPack[]>(() => {
     const definitions: Array<Pick<LibraryPack, "id" | "label" | "blurb">> = [
@@ -439,13 +462,19 @@ export class SampleLibraryComponent implements OnInit {
         blurb: "Pads, choir, grand piano and transition design.",
       },
     ];
-    return definitions.map((definition) => ({
+    const community = this.packService.packs().map((pack) => ({
+      id: `community:${pack.id}`,
+      label: pack.name,
+      blurb: `${pack.description} — community pack by ${pack.author}.`,
+    }));
+    return [...definitions, ...community].map((definition) => ({
       ...definition,
       count:
         definition.id === "all"
-          ? this.rawSamples.length
-          : this.rawSamples.filter((sample) => this.packFor(sample) === definition.id)
-              .length,
+          ? this.rawSamples.length + this.packEntries().length
+          : [...this.rawSamples, ...this.packEntries()].filter(
+              (sample) => this.packFor(sample) === definition.id,
+            ).length,
     }));
   });
 
@@ -466,6 +495,26 @@ export class SampleLibraryComponent implements OnInit {
     return this.packs().find((entry) => entry.id === pack)?.blurb ?? "";
   }
 
+  /** Card shelf line: community entries show the pack name, not its id. */
+  packLabel(sample: { category: string; pack?: string }): string {
+    const id = this.packFor(sample);
+    if (!id.startsWith("community:")) return id;
+    const pack = this.packService
+      .packs()
+      .find((entry) => `community:${entry.id}` === id);
+    return pack?.name ?? "Community pack";
+  }
+
+  /** The installed community pack behind the selected shelf entry, if any. */
+  selectedCommunityPack = computed(() => {
+    const id = this.selectedPack();
+    if (!id.startsWith("community:")) return null;
+    return (
+      this.packService.packs().find((pack) => `community:${pack.id}` === id) ??
+      null
+    );
+  });
+
   filteredSamples = computed(() => {
     const q = this.searchQuery().toLowerCase();
     const cat = this.selectedCategory();
@@ -473,7 +522,8 @@ export class SampleLibraryComponent implements OnInit {
     const pack = this.selectedPack();
     const favoritesOnly = this.favoritesOnly();
     const favorites = this.favorites();
-    return this.rawSamples.filter((s) => {
+    const entries = [...this.rawSamples, ...this.packEntries()];
+    return entries.filter((s) => {
       const matchesSearch =
         s.name.toLowerCase().includes(q) ||
         s.id.toLowerCase().includes(q) ||
@@ -655,6 +705,11 @@ export class SampleLibraryComponent implements OnInit {
   loadSample(sampleId: string): void {
     this.haptic.medium();
     this.audioEngine.resume();
+    const packEntry = this.packEntries().find((entry) => entry.id === sampleId);
+    if (packEntry) {
+      void this.loadPackSample(packEntry);
+      return;
+    }
     const sample = this.rawSamples.find((s) => s.id === sampleId);
     const presetId =
       SampleLibraryComponent.SAMPLE_TO_PRESET[sampleId] ?? sampleId;
@@ -674,6 +729,11 @@ export class SampleLibraryComponent implements OnInit {
     if (this.previewingId() === sampleId) return;
     this.previewingId.set(sampleId);
     this.haptic.light();
+    const packEntry = this.packEntries().find((entry) => entry.id === sampleId);
+    if (packEntry) {
+      await this.previewPackSample(packEntry);
+      return;
+    }
     const sample = this.rawSamples.find((s) => s.id === sampleId);
     this.playSampleAudition(sample);
     setTimeout(() => {
@@ -793,6 +853,146 @@ export class SampleLibraryComponent implements OnInit {
     if (cat === "vfx") {
       osc.frequency.exponentialRampToValueAtTime(freq * 0.25, now + dur);
     }
+  }
+
+  /** Decode cache so re-previewing a pack sample never re-reads storage. */
+  private decodedPacks = new Map<string, AudioBuffer>();
+
+  private async decodePackSample(entry: {
+    id: string;
+    packAudio: { packId: string; file: string };
+  }): Promise<AudioBuffer | null> {
+    const cached = this.decodedPacks.get(entry.id);
+    if (cached) return cached;
+    const ctx = this.audioEngine.ctx as AudioContext | null | undefined;
+    if (!ctx || typeof ctx.decodeAudioData !== "function") return null;
+    const blob = await this.packService.readSample(
+      entry.packAudio.packId,
+      entry.packAudio.file,
+    );
+    if (!blob) return null;
+    try {
+      const bytes = await blob.arrayBuffer();
+      // decodeAudioData detaches its input, so never hand it a buffer that
+      // is read again afterwards.
+      const buffer = await ctx.decodeAudioData(bytes.slice(0));
+      this.decodedPacks.set(entry.id, buffer);
+      return buffer;
+    } catch {
+      return null;
+    }
+  }
+
+  /** Real-audio preview for community pack samples. */
+  private async previewPackSample(entry: {
+    id: string;
+    name: string;
+    packAudio: { packId: string; file: string };
+  }): Promise<void> {
+    // The caller already claimed previewingId for this entry (and guards
+    // re-entry), so no second guard here — it would always bail out.
+    const ctx = this.audioEngine.ctx as AudioContext | null | undefined;
+    const buffer = await this.decodePackSample(entry);
+    if (!buffer || !ctx) {
+      this.previewingId.set(null);
+      this.snackbar.error(`Could not preview ${entry.name}.`);
+      return;
+    }
+    try {
+      this.audioEngine.resume();
+      const source = ctx.createBufferSource();
+      source.buffer = buffer;
+      source.connect(this.audioEngine.masterGain ?? ctx.destination);
+      source.onended = () => {
+        if (this.previewingId() === entry.id) this.previewingId.set(null);
+      };
+      source.start();
+      setTimeout(() => {
+        if (this.previewingId() === entry.id) this.previewingId.set(null);
+      }, Math.min(8000, (buffer.duration || 1) * 1000 + 250));
+      this.snackbar.info(`Previewing ${entry.name}`);
+    } catch {
+      this.previewingId.set(null);
+      this.snackbar.error(`Could not preview ${entry.name}.`);
+    }
+  }
+
+  /** Load a community sample onto the shared sampler pads. */
+  private async loadPackSample(entry: {
+    id: string;
+    name: string;
+    packAudio: { packId: string; file: string };
+  }): Promise<void> {
+    const buffer = await this.decodePackSample(entry);
+    if (!buffer) {
+      this.snackbar.error(`Could not load ${entry.name}.`);
+      return;
+    }
+    try {
+      const pitches = await this.samplerState.loadSlices([buffer]);
+      if (pitches.length === 0) {
+        this.snackbar.error("All sampler pads are full.");
+        return;
+      }
+      this.snackbar.success(
+        `Sample loaded: ${entry.name} → sampler pad ${pitches[0]}`,
+      );
+    } catch {
+      this.snackbar.error(`Could not load ${entry.name}.`);
+    }
+  }
+
+  /** Install from a manifest plus its sibling audio, picked in one dialog. */
+  async installPackFiles(event: Event): Promise<void> {
+    const input = event.target as HTMLInputElement | null;
+    const files = input?.files ? Array.from(input.files) : [];
+    if (input) input.value = "";
+    if (files.length === 0) return;
+    const result = await this.packService.installFromFiles(files);
+    if (result.ok && result.packId) {
+      this.haptic.medium();
+      this.snackbar.success("Pack installed — find it on the packs shelf.");
+      this.selectPack(`community:${result.packId}`);
+    } else {
+      this.haptic.heavy();
+      this.snackbar.error(result.error ?? "Could not install the pack.");
+    }
+  }
+
+  async uninstallSelectedPack(): Promise<void> {
+    const pack = this.selectedCommunityPack();
+    if (!pack) return;
+    await this.packService.uninstall(pack.id);
+    for (const id of pack.blobIds) this.decodedPacks.delete(id);
+    this.selectPack("all");
+    this.snackbar.success(`Uninstalled ${pack.name}.`);
+  }
+
+  exportSelectedPack(): void {
+    const pack = this.selectedCommunityPack();
+    if (!pack) return;
+    void this.packService.buildExport(pack.id).then((bundle) => {
+      if (!bundle) {
+        this.snackbar.error(`Could not share ${pack.name}: audio missing.`);
+        return;
+      }
+      this.downloadBlob(bundle.manifestBlob, bundle.manifestName);
+      for (const file of bundle.files) this.downloadBlob(file.blob, file.name);
+      this.snackbar.success(
+        `Sharing ${pack.name}: save the manifest plus its ${bundle.files.length} audio files together.`,
+      );
+    });
+  }
+
+  private downloadBlob(blob: Blob, name: string): void {
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = name;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
   }
 
   private clearCardPressState(): void {
