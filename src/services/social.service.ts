@@ -215,15 +215,22 @@ export const listBlockedUsers = async (
   }));
 };
 
-/** Strip users the actor has blocked from a discovery list. */
+/**
+ * Strip blocked pairs from a discovery list in EITHER direction. Filtering
+ * only the actor's own blocks left the blocked user able to see the blocker
+ * in friends, search, and featured results.
+ */
 export const filterBlocked = async (
   userId: string,
   users: OnlineUserRow[],
 ): Promise<OnlineUserRow[]> => {
   const cache = await loadBlockedPairs();
-  const myBlocks = cache.get(userId);
-  if (!myBlocks || myBlocks.size === 0) return users;
-  return users.filter((user) => !myBlocks.has(user.userId));
+  const hidden = new Set<string>(cache.get(userId) ?? []);
+  for (const [otherId, blocked] of cache) {
+    if (blocked.has(userId)) hidden.add(otherId);
+  }
+  if (hidden.size === 0) return users;
+  return users.filter((user) => !hidden.has(String(user.userId)));
 };
 
 const profileToOnlineUser = (

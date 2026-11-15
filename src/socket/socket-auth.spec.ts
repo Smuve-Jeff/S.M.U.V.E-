@@ -86,6 +86,7 @@ jest.mock("@/services", () => ({
   activateSessionMember: jest.fn(async () => undefined),
   buildSessionSyncPayload: jest.fn(async () => ({})),
   isEitherBlocked: jest.fn(async () => false),
+  filterBlocked: jest.fn(async (_userId: string, users: any[]) => users),
   isUserBlocked: jest.fn(async () => false),
   listRoomMessages: jest.fn(async () => []),
   persistRoomMessage: jest.fn(async (input: any) => ({

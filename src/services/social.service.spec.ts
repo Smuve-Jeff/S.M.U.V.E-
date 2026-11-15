@@ -651,6 +651,18 @@ describe("blocklist service", () => {
     expect(result.map((u) => u.userId)).toEqual(["u3"]);
   });
 
+  it("filterBlocked also hides users who blocked the actor", async () => {
+    invalidateBlockCache();
+    setBlockRows([{ userId: "u2", blockedUserId: "u1" }]);
+
+    const result = await filterBlocked("u1", [
+      { userId: "u2" },
+      { userId: "u3" },
+    ]);
+
+    expect(result.map((u) => u.userId)).toEqual(["u3"]);
+  });
+
   it("searchUsers excludes discovery opt-outs and protects hidden location details", async () => {
     const builder = {
       andWhere: jest.fn().mockReturnThis(),

@@ -8,6 +8,7 @@ import {
   emitFriendRequestReceived,
   emitFriendRequestResolved,
   emitFriendRequestsRead,
+  refreshOnlinePresence,
 } from "@/socket";
 import {
   addFriend,
@@ -126,12 +127,19 @@ router.put("/:userId/blocks/:blockedUserId", own, async (req, res) => {
     req.params.userId,
     req.params.blockedUserId,
   );
+  // Presence is personalized by the blocklist, so both rosters must recompute.
+  refreshOnlinePresence();
   res.json(blocked);
 });
 
 // DELETE /api/users/:userId/blocks/:blockedUserId — unblock a player
 router.delete("/:userId/blocks/:blockedUserId", own, async (req, res) => {
-  res.json(await unblockUser(req.params.userId, req.params.blockedUserId));
+  const unblocked = await unblockUser(
+    req.params.userId,
+    req.params.blockedUserId,
+  );
+  refreshOnlinePresence();
+  res.json(unblocked);
 });
 
 // POST /api/users/:userId/friends/:friendId
