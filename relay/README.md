@@ -205,7 +205,16 @@ restarted ffmpeg itself — with the browser-side publish left connected
 throughout, which is what makes a relay restart invisible upstream.
 
 It skips when the binaries (or werift) are absent, so the normal suite never
-needs them:
+needs them. To fetch what it needs and run it in one command:
+
+```bash
+npm run test:relay:e2e:setup
+```
+
+That installs `ffmpeg-static` and `werift` and downloads the pinned MediaMTX
+release into `node_modules/.e2e` (gitignored), then runs the suite. Already
+provisioned tools are reused; `-- --force` re-fetches, and `-- --provision-only`
+stops after fetching. If you already have them, point the suite at your own:
 
 ```bash
 RELAY_FFMPEG_PATH=/path/to/ffmpeg \

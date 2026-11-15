@@ -20,6 +20,7 @@
     "test": "NODE_OPTIONS=--max-old-space-size=4096 jest",
     "test:relay": "node --test relay/test",
     "test:relay:e2e": "node --test relay/test/e2e-media.test.mjs",
+    "test:relay:e2e:setup": "node scripts/relay-e2e.mjs",
     "test:e2e:samples": "playwright test tests/e2e/factory-samples.spec.ts",
     "audit:links": "node scripts/audit-links.mjs",
     "audit:tha-spot-artwork": "node scripts/audit-tha-spot-artwork.cjs",
