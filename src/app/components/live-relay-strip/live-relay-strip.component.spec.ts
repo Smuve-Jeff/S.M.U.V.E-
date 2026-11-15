@@ -248,6 +248,15 @@ describe("LiveRelayStripComponent", () => {
     expect(values()[0]).toBe("STATIC TURN");
 
     turnHealth.set({
+      configured: true,
+      managed: false,
+      available: true,
+      source: "public",
+    });
+    fixture.detectChanges();
+    expect(values()[0]).toBe("PUBLIC RELAY FALLBACK");
+
+    turnHealth.set({
       configured: false,
       managed: false,
       available: false,

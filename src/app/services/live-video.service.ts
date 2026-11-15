@@ -36,7 +36,7 @@ export interface LiveTurnHealth {
   configured: boolean;
   managed: boolean;
   available: boolean;
-  source: "cloudflare" | "static" | "none";
+  source: "cloudflare" | "static" | "public" | "none";
 }
 
 /** Host-side view of one viewer's media path. */

@@ -23,10 +23,30 @@ export interface TurnHealth {
   managed: boolean;
   /** At least one TURN URL was returned to the browser. */
   available: boolean;
-  source: "cloudflare" | "static" | "none";
+  source: "cloudflare" | "static" | "public" | "none";
 }
 
 const CLOUDFLARE_TURN_URL = "https://rtc.live.cloudflare.com/v1/turn/keys";
+/**
+ * Public TURN relay used only when no TURN credentials are configured.
+ *
+ * Open Relay (Metered) is a free public relay on 80 and 443 — the two ports
+ * corporate and mobile firewalls actually allow — so a viewer behind a
+ * symmetric NAT can still receive a broadcast on a deployment with no TURN
+ * key. Media stays DTLS-SRTP encrypted end to end; the relay forwards packets
+ * it cannot read. It is shared and best effort (20 GB/month), so an operator
+ * should switch to managed credentials when they can:
+ *   TURN_PUBLIC_FALLBACK=off
+ * or point TURN_PUBLIC_FALLBACK_URLS at their own relay (e.g. coturn).
+ */
+const DEFAULT_PUBLIC_TURN_URLS = [
+  "turn:openrelay.metered.ca:80",
+  "turn:openrelay.metered.ca:80?transport=tcp",
+  "turn:openrelay.metered.ca:443",
+  "turns:openrelay.metered.ca:443?transport=tcp",
+];
+const DEFAULT_PUBLIC_TURN_USERNAME = "openrelayproject";
+const DEFAULT_PUBLIC_TURN_CREDENTIAL = "openrelayproject";
 const DEFAULT_STUN_URLS =
   "stun:stun.l.google.com:19302,stun:stun1.l.google.com:19302";
 const DEFAULT_TTL_SECONDS = 3600;
@@ -66,7 +86,27 @@ const isIceServer = (value: unknown): value is TurnIceServer => {
   );
 };
 
-/** Fallback STUN and static TURN configured directly in the environment. */
+/**
+ * The last-resort relay, or null when the operator opted out. Credentials are
+ * public by design on the shared relay; pointing the URLs at your own server
+ * keeps media on your own infrastructure.
+ */
+const publicTurnFallback = (): TurnIceServer | null => {
+  const mode = (process.env.TURN_PUBLIC_FALLBACK || "").trim().toLowerCase();
+  if (mode === "off" || mode === "false" || mode === "0") return null;
+  const configured = splitUrls(process.env.TURN_PUBLIC_FALLBACK_URLS);
+  return {
+    urls: configured.length ? configured : DEFAULT_PUBLIC_TURN_URLS,
+    username:
+      process.env.TURN_PUBLIC_FALLBACK_USERNAME?.trim() ||
+      DEFAULT_PUBLIC_TURN_USERNAME,
+    credential:
+      process.env.TURN_PUBLIC_FALLBACK_CREDENTIAL?.trim() ||
+      DEFAULT_PUBLIC_TURN_CREDENTIAL,
+  };
+};
+
+/** Fallback STUN, operator TURN, then the shared public relay. */
 const fallbackIceServers = (): TurnIceServer[] => {
   const servers: TurnIceServer[] = [];
   const stun = splitUrls(process.env.STUN_URLS || DEFAULT_STUN_URLS);
@@ -76,8 +116,12 @@ const fallbackIceServers = (): TurnIceServer[] => {
   const username = process.env.TURN_USERNAME?.trim();
   const credential = process.env.TURN_CREDENTIAL?.trim();
   if (turnUrls.length && username && credential) {
+    // An operator-configured relay wins; no third party is involved.
     servers.push({ urls: turnUrls, username, credential });
+    return servers;
   }
+  const publicRelay = publicTurnFallback();
+  if (publicRelay) servers.push(publicRelay);
   return servers;
 };
 
@@ -161,11 +205,18 @@ const describeTurn = (servers: TurnIceServer[]): TurnHealth => {
   );
   const source = turnUrls.some((url) => /turn\.cloudflare\.com/i.test(url))
     ? "cloudflare"
-    : turnUrls.length
-      ? "static"
-      : "none";
+    : turnUrls.some((url) =>
+          /(openrelay|relay)\.metered\.ca/i.test(url),
+        )
+      ? "public"
+      : turnUrls.length
+        ? "static"
+        : "none";
   return {
-    configured: managed || splitUrls(process.env.TURN_URLS).length > 0,
+    configured:
+      managed ||
+      splitUrls(process.env.TURN_URLS).length > 0 ||
+      turnUrls.length > 0,
     managed,
     available: turnUrls.length > 0,
     source,

@@ -9,6 +9,17 @@ const jsonResponse = (body: unknown, status = 201) =>
     json: async () => body,
   }) as Response;
 
+const PUBLIC_RELAY = {
+  urls: [
+    "turn:openrelay.metered.ca:80",
+    "turn:openrelay.metered.ca:80?transport=tcp",
+    "turn:openrelay.metered.ca:443",
+    "turns:openrelay.metered.ca:443?transport=tcp",
+  ],
+  username: "openrelayproject",
+  credential: "openrelayproject",
+};
+
 const cloudflareBody = {
   iceServers: [
     {
@@ -35,6 +46,10 @@ describe("getIceServers", () => {
     "CLOUDFLARE_TURN_KEY_ID",
     "CLOUDFLARE_TURN_API_TOKEN",
     "TURN_TTL_SECONDS",
+    "TURN_PUBLIC_FALLBACK",
+    "TURN_PUBLIC_FALLBACK_URLS",
+    "TURN_PUBLIC_FALLBACK_USERNAME",
+    "TURN_PUBLIC_FALLBACK_CREDENTIAL",
   ];
 
   beforeEach(() => {
@@ -54,14 +69,37 @@ describe("getIceServers", () => {
     jest.restoreAllMocks();
   });
 
-  it("returns public STUN when nothing else is configured", async () => {
+  it("returns STUN plus the shared relay when nothing else is configured", async () => {
+    const servers = await getIceServers();
+    expect(servers).toEqual([
+      {
+        urls: ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302"],
+      },
+      PUBLIC_RELAY,
+    ]);
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it("drops the shared relay when the operator opts out", async () => {
+    process.env.TURN_PUBLIC_FALLBACK = "off";
     const servers = await getIceServers();
     expect(servers).toEqual([
       {
         urls: ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302"],
       },
     ]);
-    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it("points the fallback relay at a self-hosted server when configured", async () => {
+    process.env.TURN_PUBLIC_FALLBACK_URLS = "turn:relay.example.com:3478";
+    process.env.TURN_PUBLIC_FALLBACK_USERNAME = "self-hosted";
+    process.env.TURN_PUBLIC_FALLBACK_CREDENTIAL = "self-secret";
+    const servers = await getIceServers();
+    expect(servers[1]).toEqual({
+      urls: ["turn:relay.example.com:3478"],
+      username: "self-hosted",
+      credential: "self-secret",
+    });
   });
 
   it("adds statically configured TURN credentials as a fallback", async () => {
@@ -79,7 +117,19 @@ describe("getIceServers", () => {
     });
   });
 
-  it("reports no relay when only STUN is available", async () => {
+  it("reports the shared relay when it is the only one available", async () => {
+    const config = await getIceConfig();
+    expect(config.iceServers).toHaveLength(2);
+    expect(config.turn).toEqual({
+      configured: true,
+      managed: false,
+      available: true,
+      source: "public",
+    });
+  });
+
+  it("reports no relay at all when the shared fallback is disabled", async () => {
+    process.env.TURN_PUBLIC_FALLBACK = "off";
     const config = await getIceConfig();
     expect(config.iceServers).toHaveLength(1);
     expect(config.turn).toEqual({
@@ -159,10 +209,13 @@ describe("getIceServers", () => {
 
     const servers = await getIceServers();
 
+    // Managed TURN is down, but the shared relay still lets a restricted
+    // viewer connect instead of leaving the feed STUN-only.
     expect(servers).toEqual([
       {
         urls: ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302"],
       },
+      PUBLIC_RELAY,
     ]);
     expect(warn).toHaveBeenCalledWith(
       "[turn] managed TURN credentials unavailable:",

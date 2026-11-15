@@ -37,6 +37,8 @@ export class LiveRelayStripComponent {
     if (health.source === "static") {
       return health.managed ? "STATIC TURN FALLBACK" : "STATIC TURN";
     }
+    // A relay is active, just not one this deployment owns.
+    if (health.source === "public") return "PUBLIC RELAY FALLBACK";
     return health.managed ? "TURN DEGRADED" : "NO TURN - DIRECT ONLY";
   });
 
