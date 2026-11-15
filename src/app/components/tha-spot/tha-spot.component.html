@@ -3265,6 +3265,9 @@
               <p class="account-note" *ngIf="ingest.error()">
                 {{ ingest.error() }}
               </p>
+              <p class="account-note warn" *ngIf="ingest.stallNote()">
+                {{ ingest.stallNote() }}
+              </p>
               <p
                 class="account-note"
                 [class.ok]="ingest.selfTest().status === 'pass'"

@@ -4577,6 +4577,9 @@
 .account-note.ok {
   color: #3ddc97;
 }
+.account-note.warn {
+  color: #ffd166;
+}
 .stream-audio-warning {
   display: flex;
   align-items: center;

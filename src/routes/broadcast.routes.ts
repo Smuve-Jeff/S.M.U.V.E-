@@ -5,6 +5,7 @@ import { authenticate } from "@/middleware/auth";
 import {
   clearKickDestination,
   destinationOverview,
+  ingestStatus,
   saveKickDestination,
   selfTestStatus,
   startIngestSession,
@@ -66,6 +67,12 @@ router.post("/selftest", authenticate, pushLimiter, async (_req, res) => {
 // GET /api/broadcast/selftest/:relayId — what the relay actually received.
 router.get("/selftest/:relayId", authenticate, async (req, res) => {
   res.json(await selfTestStatus(String(req.params.relayId || "")));
+});
+
+// GET /api/broadcast/ingest/:relayId — is the push still reaching the provider?
+// The relay owns the watchdog; this only reports its verdict.
+router.get("/ingest/:relayId", authenticate, async (req, res) => {
+  res.json(await ingestStatus(String(req.params.relayId || "")));
 });
 
 // DELETE /api/broadcast/ingest/:relayId — close the relay session.

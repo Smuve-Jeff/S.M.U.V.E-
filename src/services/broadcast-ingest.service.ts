@@ -299,29 +299,52 @@ export async function startSelfTest(): Promise<SelfTestSession> {
   return { relayId: id, whipUrl };
 }
 
-/** What the relay actually received on a self-test session. */
-export async function selfTestStatus(relayId: string): Promise<SelfTestStatus> {
+/** What the relay currently knows about one of its sessions. */
+interface RelaySessionSnapshot {
+  ready: boolean;
+  bytesReceived: number;
+  tracks: string[];
+  /** Bytes ffmpeg has written towards the provider — the egress truth. */
+  bytesOut: number;
+  stalled: boolean;
+  stalledForMs: number;
+  running: boolean;
+  error: string | null;
+}
+
+/**
+ * Read one relay session. The relay's own watchdog decides what "stalled"
+ * means; this only carries its verdict through, so the panel and the API never
+ * disagree about a push.
+ */
+async function readRelaySession(
+  relayId: string,
+  label: string,
+): Promise<RelaySessionSnapshot> {
   const relay = relayConfiguration();
   const id = String(relayId || "");
   if (!relay || !/^[A-Za-z0-9_-]{1,128}$/.test(id)) {
-    throw new AppError(400, "That self-test session is not valid.");
+    throw new AppError(400, `That ${label} session is not valid.`);
   }
   const response = await callRelay(relay, `/sessions/${encodeURIComponent(id)}`, {
     method: "GET",
     headers: { Accept: "application/json" },
   });
   if (response.status === 404) {
-    throw new AppError(404, "That self-test session has already closed.");
+    throw new AppError(404, `That ${label} session has already closed.`);
   }
   const payload = (await response.json().catch(() => ({}))) as {
     ready?: unknown;
     bytesReceived?: unknown;
     tracks?: unknown;
+    bytesOut?: unknown;
+    stalled?: unknown;
+    stalledForMs?: unknown;
     running?: unknown;
     error?: unknown;
   };
   if (!response.ok) {
-    throw new AppError(502, "The relay could not report on the self-test.");
+    throw new AppError(502, `The relay could not report on the ${label}.`);
   }
   return {
     ready: payload.ready === true,
@@ -329,8 +352,48 @@ export async function selfTestStatus(relayId: string): Promise<SelfTestStatus> {
     tracks: Array.isArray(payload.tracks)
       ? payload.tracks.map((track) => String(track))
       : [],
+    bytesOut: Number(payload.bytesOut ?? 0) || 0,
+    stalled: payload.stalled === true,
+    stalledForMs: Number(payload.stalledForMs ?? 0) || 0,
     running: payload.running === true,
     error: typeof payload.error === "string" ? payload.error : null,
+  };
+}
+
+/** What the relay actually received on a self-test session. */
+export async function selfTestStatus(relayId: string): Promise<SelfTestStatus> {
+  const snapshot = await readRelaySession(relayId, "self-test");
+  return {
+    ready: snapshot.ready,
+    bytesReceived: snapshot.bytesReceived,
+    tracks: snapshot.tracks,
+    running: snapshot.running,
+    error: snapshot.error,
+  };
+}
+
+/** Whether a live push is still reaching the provider. */
+export interface IngestStatus {
+  ready: boolean;
+  running: boolean;
+  bytesReceived: number;
+  bytesOut: number;
+  /** The relay saw this session's egress go silent. */
+  stalled: boolean;
+  stalledForMs: number;
+  error: string | null;
+}
+
+export async function ingestStatus(relayId: string): Promise<IngestStatus> {
+  const snapshot = await readRelaySession(relayId, "broadcast");
+  return {
+    ready: snapshot.ready,
+    running: snapshot.running,
+    bytesReceived: snapshot.bytesReceived,
+    bytesOut: snapshot.bytesOut,
+    stalled: snapshot.stalled,
+    stalledForMs: snapshot.stalledForMs,
+    error: snapshot.error,
   };
 }
 

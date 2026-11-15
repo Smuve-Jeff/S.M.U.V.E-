@@ -248,8 +248,11 @@ Checks, in order:
   `[relay] egress watchdog: 15s of silence`; during the push, nothing should say
   `[relay] ALERT session …`. If it does, the browser is still uploading but the
   provider has stopped receiving — check outbound RTMP from the relay host, then
-  stop and re-push. `curl -s http://127.0.0.1:8080/health` showing
-  `"stalled": 1` is the same signal.
+  stop and re-push. The panel says
+  `PROVIDER SILENT FOR <n>S — THE RELAY IS STILL RECEIVING, SO CHECK ITS RTMP EGRESS`
+  within a few seconds of the relay alerting, and
+  `curl -s http://127.0.0.1:8080/health` showing `"stalled": 1` is the same
+  signal.
 
 Stop with **STOP**; the snackbar reads `BROADCAST PUSH STOPPED`, Twitch reports
 the stream offline within ~10 seconds, and the relay session is deleted. Ending

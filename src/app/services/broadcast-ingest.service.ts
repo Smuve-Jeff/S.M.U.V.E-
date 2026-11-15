@@ -60,6 +60,15 @@ export class BroadcastIngestService {
   readonly state = this.whip.state;
   readonly error = this.whip.error;
 
+  /**
+   * Relay watchdog verdict for the live push. The relay knows whether ffmpeg is
+   * still writing to the provider; the panel shows it rather than guessing.
+   */
+  readonly stall = signal<{ stalled: boolean; stalledForMs: number }>({
+    stalled: false,
+    stalledForMs: 0,
+  });
+
   /** Result of the last relay self-test, shown next to the button. */
   readonly selfTest = signal<{ status: 'idle' | 'running' | 'pass' | 'fail'; detail: string }>({
     status: 'idle',
@@ -67,6 +76,7 @@ export class BroadcastIngestService {
   });
 
   private relayId: string | null = null;
+  private egressTimer: ReturnType<typeof setInterval> | null = null;
 
   constructor() {
     effect(() => {
@@ -168,6 +178,7 @@ export class BroadcastIngestService {
         );
         return;
       }
+      this.watchEgress(this.relayId);
       this.snackbar.success(`PUSHING TO ${platform.toUpperCase()}`);
     } catch (error) {
       this.snackbar.error(this.describe(error));
@@ -177,9 +188,55 @@ export class BroadcastIngestService {
   }
 
   async stop(): Promise<void> {
+    this.stopWatching();
     await this.whip.stop();
     await this.releaseRelay();
     this.snackbar.info('BROADCAST PUSH STOPPED');
+  }
+
+  /**
+   * Ask the relay every few seconds whether the push is still going out.
+   *
+   * The browser can only see its own WHIP upload; if the RTMP half dies the
+   * capture looks perfectly healthy on this side. Polling the relay is what
+   * makes that visible while the host can still do something about it.
+   */
+  private watchEgress(relayId: string | null): void {
+    this.stopWatching();
+    if (!relayId) return;
+    this.egressTimer = setInterval(() => void this.refreshEgress(relayId), 5_000);
+  }
+
+  private stopWatching(): void {
+    if (this.egressTimer) clearInterval(this.egressTimer);
+    this.egressTimer = null;
+    this.stall.set({ stalled: false, stalledForMs: 0 });
+  }
+
+  private async refreshEgress(relayId: string): Promise<void> {
+    try {
+      const status = await firstValueFrom(
+        this.http.get<{ stalled?: boolean; stalledForMs?: number }>(
+          this.endpoint(`/ingest/${encodeURIComponent(relayId)}`),
+          { headers: this.headers() },
+        ),
+      );
+      this.stall.set({
+        stalled: status?.stalled === true,
+        stalledForMs: Number(status?.stalledForMs ?? 0) || 0,
+      });
+    } catch (error) {
+      // A session the relay no longer knows about is not a stall: stop asking.
+      if ((error as { status?: number } | null)?.status === 404) this.stopWatching();
+    }
+  }
+
+  /** One line for the panel while the provider has stopped receiving. */
+  stallNote(): string {
+    const { stalled, stalledForMs } = this.stall();
+    if (!stalled) return '';
+    const seconds = Math.max(1, Math.round(stalledForMs / 1_000));
+    return `PROVIDER SILENT FOR ${seconds}S — THE RELAY IS STILL RECEIVING, SO CHECK ITS RTMP EGRESS`;
   }
 
   /**
