@@ -141,6 +141,7 @@ watchdog?.unref?.();
 const server = createRelayServer({
   manager,
   token,
+  recordingDir,
   selftestDestination,
   selftestTtlMs: Number(process.env.SELFTEST_TTL_SECONDS || 180) * 1_000,
 });

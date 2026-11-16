@@ -22,6 +22,20 @@ interface DestinationsResponse {
   relayConfigured?: boolean;
 }
 
+/** One recording the relay still holds for this account. */
+export interface BroadcastRecordingDto {
+  relayId: string;
+  platform: string;
+  startedAt: string;
+  endedAt: string | null;
+  /** File name on the relay. */
+  name: string;
+  bytes: number;
+  recordedAt: string;
+  /** Relative to the API base, e.g. `/broadcast/recordings/<id>/download?name=…`. */
+  downloadPath: string;
+}
+
 interface IngestSessionDto {
   platform?: string;
   relayId?: string;
@@ -92,6 +106,16 @@ export class BroadcastIngestService {
     detail: '',
   });
 
+  /**
+   * Recordings the relay still holds for this host. Every push is recorded on
+   * the relay and pruned by its retention window, so this list shrinks on its
+   * own; the server joins the files to this account's sessions before they
+   * ever reach the browser.
+   */
+  readonly recordings = signal<BroadcastRecordingDto[]>([]);
+  readonly recordingsLoading = signal(false);
+  readonly recordingsError = signal('');
+
   private relayId: string | null = null;
   private egressTimer: ReturnType<typeof setInterval> | null = null;
 
@@ -103,6 +127,7 @@ export class BroadcastIngestService {
         return;
       }
       void this.load();
+      void this.loadRecordings();
     });
 
     // A camera ↔ game switch replaces the outgoing video track in place, which
@@ -209,6 +234,8 @@ export class BroadcastIngestService {
     await this.whip.stop();
     await this.releaseRelay();
     this.snackbar.info('BROADCAST PUSH STOPPED');
+    // The show that just ended is the one the host is most likely to want.
+    void this.loadRecordings();
   }
 
   /**
@@ -415,6 +442,69 @@ export class BroadcastIngestService {
       );
     } catch {
       // The relay's idle timeout closes a session we could not tear down.
+    }
+  }
+
+  /** Re-read what the relay is still keeping for this account. */
+  async loadRecordings(): Promise<void> {
+    if (!this.tokenService.jwtToken()) {
+      this.recordings.set([]);
+      return;
+    }
+    this.recordingsLoading.set(true);
+    try {
+      const rows = await firstValueFrom(
+        this.http.get<BroadcastRecordingDto[]>(this.endpoint('/recordings'), {
+          headers: this.headers(),
+        }),
+      );
+      this.recordings.set(Array.isArray(rows) ? rows : []);
+      this.recordingsError.set('');
+    } catch {
+      // A failed read must never read as "your recordings are gone".
+      this.recordingsError.set('COULD NOT LOAD RECORDINGS — TRY REFRESH');
+    } finally {
+      this.recordingsLoading.set(false);
+    }
+  }
+
+  /** One line per recording: destination, size, and when it was written. */
+  recordingLabel(recording: BroadcastRecordingDto): string {
+    const platform =
+      String(recording.platform ?? '').toUpperCase() || 'BROADCAST';
+    const bytes = Number(recording.bytes) || 0;
+    const size =
+      bytes >= 1024 * 1024
+        ? `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+        : `${Math.max(1, Math.round(bytes / 1024))} KB`;
+    const when = new Date(recording.recordedAt || recording.startedAt);
+    const stamp = Number.isNaN(when.getTime())
+      ? ''
+      : `${when.toISOString().replace('T', ' ').slice(0, 16)} UTC`;
+    return `${platform} · ${size} · ${stamp}`;
+  }
+
+  /**
+   * Download through the API: the relay's token stays on the server, and the
+   * browser only ever sees the bytes it just downloaded.
+   */
+  async downloadRecording(recording: BroadcastRecordingDto): Promise<void> {
+    try {
+      const blob = await firstValueFrom(
+        this.http.get(`${APP_SECURITY_CONFIG.api_url}${recording.downloadPath}`, {
+          headers: this.headers(),
+          responseType: 'blob',
+        }),
+      );
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = recording.name;
+      anchor.click();
+      URL.revokeObjectURL(url);
+      this.snackbar.success('RECORDING DOWNLOADED');
+    } catch {
+      this.snackbar.error('DOWNLOAD FAILED — TRY AGAIN');
     }
   }
 

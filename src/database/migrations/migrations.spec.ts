@@ -10,6 +10,7 @@ import { CreateAccountTokens1786243200007 } from "./1786243200007-CreateAccountT
 import { AddUserSessionAndVerificationColumns1786243200008 } from "./1786243200008-AddUserSessionAndVerificationColumns";
 import { CreateStreamingAccounts1786243200012 } from "./1786243200012-CreateStreamingAccounts";
 import { CreateStreamingDestinations1786243200013 } from "./1786243200013-CreateStreamingDestinations";
+import { CreateBroadcastSessions1786243200014 } from "./1786243200014-CreateBroadcastSessions";
 
 /**
  * Metadata per migration drives dialect assertions:
@@ -36,6 +37,7 @@ const migrations: MigrationEntry[] = [
   { migration: new AddUserSessionAndVerificationColumns1786243200008(), hasSerialColumn: false, hasJson: false },
   { migration: new CreateStreamingAccounts1786243200012(), hasSerialColumn: true, hasJson: false },
   { migration: new CreateStreamingDestinations1786243200013(), hasSerialColumn: true, hasJson: false },
+  { migration: new CreateBroadcastSessions1786243200014(), hasSerialColumn: true, hasJson: false },
 ];
 
 const migrationNames = [
@@ -50,6 +52,7 @@ const migrationNames = [
   "AddUserSessionAndVerificationColumns1786243200008",
   "CreateStreamingAccounts1786243200012",
   "CreateStreamingDestinations1786243200013",
+  "CreateBroadcastSessions1786243200014",
 ];
 
 /** Stand-in QueryRunner that records every statement it is asked to run. */

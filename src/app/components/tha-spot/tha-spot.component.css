@@ -4553,6 +4553,15 @@
   flex-direction: column;
   gap: 0.35rem;
 }
+/* Recordings outlive the push, so they get their own block under it. */
+.stream-recordings {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid rgba(var(--neon-cyan-rgb), 0.18);
+}
 .account-input {
   flex: 1 1 40%;
   min-width: 0;

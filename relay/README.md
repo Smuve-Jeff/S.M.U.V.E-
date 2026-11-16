@@ -20,6 +20,8 @@ The API server's `MEDIA_RELAY_URL` points at this service. Contract:
 | --- | --- | --- | --- |
 | `POST` | `/sessions` | `{ rtmpUrl, streamKey }` | `201 { id, whipUrl }` |
 | `DELETE` | `/sessions/:id` | — | `204` |
+| `GET` | `/recordings` | — | `200 { recordings: [{ name, bytes, modifiedAt }] }`; `503` when `RECORDING_DIR` is unset |
+| `GET` | `/recordings/:name` | — | the `video/mp4` file as an attachment; `404` for anything that is not a file in the volume |
 | `GET` | `/health` | — | `200 { status: ok, mediamtx, sessions, stalled }`, or `503 { status: degraded }` when MediaMTX is unreachable |
 | `GET` | `/sessions/:id` | — | `200 { ready, bytesReceived, tracks, bytesOut, bitrateKbps, drops, silentMs, recoveries, recovering, stalled, stalledForMs, recording, … }` |
 
@@ -220,7 +222,12 @@ cannot take a file a broadcast is still writing. If a recording is missing,
 check `docker compose logs relay` for `recording <id> into …` and for
 `recording retention: …` lines.
 
-The e2e suite proves the whole thing: `relay/test/e2e-recording.test.mjs`
+The relay also serves them: `GET /recordings` lists the volume and
+`GET /recordings/:name` hands a file back as an attachment. The S.M.U.V.E API is
+the only caller — it joins those files to the sessions each host opened, so the
+app's RECORDINGS list only ever shows a host their own shows.
+
+The e2e suite proves the recording itself: `relay/test/e2e-recording.test.mjs`
 publishes over WHIP, asserts the file appears with H.264 and Opus, keeps growing
 while the show runs, survives a sweep inside the window, and is deleted once the
 window passes.

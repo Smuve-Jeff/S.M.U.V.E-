@@ -1,4 +1,5 @@
 import { Router, type Request } from "express";
+import { Readable } from "node:stream";
 import rateLimit from "express-rate-limit";
 import { AppError } from "@/lib";
 import { authenticate } from "@/middleware/auth";
@@ -12,6 +13,10 @@ import {
   startSelfTest,
   stopIngestSession,
 } from "@/services/broadcast-ingest.service";
+import {
+  listBroadcastRecordings,
+  openBroadcastRecording,
+} from "@/services/broadcast-recordings.service";
 
 const router = Router();
 
@@ -79,6 +84,39 @@ router.get("/ingest/:relayId", authenticate, async (req, res) => {
 router.delete("/ingest/:relayId", authenticate, async (req, res) => {
   await stopIngestSession(String(req.params.relayId || ""));
   res.status(204).end();
+});
+
+// GET /api/broadcast/recordings — the host's recordings that still exist on
+// the relay. Retention prunes them, so this is never a promise of forever.
+router.get("/recordings", authenticate, async (req, res) => {
+  res.set("Cache-Control", "private, no-store");
+  res.json(await listBroadcastRecordings(actorOf(req)));
+});
+
+// GET /api/broadcast/recordings/:relayId/download?name=<file> — the bytes.
+// Ownership is checked against the session the API opened, and the file name
+// must be one the relay listed for it; nothing from the query is pasted into a
+// path or a relay URL unchecked.
+router.get("/recordings/:relayId/download", authenticate, async (req, res, next) => {
+  try {
+    const name = typeof req.query.name === "string" ? req.query.name : "";
+    const file = await openBroadcastRecording(
+      actorOf(req),
+      String(req.params.relayId || ""),
+      name,
+    );
+    res.writeHead(200, {
+      "Content-Type": "video/mp4",
+      "Content-Length": file.bytes,
+      "Content-Disposition": `attachment; filename="${file.filename}"`,
+      "Cache-Control": "private, no-store",
+    });
+    Readable.fromWeb(file.body as never)
+      .on("error", () => res.destroy())
+      .pipe(res);
+  } catch (error) {
+    next(error);
+  }
 });
 
 export default router;

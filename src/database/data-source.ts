@@ -26,6 +26,7 @@ import { CloudProjectSnapshot } from "@/entities/CloudProjectSnapshot";
 import { AiUsageLedger } from "@/entities/AiUsageLedger";
 import { StreamingAccount } from "@/entities/StreamingAccount";
 import { StreamingDestination } from "@/entities/StreamingDestination";
+import { BroadcastSession } from "@/entities/BroadcastSession";
 
 const isDevelopment = NODE_ENV === "development";
 const isProduction = NODE_ENV === "production";
@@ -62,6 +63,7 @@ export const AppDataSource = new DataSource({
     AiUsageLedger,
     StreamingAccount,
     StreamingDestination,
+    BroadcastSession,
   ],
   migrations: isDevelopment
     ? [__dirname + "/migrations/*.ts"]

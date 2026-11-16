@@ -329,6 +329,14 @@ and `recording retention: deleted N recording(s)` when the sweeper clears
 expired files. If `RECORDING_DIR` is unset, recording is off and the startup log
 says so.
 
+Hosts do not have to reach the relay to get a show back: the app lists them
+under **BROADCAST PUSH → RECORDINGS**, with a DOWNLOAD button per file. The list
+comes from `GET /api/broadcast/recordings`, which joins the relay's files to the
+push sessions this account opened; the bytes come from
+`GET /api/broadcast/recordings/:relayId/download`, streamed through the API so
+the relay's token never reaches the browser. A host only ever sees their own
+recordings, and a show drops off the list when retention deletes it.
+
 Do not shorten retention below the length of a show: the sweeper only deletes
 files whose last write is older than the window, so a live recording is safe,
 but a very short window deletes completed recordings almost immediately.

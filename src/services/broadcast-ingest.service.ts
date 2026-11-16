@@ -13,6 +13,10 @@ import {
 import { AppError } from "@/lib";
 import { openSecret, sealSecret } from "@/lib/secret-box";
 import { accessTokenForAccount } from "@/services/streaming-oauth.service";
+import {
+  markBroadcastSessionEnded,
+  rememberBroadcastSession,
+} from "@/services/broadcast-recordings.service";
 
 export const INGEST_PLATFORMS = ["twitch", "kick"] as const;
 
@@ -249,6 +253,9 @@ export async function startIngestSession(
   if (!id || !/^https?:\/\//i.test(whipUrl)) {
     throw new AppError(502, "The broadcast relay returned an unusable session.");
   }
+  // The relay records this session under `id`; the row is what later proves a
+  // recording belongs to this host.
+  await rememberBroadcastSession({ userId: owner, relayId: id, platform: key });
   return { platform: key, relayId: id, whipUrl };
 }
 
@@ -493,6 +500,9 @@ export async function ingestStatus(relayId: string): Promise<IngestStatus> {
 export async function stopIngestSession(relayId: string): Promise<void> {
   const relay = relayConfiguration();
   const id = String(relayId || "");
+  if (/^[A-Za-z0-9_-]{1,128}$/.test(id)) {
+    await markBroadcastSessionEnded(id);
+  }
   if (!relay || !/^[A-Za-z0-9_-]{1,128}$/.test(id)) return;
   try {
     await callRelay(relay, `/sessions/${encodeURIComponent(id)}`, {

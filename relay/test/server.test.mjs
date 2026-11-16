@@ -1,4 +1,7 @@
 import assert from "node:assert/strict";
+import { mkdir, mkdtemp, rm, utimes, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { after, test } from "node:test";
 import { ValidationError } from "../src/destinations.mjs";
 import { createRelayServer } from "../src/server.mjs";
@@ -55,7 +58,26 @@ async function startServer(options) {
   return { manager, base: `http://127.0.0.1:${server.address().port}` };
 }
 
+const recordingDirs = [];
+
+async function makeRecordingDir(files) {
+  const dir = await mkdtemp(join(tmpdir(), "relay-server-recordings-"));
+  recordingDirs.push(dir);
+  for (const [name, contents, ageMs = 0] of files) {
+    const file = join(dir, name);
+    await writeFile(file, contents);
+    if (ageMs > 0) {
+      const when = new Date(Date.now() - ageMs);
+      await utimes(file, when, when);
+    }
+  }
+  return dir;
+}
+
 after(async () => {
+  await Promise.all(
+    recordingDirs.map((dir) => rm(dir, { recursive: true, force: true })),
+  );
   await Promise.all(
     servers.map(
       (server) =>
@@ -247,4 +269,90 @@ test("404s a session it has never seen", async () => {
   const response = await fetch(`${base}/sessions/missing`, { headers: bearer });
 
   assert.equal(response.status, 404);
+});
+
+test("lists the recordings it holds, newest first", async () => {
+  const dir = await makeRecordingDir([
+    ["older.mp4", "first", 60_000],
+    ["newer.mp4", "second-and-longer"],
+  ]);
+  const { base } = await startServer({ recordingDir: dir });
+
+  const response = await fetch(`${base}/recordings`, { headers: bearer });
+
+  assert.equal(response.status, 200);
+  const body = await response.json();
+  assert.deepEqual(
+    body.recordings.map((row) => row.name),
+    ["newer.mp4", "older.mp4"],
+  );
+  assert.equal(body.recordings[0].bytes, "second-and-longer".length);
+  assert.match(body.recordings[0].modifiedAt, /^\d{4}-\d{2}-\d{2}T/);
+});
+
+test("only files are listed, and an empty volume is an empty list", async () => {
+  const dir = await makeRecordingDir([["kept.mp4", "bytes"]]);
+  await mkdir(join(dir, "a-directory"));
+  await writeFile(join(dir, ".hidden"), "x");
+  const { base } = await startServer({ recordingDir: dir });
+
+  const body = await fetch(`${base}/recordings`, { headers: bearer }).then((r) =>
+    r.json(),
+  );
+
+  assert.deepEqual(
+    body.recordings.map((row) => row.name),
+    ["kept.mp4"],
+  );
+
+  const empty = await makeRecordingDir([]);
+  const other = await startServer({ recordingDir: empty });
+  const emptyBody = await fetch(`${other.base}/recordings`, {
+    headers: bearer,
+  }).then((r) => r.json());
+  assert.deepEqual(emptyBody.recordings, []);
+});
+
+test("serves a recording as an attachment, and nothing else", async () => {
+  const dir = await makeRecordingDir([["show.mp4", "video-bytes"]]);
+  const { base } = await startServer({ recordingDir: dir });
+
+  const response = await fetch(`${base}/recordings/show.mp4`, { headers: bearer });
+
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get("content-type"), "video/mp4");
+  assert.equal(response.headers.get("content-length"), String("video-bytes".length));
+  assert.equal(
+    response.headers.get("content-disposition"),
+    'attachment; filename="show.mp4"',
+  );
+  assert.equal(await response.text(), "video-bytes");
+});
+
+test("will not walk out of the recording volume", async () => {
+  const dir = await makeRecordingDir([["show.mp4", "video-bytes"]]);
+  const outside = join(dir, "..", "outside.mp4");
+  await writeFile(outside, "secret");
+  const { base } = await startServer({ recordingDir: dir });
+
+  for (const name of ["..%2Foutside.mp4", "%2e%2e%2foutside.mp4", ".hidden", "sub%2Fshow.mp4"]) {
+    const response = await fetch(`${base}/recordings/${name}`, { headers: bearer });
+    assert.equal(response.status, 404, `${name} should not resolve`);
+  }
+  await rm(outside, { force: true });
+});
+
+test("recording endpoints need the token and an enabled volume", async () => {
+  const dir = await makeRecordingDir([["show.mp4", "video-bytes"]]);
+  const { base } = await startServer({ recordingDir: dir });
+
+  assert.equal((await fetch(`${base}/recordings`)).status, 401);
+  assert.equal((await fetch(`${base}/recordings/show.mp4`)).status, 401);
+
+  const off = await startServer();
+  assert.equal((await fetch(`${off.base}/recordings`, { headers: bearer })).status, 503);
+  assert.equal(
+    (await fetch(`${off.base}/recordings/show.mp4`, { headers: bearer })).status,
+    503,
+  );
 });

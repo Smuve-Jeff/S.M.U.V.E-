@@ -20,3 +20,4 @@ export * from "./UserBlock";
 export * from "./RoomMessage";
 export * from "./StreamingAccount";
 export * from "./StreamingDestination";
+export * from "./BroadcastSession";

@@ -3274,6 +3274,50 @@
               <p class="account-note quality" *ngIf="ingest.qualityNote()">
                 {{ ingest.qualityNote() }}
               </p>
+              <div class="stream-recordings">
+                <div class="stream-accounts-head">
+                  <span class="quality-readout">RECORDINGS</span>
+                  <span class="accounts-count">
+                    {{ ingest.recordings().length }} KEPT · 24H
+                  </span>
+                  <button
+                    class="quality-btn"
+                    (click)="ingest.loadRecordings()"
+                    [disabled]="ingest.recordingsLoading()"
+                    title="Re-read the recordings the relay still holds"
+                  >
+                    REFRESH
+                  </button>
+                </div>
+                <div
+                  class="account-row"
+                  *ngFor="let recording of ingest.recordings()"
+                >
+                  <span class="account-name">
+                    {{ ingest.recordingLabel(recording) }}
+                  </span>
+                  <button
+                    class="quality-btn"
+                    (click)="ingest.downloadRecording(recording)"
+                    title="Download this broadcast"
+                  >
+                    DOWNLOAD
+                  </button>
+                </div>
+                <p
+                  class="account-note"
+                  *ngIf="
+                    ingest.recordings().length === 0 &&
+                    !ingest.recordingsError() &&
+                    !ingest.recordingsLoading()
+                  "
+                >
+                  NO RECORDINGS YET — A FINISHED PUSH IS KEPT HERE FOR 24H.
+                </p>
+                <p class="account-note warn" *ngIf="ingest.recordingsError()">
+                  {{ ingest.recordingsError() }}
+                </p>
+              </div>
               <p
                 class="account-note"
                 [class.ok]="ingest.selfTest().status === 'pass'"
