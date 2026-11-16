@@ -3336,6 +3336,29 @@
                   >
                     DOWNLOAD
                   </button>
+                  <button
+                    class="quality-btn"
+                    *ngIf="!ingest.isPendingDelete(recording)"
+                    (click)="ingest.askDeleteRecording(recording)"
+                    title="Delete this recording from the relay, freeing the space now"
+                  >
+                    DELETE
+                  </button>
+                  <ng-container *ngIf="ingest.isPendingDelete(recording)">
+                    <button
+                      class="quality-btn recording-delete"
+                      (click)="ingest.deleteRecording(recording)"
+                      [disabled]="ingest.isDeleting(recording)"
+                    >
+                      {{ ingest.isDeleting(recording) ? 'DELETING…' : 'CONFIRM' }}
+                    </button>
+                    <button
+                      class="quality-btn"
+                      (click)="ingest.cancelDeleteRecording()"
+                    >
+                      KEEP
+                    </button>
+                  </ng-container>
                 </div>
                 <p
                   class="account-note"

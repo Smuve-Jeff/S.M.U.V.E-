@@ -183,3 +183,17 @@ test("opening a recording still refuses anything outside the volume", async () =
   assert.equal(await store.open("missing.mp4"), null);
   assert.deepEqual(await readdir(dir), ["show.mp4"]);
 });
+
+test("deleting a recording removes its frame too, and repeating it is harmless", async () => {
+  const dir = await tempDir();
+  await writeFile(join(dir, "show.mp4"), mp4Header(7));
+  await writeFile(join(dir, "show.jpg"), "jpeg-bytes");
+  await writeFile(join(dir, "other.mp4"), mp4Header(3));
+  const store = new RecordingStore({ dir, retentionHours: 24 });
+
+  assert.equal(await store.remove("show.mp4"), true);
+  assert.deepEqual((await readdir(dir)).sort(), ["other.mp4"]);
+  assert.equal(await store.remove("show.mp4"), false);
+  assert.equal(await store.remove("../show.mp4"), false);
+  assert.deepEqual((await readdir(dir)).sort(), ["other.mp4"]);
+});

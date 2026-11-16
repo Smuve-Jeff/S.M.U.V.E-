@@ -140,6 +140,29 @@ class RecordingStore {
       .sort((left, right) => right.modifiedAt.localeCompare(left.modifiedAt));
   }
 
+  /**
+   * Delete a recording and its cached frame, so a host can free the space now
+   * instead of waiting for retention. False means it was already gone.
+   */
+  async remove(name) {
+    if (!isRecordingName(name)) return false;
+    const source = join(this.dir, name);
+    const info = await stat(source).catch(() => null);
+    if (!info?.isFile()) return false;
+    try {
+      await unlink(source);
+    } catch (error) {
+      this.#logger.warn?.(
+        `[relay] cannot delete ${source}: ${error?.message ?? error}`,
+      );
+      return false;
+    }
+    // The frame is only a cache of a file that no longer exists.
+    await unlink(join(this.dir, thumbnailName(name))).catch(() => {});
+    this.#logger.info?.(`[relay] deleted recording ${name}`);
+    return true;
+  }
+
   /** One file on the volume, resolved inside it. Null means "not there". */
   async open(name) {
     if (!RECORDING_NAME.test(name)) return null;

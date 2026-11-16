@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdir, mkdtemp, rm, utimes, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, readdir, rm, utimes, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { after, test } from "node:test";
@@ -454,4 +454,67 @@ test("the thumbnail sidecar is not listed as a show of its own", async () => {
     body.recordings.map((row) => row.name),
     ["show.mp4"],
   );
+});
+
+test("deletes a recording and the frame cached beside it", async () => {
+  const dir = await makeRecordingDir([
+    ["show.mp4", mp4Header(7)],
+    ["show.jpg", "jpeg-bytes"],
+    ["kept.mp4", mp4Header(3)],
+  ]);
+  const { base } = await startServer({ recordingDir: dir });
+
+  assert.equal(
+    (await fetch(`${base}/recordings/show.mp4`, { method: "DELETE" })).status,
+    401,
+  );
+
+  const deleted = await fetch(`${base}/recordings/show.mp4`, {
+    method: "DELETE",
+    headers: bearer,
+  });
+  assert.equal(deleted.status, 204);
+  assert.deepEqual((await readdir(dir)).sort(), ["kept.mp4"]);
+
+  // A host that presses delete twice, or after retention caught up, is not an
+  // error: the file being gone is what was asked for.
+  const again = await fetch(`${base}/recordings/show.mp4`, {
+    method: "DELETE",
+    headers: bearer,
+  });
+  assert.equal(again.status, 204);
+
+  const listed = await fetch(`${base}/recordings`, { headers: bearer }).then((r) =>
+    r.json(),
+  );
+  assert.deepEqual(
+    listed.recordings.map((row) => row.name),
+    ["kept.mp4"],
+  );
+
+  const off = await startServer();
+  assert.equal(
+    (await fetch(`${off.base}/recordings/show.mp4`, {
+      method: "DELETE",
+      headers: bearer,
+    })).status,
+    503,
+  );
+});
+
+test("will not delete outside the recording volume", async () => {
+  const dir = await makeRecordingDir([["show.mp4", mp4Header(7)]]);
+  const outside = join(dir, "..", "outside.mp4");
+  await writeFile(outside, "secret");
+  const { base } = await startServer({ recordingDir: dir });
+
+  for (const name of ["..%2Foutside.mp4", "%2e%2e%2foutside.mp4", ".hidden"]) {
+    const response = await fetch(`${base}/recordings/${name}`, {
+      method: "DELETE",
+      headers: bearer,
+    });
+    assert.equal(response.status, 204, `${name} should not resolve`);
+  }
+  assert.equal(await readFile(outside, "utf8"), "secret");
+  await rm(outside, { force: true });
 });

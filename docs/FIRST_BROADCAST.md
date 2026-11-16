@@ -337,6 +337,11 @@ push sessions this account opened; downloads come from
 the relay's token never reaches the browser. A host only ever sees their own
 recordings, and a show drops off the list when retention deletes it.
 
+DELETE removes a show immediately — the file and its still — instead of waiting
+for retention to do it. It asks once in the row itself (CONFIRM/KEEP), and a
+show retention already removed counts as deleted, so pressing it late is not an
+error.
+
 Each row also carries the length of the show and a still frame. The length is
 read out of the recording's own header, and the frame is a 320 px JPEG the relay
 takes one second in and caches beside the file, so the first list of a new show

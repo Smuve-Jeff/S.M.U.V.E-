@@ -82,6 +82,7 @@ async function readJson(req) {
  *   GET    /recordings     -> 200 { recordings: [{ name, bytes, modifiedAt, durationSeconds }] }
  *   GET    /recordings/:name -> the file itself, byte ranges included
  *   GET    /recordings/:name/thumbnail -> a cached JPEG frame of that file
+ *   DELETE /recordings/:name -> 204, freeing the recording and its frame now
  *   GET    /health         -> 200 (unauthenticated, for liveness probes)
  */
 export function createRelayServer({
@@ -193,6 +194,25 @@ export function createRelayServer({
         return;
       }
       const recording = /^\/recordings\/([^/]{1,128})$/.exec(url.pathname);
+      if (req.method === "DELETE" && recording) {
+        if (!store) {
+          return send(res, 503, {
+            error: "recording is not configured on this relay",
+          });
+        }
+        let name;
+        try {
+          name = decodeURIComponent(recording[1]);
+        } catch {
+          return send(res, 400, { error: "bad recording name" });
+        }
+        // Idempotent by answer: a file that is already gone is the outcome the
+        // caller asked for, so a repeated delete is not an error.
+        await store.remove(name);
+        res.writeHead(204);
+        res.end();
+        return;
+      }
       if (req.method === "GET" && recording) {
         if (!store) {
           return send(res, 503, {

@@ -14,6 +14,7 @@ import {
   stopIngestSession,
 } from "@/services/broadcast-ingest.service";
 import {
+  deleteBroadcastRecording,
   issuePlaybackTicket,
   listBroadcastRecordings,
   openBroadcastRecording,
@@ -131,6 +132,22 @@ router.get("/recordings/:relayId/download", authenticate, async (req, res, next)
     Readable.fromWeb(file.body as never)
       .on("error", () => res.destroy())
       .pipe(res);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// DELETE /api/broadcast/recordings/:relayId?name=<file> — free the space now.
+// The relay owns the volume; this only proves the file is the host's first.
+router.delete("/recordings/:relayId", authenticate, async (req, res, next) => {
+  try {
+    const name = typeof req.query.name === "string" ? req.query.name : "";
+    await deleteBroadcastRecording(
+      actorOf(req),
+      String(req.params.relayId || ""),
+      name,
+    );
+    res.status(204).end();
   } catch (error) {
     next(error);
   }

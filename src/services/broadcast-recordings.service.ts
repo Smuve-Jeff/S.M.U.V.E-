@@ -338,6 +338,51 @@ export async function issuePlaybackTicket(
   };
 }
 
+/**
+ * Delete one of the host's recordings now instead of waiting for retention.
+ *
+ * Ownership is checked against the session the API opened, and only a name the
+ * relay listed for that session is passed on; a request never decides a path.
+ * A file that is already gone is success: that is the outcome asked for.
+ */
+export async function deleteBroadcastRecording(
+  userId: number | string,
+  relayId: string,
+  name: string,
+): Promise<void> {
+  const owner = Number(userId);
+  const id = String(relayId || "");
+  if (!Number.isFinite(owner) || !/^[A-Za-z0-9_-]{1,128}$/.test(id)) {
+    throw new AppError(404, "That recording does not exist.");
+  }
+  const collected = await collectRecordings(owner);
+  const owned = collected?.recordings.find(
+    (recording) => recording.relayId === id && recording.name === name,
+  );
+  if (!collected || !owned) {
+    throw new AppError(404, "That recording does not exist.");
+  }
+
+  let response: Response;
+  try {
+    response = await callRelay(
+      collected.relay,
+      `/recordings/${encodeURIComponent(owned.name)}`,
+      { method: "DELETE" },
+    );
+  } catch {
+    throw new AppError(502, "The relay could not delete that recording.");
+  }
+  if (response.status === 204 || response.status === 404) return;
+  if (response.status === 503) {
+    throw new AppError(
+      503,
+      "Broadcast push is not configured on this server, so there are no recordings.",
+    );
+  }
+  throw new AppError(502, "The relay could not delete that recording.");
+}
+
 /** The claims carried by a media URL, ready for `verifyPlaybackTicket`. */
 export function playbackTicketFromQuery(input: {
   userId: unknown;

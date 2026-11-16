@@ -126,6 +126,9 @@ export class BroadcastIngestService {
   } | null>(null);
   readonly playbackLoading = signal(false);
   readonly playbackError = signal('');
+  /** The row waiting for the host to confirm a delete, if any. */
+  readonly pendingDelete = signal<string | null>(null);
+  readonly deleting = signal<string | null>(null);
 
   private relayId: string | null = null;
   private egressTimer: ReturnType<typeof setInterval> | null = null;
@@ -464,6 +467,7 @@ export class BroadcastIngestService {
       return;
     }
     this.recordingsLoading.set(true);
+    this.pendingDelete.set(null);
     try {
       const rows = await firstValueFrom(
         this.http.get<BroadcastRecordingDto[]>(this.endpoint('/recordings'), {
@@ -571,6 +575,60 @@ export class BroadcastIngestService {
     } catch {
       this.snackbar.error('DOWNLOAD FAILED — TRY AGAIN');
     }
+  }
+
+  /** Two clicks rather than a dialog: the row itself asks before it goes. */
+  askDeleteRecording(recording: BroadcastRecordingDto): void {
+    this.pendingDelete.set(this.recordingKey(recording));
+  }
+
+  cancelDeleteRecording(): void {
+    this.pendingDelete.set(null);
+  }
+
+  isPendingDelete(recording: BroadcastRecordingDto): boolean {
+    return this.pendingDelete() === this.recordingKey(recording);
+  }
+
+  isDeleting(recording: BroadcastRecordingDto): boolean {
+    return this.deleting() === this.recordingKey(recording);
+  }
+
+  /**
+   * Free the space now instead of waiting for retention. The API proves the
+   * recording is this host's before the relay removes the file and its frame,
+   * and a file retention already took is success, not an error.
+   */
+  async deleteRecording(recording: BroadcastRecordingDto): Promise<void> {
+    const key = this.recordingKey(recording);
+    this.deleting.set(key);
+    try {
+      await firstValueFrom(
+        this.http.delete(
+          this.endpoint(
+            `/recordings/${encodeURIComponent(recording.relayId)}?name=${encodeURIComponent(recording.name)}`,
+          ),
+          { headers: this.headers() },
+        ),
+      );
+      this.recordings.update((rows) =>
+        rows.filter((row) => this.recordingKey(row) !== key),
+      );
+      const playing = this.playback();
+      if (playing && this.recordingKey(playing.recording) === key) {
+        this.stopPlayback();
+      }
+      this.pendingDelete.set(null);
+      this.snackbar.success('RECORDING DELETED');
+    } catch (error) {
+      this.snackbar.error(this.describe(error));
+    } finally {
+      this.deleting.set(null);
+    }
+  }
+
+  private recordingKey(recording: BroadcastRecordingDto): string {
+    return `${recording.relayId}/${recording.name}`;
   }
 
   /** Prefer the server's own sentence over a status code. */

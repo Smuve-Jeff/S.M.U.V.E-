@@ -4563,6 +4563,11 @@
   border-radius: 4px;
   background: #000;
 }
+/* A delete that has not been confirmed reads as a warning, not an action. */
+.quality-btn.recording-delete {
+  color: #ff8a8a;
+  border-color: rgba(255, 90, 90, 0.5);
+}
 /* Playback of a finished show, above its entry in the recordings list. */
 .recordings-video {
   width: 100%;

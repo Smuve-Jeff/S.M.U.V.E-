@@ -45,6 +45,7 @@ jest.mock("@/config/env", () => ({
 }));
 
 import {
+  deleteBroadcastRecording,
   issuePlaybackTicket,
   listBroadcastRecordings,
   markBroadcastSessionEnded,
@@ -339,4 +340,72 @@ it("does not fetch frames just to prove ownership", async () => {
     expect.stringContaining("/thumbnail"),
     expect.anything(),
   );
+});
+
+it("deletes a recording the host owns, and nothing else", async () => {
+  seed("aaaa", 7);
+  const calls: string[] = [];
+  fetchMock.mockImplementation(async (url: string, init?: RequestInit) => {
+    const address = String(url);
+    calls.push(`${init?.method ?? "GET"} ${address}`);
+    if (init?.method === "DELETE") {
+      return { ok: true, status: 204 } as unknown as Response;
+    }
+    return relayListed([
+      { name: "aaaa.mp4", bytes: 100, modifiedAt: "2026-01-01T10:00:00.000Z" },
+    ]) as unknown as Response;
+  });
+
+  await deleteBroadcastRecording(7, "aaaa", "aaaa.mp4");
+
+  expect(calls).toContain("GET http://relay.test/recordings");
+  expect(calls).toContain("DELETE http://relay.test/recordings/aaaa.mp4");
+  expect(fetchMock).toHaveBeenCalledWith(
+    "http://relay.test/recordings/aaaa.mp4",
+    expect.objectContaining({
+      method: "DELETE",
+      headers: expect.objectContaining({ Authorization: "Bearer relay-token" }),
+    }),
+  );
+});
+
+it("will not delete another host's recording, or one it never listed", async () => {
+  seed("aaaa", 7);
+  const deletes: string[] = [];
+  fetchMock.mockImplementation(async (url: string, init?: RequestInit) => {
+    if (init?.method === "DELETE") {
+      deletes.push(String(url));
+      return { ok: true, status: 204 } as unknown as Response;
+    }
+    return relayListed([
+      { name: "aaaa.mp4", bytes: 100, modifiedAt: "2026-01-01T10:00:00.000Z" },
+    ]) as unknown as Response;
+  });
+
+  await expect(deleteBroadcastRecording(9, "aaaa", "aaaa.mp4")).rejects.toThrow(
+    /does not exist/,
+  );
+  await expect(
+    deleteBroadcastRecording(7, "aaaa", "bbbb.mp4"),
+  ).rejects.toThrow(/does not exist/);
+  await expect(
+    deleteBroadcastRecording(7, "aaaa", "../aaaa.mp4"),
+  ).rejects.toThrow(/does not exist/);
+  expect(deletes).toEqual([]);
+});
+
+it("treats a file retention already removed as deleted", async () => {
+  seed("aaaa", 7);
+  fetchMock.mockImplementation(async (url: string, init?: RequestInit) => {
+    if (init?.method === "DELETE") {
+      return { ok: false, status: 404 } as unknown as Response;
+    }
+    return relayListed([
+      { name: "aaaa.mp4", bytes: 100, modifiedAt: "2026-01-01T10:00:00.000Z" },
+    ]) as unknown as Response;
+  });
+
+  await expect(
+    deleteBroadcastRecording(7, "aaaa", "aaaa.mp4"),
+  ).resolves.toBeUndefined();
 });
