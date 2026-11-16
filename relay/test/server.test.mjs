@@ -609,3 +609,21 @@ test("tells the caller how long an unpinned show has left", async () => {
   }).then((r) => r.json());
   assert.equal(configuredBody.retentionHours, 24);
 });
+
+test("health states the retention window in force", async () => {
+  const dir = await makeRecordingDir([["show.mp4", mp4Header(7)]]);
+
+  const plain = await startServer({ recordingDir: dir });
+  const plainBody = await fetch(`${plain.base}/health`).then((r) => r.json());
+  assert.equal(plainBody.recordingRetentionHours, 0);
+
+  const configured = await startServer({
+    recordings: new RecordingStore({ dir, retentionHours: 24 }),
+  });
+  const configuredBody = await fetch(`${configured.base}/health`).then((r) =>
+    r.json(),
+  );
+  assert.equal(configuredBody.recordingRetentionHours, 24);
+  // Still open: a probe needs it without a token.
+  assert.equal(configuredBody.status, "ok");
+});

@@ -382,6 +382,31 @@ export async function issuePlaybackTicket(
 }
 
 /**
+ * The retention window the relay has in force right now: hours (0 meaning it
+ * keeps everything), or null when the relay cannot be asked. This reads health
+ * rather than the file listing, so a caller can notice a configuration change
+ * cheaply enough to check it while a panel is open.
+ */
+export async function relayRetentionHours(): Promise<number | null> {
+  const relay = relayConfiguration();
+  if (!relay) return null;
+  try {
+    const response = await callRelay(relay, "/health", {
+      method: "GET",
+      headers: { Accept: "application/json" },
+    });
+    if (!response.ok) return null;
+    const payload = (await response.json().catch(() => ({}))) as {
+      recordingRetentionHours?: unknown;
+    };
+    const hours = Number(payload.recordingRetentionHours);
+    return Number.isFinite(hours) && hours >= 0 ? hours : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Keep one of the host's recordings past the default window, or put it back on
  * the default policy with 0 hours. The promise lives beside the file, so it
  * survives a restart of either the API or the relay.

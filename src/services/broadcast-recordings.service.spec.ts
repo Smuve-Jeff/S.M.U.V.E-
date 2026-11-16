@@ -51,6 +51,7 @@ import {
   markBroadcastSessionEnded,
   setBroadcastRetention,
   openBroadcastRecording,
+  relayRetentionHours,
   rememberBroadcastSession,
 } from "./broadcast-recordings.service";
 
@@ -588,4 +589,46 @@ it("has no deadline to warn about when the relay keeps recordings forever", asyn
   const [recording] = await listBroadcastRecordings(7);
 
   expect(recording.expiresAt).toBeNull();
+});
+
+it("asks the relay which retention window is in force", async () => {
+  fetchMock.mockResolvedValueOnce({
+    ok: true,
+    status: 200,
+    json: async () => ({ recordingRetentionHours: 24 }),
+  } as unknown as Response);
+  await expect(relayRetentionHours()).resolves.toBe(24);
+
+  expect(fetchMock).toHaveBeenCalledWith(
+    "http://relay.test/health",
+    expect.objectContaining({
+      headers: expect.objectContaining({ Authorization: "Bearer relay-token" }),
+    }),
+  );
+
+  fetchMock.mockResolvedValueOnce({
+    ok: true,
+    status: 200,
+    json: async () => ({ recordingRetentionHours: 0 }),
+  } as unknown as Response);
+  // Zero is a window too: it means the relay keeps everything.
+  await expect(relayRetentionHours()).resolves.toBe(0);
+});
+
+it("has no window to report when the relay cannot answer", async () => {
+  fetchMock.mockRejectedValueOnce(new Error("relay down"));
+  await expect(relayRetentionHours()).resolves.toBeNull();
+
+  fetchMock.mockResolvedValueOnce({
+    ok: false,
+    status: 503,
+  } as unknown as Response);
+  await expect(relayRetentionHours()).resolves.toBeNull();
+
+  fetchMock.mockResolvedValueOnce({
+    ok: true,
+    status: 200,
+    json: async () => ({ status: "ok" }),
+  } as unknown as Response);
+  await expect(relayRetentionHours()).resolves.toBeNull();
 });

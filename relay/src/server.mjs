@@ -84,7 +84,7 @@ async function readJson(req) {
  *   GET    /recordings/:name/thumbnail -> a cached JPEG frame of that file
  *   DELETE /recordings/:name -> 204, freeing the recording and its frame now
  *   PUT    /recordings/:name/retention { hours } -> keep it past the window
- *   GET    /health         -> 200 (unauthenticated, for liveness probes)
+ *   GET    /health         -> 200 { status, sessions, recordingRetentionHours } (open, for probes)
  */
 export function createRelayServer({
   manager,
@@ -122,6 +122,10 @@ export function createRelayServer({
           // A stalled session is not degraded: new broadcasts still work, but
           // an operator's probe can see that one is silent.
           stalled: sessions.filter((session) => session.stalled).length,
+          // Config, not a secret: callers that show a retention deadline need
+          // to notice when the window they read last is no longer the one in
+          // force. Health is the cheapest place to ask.
+          recordingRetentionHours: store?.retentionHours ?? 0,
           mediamtx: health?.mediamtx ?? "unknown",
           detail: health?.detail ?? null,
         });

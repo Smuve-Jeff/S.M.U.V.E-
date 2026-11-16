@@ -345,7 +345,12 @@ actually do. Picking 7D, 30D or 90D clears the warning. The badge re-reads a clo
 once a minute, so a panel left open still shows a show crossing into its last
 hours. When a deadline actually passes, the row is dropped and the list is
 reconciled with the relay once, so a swept show does not sit there looking
-playable until someone presses REFRESH. Changing the selector re-reads the list
+playable until someone presses REFRESH. If the relay's window is changed underneath a panel that is open, the deadlines
+on screen would otherwise keep describing the old one: the app asks which window
+is in force when the list loads and every few minutes after, and re-reads the
+list when the answer differs.
+
+Changing the selector re-reads the list
 too, so the deadline shown is always the relay's own answer. Because the relay
 sweeps on its own minute, a reload can still list a show this panel watched
 expire; it stays hidden until the relay stops listing it, rather than blinking

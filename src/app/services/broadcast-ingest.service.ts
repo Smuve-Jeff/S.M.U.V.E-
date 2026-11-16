@@ -150,6 +150,8 @@ export class BroadcastIngestService {
    * its final hours updates a panel that was simply left open.
    */
   readonly clock = signal(Date.now());
+  /** The relay window the visible deadlines were computed with. */
+  readonly retentionWindow = signal<number | null>(null);
 
   private relayId: string | null = null;
   private egressTimer: ReturnType<typeof setInterval> | null = null;
@@ -161,6 +163,10 @@ export class BroadcastIngestService {
    * instead of letting it blink back into the list.
    */
   private locallySwept = new Set<string>();
+  /** When the window was last asked for, so the check stays cheap. */
+  private retentionCheckedAt = 0;
+  /** False until a window has been read at least once. */
+  private windowEverRead = false;
 
   constructor() {
     // Minute-level badges only need a minute-level tick, and writing the signal
@@ -171,6 +177,15 @@ export class BroadcastIngestService {
         // Our own deadline said it was gone; ask the relay once so the list is
         // its answer rather than ours.
         void this.loadRecordings({ quiet: true });
+      }
+      // A window changed on the relay makes every deadline on screen wrong, so
+      // check it now and then. Nothing to protect when the list is empty.
+      const now = this.clock();
+      if (
+        this.recordings().length > 0 &&
+        now - this.retentionCheckedAt > 5 * 60_000
+      ) {
+        void this.refreshRetentionWindow(now);
       }
     }, 60_000);
     inject(DestroyRef).onDestroy(() => {
@@ -522,6 +537,7 @@ export class BroadcastIngestService {
       const reconciled = reconcileSweptRows(listed, this.locallySwept);
       this.locallySwept = reconciled.swept;
       this.recordings.set(reconciled.rows);
+      void this.refreshRetentionWindow();
       this.recordingsError.set('');
     } catch {
       // A failed read must never read as "your recordings are gone". A quiet
@@ -625,6 +641,37 @@ export class BroadcastIngestService {
       this.snackbar.success('RECORDING DOWNLOADED');
     } catch {
       this.snackbar.error('DOWNLOAD FAILED — TRY AGAIN');
+    }
+  }
+
+  /**
+   * Ask which retention window is in force. Deadlines are only as good as the
+   * window they were computed from, so a change re-reads the list; an
+   * unreachable window leaves the deadlines already on screen alone.
+   */
+  private async refreshRetentionWindow(now = Date.now()): Promise<void> {
+    if (!this.tokenService.jwtToken()) return;
+    this.retentionCheckedAt = now;
+    try {
+      const payload = await firstValueFrom(
+        this.http.get<{ retentionHours?: number | null }>(
+          this.endpoint('/recordings/window'),
+          { headers: this.headers() },
+        ),
+      );
+      const hours = Number(payload?.retentionHours);
+      const next = Number.isFinite(hours) && hours >= 0 ? hours : null;
+      const previous = this.retentionWindow();
+      const hadWindow = this.windowEverRead;
+      this.retentionWindow.set(next);
+      if (next !== null) this.windowEverRead = true;
+      // After a failed read the old window is unknown, so a recovered relay is
+      // worth one re-read even when the number happens to match.
+      if (hadWindow && next !== null && previous !== next && !this.recordingsLoading()) {
+        void this.loadRecordings({ quiet: true });
+      }
+    } catch {
+      // Keep the deadlines we have rather than blanking them over a bad read.
     }
   }
 

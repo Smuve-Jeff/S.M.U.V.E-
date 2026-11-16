@@ -19,6 +19,7 @@ import {
   listBroadcastRecordings,
   openBroadcastRecording,
   playbackTicketFromQuery,
+  relayRetentionHours,
   setBroadcastRetention,
 } from "@/services/broadcast-recordings.service";
 
@@ -110,6 +111,18 @@ router.delete("/ingest/:relayId", authenticate, async (req, res) => {
 router.get("/recordings", authenticate, async (req, res) => {
   res.set("Cache-Control", "private, no-store");
   res.json(await listBroadcastRecordings(actorOf(req)));
+});
+
+// GET /api/broadcast/recordings/window — the relay's current retention window,
+// so a caller who is showing deadlines can notice a change without re-reading
+// every recording. Registered before the :relayId routes on purpose.
+router.get("/recordings/window", authenticate, async (req, res, next) => {
+  try {
+    res.set("Cache-Control", "private, no-store");
+    res.json({ retentionHours: await relayRetentionHours() });
+  } catch (error) {
+    next(error);
+  }
 });
 
 // GET /api/broadcast/recordings/:relayId/download?name=<file> — the bytes.
