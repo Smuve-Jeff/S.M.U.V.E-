@@ -285,17 +285,22 @@ const isUniqueViolation = (err: unknown): boolean => {
 };
 
 /**
- * Claim one viewer slot on a stream. The unique index makes this atomic: the
- * first caller inserts and counts; every later redeem gets a duplicate-key
- * error and leaves `viewerJoins` alone. Returns true only for the insert that
- * owns the join.
+ * Claim one viewer slot on a stream. The unique index makes the claim itself
+ * atomic: the first caller inserts; every later redeem gets a duplicate-key
+ * error and leaves `viewerJoins` alone. The count moves in the same
+ * transaction as the join row, so a failure between the two statements can
+ * never leave a durable join that is permanently missing from the count.
+ * Returns true only for the insert that owns the join.
  */
 const recordViewerJoin = async (
   streamId: number,
   viewerKey: string,
 ): Promise<boolean> => {
   try {
-    await repo().viewerJoins.insert({ streamId, viewerKey });
+    await AppDataSource.transaction(async (manager) => {
+      await manager.insert(LiveStreamViewerJoin, { streamId, viewerKey });
+      await manager.increment(LiveStream, { id: streamId }, "viewerJoins", 1);
+    });
     return true;
   } catch (err) {
     if (isUniqueViolation(err)) return false;
@@ -319,14 +324,19 @@ export const redeemViewerJoin = async (
   if (!row.active) throw new AppError(410, "Live stream has ended");
   // Scope the durable join to this stream: a viewer who joins two different
   // broadcasts is legitimately two joins.
-  const counted = viewerKey
-    ? await recordViewerJoin(row.id, viewerKey)
-    : true;
-  if (counted) {
-    row.viewerJoins = (row.viewerJoins ?? 0) + 1;
-    await repo().streams.save(row);
+  if (viewerKey) {
+    // The transaction inside also increments atomically, so two different
+    // viewers redeeming at the same time both land instead of overwriting
+    // each other's read-modify-write.
+    await recordViewerJoin(row.id, viewerKey);
+  } else {
+    // No durable key to dedupe on: keep the legacy count-every-redeem path.
+    await repo().streams.increment({ id: row.id }, "viewerJoins", 1);
   }
-  return rowToWire(row);
+  // Re-read so a duplicate redeem also reports the current total after any
+  // concurrent increments. The durable join row still owns the counting.
+  const latest = await repo().streams.findOne({ where: { id: row.id } });
+  return rowToWire(latest ?? row);
 };
 
 /** Convenience lookup used by the socket layer for low-latency joins. */

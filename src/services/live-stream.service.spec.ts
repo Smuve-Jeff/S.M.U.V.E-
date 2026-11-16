@@ -70,6 +70,15 @@ const mockRepo = {
     active: data.active ?? true,
     viewerJoins: data.viewerJoins ?? 0,
   })),
+  increment: jest.fn(
+    async (conditions: { id?: number }, propertyPath: string, value: number) => {
+      const row = mockStreamStore.find((r) => r.id === conditions?.id);
+      if (row) {
+        (row as any)[propertyPath] = ((row as any)[propertyPath] ?? 0) + value;
+      }
+      return { affected: row ? 1 : 0 };
+    },
+  ),
 };
 
 const mockViewerJoinStore: Array<{ streamId: number; viewerKey: string }> = [];
@@ -95,6 +104,21 @@ const mockViewerJoinRepo = {
 
 jest.mock("@/database/data-source", () => ({
   AppDataSource: {
+    // The service claims a join and increments its stream in one transaction.
+    // Route both manager calls at the same in-memory stores so the mocks keep
+    // modelling the unique index and the atomic increment.
+    transaction: jest.fn(async (run: (manager: any) => Promise<unknown>) =>
+      run({
+        insert: async (_entity: unknown, row: any) =>
+          mockViewerJoinRepo.insert(row),
+        increment: async (
+          _entity: unknown,
+          conditions: { id?: number },
+          propertyPath: string,
+          value: number,
+        ) => mockRepo.increment(conditions, propertyPath, value),
+      }),
+    ),
     getRepository: jest.fn((entity: { name?: string }) =>
       entity?.name === "LiveStreamViewerJoin" ? mockViewerJoinRepo : mockRepo,
     ),
@@ -138,7 +162,9 @@ describe("live-stream service", () => {
             (a, b) => (b.startedAt?.getTime?.() ?? 0) - (a.startedAt?.getTime?.() ?? 0)
           );
         }
-        return matches[0] ?? null;
+        // Return a snapshot: concurrent redeems must not accidentally share
+        // one mutable row object in the mock and hide a lost update.
+        return matches[0] ? { ...matches[0] } : null;
       }
     );
   });
@@ -329,6 +355,38 @@ describe("live-stream service", () => {
 
       expect(onFirst.viewerJoins).toBe(1);
       expect(onSecond.viewerJoins).toBe(1);
+    });
+
+    it("does not lose an increment when two viewers join concurrently", async () => {
+      const issued = await startLiveStream({ hostId: "h", platform: "twitch" });
+      const originalInsert = mockViewerJoinRepo.insert.getMockImplementation();
+      let arrivals = 0;
+      let release!: () => void;
+      const bothRead = new Promise<void>((resolve) => {
+        release = resolve;
+      });
+
+      // Hold both redeems after their stream read, so either one's write is
+      // based on the same pre-join count. This is the race the atomic
+      // increment must win.
+      mockViewerJoinRepo.insert.mockImplementation(async (row) => {
+        arrivals += 1;
+        if (arrivals === 2) release();
+        await bothRead;
+        return originalInsert!(row);
+      });
+
+      try {
+        await Promise.all([
+          redeemViewerJoin(issued.shareToken, "guest:viewer-a"),
+          redeemViewerJoin(issued.shareToken, "guest:viewer-b"),
+        ]);
+        expect(mockStreamStore[0].viewerJoins).toBe(2);
+      } finally {
+        if (originalInsert) {
+          mockViewerJoinRepo.insert.mockImplementation(originalInsert);
+        }
+      }
     });});
 
   describe("listActiveLiveStreams", () => {
