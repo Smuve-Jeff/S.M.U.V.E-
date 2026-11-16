@@ -19,6 +19,7 @@ import {
   listBroadcastRecordings,
   openBroadcastRecording,
   playbackTicketFromQuery,
+  setBroadcastRetention,
 } from "@/services/broadcast-recordings.service";
 
 const router = Router();
@@ -152,6 +153,29 @@ router.delete("/recordings/:relayId", authenticate, async (req, res, next) => {
     next(error);
   }
 });
+
+// PUT /api/broadcast/recordings/:relayId/retention?name=<file> { hours } —
+// keep one show past the default window, or 0 to put it back on the default.
+router.put(
+  "/recordings/:relayId/retention",
+  authenticate,
+  async (req, res, next) => {
+    try {
+      const name = typeof req.query.name === "string" ? req.query.name : "";
+      const hours = (req.body ?? {}).hours;
+      res.json(
+        await setBroadcastRetention(
+          actorOf(req),
+          String(req.params.relayId || ""),
+          name,
+          hours,
+        ),
+      );
+    } catch (error) {
+      next(error);
+    }
+  },
+);
 
 // POST /api/broadcast/recordings/:relayId/playback?name=<file> — a short-lived
 // signed URL for a media element. Ownership is checked before minting.

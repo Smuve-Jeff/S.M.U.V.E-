@@ -337,6 +337,14 @@ push sessions this account opened; downloads come from
 the relay's token never reaches the browser. A host only ever sees their own
 recordings, and a show drops off the list when retention deletes it.
 
+Retention is a default, not a rule: each row has a **DEFAULT / 7D / 30D / 90D**
+selector. Picking longer asks the API to pin the show (`PUT
+/api/broadcast/recordings/:relayId/retention`), the relay stores that promise
+beside the file, and the sweeper keeps it past the default window until the pin
+runs out — restarting either process does not lose it. Putting the row back on
+DEFAULT drops the pin, and a show that is already older than the window goes on
+the next sweep.
+
 DELETE removes a show immediately — the file and its still — instead of waiting
 for retention to do it. It asks once in the row itself (CONFIRM/KEEP), and a
 show retention already removed counts as deleted, so pressing it late is not an

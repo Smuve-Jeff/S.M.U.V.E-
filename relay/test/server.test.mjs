@@ -518,3 +518,75 @@ test("will not delete outside the recording volume", async () => {
   assert.equal(await readFile(outside, "utf8"), "secret");
   await rm(outside, { force: true });
 });
+
+test("keeps one recording past the window when a host asks", async () => {
+  const dir = await makeRecordingDir([["show.mp4", mp4Header(7)]]);
+  const { base } = await startServer({ recordingDir: dir });
+
+  assert.equal(
+    (await fetch(`${base}/recordings/show.mp4/retention`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ hours: 168 }),
+    })).status,
+    401,
+  );
+
+  const kept = await fetch(`${base}/recordings/show.mp4/retention`, {
+    method: "PUT",
+    headers: { ...bearer, "Content-Type": "application/json" },
+    body: JSON.stringify({ hours: 168 }),
+  });
+  assert.equal(kept.status, 200);
+  const pin = await kept.json();
+  assert.equal(pin.keepHours, 168);
+  assert.ok(Date.parse(pin.keepUntil) > Date.now() + 167 * 3_600_000);
+
+  const listed = await fetch(`${base}/recordings`, { headers: bearer }).then((r) =>
+    r.json(),
+  );
+  assert.equal(listed.recordings[0].keepHours, 168);
+  assert.equal(listed.recordings[0].keepUntil, pin.keepUntil);
+
+  const cleared = await fetch(`${base}/recordings/show.mp4/retention`, {
+    method: "PUT",
+    headers: { ...bearer, "Content-Type": "application/json" },
+    body: JSON.stringify({ hours: 0 }),
+  });
+  assert.equal(cleared.status, 200);
+  assert.deepEqual(await cleared.json(), { keepHours: 0, keepUntil: null });
+  assert.deepEqual((await readdir(dir)).sort(), ["show.mp4"]);
+});
+
+test("refuses a keep duration it cannot honour", async () => {
+  const dir = await makeRecordingDir([["show.mp4", mp4Header(7)]]);
+  const { base } = await startServer({ recordingDir: dir });
+  const put = (hours) =>
+    fetch(`${base}/recordings/show.mp4/retention`, {
+      method: "PUT",
+      headers: { ...bearer, "Content-Type": "application/json" },
+      body: JSON.stringify({ hours }),
+    });
+
+  for (const hours of ["abc", -1, 1.5, 90 * 24 + 1, null]) {
+    assert.equal((await put(hours)).status, 400, `${hours} should be refused`);
+  }
+  assert.deepEqual(await readdir(dir), ["show.mp4"]);
+
+  const missing = await fetch(`${base}/recordings/missing.mp4/retention`, {
+    method: "PUT",
+    headers: { ...bearer, "Content-Type": "application/json" },
+    body: JSON.stringify({ hours: 24 }),
+  });
+  assert.equal(missing.status, 404);
+
+  const off = await startServer();
+  assert.equal(
+    (await fetch(`${off.base}/recordings/show.mp4/retention`, {
+      method: "PUT",
+      headers: { ...bearer, "Content-Type": "application/json" },
+      body: JSON.stringify({ hours: 24 }),
+    })).status,
+    503,
+  );
+});

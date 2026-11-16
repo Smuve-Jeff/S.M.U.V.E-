@@ -3278,7 +3278,7 @@
                 <div class="stream-accounts-head">
                   <span class="quality-readout">RECORDINGS</span>
                   <span class="accounts-count">
-                    {{ ingest.recordings().length }} KEPT · 24H
+                    {{ ingest.recordings().length }} KEPT
                   </span>
                   <button
                     class="quality-btn"
@@ -3336,6 +3336,20 @@
                   >
                     DOWNLOAD
                   </button>
+                  <span class="kept-until" *ngIf="ingest.keepLabel(recording) as kept">
+                    {{ kept }}
+                  </span>
+                  <select
+                    class="recording-keep"
+                    [value]="recording.keepHours ?? 0"
+                    (change)="ingest.setRetention(recording, $any($event.target).value)"
+                    title="How long to keep this recording"
+                  >
+                    <option value="0">DEFAULT</option>
+                    <option value="168">7D</option>
+                    <option value="720">30D</option>
+                    <option value="2160">90D</option>
+                  </select>
                   <button
                     class="quality-btn"
                     *ngIf="!ingest.isPendingDelete(recording)"

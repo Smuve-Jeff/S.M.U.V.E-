@@ -33,6 +33,10 @@ export interface BroadcastRecording {
    * Null when the relay has no ffmpeg or could not frame the file.
    */
   thumbnail: string | null;
+  /** Hours the host asked to keep this show for; null means the default window. */
+  keepHours: number | null;
+  /** When that promise runs out, if one was made. */
+  keepUntil: string | null;
 }
 
 interface RelayFile {
@@ -40,7 +44,12 @@ interface RelayFile {
   bytes: number;
   modifiedAt: string;
   durationSeconds: number | null;
+  keepHours: number | null;
+  keepUntil: string | null;
 }
+
+/** A show can be kept for up to 90 days; the relay enforces the same cap. */
+export const MAX_KEEP_HOURS = 90 * 24;
 
 /** Thumbnails are worth fetching, but not for an unbounded history. */
 const MAX_THUMBNAILS = 24;
@@ -137,6 +146,12 @@ async function relayRecordings(relay: Relay): Promise<RelayFile[]> {
           typeof value.modifiedAt === "string" ? value.modifiedAt : "",
         durationSeconds:
           Number(value.durationSeconds) > 0 ? Number(value.durationSeconds) : null,
+        keepHours: Number(value.keepHours) > 0 ? Number(value.keepHours) : null,
+        keepUntil:
+          typeof value.keepUntil === "string" &&
+          !Number.isNaN(Date.parse(value.keepUntil))
+            ? value.keepUntil
+            : null,
       };
     })
     .filter((row): row is RelayFile => !!row);
@@ -180,6 +195,8 @@ async function collectRecordings(owner: number): Promise<{
         bytes: file.bytes,
         recordedAt: file.modifiedAt,
         durationSeconds: file.durationSeconds,
+        keepHours: file.keepHours,
+        keepUntil: file.keepUntil,
         thumbnail: null,
         downloadPath: `/broadcast/recordings/${encodeURIComponent(
           row.relayId,
@@ -335,6 +352,87 @@ export async function issuePlaybackTicket(
   return {
     path: playbackPath(ticket),
     expiresAt: new Date(ticket.expiresAt).toISOString(),
+  };
+}
+
+/**
+ * Keep one of the host's recordings past the default window, or put it back on
+ * the default policy with 0 hours. The promise lives beside the file, so it
+ * survives a restart of either the API or the relay.
+ */
+export async function setBroadcastRetention(
+  userId: number | string,
+  relayId: string,
+  name: string,
+  hours: number | string,
+): Promise<{ keepHours: number | null; keepUntil: string | null }> {
+  const value = Number(hours);
+  if (!Number.isInteger(value) || value < 0 || value > MAX_KEEP_HOURS) {
+    throw new AppError(
+      400,
+      `Keep a recording for whole hours between 0 and ${MAX_KEEP_HOURS}.`,
+    );
+  }
+  const owner = Number(userId);
+  const id = String(relayId || "");
+  if (!Number.isFinite(owner) || !/^[A-Za-z0-9_-]{1,128}$/.test(id)) {
+    throw new AppError(404, "That recording does not exist.");
+  }
+  const collected = await collectRecordings(owner);
+  const owned = collected?.recordings.find(
+    (recording) => recording.relayId === id && recording.name === name,
+  );
+  if (!collected || !owned) {
+    throw new AppError(404, "That recording does not exist.");
+  }
+
+  const failed = new AppError(
+    502,
+    "The relay could not update that recording's retention.",
+  );
+  let response: Response;
+  try {
+    response = await callRelay(
+      collected.relay,
+      `/recordings/${encodeURIComponent(owned.name)}/retention`,
+      {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ hours: value }),
+      },
+    );
+  } catch {
+    throw failed;
+  }
+  if (response.status === 404) {
+    throw new AppError(404, "That recording does not exist.");
+  }
+  if (response.status === 400) {
+    throw new AppError(
+      400,
+      `Keep a recording for whole hours between 0 and ${MAX_KEEP_HOURS}.`,
+    );
+  }
+  if (response.status === 503) {
+    throw new AppError(
+      503,
+      "Broadcast push is not configured on this server, so there are no recordings.",
+    );
+  }
+  if (!response.ok) throw failed;
+
+  const payload = (await response.json().catch(() => ({}))) as {
+    keepHours?: unknown;
+    keepUntil?: unknown;
+  };
+  const kept = Number(payload.keepHours);
+  return {
+    keepHours: Number.isInteger(kept) && kept > 0 ? kept : null,
+    keepUntil:
+      typeof payload.keepUntil === "string" &&
+      !Number.isNaN(Date.parse(payload.keepUntil))
+        ? payload.keepUntil
+        : null,
   };
 }
 

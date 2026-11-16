@@ -83,6 +83,7 @@ async function readJson(req) {
  *   GET    /recordings/:name -> the file itself, byte ranges included
  *   GET    /recordings/:name/thumbnail -> a cached JPEG frame of that file
  *   DELETE /recordings/:name -> 204, freeing the recording and its frame now
+ *   PUT    /recordings/:name/retention { hours } -> keep it past the window
  *   GET    /health         -> 200 (unauthenticated, for liveness probes)
  */
 export function createRelayServer({
@@ -193,6 +194,41 @@ export function createRelayServer({
         createReadStream(target).pipe(res);
         return;
       }
+      const retention = /^\/recordings\/([^/]{1,128})\/retention$/.exec(
+        url.pathname,
+      );
+      if (req.method === "PUT" && retention) {
+        if (!store) {
+          return send(res, 503, {
+            error: "recording is not configured on this relay",
+          });
+        }
+        let name;
+        try {
+          name = decodeURIComponent(retention[1]);
+        } catch {
+          return send(res, 400, { error: "bad recording name" });
+        }
+        const body = await readJson(req);
+        const hours = body?.hours;
+        // A JSON number only: `null` happily becomes 0, and 0 means "forget the
+        // pin", which a caller asking for nothing must not be able to trigger.
+        if (typeof hours !== "number" || !Number.isInteger(hours) || hours < 0) {
+          return send(res, 400, { error: "hours must be whole hours, 0 to clear" });
+        }
+        let pin;
+        try {
+          pin = await store.setRetention(name, hours);
+        } catch (error) {
+          if (error instanceof RangeError) {
+            return send(res, 400, { error: error.message });
+          }
+          throw error;
+        }
+        if (!pin) return send(res, 404, { error: "no such recording" });
+        return send(res, 200, { keepHours: pin.hours, keepUntil: pin.until });
+      }
+
       const recording = /^\/recordings\/([^/]{1,128})$/.exec(url.pathname);
       if (req.method === "DELETE" && recording) {
         if (!store) {

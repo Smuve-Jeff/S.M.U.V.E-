@@ -1,5 +1,5 @@
 import { spawn as spawnProcess } from "node:child_process";
-import { readdir, stat, unlink } from "node:fs/promises";
+import { readdir, readFile, stat, unlink, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { readMp4DurationSeconds } from "./mp4.mjs";
 
@@ -28,6 +28,19 @@ const RECORDING_NAME = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/;
 const isRecordingName = (name) => /\.mp4$/i.test(name) && RECORDING_NAME.test(name);
 
 const thumbnailName = (name) => `${name.replace(/\.mp4$/i, "")}.jpg`;
+
+/** Where a host's "keep this one longer" request is remembered. */
+const retentionName = (name) =>
+  `${name.replace(/\.mp4$/i, "")}.retention.json`;
+
+/** A show can be kept for up to 90 days; beyond that, ask for more disk. */
+const MAX_KEEP_HOURS = 90 * 24;
+
+/** The recording a `.jpg` or `.retention.json` belongs to, if it is one. */
+function sidecarOwner(name) {
+  const stem = name.replace(/\.retention\.json$|\.jpg$/i, "");
+  return stem === name ? null : `${stem}.mp4`;
+}
 
 class RecordingStore {
   #logger;
@@ -85,7 +98,9 @@ class RecordingStore {
       return [];
     }
 
-    const cutoff = this.#clock() - retentionMs;
+    const now = this.#clock();
+    const cutoff = now - retentionMs;
+    const recordingNames = new Set(names.filter(isRecordingName));
     const deleted = [];
     for (const name of names) {
       const file = join(this.dir, name);
@@ -95,15 +110,24 @@ class RecordingStore {
       } catch {
         continue;
       }
-      if (!info.isFile() || info.mtimeMs > cutoff) continue;
-      try {
-        await unlink(file);
-        deleted.push(name);
-      } catch (error) {
-        this.#logger.warn?.(
-          `[relay] recording retention: cannot delete ${file}: ${error?.message ?? error}`,
-        );
+      if (!info.isFile()) continue;
+
+      if (isRecordingName(name)) {
+        if (info.mtimeMs > cutoff) continue;
+        // A host may keep one show past the default window; the pin is the
+        // promise, so an unexpired one wins over the window.
+        const pin = await this.retention(name);
+        if (pin && pin.until > now) continue;
+        if (await this.#unlinkRecording(name)) deleted.push(name);
+        continue;
       }
+
+      // Sidecars follow their recording, not their own age: sweeping a pin by
+      // mtime would silently drop a promise that outlives the window.
+      const owner = sidecarOwner(name);
+      if (!owner || recordingNames.has(owner)) continue;
+      if (info.mtimeMs > cutoff) continue;
+      await unlink(file).catch(() => {});
     }
 
     if (deleted.length > 0) {
@@ -127,11 +151,14 @@ class RecordingStore {
         const file = join(this.dir, name);
         const info = await stat(file).catch(() => null);
         if (!info?.isFile()) return null;
+        const pin = await this.retention(name);
         return {
           name,
           bytes: info.size,
           modifiedAt: new Date(info.mtimeMs).toISOString(),
           durationSeconds: await readMp4DurationSeconds(file),
+          keepHours: pin?.hours ?? null,
+          keepUntil: pin ? new Date(pin.until).toISOString() : null,
         };
       }),
     );
@@ -141,25 +168,81 @@ class RecordingStore {
   }
 
   /**
-   * Delete a recording and its cached frame, so a host can free the space now
-   * instead of waiting for retention. False means it was already gone.
+   * How long a host asked to keep this recording for, and until when. Null
+   * means the default window applies.
+   */
+  async retention(name) {
+    if (!isRecordingName(name)) return null;
+    const raw = await readFile(join(this.dir, retentionName(name)), "utf8").catch(
+      () => null,
+    );
+    if (!raw) return null;
+    try {
+      const parsed = JSON.parse(raw);
+      const hours = Number(parsed?.hours);
+      const until = Date.parse(String(parsed?.until ?? ""));
+      if (!Number.isInteger(hours) || hours <= 0 || Number.isNaN(until)) {
+        return null;
+      }
+      return { hours, until };
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Keep a recording past the default window, or put it back on the default
+   * policy with 0. Returns the pin; null when there is no such recording.
+   */
+  async setRetention(name, hours) {
+    if (!isRecordingName(name)) {
+      throw new RangeError("that is not a recording");
+    }
+    const value = Number(hours);
+    if (!Number.isInteger(value) || value < 0 || value > MAX_KEEP_HOURS) {
+      throw new RangeError(
+        `retention must be whole hours between 0 and ${MAX_KEEP_HOURS}`,
+      );
+    }
+    const info = await stat(join(this.dir, name)).catch(() => null);
+    if (!info?.isFile()) return null;
+    const file = join(this.dir, retentionName(name));
+    if (value === 0) {
+      await unlink(file).catch(() => {});
+      return { hours: 0, until: null };
+    }
+    const until = new Date(this.#clock() + value * 3_600_000).toISOString();
+    await writeFile(file, JSON.stringify({ hours: value, until }));
+    return { hours: value, until };
+  }
+
+  /**
+   * Delete a recording with its frame and its pin, so a host can free the space
+   * now instead of waiting for retention. False means it was already gone.
    */
   async remove(name) {
     if (!isRecordingName(name)) return false;
     const source = join(this.dir, name);
     const info = await stat(source).catch(() => null);
     if (!info?.isFile()) return false;
+    const removed = await this.#unlinkRecording(name);
+    if (removed) this.#logger.info?.(`[relay] deleted recording ${name}`);
+    return removed;
+  }
+
+  /** Unlink a recording and everything cached beside it. */
+  async #unlinkRecording(name) {
     try {
-      await unlink(source);
+      await unlink(join(this.dir, name));
     } catch (error) {
       this.#logger.warn?.(
-        `[relay] cannot delete ${source}: ${error?.message ?? error}`,
+        `[relay] cannot delete ${join(this.dir, name)}: ${error?.message ?? error}`,
       );
       return false;
     }
-    // The frame is only a cache of a file that no longer exists.
+    // The frame and the pin are only meaningful while the recording exists.
     await unlink(join(this.dir, thumbnailName(name))).catch(() => {});
-    this.#logger.info?.(`[relay] deleted recording ${name}`);
+    await unlink(join(this.dir, retentionName(name))).catch(() => {});
     return true;
   }
 

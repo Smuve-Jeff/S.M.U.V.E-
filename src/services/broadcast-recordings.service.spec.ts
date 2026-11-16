@@ -49,6 +49,7 @@ import {
   issuePlaybackTicket,
   listBroadcastRecordings,
   markBroadcastSessionEnded,
+  setBroadcastRetention,
   openBroadcastRecording,
   rememberBroadcastSession,
 } from "./broadcast-recordings.service";
@@ -408,4 +409,114 @@ it("treats a file retention already removed as deleted", async () => {
   await expect(
     deleteBroadcastRecording(7, "aaaa", "aaaa.mp4"),
   ).resolves.toBeUndefined();
+});
+
+it("keeps a show for as long as the host asks", async () => {
+  seed("aaaa", 7);
+  const putBodies: string[] = [];
+  fetchMock.mockImplementation(async (url: string, init?: RequestInit) => {
+    if (init?.method === "PUT") {
+      putBodies.push(String(init.body));
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          keepHours: 168,
+          keepUntil: "2026-11-23T00:00:00.000Z",
+        }),
+      } as unknown as Response;
+    }
+    return relayListed([
+      { name: "aaaa.mp4", bytes: 100, modifiedAt: "2026-01-01T10:00:00.000Z" },
+    ]) as unknown as Response;
+  });
+
+  const kept = await setBroadcastRetention(7, "aaaa", "aaaa.mp4", 168);
+
+  expect(kept).toEqual({
+    keepHours: 168,
+    keepUntil: "2026-11-23T00:00:00.000Z",
+  });
+  expect(putBodies).toEqual([JSON.stringify({ hours: 168 })]);
+  expect(fetchMock).toHaveBeenCalledWith(
+    "http://relay.test/recordings/aaaa.mp4/retention",
+    expect.objectContaining({
+      method: "PUT",
+      headers: expect.objectContaining({ Authorization: "Bearer relay-token" }),
+    }),
+  );
+});
+
+it("will not change retention for another host's show, or for a bad duration", async () => {
+  seed("aaaa", 7);
+  const puts: string[] = [];
+  fetchMock.mockImplementation(async (url: string, init?: RequestInit) => {
+    if (init?.method === "PUT") {
+      puts.push(String(url));
+      return { ok: true, status: 200, json: async () => ({}) } as unknown as Response;
+    }
+    return relayListed([
+      { name: "aaaa.mp4", bytes: 100, modifiedAt: "2026-01-01T10:00:00.000Z" },
+    ]) as unknown as Response;
+  });
+
+  await expect(
+    setBroadcastRetention(9, "aaaa", "aaaa.mp4", 168),
+  ).rejects.toThrow(/does not exist/);
+  await expect(
+    setBroadcastRetention(7, "aaaa", "bbbb.mp4", 168),
+  ).rejects.toThrow(/does not exist/);
+  await expect(
+    setBroadcastRetention(7, "aaaa", "../aaaa.mp4", 168),
+  ).rejects.toThrow(/does not exist/);
+  await expect(setBroadcastRetention(7, "aaaa", "aaaa.mp4", -1)).rejects.toThrow(
+    /whole hours/,
+  );
+  await expect(
+    setBroadcastRetention(7, "aaaa", "aaaa.mp4", 90 * 24 + 1),
+  ).rejects.toThrow(/whole hours/);
+  await expect(
+    setBroadcastRetention(7, "aaaa", "aaaa.mp4", 1.5),
+  ).rejects.toThrow(/whole hours/);
+  expect(puts).toEqual([]);
+});
+
+it("reports a pin the relay refused instead of pretending it stuck", async () => {
+  seed("aaaa", 7);
+  fetchMock.mockImplementation(async (url: string, init?: RequestInit) => {
+    if (init?.method === "PUT") {
+      return { ok: false, status: 502 } as unknown as Response;
+    }
+    return relayListed([
+      { name: "aaaa.mp4", bytes: 100, modifiedAt: "2026-01-01T10:00:00.000Z" },
+    ]) as unknown as Response;
+  });
+
+  await expect(
+    setBroadcastRetention(7, "aaaa", "aaaa.mp4", 168),
+  ).rejects.toThrow(/could not update/);
+});
+
+it("lists how long each show is kept for", async () => {
+  seed("aaaa", 7);
+  const keepUntil = "2026-11-23T00:00:00.000Z";
+  fetchMock.mockImplementation(async (url: string) => {
+    if (String(url).endsWith("/thumbnail")) {
+      return { ok: false, status: 404 } as unknown as Response;
+    }
+    return relayListed([
+      {
+        name: "aaaa.mp4",
+        bytes: 100,
+        modifiedAt: "2026-01-01T10:00:00.000Z",
+        keepHours: 168,
+        keepUntil,
+      },
+    ]) as unknown as Response;
+  });
+
+  const [recording] = await listBroadcastRecordings(7);
+
+  expect(recording.keepHours).toBe(168);
+  expect(recording.keepUntil).toBe(keepUntil);
 });

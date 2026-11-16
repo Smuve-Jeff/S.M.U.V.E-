@@ -38,6 +38,10 @@ export interface BroadcastRecordingDto {
   durationSeconds?: number | null;
   /** A small JPEG still as a data URL; null when the relay could not frame it. */
   thumbnail?: string | null;
+  /** Hours this show was asked to be kept for; null means the default window. */
+  keepHours?: number | null;
+  /** When that promise runs out, if one was made. */
+  keepUntil?: string | null;
 }
 
 interface IngestSessionDto {
@@ -575,6 +579,69 @@ export class BroadcastIngestService {
     } catch {
       this.snackbar.error('DOWNLOAD FAILED — TRY AGAIN');
     }
+  }
+
+  /** `23 NOV` for a promise that has not run out yet, empty otherwise. */
+  keepLabel(recording: BroadcastRecordingDto): string {
+    const until = new Date(String(recording.keepUntil ?? ''));
+    if (Number.isNaN(until.getTime()) || until.getTime() <= Date.now()) {
+      return '';
+    }
+    const day = until.toLocaleDateString('en-GB', {
+      day: '2-digit',
+      month: 'short',
+    });
+    return `KEPT UNTIL ${day.toUpperCase()}`;
+  }
+
+  /**
+   * Keep a show past the default window, or put it back on the default with 0.
+   * The relay owns the promise, so the row is updated from its answer.
+   */
+  async setRetention(
+    recording: BroadcastRecordingDto,
+    hours: number | string,
+  ): Promise<void> {
+    const value = Math.max(0, Math.round(Number(hours) || 0));
+    try {
+      const kept = await firstValueFrom(
+        this.http.put<{ keepHours?: number | null; keepUntil?: string | null }>(
+          this.endpoint(
+            `/recordings/${encodeURIComponent(recording.relayId)}/retention?name=${encodeURIComponent(recording.name)}`,
+          ),
+          { hours: value },
+          { headers: this.headers() },
+        ),
+      );
+      const key = this.recordingKey(recording);
+      this.recordings.update((rows) =>
+        rows.map((row) =>
+          this.recordingKey(row) === key
+            ? {
+                ...row,
+                keepHours: kept?.keepHours ?? null,
+                keepUntil: kept?.keepUntil ?? null,
+              }
+            : row,
+        ),
+      );
+      this.snackbar.success(
+        value > 0
+          ? `RECORDING KEPT FOR ${this.retentionLabel(value)}`
+          : 'RECORDING BACK ON THE DEFAULT WINDOW',
+      );
+    } catch (error) {
+      this.snackbar.error(this.describe(error));
+    }
+  }
+
+  /** `7 DAYS` rather than `168 HOURS`. */
+  private retentionLabel(hours: number): string {
+    if (hours % 24 === 0) {
+      const days = hours / 24;
+      return `${days} ${days === 1 ? 'DAY' : 'DAYS'}`;
+    }
+    return `${hours} ${hours === 1 ? 'HOUR' : 'HOURS'}`;
   }
 
   /** Two clicks rather than a dialog: the row itself asks before it goes. */

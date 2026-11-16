@@ -4563,6 +4563,23 @@
   border-radius: 4px;
   background: #000;
 }
+/* Per-show retention: the default window, or one of the longer promises. */
+.recording-keep {
+  flex: 0 0 auto;
+  padding: 0.12rem 0.2rem;
+  border: 1px solid rgba(var(--neon-cyan-rgb), 0.22);
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.45);
+  color: inherit;
+  font-size: 0.55rem;
+  letter-spacing: 0.06em;
+}
+.kept-until {
+  flex: 0 0 auto;
+  color: rgba(var(--neon-cyan-rgb), 0.9);
+  font-size: 0.55rem;
+  letter-spacing: 0.06em;
+}
 /* A delete that has not been confirmed reads as a warning, not an action. */
 .quality-btn.recording-delete {
   color: #ff8a8a;

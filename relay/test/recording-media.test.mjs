@@ -197,3 +197,109 @@ test("deleting a recording removes its frame too, and repeating it is harmless",
   assert.equal(await store.remove("../show.mp4"), false);
   assert.deepEqual((await readdir(dir)).sort(), ["other.mp4"]);
 });
+
+const HOUR = 3_600_000;
+
+test("a pinned recording outlives the window, then goes when the pin ends", async () => {
+  const dir = await tempDir();
+  await writeFile(join(dir, "old.mp4"), mp4Header(7));
+  const old = new Date(Date.now() - 25 * HOUR);
+  await utimes(join(dir, "old.mp4"), old, old);
+  let now = Date.now();
+  const store = new RecordingStore({
+    dir,
+    retentionHours: 24,
+    clock: () => now,
+  });
+
+  const pin = await store.setRetention("old.mp4", 48);
+  assert.equal(pin.hours, 48);
+
+  assert.deepEqual(await store.sweep(), []);
+  assert.deepEqual(await readdir(dir).then((names) => names.sort()), [
+    "old.mp4",
+    "old.retention.json",
+  ]);
+  const [listed] = await store.list();
+  assert.equal(listed.keepHours, 48);
+  assert.equal(listed.keepUntil, pin.until);
+
+  now += 49 * HOUR;
+  assert.deepEqual(await store.sweep(), ["old.mp4"]);
+  assert.deepEqual(await readdir(dir), []);
+});
+
+test("clearing a pin puts the recording back on the default window", async () => {
+  const dir = await tempDir();
+  await writeFile(join(dir, "old.mp4"), mp4Header(7));
+  const old = new Date(Date.now() - 25 * HOUR);
+  await utimes(join(dir, "old.mp4"), old, old);
+  const store = new RecordingStore({ dir, retentionHours: 24 });
+
+  await store.setRetention("old.mp4", 168);
+  assert.deepEqual(await store.sweep(), []);
+
+  const cleared = await store.setRetention("old.mp4", 0);
+  assert.deepEqual(cleared, { hours: 0, until: null });
+  assert.deepEqual(await store.sweep(), ["old.mp4"]);
+});
+
+test("a pin is not swept away just because it is older than the window", async () => {
+  const dir = await tempDir();
+  await writeFile(join(dir, "old.mp4"), mp4Header(7));
+  const store = new RecordingStore({ dir, retentionHours: 24 });
+  await store.setRetention("old.mp4", 168);
+
+  // The pin was written a week ago, the promise still stands: only the
+  // recording's own fate may remove it.
+  const week = new Date(Date.now() - 7 * 24 * HOUR);
+  await utimes(join(dir, "old.retention.json"), week, week);
+  const aged = new Date(Date.now() - 25 * HOUR);
+  await utimes(join(dir, "old.mp4"), aged, aged);
+
+  await store.sweep();
+
+  assert.equal((await store.retention("old.mp4"))?.hours, 168);
+  assert.deepEqual((await readdir(dir)).sort(), [
+    "old.mp4",
+    "old.retention.json",
+  ]);
+});
+
+test("rejects a keep duration it cannot honour", async () => {
+  const dir = await tempDir();
+  await writeFile(join(dir, "show.mp4"), mp4Header(7));
+  const store = new RecordingStore({ dir, retentionHours: 24 });
+
+  for (const hours of [-1, 1.5, 90 * 24 + 1, Number.NaN]) {
+    await assert.rejects(() => store.setRetention("show.mp4", hours), RangeError);
+  }
+  await assert.rejects(() => store.setRetention("../show.mp4", 24), RangeError);
+  assert.equal(await store.setRetention("missing.mp4", 24), null);
+  assert.deepEqual(await readdir(dir), ["show.mp4"]);
+});
+
+test("deleting a recording takes its pin with it", async () => {
+  const dir = await tempDir();
+  await writeFile(join(dir, "show.mp4"), mp4Header(7));
+  const store = new RecordingStore({ dir, retentionHours: 24 });
+  await store.setRetention("show.mp4", 168);
+  await writeFile(join(dir, "show.jpg"), "jpeg-bytes");
+
+  assert.equal(await store.remove("show.mp4"), true);
+  assert.deepEqual(await readdir(dir), []);
+});
+
+test("an orphaned sidecar is cleaned up once its recording is gone", async () => {
+  const dir = await tempDir();
+  await writeFile(join(dir, "gone.jpg"), "jpeg-bytes");
+  await writeFile(join(dir, "gone.retention.json"), JSON.stringify({ hours: 1, until: "2000-01-01T00:00:00Z" }));
+  const old = new Date(Date.now() - 25 * HOUR);
+  await utimes(join(dir, "gone.jpg"), old, old);
+  await utimes(join(dir, "gone.retention.json"), old, old);
+  const store = new RecordingStore({ dir, retentionHours: 24 });
+
+  await store.sweep();
+
+  assert.deepEqual(await readdir(dir), []);
+});
