@@ -341,6 +341,12 @@ If the relay is not recording at all — `RECORDING_DIR` unset, so there is no
 volume to write to — the panel says so before a push starts, because otherwise
 the first sign is an empty RECORDINGS list after the show has already been lost.
 
+A volume that is set but cannot be written is caught when the relay starts, not
+when the show does: it creates the directory, writes a probe file there and
+removes it again. If that fails it logs `RECORDING IS OFF: <dir> is not writable
+(…)` and reports itself as not recording, so the same warning appears in the
+panel. A relay in that state still relays — it just does not keep the show.
+
 The app warns before the sweeper takes something: a show with under six hours
 left gets an amber `IN 4H` badge, and a line above the list counts them. The
 deadline is computed from the relay's own window (now included in

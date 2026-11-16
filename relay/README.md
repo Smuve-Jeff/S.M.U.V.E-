@@ -59,7 +59,7 @@ down or degraded, which is what catches the problem before a host goes live.
 | `EGRESS_AUDIO_BITRATE` | `128k` | Bitrate of the Opus → AAC re-encode; must look like `96k` (32k or more) |
 | `EGRESS_AUDIO_CHANNELS` | `2` | Channel count of that re-encode: `1` or `2` |
 | `ALERT_WEBHOOK_URL` | — | If set, stall, reconnect and give-up alerts are POSTed here as JSON |
-| `RECORDING_DIR` | — | Directory (a mounted volume) MediaMTX records broadcasts into; unset disables recording |
+| `RECORDING_DIR` | — | Directory (a mounted volume) MediaMTX records broadcasts into; unset disables recording. The relay checks it is writable at startup and turns recording off if it is not |
 | `RECORDING_RETENTION_HOURS` | `24` | Hours a recording is kept before MediaMTX deletes it; `0` keeps everything |
 
 ## Run it
@@ -211,6 +211,14 @@ Unset `RECORDING_DIR` and nothing is recorded. In the compose file the volume is
 `recordings`, mounted at `/recordings` in **both** containers: MediaMTX writes
 there, and the relay needs write access there to delete expired files.
 
+At startup the relay creates that directory if it is missing and writes a probe
+file into it, then removes it again. A volume that cannot be written — read-only
+mount, wrong ownership, or a path under a regular file — is caught there, before
+any show: the relay logs `RECORDING IS OFF: <dir> is not writable (EROFS: …)`,
+opens no recordings for new sessions, and answers `recordingEnabled: false` from
+`/health`, so the panel warns the host. It still relays the broadcast; it just
+does not claim to keep it.
+
 Retention is the relay's own (`src/recording-store.mjs`), not MediaMTX's
 `recordDeleteAfter`, for two reasons found while building this:
 
@@ -222,8 +230,9 @@ Retention is the relay's own (`src/recording-store.mjs`), not MediaMTX's
 
 The sweeper only removes files whose last write is older than the window, so it
 cannot take a file a broadcast is still writing. If a recording is missing,
-check `docker compose logs relay` for `recording <id> into …` and for
-`recording retention: …` lines.
+check `docker compose logs relay` for a `RECORDING IS OFF` line at startup,
+then for the `recording <id> into …` and `recording retention: …` lines of the
+show itself.
 
 A host can also keep one show past the window: the API asks the relay to pin it
 for a number of hours (up to 90 days), the relay writes the promise beside the

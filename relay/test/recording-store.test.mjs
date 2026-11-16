@@ -94,3 +94,23 @@ test("refuses to be built without a directory or a sane window", () => {
     /RECORDING_RETENTION_HOURS must be a number of hours/,
   );
 });
+
+test("probe makes the volume and leaves nothing behind", async () => {
+  const dir = join(await tempDir(), "recordings", "nested");
+
+  assert.equal(await new RecordingStore({ dir }).probe(), null);
+  assert.deepEqual(await readdir(dir), []);
+});
+
+test("probe reports a volume it cannot write to", async () => {
+  const dir = await tempDir();
+  const file = join(dir, "not-a-directory");
+  await writeFile(file, "not a volume");
+
+  const reason = await new RecordingStore({
+    dir: join(file, "recordings"),
+  }).probe();
+
+  assert.match(reason, /ENOTDIR|EEXIST/);
+  assert.deepEqual(await readdir(dir), ["not-a-directory"]);
+});

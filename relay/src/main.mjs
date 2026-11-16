@@ -92,6 +92,20 @@ const recordings = recordingDir
     })
   : null;
 
+// A volume that cannot be written looks like a working one until the first
+// recording is attempted, which is after the show has gone out. Ask it now.
+const recordingProblem = recordings ? await recordings.probe() : null;
+if (recordingProblem) {
+  console.error(
+    `[relay] RECORDING IS OFF: ${recordingDir} is not writable (${recordingProblem}) — ` +
+      "broadcasts will not be kept until the relay is restarted with a writable volume.",
+  );
+}
+// Recording without a volume that takes the files would promise hosts a show it
+// cannot deliver, so the relay reports itself as not recording instead.
+const liveRecordingDir = recordingProblem ? null : recordingDir;
+const activeRecordings = recordingProblem ? null : recordings;
+
 const manager = new SessionManager({
   spawn,
   mediamtx: new MediaMtxClient({
@@ -106,8 +120,8 @@ const manager = new SessionManager({
   audioBitrate: (process.env.EGRESS_AUDIO_BITRATE || "").trim() || "128k",
   audioChannels: Number(process.env.EGRESS_AUDIO_CHANNELS ?? 2),
   ingestPath: selftestIngestPath,
-  recordingDir,
-  recordingRetentionHours: recordings?.retentionHours ?? 0,
+  recordingDir: liveRecordingDir,
+  recordingRetentionHours: activeRecordings?.retentionHours ?? 0,
   store,
   onAlert,
 });
@@ -117,11 +131,11 @@ if (store) console.log(`[relay] restored ${restored} session(s) from ${stateFile
 
 // Recordings outlive their sessions: this deletes what the volume has kept for
 // longer than the window, including anything left by a previous run.
-const retention = recordings?.enabled
-  ? setInterval(() => void recordings.sweep(), 60_000)
+const retention = activeRecordings?.enabled
+  ? setInterval(() => void activeRecordings.sweep(), 60_000)
   : null;
 retention?.unref?.();
-if (recordings?.enabled) void recordings.sweep();
+if (activeRecordings?.enabled) void activeRecordings.sweep();
 
 const ttlMs = Number(process.env.SESSION_TTL_MINUTES || 360) * 60_000;
 const sweeper = setInterval(() => void manager.sweep(ttlMs), 60_000);
@@ -143,8 +157,8 @@ watchdog?.unref?.();
 const server = createRelayServer({
   manager,
   token,
-  recordings,
-  recordingDir,
+  recordings: activeRecordings,
+  recordingDir: liveRecordingDir,
   selftestDestination,
   selftestTtlMs: Number(process.env.SELFTEST_TTL_SECONDS || 180) * 1_000,
 });
@@ -157,7 +171,9 @@ server.listen(port, () => {
         (selftestIngestPath ? ` (ingest inspected at path '${selftestIngestPath}')` : "")
       : "[relay] self-test disabled (SELFTEST_RTMP_URL is not set)",
   );
-  console.log(manager.recordingSummary());
+  // The failure above already said recording is off; a summary claiming
+  // RECORDING_DIR is unset would only confuse the operator who set it.
+  if (!recordingProblem) console.log(manager.recordingSummary());
   console.log(
     stallMs > 0
       ? `[relay] egress watchdog: ${stallMs / 1_000}s of silence${

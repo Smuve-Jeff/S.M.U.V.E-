@@ -1,5 +1,12 @@
 import { spawn as spawnProcess } from "node:child_process";
-import { readdir, readFile, stat, unlink, writeFile } from "node:fs/promises";
+import {
+  mkdir,
+  readdir,
+  readFile,
+  stat,
+  unlink,
+  writeFile,
+} from "node:fs/promises";
 import { join } from "node:path";
 import { readMp4DurationSeconds } from "./mp4.mjs";
 
@@ -80,6 +87,29 @@ class RecordingStore {
   /** True when this volume has a retention policy at all (0 keeps everything). */
   get enabled() {
     return this.retentionHours > 0;
+  }
+
+  /**
+   * Prove the volume can hold a recording: make the directory, write a file
+   * into it and take it away again. Null means it can; otherwise why not.
+   *
+   * A volume that cannot be written looks exactly like a working one until
+   * MediaMTX first tries to write, which is during the show. Asking at startup
+   * is the difference between a warning before a broadcast and a missing show
+   * after it.
+   */
+  async probe() {
+    const file = join(this.dir, `.relay-probe-${process.pid}`);
+    try {
+      await mkdir(this.dir, { recursive: true });
+      await writeFile(file, "");
+      await unlink(file);
+      return null;
+    } catch (error) {
+      await unlink(file).catch(() => {});
+      // A Node fs error already leads with its code ("ENOTDIR: …").
+      return `${error?.message ?? error}`;
+    }
   }
 
   /** Deletes recordings older than the window; returns the names it removed. */
