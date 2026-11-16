@@ -37,6 +37,11 @@ export interface BroadcastRecording {
   keepHours: number | null;
   /** When that promise runs out, if one was made. */
   keepUntil: string | null;
+  /**
+   * When the sweeper will take this file: the end of the default window, or a
+   * longer pin, whichever is later. Null when retention is off or unknown.
+   */
+  expiresAt: string | null;
 }
 
 interface RelayFile {
@@ -120,21 +125,28 @@ export async function markBroadcastSessionEnded(relayId: string): Promise<void> 
   }
 }
 
-/** The relay's recordings, or an empty list when it keeps none. */
-async function relayRecordings(relay: Relay): Promise<RelayFile[]> {
+const EMPTY_RELAY_LIST = { files: [] as RelayFile[], retentionHours: 0 };
+
+/** The relay's recordings and its default window, when it keeps any. */
+async function relayRecordings(
+  relay: Relay,
+): Promise<{ files: RelayFile[]; retentionHours: number }> {
   const response = await callRelay(relay, "/recordings", {
     method: "GET",
     headers: { Accept: "application/json" },
   });
-  if (response.status === 503) return [];
+  if (response.status === 503) return EMPTY_RELAY_LIST;
   if (!response.ok) {
     throw new AppError(502, "The broadcast relay could not list its recordings.");
   }
   const payload = (await response.json().catch(() => ({}))) as {
     recordings?: unknown;
+    retentionHours?: unknown;
   };
+  const window = Number(payload.retentionHours);
+  const retentionHours = Number.isFinite(window) && window > 0 ? window : 0;
   const rows = Array.isArray(payload.recordings) ? payload.recordings : [];
-  return rows
+  const files = rows
     .map((row) => {
       const value = (row ?? {}) as Record<string, unknown>;
       const name = typeof value.name === "string" ? value.name : "";
@@ -155,6 +167,7 @@ async function relayRecordings(relay: Relay): Promise<RelayFile[]> {
       };
     })
     .filter((row): row is RelayFile => !!row);
+  return { files, retentionHours };
 }
 
 /** A recording belongs to a session when the file is named after it. */
@@ -179,13 +192,25 @@ async function collectRecordings(owner: number): Promise<{
     take: 200,
   });
   if (!rows.length) return null;
-  const files = await relayRecordings(relay);
+  const { files, retentionHours } = await relayRecordings(relay);
   if (!files.length) return null;
 
   const recordings: BroadcastRecording[] = [];
   for (const row of rows) {
     for (const file of files) {
       if (!belongsTo(file.name, row.relayId)) continue;
+      const windowEnd =
+        retentionHours > 0
+          ? Date.parse(file.modifiedAt) + retentionHours * 3_600_000
+          : null;
+      const pinEnd = file.keepUntil ? Date.parse(file.keepUntil) : null;
+      // A file goes when both its window and its pin are over. Math.max would
+      // turn a missing deadline into NaN and lose the other one, so collect
+      // only the deadlines that exist.
+      const deadlines = [windowEnd, pinEnd].filter(
+        (value): value is number => value !== null && Number.isFinite(value),
+      );
+      const sweepAt = deadlines.length ? Math.max(...deadlines) : null;
       recordings.push({
         relayId: row.relayId,
         platform: row.platform,
@@ -197,6 +222,7 @@ async function collectRecordings(owner: number): Promise<{
         durationSeconds: file.durationSeconds,
         keepHours: file.keepHours,
         keepUntil: file.keepUntil,
+        expiresAt: sweepAt === null ? null : new Date(sweepAt).toISOString(),
         thumbnail: null,
         downloadPath: `/broadcast/recordings/${encodeURIComponent(
           row.relayId,

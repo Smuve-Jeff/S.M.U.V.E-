@@ -4580,6 +4580,16 @@
   font-size: 0.55rem;
   letter-spacing: 0.06em;
 }
+/* A show the sweeper is about to take, flagged in amber before it goes. */
+.expires-in {
+  flex: 0 0 auto;
+  padding: 0.1rem 0.25rem;
+  border: 1px solid rgba(255, 176, 80, 0.5);
+  border-radius: 4px;
+  color: #ffc078;
+  font-size: 0.55rem;
+  letter-spacing: 0.06em;
+}
 /* A delete that has not been confirmed reads as a warning, not an action. */
 .quality-btn.recording-delete {
   color: #ff8a8a;

@@ -79,7 +79,7 @@ async function readJson(req) {
  * The control API is exactly what the S.M.U.V.E server calls:
  *   POST   /sessions       { rtmpUrl, streamKey } -> 201 { id, whipUrl }
  *   DELETE /sessions/:id   -> 204
- *   GET    /recordings     -> 200 { recordings: [{ name, bytes, modifiedAt, durationSeconds }] }
+ *   GET    /recordings     -> 200 { retentionHours, recordings: [{ name, bytes, modifiedAt, durationSeconds, keepHours, keepUntil }] }
  *   GET    /recordings/:name -> the file itself, byte ranges included
  *   GET    /recordings/:name/thumbnail -> a cached JPEG frame of that file
  *   DELETE /recordings/:name -> 204, freeing the recording and its frame now
@@ -163,7 +163,12 @@ export function createRelayServer({
             error: "recording is not configured on this relay",
           });
         }
-        return send(res, 200, { recordings: await store.list() });
+        // The window travels with the list so a caller can say when an unpinned
+        // show will go, instead of guessing the operator's policy.
+        return send(res, 200, {
+          retentionHours: store.retentionHours ?? 0,
+          recordings: await store.list(),
+        });
       }
       const thumbnail = /^\/recordings\/([^/]{1,128})\/thumbnail$/.exec(
         url.pathname,

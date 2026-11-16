@@ -44,6 +44,7 @@ function makeManager() {
 }
 
 import { mp4Header } from "./helpers/mp4-fixture.mjs";
+import { RecordingStore } from "../src/recording-store.mjs";
 
 const servers = [];
 
@@ -589,4 +590,22 @@ test("refuses a keep duration it cannot honour", async () => {
     })).status,
     503,
   );
+});
+
+test("tells the caller how long an unpinned show has left", async () => {
+  const dir = await makeRecordingDir([["show.mp4", mp4Header(7)]]);
+  const plain = await startServer({ recordingDir: dir });
+  const plainBody = await fetch(`${plain.base}/recordings`, {
+    headers: bearer,
+  }).then((r) => r.json());
+  // No store passed, so there is no window to report.
+  assert.equal(plainBody.retentionHours, 0);
+
+  const configured = await startServer({
+    recordings: new RecordingStore({ dir, retentionHours: 24 }),
+  });
+  const configuredBody = await fetch(`${configured.base}/recordings`, {
+    headers: bearer,
+  }).then((r) => r.json());
+  assert.equal(configuredBody.retentionHours, 24);
 });

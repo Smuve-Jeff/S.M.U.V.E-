@@ -3289,6 +3289,13 @@
                     REFRESH
                   </button>
                 </div>
+                <p
+                  class="account-note warn"
+                  *ngIf="ingest.expiringCount() as expiring"
+                >
+                  {{ expiring }} SHOW{{ expiring === 1 ? '' : 'S' }} ABOUT TO
+                  EXPIRE · PICK 7D TO KEEP
+                </p>
                 <div class="recordings-player" *ngIf="ingest.playback() as playback">
                   <div class="stream-accounts-head">
                     <span class="quality-readout">PLAYBACK</span>
@@ -3336,6 +3343,12 @@
                   >
                     DOWNLOAD
                   </button>
+                  <span
+                    class="expires-in"
+                    *ngIf="ingest.expiryLabel(recording) as expiring"
+                  >
+                    {{ expiring }}
+                  </span>
                   <span class="kept-until" *ngIf="ingest.keepLabel(recording) as kept">
                     {{ kept }}
                   </span>

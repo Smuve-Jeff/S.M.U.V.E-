@@ -67,11 +67,22 @@ afterAll(() => {
   global.fetch = realFetch;
 });
 
-const relayListed = (recordings: { name: string; bytes: number; modifiedAt: string }[]) =>
+const relayListed = (recordings: Record<string, unknown>[]) =>
   ({
     ok: true,
     status: 200,
     json: async () => ({ recordings }),
+  }) as unknown as Response;
+
+/** A relay that also states its default retention window. */
+const relayListing = (
+  recordings: Record<string, unknown>[],
+  retentionHours: number,
+) =>
+  ({
+    ok: true,
+    status: 200,
+    json: async () => ({ retentionHours, recordings }),
   }) as unknown as Response;
 
 const seed = (relayId: string, userId: number, platform = "twitch") =>
@@ -519,4 +530,62 @@ it("lists how long each show is kept for", async () => {
 
   expect(recording.keepHours).toBe(168);
   expect(recording.keepUntil).toBe(keepUntil);
+});
+
+it("says when a show will be swept, and a longer pin pushes that out", async () => {
+  seed("aaaa", 7);
+  const recordedAt = "2026-01-01T10:00:00.000Z";
+  const windowEnd = "2026-01-02T10:00:00.000Z";
+  fetchMock.mockImplementation(async (url: string) => {
+    if (String(url).endsWith("/thumbnail")) {
+      return { ok: false, status: 404 } as unknown as Response;
+    }
+    return relayListing(
+      [
+        { name: "aaaa.mp4", bytes: 1, modifiedAt: recordedAt },
+        {
+          name: "aaaa-kept.mp4",
+          bytes: 1,
+          modifiedAt: recordedAt,
+          keepHours: 168,
+          keepUntil: "2026-01-08T10:00:00.000Z",
+        },
+        {
+          name: "aaaa-short-pin.mp4",
+          bytes: 1,
+          modifiedAt: recordedAt,
+          keepHours: 1,
+          keepUntil: "2026-01-01T11:00:00.000Z",
+        },
+      ],
+      24,
+    ) as unknown as Response;
+  });
+
+  const rows = await listBroadcastRecordings(7);
+  const byName = new Map(rows.map((row) => [row.name, row]));
+
+  expect(byName.get("aaaa.mp4")?.expiresAt).toBe(windowEnd);
+  expect(byName.get("aaaa-kept.mp4")?.expiresAt).toBe(
+    "2026-01-08T10:00:00.000Z",
+  );
+  // A pin shorter than the window does not bring the sweep forward: the file
+  // only goes once both the window and the pin are over.
+  expect(byName.get("aaaa-short-pin.mp4")?.expiresAt).toBe(windowEnd);
+});
+
+it("has no deadline to warn about when the relay keeps recordings forever", async () => {
+  seed("aaaa", 7);
+  fetchMock.mockImplementation(async (url: string) => {
+    if (String(url).endsWith("/thumbnail")) {
+      return { ok: false, status: 404 } as unknown as Response;
+    }
+    return relayListed([
+      { name: "aaaa.mp4", bytes: 1, modifiedAt: "2026-01-01T10:00:00.000Z" },
+    ]) as unknown as Response;
+  });
+
+  const [recording] = await listBroadcastRecordings(7);
+
+  expect(recording.expiresAt).toBeNull();
 });

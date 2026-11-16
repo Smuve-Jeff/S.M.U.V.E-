@@ -20,7 +20,7 @@ The API server's `MEDIA_RELAY_URL` points at this service. Contract:
 | --- | --- | --- | --- |
 | `POST` | `/sessions` | `{ rtmpUrl, streamKey }` | `201 { id, whipUrl }` |
 | `DELETE` | `/sessions/:id` | — | `204` |
-| `GET` | `/recordings` | — | `200 { recordings: [{ name, bytes, modifiedAt, durationSeconds }] }`; `durationSeconds` comes from the file's own `mvhd`, so listing spawns nothing; `503` when `RECORDING_DIR` is unset |
+| `GET` | `/recordings` | — | `200 { retentionHours, recordings: [{ name, bytes, modifiedAt, durationSeconds, keepHours, keepUntil }] }`; `durationSeconds` comes from the file's own `mvhd`, so listing spawns nothing; `retentionHours` lets a caller say when an unpinned show goes; `503` when `RECORDING_DIR` is unset |
 | `PUT` | `/recordings/:name/retention` | `{ "hours": 168 }` | keeps the file past the window for that many hours (max 2160, `0` clears it); answers `{ keepHours, keepUntil }` |
 | `GET` | `/recordings/:name/thumbnail` | — | a 320 px JPEG frame from one second in, generated once and cached beside the recording as `<name>.jpg`; `404` without ffmpeg or for a file it cannot frame |
 | `DELETE` | `/recordings/:name` | — | `204` after removing the file and its cached frame; `204` too when it was already gone, so a second press is harmless |

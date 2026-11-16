@@ -42,6 +42,8 @@ export interface BroadcastRecordingDto {
   keepHours?: number | null;
   /** When that promise runs out, if one was made. */
   keepUntil?: string | null;
+  /** When the sweeper will take this file: the window, or a longer pin. */
+  expiresAt?: string | null;
 }
 
 interface IngestSessionDto {
@@ -133,6 +135,8 @@ export class BroadcastIngestService {
   /** The row waiting for the host to confirm a delete, if any. */
   readonly pendingDelete = signal<string | null>(null);
   readonly deleting = signal<string | null>(null);
+  /** Warn this long before the sweeper takes a show, unless it gets pinned. */
+  readonly expiryWarningHours = 6;
 
   private relayId: string | null = null;
   private egressTimer: ReturnType<typeof setInterval> | null = null;
@@ -579,6 +583,23 @@ export class BroadcastIngestService {
     } catch {
       this.snackbar.error('DOWNLOAD FAILED — TRY AGAIN');
     }
+  }
+
+  /** `IN 4H` / `IN 45M` while a show is close to the sweeper, else empty. */
+  expiryLabel(recording: BroadcastRecordingDto): string {
+    const until = new Date(String(recording.expiresAt ?? ''));
+    if (Number.isNaN(until.getTime())) return '';
+    const left = until.getTime() - Date.now();
+    if (left <= 0 || left > this.expiryWarningHours * 3_600_000) return '';
+    return left < 3_600_000
+      ? `IN ${Math.max(1, Math.round(left / 60_000))}M`
+      : `IN ${Math.round(left / 3_600_000)}H`;
+  }
+
+  /** How many shows the panel should warn about right now. */
+  expiringCount(): number {
+    return this.recordings().filter((row) => this.expiryLabel(row) !== '')
+      .length;
   }
 
   /** `23 NOV` for a promise that has not run out yet, empty otherwise. */

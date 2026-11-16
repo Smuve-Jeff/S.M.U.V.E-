@@ -337,6 +337,12 @@ push sessions this account opened; downloads come from
 the relay's token never reaches the browser. A host only ever sees their own
 recordings, and a show drops off the list when retention deletes it.
 
+The app warns before the sweeper takes something: a show with under six hours
+left gets an amber `IN 4H` badge, and a line above the list counts them. The
+deadline is computed from the relay's own window (now included in
+`GET /recordings`) and any pin, so the warning matches what the sweeper will
+actually do. Picking 7D, 30D or 90D clears the warning.
+
 Retention is a default, not a rule: each row has a **DEFAULT / 7D / 30D / 90D**
 selector. Picking longer asks the API to pin the show (`PUT
 /api/broadcast/recordings/:relayId/retention`), the relay stores that promise
