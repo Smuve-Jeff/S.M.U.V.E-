@@ -1,11 +1,16 @@
 import { HttpClient } from '@angular/common/http';
-import { Injectable, effect, inject, signal } from '@angular/core';
+import { DestroyRef, Injectable, effect, inject, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { APP_SECURITY_CONFIG } from '../app.security';
 import { SocialNetworkingService } from './social-networking.service';
 import { SnackbarService } from './snackbar.service';
 import { TokenService } from './token.service';
 import { UserProfileService } from './user-profile.service';
+import {
+  EXPIRY_WARNING_HOURS,
+  expiryLabel,
+  keepLabel,
+} from './retention-warning';
 import { createTestPattern } from './test-pattern';
 import { WhipPublisher } from './whip-publisher';
 
@@ -136,12 +141,26 @@ export class BroadcastIngestService {
   readonly pendingDelete = signal<string | null>(null);
   readonly deleting = signal<string | null>(null);
   /** Warn this long before the sweeper takes a show, unless it gets pinned. */
-  readonly expiryWarningHours = 6;
+  readonly expiryWarningHours = EXPIRY_WARNING_HOURS;
+  /**
+   * The clock the retention warnings read. It ticks, so a show crossing into
+   * its final hours updates a panel that was simply left open.
+   */
+  readonly clock = signal(Date.now());
 
   private relayId: string | null = null;
   private egressTimer: ReturnType<typeof setInterval> | null = null;
 
+  private clockTimer: ReturnType<typeof setInterval> | null = null;
+
   constructor() {
+    // Minute-level badges only need a minute-level tick, and writing the signal
+    // re-renders the recordings block alone.
+    this.clockTimer = setInterval(() => this.clock.set(Date.now()), 60_000);
+    inject(DestroyRef).onDestroy(() => {
+      if (this.clockTimer) clearInterval(this.clockTimer);
+    });
+
     effect(() => {
       const userId = this.profile.profile()?.id ?? '';
       if (!userId) {
@@ -587,13 +606,7 @@ export class BroadcastIngestService {
 
   /** `IN 4H` / `IN 45M` while a show is close to the sweeper, else empty. */
   expiryLabel(recording: BroadcastRecordingDto): string {
-    const until = new Date(String(recording.expiresAt ?? ''));
-    if (Number.isNaN(until.getTime())) return '';
-    const left = until.getTime() - Date.now();
-    if (left <= 0 || left > this.expiryWarningHours * 3_600_000) return '';
-    return left < 3_600_000
-      ? `IN ${Math.max(1, Math.round(left / 60_000))}M`
-      : `IN ${Math.round(left / 3_600_000)}H`;
+    return expiryLabel(recording.expiresAt, this.clock(), this.expiryWarningHours);
   }
 
   /** How many shows the panel should warn about right now. */
@@ -602,17 +615,9 @@ export class BroadcastIngestService {
       .length;
   }
 
-  /** `23 NOV` for a promise that has not run out yet, empty otherwise. */
+  /** `KEPT UNTIL 23 NOV` for a promise that has not run out yet, else empty. */
   keepLabel(recording: BroadcastRecordingDto): string {
-    const until = new Date(String(recording.keepUntil ?? ''));
-    if (Number.isNaN(until.getTime()) || until.getTime() <= Date.now()) {
-      return '';
-    }
-    const day = until.toLocaleDateString('en-GB', {
-      day: '2-digit',
-      month: 'short',
-    });
-    return `KEPT UNTIL ${day.toUpperCase()}`;
+    return keepLabel(recording.keepUntil, this.clock());
   }
 
   /**

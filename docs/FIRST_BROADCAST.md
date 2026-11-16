@@ -341,7 +341,9 @@ The app warns before the sweeper takes something: a show with under six hours
 left gets an amber `IN 4H` badge, and a line above the list counts them. The
 deadline is computed from the relay's own window (now included in
 `GET /recordings`) and any pin, so the warning matches what the sweeper will
-actually do. Picking 7D, 30D or 90D clears the warning.
+actually do. Picking 7D, 30D or 90D clears the warning. The badge re-reads a clock that ticks
+once a minute, so a panel left open still shows a show crossing into its last
+hours; the list itself only reloads when you press REFRESH.
 
 Retention is a default, not a rule: each row has a **DEFAULT / 7D / 30D / 90D**
 selector. Picking longer asks the API to pin the show (`PUT
