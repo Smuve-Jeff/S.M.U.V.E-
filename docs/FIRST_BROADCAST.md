@@ -330,12 +330,19 @@ expired files. If `RECORDING_DIR` is unset, recording is off and the startup log
 says so.
 
 Hosts do not have to reach the relay to get a show back: the app lists them
-under **BROADCAST PUSH → RECORDINGS**, with a DOWNLOAD button per file. The list
+under **BROADCAST PUSH → RECORDINGS**, with PLAY and DOWNLOAD per file. The list
 comes from `GET /api/broadcast/recordings`, which joins the relay's files to the
-push sessions this account opened; the bytes come from
+push sessions this account opened; downloads come from
 `GET /api/broadcast/recordings/:relayId/download`, streamed through the API so
 the relay's token never reaches the browser. A host only ever sees their own
 recordings, and a show drops off the list when retention deletes it.
+
+PLAY does not put the host's JWT in a media URL. The app asks for a short-lived
+signed link (`POST /api/broadcast/recordings/:relayId/playback`), which names
+one user, one session and one file and expires after two hours; the player loads
+that from `GET /api/broadcast/recordings/:relayId/stream`. The stream answers
+byte ranges end to end, so seeking works without re-downloading the show. If the
+link expires mid-show, press PLAY again.
 
 Do not shorten retention below the length of a show: the sweeper only deletes
 files whose last write is older than the window, so a live recording is safe,

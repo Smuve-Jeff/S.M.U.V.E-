@@ -45,6 +45,7 @@ jest.mock("@/config/env", () => ({
 }));
 
 import {
+  issuePlaybackTicket,
   listBroadcastRecordings,
   markBroadcastSessionEnded,
   openBroadcastRecording,
@@ -206,3 +207,59 @@ describe("broadcast recordings", () => {
     expect(mockRows[0].endedAt).toBeInstanceOf(Date);
   });
 });
+
+  it("mints a playback URL only for a recording the host owns", async () => {
+    seed("aaaa", 7);
+    fetchMock.mockResolvedValue(
+      relayListed([
+        { name: "aaaa.mp4", bytes: 100, modifiedAt: "2026-01-01T10:00:00.000Z" },
+      ]),
+    );
+
+    const playback = await issuePlaybackTicket(7, "aaaa", "aaaa.mp4");
+
+    expect(playback.path.startsWith("/broadcast/recordings/aaaa/stream?")).toBe(
+      true,
+    );
+    expect(playback.path).toContain("sig=");
+    expect(new Date(playback.expiresAt).getTime()).toBeGreaterThan(Date.now());
+
+    await expect(
+      issuePlaybackTicket(9, "aaaa", "aaaa.mp4"),
+    ).rejects.toThrow(/does not exist/);
+    await expect(
+      issuePlaybackTicket(7, "aaaa", "bbbb.mp4"),
+    ).rejects.toThrow(/does not exist/);
+  });
+
+  it("passes a byte range through so a player can seek", async () => {
+    seed("aaaa", 7);
+    const body = { stream: true } as unknown as ReadableStream<Uint8Array>;
+    fetchMock
+      .mockResolvedValueOnce(
+        relayListed([
+          { name: "aaaa.mp4", bytes: 100, modifiedAt: "2026-01-01T10:00:00.000Z" },
+        ]),
+      )
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 206,
+        body,
+        headers: new Headers({
+          "content-length": "10",
+          "content-range": "bytes 0-9/100",
+        }),
+      } as unknown as Response);
+
+    const file = await openBroadcastRecording(7, "aaaa", "aaaa.mp4", {
+      range: "bytes=0-9",
+    });
+
+    expect(fetchMock).toHaveBeenLastCalledWith(
+      "http://relay.test/recordings/aaaa.mp4",
+      expect.objectContaining({ headers: expect.objectContaining({ Range: "bytes=0-9" }) }),
+    );
+    expect(file.status).toBe(206);
+    expect(file.contentRange).toBe("bytes 0-9/100");
+    expect(file.bytes).toBe(10);
+  });

@@ -3289,6 +3289,24 @@
                     REFRESH
                   </button>
                 </div>
+                <div class="recordings-player" *ngIf="ingest.playback() as playback">
+                  <div class="stream-accounts-head">
+                    <span class="quality-readout">PLAYBACK</span>
+                    <span class="accounts-count">
+                      {{ ingest.recordingLabel(playback.recording) }}
+                    </span>
+                    <button class="quality-btn" (click)="ingest.stopPlayback()">
+                      CLOSE
+                    </button>
+                  </div>
+                  <video
+                    class="recordings-video"
+                    [src]="playback.url"
+                    controls
+                    autoplay
+                    playsinline
+                  ></video>
+                </div>
                 <div
                   class="account-row"
                   *ngFor="let recording of ingest.recordings()"
@@ -3296,6 +3314,14 @@
                   <span class="account-name">
                     {{ ingest.recordingLabel(recording) }}
                   </span>
+                  <button
+                    class="quality-btn"
+                    (click)="ingest.playRecording(recording)"
+                    [disabled]="ingest.playbackLoading()"
+                    title="Play this broadcast here"
+                  >
+                    PLAY
+                  </button>
                   <button
                     class="quality-btn"
                     (click)="ingest.downloadRecording(recording)"
@@ -3316,6 +3342,9 @@
                 </p>
                 <p class="account-note warn" *ngIf="ingest.recordingsError()">
                   {{ ingest.recordingsError() }}
+                </p>
+                <p class="account-note warn" *ngIf="ingest.playbackError()">
+                  {{ ingest.playbackError() }}
                 </p>
               </div>
               <p

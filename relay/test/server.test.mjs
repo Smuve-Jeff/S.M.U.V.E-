@@ -356,3 +356,34 @@ test("recording endpoints need the token and an enabled volume", async () => {
     503,
   );
 });
+
+test("serves byte ranges so a player can seek", async () => {
+  const dir = await makeRecordingDir([["show.mp4", "video-bytes"]]);
+  const { base } = await startServer({ recordingDir: dir });
+
+  const partial = await fetch(`${base}/recordings/show.mp4`, {
+    headers: { ...bearer, Range: "bytes=0-4" },
+  });
+  assert.equal(partial.status, 206);
+  assert.equal(partial.headers.get("accept-ranges"), "bytes");
+  assert.equal(partial.headers.get("content-range"), "bytes 0-4/11");
+  assert.equal(partial.headers.get("content-length"), "5");
+  assert.equal(await partial.text(), "video");
+
+  const tail = await fetch(`${base}/recordings/show.mp4`, {
+    headers: { ...bearer, Range: "bytes=-5" },
+  });
+  assert.equal(tail.status, 206);
+  assert.equal(tail.headers.get("content-range"), "bytes 6-10/11");
+  assert.equal(await tail.text(), "bytes");
+
+  const full = await fetch(`${base}/recordings/show.mp4`, { headers: bearer });
+  assert.equal(full.status, 200);
+  assert.equal(full.headers.get("accept-ranges"), "bytes");
+
+  const beyond = await fetch(`${base}/recordings/show.mp4`, {
+    headers: { ...bearer, Range: "bytes=99-120" },
+  });
+  assert.equal(beyond.status, 416);
+  assert.equal(beyond.headers.get("content-range"), "bytes */11");
+});

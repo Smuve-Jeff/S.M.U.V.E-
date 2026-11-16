@@ -14,8 +14,10 @@ import {
   stopIngestSession,
 } from "@/services/broadcast-ingest.service";
 import {
+  issuePlaybackTicket,
   listBroadcastRecordings,
   openBroadcastRecording,
+  playbackTicketFromQuery,
 } from "@/services/broadcast-recordings.service";
 
 const router = Router();
@@ -33,6 +35,21 @@ const pushLimiter = rateLimit({
   keyGenerator: (req: Request) => `broadcast-push:${req.user?.userId ?? "unknown"}`,
   validate: { keyGeneratorIpFallback: false },
   message: { error: "Too many broadcast push attempts. Try again in a minute." },
+});
+
+/**
+ * Playback asks for one byte range at a time, so it needs a far larger budget
+ * than the rest of the API. The global limiter skips this path (see app.ts);
+ * this one keeps it bounded.
+ */
+const streamLimiter = rateLimit({
+  windowMs: 60_000,
+  max: 600,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req: Request) => `broadcast-stream:${req.ip ?? "unknown"}`,
+  validate: { keyGeneratorIpFallback: false },
+  message: { error: "Too many playback requests. Try again in a minute." },
 });
 
 function actorOf(req: Request): number {
@@ -118,5 +135,72 @@ router.get("/recordings/:relayId/download", authenticate, async (req, res, next)
     next(error);
   }
 });
+
+// POST /api/broadcast/recordings/:relayId/playback?name=<file> — a short-lived
+// signed URL for a media element. Ownership is checked before minting.
+router.post(
+  "/recordings/:relayId/playback",
+  authenticate,
+  async (req, res, next) => {
+    try {
+      const name = typeof req.query.name === "string" ? req.query.name : "";
+      const playback = await issuePlaybackTicket(
+        actorOf(req),
+        String(req.params.relayId || ""),
+        name,
+      );
+      res.set("Cache-Control", "private, no-store");
+      res.json(playback);
+    } catch (error) {
+      next(error);
+    }
+  },
+);
+
+// GET /api/broadcast/recordings/:relayId/stream?name=…&u=…&exp=…&sig=…
+// Unauthenticated by design: the ticket is the credential, and it names one
+// user, one session and one file. Byte ranges pass straight through so the
+// player can seek without re-downloading the show.
+router.get(
+  "/recordings/:relayId/stream",
+  streamLimiter,
+  async (req, res, next) => {
+    try {
+      const relayId = String(req.params.relayId || "");
+      const name = typeof req.query.name === "string" ? req.query.name : "";
+      const allowed = playbackTicketFromQuery({
+        userId: req.query.u,
+        relayId,
+        name,
+        expiresAt: req.query.exp,
+        signature: req.query.sig,
+      });
+      if (!allowed) {
+        return res.status(403).json({ error: "That playback link is not valid." });
+      }
+
+      const range =
+        typeof req.headers.range === "string" ? req.headers.range : undefined;
+      const file = await openBroadcastRecording(
+        Number(req.query.u),
+        relayId,
+        name,
+        { range },
+      );
+      res.writeHead(file.status, {
+        "Content-Type": "video/mp4",
+        "Accept-Ranges": "bytes",
+        "Content-Length": file.bytes,
+        ...(file.contentRange ? { "Content-Range": file.contentRange } : {}),
+        "Cache-Control": "private, no-store",
+      });
+      Readable.fromWeb(file.body as never)
+        .on("error", () => res.destroy())
+        .pipe(res);
+    } catch (error) {
+      next(error);
+    }
+  },
+);
 
 export default router;

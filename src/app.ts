@@ -55,6 +55,9 @@ const limiter = rateLimit({
   max: 200,
   standardHeaders: true,
   legacyHeaders: false,
+  // Video playback issues one request per byte range, which would exhaust a
+  // per-user API budget in minutes. Its route carries its own, larger limit.
+  skip: (req) => /^\/api\/broadcast\/recordings\/[^/]+\/stream$/.test(req.path),
 });
 app.use(limiter);
 

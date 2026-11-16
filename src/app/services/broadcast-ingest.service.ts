@@ -115,6 +115,13 @@ export class BroadcastIngestService {
   readonly recordings = signal<BroadcastRecordingDto[]>([]);
   readonly recordingsLoading = signal(false);
   readonly recordingsError = signal('');
+  /** The recording open in the panel's player, if any. */
+  readonly playback = signal<{
+    recording: BroadcastRecordingDto;
+    url: string;
+  } | null>(null);
+  readonly playbackLoading = signal(false);
+  readonly playbackError = signal('');
 
   private relayId: string | null = null;
   private egressTimer: ReturnType<typeof setInterval> | null = null;
@@ -233,6 +240,7 @@ export class BroadcastIngestService {
     this.stopWatching();
     await this.whip.stop();
     await this.releaseRelay();
+    this.stopPlayback();
     this.snackbar.info('BROADCAST PUSH STOPPED');
     // The show that just ended is the one the host is most likely to want.
     void this.loadRecordings();
@@ -482,6 +490,45 @@ export class BroadcastIngestService {
       ? ''
       : `${when.toISOString().replace('T', ' ').slice(0, 16)} UTC`;
     return `${platform} · ${size} · ${stamp}`;
+  }
+
+  /**
+   * Play a recording in the panel.
+   *
+   * A `<video>` element cannot send the bearer token, and a JWT in a media URL
+   * would land in access logs, so the app asks the API for a short-lived,
+   * signed playback URL and hands that to the element. Seeking works because
+   * the API and the relay both answer byte ranges.
+   */
+  async playRecording(recording: BroadcastRecordingDto): Promise<void> {
+    this.playbackLoading.set(true);
+    this.playbackError.set('');
+    try {
+      const ticket = await firstValueFrom(
+        this.http.post<{ path?: string }>(
+          this.endpoint(
+            `/recordings/${encodeURIComponent(recording.relayId)}/playback?name=${encodeURIComponent(recording.name)}`,
+          ),
+          {},
+          { headers: this.headers() },
+        ),
+      );
+      if (!ticket?.path) throw new Error('NO PLAYBACK URL');
+      this.playback.set({
+        recording,
+        url: `${APP_SECURITY_CONFIG.api_url}${ticket.path}`,
+      });
+    } catch {
+      this.playback.set(null);
+      this.playbackError.set('COULD NOT OPEN THAT RECORDING — DOWNLOAD IT INSTEAD');
+    } finally {
+      this.playbackLoading.set(false);
+    }
+  }
+
+  stopPlayback(): void {
+    this.playback.set(null);
+    this.playbackError.set('');
   }
 
   /**

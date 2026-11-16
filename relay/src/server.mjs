@@ -56,6 +56,36 @@ async function listRecordings(dir) {
     .sort((left, right) => right.modifiedAt.localeCompare(left.modifiedAt));
 }
 
+/**
+ * `Range: bytes=…` for one file. A browser's `<video>` seeks by asking for
+ * byte ranges, so serving recordings without this makes playback impossible.
+ * Returns null for an absent or unsatisfiable range; the caller tells the two
+ * apart by looking at the header it passed in.
+ */
+function parseRange(header, size) {
+  const match = /^bytes=(\d*)-(\d*)$/.exec(String(header ?? "").trim());
+  if (!match) return null;
+  const [, rawStart, rawEnd] = match;
+  if (rawStart === "" && rawEnd === "") return null;
+  if (!Number.isFinite(size) || size <= 0) return null;
+
+  let start;
+  let end;
+  if (rawStart === "") {
+    // `bytes=-N` is the last N bytes.
+    const wanted = Number(rawEnd);
+    if (!Number.isFinite(wanted) || wanted <= 0) return null;
+    start = Math.max(0, size - wanted);
+    end = size - 1;
+  } else {
+    start = Number(rawStart);
+    end = rawEnd === "" ? size - 1 : Number(rawEnd);
+  }
+  if (!Number.isFinite(start) || !Number.isFinite(end)) return null;
+  if (start > end || start >= size) return null;
+  return { start, end: Math.min(end, size - 1) };
+}
+
 /** One recording, resolved inside the volume. Null means "not there". */
 async function openRecording(dir, name) {
   if (!RECORDING_NAME.test(name)) return null;
@@ -171,12 +201,35 @@ export function createRelayServer({
         }
         const found = await openRecording(recordingDir, name);
         if (!found) return send(res, 404, { error: "no such recording" });
-        res.writeHead(200, {
+        const rangeHeader = req.headers.range;
+        const range = parseRange(rangeHeader, found.bytes);
+        const headers = {
           "Content-Type": "video/mp4",
-          "Content-Length": found.bytes,
+          "Accept-Ranges": "bytes",
           "Content-Disposition": `attachment; filename="${basename(found.file)}"`,
           "Cache-Control": "private, no-store",
-        });
+        };
+        if (rangeHeader && !range) {
+          res.writeHead(416, {
+            ...headers,
+            "Content-Range": `bytes */${found.bytes}`,
+          });
+          res.end();
+          return;
+        }
+        if (range) {
+          res.writeHead(206, {
+            ...headers,
+            "Content-Range": `bytes ${range.start}-${range.end}/${found.bytes}`,
+            "Content-Length": range.end - range.start + 1,
+          });
+          createReadStream(found.file, {
+            start: range.start,
+            end: range.end,
+          }).pipe(res);
+          return;
+        }
+        res.writeHead(200, { ...headers, "Content-Length": found.bytes });
         createReadStream(found.file).pipe(res);
         return;
       }

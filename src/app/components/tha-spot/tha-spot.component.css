@@ -4553,6 +4553,20 @@
   flex-direction: column;
   gap: 0.35rem;
 }
+/* Playback of a finished show, above its entry in the recordings list. */
+.recordings-video {
+  width: 100%;
+  max-height: 22rem;
+  aspect-ratio: 16 / 9;
+  background: #000;
+  border: 1px solid rgba(var(--neon-cyan-rgb), 0.22);
+  border-radius: 6px;
+}
+.recordings-player {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
 /* Recordings outlive the push, so they get their own block under it. */
 .stream-recordings {
   display: flex;

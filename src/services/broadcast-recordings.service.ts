@@ -2,6 +2,11 @@ import { MEDIA_RELAY_TOKEN, MEDIA_RELAY_URL } from "@/config/env";
 import { AppDataSource } from "@/database/data-source";
 import { BroadcastSession } from "@/entities/BroadcastSession";
 import { AppError } from "@/lib";
+import {
+  mintPlaybackTicket,
+  playbackPath,
+  verifyPlaybackTicket,
+} from "@/lib/media-ticket";
 
 /**
  * Recordings live on the relay's volume, named after the relay session
@@ -172,6 +177,9 @@ export interface RecordingDownload {
   body: ReadableStream<Uint8Array>;
   bytes: number;
   filename: string;
+  /** 200 for the whole file, 206 when the caller asked for a byte range. */
+  status: number;
+  contentRange: string | null;
 }
 
 /**
@@ -183,6 +191,7 @@ export async function openBroadcastRecording(
   userId: number | string,
   relayId: string,
   name: string,
+  options: { range?: string } = {},
 ): Promise<RecordingDownload> {
   const relay = relayConfiguration();
   if (!relay) {
@@ -210,10 +219,15 @@ export async function openBroadcastRecording(
   const match = mine.find((recording) => recording.name === name);
   if (!match) throw new AppError(404, "That recording does not exist.");
 
+  const relayHeaders: Record<string, string> = {};
+  // A player seeks with byte ranges; pass the range through so the relay can
+  // answer 206 instead of streaming the whole show again from the start.
+  if (options.range) relayHeaders.Range = options.range;
+
   const response = await callRelay(
     relay,
     `/recordings/${encodeURIComponent(match.name)}`,
-    { method: "GET" },
+    { method: "GET", headers: relayHeaders },
   );
   if (!response.ok || !response.body) {
     throw new AppError(502, "The relay could not hand over that recording.");
@@ -223,5 +237,53 @@ export async function openBroadcastRecording(
     body: response.body,
     bytes: Number.isFinite(length) && length > 0 ? length : match.bytes,
     filename: match.name,
+    status: response.status === 206 ? 206 : 200,
+    contentRange: response.headers.get("content-range"),
   };
+}
+
+/**
+ * Mint a short-lived URL a `<video>` element can load. Ownership is proven
+ * here, once; the media route then trusts only the signed ticket, because a
+ * media element cannot send a bearer token and a JWT in a URL would be logged.
+ */
+export async function issuePlaybackTicket(
+  userId: number | string,
+  relayId: string,
+  name: string,
+): Promise<{ path: string; expiresAt: string }> {
+  const owner = Number(userId);
+  const id = String(relayId || "");
+  if (!Number.isFinite(owner) || !/^[A-Za-z0-9_-]{1,128}$/.test(id)) {
+    throw new AppError(404, "That recording does not exist.");
+  }
+  const mine = (await listBroadcastRecordings(owner)).filter(
+    (recording) => recording.relayId === id,
+  );
+  if (!mine.some((recording) => recording.name === name)) {
+    throw new AppError(404, "That recording does not exist.");
+  }
+
+  const ticket = mintPlaybackTicket({ userId: owner, relayId: id, name });
+  return {
+    path: playbackPath(ticket),
+    expiresAt: new Date(ticket.expiresAt).toISOString(),
+  };
+}
+
+/** The claims carried by a media URL, ready for `verifyPlaybackTicket`. */
+export function playbackTicketFromQuery(input: {
+  userId: unknown;
+  relayId: unknown;
+  name: unknown;
+  expiresAt: unknown;
+  signature: unknown;
+}): boolean {
+  return verifyPlaybackTicket({
+    userId: input.userId,
+    relayId: input.relayId,
+    name: input.name,
+    expiresAt: input.expiresAt,
+    signature: input.signature,
+  });
 }
