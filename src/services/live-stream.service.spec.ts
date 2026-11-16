@@ -4,6 +4,7 @@ jest.mock("@/entities/LiveStream", () => ({
 }));
 jest.mock("@/entities", () => ({
   LiveStream: class LiveStream {},
+  LiveStreamViewerJoin: class LiveStreamViewerJoin {},
 }));
 
 const mockStreamStore: any[] = [];
@@ -71,9 +72,32 @@ const mockRepo = {
   })),
 };
 
+const mockViewerJoinStore: Array<{ streamId: number; viewerKey: string }> = [];
+
+const mockViewerJoinRepo = {
+  insert: jest.fn(async (row: { streamId: number; viewerKey: string }) => {
+    if (
+      mockViewerJoinStore.some(
+        (existing) =>
+          existing.streamId === row.streamId &&
+          existing.viewerKey === row.viewerKey,
+      )
+    ) {
+      throw Object.assign(
+        new Error("duplicate key value violates unique constraint"),
+        { code: "23505" },
+      );
+    }
+    mockViewerJoinStore.push(row);
+    return { identifiers: [], generatedMaps: [], raw: [] };
+  }),
+};
+
 jest.mock("@/database/data-source", () => ({
   AppDataSource: {
-    getRepository: jest.fn(() => mockRepo),
+    getRepository: jest.fn((entity: { name?: string }) =>
+      entity?.name === "LiveStreamViewerJoin" ? mockViewerJoinRepo : mockRepo,
+    ),
   },
 }));
 
@@ -94,6 +118,7 @@ const tokenA = "tokA";
 describe("live-stream service", () => {
   beforeEach(() => {
     mockStreamStore.length = 0;
+    mockViewerJoinStore.length = 0;
     nextInsertId = 1;
     jest.clearAllMocks();
     // Reprovision findOne to also support getCurrentLiveStream's
@@ -260,6 +285,39 @@ describe("live-stream service", () => {
       expect(first.viewerJoins).toBe(1);
       expect(doubleTap.viewerJoins).toBe(1);
       expect(otherViewer.viewerJoins).toBe(2);
+    });
+
+    it("keeps a viewer at one join after a refresh past the old 15s window", async () => {
+      jest.useFakeTimers();
+      try {
+        jest.setSystemTime(new Date("2026-01-01T00:00:00.000Z"));
+        const issued = await startLiveStream({
+          hostId: "h",
+          platform: "twitch",
+        });
+        const first = await redeemViewerJoin(
+          issued.shareToken,
+          "guest:viewer-abc",
+        );
+
+        // The previous implementation forgot a viewer after 15 seconds; the
+        // durable per-stream row must survive a later refresh.
+        jest.setSystemTime(new Date("2026-01-01T00:00:20.000Z"));
+        const refreshed = await redeemViewerJoin(
+          issued.shareToken,
+          "guest:viewer-abc",
+        );
+        const otherViewer = await redeemViewerJoin(
+          issued.shareToken,
+          "guest:viewer-def",
+        );
+
+        expect(first.viewerJoins).toBe(1);
+        expect(refreshed.viewerJoins).toBe(1);
+        expect(otherViewer.viewerJoins).toBe(2);
+      } finally {
+        jest.useRealTimers();
+      }
     });
 
     it("counts the same viewer on two different broadcasts", async () => {

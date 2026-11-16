@@ -11,6 +11,7 @@ import { AddUserSessionAndVerificationColumns1786243200008 } from "./17862432000
 import { CreateStreamingAccounts1786243200012 } from "./1786243200012-CreateStreamingAccounts";
 import { CreateStreamingDestinations1786243200013 } from "./1786243200013-CreateStreamingDestinations";
 import { CreateBroadcastSessions1786243200014 } from "./1786243200014-CreateBroadcastSessions";
+import { CreateLiveStreamViewerJoins1786243200015 } from "./1786243200015-CreateLiveStreamViewerJoins";
 
 /**
  * Metadata per migration drives dialect assertions:
@@ -38,6 +39,7 @@ const migrations: MigrationEntry[] = [
   { migration: new CreateStreamingAccounts1786243200012(), hasSerialColumn: true, hasJson: false },
   { migration: new CreateStreamingDestinations1786243200013(), hasSerialColumn: true, hasJson: false },
   { migration: new CreateBroadcastSessions1786243200014(), hasSerialColumn: true, hasJson: false },
+  { migration: new CreateLiveStreamViewerJoins1786243200015(), hasSerialColumn: true, hasJson: false },
 ];
 
 const migrationNames = [
@@ -53,6 +55,7 @@ const migrationNames = [
   "CreateStreamingAccounts1786243200012",
   "CreateStreamingDestinations1786243200013",
   "CreateBroadcastSessions1786243200014",
+  "CreateLiveStreamViewerJoins1786243200015",
 ];
 
 /** Stand-in QueryRunner that records every statement it is asked to run. */
@@ -232,6 +235,36 @@ describe("database migrations (dialect-aware)", () => {
     expect(my13).toContain("id int AUTO_INCREMENT PRIMARY KEY");
     expect(my13).toContain(
       "CREATE UNIQUE INDEX IF NOT EXISTS uq_streaming_destinations_user_platform ON streaming_destinations (userId, platform)",
+    );
+
+    // 0015 — live_stream_viewer_joins: the durable per-stream idempotence
+    // record. The unique (stream_id, viewer_key) index is the invariant that
+    // makes a later refresh resolve to the same join; the PG cascade FK keeps
+    // the table from outliving its stream.
+    const pg15 = normalizeSql(
+      await runUp(new CreateLiveStreamViewerJoins1786243200015(), "postgres"),
+    );
+    expect(pg15).toContain(
+      'CREATE TABLE IF NOT EXISTS "live_stream_viewer_joins"',
+    );
+    expect(pg15).toContain('"stream_id" INTEGER NOT NULL');
+    expect(pg15).toContain('"viewer_key" VARCHAR(255) NOT NULL');
+    expect(pg15).toContain(
+      'CREATE UNIQUE INDEX IF NOT EXISTS "uq_live_stream_viewer_join" ON "live_stream_viewer_joins" ("stream_id", "viewer_key")',
+    );
+    expect(pg15).toContain(
+      'REFERENCES "live_streams"("id") ON DELETE CASCADE',
+    );
+    const my15 = normalizeSql(
+      await runUp(new CreateLiveStreamViewerJoins1786243200015(), "mysql"),
+    );
+    expect(my15).toContain(
+      "CREATE TABLE IF NOT EXISTS live_stream_viewer_joins",
+    );
+    expect(my15).toContain("stream_id INTEGER NOT NULL");
+    expect(my15).toContain("viewer_key VARCHAR(255) NOT NULL");
+    expect(my15).toContain(
+      "CREATE UNIQUE INDEX IF NOT EXISTS uq_live_stream_viewer_join ON live_stream_viewer_joins (stream_id, viewer_key)",
     );
   });
 });

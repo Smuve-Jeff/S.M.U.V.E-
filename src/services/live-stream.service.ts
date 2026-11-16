@@ -1,5 +1,5 @@
 import { AppDataSource } from "@/database/data-source";
-import { LiveStream } from "@/entities";
+import { LiveStream, LiveStreamViewerJoin } from "@/entities";
 import { AppError } from "@/lib";
 import { randomBytes } from "node:crypto";
 
@@ -66,7 +66,10 @@ const SHARE_BASE_URL =
   process.env.FRONTEND_URL?.split(",")[0]?.trim() ||
   "https://smuvejeffpresents.com";
 
-const repo = () => ({ streams: AppDataSource.getRepository(LiveStream) });
+const repo = () => ({
+  streams: AppDataSource.getRepository(LiveStream),
+  viewerJoins: AppDataSource.getRepository(LiveStreamViewerJoin),
+});
 
 const buildShareUrl = (row: LiveStream): string => {
   const params = new URLSearchParams();
@@ -235,15 +238,14 @@ export const resolveViewerJoin = async (
 };
 
 /**
- * A viewer that taps JOIN twice (or refreshes the overlay) should not look
- * like two separate people. Every caller supplies the same per-viewer ID to
- * both redeem paths: the account id for a signed-in viewer, or the stable
- * browser id for a share-link guest. Never key this on an IP address: a
- * household, school or carrier NAT would collapse distinct viewers into one.
- * Fifteen seconds is long enough to absorb a double-tap and a refresh, and
- * short enough that genuinely returning viewers still count.
+ * A viewer that taps JOIN twice, refreshes the overlay, or comes back later
+ * to the same broadcast is still one viewer. Every caller supplies the same
+ * per-viewer ID to both redeem paths: the account id for a signed-in viewer,
+ * or the stable browser id for a share-link guest. Never key this on an IP
+ * address: a household, school or carrier NAT would collapse distinct viewers
+ * into one. The unique database row is what makes this durable; a short
+ * in-memory window would forget a viewer as soon as it expired.
  */
-const REDEEM_DEDUPE_MS = 15_000;
 const LIVE_VIEWER_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/;
 
 /** Normalize a client-supplied viewer id; reject anything we cannot key on. */
@@ -266,28 +268,46 @@ export const liveViewerKey = (
   const guest = normalizeLiveViewerId(viewerId);
   return guest ? `guest:${guest}` : null;
 };
-const recentRedeems = new Map<string, number>();
+interface DatabaseErrorLike {
+  code?: string;
+  errno?: number;
+  driverError?: { code?: string; errno?: number };
+}
 
-const shouldCountRedeem = (viewerKey: string | null): boolean => {
-  if (!viewerKey) return true;
-  const now = Date.now();
-  const previous = recentRedeems.get(viewerKey);
-  if (previous !== undefined && now - previous < REDEEM_DEDUPE_MS) {
-    return false;
+const isUniqueViolation = (err: unknown): boolean => {
+  const error = err as DatabaseErrorLike | null;
+  return (
+    error?.code === "23505" ||
+    error?.errno === 1062 ||
+    error?.driverError?.code === "23505" ||
+    error?.driverError?.errno === 1062
+  );
+};
+
+/**
+ * Claim one viewer slot on a stream. The unique index makes this atomic: the
+ * first caller inserts and counts; every later redeem gets a duplicate-key
+ * error and leaves `viewerJoins` alone. Returns true only for the insert that
+ * owns the join.
+ */
+const recordViewerJoin = async (
+  streamId: number,
+  viewerKey: string,
+): Promise<boolean> => {
+  try {
+    await repo().viewerJoins.insert({ streamId, viewerKey });
+    return true;
+  } catch (err) {
+    if (isUniqueViolation(err)) return false;
+    throw err;
   }
-  recentRedeems.set(viewerKey, now);
-  // Keep the map bounded when a popular share link is opened by many viewers.
-  if (recentRedeems.size > 5_000) {
-    for (const [key, at] of recentRedeems) {
-      if (now - at >= REDEEM_DEDUPE_MS) recentRedeems.delete(key);
-    }
-  }
-  return true;
 };
 
 /**
  * Record a viewer join + return the resolved row in one round-trip.
- * Increments `viewerJoins` for telemetry dashboards, once per viewer window.
+ * Increments `viewerJoins` for telemetry dashboards, once per viewer per
+ * stream. A missing viewer key (invalid/absent guest id) cannot be deduped
+ * and keeps the legacy count-every-redeem behavior.
  */
 export const redeemViewerJoin = async (
   token: string,
@@ -297,9 +317,12 @@ export const redeemViewerJoin = async (
   const row = await repo().streams.findOne({ where: { shareToken: token } });
   if (!row) throw new AppError(404, "Live stream not found");
   if (!row.active) throw new AppError(410, "Live stream has ended");
-  // Scope the window to this stream: a viewer who taps JOIN on two
-  // different broadcasts in quick succession is two legitimate joins.
-  if (shouldCountRedeem(viewerKey ? `${token}:${viewerKey}` : null)) {
+  // Scope the durable join to this stream: a viewer who joins two different
+  // broadcasts is legitimately two joins.
+  const counted = viewerKey
+    ? await recordViewerJoin(row.id, viewerKey)
+    : true;
+  if (counted) {
     row.viewerJoins = (row.viewerJoins ?? 0) + 1;
     await repo().streams.save(row);
   }

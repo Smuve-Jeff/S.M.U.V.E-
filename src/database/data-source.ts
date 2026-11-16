@@ -19,6 +19,7 @@ import { Project } from "@/entities/Project";
 import { ArtistIdentity } from "@/entities/ArtistIdentity";
 import { GameInvite } from "@/entities/GameInvite";
 import { LiveStream } from "@/entities/LiveStream";
+import { LiveStreamViewerJoin } from "@/entities/LiveStreamViewerJoin";
 import { UserBlock } from "@/entities/UserBlock";
 import { RoomMessage } from "@/entities/RoomMessage";
 import { AccountToken } from "@/entities/AccountToken";
@@ -56,6 +57,7 @@ export const AppDataSource = new DataSource({
     ArtistIdentity,
     GameInvite,
     LiveStream,
+    LiveStreamViewerJoin,
     UserBlock,
     RoomMessage,
     AccountToken,
