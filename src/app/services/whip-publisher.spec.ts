@@ -100,8 +100,11 @@ describe('WhipPublisher.start', () => {
   class FakePeerConnection {
     localDescription: { sdp: string } | null = { sdp: 'v=0' };
     iceGatheringState: RTCIceGatheringState = 'complete';
-    sender = { id: 'video', replaceTrack: jest.fn() };
-    addTrack = jest.fn(() => this.sender);
+    videoSender = { id: 'video', replaceTrack: jest.fn(async () => undefined) };
+    audioSender = { id: 'audio', replaceTrack: jest.fn(async () => undefined) };
+    addTrack = jest.fn((track: { kind?: string }) =>
+      track?.kind === 'audio' ? this.audioSender : this.videoSender
+    );
     createOffer = jest.fn(async () => ({ type: 'offer', sdp: 'v=0' }));
     setLocalDescription = jest.fn(async () => undefined);
     setRemoteDescription = jest.fn(async () => undefined);
@@ -109,8 +112,12 @@ describe('WhipPublisher.start', () => {
     addEventListener = jest.fn();
     removeEventListener = jest.fn();
     getTransceivers = jest.fn(() => [
-      { sender: this.sender, setCodecPreferences: jest.fn() },
+      { sender: this.videoSender, setCodecPreferences: jest.fn() },
     ]);
+
+    constructor() {
+      lastPc = this;
+    }
   }
 
   const stream = {
@@ -118,6 +125,7 @@ describe('WhipPublisher.start', () => {
     getAudioTracks: () => [],
   } as unknown as MediaStream;
 
+  let lastPc: FakePeerConnection;
   let fetchMock: jest.Mock;
   let originalPc: unknown;
 
@@ -170,4 +178,131 @@ describe('WhipPublisher.start', () => {
     expect(publisher.error()).toBeNull();
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
+
+  it('mixes mic and screen sound into the one audio track WHIP can carry', async () => {
+    const mic = { kind: 'audio', id: 'mic' };
+    const system = { kind: 'audio', id: 'system' };
+    const mixed = { kind: 'audio', id: 'mixed', stop: jest.fn() };
+    const screenStream = {
+      getVideoTracks: () => [{ kind: 'video' }],
+      getAudioTracks: () => [mic, system],
+    } as unknown as MediaStream;
+    const mediaStream = installAudioMixer(mixed);
+    installH264();
+    fetchMock.mockResolvedValue({
+      ok: true,
+      headers: { get: () => 'https://relay.test/s/whip/abc' },
+      text: async () => 'v=0',
+    });
+    const publisher = new WhipPublisher();
+
+    try {
+      await publisher.start('https://relay.test/s/whip', screenStream);
+
+      expect(lastPc.addTrack).toHaveBeenNthCalledWith(
+        1,
+        screenStream.getVideoTracks()[0],
+        screenStream
+      );
+      expect(lastPc.addTrack).toHaveBeenNthCalledWith(2, mixed, screenStream);
+      expect(lastPc.addTrack).not.toHaveBeenCalledWith(mic, screenStream);
+      expect(lastPc.addTrack).not.toHaveBeenCalledWith(system, screenStream);
+      expect(mediaStream.context.createMediaStreamSource).toHaveBeenCalledTimes(
+        2
+      );
+    } finally {
+      await publisher.stop();
+      mediaStream.restore();
+    }
+  });
+
+  it('rebuilds the audio mix when the host switches camera ↔ screen', async () => {
+    const mic = { kind: 'audio', id: 'mic' };
+    const system = { kind: 'audio', id: 'system' };
+    const mixed = { kind: 'audio', id: 'mixed', stop: jest.fn() };
+    const cameraStream = {
+      getVideoTracks: () => [{ kind: 'video', id: 'cam' }],
+      getAudioTracks: () => [mic],
+    } as unknown as MediaStream;
+    const screenStream = {
+      getVideoTracks: () => [{ kind: 'video', id: 'screen' }],
+      getAudioTracks: () => [mic, system],
+    } as unknown as MediaStream;
+    const mediaStream = installAudioMixer(mixed);
+    installH264();
+    fetchMock.mockResolvedValue({
+      ok: true,
+      headers: { get: () => 'https://relay.test/s/whip/abc' },
+      text: async () => 'v=0',
+    });
+    const publisher = new WhipPublisher();
+
+    try {
+      await publisher.start('https://relay.test/s/whip', cameraStream);
+      expect(lastPc.addTrack).toHaveBeenLastCalledWith(mic, cameraStream);
+
+      publisher.replaceTracks(screenStream);
+      expect(lastPc.audioSender.replaceTrack).toHaveBeenLastCalledWith(mixed);
+      expect(mediaStream.context.createMediaStreamSource).toHaveBeenCalledTimes(
+        2
+      );
+
+      publisher.replaceTracks(cameraStream);
+      expect(lastPc.audioSender.replaceTrack).toHaveBeenLastCalledWith(mic);
+      expect(mixed.stop).toHaveBeenCalled();
+    } finally {
+      await publisher.stop();
+      mediaStream.restore();
+    }
+  });
+
+  function installH264(): void {
+    (global as unknown as { RTCRtpSender: unknown }).RTCRtpSender = {
+      getCapabilities: () => ({
+        codecs: [capability('video/H264', '42e01f')],
+      }),
+    };
+  }
+
+  function installAudioMixer(mixed: MediaStreamTrack) {
+    const originalMediaStream = (globalThis as { MediaStream?: unknown })
+      .MediaStream;
+    const originalAudioContext = (globalThis as { AudioContext?: unknown })
+      .AudioContext;
+    const source = () => ({
+      connect: jest.fn(),
+      disconnect: jest.fn(),
+    });
+    const context = {
+      state: 'running',
+      resume: jest.fn(async () => undefined),
+      close: jest.fn(async () => undefined),
+      createMediaStreamDestination: jest.fn(() => ({
+        stream: {
+          getAudioTracks: () => [mixed],
+          getTracks: () => [mixed],
+        },
+      })),
+      createMediaStreamSource: jest.fn(source),
+    };
+    (globalThis as { MediaStream?: unknown }).MediaStream = class {
+      constructor(public tracks: MediaStreamTrack[] = []) {}
+    };
+    (globalThis as { AudioContext?: unknown }).AudioContext = jest.fn(
+      () => context
+    );
+    return {
+      context,
+      restore: () => {
+        (globalThis as { MediaStream?: unknown }).MediaStream =
+          originalMediaStream;
+        if (originalAudioContext === undefined) {
+          delete (globalThis as { AudioContext?: unknown }).AudioContext;
+        } else {
+          (globalThis as { AudioContext?: unknown }).AudioContext =
+            originalAudioContext;
+        }
+      },
+    };
+  }
 });

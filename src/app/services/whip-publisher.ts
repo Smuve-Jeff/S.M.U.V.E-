@@ -87,6 +87,11 @@ export function applyH264Preference(
  * app: one SDP offer to the relay's WHIP endpoint, an answer back, and the
  * relay pushes RTMP to Twitch or Kick. Tracks are added once and swapped with
  * `replaceTrack`, so a camera ↔ game switch does not renegotiate mid-broadcast.
+ *
+ * RTMP/FLV carries one audio stream, so when the host publishes the mic and
+ * shared-screen sound together they are mixed into a single Web Audio track
+ * before the WHIP sender ever sees them. Replacing that track on a source
+ * switch is what makes game audio reach both the provider and its recording.
  */
 @Injectable({ providedIn: 'root' })
 export class WhipPublisher {
@@ -96,6 +101,11 @@ export class WhipPublisher {
   private pc?: RTCPeerConnection;
   private resourceUrl: string | null = null;
   private videoSender?: RTCRtpSender;
+  private audioSender?: RTCRtpSender;
+  private audioContext?: AudioContext;
+  private audioMixSources: MediaStreamAudioSourceNode[] = [];
+  private audioMixDestination?: MediaStreamAudioDestinationNode;
+  private audioMixTrack?: MediaStreamTrack;
   /** Bumped on every start/stop so a late answer cannot resurrect a dead push. */
   private round = 0;
 
@@ -108,9 +118,13 @@ export class WhipPublisher {
     const pc = new RTCPeerConnection({ iceServers: STUN_SERVERS });
     this.pc = pc;
     const video = stream.getVideoTracks()[0];
-    const audio = stream.getAudioTracks()[0];
+    const audioTracks = stream.getAudioTracks();
+    const audio =
+      audioTracks.length > 1
+        ? this.mixAudioTracks(audioTracks) ?? audioTracks[0]
+        : audioTracks[0];
     if (video) this.videoSender = pc.addTrack(video, stream);
-    if (audio) pc.addTrack(audio, stream);
+    if (audio) this.audioSender = pc.addTrack(audio, stream);
     if (!video && !audio) {
       this.state.set('error');
       this.error.set('NOTHING TO SEND — NO CAPTURE TRACKS');
@@ -172,11 +186,98 @@ export class WhipPublisher {
     void this.videoSender.replaceTrack(track).catch(() => undefined);
   }
 
+  /**
+   * Replace the outbound picture and the one mixed audio track together.
+   * The single sender is also what keeps the provider feed alive across a
+   * camera ↔ screen switch.
+   */
+  replaceTracks(stream: MediaStream): void {
+    this.replaceVideoTrack(stream.getVideoTracks()[0] ?? null);
+    this.replaceAudioTracks(stream.getAudioTracks());
+  }
+
+  /**
+   * Keep exactly one audio sender. Two captures become a Web Audio mix; one
+   * capture can stay the raw track, avoiding an unnecessary encoder hop.
+   */
+  private replaceAudioTracks(tracks: MediaStreamTrack[]): void {
+    if (!this.audioSender) return;
+    if (tracks.length > 1) {
+      const mixed = this.mixAudioTracks(tracks);
+      void this.audioSender
+        .replaceTrack(mixed ?? tracks[0] ?? null)
+        .catch(() => undefined);
+      return;
+    }
+    this.clearAudioMix();
+    void this.audioSender.replaceTrack(tracks[0] ?? null).catch(() => undefined);
+  }
+
+  /**
+   * Mix the host's mic with shared-screen sound into the single audio track an
+   * RTMP/FLV push can carry. Returns null when Web Audio is unavailable; the
+   * caller then keeps the first capture rather than muting the push entirely.
+   */
+  private mixAudioTracks(tracks: MediaStreamTrack[]): MediaStreamTrack | null {
+    this.clearAudioMix();
+    const Ctor =
+      (globalThis as { AudioContext?: typeof AudioContext }).AudioContext ??
+      (globalThis as { webkitAudioContext?: typeof AudioContext })
+        .webkitAudioContext;
+    if (typeof Ctor !== 'function') return null;
+    try {
+      if (!this.audioContext) this.audioContext = new Ctor();
+      const context = this.audioContext;
+      if (context.state === 'suspended') {
+        void context.resume().catch(() => undefined);
+      }
+      const destination = context.createMediaStreamDestination();
+      for (const track of tracks) {
+        const source = context.createMediaStreamSource(
+          new MediaStream([track])
+        );
+        source.connect(destination);
+        this.audioMixSources.push(source);
+      }
+      this.audioMixDestination = destination;
+      this.audioMixTrack = destination.stream.getAudioTracks()[0] ?? null;
+      return this.audioMixTrack;
+    } catch {
+      this.clearAudioMix();
+      return null;
+    }
+  }
+
+  /** Disconnect the mix but keep the context warm for the next switch. */
+  private clearAudioMix(): void {
+    for (const source of this.audioMixSources) {
+      try {
+        source.disconnect();
+      } catch {
+        /* already gone */
+      }
+    }
+    this.audioMixSources = [];
+    this.audioMixDestination?.stream.getTracks().forEach((track) => track.stop());
+    this.audioMixDestination = undefined;
+    this.audioMixTrack = undefined;
+  }
+
+  private closeAudioContext(): void {
+    this.clearAudioMix();
+    if (this.audioContext) {
+      void this.audioContext.close().catch(() => undefined);
+      this.audioContext = undefined;
+    }
+  }
+
   async stop(): Promise<void> {
     this.round += 1;
     const resource = this.resourceUrl;
     this.resourceUrl = null;
+    this.closeAudioContext();
     this.videoSender = undefined;
+    this.audioSender = undefined;
     this.pc?.close();
     this.pc = undefined;
     if (this.state() !== 'idle') this.state.set('idle');

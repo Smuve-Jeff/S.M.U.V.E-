@@ -205,13 +205,13 @@ export class BroadcastIngestService {
       void this.loadRecordings();
     });
 
-    // A camera ↔ game switch replaces the outgoing video track in place, which
-    // is what keeps the provider feed alive across the switch.
+    // A camera ↔ game switch replaces the outgoing video track, and the audio
+    // mix follows the screen's system track, without restarting the push.
     effect(() => {
       this.social.videoSource();
-      if (!this.relayId) return;
       const stream = this.social.localStream();
-      this.whip.replaceVideoTrack(stream?.getVideoTracks()[0] ?? null);
+      if (!this.relayId || !stream) return;
+      this.whip.replaceTracks(stream);
     });
 
     // The push is part of the broadcast: ending the stream ends it too.
