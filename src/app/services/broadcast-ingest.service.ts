@@ -34,6 +34,10 @@ export interface BroadcastRecordingDto {
   recordedAt: string;
   /** Relative to the API base, e.g. `/broadcast/recordings/<id>/download?name=…`. */
   downloadPath: string;
+  /** Seconds of media as the file itself reports them; null when unknown. */
+  durationSeconds?: number | null;
+  /** A small JPEG still as a data URL; null when the relay could not frame it. */
+  thumbnail?: string | null;
 }
 
 interface IngestSessionDto {
@@ -477,6 +481,19 @@ export class BroadcastIngestService {
   }
 
   /** One line per recording: destination, size, and when it was written. */
+  /** `1:04:05` or `6:58`; empty when the file did not report a duration. */
+  recordingDuration(seconds: number | null | undefined): string {
+    const total = Math.round(Number(seconds) || 0);
+    if (total <= 0) return '';
+    const hours = Math.floor(total / 3600);
+    const minutes = Math.floor((total % 3600) / 60);
+    const rest = total % 60;
+    const pad = (value: number) => String(value).padStart(2, '0');
+    return hours > 0
+      ? `${hours}:${pad(minutes)}:${pad(rest)}`
+      : `${minutes}:${pad(rest)}`;
+  }
+
   recordingLabel(recording: BroadcastRecordingDto): string {
     const platform =
       String(recording.platform ?? '').toUpperCase() || 'BROADCAST';
@@ -489,7 +506,8 @@ export class BroadcastIngestService {
     const stamp = Number.isNaN(when.getTime())
       ? ''
       : `${when.toISOString().replace('T', ' ').slice(0, 16)} UTC`;
-    return `${platform} · ${size} · ${stamp}`;
+    const duration = this.recordingDuration(recording.durationSeconds);
+    return [platform, size, duration, stamp].filter(Boolean).join(' · ');
   }
 
   /**

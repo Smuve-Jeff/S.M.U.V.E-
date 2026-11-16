@@ -26,13 +26,26 @@ export interface BroadcastRecording {
   recordedAt: string;
   /** Where the app downloads it from, relative to the API. */
   downloadPath: string;
+  /** Seconds of media, read from the file's own header; null when unknown. */
+  durationSeconds: number | null;
+  /**
+   * A small JPEG frame as a data URL, so an `<img>` needs no token of its own.
+   * Null when the relay has no ffmpeg or could not frame the file.
+   */
+  thumbnail: string | null;
 }
 
 interface RelayFile {
   name: string;
   bytes: number;
   modifiedAt: string;
+  durationSeconds: number | null;
 }
+
+/** Thumbnails are worth fetching, but not for an unbounded history. */
+const MAX_THUMBNAILS = 24;
+/** The relay spawns ffmpeg for a frame it has not cached yet; do not flood it. */
+const THUMBNAIL_CONCURRENCY = 4;
 
 interface Relay {
   base: string;
@@ -122,6 +135,8 @@ async function relayRecordings(relay: Relay): Promise<RelayFile[]> {
         bytes: Number(value.bytes ?? 0) || 0,
         modifiedAt:
           typeof value.modifiedAt === "string" ? value.modifiedAt : "",
+        durationSeconds:
+          Number(value.durationSeconds) > 0 ? Number(value.durationSeconds) : null,
       };
     })
     .filter((row): row is RelayFile => !!row);
@@ -132,25 +147,25 @@ const belongsTo = (name: string, relayId: string): boolean =>
   name === `${relayId}.mp4` || name.startsWith(`${relayId}-`);
 
 /**
- * The host's recordings that still exist on the relay. Older shows drop out of
- * the list on their own once retention deletes the file.
+ * The host's recordings, joined to their sessions, without any thumbnail
+ * lookups. Ownership checks use this: they must not spawn ffmpeg on the relay
+ * just to answer a request.
  */
-export async function listBroadcastRecordings(
-  userId: number | string,
-): Promise<BroadcastRecording[]> {
-  const owner = Number(userId);
-  if (!Number.isFinite(owner)) return [];
+async function collectRecordings(owner: number): Promise<{
+  relay: Relay;
+  recordings: BroadcastRecording[];
+} | null> {
   const relay = relayConfiguration();
-  if (!relay) return [];
+  if (!relay) return null;
 
   const rows = await sessions().find({
     where: { userId: owner },
     order: { startedAt: "DESC" },
     take: 200,
   });
-  if (!rows.length) return [];
+  if (!rows.length) return null;
   const files = await relayRecordings(relay);
-  if (!files.length) return [];
+  if (!files.length) return null;
 
   const recordings: BroadcastRecording[] = [];
   for (const row of rows) {
@@ -164,13 +179,64 @@ export async function listBroadcastRecordings(
         name: file.name,
         bytes: file.bytes,
         recordedAt: file.modifiedAt,
+        durationSeconds: file.durationSeconds,
+        thumbnail: null,
         downloadPath: `/broadcast/recordings/${encodeURIComponent(
           row.relayId,
         )}/download?name=${encodeURIComponent(file.name)}`,
       });
     }
   }
-  return recordings.sort((a, b) => b.recordedAt.localeCompare(a.recordedAt));
+  return {
+    relay,
+    recordings: recordings.sort((a, b) =>
+      b.recordedAt.localeCompare(a.recordedAt),
+    ),
+  };
+}
+
+/** One frame as a data URL; null whenever it cannot be had. */
+async function relayThumbnail(
+  relay: Relay,
+  name: string,
+): Promise<string | null> {
+  try {
+    const response = await callRelay(
+      relay,
+      `/recordings/${encodeURIComponent(name)}/thumbnail`,
+      { method: "GET" },
+    );
+    if (!response.ok) return null;
+    const bytes = Buffer.from(await response.arrayBuffer());
+    if (!bytes.length) return null;
+    return `data:image/jpeg;base64,${bytes.toString("base64")}`;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * The host's recordings that still exist on the relay, each with its duration
+ * and a still frame. Older shows drop out of the list on their own once
+ * retention deletes the file.
+ */
+export async function listBroadcastRecordings(
+  userId: number | string,
+): Promise<BroadcastRecording[]> {
+  const owner = Number(userId);
+  if (!Number.isFinite(owner)) return [];
+  const collected = await collectRecordings(owner);
+  if (!collected) return [];
+
+  const visible = collected.recordings.slice(0, MAX_THUMBNAILS);
+  for (let index = 0; index < visible.length; index += THUMBNAIL_CONCURRENCY) {
+    await Promise.all(
+      visible.slice(index, index + THUMBNAIL_CONCURRENCY).map(async (row) => {
+        row.thumbnail = await relayThumbnail(collected.relay, row.name);
+      }),
+    );
+  }
+  return collected.recordings;
 }
 
 export interface RecordingDownload {
@@ -213,10 +279,10 @@ export async function openBroadcastRecording(
     throw new AppError(404, "That recording does not exist.");
   }
 
-  const mine = (await listBroadcastRecordings(owner)).filter(
-    (recording) => recording.relayId === id,
+  const collected = await collectRecordings(owner);
+  const match = collected?.recordings.find(
+    (recording) => recording.relayId === id && recording.name === name,
   );
-  const match = mine.find((recording) => recording.name === name);
   if (!match) throw new AppError(404, "That recording does not exist.");
 
   const relayHeaders: Record<string, string> = {};
@@ -257,10 +323,11 @@ export async function issuePlaybackTicket(
   if (!Number.isFinite(owner) || !/^[A-Za-z0-9_-]{1,128}$/.test(id)) {
     throw new AppError(404, "That recording does not exist.");
   }
-  const mine = (await listBroadcastRecordings(owner)).filter(
-    (recording) => recording.relayId === id,
+  const collected = await collectRecordings(owner);
+  const owned = collected?.recordings.some(
+    (recording) => recording.relayId === id && recording.name === name,
   );
-  if (!mine.some((recording) => recording.name === name)) {
+  if (!owned) {
     throw new AppError(404, "That recording does not exist.");
   }
 

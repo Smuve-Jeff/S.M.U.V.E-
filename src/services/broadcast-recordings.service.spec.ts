@@ -263,3 +263,80 @@ describe("broadcast recordings", () => {
     expect(file.contentRange).toBe("bytes 0-9/100");
     expect(file.bytes).toBe(10);
   });
+
+it("gives each recording its duration and a still frame", async () => {
+  seed("aaaa", 7);
+  const jpeg = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 1, 2, 3]);
+  fetchMock.mockImplementation(async (url: string) => {
+    if (String(url).endsWith("/thumbnail")) {
+      return { ok: true, status: 200, arrayBuffer: async () => jpeg } as unknown as Response;
+    }
+    return relayListed([
+      {
+        name: "aaaa.mp4",
+        bytes: 100,
+        modifiedAt: "2026-01-01T10:00:00.000Z",
+        durationSeconds: 420,
+      },
+    ]) as unknown as Response;
+  });
+
+  const [recording] = await listBroadcastRecordings(7);
+
+  expect(recording.durationSeconds).toBe(420);
+  expect(recording.thumbnail).toBe(
+    `data:image/jpeg;base64,${jpeg.toString("base64")}`,
+  );
+  expect(fetchMock).toHaveBeenCalledWith(
+    "http://relay.test/recordings/aaaa.mp4/thumbnail",
+    expect.objectContaining({
+      headers: expect.objectContaining({ Authorization: "Bearer relay-token" }),
+    }),
+  );
+});
+
+it("keeps the recording when there is no frame to show", async () => {
+  seed("aaaa", 7);
+  fetchMock.mockImplementation(async (url: string) => {
+    if (String(url).endsWith("/thumbnail")) {
+      return { ok: false, status: 404 } as unknown as Response;
+    }
+    return relayListed([
+      { name: "aaaa.mp4", bytes: 100, modifiedAt: "2026-01-01T10:00:00.000Z" },
+    ]) as unknown as Response;
+  });
+
+  const [recording] = await listBroadcastRecordings(7);
+
+  expect(recording.thumbnail).toBeNull();
+  expect(recording.durationSeconds).toBeNull();
+});
+
+it("does not fetch frames just to prove ownership", async () => {
+  seed("aaaa", 7);
+  const body = { stream: true } as unknown as ReadableStream<Uint8Array>;
+  fetchMock.mockImplementation(async (url: string) => {
+    if (String(url).endsWith("/thumbnail")) {
+      throw new Error("ownership checks must not ask for frames");
+    }
+    if (String(url).endsWith("aaaa.mp4")) {
+      return {
+        ok: true,
+        status: 200,
+        body,
+        headers: new Headers({ "content-length": "100" }),
+      } as unknown as Response;
+    }
+    return relayListed([
+      { name: "aaaa.mp4", bytes: 100, modifiedAt: "2026-01-01T10:00:00.000Z" },
+    ]) as unknown as Response;
+  });
+
+  await openBroadcastRecording(7, "aaaa", "aaaa.mp4");
+  await issuePlaybackTicket(7, "aaaa", "aaaa.mp4");
+
+  expect(fetchMock).not.toHaveBeenCalledWith(
+    expect.stringContaining("/thumbnail"),
+    expect.anything(),
+  );
+});

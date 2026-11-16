@@ -4553,6 +4553,16 @@
   flex-direction: column;
   gap: 0.35rem;
 }
+/* A still from the show, so two recordings of the same length differ at a glance. */
+.recording-thumb {
+  flex: 0 0 auto;
+  width: 4.5rem;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border: 1px solid rgba(var(--neon-cyan-rgb), 0.22);
+  border-radius: 4px;
+  background: #000;
+}
 /* Playback of a finished show, above its entry in the recordings list. */
 .recordings-video {
   width: 100%;

@@ -3311,6 +3311,13 @@
                   class="account-row"
                   *ngFor="let recording of ingest.recordings()"
                 >
+                  <img
+                    *ngIf="recording.thumbnail"
+                    class="recording-thumb"
+                    [src]="recording.thumbnail"
+                    alt=""
+                    loading="lazy"
+                  />
                   <span class="account-name">
                     {{ ingest.recordingLabel(recording) }}
                   </span>

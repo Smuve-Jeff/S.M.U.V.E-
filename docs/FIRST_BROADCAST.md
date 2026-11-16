@@ -337,6 +337,11 @@ push sessions this account opened; downloads come from
 the relay's token never reaches the browser. A host only ever sees their own
 recordings, and a show drops off the list when retention deletes it.
 
+Each row also carries the length of the show and a still frame. The length is
+read out of the recording's own header, and the frame is a 320 px JPEG the relay
+takes one second in and caches beside the file, so the first list of a new show
+is the only time anything has to work it out.
+
 PLAY does not put the host's JWT in a media URL. The app asks for a short-lived
 signed link (`POST /api/broadcast/recordings/:relayId/playback`), which names
 one user, one session and one file and expires after two hours; the player loads

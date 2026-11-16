@@ -43,6 +43,8 @@ function makeManager() {
   };
 }
 
+import { mp4Header } from "./helpers/mp4-fixture.mjs";
+
 const servers = [];
 
 async function startServer(options) {
@@ -386,4 +388,70 @@ test("serves byte ranges so a player can seek", async () => {
   });
   assert.equal(beyond.status, 416);
   assert.equal(beyond.headers.get("content-range"), "bytes */11");
+});
+
+test("lists each recording's duration from its own header", async () => {
+  const dir = await makeRecordingDir([
+    ["show.mp4", mp4Header(7)],
+    ["unreadable.mp4", "not really a video"],
+  ]);
+  const { base } = await startServer({ recordingDir: dir });
+
+  const body = await fetch(`${base}/recordings`, { headers: bearer }).then((r) =>
+    r.json(),
+  );
+
+  const byName = new Map(body.recordings.map((row) => [row.name, row]));
+  assert.equal(byName.get("show.mp4").durationSeconds, 7);
+  assert.equal(byName.get("unreadable.mp4").durationSeconds, null);
+});
+
+test("serves a cached thumbnail as an image, and says so when there is none", async () => {
+  const dir = await makeRecordingDir([
+    ["show.mp4", mp4Header(7)],
+    ["show.jpg", "jpeg-bytes"],
+  ]);
+  const { base } = await startServer({ recordingDir: dir });
+
+  assert.equal(
+    (await fetch(`${base}/recordings/show.mp4/thumbnail`)).status,
+    401,
+  );
+
+  const response = await fetch(`${base}/recordings/show.mp4/thumbnail`, {
+    headers: bearer,
+  });
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get("content-type"), "image/jpeg");
+  assert.equal(response.headers.get("content-length"), String("jpeg-bytes".length));
+  assert.equal(await response.text(), "jpeg-bytes");
+
+  const missing = await fetch(`${base}/recordings/missing.mp4/thumbnail`, {
+    headers: bearer,
+  });
+  assert.equal(missing.status, 404);
+
+  const off = await startServer();
+  assert.equal(
+    (await fetch(`${off.base}/recordings/show.mp4/thumbnail`, { headers: bearer }))
+      .status,
+    503,
+  );
+});
+
+test("the thumbnail sidecar is not listed as a show of its own", async () => {
+  const dir = await makeRecordingDir([
+    ["show.mp4", mp4Header(7)],
+    ["show.jpg", "jpeg-bytes"],
+  ]);
+  const { base } = await startServer({ recordingDir: dir });
+
+  const body = await fetch(`${base}/recordings`, { headers: bearer }).then((r) =>
+    r.json(),
+  );
+
+  assert.deepEqual(
+    body.recordings.map((row) => row.name),
+    ["show.mp4"],
+  );
 });

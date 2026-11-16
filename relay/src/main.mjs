@@ -87,6 +87,8 @@ const recordings = recordingDir
   ? new RecordingStore({
       dir: recordingDir,
       retentionHours: Number(process.env.RECORDING_RETENTION_HOURS ?? 24),
+      // Thumbnails come from the same ffmpeg the relay already needs.
+      ffmpegPath: process.env.FFMPEG_PATH || "ffmpeg",
     })
   : null;
 
@@ -141,6 +143,7 @@ watchdog?.unref?.();
 const server = createRelayServer({
   manager,
   token,
+  recordings,
   recordingDir,
   selftestDestination,
   selftestTtlMs: Number(process.env.SELFTEST_TTL_SECONDS || 180) * 1_000,
