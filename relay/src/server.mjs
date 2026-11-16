@@ -84,7 +84,7 @@ async function readJson(req) {
  *   GET    /recordings/:name/thumbnail -> a cached JPEG frame of that file
  *   DELETE /recordings/:name -> 204, freeing the recording and its frame now
  *   PUT    /recordings/:name/retention { hours } -> keep it past the window
- *   GET    /health         -> 200 { status, sessions, recordingRetentionHours } (open, for probes)
+ *   GET    /health         -> 200 { status, sessions, recordingEnabled, recordingRetentionHours } (open)
  */
 export function createRelayServer({
   manager,
@@ -125,6 +125,7 @@ export function createRelayServer({
           // Config, not a secret: callers that show a retention deadline need
           // to notice when the window they read last is no longer the one in
           // force. Health is the cheapest place to ask.
+          recordingEnabled: Boolean(store),
           recordingRetentionHours: store?.retentionHours ?? 0,
           mediamtx: health?.mediamtx ?? "unknown",
           detail: health?.detail ?? null,

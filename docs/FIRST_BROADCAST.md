@@ -337,6 +337,10 @@ push sessions this account opened; downloads come from
 the relay's token never reaches the browser. A host only ever sees their own
 recordings, and a show drops off the list when retention deletes it.
 
+If the relay is not recording at all — `RECORDING_DIR` unset, so there is no
+volume to write to — the panel says so before a push starts, because otherwise
+the first sign is an empty RECORDINGS list after the show has already been lost.
+
 The app warns before the sweeper takes something: a show with under six hours
 left gets an amber `IN 4H` badge, and a line above the list counts them. The
 deadline is computed from the relay's own window (now included in

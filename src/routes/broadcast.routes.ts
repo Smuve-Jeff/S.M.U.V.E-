@@ -19,7 +19,7 @@ import {
   listBroadcastRecordings,
   openBroadcastRecording,
   playbackTicketFromQuery,
-  relayRetentionHours,
+  relayRecordingStatus,
   setBroadcastRetention,
 } from "@/services/broadcast-recordings.service";
 
@@ -113,13 +113,14 @@ router.get("/recordings", authenticate, async (req, res) => {
   res.json(await listBroadcastRecordings(actorOf(req)));
 });
 
-// GET /api/broadcast/recordings/window — the relay's current retention window,
-// so a caller who is showing deadlines can notice a change without re-reading
-// every recording. Registered before the :relayId routes on purpose.
-router.get("/recordings/window", authenticate, async (req, res, next) => {
+// GET /api/broadcast/recordings/status — whether the relay records at all and
+// which window is in force, so a panel can warn before a broadcast and notice a
+// change without re-reading every recording. Registered before the :relayId
+// routes on purpose.
+router.get("/recordings/status", authenticate, async (req, res, next) => {
   try {
     res.set("Cache-Control", "private, no-store");
-    res.json({ retentionHours: await relayRetentionHours() });
+    res.json(await relayRecordingStatus());
   } catch (error) {
     next(error);
   }

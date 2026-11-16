@@ -3216,6 +3216,12 @@
                   SELF-TEST
                 </button>
               </div>
+              <p
+                class="account-note warn"
+                *ngIf="ingest.recordingOff()"
+              >
+                RECORDING IS OFF ON THE RELAY — THIS SHOW WILL NOT BE KEPT
+              </p>
               <div class="account-row" *ngFor="let target of ingest.platforms">
                 <span class="account-name">{{ target.label }}</span>
                 <span class="account-state" [class.on]="ingest.ready(target.id)">
@@ -3395,7 +3401,7 @@
                     !ingest.recordingsLoading()
                   "
                 >
-                  NO RECORDINGS YET — A FINISHED PUSH IS KEPT HERE FOR 24H.
+                  {{ ingest.recordingsEmptyNote() }}
                 </p>
                 <p class="account-note warn" *ngIf="ingest.recordingsError()">
                   {{ ingest.recordingsError() }}

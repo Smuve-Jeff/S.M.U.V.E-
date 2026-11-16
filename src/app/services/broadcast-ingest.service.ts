@@ -13,6 +13,7 @@ import {
   keepLabel,
   reconcileSweptRows,
   recordingKey,
+  recordingsEmptyNote,
 } from './retention-warning';
 import { createTestPattern } from './test-pattern';
 import { WhipPublisher } from './whip-publisher';
@@ -152,6 +153,8 @@ export class BroadcastIngestService {
   readonly clock = signal(Date.now());
   /** The relay window the visible deadlines were computed with. */
   readonly retentionWindow = signal<number | null>(null);
+  /** Whether the relay records broadcasts at all; null until it has been asked. */
+  readonly recordingEnabled = signal<boolean | null>(null);
 
   private relayId: string | null = null;
   private egressTimer: ReturnType<typeof setInterval> | null = null;
@@ -185,7 +188,7 @@ export class BroadcastIngestService {
         this.recordings().length > 0 &&
         now - this.retentionCheckedAt > 5 * 60_000
       ) {
-        void this.refreshRetentionWindow(now);
+        void this.refreshRecordingStatus(now);
       }
     }, 60_000);
     inject(DestroyRef).onDestroy(() => {
@@ -537,7 +540,7 @@ export class BroadcastIngestService {
       const reconciled = reconcileSweptRows(listed, this.locallySwept);
       this.locallySwept = reconciled.swept;
       this.recordings.set(reconciled.rows);
-      void this.refreshRetentionWindow();
+      void this.refreshRecordingStatus();
       this.recordingsError.set('');
     } catch {
       // A failed read must never read as "your recordings are gone". A quiet
@@ -644,34 +647,56 @@ export class BroadcastIngestService {
     }
   }
 
+  /** True only when the relay has said, and said it is not recording. */
+  recordingOff(): boolean {
+    return this.recordingEnabled() === false;
+  }
+
   /**
-   * Ask which retention window is in force. Deadlines are only as good as the
-   * window they were computed from, so a change re-reads the list; an
-   * unreachable window leaves the deadlines already on screen alone.
+   * What the empty recordings list should say: whether the relay records at all,
+   * and how long it keeps what it does record.
    */
-  private async refreshRetentionWindow(now = Date.now()): Promise<void> {
+  recordingsEmptyNote(): string {
+    return recordingsEmptyNote(this.recordingEnabled(), this.retentionWindow());
+  }
+
+  /**
+   * Ask what the relay is doing with recordings: whether it records at all, and
+   * which window is in force. A window change re-reads the list, because every
+   * deadline on screen was computed from the old one; an unreachable relay
+   * leaves what is already on screen alone.
+   */
+  private async refreshRecordingStatus(now = Date.now()): Promise<void> {
     if (!this.tokenService.jwtToken()) return;
     this.retentionCheckedAt = now;
     try {
       const payload = await firstValueFrom(
-        this.http.get<{ retentionHours?: number | null }>(
-          this.endpoint('/recordings/window'),
-          { headers: this.headers() },
-        ),
+        this.http.get<{
+          enabled?: boolean | null;
+          retentionHours?: number | null;
+        }>(this.endpoint('/recordings/status'), { headers: this.headers() }),
       );
       const hours = Number(payload?.retentionHours);
       const next = Number.isFinite(hours) && hours >= 0 ? hours : null;
       const previous = this.retentionWindow();
       const hadWindow = this.windowEverRead;
       this.retentionWindow.set(next);
+      this.recordingEnabled.set(
+        typeof payload?.enabled === 'boolean' ? payload.enabled : null,
+      );
       if (next !== null) this.windowEverRead = true;
       // After a failed read the old window is unknown, so a recovered relay is
       // worth one re-read even when the number happens to match.
-      if (hadWindow && next !== null && previous !== next && !this.recordingsLoading()) {
+      if (
+        hadWindow &&
+        next !== null &&
+        previous !== next &&
+        !this.recordingsLoading()
+      ) {
         void this.loadRecordings({ quiet: true });
       }
     } catch {
-      // Keep the deadlines we have rather than blanking them over a bad read.
+      // Keep what is on screen rather than blanking it over a bad read.
     }
   }
 

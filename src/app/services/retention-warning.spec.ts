@@ -5,6 +5,7 @@ import {
   keepLabel,
   reconcileSweptRows,
   recordingKey,
+  recordingsEmptyNote,
 } from "./retention-warning";
 
 const HOUR = 3_600_000;
@@ -82,6 +83,27 @@ describe("retention warnings", () => {
 
     expect(reconciled.rows).toEqual([kept]);
     expect(reconciled.swept.size).toBe(0);
+  });
+
+  it("says so when the relay is not recording at all", () => {
+    expect(recordingsEmptyNote(false, 0)).toBe(
+      "RECORDING IS OFF ON THE RELAY — NOTHING FROM A PUSH WILL BE KEPT.",
+    );
+    // Even when a window happens to be reported, "off" wins: there is nothing
+    // to keep, so a retention promise would be a lie.
+    expect(recordingsEmptyNote(false, 24)).toContain("RECORDING IS OFF");
+  });
+
+  it("states the window an empty list will be kept for", () => {
+    expect(recordingsEmptyNote(true, 24)).toBe(
+      "NO RECORDINGS YET — A FINISHED PUSH IS KEPT HERE FOR 24H.",
+    );
+    expect(recordingsEmptyNote(true, 0)).toBe(
+      "NO RECORDINGS YET — THIS RELAY KEEPS EVERYTHING IT RECORDS.",
+    );
+    expect(recordingsEmptyNote(null, null)).toBe(
+      "NO RECORDINGS YET — THEY APPEAR HERE AFTER A FINISHED PUSH.",
+    );
   });
 
   it("shows a keep promise until the day it runs out", () => {

@@ -64,6 +64,27 @@ export function reconcileSweptRows<T extends { relayId: string; name: string }>(
   };
 }
 
+/**
+ * What an empty recordings list should say. A relay that records nothing is the
+ * one case worth shouting about: the host is about to broadcast with no chance
+ * of keeping the show.
+ */
+export function recordingsEmptyNote(
+  recordingEnabled: boolean | null,
+  retentionHours: number | null,
+): string {
+  if (recordingEnabled === false) {
+    return 'RECORDING IS OFF ON THE RELAY — NOTHING FROM A PUSH WILL BE KEPT.';
+  }
+  if (retentionHours === 0) {
+    return 'NO RECORDINGS YET — THIS RELAY KEEPS EVERYTHING IT RECORDS.';
+  }
+  if (typeof retentionHours === 'number' && retentionHours > 0) {
+    return `NO RECORDINGS YET — A FINISHED PUSH IS KEPT HERE FOR ${retentionHours}H.`;
+  }
+  return 'NO RECORDINGS YET — THEY APPEAR HERE AFTER A FINISHED PUSH.';
+}
+
 /** `KEPT UNTIL 23 NOV` for a promise that has not run out yet, else empty. */
 export function keepLabel(
   keepUntil: string | null | undefined,

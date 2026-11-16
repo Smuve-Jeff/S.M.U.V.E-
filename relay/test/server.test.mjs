@@ -610,11 +610,20 @@ test("tells the caller how long an unpinned show has left", async () => {
   assert.equal(configuredBody.retentionHours, 24);
 });
 
-test("health states the retention window in force", async () => {
+test("health states whether it records, and for how long", async () => {
   const dir = await makeRecordingDir([["show.mp4", mp4Header(7)]]);
+
+  // No volume at all: nothing will be kept, which a panel must be able to warn
+  // about before a broadcast rather than after one.
+  const off = await startServer();
+  const offBody = await fetch(`${off.base}/health`).then((r) => r.json());
+  assert.equal(offBody.recordingEnabled, false);
+  assert.equal(offBody.recordingRetentionHours, 0);
 
   const plain = await startServer({ recordingDir: dir });
   const plainBody = await fetch(`${plain.base}/health`).then((r) => r.json());
+  assert.equal(plainBody.recordingEnabled, true);
+  // A directory on its own carries no window; only a configured store does.
   assert.equal(plainBody.recordingRetentionHours, 0);
 
   const configured = await startServer({
@@ -623,6 +632,7 @@ test("health states the retention window in force", async () => {
   const configuredBody = await fetch(`${configured.base}/health`).then((r) =>
     r.json(),
   );
+  assert.equal(configuredBody.recordingEnabled, true);
   assert.equal(configuredBody.recordingRetentionHours, 24);
   // Still open: a probe needs it without a token.
   assert.equal(configuredBody.status, "ok");

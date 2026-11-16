@@ -381,28 +381,44 @@ export async function issuePlaybackTicket(
   };
 }
 
+export interface RecordingStatus {
+  /** Whether the relay records broadcasts at all; null when it cannot be asked. */
+  enabled: boolean | null;
+  /** Hours it keeps them (0 meaning forever), or null when unknown. */
+  retentionHours: number | null;
+}
+
+const UNKNOWN_STATUS: RecordingStatus = { enabled: null, retentionHours: null };
+
 /**
- * The retention window the relay has in force right now: hours (0 meaning it
- * keeps everything), or null when the relay cannot be asked. This reads health
- * rather than the file listing, so a caller can notice a configuration change
- * cheaply enough to check it while a panel is open.
+ * What the relay is doing with recordings right now: whether it records, and how
+ * long it keeps them. This reads health rather than the file listing, so a
+ * panel can ask it before a broadcast and notice a configuration change without
+ * re-reading every file.
  */
-export async function relayRetentionHours(): Promise<number | null> {
+export async function relayRecordingStatus(): Promise<RecordingStatus> {
   const relay = relayConfiguration();
-  if (!relay) return null;
+  if (!relay) return UNKNOWN_STATUS;
   try {
     const response = await callRelay(relay, "/health", {
       method: "GET",
       headers: { Accept: "application/json" },
     });
-    if (!response.ok) return null;
+    if (!response.ok) return UNKNOWN_STATUS;
     const payload = (await response.json().catch(() => ({}))) as {
+      recordingEnabled?: unknown;
       recordingRetentionHours?: unknown;
     };
     const hours = Number(payload.recordingRetentionHours);
-    return Number.isFinite(hours) && hours >= 0 ? hours : null;
+    return {
+      enabled:
+        typeof payload.recordingEnabled === "boolean"
+          ? payload.recordingEnabled
+          : null,
+      retentionHours: Number.isFinite(hours) && hours >= 0 ? hours : null,
+    };
   } catch {
-    return null;
+    return UNKNOWN_STATUS;
   }
 }
 

@@ -51,7 +51,7 @@ import {
   markBroadcastSessionEnded,
   setBroadcastRetention,
   openBroadcastRecording,
-  relayRetentionHours,
+  relayRecordingStatus,
   rememberBroadcastSession,
 } from "./broadcast-recordings.service";
 
@@ -591,13 +591,16 @@ it("has no deadline to warn about when the relay keeps recordings forever", asyn
   expect(recording.expiresAt).toBeNull();
 });
 
-it("asks the relay which retention window is in force", async () => {
+it("asks the relay whether it records, and for how long", async () => {
   fetchMock.mockResolvedValueOnce({
     ok: true,
     status: 200,
-    json: async () => ({ recordingRetentionHours: 24 }),
+    json: async () => ({ recordingEnabled: true, recordingRetentionHours: 24 }),
   } as unknown as Response);
-  await expect(relayRetentionHours()).resolves.toBe(24);
+  await expect(relayRecordingStatus()).resolves.toEqual({
+    enabled: true,
+    retentionHours: 24,
+  });
 
   expect(fetchMock).toHaveBeenCalledWith(
     "http://relay.test/health",
@@ -609,26 +612,49 @@ it("asks the relay which retention window is in force", async () => {
   fetchMock.mockResolvedValueOnce({
     ok: true,
     status: 200,
-    json: async () => ({ recordingRetentionHours: 0 }),
+    json: async () => ({ recordingEnabled: false, recordingRetentionHours: 0 }),
+  } as unknown as Response);
+  // Recording off is a real answer, not an unknown one: the panel warns on it.
+  await expect(relayRecordingStatus()).resolves.toEqual({
+    enabled: false,
+    retentionHours: 0,
+  });
+
+  fetchMock.mockResolvedValueOnce({
+    ok: true,
+    status: 200,
+    json: async () => ({ recordingEnabled: true, recordingRetentionHours: 0 }),
   } as unknown as Response);
   // Zero is a window too: it means the relay keeps everything.
-  await expect(relayRetentionHours()).resolves.toBe(0);
+  await expect(relayRecordingStatus()).resolves.toEqual({
+    enabled: true,
+    retentionHours: 0,
+  });
 });
 
-it("has no window to report when the relay cannot answer", async () => {
+it("reports nothing it could not read", async () => {
   fetchMock.mockRejectedValueOnce(new Error("relay down"));
-  await expect(relayRetentionHours()).resolves.toBeNull();
+  await expect(relayRecordingStatus()).resolves.toEqual({
+    enabled: null,
+    retentionHours: null,
+  });
 
   fetchMock.mockResolvedValueOnce({
     ok: false,
     status: 503,
   } as unknown as Response);
-  await expect(relayRetentionHours()).resolves.toBeNull();
+  await expect(relayRecordingStatus()).resolves.toEqual({
+    enabled: null,
+    retentionHours: null,
+  });
 
   fetchMock.mockResolvedValueOnce({
     ok: true,
     status: 200,
     json: async () => ({ status: "ok" }),
   } as unknown as Response);
-  await expect(relayRetentionHours()).resolves.toBeNull();
+  await expect(relayRecordingStatus()).resolves.toEqual({
+    enabled: null,
+    retentionHours: null,
+  });
 });
