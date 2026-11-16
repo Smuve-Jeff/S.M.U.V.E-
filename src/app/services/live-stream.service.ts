@@ -266,6 +266,12 @@ export class LiveStreamService {
       return null;
     }
 
+    // The GO LIVE click is the user gesture that lets the browser start the
+    // mixer. Prime before OAuth, destination preflight, or the row request:
+    // all of those await, and the WHIP mix is built after them.
+    const providerPush = platform === 'twitch' || platform === 'kick';
+    if (providerPush) this.ingest.primeAudioContext();
+
     this.pendingGolive.set(platform);
     let issued: LiveStreamRecord | null = null;
     try {
@@ -851,17 +857,23 @@ export class LiveStreamService {
   async resumeBroadcastHere(): Promise<boolean> {
     const stream = this.currentStream();
     if (!stream?.active || !stream.shareToken) return false;
+    // This click can restart the WHIP push; prime before capture/start awaits.
+    const providerPlatform =
+      stream.platform === 'twitch' || stream.platform === 'kick'
+        ? stream.platform
+        : null;
+    if (providerPlatform) this.ingest.primeAudioContext();
     this.markHostingToken(stream.shareToken);
     await this.social.startStream(stream.platform);
     this.social.updateStatus(this.livePresenceMetadata());
     this.startStreamPoll();
-    if (stream.platform === 'twitch' || stream.platform === 'kick') {
+    if (providerPlatform) {
       await this.ingest.load();
       if (stream.platform === 'twitch' && !this.ingest.ready('twitch')) {
         await this.authorizeProvider('twitch');
         await this.ingest.load();
       }
-      await this.ingest.start(stream.platform);
+      await this.ingest.start(providerPlatform);
     }
     this.haptic.medium();
     this.notify.show('BROADCAST RESUMED IN THIS TAB', 'success');

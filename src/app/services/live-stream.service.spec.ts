@@ -157,6 +157,7 @@ beforeEach(() => {
           load: jest.fn(async () => undefined),
           ready: jest.fn(() => true),
           start: jest.fn(async () => true),
+          primeAudioContext: jest.fn(),
         },
       },
     ],
@@ -284,6 +285,27 @@ describe('LiveStreamService', () => {
       expect(service.currentStream()).toBeNull();
       expect(service.pendingGolive()).toBeNull();
       expect(social().startStream).not.toHaveBeenCalled();
+    });
+
+    it('primes the mixer before the first GO LIVE auth request', async () => {
+      service = TestBed.inject(LiveStreamService);
+      tokenRef = { value: 'TKN' };
+      profileRef = { value: { id: '77', artistName: 'JEFF' } };
+      httpResponses.push({ authorizeUrl: 'https://auth.example/twitch' });
+      (window.open as jest.Mock).mockReturnValueOnce(null);
+      const ingest = TestBed.inject(BroadcastIngestService);
+      const prime = ingest.primeAudioContext as jest.Mock;
+      let primedBeforeAuth = false;
+      const basePost = httpStub.post.getMockImplementation();
+      httpStub.post.mockImplementationOnce((...args: any[]) => {
+        primedBeforeAuth = prime.mock.calls.length > 0;
+        return basePost!.apply(httpStub, args);
+      });
+
+      expect(await service.golive({ platform: 'twitch' })).toBeNull();
+
+      expect(prime).toHaveBeenCalledTimes(1);
+      expect(primedBeforeAuth).toBe(true);
     });
 
     it('does not issue a row when Twitch authorization fails', async () => {
@@ -894,6 +916,26 @@ describe('LiveStreamService', () => {
       expect(
         TestBed.inject(SocialNetworkingService).startStream,
       ).toHaveBeenCalledWith('smuve');
+    });
+
+    it('primes the mixer before resuming a provider push', async () => {
+      service = TestBed.inject(LiveStreamService);
+      tokenRef = { value: 'TKN' };
+      profileRef = { value: { id: '77', artistName: 'JEFF' } };
+      service.currentStream.set(makeRow({ platform: 'kick' }));
+      const ingest = TestBed.inject(BroadcastIngestService);
+      const prime = ingest.primeAudioContext as jest.Mock;
+      let primedBeforeStart = false;
+      (TestBed.inject(SocialNetworkingService).startStream as jest.Mock)
+        .mockImplementationOnce(async () => {
+          primedBeforeStart = prime.mock.calls.length > 0;
+        });
+
+      expect(await service.resumeBroadcastHere()).toBe(true);
+
+      expect(primedBeforeStart).toBe(true);
+      expect(prime).toHaveBeenCalledTimes(1);
+      expect(ingest.start).toHaveBeenCalledWith('kick');
     });});
 
   describe('endStream when the server row is already gone', () => {

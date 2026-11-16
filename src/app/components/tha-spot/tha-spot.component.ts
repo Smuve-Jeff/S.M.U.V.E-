@@ -4300,6 +4300,9 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
       return;
     }
     if (this.socialService.switchingSource()) return;
+    // The display picker and capture setup both await; prime the mixer while
+    // this click still counts as user activation.
+    this.ingest.primeAudioContext();
     await this.socialService.setVideoSource('screen');
     if (this.socialService.videoSource() === 'screen') {
       const audioWarning = this.socialService.screenAudioWarning();

@@ -110,7 +110,9 @@ export class WhipPublisher {
   private round = 0;
 
   async start(whipUrl: string, stream: MediaStream): Promise<boolean> {
-    await this.stop();
+    // Keep the context primed by the click: start() runs after the API's
+    // session round trip, so a context created here can already be suspended.
+    await this.teardown(false);
     const round = ++this.round;
     this.error.set(null);
     this.state.set('connecting');
@@ -180,6 +182,24 @@ export class WhipPublisher {
     }
   }
 
+  /**
+   * Create or resume the mixer's AudioContext from the initiating click.
+   *
+   * A push starts behind the API's session request, and a screen switch starts
+   * behind the browser's display picker. By the time either reaches the mixer,
+   * transient user activation can be gone — so the context is created or
+   * resumed synchronously here, on the click, and then reused by
+   * `mixAudioTracks`. Without this the mix can be born suspended: tracks exist
+   * and the WHIP push looks healthy, but the recording and provider receive
+   * silence.
+   */
+  primeAudioContext(): void {
+    const context = this.ensureAudioContext();
+    if (context && context.state !== 'running') {
+      void context.resume().catch(() => undefined);
+    }
+  }
+
   /** Swap the outbound video track without renegotiating. */
   replaceVideoTrack(track: MediaStreamTrack | null): void {
     if (!this.videoSender) return;
@@ -220,15 +240,10 @@ export class WhipPublisher {
    */
   private mixAudioTracks(tracks: MediaStreamTrack[]): MediaStreamTrack | null {
     this.clearAudioMix();
-    const Ctor =
-      (globalThis as { AudioContext?: typeof AudioContext }).AudioContext ??
-      (globalThis as { webkitAudioContext?: typeof AudioContext })
-        .webkitAudioContext;
-    if (typeof Ctor !== 'function') return null;
+    const context = this.ensureAudioContext();
+    if (!context) return null;
     try {
-      if (!this.audioContext) this.audioContext = new Ctor();
-      const context = this.audioContext;
-      if (context.state === 'suspended') {
+      if (context.state !== 'running') {
         void context.resume().catch(() => undefined);
       }
       const destination = context.createMediaStreamDestination();
@@ -263,6 +278,24 @@ export class WhipPublisher {
     this.audioMixTrack = undefined;
   }
 
+  private ensureAudioContext(): AudioContext | null {
+    const Ctor =
+      (globalThis as { AudioContext?: typeof AudioContext }).AudioContext ??
+      (globalThis as { webkitAudioContext?: typeof AudioContext })
+        .webkitAudioContext;
+    if (typeof Ctor !== 'function') return null;
+    if (this.audioContext && this.audioContext.state !== 'closed') {
+      return this.audioContext;
+    }
+    try {
+      this.audioContext = new Ctor();
+      return this.audioContext;
+    } catch {
+      this.audioContext = undefined;
+      return null;
+    }
+  }
+
   private closeAudioContext(): void {
     this.clearAudioMix();
     if (this.audioContext) {
@@ -272,10 +305,19 @@ export class WhipPublisher {
   }
 
   async stop(): Promise<void> {
+    await this.teardown(true);
+  }
+
+  /**
+   * Tear down the WHIP session. `start()` preserves the primed AudioContext;
+   * an actual stop closes it and releases the mixer's destination track.
+   */
+  private async teardown(closeAudio: boolean): Promise<void> {
     this.round += 1;
     const resource = this.resourceUrl;
     this.resourceUrl = null;
-    this.closeAudioContext();
+    if (closeAudio) this.closeAudioContext();
+    else this.clearAudioMix();
     this.videoSender = undefined;
     this.audioSender = undefined;
     this.pc?.close();

@@ -216,6 +216,44 @@ describe('WhipPublisher.start', () => {
     }
   });
 
+  it('keeps the AudioContext primed by the click through the async start', async () => {
+    const mic = { kind: 'audio', id: 'mic' };
+    const system = { kind: 'audio', id: 'system' };
+    const mixed = { kind: 'audio', id: 'mixed', stop: jest.fn() };
+    const screenStream = {
+      getVideoTracks: () => [{ kind: 'video' }],
+      getAudioTracks: () => [mic, system],
+    } as unknown as MediaStream;
+    const mediaStream = installAudioMixer(mixed);
+    mediaStream.context.state = 'suspended';
+    installH264();
+    fetchMock.mockResolvedValue({
+      ok: true,
+      headers: { get: () => 'https://relay.test/s/whip/abc' },
+      text: async () => 'v=0',
+    });
+    const publisher = new WhipPublisher();
+
+    try {
+      publisher.primeAudioContext();
+      const primed = (publisher as unknown as { audioContext: unknown })
+        .audioContext;
+      expect(mediaStream.context.resume).toHaveBeenCalled();
+
+      await publisher.start('https://relay.test/s/whip', screenStream);
+
+      expect((publisher as unknown as { audioContext: unknown }).audioContext).toBe(
+        primed
+      );
+      expect(mediaStream.context.close).not.toHaveBeenCalled();
+      expect(lastPc.addTrack).toHaveBeenNthCalledWith(2, mixed, screenStream);
+    } finally {
+      await publisher.stop();
+      expect(mediaStream.context.close).toHaveBeenCalled();
+      mediaStream.restore();
+    }
+  });
+
   it('rebuilds the audio mix when the host switches camera ↔ screen', async () => {
     const mic = { kind: 'audio', id: 'mic' };
     const system = { kind: 'audio', id: 'system' };

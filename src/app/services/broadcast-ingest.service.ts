@@ -225,6 +225,15 @@ export class BroadcastIngestService {
     return !!this.destinations()[platform]?.ready;
   }
 
+  /**
+   * Let a click that can start or change the mix create/resume the WHIP audio
+   * context synchronously. Screens share behind a picker, so the call has to
+   * happen before that await.
+   */
+  primeAudioContext(): void {
+    this.whip.primeAudioContext();
+  }
+
   detail(platform: IngestPlatform): string {
     return this.destinations()[platform]?.detail ?? '';
   }
@@ -276,6 +285,9 @@ export class BroadcastIngestService {
       this.snackbar.warning('NO CAPTURE YET — SWITCH THE CAMERA ON FIRST');
       return false;
     }
+    // Run this before the first await: the PUSH click is the user gesture that
+    // lets the browser start the AudioContext the mixer will use.
+    this.primeAudioContext();
     this.pushing.set(platform);
     try {
       const session = await firstValueFrom(
@@ -430,6 +442,10 @@ export class BroadcastIngestService {
    */
   async runSelfTest(): Promise<void> {
     if (this.selfTest().status === 'running') return;
+    // The SELF-TEST click primes the mixer before the relay is asked for a
+    // session, so a test pattern with audio is not published after the
+    // browser has dropped the click's transient activation.
+    this.primeAudioContext();
     const pattern = createTestPattern();
     if (!pattern) {
       this.selfTest.set({
