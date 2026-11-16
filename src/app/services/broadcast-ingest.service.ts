@@ -11,6 +11,8 @@ import {
   expiryLabel,
   isSwept,
   keepLabel,
+  reconcileSweptRows,
+  recordingKey,
 } from './retention-warning';
 import { createTestPattern } from './test-pattern';
 import { WhipPublisher } from './whip-publisher';
@@ -153,6 +155,12 @@ export class BroadcastIngestService {
   private egressTimer: ReturnType<typeof setInterval> | null = null;
 
   private clockTimer: ReturnType<typeof setInterval> | null = null;
+  /**
+   * Shows this panel watched pass their deadline. The relay sweeps on its own
+   * schedule, so a reload can still list one for a moment; this keeps it gone
+   * instead of letting it blink back into the list.
+   */
+  private locallySwept = new Set<string>();
 
   constructor() {
     // Minute-level badges only need a minute-level tick, and writing the signal
@@ -510,7 +518,10 @@ export class BroadcastIngestService {
           headers: this.headers(),
         }),
       );
-      this.recordings.set(Array.isArray(rows) ? rows : []);
+      const listed = Array.isArray(rows) ? rows : [];
+      const reconciled = reconcileSweptRows(listed, this.locallySwept);
+      this.locallySwept = reconciled.swept;
+      this.recordings.set(reconciled.rows);
       this.recordingsError.set('');
     } catch {
       // A failed read must never read as "your recordings are gone". A quiet
@@ -628,6 +639,9 @@ export class BroadcastIngestService {
     const live = rows.filter((row) => !isSwept(row.expiresAt, now));
     if (live.length === rows.length) return false;
 
+    for (const row of rows) {
+      if (!live.includes(row)) this.locallySwept.add(recordingKey(row));
+    }
     this.recordings.set(live);
     this.pendingDelete.set(null);
     const playing = this.playback();
@@ -769,7 +783,7 @@ export class BroadcastIngestService {
   }
 
   private recordingKey(recording: BroadcastRecordingDto): string {
-    return `${recording.relayId}/${recording.name}`;
+    return recordingKey(recording);
   }
 
   /** Prefer the server's own sentence over a status code. */

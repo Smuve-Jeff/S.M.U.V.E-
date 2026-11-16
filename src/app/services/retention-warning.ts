@@ -39,6 +39,31 @@ export function isSwept(
   return until.getTime() <= now;
 }
 
+/** How one recording is addressed across reloads. */
+export const recordingKey = (row: { relayId: string; name: string }): string =>
+  `${row.relayId}/${row.name}`;
+
+/**
+ * Keep a row this panel already watched expire off the list, even when the
+ * relay's own sweep has not run yet and its list still contains it.
+ *
+ * A locally swept key is forgotten as soon as the relay stops listing it, so the
+ * set tracks the gap between the deadline and the sweep instead of growing.
+ */
+export function reconcileSweptRows<T extends { relayId: string; name: string }>(
+  rows: T[],
+  locallySwept: ReadonlySet<string>,
+): { rows: T[]; swept: Set<string> } {
+  const listed = new Set(rows.map(recordingKey));
+  const swept = new Set(
+    [...locallySwept].filter((key) => listed.has(key)),
+  );
+  return {
+    rows: rows.filter((row) => !swept.has(recordingKey(row))),
+    swept,
+  };
+}
+
 /** `KEPT UNTIL 23 NOV` for a promise that has not run out yet, else empty. */
 export function keepLabel(
   keepUntil: string | null | undefined,

@@ -346,7 +346,10 @@ once a minute, so a panel left open still shows a show crossing into its last
 hours. When a deadline actually passes, the row is dropped and the list is
 reconciled with the relay once, so a swept show does not sit there looking
 playable until someone presses REFRESH. Changing the selector re-reads the list
-too, so the deadline shown is always the relay's own answer.
+too, so the deadline shown is always the relay's own answer. Because the relay
+sweeps on its own minute, a reload can still list a show this panel watched
+expire; it stays hidden until the relay stops listing it, rather than blinking
+back for a tick.
 
 Retention is a default, not a rule: each row has a **DEFAULT / 7D / 30D / 90D**
 selector. Picking longer asks the API to pin the show (`PUT

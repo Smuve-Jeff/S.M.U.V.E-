@@ -3,6 +3,8 @@ import {
   expiryLabel,
   isSwept,
   keepLabel,
+  reconcileSweptRows,
+  recordingKey,
 } from "./retention-warning";
 
 const HOUR = 3_600_000;
@@ -55,6 +57,31 @@ describe("retention warnings", () => {
     expect(isSwept(null, now)).toBe(false);
     expect(isSwept(undefined, now)).toBe(false);
     expect(isSwept("not a date", now)).toBe(false);
+  });
+
+  it("keeps a locally swept row hidden until the relay catches up", () => {
+    const gone = { relayId: "aaaa", name: "aaaa.mp4" };
+    const live = { relayId: "bbbb", name: "bbbb.mp4" };
+    const swept = new Set([recordingKey(gone)]);
+
+    const stillListed = reconcileSweptRows([gone, live], swept);
+
+    // The relay has not swept yet, but this panel watched the deadline pass.
+    expect(stillListed.rows).toEqual([live]);
+    expect(stillListed.swept.has(recordingKey(gone))).toBe(true);
+
+    // Once the relay stops listing it the memory is no longer needed.
+    const confirmed = reconcileSweptRows([live], stillListed.swept);
+    expect(confirmed.rows).toEqual([live]);
+    expect(confirmed.swept.size).toBe(0);
+  });
+
+  it("does not hide a row that was never watched expiring", () => {
+    const kept = { relayId: "aaaa", name: "aaaa.mp4" };
+    const reconciled = reconcileSweptRows([kept], new Set());
+
+    expect(reconciled.rows).toEqual([kept]);
+    expect(reconciled.swept.size).toBe(0);
   });
 
   it("shows a keep promise until the day it runs out", () => {
