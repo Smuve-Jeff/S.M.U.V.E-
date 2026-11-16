@@ -1303,7 +1303,7 @@
       </header>
       <div class="inbound-invite-body">
         <p class="inbound-invite-game">
-          {{ (selectedGame()?.name || inv.gameId) | uppercase }}
+          {{ selectedGame()?.name || inv.gameId | uppercase }}
         </p>
         <p class="inbound-invite-mode">
           MODE: <strong>{{ inv.mode | uppercase }}</strong>
@@ -1361,9 +1361,9 @@
       </header>
       <div class="share-tray-body">
         <p class="share-tray-label">
-          Pick a platform. SMUVE LIVE starts instantly; Twitch, Kick and
-          YouTube open their connect popup first. Your viewer share link is
-          copied as soon as the stream is live.
+          Pick a platform. SMUVE LIVE starts instantly; Twitch opens its connect
+          window first; Kick uses the stream URL and key saved in Broadcast
+          Push. Your viewer share link is copied as soon as the stream is live.
         </p>
         <div class="platform-picker" role="radiogroup" aria-label="Live platform">
           <button
@@ -1376,13 +1376,11 @@
           >
             <span class="material-symbols-outlined" style="font-size: 0.85rem"
               >{{
-                p === 'smuve'
-                  ? 'graphic_eq'
-                  : p === 'twitch'
-                    ? 'live_tv'
-                    : p === 'kick'
-                      ? 'flash_on'
-                      : 'smart_display'
+                p === "smuve"
+                  ? "graphic_eq"
+                  : p === "twitch"
+                    ? "live_tv"
+                    : "flash_on"
               }}</span
             >
             {{ p | uppercase }}
@@ -1398,14 +1396,14 @@
         >
           {{
             pendingGolive()
-              ? selectedGoLivePlatform() === 'smuve'
-                ? 'STARTING…'
-                : 'AUTH PENDING…'
-              : selectedGoLivePlatform() === 'smuve'
-                ? 'START SMUVE LIVE'
-                : 'OPEN ' +
-                  (selectedGoLivePlatform() | uppercase) +
-                  ' AUTH &amp; GO LIVE'
+              ? selectedGoLivePlatform() === "twitch"
+                ? "AUTH PENDING…"
+                : "STARTING…"
+              : selectedGoLivePlatform() === "smuve"
+                ? "START SMUVE LIVE"
+                : selectedGoLivePlatform() === "kick"
+                  ? "GO LIVE ON KICK"
+                  : "OPEN TWITCH AUTH & GO LIVE"
           }}
         </button>
         <button
@@ -1429,7 +1427,7 @@
     <span class="live-pill">
       <span class="live-dot"></span>
       LIVE ON {{ liveCur.platform | uppercase }} ·
-      {{ liveCur.viewerJoins }} VIEWERS
+      {{ liveCur.viewerJoins }} JOINS
     </span>
     <input
       class="share-tray-input"
@@ -1448,6 +1446,17 @@
       COPY LINK
     </button>
     <button
+      *ngIf="
+        !liveStream.ownsBroadcast() ||
+        liveVideo.hostReplacedFor(liveStream.currentStream())
+      "
+      type="button"
+      class="action-btn primary"
+      (click)="resumeLiveHere()"
+    >
+      RESUME HERE
+    </button>
+    <button
       type="button"
       class="stop-live-btn"
       (click)="liveStream.endStream()"
@@ -1459,7 +1468,11 @@
 
   <!-- The host's capture failed: the room is live but has nothing to send. -->
   <div
-    *ngIf="hostFeedMissing()"
+    *ngIf="
+      hostFeedMissing() &&
+      liveStream.ownsBroadcast() &&
+      !liveVideo.hostReplacedFor(liveStream.currentStream())
+    "
     class="live-no-media-bar"
     role="alert"
     aria-live="assertive"
@@ -1505,7 +1518,7 @@
       <p class="host">
         HOSTED BY
         <strong>{{
-          (livePreview.hostDisplayName || 'Anonymous') | uppercase
+          livePreview.hostDisplayName || "Anonymous" | uppercase
         }}</strong>
       </p>
       <p class="host" *ngIf="livePreview.hostId">
@@ -3158,8 +3171,8 @@
                 >
                   {{
                     platformsService.isConnected(platform.id)
-                      ? (platformsService.displayName(platform.id) || 'CONNECTED')
-                      : 'NOT CONNECTED'
+                      ? platformsService.displayName(platform.id) || "CONNECTED"
+                      : "NOT CONNECTED"
                   }}
                 </span>
                 <span class="account-broadcast" *ngIf="!platform.connectable"

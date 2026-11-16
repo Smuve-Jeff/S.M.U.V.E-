@@ -87,6 +87,10 @@ const VIEWER_ICE_RECOVERY_MS = 6_000;
 const VIEWER_REJOIN_MS = 3_000;
 // Managed TURN credentials are short-lived; refresh with plenty of headroom.
 const ICE_CACHE_MS = 10 * 60_000;
+// A failed ICE lookup is retried quickly: pinning the fallback STUN config for
+// ten minutes left TURN-dependent viewers unable to connect long after the
+// endpoint recovered.
+const ICE_RETRY_MS = 30_000;
 // Stats are sampled rather than streamed: a few seconds is plenty for a
 // dashboard and keeps getStats() off the media path.
 const STATS_POLL_MS = 4_000;
@@ -207,6 +211,7 @@ export class LiveVideoService {
       return;
     }
     this.stopHosting();
+    this.replacedToken.set(null);
     this.hostToken = stream.shareToken;
     this.hostStreamId = stream.id;
     // Camera ↔ screen switches arrive here: every viewer peer's sender
@@ -844,19 +849,24 @@ export class LiveVideoService {
     if (!this.viewerToken || data?.streamToken !== this.viewerToken) return;
     const sdp = data?.sdp;
     if (!sdp || sdp.type !== "offer" || typeof sdp.sdp !== "string") return;
-    // A host that reconnected (new socket, new peer) re-offers. Ignoring it
-    // because "we already have a peer" is what left viewers frozen on a dead
-    // connection for the rest of the broadcast.
-    // A stalled peer still reports "connected", so it has to be replaceable:
-    // otherwise the host's fresh offer is ignored and the viewer stays frozen.
+    const fromSocketId =
+      typeof data?.fromSocketId === "string" ? data.fromSocketId : null;
+    // A host that rebuilt its socket re-offers from a different socket while
+    // the old peer can still report "connected". Accept that offer: the new
+    // socket is authoritative. Duplicate offers from the same socket are
+    // still ignored while the peer is healthy.
+    const sameHostSocket =
+      !fromSocketId || fromSocketId === this.viewerHostSocketId;
     if (
       this.viewerPc &&
       !this.isViewerPeerDead(this.viewerPc) &&
-      !this.recovering()
+      !this.recovering() &&
+      sameHostSocket
     ) {
       return;
     }
     if (this.viewerPc) this.dropViewerPeer("waiting");
+    this.viewerHostSocketId = fromSocketId;
     void this.acceptOffer(sdp);
   };
 
@@ -876,6 +886,7 @@ export class LiveVideoService {
     this.stopViewerStallWatch();
     this.viewerPc?.close();
     this.viewerPc = undefined;
+    this.viewerHostSocketId = null;
     this.viewerPendingIce = [];
     this.remoteStream.set(null);
     this.status.set(status);
@@ -1139,6 +1150,7 @@ export class LiveVideoService {
     if (token) {
       this.viewerPc?.close();
       this.viewerPc = undefined;
+      this.viewerHostSocketId = null;
       this.viewerPendingIce = [];
       this.remoteStream.set(null);
       this.status.set("connecting");
@@ -1163,6 +1175,7 @@ export class LiveVideoService {
     this.stopViewerStallWatch();
     this.viewerPc?.close();
     this.viewerPc = undefined;
+    this.viewerHostSocketId = null;
     this.viewerPendingIce = [];
     this.remoteStream.set(null);
     this.status.set("error");
@@ -1179,6 +1192,7 @@ export class LiveVideoService {
     this.clearViewerPoll();
     this.viewerPc?.close();
     this.viewerPc = undefined;
+    this.viewerHostSocketId = null;
     this.viewerPendingIce = [];
     this.remoteStream.set(null);
     this.viewerToken = null;
@@ -1224,19 +1238,9 @@ export class LiveVideoService {
 
   private bindSocket(socket: Socket): void {
     if (this.boundSocket === socket) return;
-    // If the host socket was rebuilt while the old one is still open, leave
-    // its live room so the server does not keep routing viewer answers to a
-    // socket nobody listens on any more.
-    if (
-      this.hostToken &&
-      this.hostSocket &&
-      this.hostSocket !== socket &&
-      this.hostSocket.connected
-    ) {
-      this.hostSocket.emit("live_stream_host_leave", {
-        token: this.hostToken,
-      });
-    }
+    // Do not emit live_stream_host_leave when the host transport is rebuilt:
+    // that event ends the room when this was the last host socket. The new
+    // socket's host_join elects it and replaces the old relay entry safely.
     this.unbindSocket();
     // Peers belong to the old transport; the caller re-announces this side.
     this.hostPeers.forEach((peer) => peer.pc.close());
@@ -1257,6 +1261,8 @@ export class LiveVideoService {
     socket.on("live_stream_feed_unavailable", this.onFeedUnavailable);
     socket.on("live_stream_source_changed", this.onSourceChanged);
     socket.on("live_stream_ended", this.onStreamEnded);
+    socket.on("live_stream_host_dropped", this.onHostDropped);
+    socket.on("live_stream_host_replaced", this.onHostReplaced);
     socket.on("connect", this.onSocketConnect);
   }
 
@@ -1275,6 +1281,8 @@ export class LiveVideoService {
     socket.off("live_stream_feed_unavailable", this.onFeedUnavailable);
     socket.off("live_stream_source_changed", this.onSourceChanged);
     socket.off("live_stream_ended", this.onStreamEnded);
+    socket.off("live_stream_host_dropped", this.onHostDropped);
+    socket.off("live_stream_host_replaced", this.onHostReplaced);
     socket.off("connect", this.onSocketConnect);
     this.boundSocket = undefined;
     this.viewerTransportUp.set(false);
@@ -1386,17 +1394,32 @@ export class LiveVideoService {
    */
   private ensureIce(): Promise<void> {
     if (!this.hostToken && !this.viewerToken) return Promise.resolve();
-    if (this.iceConfig && Date.now() - this.iceLoadedAt < ICE_CACHE_MS) {
-      return this.iceConfig;
+    if (this.iceLoadedAt > 0 && Date.now() - this.iceLoadedAt < ICE_CACHE_MS) {
+      return Promise.resolve();
     }
-    this.iceLoadedAt = Date.now();
-    this.iceConfig = this.fetchIceConfig();
+    if (this.iceConfig) return this.iceConfig;
+    // Back off only after a real failure, and only briefly. The old code
+    // stamped iceLoadedAt before the request, so one failure looked like a
+    // fresh cache hit for ten minutes.
+    if (Date.now() < this.iceRetryAt) return Promise.resolve();
+    this.iceConfig = this.fetchIceConfig()
+      .then((ok) => {
+        if (ok) {
+          this.iceLoadedAt = Date.now();
+          this.iceRetryAt = 0;
+        } else {
+          this.iceRetryAt = Date.now() + ICE_RETRY_MS;
+        }
+      })
+      .finally(() => {
+        this.iceConfig = undefined;
+      });
     return this.iceConfig;
   }
 
-  private async fetchIceConfig(): Promise<void> {
+  private async fetchIceConfig(): Promise<boolean> {
     const token = this.hostToken || this.viewerToken;
-    if (!token) return;
+    if (!token) return false;
     try {
       const config = await firstValueFrom(
         this.http.get<IceConfigResponse>(
@@ -1409,15 +1432,99 @@ export class LiveVideoService {
         this.iceServers = config.iceServers;
       }
       if (config?.turn) this.turnHealth.set(config.turn);
+      return true;
     } catch {
       // Fall back to public STUN; direct connections still work on most
-      // home networks, just not behind symmetric NAT without TURN.
+      // home networks, just not behind symmetric NAT without TURN. The next
+      // attempt (after ICE_RETRY_MS) can still pick up managed TURN.
       this.turnHealth.set({
         configured: false,
         managed: false,
         available: false,
         source: "none",
       });
+      return false;
     }
   }
-}
+
+  /**
+   * Another socket for this same host took over the broadcast. Tracked by
+   * stream token, not as a bare boolean: a new broadcast has a new token and
+   * must not inherit the old takeover.
+   */
+  private readonly replacedToken = signal<string | null>(null);
+  readonly hostReplaced = computed(() => this.replacedToken() !== null);
+  /** Socket that produced the current inbound offer, so a rebuilt host wins. */
+  private viewerHostSocketId: string | null = null;
+  private iceRetryAt = 0;
+
+  /**
+   * True only when `stream` is the broadcast this tab was replaced on. A new
+   * broadcast has a different share token, so it starts with a clean slate
+   * even before `startHosting` clears the old takeover.
+   */
+  hostReplacedFor(stream: LiveStreamRecord | null | undefined): boolean {
+    const token = stream?.shareToken;
+    return !!token && this.replacedToken() === token;
+  }
+
+  /**
+   * Clear a takeover so the component effect can start hosting this tab
+   * again. Called explicitly from RESUME HERE, never from stopHosting: a
+   * replaced tab would otherwise re-register itself immediately.
+   */
+  resumeHosting(): void {
+    this.replacedToken.set(null);
+  }
+
+  /**
+   * The server elected another socket for this host. Release capture and
+   * every viewer peer without emitting host_leave: that event would end the
+   * room for the tab that just took over.
+   */
+  private onHostReplaced = (data: SocketPayload) => {
+    const token = this.hostToken;
+    if (!token) return;
+    if (data?.streamToken && data.streamToken !== token) return;
+    this.replacedToken.set(token);
+    this.standDownAsHost();
+  };
+
+  private standDownAsHost(): void {
+    this.clearHostMediaTimer();
+    this.clearStatsPolling();
+    this.hostPeers.forEach((peer) => peer.pc.close());
+    this.hostPeers.clear();
+    this.viewerNames.clear();
+    this.viewerConnections.set([]);
+    this.pendingViewers.forEach((timer) => clearTimeout(timer));
+    this.pendingViewers.clear();
+    this.videoTrackUnsub?.();
+    this.videoTrackUnsub = null;
+    this.hostSocket = undefined;
+    this.hostToken = null;
+    this.hostStreamId = null;
+    // The other tab owns the broadcast now; this one must release the camera.
+    this.social.stopStream?.();
+  }
+
+  /**
+   * The host socket dropped but the room is in its reconnect grace window.
+   * Keep the watch session and token alive, release the dead peer, and wait
+   * for the host's fresh offer instead of treating the broadcast as over.
+   */
+  private onHostDropped = (data: SocketPayload) => {
+    if (
+      !this.viewerToken ||
+      (data?.streamToken && data.streamToken !== this.viewerToken)
+    ) {
+      return;
+    }
+    this.recovering.set(true);
+    this.feedError.set("FEED DROPPED — RECONNECTING…");
+    // The old 15s offer timeout would fail the viewer before the server's
+    // 30s reconnect grace even expired. The server ends the room if the host
+    // really is gone, so let that event be the deadline.
+    this.clearViewerTimeout();
+    this.dropViewerPeer("waiting");
+  };}

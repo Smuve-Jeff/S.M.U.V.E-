@@ -3,7 +3,7 @@ jest.mock("socket.io-client", () => ({ io: jest.fn() }));
 import { signal } from "@angular/core";
 import { TestBed } from "@angular/core/testing";
 import { HttpClient } from "@angular/common/http";
-import { of } from "rxjs";
+import { of, throwError } from "rxjs";
 import { io } from "socket.io-client";
 import { LiveVideoService } from "./live-video.service";
 import { DEFAULT_VIEWER_HEALTH } from "./viewer-health";
@@ -133,6 +133,7 @@ describe("LiveVideoService", () => {
     streamError: jest.Mock;
     socketConnected: jest.Mock;
     retryHostMedia: jest.Mock;
+    stopStream: jest.Mock;
   };
   let http: { get: jest.Mock };
   let videoTrack: ReturnType<typeof makeTrack>;
@@ -199,6 +200,7 @@ describe("LiveVideoService", () => {
       screenAudioOnly: jest.fn(() => false),
       audioRoleOf: jest.fn((t: any) => t.__role ?? "mic"),
       onHostStreamReplaced: jest.fn(() => () => undefined),
+      stopStream: jest.fn(),
     };
     http = {
       get: jest.fn(() =>
@@ -785,9 +787,11 @@ describe("LiveVideoService", () => {
     service.startHosting({ ...stream });
     await flush();
 
+    // Rebuilding the transport must not emit host_leave: the server treats
+    // the last leave as the room ending, before the new socket can join.
     expect(
       socket.emitted.some((entry) => entry.event === "live_stream_host_leave"),
-    ).toBe(true);
+    ).toBe(false);
     expect(FakePeerConnection.instances[0].closed).toBe(true);
     expect(rebuilt.emitted).toContainEqual({
       event: "live_stream_host_join",
@@ -942,4 +946,167 @@ describe("LiveVideoService", () => {
     service.stopHosting();
     expect(unsub).toHaveBeenCalled();
   });
-});
+
+
+  it("accepts a rebuilt host socket's offer while the old peer still looks connected", async () => {
+    await service.watch("tok");
+    socket.trigger("live_webrtc_offer", {
+      streamToken: "tok",
+      fromSocketId: "host-old",
+      sdp: { type: "offer", sdp: "old-host-offer" },
+    });
+    await flush();
+    const first = FakePeerConnection.instances[0];
+    first.receivers = [{ track: videoTrack }, { track: remoteAudio }];
+    first.ontrack?.({ streams: [remoteMedia], track: videoTrack });
+    expect(service.status()).toBe("live");
+
+    // A rebuilt host socket has a new peer but the old peer can still report
+    // "connected" for a moment. The new socket must win immediately.
+    socket.trigger("live_webrtc_offer", {
+      streamToken: "tok",
+      fromSocketId: "host-new",
+      sdp: { type: "offer", sdp: "new-host-offer" },
+    });
+    await flush();
+
+    const second = FakePeerConnection.instances[1];
+    expect(first.closed).toBe(true);
+    expect(second.remoteDescription?.sdp).toBe("new-host-offer");
+    expect(
+      socket.emitted.filter((entry) => entry.event === "live_webrtc_answer"),
+    ).toHaveLength(2);
+  });
+
+  it("keeps the watch alive when the host signals a recoverable drop", async () => {
+    await service.watch("tok");
+    socket.trigger("live_webrtc_offer", {
+      streamToken: "tok",
+      sdp: { type: "offer", sdp: "first" },
+    });
+    await flush();
+    const first = FakePeerConnection.instances[0];
+    first.receivers = [{ track: videoTrack }, { track: remoteAudio }];
+    first.ontrack?.({ streams: [remoteMedia], track: videoTrack });
+    expect(service.status()).toBe("live");
+
+    socket.trigger("live_stream_host_dropped", {
+      streamToken: "tok",
+      streamId: 5,
+    });
+
+    expect(service.recovering()).toBe(true);
+    expect(service.watchingToken()).toBe("tok");
+    expect(service.status()).toBe("waiting");
+    expect(first.closed).toBe(true);
+    expect(service.remoteStream()).toBeNull();
+
+    // The host returns with a fresh offer on the same room; the viewer
+    // accepts it because the drop put the session in recovery.
+    socket.trigger("live_webrtc_offer", {
+      streamToken: "tok",
+      sdp: { type: "offer", sdp: "recovered" },
+    });
+    await flush();
+    const recovered = FakePeerConnection.instances[1];
+    recovered.receivers = [{ track: videoTrack }, { track: remoteAudio }];
+    recovered.ontrack?.({ streams: [remoteMedia], track: videoTrack });
+
+    expect(service.status()).toBe("live");
+    expect(service.recovering()).toBe(false);
+    expect(service.watchingToken()).toBe("tok");
+  });
+
+  it("stands down when another socket takes over the broadcast", async () => {
+    service.startHosting(stream);
+    await flush();
+    socket.trigger("live_stream_viewer_joined", {
+      streamToken: "tok",
+      socketId: "viewer-1",
+      viewerName: "NOVA",
+      streamId: 5,
+    });
+    await flush();
+    const peer = FakePeerConnection.instances[0];
+    expect(service.viewerConnections()).toHaveLength(1);
+
+    socket.trigger("live_stream_host_replaced", {
+      streamToken: "tok",
+      streamId: 5,
+    });
+
+    expect(service.hostReplaced()).toBe(true);
+    expect(peer.closed).toBe(true);
+    expect(service.viewerConnections()).toEqual([]);
+    expect(social.stopStream).toHaveBeenCalled();
+    // The takeover tab owns the room now; this tab must not end it.
+    expect(
+      socket.emitted.some((entry) => entry.event === "live_stream_host_leave"),
+    ).toBe(false);
+
+    // RESUME HERE clears the takeover flag and re-registers this tab.
+    service.resumeHosting();
+    service.startHosting(stream);
+    await flush();
+
+    expect(service.hostReplaced()).toBe(false);
+    expect(
+      socket.emitted.filter((entry) => entry.event === "live_stream_host_join"),
+    ).toHaveLength(2);
+  });
+
+  it("clears the takeover flag when the replaced host starts a new broadcast", async () => {
+    service.startHosting(stream);
+    await flush();
+    socket.trigger("live_stream_host_replaced", {
+      streamToken: "tok",
+      streamId: 5,
+    });
+
+    expect(service.hostReplacedFor(stream)).toBe(true);
+    const next = {
+      ...stream,
+      id: 6,
+      shareToken: "tok-next",
+    } as LiveStreamRecord;
+    expect(service.hostReplacedFor(next)).toBe(false);
+
+    service.startHosting(next);
+    await flush();
+
+    expect(service.hostReplaced()).toBe(false);
+    expect(service.hostReplacedFor(next)).toBe(false);
+    expect(
+      socket.emitted
+        .filter((entry) => entry.event === "live_stream_host_join")
+        .map((entry) => entry.data?.token),
+    ).toEqual(["tok", "tok-next"]);
+  });
+
+  it("retries a failed ICE lookup instead of pinning STUN for ten minutes", async () => {
+    http.get.mockReturnValueOnce(throwError(() => new Error("offline")));
+    service.startHosting(stream);
+    await flush();
+    expect(http.get).toHaveBeenCalledTimes(1);
+
+    // Simulate the short retry window elapsing without waiting 30s.
+    (service as any).iceRetryAt = 0;
+    service.stopHosting();
+    http.get.mockReturnValueOnce(
+      of({
+        iceServers: [{ urls: "turn:recovered" }],
+        turn: {
+          configured: true,
+          managed: true,
+          available: true,
+          source: "cloudflare",
+        },
+      }),
+    );
+
+    service.startHosting(stream);
+    await flush();
+
+    expect(http.get).toHaveBeenCalledTimes(2);
+    expect((service as any).iceServers).toEqual([{ urls: "turn:recovered" }]);
+  });});

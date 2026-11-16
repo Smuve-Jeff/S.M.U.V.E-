@@ -30,9 +30,12 @@ export interface StreamingPlatform {
 
 export const STREAMING_PLATFORMS: readonly StreamingPlatform[] = [
   { id: 'twitch', label: 'TWITCH', broadcast: true, connectable: true },
-  { id: 'youtube', label: 'YOUTUBE', broadcast: true, connectable: true },
+  // YouTube can still be linked (read-only account data), but it has no
+  // ingest path in this product, so it is not a Go Live destination.
+  { id: 'youtube', label: 'YOUTUBE', broadcast: false, connectable: true },
+  // Kick broadcasts with the RTMP URL + key saved in Broadcast Push, not OAuth.
   { id: 'kick', label: 'KICK', broadcast: true, connectable: false },
-  { id: 'tiktok', label: 'TIKTOK', broadcast: true, connectable: false },
+  { id: 'tiktok', label: 'TIKTOK', broadcast: false, connectable: false },
   { id: 'instagram', label: 'INSTAGRAM', broadcast: false, connectable: false },
   { id: 'discord', label: 'DISCORD', broadcast: false, connectable: false },
   { id: 'x', label: 'X', broadcast: false, connectable: false },

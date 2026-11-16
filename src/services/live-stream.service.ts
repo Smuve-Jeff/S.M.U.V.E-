@@ -20,6 +20,18 @@ export const LIVE_STREAM_PLATFORMS = [
 ] as const;
 export type LiveStreamPlatform = (typeof LIVE_STREAM_PLATFORMS)[number];
 
+/**
+ * Platforms the Go Live flow can actually broadcast to today: the native
+ * S.M.U.V.E room, plus the two providers with a working WHIP -> RTMP ingest.
+ *
+ * `youtube` and `tiktok` stay in LIVE_STREAM_PLATFORMS so rows created before
+ * this matrix was tightened still decode, but a new broadcast cannot be
+ * started on them: YouTube's stored grant is read-only and TikTok has no
+ * ingest path at all.
+ */
+export const LIVE_GO_LIVE_PLATFORMS = ["smuve", "twitch", "kick"] as const;
+export type GoLivePlatform = (typeof LIVE_GO_LIVE_PLATFORMS)[number];
+
 export interface StartLiveStreamInput {
   hostId: string;
   hostDisplayName?: string;
@@ -93,13 +105,13 @@ export const generateShareToken = (): string =>
  * is shown.
  */
 export const startLiveStream = async (
-  input: StartLiveStreamInput
+  input: StartLiveStreamInput,
 ): Promise<LiveStreamRow> => {
   if (!input.hostId) throw new AppError(401, "Authentication required");
-  if (!LIVE_STREAM_PLATFORMS.includes(input.platform)) {
+  if (!LIVE_GO_LIVE_PLATFORMS.includes(input.platform as GoLivePlatform)) {
     throw new AppError(
       400,
-      `platform must be one of: ${LIVE_STREAM_PLATFORMS.join(", ")}`
+      `platform must be one of: ${LIVE_GO_LIVE_PLATFORMS.join(", ")}`,
     );
   }
 
@@ -131,7 +143,7 @@ export const startLiveStream = async (
           lobbyId: input.lobbyId ?? null,
           payload: input.payload ?? null,
           active: true,
-        })
+        }),
       );
       return rowToWire(saved);
     } catch (err: any) {
@@ -223,18 +235,74 @@ export const resolveViewerJoin = async (
 };
 
 /**
+ * A viewer that taps JOIN twice (or refreshes the overlay) should not look
+ * like two separate people. Every caller supplies the same per-viewer ID to
+ * both redeem paths: the account id for a signed-in viewer, or the stable
+ * browser id for a share-link guest. Never key this on an IP address: a
+ * household, school or carrier NAT would collapse distinct viewers into one.
+ * Fifteen seconds is long enough to absorb a double-tap and a refresh, and
+ * short enough that genuinely returning viewers still count.
+ */
+const REDEEM_DEDUPE_MS = 15_000;
+const LIVE_VIEWER_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/;
+
+/** Normalize a client-supplied viewer id; reject anything we cannot key on. */
+export const normalizeLiveViewerId = (value: unknown): string | null => {
+  if (typeof value !== "string") return null;
+  const id = value.trim().replace(/^guest:/, "");
+  return LIVE_VIEWER_ID_PATTERN.test(id) ? id : null;
+};
+
+/**
+ * The one dedupe key shared by REST and socket redeems. Authentication wins
+ * over a supplied id so a guest cannot collide with an account's key.
+ */
+export const liveViewerKey = (
+  userId: string | number | null | undefined,
+  viewerId: unknown,
+): string | null => {
+  const account = userId === null || userId === undefined ? "" : String(userId);
+  if (account && !account.startsWith("guest:")) return `user:${account}`;
+  const guest = normalizeLiveViewerId(viewerId);
+  return guest ? `guest:${guest}` : null;
+};
+const recentRedeems = new Map<string, number>();
+
+const shouldCountRedeem = (viewerKey: string | null): boolean => {
+  if (!viewerKey) return true;
+  const now = Date.now();
+  const previous = recentRedeems.get(viewerKey);
+  if (previous !== undefined && now - previous < REDEEM_DEDUPE_MS) {
+    return false;
+  }
+  recentRedeems.set(viewerKey, now);
+  // Keep the map bounded when a popular share link is opened by many viewers.
+  if (recentRedeems.size > 5_000) {
+    for (const [key, at] of recentRedeems) {
+      if (now - at >= REDEEM_DEDUPE_MS) recentRedeems.delete(key);
+    }
+  }
+  return true;
+};
+
+/**
  * Record a viewer join + return the resolved row in one round-trip.
- * Increments `viewerJoins` for telemetry dashboards.
+ * Increments `viewerJoins` for telemetry dashboards, once per viewer window.
  */
 export const redeemViewerJoin = async (
-  token: string
+  token: string,
+  viewerKey: string | null = null,
 ): Promise<LiveStreamRow> => {
   if (!token) throw new AppError(400, "token is required");
   const row = await repo().streams.findOne({ where: { shareToken: token } });
   if (!row) throw new AppError(404, "Live stream not found");
   if (!row.active) throw new AppError(410, "Live stream has ended");
-  row.viewerJoins = (row.viewerJoins ?? 0) + 1;
-  await repo().streams.save(row);
+  // Scope the window to this stream: a viewer who taps JOIN on two
+  // different broadcasts in quick succession is two legitimate joins.
+  if (shouldCountRedeem(viewerKey ? `${token}:${viewerKey}` : null)) {
+    row.viewerJoins = (row.viewerJoins ?? 0) + 1;
+    await repo().streams.save(row);
+  }
   return rowToWire(row);
 };
 

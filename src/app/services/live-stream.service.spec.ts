@@ -2,7 +2,8 @@ import { TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
 import { of, throwError } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
-import { LiveStreamService } from './live-stream.service';
+import { GO_LIVE_PLATFORMS, LiveStreamService } from './live-stream.service';
+import { BroadcastIngestService } from './broadcast-ingest.service';
 import { TokenService } from './token.service';
 import { UserProfileService } from './user-profile.service';
 import { NotificationService } from './notification.service';
@@ -70,6 +71,12 @@ const makeRow = (over: Record<string, unknown> = {}) => ({
 
 beforeEach(() => {
   TestBed.resetTestingModule();
+  try {
+    sessionStorage.clear();
+    localStorage.removeItem('smuve.live.viewerId');
+  } catch {
+    /* storage is not available in some runners */
+  }
   clipboardWrite = jest.fn(async (_t: string) => undefined);
   clipboardAvailable = true;
   httpCalls.length = 0;
@@ -144,6 +151,14 @@ beforeEach(() => {
           getSocket: jest.fn(() => undefined),
         },
       },
+      {
+        provide: BroadcastIngestService,
+        useValue: {
+          load: jest.fn(async () => undefined),
+          ready: jest.fn(() => true),
+          start: jest.fn(async () => true),
+        },
+      },
     ],
   });
 });
@@ -167,227 +182,176 @@ describe('LiveStreamService', () => {
       expect(messageListeners).toEqual([]);
     });
 
-    it('issues a server row, opens popup, sets currentStream', async () => {
+    const flush = async () => {
+      for (let i = 0; i < 8; i++) await Promise.resolve();
+    };
+    const social = () => TestBed.inject(SocialNetworkingService);
+    const ingest = () => TestBed.inject(BroadcastIngestService);
+
+    it('offers only the platforms with a working broadcast path', () => {
+      expect(GO_LIVE_PLATFORMS).toEqual(['smuve', 'twitch', 'kick']);
+      expect(GO_LIVE_PLATFORMS).not.toContain('youtube');
+      expect(GO_LIVE_PLATFORMS).not.toContain('tiktok');
+    });
+
+    it('rejects a legacy platform before touching the API or a camera', async () => {
       service = TestBed.inject(LiveStreamService);
       tokenRef = { value: 'TKN' };
       profileRef = { value: { id: '77', artistName: 'JEFF' } };
-      const row = {
-        id: 1,
-        shareToken: 'tok',
-        hostId: '77',
-        hostDisplayName: 'JEFF',
-        platform: 'twitch',
-        gameId: 'halo',
-        lobbyId: 'split_xyz',
-        payload: {},
-        active: true,
-        startedAt: new Date().toISOString(),
-        endedAt: null,
-        viewerJoins: 0,
-        shareUrl: 'https://x',
-      };
-      httpResponses.push(row);
+
+      expect(await service.golive({ platform: 'youtube' })).toBeNull();
+      expect(await service.golive({ platform: 'tiktok' })).toBeNull();
+
+      expect(httpCalls).toEqual([]);
+      expect(social().startStream).not.toHaveBeenCalled();
+      expect(service.pendingGolive()).toBeNull();
+    });
+
+    it('starts a native S.M.U.V.E broadcast without a popup and claims this tab', async () => {
+      service = TestBed.inject(LiveStreamService);
+      tokenRef = { value: 'TKN' };
+      profileRef = { value: { id: '77', artistName: 'JEFF' } };
+      httpResponses.push(makeRow({ platform: 'smuve', gameId: 'halo' }));
+
       const result = await service.golive({
-        platform: 'twitch',
+        platform: 'smuve',
         gameId: 'halo',
-        lobbyId: 'split_xyz',
-        payload: { level: 3 },
       });
-      expect(result).toEqual(row);
+
+      expect(result).not.toBeNull();
+      expect(openedPopups).toEqual([]);
+      expect(messageListeners).toEqual([]);
+      expect(service.pendingGolive()).toBeNull();
+      expect(service.currentStream()?.active).toBe(true);
+      expect(service.ownsBroadcast()).toBe(true);
+      expect(social().startStream).toHaveBeenCalledWith('smuve');
+      expect(ingest().start).not.toHaveBeenCalled();
+      expect(updateStatusCalls.at(-1)).toEqual(
+        expect.objectContaining({ live: true, livePlatform: 'smuve' }),
+      );
+    });
+
+    it('authorizes Twitch first, then issues the row and starts the push', async () => {
+      service = TestBed.inject(LiveStreamService);
+      tokenRef = { value: 'TKN' };
+      profileRef = { value: { id: '77', artistName: 'JEFF' } };
+      httpResponses.push({ authorizeUrl: 'https://auth.example/twitch' });
+      httpResponses.push(makeRow({ platform: 'twitch', gameId: 'halo' }));
+
+      const pending = service.golive({ platform: 'twitch', gameId: 'halo' });
+      await flush();
+
       expect(httpCalls).toHaveLength(1);
       expect(httpCalls[0]).toMatchObject({
         method: 'POST',
-        url: expect.stringContaining('/api/users/77/live-streams'),
+        url: expect.stringContaining('/stream-accounts/twitch/authorize'),
       });
       expect(httpCalls[0].headers?.Authorization).toBe('Bearer TKN');
-      expect(openedPopups).toEqual([
-        { url: expect.stringContaining('/auth/twitch'), target: expect.any(String), features: expect.any(String) },
-      ]);
-      expect(service.currentStream()).toEqual({ ...row, active: true });
-      expect(updateStatusCalls).toEqual([
-        expect.objectContaining({ live: true, livePlatform: 'twitch' }),
-      ]);
-    });
-
-    it('starts local camera + mic capture when the stream row is issued', async () => {
-      service = TestBed.inject(LiveStreamService);
-      tokenRef = { value: 'TKN' };
-      profileRef = { value: { id: '77', artistName: 'JEFF' } };
-      httpResponses.push({
-        id: 1,
-        shareToken: 'tok',
-        hostId: '77',
-        hostDisplayName: 'JEFF',
-        platform: 'twitch',
-        gameId: null,
-        lobbyId: null,
-        payload: {},
-        active: true,
-        startedAt: new Date().toISOString(),
-        endedAt: null,
-        viewerJoins: 0,
-        shareUrl: 'https://x',
-      });
-      const social = TestBed.inject(SocialNetworkingService);
-      await service.golive({ platform: 'twitch' });
-      expect(social.startStream).toHaveBeenCalledWith('twitch');
-      expect(social.stopStream).not.toHaveBeenCalled();
-    });
-
-    it('returns null + toasts on POST error', async () => {
-      service = TestBed.inject(LiveStreamService);
-      tokenRef = { value: 'TKN' };
-      profileRef = { value: { id: '77', artistName: 'JEFF' } };
-      httpStub.post.mockReturnValueOnce(
-        throwError(() => ({ status: 500 }))
-      );
-      const result = await service.golive({ platform: 'kick' });
-      expect(result).toBeNull();
+      expect(openedPopups).toHaveLength(1);
+      expect(openedPopups[0].url).toBe('https://auth.example/twitch');
+      expect(service.pendingGolive()).toBe('twitch');
       expect(service.currentStream()).toBeNull();
-      expect(openedPopups).toEqual([]);
-    });
 
-    it('goes live on tiktok through the same popup contract', async () => {
-      service = TestBed.inject(LiveStreamService);
-      tokenRef = { value: 'TKN' };
-      profileRef = { value: { id: '77', artistName: 'JEFF' } };
-      httpResponses.push({
-        id: 1,
-        shareToken: 'tok',
-        hostId: '77',
-        hostDisplayName: 'JEFF',
-        platform: 'tiktok',
-        gameId: null,
-        lobbyId: null,
-        payload: {},
-        active: true,
-        startedAt: new Date().toISOString(),
-        endedAt: null,
-        viewerJoins: 0,
-        shareUrl: 'https://x',
-      });
-      const result = await service.golive({ platform: 'tiktok' });
-      expect(result?.platform).toBe('tiktok');
-      expect(messageListeners.length).toBe(1);
-      messageListeners[0](
-        new MessageEvent('message', {
-          data: { type: 'TIKTOK_AUTH_SUCCESS', platform: 'tiktok' },
-          origin: 'http://localhost',
-        })
-      );
-      expect(service.currentStream()?.active).toBe(true);
-      expect(messageListeners.length).toBe(0); // listener self-removed
-    });
-
-    it('finalizes when the popup posts back success', async () => {
-      service = TestBed.inject(LiveStreamService);
-      tokenRef = { value: 'TKN' };
-      profileRef = { value: { id: '77', artistName: 'JEFF' } };
-      httpResponses.push({
-        id: 1,
-        shareToken: 'tok',
-        hostId: '77',
-        hostDisplayName: 'JEFF',
-        platform: 'twitch',
-        gameId: null,
-        lobbyId: null,
-        payload: {},
-        active: true,
-        startedAt: new Date().toISOString(),
-        endedAt: null,
-        viewerJoins: 0,
-        shareUrl: 'https://x',
-      });
-      await service.golive({ platform: 'twitch' });
-      expect(messageListeners.length).toBe(1);
-      messageListeners[0](
-        new MessageEvent('message', {
-          data: { type: 'TWITCH_AUTH_SUCCESS', platform: 'twitch' },
-          origin: 'http://localhost',
-        })
-      );
-      expect(service.currentStream()?.active).toBe(true);
-      expect(messageListeners.length).toBe(0); // listener self-removed
-    });
-
-    it('releases AUTH PENDING and installs no listener when the popup is blocked', async () => {
-      service = TestBed.inject(LiveStreamService);
-      tokenRef = { value: 'TKN' };
-      profileRef = { value: { id: '77', artistName: 'JEFF' } };
-      httpResponses.push({
-        id: 1,
-        shareToken: 'tok',
-        hostId: '77',
-        hostDisplayName: 'JEFF',
-        platform: 'twitch',
-        gameId: null,
-        lobbyId: null,
-        payload: {},
-        active: true,
-        startedAt: new Date().toISOString(),
-        endedAt: null,
-        viewerJoins: 0,
-        shareUrl: 'https://x',
-      });
-      (window.open as jest.Mock).mockReturnValueOnce(null);
-      await service.golive({ platform: 'twitch' });
-      expect(service.pendingGolive()).toBeNull();
-      expect(messageListeners).toEqual([]);
-      // A blocked popup can never finalize — the capture started for this
-      // round must be released instead of leaking the camera.
-      expect(
-        TestBed.inject(SocialNetworkingService).stopStream
-      ).toHaveBeenCalled();
-    });
-
-    it('replaces the stale auth listener on a second Go-Live round so the new platform finalizes', async () => {
-      service = TestBed.inject(LiveStreamService);
-      tokenRef = { value: 'TKN' };
-      profileRef = { value: { id: '77', artistName: 'JEFF' } };
-      const row = () => ({
-        id: 1,
-        shareToken: 'tok',
-        hostId: '77',
-        hostDisplayName: 'JEFF',
-        platform: 'twitch',
-        gameId: null,
-        lobbyId: null,
-        payload: {},
-        active: true,
-        startedAt: new Date().toISOString(),
-        endedAt: null,
-        viewerJoins: 0,
-        shareUrl: 'https://x',
-      });
-      // Round 1: twitch auth opened, then abandoned by the user.
-      httpResponses.push(row());
-      await service.golive({ platform: 'twitch' });
-      expect(messageListeners.length).toBe(1);
-      // Round 2: a DIFFERENT platform — the twitch-closure listener must
-      // be torn down, not left behind to swallow or mismatch callbacks.
-      httpResponses.push(row());
-      await service.golive({ platform: 'kick' });
-      expect(service.pendingGolive()).toBe('kick');
-      expect(messageListeners.length).toBe(1); // replaced, not stacked
-      // The old platform's success event no longer finalizes anything.
       messageListeners[0](
         new MessageEvent('message', {
           data: { type: 'TWITCH_AUTH_SUCCESS' },
           origin: 'http://localhost',
-        })
+        }),
       );
-      expect(service.pendingGolive()).toBe('kick');
-      // The CURRENT platform's success finalizes and self-removes.
+      const result = await pending;
+
+      expect(result).not.toBeNull();
+      expect(httpCalls[1].url).toContain('/users/77/live-streams');
+      expect(httpCalls[1].url).not.toContain('/auth/twitch');
+      expect(service.currentStream()?.active).toBe(true);
+      expect(service.ownsBroadcast()).toBe(true);
+      expect(social().startStream).toHaveBeenCalledWith('twitch');
+      expect(ingest().start).toHaveBeenCalledWith('twitch');
+    });
+
+    it('does not issue a row when the Twitch popup is blocked', async () => {
+      service = TestBed.inject(LiveStreamService);
+      tokenRef = { value: 'TKN' };
+      profileRef = { value: { id: '77', artistName: 'JEFF' } };
+      httpResponses.push({ authorizeUrl: 'https://auth.example/twitch' });
+      (window.open as jest.Mock).mockReturnValueOnce(null);
+
+      const result = await service.golive({ platform: 'twitch' });
+
+      expect(result).toBeNull();
+      expect(httpCalls).toHaveLength(1);
+      expect(httpCalls[0].url).toContain('/stream-accounts/twitch/authorize');
+      expect(service.currentStream()).toBeNull();
+      expect(service.pendingGolive()).toBeNull();
+      expect(social().startStream).not.toHaveBeenCalled();
+    });
+
+    it('does not issue a row when Twitch authorization fails', async () => {
+      service = TestBed.inject(LiveStreamService);
+      tokenRef = { value: 'TKN' };
+      profileRef = { value: { id: '77', artistName: 'JEFF' } };
+      httpResponses.push({ authorizeUrl: 'https://auth.example/twitch' });
+
+      const pending = service.golive({ platform: 'twitch' });
+      await flush();
       messageListeners[0](
         new MessageEvent('message', {
-          data: { type: 'KICK_AUTH_SUCCESS' },
+          data: { type: 'TWITCH_AUTH_FAILED', message: 'denied' },
           origin: 'http://localhost',
-        })
+        }),
       );
+
+      expect(await pending).toBeNull();
+      expect(httpCalls).toHaveLength(1);
+      expect(service.currentStream()).toBeNull();
       expect(service.pendingGolive()).toBeNull();
-      expect(messageListeners.length).toBe(0);
+      expect(social().startStream).not.toHaveBeenCalled();
     });
-  });
+
+    it('refuses Kick before issuing when no destination is saved', async () => {
+      service = TestBed.inject(LiveStreamService);
+      tokenRef = { value: 'TKN' };
+      profileRef = { value: { id: '77', artistName: 'JEFF' } };
+      ingest().ready.mockReturnValueOnce(false);
+
+      const result = await service.golive({ platform: 'kick' });
+
+      expect(result).toBeNull();
+      expect(httpCalls).toEqual([]);
+      expect(service.currentStream()).toBeNull();
+      expect(service.pendingGolive()).toBeNull();
+      expect(social().startStream).not.toHaveBeenCalled();
+    });
+
+    it('issues a Kick row after the saved-destination preflight and starts the push', async () => {
+      service = TestBed.inject(LiveStreamService);
+      tokenRef = { value: 'TKN' };
+      profileRef = { value: { id: '77', artistName: 'JEFF' } };
+      httpResponses.push(makeRow({ platform: 'kick' }));
+
+      const result = await service.golive({ platform: 'kick' });
+
+      expect(result).not.toBeNull();
+      expect(openedPopups).toEqual([]);
+      expect(httpCalls).toHaveLength(1);
+      expect(httpCalls[0].url).toContain('/users/77/live-streams');
+      expect(ingest().load).toHaveBeenCalled();
+      expect(ingest().start).toHaveBeenCalledWith('kick');
+    });
+
+    it('returns null + rolls back a failed native row', async () => {
+      service = TestBed.inject(LiveStreamService);
+      tokenRef = { value: 'TKN' };
+      profileRef = { value: { id: '77', artistName: 'JEFF' } };
+      httpStub.post.mockReturnValueOnce(throwError(() => ({ status: 500 })));
+
+      const result = await service.golive({ platform: 'kick' });
+
+      expect(result).toBeNull();
+      expect(service.currentStream()).toBeNull();
+      expect(service.ownsBroadcast()).toBe(false);
+      expect(openedPopups).toEqual([]);
+    });});
 
   describe('endStream', () => {
     it('POSTs end, clears currentStream, updates status', async () => {
@@ -526,7 +490,31 @@ describe('LiveStreamService', () => {
       });
       expect(service.inboundPreview()).toEqual(row);
     });
-  });
+
+
+    it('sends the signed-in viewer id with the redeem', async () => {
+      profileRef = { value: { id: '77', artistName: 'JEFF' } };
+      service = TestBed.inject(LiveStreamService);
+      httpResponses.push(null);
+
+      await service.redeemViewerToken('tok');
+
+      expect(service.viewerIdentity()).toBe('user:77');
+      expect(httpCalls[0].body).toEqual({ viewerId: 'user:77' });
+    });
+
+    it('uses one stable guest id, never an IP, for a share-link viewer', async () => {
+      localStorage.setItem('smuve.live.viewerId', 'guest-uuid');
+      service = TestBed.inject(LiveStreamService);
+      httpResponses.push(null);
+
+      await service.redeemViewerToken('tok');
+
+      expect(service.viewerIdentity()).toBe('guest:guest-uuid');
+      expect(httpCalls[0].body).toEqual({ viewerId: 'guest:guest-uuid' });
+      // The socket redeem call must send this exact identity too.
+      expect(service.viewerIdentity()).toBe('guest:guest-uuid');
+    });});
 
   describe('copyShareUrl', () => {
     it('returns false when no currentStream', async () => {
@@ -751,7 +739,7 @@ describe('LiveStreamService', () => {
       });
     });
 
-    it('never lists this host\'s own stream', async () => {
+    it("never lists this host's own stream", async () => {
       service = TestBed.inject(LiveStreamService);
       tokenRef = { value: 'TKN' };
       profileRef = { value: { id: '77', artistName: 'JEFF' } };
@@ -840,59 +828,7 @@ describe('LiveStreamService', () => {
     });
   });
 
-  describe('abandoned auth popup', () => {
-    it('rolls back the round when the popup closes without authorizing', async () => {
-      jest.useFakeTimers();
-      try {
-        service = TestBed.inject(LiveStreamService);
-        tokenRef = { value: 'TKN' };
-        profileRef = { value: { id: '77', artistName: 'JEFF' } };
-        const popup: any = { closed: false, focus: jest.fn() };
-        (window.open as jest.Mock).mockReturnValueOnce(popup);
-        httpResponses.push(makeRow());
-
-        await service.golive({ platform: 'twitch' });
-        expect(service.pendingGolive()).toBe('twitch');
-        expect(service.currentStream()).not.toBeNull();
-
-        popup.closed = true;
-        jest.advanceTimersByTime(800);
-        await Promise.resolve();
-        await Promise.resolve();
-
-        expect(service.pendingGolive()).toBeNull();
-        expect(service.currentStream()).toBeNull();
-        expect(
-          TestBed.inject(SocialNetworkingService).stopStream
-        ).toHaveBeenCalled();
-        // The issued row must be ended on the server too — otherwise the share
-        // link keeps pointing at a broadcast that never got authorized.
-        expect(
-          httpCalls.some(
-            (call) =>
-              call.method === 'POST' && call.url.includes('/live-streams/end')
-          )
-        ).toBe(true);
-      } finally {
-        jest.useRealTimers();
-      }
-    });
-  });
-
   describe('restoreActiveStream', () => {
-    it('restores an active row after a reload and restarts capture', async () => {
-      service = TestBed.inject(LiveStreamService);
-      tokenRef = { value: 'TKN' };
-      profileRef = { value: { id: '77', artistName: 'JEFF' } };
-      httpResponses.push(makeRow({ platform: 'smuve' }));
-
-      await service.restoreActiveStream();
-
-      expect(service.currentStream()?.platform).toBe('smuve');
-      expect(
-        TestBed.inject(SocialNetworkingService).startStream
-      ).toHaveBeenCalledWith('smuve');
-    });
 
     it('ignores a row the server has already ended', async () => {
       service = TestBed.inject(LiveStreamService);
@@ -907,7 +843,58 @@ describe('LiveStreamService', () => {
         TestBed.inject(SocialNetworkingService).startStream
       ).not.toHaveBeenCalled();
     });
-  });
+
+    it('restarts capture in the owning tab after a reload', async () => {
+      sessionStorage.setItem('smuve.live.hostToken', 'tok');
+      service = TestBed.inject(LiveStreamService);
+      tokenRef = { value: 'TKN' };
+      profileRef = { value: { id: '77', artistName: 'JEFF' } };
+      httpResponses.push(makeRow({ platform: 'smuve' }));
+
+      await service.restoreActiveStream();
+
+      expect(service.currentStream()?.platform).toBe('smuve');
+      expect(service.ownsBroadcast()).toBe(true);
+      expect(
+        TestBed.inject(SocialNetworkingService).startStream,
+      ).toHaveBeenCalledWith('smuve');
+    });
+
+    it('restarts the provider push in the owning tab after a reload', async () => {
+      sessionStorage.setItem('smuve.live.hostToken', 'tok');
+      service = TestBed.inject(LiveStreamService);
+      tokenRef = { value: 'TKN' };
+      profileRef = { value: { id: '77', artistName: 'JEFF' } };
+      httpResponses.push(makeRow({ platform: 'kick' }));
+
+      await service.restoreActiveStream();
+
+      const ingest = TestBed.inject(BroadcastIngestService);
+      expect(ingest.load).toHaveBeenCalled();
+      expect(ingest.start).toHaveBeenCalledWith('kick');
+    });
+
+    it('does not start a competing capture in a tab that does not own the broadcast', async () => {
+      service = TestBed.inject(LiveStreamService);
+      tokenRef = { value: 'TKN' };
+      profileRef = { value: { id: '77', artistName: 'JEFF' } };
+      httpResponses.push(makeRow({ platform: 'smuve' }));
+
+      await service.restoreActiveStream();
+
+      expect(service.currentStream()?.active).toBe(true);
+      expect(service.ownsBroadcast()).toBe(false);
+      expect(
+        TestBed.inject(SocialNetworkingService).startStream,
+      ).not.toHaveBeenCalled();
+
+      await service.resumeBroadcastHere();
+
+      expect(service.ownsBroadcast()).toBe(true);
+      expect(
+        TestBed.inject(SocialNetworkingService).startStream,
+      ).toHaveBeenCalledWith('smuve');
+    });});
 
   describe('endStream when the server row is already gone', () => {
     it('treats a 404 as already ended instead of a failure', async () => {
@@ -923,4 +910,37 @@ describe('LiveStreamService', () => {
       expect(service.currentStream()).toBeNull();
     });
   });
-});
+
+
+  describe('cancelled auth', () => {
+    it('never issues a row when the auth window closes', async () => {
+      jest.useFakeTimers();
+      try {
+        service = TestBed.inject(LiveStreamService);
+        tokenRef = { value: 'TKN' };
+        profileRef = { value: { id: '77', artistName: 'JEFF' } };
+        const popup: any = { closed: false, focus: jest.fn() };
+        (window.open as jest.Mock).mockReturnValueOnce(popup);
+        httpResponses.push({ authorizeUrl: 'https://auth.example/twitch' });
+
+        const pending = service.golive({ platform: 'twitch' });
+        for (let i = 0; i < 8; i++) await Promise.resolve();
+
+        expect(service.pendingGolive()).toBe('twitch');
+        expect(httpCalls).toHaveLength(1);
+
+        popup.closed = true;
+        jest.advanceTimersByTime(800);
+
+        expect(await pending).toBeNull();
+        expect(httpCalls).toHaveLength(1);
+        expect(service.currentStream()).toBeNull();
+        expect(service.pendingGolive()).toBeNull();
+        expect(
+          TestBed.inject(SocialNetworkingService).stopStream,
+        ).not.toHaveBeenCalled();
+      } finally {
+        jest.useRealTimers();
+      }
+    });
+  });});

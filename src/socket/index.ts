@@ -32,6 +32,7 @@ import {
   getCurrentLiveStream,
   resolveViewerJoin,
   redeemViewerJoin,
+  liveViewerKey,
   startLiveStream,
 } from "@/services/live-stream.service";
 import type { InviteMode } from "@/services/game-invite.service";
@@ -92,6 +93,13 @@ interface LiveRelayInfo {
 const liveHosts = new Map<string, LiveRelayInfo>();
 const liveViewers = new Map<string, LiveRelayInfo>();
 /**
+ * The one host socket allowed to broadcast each stream. A host can hold more
+ * than one socket (two tabs, a social and a console connection), and without
+ * an election both receive every viewer and both answer the same offer. The
+ * newest registration wins; the previous socket is told to stand down.
+ */
+const primaryHosts = new Map<number, string>();
+/**
  * Last camera/screen announcement per stream. The live event is transient, so
  * a viewer who joins after the switch would otherwise show the stale picture
  * (black, when the host went live already sharing the game screen) until the
@@ -150,6 +158,7 @@ const scheduleHostDropGrace = (streamId: number, hostId: string): void => {
       (host) => host.streamId === streamId,
     );
     if (stillHosted) return;
+    primaryHosts.delete(streamId);
     liveSources.delete(streamId);
     ioServer?.to(getLiveRoom(streamId)).emit("live_stream_ended", { streamId });
     // The cursor is already gone, so the row has to be found by host id.
@@ -177,9 +186,12 @@ const schedulePresenceHostEnd = (
           () => null,
         );
         if (row) {
+          const streamId = Number(row.id);
+          primaryHosts.delete(streamId);
+          liveSources.delete(streamId);
           ioServer
-            ?.to(getLiveRoom(Number(row.id)))
-            .emit("live_stream_ended", { streamId: Number(row.id) });
+            ?.to(getLiveRoom(streamId))
+            .emit("live_stream_ended", { streamId });
         }
         await endStreamAndRetireCard(userId);
       } catch {
@@ -345,6 +357,21 @@ const hostSocketsFor = (streamId: number): string[] => {
   return ids;
 };
 
+/** The elected host socket for a stream, or null when it has not registered. */
+const primaryHostFor = (streamId: number): string | null => {
+  const socketId = primaryHosts.get(streamId);
+  return socketId && liveHosts.has(socketId) ? socketId : null;
+};
+
+/**
+ * Host-side notifications go to one socket, never the whole user room:
+ * otherwise a replaced tab still receives viewer joins and appears to work.
+ */
+const hostSocketIdsFor = (streamId: number): string[] => {
+  const primary = primaryHostFor(streamId);
+  return primary ? [primary] : hostSocketsFor(streamId);
+};
+
 // ── Per-user rate limiting (shared across ALL of a user's sockets so
 // opening N sockets cannot multiply the budget) ──
 const RATE_LIMITS: Record<string, { windowMs: number; max: number }> = {
@@ -373,7 +400,10 @@ const RATE_LIMITS: Record<string, { windowMs: number; max: number }> = {
   live_stream_host_join: { windowMs: 10_000, max: 5 },
   live_stream_watch: { windowMs: 10_000, max: 10 },
   live_stream_source: { windowMs: 10_000, max: 10 },
-  live_webrtc: { windowMs: 1_000, max: 40 },
+  // A full viewer mesh is ICE-heavy: eight viewers can legitimately produce
+  // dozens of candidates per second during setup, and 40/s dropped signaling
+  // for later joiners on a perfectly healthy broadcast.
+  live_webrtc: { windowMs: 1_000, max: 120 },
 };
 
 /** Lobbies are capped so joiners get accurate "full" feedback instead of a silently overflowing room. */
@@ -957,12 +987,75 @@ export const setupSocketIO = (httpServer: HttpServer): Server => {
   resolvePresenceMeta = (userId: string) => getSenderMeta(userId);
 
   /**
+   * Viewer redeem shared by authenticated and share-link guest sockets. The
+   * REST route and this handler both key the dedupe on the same viewer id.
+   */
+  const registerLiveRedeem = (socket: Socket, userId: string): void => {
+    socket.on(
+      "live_stream_redeem",
+      async (data: { token?: string; viewerId?: string } = {}) => {
+        const { token, viewerId } = data;
+        if (!token) {
+          socket.emit("live_stream_failed", { error: "token required" });
+          return;
+        }
+        if (isRateLimited(userId, "live_stream_redeem")) {
+          socket.emit("live_stream_failed", {
+            stage: "redeem",
+            error: "rate limited",
+          });
+          return;
+        }
+        try {
+          // Same per-viewer key as the REST redeem route. For a signed-in
+          // viewer `userId` wins; a share-link guest supplies the stable local
+          // id from the viewer that opened both paths.
+          const resolved = await redeemViewerJoin(
+            token,
+            liveViewerKey(userId, viewerId),
+          );
+          // Read the host's split-screen / co-op lobby from the row and
+          // bridge the viewer into the lobby in one tap.
+          const stream = await findStreamByToken(token);
+          if (stream) {
+            const joined = {
+              streamId: stream.id,
+              viewerId: userId,
+              viewerName: getSenderMeta(userId).artistName || userId,
+              viewerJoins: resolved.viewerJoins,
+            };
+            // The elected host receives the join. Lobby members additionally
+            // get it in the party room they actually occupy — `io.to(lobbyId)`
+            // addressed a room nobody ever joins.
+            for (const hostSocketId of hostSocketIdsFor(stream.id)) {
+              io.to(hostSocketId).emit("live_stream_viewer_joined", joined);
+            }
+            if (stream.lobbyId) {
+              io.to(getPartyRoom(stream.lobbyId)).emit(
+                "live_stream_viewer_joined",
+                joined,
+              );
+            }
+          }
+          socket.emit("live_stream_redeem_ok", resolved);
+        } catch (err) {
+          socket.emit("live_stream_failed", {
+            stage: "redeem",
+            error: (err as Error).message,
+          });
+        }
+      },
+    );
+  };
+
+  /**
    * Live-video signaling: host registration, viewer joins, camera ↔ screen
    * source announcements, and the SDP/ICE relay between the two proven roles.
    * Registered for signed-in sockets, and for share-link guest viewers — who
    * get exactly these handlers and nothing else.
    */
   const registerLiveSignaling = (socket: Socket, userId: string): void => {
+    registerLiveRedeem(socket, userId);
     // ── Live-video signaling ──
     // The host registers its socket for its own stream; viewers register to
     // watch. SDP and ICE are relayed only between those two proven roles.
@@ -986,6 +1079,21 @@ export const setupSocketIO = (httpServer: HttpServer): Server => {
             return;
           }
           socket.join(getLiveRoom(stream.id));
+          // Single-host election: the newest registration wins. The old
+          // socket may still be capturing and sending offers, so tell it to
+          // stand down and drop its relay entry before it can answer a
+          // viewer that now belongs to this host.
+          const previousSocketId = primaryHosts.get(stream.id);
+          if (previousSocketId && previousSocketId !== socket.id) {
+            liveHosts.delete(previousSocketId);
+            const previousSocket = io.sockets.sockets.get(previousSocketId);
+            previousSocket?.leave(getLiveRoom(stream.id));
+            previousSocket?.emit("live_stream_host_replaced", {
+              streamId: stream.id,
+              streamToken: token,
+            });
+          }
+          primaryHosts.set(stream.id, socket.id);
           cancelHostDropGrace(stream.id);
           cancelPresenceHostEnd(String(userId));
           liveHosts.set(socket.id, {
@@ -1013,77 +1121,75 @@ export const setupSocketIO = (httpServer: HttpServer): Server => {
       },
     );
 
-    socket.on(
-      "live_stream_watch",
-      async (data: { token?: string } = {}) => {
-        const token = typeof data?.token === "string" ? data.token : "";
-        if (!token) return;
-        if (isRateLimited(userId, "live_stream_watch")) {
+    socket.on("live_stream_watch", async (data: { token?: string } = {}) => {
+      const token = typeof data?.token === "string" ? data.token : "";
+      if (!token) return;
+      if (isRateLimited(userId, "live_stream_watch")) {
+        socket.emit("live_stream_watch_failed", {
+          token,
+          error: "rate_limited",
+        });
+        return;
+      }
+      try {
+        const row = await resolveViewerJoin(token);
+        const streamId = Number(row.id);
+        const room = io.sockets.adapter.rooms.get(getLiveRoom(streamId));
+        const alreadyWatching =
+          liveViewers.get(socket.id)?.streamId === streamId;
+        if (!alreadyWatching && (room?.size ?? 0) >= LIVE_MAX_VIEWERS + 1) {
           socket.emit("live_stream_watch_failed", {
             token,
-            error: "rate_limited",
+            error: "stream_full",
           });
           return;
         }
-        try {
-          const row = await resolveViewerJoin(token);
-          const streamId = Number(row.id);
-          const room = io.sockets.adapter.rooms.get(getLiveRoom(streamId));
-          const alreadyWatching =
-            liveViewers.get(socket.id)?.streamId === streamId;
-          if (
-            !alreadyWatching &&
-            (room?.size ?? 0) >= LIVE_MAX_VIEWERS + 1
-          ) {
-            socket.emit("live_stream_watch_failed", {
-              token,
-              error: "stream_full",
-            });
-            return;
-          }
-          socket.join(getLiveRoom(streamId));
-          liveViewers.set(socket.id, {
-            userId: String(userId),
-            hostId: String(row.hostId),
-            streamId,
-            token,
-          });
-          socket.emit("live_stream_watch_ok", {
-            streamId,
-            streamToken: token,
-            hostId: row.hostId,
-            hostDisplayName: row.hostDisplayName,
-            platform: row.platform,
-            // Late joiners start on the picture that is actually live.
-            ...(liveSources.get(streamId) ?? {}),
-          });
-          // The host creates one peer connection per viewer socket.
-          io.to(row.hostId).emit("live_stream_viewer_joined", {
+        socket.join(getLiveRoom(streamId));
+        liveViewers.set(socket.id, {
+          userId: String(userId),
+          hostId: String(row.hostId),
+          streamId,
+          token,
+        });
+        socket.emit("live_stream_watch_ok", {
+          streamId,
+          streamToken: token,
+          hostId: row.hostId,
+          hostDisplayName: row.hostDisplayName,
+          platform: row.platform,
+          // Late joiners start on the picture that is actually live.
+          ...(liveSources.get(streamId) ?? {}),
+        });
+        // The elected host creates one peer connection per viewer socket.
+        for (const hostSocketId of hostSocketIdsFor(streamId)) {
+          io.to(hostSocketId).emit("live_stream_viewer_joined", {
             streamId,
             streamToken: token,
             socketId: socket.id,
             viewerId: String(userId),
             viewerName: getSenderMeta(userId).artistName || undefined,
           });
-        } catch (err) {
-          const statusCode = (err as { statusCode?: number })?.statusCode;
-          socket.emit("live_stream_watch_failed", {
-            token,
-            error: statusCode === 410 ? "ended" : "unavailable",
-          });
         }
-      },
-    );
+      } catch (err) {
+        const statusCode = (err as { statusCode?: number })?.statusCode;
+        socket.emit("live_stream_watch_failed", {
+          token,
+          error: statusCode === 410 ? "ended" : "unavailable",
+        });
+      }
+    });
 
     socket.on("live_stream_unwatch", () => {
       const viewer = liveViewers.get(socket.id);
       if (!viewer) return;
       liveViewers.delete(socket.id);
       socket.leave(getLiveRoom(viewer.streamId));
-      io.to(viewer.hostId).emit("live_stream_viewer_left", {
-        streamId: viewer.streamId,
-        socketId: socket.id,
-      });
+      for (const hostSocketId of hostSocketIdsFor(viewer.streamId)) {
+        io.to(hostSocketId).emit("live_stream_viewer_left", {
+          streamId: viewer.streamId,
+          socketId: socket.id,
+        });
+      }
     });
 
     // The host switched camera/screen (or toggled game-only audio): tell
@@ -1122,9 +1228,19 @@ export const setupSocketIO = (httpServer: HttpServer): Server => {
       const host = liveHosts.get(socket.id);
       if (!host) return;
       liveHosts.delete(socket.id);
+      socket.leave(getLiveRoom(host.streamId));
+      // A second socket for the same user is still serving the stream: the
+      // departing tab was only a helper, so keep the room and row alive.
+      const remaining = hostSocketsFor(host.streamId);
+      if (remaining.length > 0) {
+        if (primaryHosts.get(host.streamId) === socket.id) {
+          primaryHosts.set(host.streamId, remaining[0]);
+        }
+        return;
+      }
+      primaryHosts.delete(host.streamId);
       liveSources.delete(host.streamId);
       cancelHostDropGrace(host.streamId);
-      socket.leave(getLiveRoom(host.streamId));
       socket.to(getLiveRoom(host.streamId)).emit("live_stream_ended", {
         streamId: host.streamId,
       });
@@ -1231,7 +1347,6 @@ export const setupSocketIO = (httpServer: HttpServer): Server => {
         });
       },
     );
-
   };
 
   // Authenticate the handshake in middleware so an unauthenticated or
@@ -1285,8 +1400,20 @@ export const setupSocketIO = (httpServer: HttpServer): Server => {
     // can join a stream room and answer the host's offer, and that is all.
     if ((socket as unknown as { liveGuestToken?: string }).liveGuestToken) {
       registerLiveSignaling(socket, `guest:${socket.id}`);
+      socket.on("disconnecting", () => {
+        const viewer = liveViewers.get(socket.id);
+        if (!viewer) return;
+        liveViewers.delete(socket.id);
+        socket
+          .to(getLiveRoom(viewer.streamId))
+          .emit("live_stream_viewer_left", {
+            streamId: viewer.streamId,
+            socketId: socket.id,
+          });
+      });
       socket.on("disconnect", () => {
         liveViewers.delete(socket.id);
+        rateBuckets.delete(`guest:${socket.id}`);
       });
       return;
     }
@@ -2702,7 +2829,7 @@ export const setupSocketIO = (httpServer: HttpServer): Server => {
       "live_stream_start",
       async (
         data: {
-          platform?: "smuve" | "twitch" | "kick" | "youtube";
+          platform?: "smuve" | "twitch" | "kick";
           gameId?: string;
           lobbyId?: string;
           payload?: Record<string, unknown>;
@@ -2778,54 +2905,16 @@ export const setupSocketIO = (httpServer: HttpServer): Server => {
         liveHosts.delete(socket.id);
         cancelPresenceHostEnd(String(userId));
         if (result?.streamId) {
-          cancelHostDropGrace(Number(result.streamId));
-          io.to(getLiveRoom(result.streamId)).emit("live_stream_ended", result);
+          const streamId = Number(result.streamId);
+          primaryHosts.delete(streamId);
+          liveSources.delete(streamId);
+          cancelHostDropGrace(streamId);
+          socket.leave(getLiveRoom(streamId));
+          io.to(getLiveRoom(streamId)).emit("live_stream_ended", result);
         }
       } catch (err) {
         socket.emit("live_stream_failed", {
           stage: "end",
-          error: (err as Error).message,
-        });
-      }
-    });
-
-    socket.on("live_stream_redeem", async (data: { token?: string } = {}) => {
-      const { token } = data;
-      if (!token) {
-        socket.emit("live_stream_failed", { error: "token required" });
-        return;
-      }
-      if (isRateLimited(userId, "live_stream_redeem")) {
-        socket.emit("live_stream_failed", { stage: "redeem", error: "rate limited" });
-        return;
-      }
-      try {
-        const resolved = await redeemViewerJoin(token);
-        // Read the host's split-screen / co-op lobby from the row and
-        // bridge the viewer into the lobby in one tap.
-        const stream = await findStreamByToken(token);
-        if (stream) {
-          const joined = {
-            streamId: stream.id,
-            viewerId: userId,
-            viewerName: getSenderMeta(userId).artistName || userId,
-            viewerJoins: resolved.viewerJoins,
-          };
-          // The host always receives the join on their user room. Lobby
-          // members additionally get it in the party room they actually
-          // occupy — `io.to(lobbyId)` addressed a room nobody ever joins.
-          io.to(stream.hostId).emit("live_stream_viewer_joined", joined);
-          if (stream.lobbyId) {
-            io.to(getPartyRoom(stream.lobbyId)).emit(
-              "live_stream_viewer_joined",
-              joined,
-            );
-          }
-        }
-        socket.emit("live_stream_redeem_ok", resolved);
-      } catch (err) {
-        socket.emit("live_stream_failed", {
-          stage: "redeem",
           error: (err as Error).message,
         });
       }
@@ -2875,10 +2964,16 @@ export const setupSocketIO = (httpServer: HttpServer): Server => {
     // and the other side of each connection must hear about it.
     socket.on("disconnecting", () => {
       const host = liveHosts.get(socket.id);
-      if (host) {
-        liveHosts.delete(socket.id);
-        socket.to(getLiveRoom(host.streamId)).emit("live_stream_ended", {
+      if (host && primaryHosts.get(host.streamId) === socket.id) {
+        // Keep the host entry (and the last source) until the grace timer
+        // expires: `disconnecting` runs before Socket.IO clears the room
+        // set, and deleting here used to make `disconnect` see no host and
+        // skip the grace schedule entirely. Viewers get a recoverable drop
+        // signal now, not a permanent end. Only the elected socket's loss is
+        // a drop; a secondary tab leaving must not disturb the viewers.
+        socket.to(getLiveRoom(host.streamId)).emit("live_stream_host_dropped", {
           streamId: host.streamId,
+          streamToken: host.token,
         });
       }
       const viewer = liveViewers.get(socket.id);
@@ -2907,15 +3002,21 @@ export const setupSocketIO = (httpServer: HttpServer): Server => {
       if (viewerRelay) {
         // Without this the host keeps a dead peer alive for the rest of the
         // broadcast, so its viewer list and its senders never recover.
-        io.to(viewerRelay.hostId).emit("live_stream_viewer_left", {
-          streamId: viewerRelay.streamId,
-          socketId: socket.id,
-        });
+        for (const hostSocketId of hostSocketIdsFor(viewerRelay.streamId)) {
+          io.to(hostSocketId).emit("live_stream_viewer_left", {
+            streamId: viewerRelay.streamId,
+            socketId: socket.id,
+          });
+        }
       }
       const hostRelay = liveHosts.get(socket.id);
       if (hostRelay) {
         liveHosts.delete(socket.id);
-        liveSources.delete(hostRelay.streamId);
+        // Keep the source during the grace window so a viewer joining while
+        // the host reconnects still learns which picture was live.
+        if (primaryHosts.get(hostRelay.streamId) === socket.id) {
+          primaryHosts.delete(hostRelay.streamId);
+        }
         scheduleHostDropGrace(hostRelay.streamId, hostRelay.hostId);
       }
       const userSockets = socketIdsByUser.get(userId);

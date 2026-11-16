@@ -270,11 +270,11 @@ export class BroadcastIngestService {
     }
   }
 
-  async start(platform: IngestPlatform): Promise<void> {
+  async start(platform: IngestPlatform): Promise<boolean> {
     const stream = this.social.localStream();
     if (!stream) {
       this.snackbar.warning('NO CAPTURE YET — SWITCH THE CAMERA ON FIRST');
-      return;
+      return false;
     }
     this.pushing.set(platform);
     try {
@@ -293,12 +293,21 @@ export class BroadcastIngestService {
         this.snackbar.error(
           this.whip.error() ?? `${platform.toUpperCase()} PUSH FAILED`,
         );
-        return;
+        return false;
       }
       this.watchEgress(this.relayId);
       this.snackbar.success(`PUSHING TO ${platform.toUpperCase()}`);
+      return true;
     } catch (error) {
+      // The relay may already hold a session that the publisher never joined;
+      // release it instead of leaving an orphaned ingest for the next push.
+      try {
+        await this.releaseRelay();
+      } catch {
+        /* best-effort cleanup */
+      }
       this.snackbar.error(this.describe(error));
+      return false;
     } finally {
       this.pushing.set(null);
     }

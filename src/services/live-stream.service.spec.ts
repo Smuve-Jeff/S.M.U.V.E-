@@ -28,7 +28,9 @@ interface MockStreamLike {
 const mockRepo = {
   findOne: jest.fn(async ({ where }: { where: Partial<MockStreamLike> }) => {
     if (where?.shareToken) {
-      return mockStreamStore.find((r) => r.shareToken === where.shareToken) ?? null;
+      return (
+        mockStreamStore.find((r) => r.shareToken === where.shareToken) ?? null
+      );
     }
     if (where?.hostId) {
       // Caller passes a sort hint via { where, order } but jest.fn signature
@@ -76,12 +78,15 @@ jest.mock("@/database/data-source", () => ({
 }));
 
 import {
+  LIVE_GO_LIVE_PLATFORMS,
   startLiveStream,
   endLiveStream,
   getCurrentLiveStream,
   listActiveLiveStreams,
   resolveViewerJoin,
   redeemViewerJoin,
+  liveViewerKey,
+  normalizeLiveViewerId,
   generateShareToken,
 } from "./live-stream.service";
 
@@ -131,13 +136,6 @@ describe("live-stream service", () => {
       expect(row.active).toBe(true);
     });
 
-    it("accepts tiktok like the other third-party destinations", async () => {
-      const row = await startLiveStream({ hostId: "42", platform: "tiktok" });
-      expect(row.platform).toBe("tiktok");
-      expect(row.active).toBe(true);
-      expect(row.shareUrl).toContain(`live=${row.shareToken}`);
-    });
-
     it("accepts the native smuve destination", async () => {
       const row = await startLiveStream({ hostId: "42", platform: "smuve" });
       expect(row.platform).toBe("smuve");
@@ -165,7 +163,29 @@ describe("live-stream service", () => {
       const inactive = mockStreamStore.filter((r) => !r.active);
       expect(inactive.length).toBe(1);
     });
-  });
+
+
+    it("exposes only destinations with a working broadcast path", () => {
+      expect(LIVE_GO_LIVE_PLATFORMS).toEqual(["smuve", "twitch", "kick"]);
+      expect(LIVE_GO_LIVE_PLATFORMS).not.toContain("youtube");
+      expect(LIVE_GO_LIVE_PLATFORMS).not.toContain("tiktok");
+    });
+
+    it("accepts Kick as a Go Live destination", async () => {
+      const row = await startLiveStream({ hostId: "42", platform: "kick" });
+      expect(row.platform).toBe("kick");
+      expect(row.active).toBe(true);
+      expect(row.shareUrl).toContain(`live=${row.shareToken}`);
+    });
+
+    it("rejects youtube and tiktok for new broadcasts", async () => {
+      await expect(
+        startLiveStream({ hostId: "42", platform: "youtube" }),
+      ).rejects.toMatchObject({ statusCode: 400 });
+      await expect(
+        startLiveStream({ hostId: "42", platform: "tiktok" }),
+      ).rejects.toMatchObject({ statusCode: 400 });
+    });});
 
   describe("endLiveStream", () => {
     it("flips the host's active row to ended and returns its id", async () => {
@@ -229,7 +249,29 @@ describe("live-stream service", () => {
         statusCode: 410,
       });
     });
-  });
+
+
+    it("dedupes one viewer's double-tap without hiding other viewers", async () => {
+      const issued = await startLiveStream({ hostId: "h", platform: "twitch" });
+      const first = await redeemViewerJoin(issued.shareToken, "user:77");
+      const doubleTap = await redeemViewerJoin(issued.shareToken, "user:77");
+      const otherViewer = await redeemViewerJoin(issued.shareToken, "user:78");
+
+      expect(first.viewerJoins).toBe(1);
+      expect(doubleTap.viewerJoins).toBe(1);
+      expect(otherViewer.viewerJoins).toBe(2);
+    });
+
+    it("counts the same viewer on two different broadcasts", async () => {
+      const first = await startLiveStream({ hostId: "h1", platform: "twitch" });
+      const second = await startLiveStream({ hostId: "h2", platform: "kick" });
+
+      const onFirst = await redeemViewerJoin(first.shareToken, "user:9");
+      const onSecond = await redeemViewerJoin(second.shareToken, "user:9");
+
+      expect(onFirst.viewerJoins).toBe(1);
+      expect(onSecond.viewerJoins).toBe(1);
+    });});
 
   describe("listActiveLiveStreams", () => {
     it("lists only active rows for the discovery directory", async () => {
@@ -316,4 +358,25 @@ describe("live-stream service", () => {
       mockStreamStore.map((r) => r.shareToken).filter((t) => t === tokenA)
     ).toEqual([]);
   });
-});
+
+
+  describe("liveViewerKey", () => {
+    it("uses the account id when signed in", () => {
+      expect(liveViewerKey(77, "guest:spoofed")).toBe("user:77");
+      expect(liveViewerKey("77", undefined)).toBe("user:77");
+    });
+
+    it("uses the same normalized guest id for REST and socket redeems", () => {
+      expect(liveViewerKey(null, "guest:viewer-abc")).toBe("guest:viewer-abc");
+      expect(liveViewerKey("guest:socket-1", "guest:viewer-abc")).toBe(
+        "guest:viewer-abc",
+      );
+      expect(normalizeLiveViewerId(" guest:viewer-abc ")).toBe("viewer-abc");
+    });
+
+    it("does not fall back to an IP when a guest has no viewer id", () => {
+      expect(liveViewerKey(null, undefined)).toBeNull();
+      expect(liveViewerKey("guest:socket-1", "")).toBeNull();
+      expect(liveViewerKey(null, "not a valid id")).toBeNull();
+    });
+  });});

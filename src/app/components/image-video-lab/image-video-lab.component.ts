@@ -125,11 +125,7 @@ import {
   SpeechSynthesisService,
   VoiceArchetype,
 } from '../../services/speech-synthesis.service';
-import {
-  LIVE_STREAM_PLATFORMS,
-  LiveStreamPlatform,
-  LiveStreamService,
-} from '../../services/live-stream.service';
+import { GO_LIVE_PLATFORMS, GoLivePlatform, LiveStreamService } from '../../services/live-stream.service';
 import { LiveVideoService } from '../../services/live-video.service';
 import { LiveRelayStripComponent } from '../live-relay-strip/live-relay-strip.component';
 import type { ViewerHealthThresholds } from '../../services/viewer-health';
@@ -461,16 +457,14 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
 
   /** Whether the current account is on the free tier and must carry the brand watermark. */
   watermarkRequired = this.watermarkService.shouldWatermark;
-  watermarkStatus = computed(() =>
-    this.watermarkService.shouldWatermark()
-      ? 'FREE-TIER WATERMARK ON'
-      : 'PREMIUM - WATERMARK OFF'
-  );
+  watermarkStatus = computed(() => (this.watermarkService.shouldWatermark() ? 'FREE-TIER WATERMARK ON' : 'PREMIUM - WATERMARK OFF'));
 
   /** Auto-Direct: the one-job music-video pipeline (null = idle). */
-  autoDirectProgress = signal<{ label: string; done: number; total: number } | null>(
-    null
-  );
+  autoDirectProgress = signal<{
+    label: string;
+    done: number;
+    total: number;
+  } | null>(null);
   private autoDirectCancelled = false;
 
   /**
@@ -633,9 +627,9 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
   voiceTranscript = signal<string | null>(null);
   /** Fallback command line for browsers without speech recognition. */
   commandInput = signal('');
-  livePlatform = signal<LiveStreamPlatform>('youtube');
+  livePlatform = signal<GoLivePlatform>('smuve');
   markerDraft = signal('');
-  readonly livePlatforms = LIVE_STREAM_PLATFORMS;
+  readonly livePlatforms = GO_LIVE_PLATFORMS;
   readonly exportWindowOptions = EXPORT_WINDOW_OPTIONS;
   readonly captureQualities = CAPTURE_QUALITIES;
   readonly exportScales = EXPORT_SCALES;
@@ -713,21 +707,11 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
   isMusicVideoMode = computed(
     () => this.videoEngine.productionMode() === 'music'
   );
-  makerName = computed(() =>
-    this.isMusicVideoMode() ? 'Music Video Maker' : 'Film Maker'
-  );
-  makerButtonLabel = computed(() =>
-    this.isMusicVideoMode() ? 'MUSIC VIDEO MAKER' : 'FILM MAKER'
-  );
+  makerName = computed(() => (this.isMusicVideoMode() ? 'Music Video Maker' : 'Film Maker'));
+  makerButtonLabel = computed(() => (this.isMusicVideoMode() ? 'MUSIC VIDEO MAKER' : 'FILM MAKER'));
   makerEyebrow = computed(() => `${this.makerName()} · Delivery`);
-  makerTitle = computed(() =>
-    this.isMusicVideoMode()
-      ? 'Cut the song into beat-locked parts'
-      : 'Build the master from sections'
-  );
-  makerPickerLabel = computed(() =>
-    this.isMusicVideoMode() ? 'Bar picker' : 'Section picker'
-  );
+  makerTitle = computed(() => (this.isMusicVideoMode() ? 'Cut the song into beat-locked parts' : 'Build the master from sections'));
+  makerPickerLabel = computed(() => (this.isMusicVideoMode() ? 'Bar picker' : 'Section picker'));
   makerUnit = computed(() => (this.isMusicVideoMode() ? 'PARTS' : 'SECTIONS'));
 
   /** Whole bars that fit inside one recorder pass at the current tempo. */
@@ -743,18 +727,8 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
       )
     );
   });
-  makerSectionSeconds = computed(() =>
-    this.isMusicVideoMode()
-      ? this.musicBarsPerSection() * this.videoEngine.barSeconds()
-      : MASTER_CAPTURE_WINDOW_SECONDS
-  );
-  makerSectionSummary = computed(() =>
-    this.isMusicVideoMode()
-      ? `${this.musicBarsPerSection()} BARS AT ${this.videoEngine
-          .bpm()
-          .toFixed(1)} BPM`
-      : `UP TO ${MASTER_CAPTURE_WINDOW_SECONDS}s`
-  );
+  makerSectionSeconds = computed(() => (this.isMusicVideoMode() ? this.musicBarsPerSection() * this.videoEngine.barSeconds() : MASTER_CAPTURE_WINDOW_SECONDS));
+  makerSectionSummary = computed(() => (this.isMusicVideoMode() ? `${this.musicBarsPerSection()} BARS AT ${this.videoEngine.bpm().toFixed(1)} BPM` : `UP TO ${MASTER_CAPTURE_WINDOW_SECONDS}s`));
 
   /** Sections available from the current export start, on the mode's grid. */
   availableExportRanges = computed(() =>
@@ -794,16 +768,7 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
   /** One-line statement of what the next download will be. */
   exportSummary = computed(() => {
     const { width, height } = this.exportDimensions();
-    return (
-      width +
-      'x' +
-      height +
-      ' - ' +
-      this.exportFps() +
-      'fps - ' +
-      Math.round(this.exportBitrate() / 1_000_000) +
-      ' Mbps'
-    );
+    return width + 'x' + height + ' - ' + this.exportFps() + 'fps - ' + Math.round(this.exportBitrate() / 1_000_000) + ' Mbps';
   });
   /** Which surface the program monitor is showing. */
   monitorSource = signal<'program' | 'camera'>('program');
@@ -1222,11 +1187,14 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     // A reload during a broadcast must bring the ON AIR strip, viewer link and
     // END control back instead of orphaning the server row.
     void this.liveStream.restoreActiveStream();
-    // Publish the captured camera/mic to viewers for as long as the stream
-    // is live; the service waits for the socket and the track itself.
+    // Publish the captured camera/mic to viewers for as long as this tab owns
+    // the broadcast. Other tabs restore only the ON AIR strip and the RESUME
+    // control, so they never compete for the room.
     effect(() => {
       const stream = this.liveStream.currentStream();
-      if (stream) this.liveVideo.startHosting(stream);
+      const owns = this.liveStream.ownsBroadcast();
+      const replaced = this.liveVideo.hostReplacedFor(stream);
+      if (stream && owns && !replaced) this.liveVideo.startHosting(stream);
       else this.liveVideo.stopHosting();
     });
     // Judge each viewer against the active preset's limits, including any
@@ -1432,26 +1400,9 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     if (scale !== 'auto') {
       return Math.min(EXPORT_MAX_EDGE, EXPORT_SCALE_EDGES[scale]);
     }
-    const memory = Number(
-      typeof navigator !== 'undefined'
-        ? (navigator as Navigator & { deviceMemory?: number }).deviceMemory
-        : undefined
-    );
-    const coarse =
-      typeof matchMedia === 'function' &&
-      matchMedia('(pointer: coarse)').matches;
-    const edge =
-      Number.isFinite(memory) && memory > 0
-        ? memory <= 2
-          ? 1280
-          : memory <= 4
-            ? 1920
-            : memory <= 8
-              ? 2560
-              : 3840
-        : coarse
-          ? 2560
-          : 3840;
+    const memory = Number(typeof navigator !== 'undefined' ? (navigator as Navigator & { deviceMemory?: number }).deviceMemory : undefined);
+    const coarse = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
+    const edge = Number.isFinite(memory) && memory > 0 ? (memory <= 2 ? 1280 : memory <= 4 ? 1920 : memory <= 8 ? 2560 : 3840) : coarse ? 2560 : 3840;
     return Math.min(EXPORT_MAX_EDGE, edge);
   }
 
@@ -2231,10 +2182,7 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     if (!this.hasUnsavedProjectWork()) return true;
 
     const activeId = this.cinemaProjects.activeProjectId();
-    const currentName =
-      activeId === null
-        ? 'THIS EDIT'
-        : this.cinemaProjects.activeProject()?.name ?? 'THE CURRENT PROJECT';
+    const currentName = activeId === null ? 'THIS EDIT' : (this.cinemaProjects.activeProject()?.name ?? 'THE CURRENT PROJECT');
     const choice = await this.projectDialog.confirmWithAlternate({
       title: 'Unsaved project changes',
       message:
@@ -2243,7 +2191,7 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
           : `“${currentName}” has edits that are not saved. Save them before opening “${targetName}”?`,
       confirmLabel: 'Save & open',
       alternateLabel: 'Discard & open',
-      cancelLabel: 'Keep editing',
+      cancelLabel: 'Keep editing'
     });
     if (choice === 'cancel') {
       this.aiFeedback.set(
@@ -2716,14 +2664,10 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
         source: 'cinema-engine',
         preset: this.videoEngine.deliveryPreset().id,
         aspectRatio: this.videoEngine.deliveryPreset().aspectRatio,
-        mode: this.videoEngine.productionMode(),
-      },
+        mode: this.videoEngine.productionMode()
+      }
     });
-    this.aiFeedback.set(
-      issued
-        ? `${platform.toUpperCase()} BROADCAST NEGOTIATED. COMPLETE THE AUTHORIZATION WINDOW TO AIR.`
-        : 'BROADCAST COULD NOT START — SIGN IN AND TRY AGAIN.'
-    );
+    this.aiFeedback.set(issued ? `${platform.toUpperCase()} IS LIVE.` : 'BROADCAST COULD NOT START — SIGN IN AND TRY AGAIN.');
   }
 
   async endLive(): Promise<void> {
@@ -3412,16 +3356,7 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
   }
 
   /** File a capture on the deck, stamping its name, size and extension. */
-  private registerCapture(input: {
-    kind: 'photo' | 'video';
-    name: string;
-    url: string;
-    blob: Blob | null;
-    width?: number;
-    height?: number;
-    seconds?: number;
-    ingested?: boolean;
-  }): CinemaCapture {
+  private registerCapture(input: { kind: 'photo' | 'video'; name: string; url: string; blob: Blob | null; width?: number; height?: number; seconds?: number; ingested?: boolean }): CinemaCapture {
     const capture: CinemaCapture = {
       id: 'cap-' + Date.now() + '-' + this.captures().length,
       kind: input.kind,
@@ -3440,7 +3375,7 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
       seconds: input.seconds ?? 0,
       sizeLabel: input.blob ? this.formatBytes(input.blob.size) : 'on timeline',
       capturedAt: Date.now(),
-      ingested: input.ingested ?? false,
+      ingested: input.ingested ?? false
     };
     this.captures.update((list) => [capture, ...list]);
     return capture;
@@ -6206,25 +6141,12 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     }
   }
 
-  private updateSectionRecord(
-    index: number,
-    patch: Partial<Pick<FilmSectionRecord, 'fileName' | 'status'>>
-  ): void {
-    this.exportSections.update((sections) =>
-      sections.map((section) =>
-        section.index === index ? { ...section, ...patch } : section
-      )
-    );
+  private updateSectionRecord(index: number, patch: Partial<Pick<FilmSectionRecord, 'fileName' | 'status'>>): void {
+    this.exportSections.update((sections) => sections.map((section) => (section.index === index ? { ...section, ...patch } : section)));
   }
 
   private markPendingSectionsSkipped(): void {
-    this.exportSections.update((sections) =>
-      sections.map((section) =>
-        section.status === 'pending'
-          ? { ...section, status: 'skipped' }
-          : section
-      )
-    );
+    this.exportSections.update((sections) => sections.map((section) => (section.status === 'pending' ? { ...section, status: 'skipped' } : section)));
   }
 
   private exportStamp(): string {
@@ -7584,10 +7506,10 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
       fx: '.fx-rack',
       camera: '.monitor-tabs',
       projects: '.project-console',
-      export: '.export-window',
+      export: '.export-window'
     };
     const raw = document.querySelector(selectors[target]);
-    const el = raw instanceof HTMLElement ? raw : raw?.parentElement ?? null;
+    const el = raw instanceof HTMLElement ? raw : (raw?.parentElement ?? null);
     if (!el) return;
     el.scrollIntoView({ behavior: 'smooth', block: 'center' });
     el.classList.add('learn-spotlight');
@@ -7746,19 +7668,13 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
   }
 
   /** Badge tooltip: the effective limits behind the CUSTOM HEALTH marker. */
-  viewerHealthBadgeNote(preset: {
-    id: string;
-    health: ViewerHealthThresholds;
-  }): string {
+  viewerHealthBadgeNote(preset: { id: string; health: ViewerHealthThresholds }): string {
     const limits = this.viewerHealthSettings.thresholdsFor(preset);
     return `Custom viewer health: fair above ${limits.rttFairMs} ms RTT or below ${limits.kbpsFair} kbps; poor above ${limits.rttPoorMs} ms or below ${limits.kbpsPoor} kbps.`;
   }
 
   /** Visible, touch- and keyboard-friendly version of the badge tooltip. */
-  viewerHealthBadgeDetail(preset: {
-    id: string;
-    health: ViewerHealthThresholds;
-  }): string {
+  viewerHealthBadgeDetail(preset: { id: string; health: ViewerHealthThresholds }): string {
     const limits = this.viewerHealthSettings.thresholdsFor(preset);
     return `Fair above ${limits.rttFairMs} ms RTT or below ${limits.kbpsFair} kbps; poor above ${limits.rttPoorMs} ms or below ${limits.kbpsPoor} kbps.`;
   }
@@ -7883,8 +7799,9 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     this.liveVideo.stopHosting();
     this.liveVideo.resetViewerHealthThresholds();
     // Leaving the lab removes the only END control, so close the broadcast
-    // (server row + capture) rather than leave a ghost session on air.
-    if (this.liveStream.currentStream()) {
+    // (server row + capture) rather than leave a ghost session on air. A tab
+    // that is only watching its own broadcast must not end it.
+    if (this.liveStream.ownsBroadcast()) {
       void this.liveStream.endStream();
     }
     // Never leave the device light on: releasing the stream is the only way the
@@ -7904,7 +7821,15 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     this.ownedObjectUrls.forEach((url) => URL.revokeObjectURL(url));
     this.ownedObjectUrls.clear();
   }
-}
+
+
+  /** Take over a broadcast this tab restored without owning the capture. */
+  async resumeLiveHere(): Promise<void> {
+    this.liveVideo.resumeHosting();
+    if (!(await this.liveStream.resumeBroadcastHere())) {
+      this.aiFeedback.set('NO ACTIVE BROADCAST TO RESUME.');
+    }
+  }}
 
 /** Lesson progress is local; a corrupt or absent record simply starts empty. */
 function loadLabLessonProgress(): ReadonlySet<string> {

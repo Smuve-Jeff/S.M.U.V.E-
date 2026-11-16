@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { authenticate } from "@/middleware/auth";
 import {
-  LIVE_STREAM_PLATFORMS,
+  LIVE_GO_LIVE_PLATFORMS,
   LiveStreamPlatform,
   startLiveStream as issueStart,
   getCurrentLiveStream,
@@ -9,6 +9,7 @@ import {
   endLiveStream,
   resolveViewerJoin,
   redeemViewerJoin,
+  liveViewerKey,
 } from "@/services/live-stream.service";
 import { getIceConfig } from "@/services/turn.service";
 import type { AuthUser } from "@/types";
@@ -39,7 +40,7 @@ const lookupActor = (req: any): AuthUser | null =>
 
 const sanitizePlatform = (p: unknown): LiveStreamPlatform | null =>
   typeof p === "string" &&
-  (LIVE_STREAM_PLATFORMS as readonly string[]).includes(p)
+  (LIVE_GO_LIVE_PLATFORMS as readonly string[]).includes(p)
     ? (p as LiveStreamPlatform)
     : null;
 
@@ -61,7 +62,7 @@ router.post(
       const platform = sanitizePlatform(req.body?.platform);
       if (!platform) {
         return res.status(400).json({
-          error: `platform must be one of: ${LIVE_STREAM_PLATFORMS.join(", ")}`,
+          error: `platform must be one of: ${LIVE_GO_LIVE_PLATFORMS.join(", ")}`,
         });
       }
       // Admins act on behalf of the :userId in the path; everyone else is
@@ -213,7 +214,12 @@ router.get("/live-streams/join/:token", async (req, res, next) => {
 // POST /api/live-streams/join/:token/redeem  — public; soft-auth OK
 router.post("/live-streams/join/:token/redeem", async (req, res, next) => {
   try {
-    return res.json(await redeemViewerJoin(req.params.token));
+    // The route is public so a share-link guest can redeem. Key the telemetry
+    // dedupe on the same per-viewer id the socket path uses; an IP address is
+    // not a viewer and would merge everyone behind one NAT.
+    const actor = lookupActor(req);
+    const viewerKey = liveViewerKey(actor?.userId ?? null, req.body?.viewerId);
+    return res.json(await redeemViewerJoin(req.params.token, viewerKey));
   } catch (err) {
     return next(err);
   }

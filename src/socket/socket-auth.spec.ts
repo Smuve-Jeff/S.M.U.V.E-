@@ -15,6 +15,7 @@ import {
   findStreamByToken,
   getCurrentLiveStream,
   resolveViewerJoin,
+  redeemViewerJoin,
   startLiveStream,
 } from "@/services/live-stream.service";
 import {
@@ -122,6 +123,7 @@ jest.mock("@/services/studio-collab.service", () => ({
 
 jest.mock("@/services/live-stream.service", () => ({
   LIVE_STREAM_PLATFORMS: ["smuve", "twitch", "kick", "youtube"],
+  LIVE_GO_LIVE_PLATFORMS: ["smuve", "twitch", "kick"],
   listActiveLiveStreams: jest.fn(async () => []),
   startLiveStream: jest.fn(async (input: any) => ({
     id: 1,
@@ -155,21 +157,35 @@ jest.mock("@/services/live-stream.service", () => ({
     viewerJoins: 0,
     shareUrl: "https://smuvejeffpresents.com/tha-spot",
   })),
-  redeemViewerJoin: jest.fn(async (token: string) => ({
-    id: 1,
-    shareToken: token,
-    hostId: "h",
-    hostDisplayName: null,
-    platform: "twitch",
-    gameId: "g",
-    lobbyId: null,
-    payload: {},
-    active: true,
-    startedAt: new Date().toISOString(),
-    endedAt: null,
-    viewerJoins: 1,
-    shareUrl: "https://smuvejeffpresents.com/tha-spot",
-  })),
+  liveViewerKey: (
+    userId: string | number | null | undefined,
+    viewerId: unknown,
+  ) => {
+    const account = userId == null ? "" : String(userId);
+    if (account && !account.startsWith("guest:")) return `user:${account}`;
+    const guest =
+      typeof viewerId === "string"
+        ? viewerId.trim().replace(/^guest:/, "")
+        : "";
+    return guest ? `guest:${guest}` : null;
+  },
+  redeemViewerJoin: jest.fn(
+    async (token: string, _viewerKey?: string | null) => ({
+      id: 1,
+      shareToken: token,
+      hostId: "h",
+      hostDisplayName: null,
+      platform: "twitch",
+      gameId: "g",
+      lobbyId: null,
+      payload: {},
+      active: true,
+      startedAt: new Date().toISOString(),
+      endedAt: null,
+      viewerJoins: 1,
+      shareUrl: "https://smuvejeffpresents.com/tha-spot",
+    }),
+  ),
   findStreamByToken: jest.fn(async () => null),
 }));
 
@@ -1481,7 +1497,25 @@ describe("socket.io handshake + JWT auth", () => {
     });
     client.on("connect_error", () => finish(new Error("connect_error")));
   });
-});
+
+
+  it("keys the public redeem on the shared viewer id, not the request IP", async () => {
+    (redeemViewerJoin as jest.Mock).mockClear();
+    const response = await fetch(
+      `${url()}/api/live-streams/join/tok_live/redeem`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ viewerId: "guest:shared-guest" }),
+      },
+    );
+
+    expect(response.status).toBe(200);
+    expect(redeemViewerJoin).toHaveBeenCalledWith(
+      "tok_live",
+      "guest:shared-guest",
+    );
+  });});
 
 describe("resolved-match lobby provisioning + in-match relays", () => {
   let httpServer: ReturnType<typeof createServer>;
@@ -1779,7 +1813,12 @@ describe("resolved-match lobby provisioning + in-match relays", () => {
     });
 
     afterEach(() => {
-      joined.forEach((client) => client.close());
+      // Leave explicitly while the socket is still open: a bare close now
+      // schedules the 30s host-drop grace timer, which would outlive the test.
+      joined.forEach((client) => {
+        if (client.connected) client.emit("live_stream_host_leave", {});
+        client.close();
+      });
       joined.length = 0;
       (findStreamByToken as jest.Mock).mockReset().mockResolvedValue(null);
       (resolveViewerJoin as jest.Mock).mockReset().mockResolvedValue(liveRow());
@@ -2011,45 +2050,6 @@ describe("resolved-match lobby provisioning + in-match relays", () => {
       expect(left.streamId).toBe(5);
     });
 
-    it("keeps the room alive through a brief host drop, then ends it", async () => {
-      process.env.LIVE_HOST_DROP_GRACE_MS = "250";
-      const [host, viewer] = pair(341, 342);
-      await Promise.all([connect(host), connect(viewer)]);
-      host.emit("live_stream_host_join", { token: "tok_live" });
-      await settle();
-      viewer.emit("live_stream_watch", { token: "tok_live" });
-      await settle();
-
-      const endedP = once<any>(viewer, "live_stream_ended");
-      host.close();
-      const ended = await endedP;
-      expect(ended.streamId).toBe(5);
-      delete process.env.LIVE_HOST_DROP_GRACE_MS;
-    });
-
-    it("keeps the row when the host reconnects inside the grace window", async () => {
-      process.env.LIVE_HOST_DROP_GRACE_MS = "300";
-      const [host, viewer] = pair(351, 352);
-      await Promise.all([connect(host), connect(viewer)]);
-      host.emit("live_stream_host_join", { token: "tok_live" });
-      await settle();
-      viewer.emit("live_stream_watch", { token: "tok_live" });
-      await settle();
-
-      host.close();
-      const returning = mk(351);
-      joined.push(returning);
-      await connect(returning);
-      returning.emit("live_stream_host_join", { token: "tok_live" });
-      await settle(700);
-
-      const ends = (endLiveStream as jest.Mock).mock.calls.filter(
-        ([hostId]) => hostId === "351",
-      );
-      expect(ends).toHaveLength(0);
-      delete process.env.LIVE_HOST_DROP_GRACE_MS;
-    });
-
     it("refuses offers from a socket that is not the stream host", async () => {
       const [host, viewer] = pair(303, 304);
       const intruder = mk(305);
@@ -2140,5 +2140,217 @@ describe("resolved-match lobby provisioning + in-match relays", () => {
       expect(endNotifier).toHaveBeenCalledWith("351", "tok_live");
       setFriendLiveEndNotifier(null);
     });
-  });
+
+
+    it("signals a recoverable drop, keeps the room through grace, then ends it", async () => {
+      process.env.LIVE_HOST_DROP_GRACE_MS = "600";
+      const [host, viewer] = pair(341, 342);
+      await Promise.all([connect(host), connect(viewer)]);
+      host.emit("live_stream_host_join", { token: "tok_live" });
+      await settle();
+      viewer.emit("live_stream_watch", { token: "tok_live" });
+      await settle();
+
+      let ended: any = null;
+      viewer.on("live_stream_ended", (data: any) => {
+        ended = data;
+      });
+      const droppedP = once<any>(viewer, "live_stream_host_dropped");
+      host.close();
+      const dropped = await droppedP;
+      expect(dropped.streamId).toBe(5);
+      expect(dropped.streamToken).toBe("tok_live");
+
+      // The drop is recoverable: the room must not end immediately.
+      await settle(150);
+      expect(ended).toBeNull();
+
+      // ...but it does end when the grace window expires with no return.
+      await settle(900);
+      expect(ended?.streamId).toBe(5);
+      delete process.env.LIVE_HOST_DROP_GRACE_MS;
+    });
+
+    it("keeps the row and re-offers when the host reconnects inside grace", async () => {
+      process.env.LIVE_HOST_DROP_GRACE_MS = "300";
+      const [host, viewer] = pair(355, 356);
+      await Promise.all([connect(host), connect(viewer)]);
+      host.emit("live_stream_host_join", { token: "tok_live" });
+      await settle();
+      viewer.emit("live_stream_watch", { token: "tok_live" });
+      await settle();
+
+      let ended = false;
+      viewer.on("live_stream_ended", () => {
+        ended = true;
+      });
+      const droppedP = once<any>(viewer, "live_stream_host_dropped");
+      host.close();
+      await droppedP;
+
+      const returning = mk(355);
+      joined.push(returning);
+      await connect(returning);
+      const rejoinP = once<{ socketId: string }>(
+        returning,
+        "live_stream_viewer_joined",
+      );
+      returning.emit("live_stream_host_join", { token: "tok_live" });
+      const rejoin = await rejoinP;
+      expect(rejoin.socketId).toBe(viewer.id);
+      await settle(700);
+
+      const ends = (endLiveStream as jest.Mock).mock.calls.filter(
+        ([hostId]) => hostId === "355",
+      );
+      expect(ends).toHaveLength(0);
+      expect(ended).toBe(false);
+      delete process.env.LIVE_HOST_DROP_GRACE_MS;
+    });
+
+    it("tells the host when a share-link guest drops", async () => {
+      const host = mk(313);
+      joined.push(host);
+      (findStreamByToken as jest.Mock).mockResolvedValue(
+        liveRow({ hostId: "313" }),
+      );
+      (resolveViewerJoin as jest.Mock).mockResolvedValue(
+        liveRow({ hostId: "313" }),
+      );
+      const guest = mkGuest("tok_live");
+      await Promise.all([connect(host), connect(guest)]);
+
+      host.emit("live_stream_host_join", { token: "tok_live" });
+      await settle();
+      const joinedP = once<{ socketId: string }>(
+        host,
+        "live_stream_viewer_joined",
+      );
+      guest.emit("live_stream_watch", { token: "tok_live" });
+      await joinedP;
+
+      const leftP = once<any>(host, "live_stream_viewer_left");
+      const guestId = guest.id;
+      guest.close();
+      const left = await leftP;
+      expect(left.socketId).toBe(guestId);
+      expect(left.streamId).toBe(5);
+    });
+
+    it("elects one host socket and makes the previous tab stand down", async () => {
+      const first = mk(361);
+      const second = mk(361);
+      const viewer = mk(362);
+      joined.push(first, second, viewer);
+      (findStreamByToken as jest.Mock).mockResolvedValue(
+        liveRow({ hostId: "361" }),
+      );
+      (resolveViewerJoin as jest.Mock).mockResolvedValue(
+        liveRow({ hostId: "361" }),
+      );
+      await Promise.all([connect(first), connect(second), connect(viewer)]);
+
+      first.emit("live_stream_host_join", { token: "tok_live" });
+      await settle();
+      const replacedP = once<any>(first, "live_stream_host_replaced");
+      second.emit("live_stream_host_join", { token: "tok_live" });
+      const replaced = await replacedP;
+      expect(replaced.streamId).toBe(5);
+      expect(replaced.streamToken).toBe("tok_live");
+      await settle();
+
+      const firstSawJoin = jest.fn();
+      first.on("live_stream_viewer_joined", firstSawJoin);
+      const joinedP = once<{ socketId: string }>(
+        second,
+        "live_stream_viewer_joined",
+      );
+      viewer.emit("live_stream_watch", { token: "tok_live" });
+      const viewerJoined = await joinedP;
+      expect(viewerJoined.socketId).toBe(viewer.id);
+      expect(firstSawJoin).not.toHaveBeenCalled();
+
+      // The replaced tab can no longer inject an offer into this room.
+      const offers: any[] = [];
+      viewer.on("live_webrtc_offer", (data: any) => offers.push(data));
+      first.emit("live_webrtc_offer", {
+        token: "tok_live",
+        toSocketId: viewer.id,
+        sdp: { type: "offer", sdp: "v=0 replaced" },
+      });
+      await settle(200);
+      expect(offers).toHaveLength(0);
+
+      // The elected host still can.
+      const offerP = once<any>(viewer, "live_webrtc_offer");
+      second.emit("live_webrtc_offer", {
+        token: "tok_live",
+        toSocketId: viewer.id,
+        sdp: { type: "offer", sdp: "v=0 elected" },
+      });
+      const offer = await offerP;
+      expect(offer.fromSocketId).toBe(second.id);
+    });
+
+    it("keeps the room open when a rebuilt host socket re-registers", async () => {
+      const [first, viewer] = pair(371, 372);
+      await Promise.all([connect(first), connect(viewer)]);
+
+      first.emit("live_stream_host_join", { token: "tok_live" });
+      await settle();
+      const viewerJoinedP = once<{ socketId: string }>(
+        first,
+        "live_stream_viewer_joined",
+      );
+      viewer.emit("live_stream_watch", { token: "tok_live" });
+      await viewerJoinedP;
+
+      let ended = false;
+      viewer.on("live_stream_ended", () => {
+        ended = true;
+      });
+
+      const rebuilt = mk(371);
+      joined.push(rebuilt);
+      await connect(rebuilt);
+      const replacedP = once<any>(first, "live_stream_host_replaced");
+      const rejoinP = once<{ socketId: string }>(
+        rebuilt,
+        "live_stream_viewer_joined",
+      );
+      rebuilt.emit("live_stream_host_join", { token: "tok_live" });
+      const [replaced, rejoin] = await Promise.all([replacedP, rejoinP]);
+
+      expect(replaced.streamToken).toBe("tok_live");
+      expect(rejoin.socketId).toBe(viewer.id);
+      await settle(250);
+      expect(ended).toBe(false);
+    });
+
+    it("keys REST and socket redeems on the same per-viewer id", async () => {
+      const guest = mkGuest("tok_live");
+      await connect(guest);
+      (redeemViewerJoin as jest.Mock).mockClear();
+
+      const redeemedP = once<any>(guest, "live_stream_redeem_ok");
+      guest.emit("live_stream_redeem", {
+        token: "tok_live",
+        viewerId: "guest:shared-guest",
+      });
+      await redeemedP;
+      expect(redeemViewerJoin).toHaveBeenLastCalledWith(
+        "tok_live",
+        "guest:shared-guest",
+      );
+
+      const signedIn = mk(382);
+      await connect(signedIn);
+      const signedInP = once<any>(signedIn, "live_stream_redeem_ok");
+      signedIn.emit("live_stream_redeem", {
+        token: "tok_live",
+        viewerId: "guest:spoofed",
+      });
+      await signedInP;
+      expect(redeemViewerJoin).toHaveBeenLastCalledWith("tok_live", "user:382");
+    });});
 });

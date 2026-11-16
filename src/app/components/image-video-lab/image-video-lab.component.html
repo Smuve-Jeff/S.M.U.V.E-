@@ -751,7 +751,9 @@
               </span>
               <span class="monitor-source-tag">{{
                 showCameraSurface()
-                  ? (camera.sourceType() === 'screen' ? 'SCREEN SHARE' : 'CAMERA')
+                  ? camera.sourceType() === 'screen'
+                    ? 'SCREEN SHARE'
+                    : 'CAMERA'
                   : 'PROGRAM'
               }}</span>
             </div>
@@ -1977,8 +1979,27 @@
                 [disabled]="!!broadcastStream() || !!liveStream.pendingGolive()"
                 (click)="goLive()"
               >
-                {{ liveStream.pendingGolive() ? (livePlatform() === 'smuve' ? 'STARTING…' : 'AUTHORIZING…') : 'GO LIVE' }}
+                {{
+                  liveStream.pendingGolive()
+                    ? livePlatform() === 'smuve'
+                      ? 'STARTING…'
+                      : 'AUTHORIZING…'
+                    : 'GO LIVE'
+                }}
               </button>
+              @if (
+                broadcastStream() &&
+                (!liveStream.ownsBroadcast() ||
+                  liveVideo.hostReplacedFor(broadcastStream()))
+              ) {
+                <button
+                  type="button"
+                  class="director-button director-button-primary"
+                  (click)="resumeLiveHere()"
+                >
+                  RESUME HERE
+                </button>
+              }
               <button
                 type="button"
                 class="director-button"
@@ -2124,7 +2145,11 @@
                 <span class="text-text-main normal-case">{{ stream.shareUrl }}</span>
               </p>
 
-              @if (hostFeedMissing()) {
+              @if (
+                hostFeedMissing() &&
+                liveStream.ownsBroadcast() &&
+                !liveVideo.hostReplacedFor(broadcastStream())
+              ) {
                 <p
                   class="flex items-start gap-2 rounded-md border border-brand-danger/60 bg-brand-danger/10 px-2 py-1.5 text-[9px] font-black uppercase tracking-[0.14em] text-brand-danger"
                   role="alert"
@@ -2933,7 +2958,7 @@
                 <span class="fx-dial-head">
                   <span>{{ effect.label }}</span>
                   <span class="fx-dial-value"
-                    >{{ (fxRack()[effect.id] * 100) | number: '1.0-0' }}%</span
+                    >{{ fxRack()[effect.id] * 100 | number: '1.0-0' }}%</span
                   >
                 </span>
                 <input
@@ -3311,151 +3336,152 @@
       controls. It is an overlay, not a route, so opening a lesson never
       destroys an edit in progress.
     -->
-    <div
-      id="cinema-learn"
-      class="learn-overlay"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="cinema-learn-title"
-    >
-      <div class="learn-shell">
-        <header class="learn-head">
-          <div class="learn-head-copy">
-            <span class="learn-eyebrow">S.M.U.V.E. Cinema Academy</span>
-            <h2 id="cinema-learn-title">Learn the lab in nine cuts</h2>
-            <p>
-              A narrated walkthrough of the real console, then nine lessons you
-              can drive yourself. Progress is saved in this browser.
-            </p>
+  <div
+    id="cinema-learn"
+    class="learn-overlay"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="cinema-learn-title"
+  >
+    <div class="learn-shell">
+      <header class="learn-head">
+        <div class="learn-head-copy">
+          <span class="learn-eyebrow">S.M.U.V.E. Cinema Academy</span>
+          <h2 id="cinema-learn-title">Learn the lab in nine cuts</h2>
+          <p>
+            A narrated walkthrough of the real console, then nine lessons you
+            can drive yourself. Progress is saved in this browser.
+          </p>
+        </div>
+        <div class="learn-head-actions">
+          <span class="learn-progress-label">
+            {{ learnProgress().done }} / {{ learnProgress().total }} mastered
+          </span>
+          <button
+            type="button"
+            class="learn-close"
+            (click)="closeLearn()"
+            aria-label="Close Cinema Academy"
+          >
+            <span aria-hidden="true">×</span>
+            Close
+          </button>
+        </div>
+      </header>
+
+      <div
+        class="learn-progress-track"
+        role="progressbar"
+        aria-label="Lesson progress"
+        aria-valuemin="0"
+        aria-valuemax="100"
+        [attr.aria-valuenow]="learnProgress().percent"
+      >
+        <span [style.width.%]="learnProgress().percent"></span>
+      </div>
+
+      <div class="learn-body">
+        <section class="learn-player" aria-label="Tutorial video">
+          <video
+            #tutorialVideo
+            class="learn-video"
+            controls
+            preload="metadata"
+            [src]="tutorialSrc"
+            (play)="pauseLabPreview()"
+          ></video>
+          <div class="learn-player-caption">
+            <span>Narrated walkthrough · 9 chapters</span>
+            <span>Mixed voice narration</span>
           </div>
-          <div class="learn-head-actions">
-            <span class="learn-progress-label">
-              {{ learnProgress().done }} / {{ learnProgress().total }} mastered
-            </span>
+
+          <ol class="learn-chapters">
+            @for (lesson of labLessons; track lesson.id) {
+              <li>
+                <button
+                  type="button"
+                  class="learn-chapter"
+                  [class.active]="activeLessonId() === lesson.id"
+                  [attr.aria-current]="
+                    activeLessonId() === lesson.id ? 'true' : null
+                  "
+                  (click)="selectLesson(lesson)"
+                >
+                  <span class="learn-chapter-num">{{ lesson.number }}</span>
+                  <span class="learn-chapter-copy">
+                    <strong>{{ lesson.title }}</strong>
+                    <span
+                      >{{ lesson.kicker }} · chapter {{ lesson.number }}</span
+                    >
+                  </span>
+                  <span
+                    class="learn-check"
+                    [class.done]="isLessonComplete(lesson.id)"
+                    aria-hidden="true"
+                  >
+                    {{ isLessonComplete(lesson.id) ? '✓' : '' }}
+                  </span>
+                </button>
+              </li>
+            }
+          </ol>
+        </section>
+
+        <section class="learn-detail" aria-live="polite">
+          <span class="learn-kicker">
+            {{ activeLesson().number }} · {{ activeLesson().kicker }}
+          </span>
+          <h3>{{ activeLesson().title }}</h3>
+          <p class="learn-summary">{{ activeLesson().summary }}</p>
+
+          <div class="learn-goal">
+            <span>Goal</span>
+            <p>{{ activeLesson().goal }}</p>
+          </div>
+
+          <ol class="learn-steps">
+            @for (step of activeLesson().steps; track $index) {
+              <li>
+                <span>{{ $index + 1 }}</span>
+                <p>{{ step }}</p>
+              </li>
+            }
+          </ol>
+
+          <div class="learn-mistake">
+            <span>Common miss</span>
+            <p>{{ activeLesson().mistake }}</p>
+          </div>
+
+          <div class="learn-detail-actions">
             <button
               type="button"
-              class="learn-close"
-              (click)="closeLearn()"
-              aria-label="Close Cinema Academy"
+              class="learn-show"
+              (click)="showLesson(activeLesson())"
             >
-              <span aria-hidden="true">×</span>
-              Close
+              {{ activeLesson().actionLabel }} →
+            </button>
+            <button
+              type="button"
+              class="learn-master"
+              [class.done]="isLessonComplete(activeLesson().id)"
+              [attr.aria-pressed]="isLessonComplete(activeLesson().id)"
+              (click)="toggleLessonComplete(activeLesson().id)"
+            >
+              {{
+                isLessonComplete(activeLesson().id)
+                  ? 'Mastered ✓'
+                  : 'Mark as mastered'
+              }}
             </button>
           </div>
-        </header>
 
-        <div
-          class="learn-progress-track"
-          role="progressbar"
-          aria-label="Lesson progress"
-          aria-valuemin="0"
-          aria-valuemax="100"
-          [attr.aria-valuenow]="learnProgress().percent"
-        >
-          <span [style.width.%]="learnProgress().percent"></span>
-        </div>
-
-        <div class="learn-body">
-          <section class="learn-player" aria-label="Tutorial video">
-            <video
-              #tutorialVideo
-              class="learn-video"
-              controls
-              preload="metadata"
-              [src]="tutorialSrc"
-              (play)="pauseLabPreview()"
-            ></video>
-            <div class="learn-player-caption">
-              <span>Narrated walkthrough · 9 chapters</span>
-              <span>Mixed voice narration</span>
-            </div>
-
-            <ol class="learn-chapters">
-              @for (lesson of labLessons; track lesson.id) {
-                <li>
-                  <button
-                    type="button"
-                    class="learn-chapter"
-                    [class.active]="activeLessonId() === lesson.id"
-                    [attr.aria-current]="
-                      activeLessonId() === lesson.id ? 'true' : null
-                    "
-                    (click)="selectLesson(lesson)"
-                  >
-                    <span class="learn-chapter-num">{{ lesson.number }}</span>
-                    <span class="learn-chapter-copy">
-                      <strong>{{ lesson.title }}</strong>
-                      <span>{{ lesson.kicker }} · chapter {{ lesson.number }}</span>
-                    </span>
-                    <span
-                      class="learn-check"
-                      [class.done]="isLessonComplete(lesson.id)"
-                      aria-hidden="true"
-                    >
-                      {{ isLessonComplete(lesson.id) ? '✓' : '' }}
-                    </span>
-                  </button>
-                </li>
-              }
-            </ol>
-          </section>
-
-          <section class="learn-detail" aria-live="polite">
-            <span class="learn-kicker">
-              {{ activeLesson().number }} · {{ activeLesson().kicker }}
-            </span>
-            <h3>{{ activeLesson().title }}</h3>
-            <p class="learn-summary">{{ activeLesson().summary }}</p>
-
-            <div class="learn-goal">
-              <span>Goal</span>
-              <p>{{ activeLesson().goal }}</p>
-            </div>
-
-            <ol class="learn-steps">
-              @for (step of activeLesson().steps; track $index) {
-                <li>
-                  <span>{{ $index + 1 }}</span>
-                  <p>{{ step }}</p>
-                </li>
-              }
-            </ol>
-
-            <div class="learn-mistake">
-              <span>Common miss</span>
-              <p>{{ activeLesson().mistake }}</p>
-            </div>
-
-            <div class="learn-detail-actions">
-              <button
-                type="button"
-                class="learn-show"
-                (click)="showLesson(activeLesson())"
-              >
-                {{ activeLesson().actionLabel }} →
-              </button>
-              <button
-                type="button"
-                class="learn-master"
-                [class.done]="isLessonComplete(activeLesson().id)"
-                [attr.aria-pressed]="isLessonComplete(activeLesson().id)"
-                (click)="toggleLessonComplete(activeLesson().id)"
-              >
-                {{
-                  isLessonComplete(activeLesson().id)
-                    ? 'Mastered ✓'
-                    : 'Mark as mastered'
-                }}
-              </button>
-            </div>
-
-            <p class="learn-note">
-              Nothing here is uploaded. Lesson progress lives in local storage;
-              the tutorial ships with the app.
-            </p>
-          </section>
-        </div>
+          <p class="learn-note">
+            Nothing here is uploaded. Lesson progress lives in local storage;
+            the tutorial ships with the app.
+          </p>
+        </section>
       </div>
     </div>
-  }
-
+  </div>
+}

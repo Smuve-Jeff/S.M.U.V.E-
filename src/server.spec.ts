@@ -86,6 +86,7 @@ jest.mock("@/services/game-invite.service", () => ({
 jest.mock("@/services/live-stream.service", () => ({
   LiveStreamPlatform: { Twitch: "twitch", YouTube: "youtube" },
   LIVE_STREAM_PLATFORMS: ["smuve", "twitch", "kick", "youtube"],
+  LIVE_GO_LIVE_PLATFORMS: ["smuve", "twitch", "kick"],
   listActiveLiveStreams: jest.fn(async () => []),
   startLiveStream: jest.fn(async () => ({ id: 1, shareToken: "tok_test" })),
   getCurrentLiveStream: jest.fn(async () => null),

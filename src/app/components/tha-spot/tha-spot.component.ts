@@ -49,8 +49,8 @@ import {
 } from "../../services/shareable-invite.service";
 import {
   LiveStreamService,
-  LiveStreamPlatform,
-  LIVE_STREAM_PLATFORMS,
+  GoLivePlatform,
+  GO_LIVE_PLATFORMS,
 } from "../../services/live-stream.service";
 import { LiveVideoService } from "../../services/live-video.service";
 import { LiveRelayStripComponent } from "../live-relay-strip/live-relay-strip.component";
@@ -1666,7 +1666,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
 
   // ── Go-Live / live-stream overlay state ─────────────
   /** Local picker key: which platform the host wants to broadcast on. */
-  readonly selectedGoLivePlatform = signal<LiveStreamPlatform>("twitch");
+  readonly selectedGoLivePlatform = signal<GoLivePlatform>("smuve");
   readonly showGoLivePicker = signal(false);
   /**
    * Tap-to-join inbound preview from `?live=...`. Rendered as an overlay
@@ -1675,7 +1675,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   readonly inboundLivePreview = this.liveStream.inboundPreview;
   /** True while the platform OAuth popup is open; flips the button to PENDING. */
   readonly pendingGolive = this.liveStream.pendingGolive;
-  readonly livePlatforms = LIVE_STREAM_PLATFORMS;
+  readonly livePlatforms = GO_LIVE_PLATFORMS;
 
   // ── Hub navigation (rival hub sidebar tabs) ──────────
   // 'rooms' | 'online' | 'rivals' | 'ops'
@@ -2237,7 +2237,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
       this.viewerGameStream.set(
         audioTracks[1] && this.liveVideo.hostSharingScreen()
           ? new MediaStream([audioTracks[1]])
-          : null
+          : null,
       );
     });
     effect(() => {
@@ -2246,10 +2246,14 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
       this.viewerShowGame.set(this.liveVideo.hostSharingScreen());
     });
     // Own the host feed for the whole time a stream is live, and release it
-    // when the session ends. The service waits for the socket/camera itself.
+    // when the session ends. Only the tab that holds the broadcast token may
+    // host; a second tab or a replaced old socket stays a viewer until the
+    // host explicitly resumes there.
     effect(() => {
       const stream = this.liveStream.currentStream();
-      if (stream) this.liveVideo.startHosting(stream);
+      const owns = this.liveStream.ownsBroadcast();
+      const replaced = this.liveVideo.hostReplacedFor(stream);
+      if (stream && owns && !replaced) this.liveVideo.startHosting(stream);
       else this.liveVideo.stopHosting();
     });
     const savedFavs = localStorage.getItem("tha_spot_favorites");
@@ -2520,10 +2524,11 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
       this.handleLiveIncomingChallenge,
     );
     // Release the player and the host peers; leaving the surface also removes
-    // the only STOP control, so end the session itself too.
+    // the only STOP control, so end the session itself too. A tab that is only
+    // watching its own broadcast must not end it by navigating away.
     this.liveVideo.stopWatching();
     this.liveVideo.stopHosting();
-    if (this.liveStream.currentStream()) {
+    if (this.liveStream.ownsBroadcast()) {
       void this.liveStream.endStream();
     }
   }
@@ -2876,8 +2881,8 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     this.showGoLivePicker.set(true);
   }
 
-  /** Confirm platform pick: issue stream row + open OAuth popup. */
-  async confirmGoLive(platform: LiveStreamPlatform): Promise<void> {
+  /** Confirm the platform pick: authorize if needed, then issue the row. */
+  async confirmGoLive(platform: GoLivePlatform): Promise<void> {
     this.selectedGoLivePlatform.set(platform);
     const game = this.selectedGame();
     // Only carry a lobby id when the host actually has one. A faceless
@@ -3297,10 +3302,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   getActiveRoomName(): string {
-    return (
-      this.gamingRooms().find((r) => r.id === this.activeRoom())?.name ||
-      "All Games"
-    );
+    return this.gamingRooms().find((r) => r.id === this.activeRoom())?.name || "All Games";
   }
 
   async loadFeaturedUsers() {
@@ -4235,13 +4237,11 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
    * join. Provider-only connect buttons still use startOAuthFlow.
    */
   async goLive(platform: string): Promise<void> {
-    const targets: Record<string, LiveStreamPlatform> = {
+    const targets: Record<string, GoLivePlatform> = {
       "S.M.U.V.E.": "smuve",
       SMUVE: "smuve",
       Twitch: "twitch",
       Kick: "kick",
-      YouTube: "youtube",
-      TikTok: "tiktok",
     };
     const target = targets[platform];
     if (!target) {
@@ -4725,7 +4725,19 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
       /* Audio not available — silent */
     }
   }
-}
+
+
+  /**
+   * Take over a broadcast this tab is only watching (second tab, a reload
+   * without the host token, or a tab the server replaced). The click is the
+   * handoff: capture and host registration start here, never automatically.
+   */
+  async resumeLiveHere(): Promise<void> {
+    this.liveVideo.resumeHosting();
+    if (!(await this.liveStream.resumeBroadcastHere())) {
+      this.snackbarService.info("NO ACTIVE BROADCAST TO RESUME");
+    }
+  }}
 
 // ── Achievement Interface ─────────────────────────────
 export interface Achievement {

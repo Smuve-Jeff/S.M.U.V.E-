@@ -151,6 +151,8 @@ describe("ThaSpotComponent", () => {
       startStream: jest.fn(),
       stopStream: jest.fn(),
       loadMessageHistory: jest.fn(),
+      screenAudioOnly: signal(false),
+      onHostStreamReplaced: jest.fn(() => () => undefined),
     };
     inboxServiceMock = {
       challenges: signal([]),
@@ -1307,6 +1309,57 @@ describe("ThaSpotComponent", () => {
     it("stays quiet when the host is not live", () => {
       component.liveStream.currentStream.set(null);
       expect(component.hostFeedMissing()).toBe(false);
+    });
+  });
+
+  describe("host takeover", () => {
+    it("clears a replaced takeover when this tab starts a new broadcast", async () => {
+      const liveVideo = TestBed.inject(LiveVideoService);
+      const liveStream = component.liveStream;
+      const oldStream = {
+        id: 1,
+        shareToken: "tok_live",
+        hostId: "1",
+        hostDisplayName: "NOVA",
+        platform: "smuve",
+        gameId: null,
+        lobbyId: null,
+        payload: null,
+        active: true,
+        startedAt: new Date().toISOString(),
+        endedAt: null,
+        viewerJoins: 0,
+        shareUrl: "https://x/live",
+      } as any;
+      const nextStream = {
+        ...oldStream,
+        id: 2,
+        shareToken: "tok_next",
+        shareUrl: "https://x/next",
+      };
+
+      // This tab was replaced on the old broadcast. The next broadcast has a
+      // new token, so the component effect must start hosting it and clear
+      // the old takeover instead of leaving the tab stuck as a viewer.
+      (liveVideo as any).replacedToken.set("tok_live");
+      expect(liveVideo.hostReplacedFor(oldStream)).toBe(true);
+
+      (liveStream as any).hostingToken.set("tok_next");
+      liveStream.currentStream.set(nextStream);
+      fakeSocket.connected = true;
+      fixture.detectChanges();
+      await fixture.whenStable();
+      fixture.detectChanges();
+
+      expect(liveVideo.hostReplaced()).toBe(false);
+      expect(liveVideo.hostReplacedFor(oldStream)).toBe(false);
+      expect(liveVideo.hostReplacedFor(nextStream)).toBe(false);
+      expect(fakeSocket.emit).toHaveBeenCalledWith(
+        "live_stream_host_join",
+        { token: "tok_next" },
+      );
+
+      liveVideo.stopHosting();
     });
   });
 
