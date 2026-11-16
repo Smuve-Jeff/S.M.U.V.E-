@@ -26,6 +26,19 @@ export function expiryLabel(
     : `IN ${Math.round(left / HOUR_MS)}H`;
 }
 
+/**
+ * True once the sweeper's deadline has passed. A show with no deadline (a relay
+ * that keeps everything) is never dropped by the clock alone.
+ */
+export function isSwept(
+  expiresAt: string | null | undefined,
+  now: number,
+): boolean {
+  const until = new Date(String(expiresAt ?? ''));
+  if (Number.isNaN(until.getTime())) return false;
+  return until.getTime() <= now;
+}
+
 /** `KEPT UNTIL 23 NOV` for a promise that has not run out yet, else empty. */
 export function keepLabel(
   keepUntil: string | null | undefined,

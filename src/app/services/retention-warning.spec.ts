@@ -1,4 +1,9 @@
-import { EXPIRY_WARNING_HOURS, expiryLabel, keepLabel } from "./retention-warning";
+import {
+  EXPIRY_WARNING_HOURS,
+  expiryLabel,
+  isSwept,
+  keepLabel,
+} from "./retention-warning";
 
 const HOUR = 3_600_000;
 const MINUTE = 60_000;
@@ -40,6 +45,16 @@ describe("retention warnings", () => {
   it("honours a different warning window", () => {
     expect(expiryLabel(at(3 * HOUR), now, 1)).toBe("");
     expect(expiryLabel(at(30 * MINUTE), now, 1)).toBe("IN 30M");
+  });
+
+  it("knows when a show is past its deadline", () => {
+    expect(isSwept(at(-MINUTE), now)).toBe(true);
+    expect(isSwept(at(0), now)).toBe(true);
+    expect(isSwept(at(MINUTE), now)).toBe(false);
+    // No deadline means nothing to drop: another relay may keep it forever.
+    expect(isSwept(null, now)).toBe(false);
+    expect(isSwept(undefined, now)).toBe(false);
+    expect(isSwept("not a date", now)).toBe(false);
   });
 
   it("shows a keep promise until the day it runs out", () => {

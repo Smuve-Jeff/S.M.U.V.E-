@@ -9,6 +9,7 @@ import { UserProfileService } from './user-profile.service';
 import {
   EXPIRY_WARNING_HOURS,
   expiryLabel,
+  isSwept,
   keepLabel,
 } from './retention-warning';
 import { createTestPattern } from './test-pattern';
@@ -156,7 +157,14 @@ export class BroadcastIngestService {
   constructor() {
     // Minute-level badges only need a minute-level tick, and writing the signal
     // re-renders the recordings block alone.
-    this.clockTimer = setInterval(() => this.clock.set(Date.now()), 60_000);
+    this.clockTimer = setInterval(() => {
+      this.clock.set(Date.now());
+      if (this.pruneSweptRecordings() && !this.recordingsLoading()) {
+        // Our own deadline said it was gone; ask the relay once so the list is
+        // its answer rather than ours.
+        void this.loadRecordings({ quiet: true });
+      }
+    }, 60_000);
     inject(DestroyRef).onDestroy(() => {
       if (this.clockTimer) clearInterval(this.clockTimer);
     });
@@ -488,13 +496,14 @@ export class BroadcastIngestService {
   }
 
   /** Re-read what the relay is still keeping for this account. */
-  async loadRecordings(): Promise<void> {
+  async loadRecordings(options: { quiet?: boolean } = {}): Promise<void> {
     if (!this.tokenService.jwtToken()) {
       this.recordings.set([]);
       return;
     }
     this.recordingsLoading.set(true);
-    this.pendingDelete.set(null);
+    // A background reconcile must not cancel a delete the host is confirming.
+    if (!options.quiet) this.pendingDelete.set(null);
     try {
       const rows = await firstValueFrom(
         this.http.get<BroadcastRecordingDto[]>(this.endpoint('/recordings'), {
@@ -504,8 +513,12 @@ export class BroadcastIngestService {
       this.recordings.set(Array.isArray(rows) ? rows : []);
       this.recordingsError.set('');
     } catch {
-      // A failed read must never read as "your recordings are gone".
-      this.recordingsError.set('COULD NOT LOAD RECORDINGS — TRY REFRESH');
+      // A failed read must never read as "your recordings are gone". A quiet
+      // reload is a background reconcile, so it stays silent rather than
+      // alarming a host whose list is already on screen.
+      if (!options.quiet) {
+        this.recordingsError.set('COULD NOT LOAD RECORDINGS — TRY REFRESH');
+      }
     } finally {
       this.recordingsLoading.set(false);
     }
@@ -604,6 +617,31 @@ export class BroadcastIngestService {
     }
   }
 
+  /**
+   * Drop shows whose deadline has passed. The sweeper runs on the same rule, so
+   * this is the list agreeing with the relay a moment early, not inventing a
+   * deletion. Stops playback if the show that went was the one playing.
+   */
+  private pruneSweptRecordings(): boolean {
+    const now = this.clock();
+    const rows = this.recordings();
+    const live = rows.filter((row) => !isSwept(row.expiresAt, now));
+    if (live.length === rows.length) return false;
+
+    this.recordings.set(live);
+    this.pendingDelete.set(null);
+    const playing = this.playback();
+    if (
+      playing &&
+      !live.some(
+        (row) => this.recordingKey(row) === this.recordingKey(playing.recording),
+      )
+    ) {
+      this.stopPlayback();
+    }
+    return true;
+  }
+
   /** `IN 4H` / `IN 45M` while a show is close to the sweeper, else empty. */
   expiryLabel(recording: BroadcastRecordingDto): string {
     return expiryLabel(recording.expiresAt, this.clock(), this.expiryWarningHours);
@@ -640,17 +678,27 @@ export class BroadcastIngestService {
         ),
       );
       const key = this.recordingKey(recording);
+      const pinnedUntil = Date.parse(String(kept?.keepUntil ?? ''));
       this.recordings.update((rows) =>
-        rows.map((row) =>
-          this.recordingKey(row) === key
-            ? {
-                ...row,
-                keepHours: kept?.keepHours ?? null,
-                keepUntil: kept?.keepUntil ?? null,
-              }
-            : row,
-        ),
+        rows.map((row) => {
+          if (this.recordingKey(row) !== key) return row;
+          // Move the local deadline with the pin, so the row is not pruned by
+          // the old window in the seconds before the reload below lands.
+          const current = Date.parse(String(row.expiresAt ?? ''));
+          const next = Number.isFinite(pinnedUntil)
+            ? Math.max(Number.isFinite(current) ? current : 0, pinnedUntil)
+            : current;
+          return {
+            ...row,
+            keepHours: kept?.keepHours ?? null,
+            keepUntil: kept?.keepUntil ?? null,
+            expiresAt: Number.isFinite(next) ? new Date(next).toISOString() : null,
+          };
+        }),
       );
+      // The relay owns the real deadline; take its answer rather than keeping
+      // one derived here, especially after a pin is cleared back to the window.
+      void this.loadRecordings({ quiet: true });
       this.snackbar.success(
         value > 0
           ? `RECORDING KEPT FOR ${this.retentionLabel(value)}`

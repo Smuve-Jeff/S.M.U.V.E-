@@ -343,7 +343,10 @@ deadline is computed from the relay's own window (now included in
 `GET /recordings`) and any pin, so the warning matches what the sweeper will
 actually do. Picking 7D, 30D or 90D clears the warning. The badge re-reads a clock that ticks
 once a minute, so a panel left open still shows a show crossing into its last
-hours; the list itself only reloads when you press REFRESH.
+hours. When a deadline actually passes, the row is dropped and the list is
+reconciled with the relay once, so a swept show does not sit there looking
+playable until someone presses REFRESH. Changing the selector re-reads the list
+too, so the deadline shown is always the relay's own answer.
 
 Retention is a default, not a rule: each row has a **DEFAULT / 7D / 30D / 90D**
 selector. Picking longer asks the API to pin the show (`PUT
