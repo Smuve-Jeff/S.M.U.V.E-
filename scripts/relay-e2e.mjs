@@ -9,6 +9,7 @@
  *
  *   npm run test:relay:e2e:setup              provision what is missing, then run
  *   npm run test:relay:e2e:setup -- --provision-only
+ *   npm run test:relay:e2e:setup -- --browser-only --provision-only
  *   npm run test:relay:e2e:setup -- --force   re-install / re-download anyway
  *
  * Everything lands in node_modules/.e2e, which is already ignored by git, so a
@@ -66,6 +67,7 @@ const TOOL_PACKAGES = { "ffmpeg-static": "5.3.0", werift: "0.27.0" };
 const args = new Set(process.argv.slice(2));
 const force = args.has("--force");
 const provisionOnly = args.has("--provision-only");
+const browserOnly = args.has("--browser-only");
 
 const log = (line) => console.log(`[relay-e2e] ${line}`);
 
@@ -101,28 +103,34 @@ function installedVersions() {
 }
 
 function provisionPackages() {
-  const haveBoth = existsSync(ffmpegPath) && existsSync(weriftPath);
+  const packages = browserOnly
+    ? { "ffmpeg-static": TOOL_PACKAGES["ffmpeg-static"] }
+    : TOOL_PACKAGES;
+  const haveAll = existsSync(ffmpegPath) && (browserOnly || existsSync(weriftPath));
   const installed = installedVersions();
-  const pinned = Object.entries(TOOL_PACKAGES).every(
+  const pinned = Object.entries(packages).every(
     ([name, version]) => installed[name] === version,
   );
-  if (haveBoth && pinned && !force) {
+  const what = browserOnly ? "ffmpeg" : "ffmpeg and werift";
+  if (haveAll && pinned && !force) {
     log(
-      `ffmpeg and werift already provisioned (${Object.entries(installed)
+      `${what} already provisioned (${Object.entries(installed)
+        .filter(([name]) => packages[name])
         .map(([name, version]) => `${name}@${version}`)
         .join(", ")})`,
     );
     return;
   }
-  if (haveBoth && !pinned) {
+  if (haveAll && !pinned) {
     log(
       `installed tools do not match the pins (${Object.entries(installed)
+        .filter(([name]) => packages[name])
         .map(([name, version]) => `${name}@${version}`)
         .join(", ")}); installing the pinned versions`,
     );
   }
   mkdirSync(tools, { recursive: true });
-  log("installing the pinned ffmpeg-static and werift (the slow step, ~80 MB)");
+  log(`installing the pinned ${what} (the slow step, ~80 MB)`);
   const status = run("npm", [
     "install",
     "--prefix",
@@ -130,14 +138,17 @@ function provisionPackages() {
     "--no-save",
     "--no-audit",
     "--no-fund",
-    ...Object.entries(TOOL_PACKAGES).map(([name, version]) => `${name}@${version}`),
+    ...Object.entries(packages).map(([name, version]) => `${name}@${version}`),
   ]);
-  if (status !== 0) fail("npm could not install ffmpeg-static and werift");
+  if (status !== 0) fail(`npm could not install ${what}`);
   if (!existsSync(ffmpegPath)) fail(`ffmpeg-static did not produce ${ffmpegPath}`);
-  if (!existsSync(path.join(weriftPath, "lib", "webrtc", "src", "index.js"))) {
+  if (
+    !browserOnly &&
+    !existsSync(path.join(weriftPath, "lib", "webrtc", "src", "index.js"))
+  ) {
     fail(`werift did not produce a usable module in ${weriftPath}`);
   }
-  log("ffmpeg and werift ready");
+  log(`${what} ready`);
 }
 
 /** MediaMTX ships as a static binary in a release tarball, not on npm. */
@@ -257,14 +268,18 @@ async function provisionMediaMtx() {
 }
 
 async function main() {
+  if (browserOnly && !provisionOnly) {
+    fail("--browser-only is only supported with --provision-only");
+  }
   provisionPackages();
   await provisionMediaMtx();
-  const whipFfmpeg = await provisionWhipFfmpeg();
+  const whipFfmpeg = browserOnly ? null : await provisionWhipFfmpeg();
 
   log(`ffmpeg:   ${ffmpegPath}`);
   log(`mediatmx: ${mediaMtxPath}`);
-  log(`werift:   ${weriftPath}`);
+  if (!browserOnly) log(`werift:   ${weriftPath}`);
   if (whipFfmpeg) log(`whip ffmpeg: ${whipFfmpeg}`);
+  if (browserOnly) log("browser-only: skipped werift and the WHIP-capable ffmpeg");
 
   if (provisionOnly) return 0;
 

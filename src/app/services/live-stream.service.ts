@@ -281,6 +281,7 @@ export class LiveStreamService {
         const authorized = await this.authorizeProvider('twitch');
         if (!authorized) {
           this.pendingGolive.set(null);
+          this.ingest.closePrimedAudioContext();
           return null;
         }
         await this.ingest.load();
@@ -291,6 +292,7 @@ export class LiveStreamService {
         await this.ingest.load();
         if (!this.ingest.ready('kick')) {
           this.pendingGolive.set(null);
+          this.ingest.closePrimedAudioContext();
           this.notify.show(
             'SAVE YOUR KICK STREAM URL AND KEY IN BROADCAST PUSH FIRST',
             'warning',
@@ -356,6 +358,11 @@ export class LiveStreamService {
         e?.status === 401 ? 'LOGIN EXPIRED' : 'GO_LIVE_FAILED',
         'warning',
       );
+      // A primed context is only useful until WHIP starts. Keep it if the
+      // push itself is live; otherwise release it with the failed attempt.
+      if (this.ingest.state() !== 'live') {
+        this.ingest.closePrimedAudioContext();
+      }
       // A failure after the row was issued must not leave a ghost live row
       // or a running camera behind.
       this.pendingGolive.set(null);
@@ -863,21 +870,28 @@ export class LiveStreamService {
         ? stream.platform
         : null;
     if (providerPlatform) this.ingest.primeAudioContext();
-    this.markHostingToken(stream.shareToken);
-    await this.social.startStream(stream.platform);
-    this.social.updateStatus(this.livePresenceMetadata());
-    this.startStreamPoll();
-    if (providerPlatform) {
-      await this.ingest.load();
-      if (stream.platform === 'twitch' && !this.ingest.ready('twitch')) {
-        await this.authorizeProvider('twitch');
+    try {
+      this.markHostingToken(stream.shareToken);
+      await this.social.startStream(stream.platform);
+      this.social.updateStatus(this.livePresenceMetadata());
+      this.startStreamPoll();
+      if (providerPlatform) {
         await this.ingest.load();
+        if (stream.platform === 'twitch' && !this.ingest.ready('twitch')) {
+          await this.authorizeProvider('twitch');
+          await this.ingest.load();
+        }
+        await this.ingest.start(providerPlatform);
       }
-      await this.ingest.start(providerPlatform);
+      this.haptic.medium();
+      this.notify.show('BROADCAST RESUMED IN THIS TAB', 'success');
+      return true;
+    } catch (error) {
+      if (this.ingest.state() !== 'live') {
+        this.ingest.closePrimedAudioContext();
+      }
+      throw error;
     }
-    this.haptic.medium();
-    this.notify.show('BROADCAST RESUMED IN THIS TAB', 'success');
-    return true;
   }
 
   // ── Helpers ─────────────────────────────────────────────────────────

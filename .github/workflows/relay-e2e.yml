@@ -11,6 +11,7 @@ on:
     paths:
       - 'relay/**'
       - 'scripts/relay-e2e.mjs'
+      - 'src/app/services/whip-publisher.ts'
       - 'package.json'
       - '.nvmrc'
       - '.github/workflows/relay-e2e.yml'
@@ -19,6 +20,7 @@ on:
     paths:
       - 'relay/**'
       - 'scripts/relay-e2e.mjs'
+      - 'src/app/services/whip-publisher.ts'
       - 'package.json'
       - '.nvmrc'
       - '.github/workflows/relay-e2e.yml'
@@ -95,3 +97,41 @@ jobs:
           name: relay-e2e-logs
           path: ${{ runner.temp }}/relay-e2e-logs
           if-no-files-found: warn
+
+  # This job drives the real app bundle in Chromium, so unlike the relay-only
+  # job it needs the app's Playwright and esbuild dependencies. Provision only
+  # ffmpeg and MediaMTX here; the WHIP-capable ffmpeg is unrelated to this test.
+  browser-audio:
+    name: Chromium records mixed mic and game audio
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Use project Node version
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Install Chromium with browser dependencies
+        run: npx playwright install --with-deps chromium
+
+      - name: Provision ffmpeg and MediaMTX
+        run: npm run test:relay:e2e:setup -- --browser-only --provision-only
+        env:
+          CI: true
+
+      - name: Run Chromium/MediaMTX recording check
+        run: npm run test:relay:e2e:browser
+        env:
+          CI: true
+          # CI just installed every required binary. A skip here means the
+          # setup did not take, so it must fail instead of passing quietly.
+          RELAY_E2E_REQUIRE_TOOLS: '1'
+          RELAY_FFMPEG_PATH: ${{ github.workspace }}/node_modules/.e2e/node_modules/ffmpeg-static/ffmpeg
+          MEDIAMTX_PATH: ${{ github.workspace }}/node_modules/.e2e/mediamtx

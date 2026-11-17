@@ -117,33 +117,34 @@ export class WhipPublisher {
     this.error.set(null);
     this.state.set('connecting');
 
-    const pc = new RTCPeerConnection({ iceServers: STUN_SERVERS });
-    this.pc = pc;
-    const video = stream.getVideoTracks()[0];
-    const audioTracks = stream.getAudioTracks();
-    const audio =
-      audioTracks.length > 1
-        ? this.mixAudioTracks(audioTracks) ?? audioTracks[0]
-        : audioTracks[0];
-    if (video) this.videoSender = pc.addTrack(video, stream);
-    if (audio) this.audioSender = pc.addTrack(audio, stream);
-    if (!video && !audio) {
-      this.state.set('error');
-      this.error.set('NOTHING TO SEND — NO CAPTURE TRACKS');
-      return false;
-    }
-
-    if (video && this.videoSender) {
-      const codecProblem = applyH264Preference(pc, this.videoSender);
-      if (codecProblem) {
+    try {
+      const pc = new RTCPeerConnection({ iceServers: STUN_SERVERS });
+      this.pc = pc;
+      const video = stream.getVideoTracks()[0];
+      const audioTracks = stream.getAudioTracks();
+      const audio =
+        audioTracks.length > 1
+          ? this.mixAudioTracks(audioTracks) ?? audioTracks[0]
+          : audioTracks[0];
+      if (video) this.videoSender = pc.addTrack(video, stream);
+      if (audio) this.audioSender = pc.addTrack(audio, stream);
+      if (!video && !audio) {
         await this.stop();
         this.state.set('error');
-        this.error.set(codecProblem);
+        this.error.set('NOTHING TO SEND — NO CAPTURE TRACKS');
         return false;
       }
-    }
 
-    try {
+      if (video && this.videoSender) {
+        const codecProblem = applyH264Preference(pc, this.videoSender);
+        if (codecProblem) {
+          await this.stop();
+          this.state.set('error');
+          this.error.set(codecProblem);
+          return false;
+        }
+      }
+
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
       await waitForIceGathering(pc);
@@ -198,6 +199,16 @@ export class WhipPublisher {
     if (context && context.state !== 'running') {
       void context.resume().catch(() => undefined);
     }
+  }
+
+  /**
+   * Close a context primed for a click whose push never reached WHIP.
+   * Only call this when no session is connecting or live; a real stop owns
+   * the teardown of a session that did start.
+   */
+  closePrimedAudioContext(): void {
+    if (this.state() === 'connecting' || this.state() === 'live') return;
+    this.closeAudioContext();
   }
 
   /** Swap the outbound video track without renegotiating. */

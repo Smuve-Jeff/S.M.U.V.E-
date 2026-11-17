@@ -254,6 +254,51 @@ describe('WhipPublisher.start', () => {
     }
   });
 
+  it('closes the primed context when RTCPeerConnection construction fails', async () => {
+    const mixed = { kind: 'audio', id: 'mixed', stop: jest.fn() };
+    const mediaStream = installAudioMixer(mixed);
+    const publisher = new WhipPublisher();
+
+    try {
+      publisher.primeAudioContext();
+      expect(mediaStream.context.close).not.toHaveBeenCalled();
+      (global as unknown as { RTCPeerConnection: unknown }).RTCPeerConnection =
+        jest.fn(() => {
+          throw new Error('WebRTC unavailable');
+        });
+
+      expect(await publisher.start('https://relay.test/s/whip', stream)).toBe(
+        false
+      );
+
+      expect(mediaStream.context.close).toHaveBeenCalled();
+      expect(fetchMock).not.toHaveBeenCalled();
+    } finally {
+      mediaStream.restore();
+    }
+  });
+
+  it('closes a context primed for a push that never reaches WHIP', () => {
+    const mixed = { kind: 'audio', id: 'mixed', stop: jest.fn() };
+    const mediaStream = installAudioMixer(mixed);
+    const publisher = new WhipPublisher();
+
+    try {
+      publisher.primeAudioContext();
+      expect(mediaStream.context.close).not.toHaveBeenCalled();
+
+      publisher.state.set('live');
+      publisher.closePrimedAudioContext();
+      expect(mediaStream.context.close).not.toHaveBeenCalled();
+
+      publisher.state.set('idle');
+      publisher.closePrimedAudioContext();
+      expect(mediaStream.context.close).toHaveBeenCalled();
+    } finally {
+      mediaStream.restore();
+    }
+  });
+
   it('rebuilds the audio mix when the host switches camera ↔ screen', async () => {
     const mic = { kind: 'audio', id: 'mic' };
     const system = { kind: 'audio', id: 'system' };

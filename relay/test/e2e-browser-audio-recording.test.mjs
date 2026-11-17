@@ -33,8 +33,9 @@ import { SessionManager } from "../src/session-manager.mjs";
  *   MEDIAMTX_PATH=/path/to/mediamtx \
  *     node --test relay/test/e2e-browser-audio-recording.test.mjs
  *
- * Absent tools skip; configured-but-broken tools fail. Chromium that cannot
- * launch because its OS libraries are missing also skips, with the install hint.
+ * Absent tools skip; configured-but-broken tools fail. A Chromium that cannot
+ * launch because its OS libraries are missing also skips locally, but fails
+ * when `RELAY_E2E_REQUIRE_TOOLS=1` (CI) promises the dependencies are installed.
  */
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -389,9 +390,10 @@ test(
           detail,
         )
       ) {
-        t.skip(
-          "Playwright Chromium cannot run here; install its OS libraries (for example: npx playwright install --with-deps chromium)",
-        );
+        const message =
+          "Playwright Chromium cannot run here; install its OS libraries (for example: npx playwright install --with-deps chromium)";
+        if (requireTools) throw new Error(`${message}: ${detail}`);
+        t.skip(message);
         return;
       }
       throw error;

@@ -323,6 +323,18 @@ RELAY_WHIP_FFMPEG_PATH=/path/to/whip-capable/ffmpeg \
   npm run test:relay:e2e
 ```
 
+The Chromium recording check has its own entry point and CI job. It needs the
+app's Playwright/esbuild dependencies, Chromium, ffmpeg and MediaMTX:
+
+```bash
+npm run test:relay:e2e:browser
+```
+
+CI sets `RELAY_E2E_REQUIRE_TOOLS=1` for that job, so a missing browser or tool
+fails the run instead of silently skipping it. Use
+`npm run test:relay:e2e:setup -- --browser-only --provision-only` to fetch only
+the two media binaries that check uses.
+
 Set `RELAY_E2E_LOGS_DIR` to keep the MediaMTX log, the relay's own log, the last
 session state, the alerts and the ingest byte count for that run — CI does this
 and prints them when the job fails. If that directory cannot be written, the run

@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 import { createTestPattern } from './test-pattern';
 import { BroadcastIngestService } from './broadcast-ingest.service';
 import { SnackbarService } from './snackbar.service';
@@ -23,6 +23,7 @@ const httpPost = jest.fn();
 const httpGet = jest.fn();
 const httpDelete = jest.fn();
 const primeAudioContext = jest.fn();
+const closePrimedAudioContext = jest.fn();
 const whipStart = jest.fn(async () => true);
 const whipStop = jest.fn(async () => undefined);
 const testPattern = {
@@ -36,6 +37,7 @@ beforeEach(() => {
   httpGet.mockReset();
   httpDelete.mockReset();
   primeAudioContext.mockReset();
+  closePrimedAudioContext.mockReset();
   whipStart.mockReset().mockResolvedValue(true);
   whipStop.mockReset().mockResolvedValue(undefined);
   testPattern.stop.mockReset();
@@ -83,6 +85,7 @@ beforeEach(() => {
           state: signal('idle'),
           error: signal(null),
           primeAudioContext,
+          closePrimedAudioContext,
           start: whipStart,
           stop: whipStop,
           replaceTracks: jest.fn(),
@@ -119,5 +122,26 @@ describe('BroadcastIngestService audio priming', () => {
     expect(primeAudioContext.mock.invocationCallOrder[0]).toBeLessThan(
       httpPost.mock.invocationCallOrder[0],
     );
+  });
+
+  it('closes the primed context when the PUSH session request fails', async () => {
+    httpPost.mockReturnValueOnce(throwError(() => new Error('relay down')));
+    const service = TestBed.inject(BroadcastIngestService);
+
+    expect(await service.start('twitch')).toBe(false);
+
+    expect(primeAudioContext).toHaveBeenCalledTimes(1);
+    expect(closePrimedAudioContext).toHaveBeenCalledTimes(1);
+  });
+
+  it('closes the primed context when SELF-TEST cannot build a pattern', async () => {
+    (createTestPattern as jest.Mock).mockReturnValueOnce(null);
+    const service = TestBed.inject(BroadcastIngestService);
+
+    await service.runSelfTest();
+
+    expect(primeAudioContext).toHaveBeenCalledTimes(1);
+    expect(closePrimedAudioContext).toHaveBeenCalledTimes(1);
+    expect(httpPost).not.toHaveBeenCalled();
   });
 });

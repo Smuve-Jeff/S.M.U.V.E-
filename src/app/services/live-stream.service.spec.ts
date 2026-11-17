@@ -157,7 +157,9 @@ beforeEach(() => {
           load: jest.fn(async () => undefined),
           ready: jest.fn(() => true),
           start: jest.fn(async () => true),
+          state: signal('idle'),
           primeAudioContext: jest.fn(),
+          closePrimedAudioContext: jest.fn(),
         },
       },
     ],
@@ -306,6 +308,7 @@ describe('LiveStreamService', () => {
 
       expect(prime).toHaveBeenCalledTimes(1);
       expect(primedBeforeAuth).toBe(true);
+      expect(ingest.closePrimedAudioContext).toHaveBeenCalledTimes(1);
     });
 
     it('does not issue a row when Twitch authorization fails', async () => {
@@ -343,6 +346,7 @@ describe('LiveStreamService', () => {
       expect(service.currentStream()).toBeNull();
       expect(service.pendingGolive()).toBeNull();
       expect(social().startStream).not.toHaveBeenCalled();
+      expect(ingest().closePrimedAudioContext).toHaveBeenCalledTimes(1);
     });
 
     it('issues a Kick row after the saved-destination preflight and starts the push', async () => {
@@ -936,6 +940,24 @@ describe('LiveStreamService', () => {
       expect(primedBeforeStart).toBe(true);
       expect(prime).toHaveBeenCalledTimes(1);
       expect(ingest.start).toHaveBeenCalledWith('kick');
+    });
+
+    it('closes the primed mixer when the capture restart fails before WHIP', async () => {
+      service = TestBed.inject(LiveStreamService);
+      tokenRef = { value: 'TKN' };
+      profileRef = { value: { id: '77', artistName: 'JEFF' } };
+      service.currentStream.set(makeRow({ platform: 'kick' }));
+      const ingest = TestBed.inject(BroadcastIngestService);
+      (
+        TestBed.inject(SocialNetworkingService).startStream as jest.Mock
+      ).mockRejectedValueOnce(new Error('capture failed'));
+
+      await expect(service.resumeBroadcastHere()).rejects.toThrow(
+        'capture failed',
+      );
+
+      expect(ingest.primeAudioContext).toHaveBeenCalledTimes(1);
+      expect(ingest.closePrimedAudioContext).toHaveBeenCalledTimes(1);
     });});
 
   describe('endStream when the server row is already gone', () => {

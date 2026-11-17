@@ -234,6 +234,11 @@ export class BroadcastIngestService {
     this.whip.primeAudioContext();
   }
 
+  /** Drop the click-primed context when the push failed before WHIP started. */
+  closePrimedAudioContext(): void {
+    this.whip.closePrimedAudioContext();
+  }
+
   detail(platform: IngestPlatform): string {
     return this.destinations()[platform]?.detail ?? '';
   }
@@ -301,6 +306,7 @@ export class BroadcastIngestService {
       this.relayId = session.relayId ?? null;
       const started = await this.whip.start(session.whipUrl, stream);
       if (!started) {
+        this.closePrimedAudioContext();
         await this.releaseRelay();
         this.snackbar.error(
           this.whip.error() ?? `${platform.toUpperCase()} PUSH FAILED`,
@@ -311,6 +317,9 @@ export class BroadcastIngestService {
       this.snackbar.success(`PUSHING TO ${platform.toUpperCase()}`);
       return true;
     } catch (error) {
+      // A primed context is only useful until WHIP starts. If the session or
+      // publisher failed first, release it instead of holding audio open.
+      if (this.whip.state() !== 'live') this.closePrimedAudioContext();
       // The relay may already hold a session that the publisher never joined;
       // release it instead of leaving an orphaned ingest for the next push.
       try {
@@ -448,6 +457,7 @@ export class BroadcastIngestService {
     this.primeAudioContext();
     const pattern = createTestPattern();
     if (!pattern) {
+      this.closePrimedAudioContext();
       this.selfTest.set({
         status: 'fail',
         detail: 'THIS BROWSER CANNOT GENERATE A TEST PATTERN',
