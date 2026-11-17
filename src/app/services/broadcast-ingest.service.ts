@@ -93,8 +93,6 @@ export class BroadcastIngestService {
   readonly loading = signal(false);
   /** The platform whose push is starting, if any. */
   readonly pushing = signal<IngestPlatform | null>(null);
-  /** Every provider sharing the current relay session. */
-  readonly sessionPlatforms = signal<IngestPlatform[]>([]);
   /** Relay id of the current push, or null when no WHIP session is open. */
   readonly activeRelayId = signal<string | null>(null);
   readonly state = this.whip.state;
@@ -332,7 +330,6 @@ export class BroadcastIngestService {
         throw new Error('THE RELAY RETURNED NO PUBLISH URL');
       this.relayId = session.relayId ?? null;
       this.activeRelayId.set(this.relayId);
-      this.sessionPlatforms.set(platforms);
       // The session request can outlive a camera ↔ screen switch. Start with
       // the capture that exists now, not the one captured before the await.
       const stream = this.social.localStream();
@@ -369,8 +366,6 @@ export class BroadcastIngestService {
       } catch {
         /* best-effort cleanup */
       }
-      this.activeRelayId.set(null);
-      this.sessionPlatforms.set([]);
       this.snackbar.error(this.describe(error));
       return false;
     } finally {
@@ -382,8 +377,6 @@ export class BroadcastIngestService {
     this.stopWatching();
     await this.whip.stop();
     await this.releaseRelay();
-    this.activeRelayId.set(null);
-    this.sessionPlatforms.set([]);
     this.stopPlayback();
     this.snackbar.info('BROADCAST PUSH STOPPED');
     // The show that just ended is the one the host is most likely to want.
@@ -599,7 +592,6 @@ export class BroadcastIngestService {
     const id = this.relayId;
     this.relayId = null;
     this.activeRelayId.set(null);
-    this.sessionPlatforms.set([]);
     if (!id) return;
     try {
       await firstValueFrom(

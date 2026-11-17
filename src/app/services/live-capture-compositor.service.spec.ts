@@ -65,6 +65,23 @@ describe('live capture compositor', () => {
     expect(rect.y).toBe(0);
   });
 
+  it('fits a portrait camera inside the frame instead of overflowing it', () => {
+    const rect = computeLivePipRect(
+      1280,
+      720,
+      layout({ corner: 'bottom-right', scale: 0.5, margin: 0.04 }),
+      9 / 16,
+    );
+    const margin = Math.round(720 * 0.04);
+
+    expect(rect.width).toBeLessThanOrEqual(1280 - margin * 2);
+    expect(rect.height).toBeLessThanOrEqual(720 - margin * 2);
+    expect(rect.x).toBeGreaterThanOrEqual(0);
+    expect(rect.y).toBeGreaterThanOrEqual(0);
+    expect(rect.x + rect.width).toBeLessThanOrEqual(1280);
+    expect(rect.y + rect.height).toBeLessThanOrEqual(720);
+  });
+
   it('draws the screen full-frame and mirrors the camera by default', () => {
     const ctx = mockContext();
     const screen = { width: 1920, height: 1080 };

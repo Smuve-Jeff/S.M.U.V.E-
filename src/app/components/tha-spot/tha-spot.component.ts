@@ -1676,10 +1676,6 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   // ── Go-Live / live-stream overlay state ─────────────
   /** Local picker: every platform the host wants in this one session. */
   readonly selectedGoLivePlatforms = signal<GoLivePlatform[]>(["smuve"]);
-  /** First selection, used as the session's compatibility platform. */
-  readonly selectedGoLivePlatform = computed<GoLivePlatform>(
-    () => this.selectedGoLivePlatforms()[0] ?? "smuve",
-  );
   readonly showGoLivePicker = signal(false);
   /**
    * Tap-to-join inbound preview from `?live=...`. Rendered as an overlay

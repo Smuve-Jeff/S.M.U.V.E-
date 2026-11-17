@@ -28,7 +28,6 @@ export interface LiveCompositeRect {
 
 export interface LiveCompositeSession {
   stream: MediaStream;
-  canvas: HTMLCanvasElement;
   updateLayout(layout: Partial<LiveCompositeLayout>): void;
   stop(): void;
 }
@@ -86,8 +85,20 @@ export function computeLivePipRect(
   );
   const aspect =
     Number.isFinite(cameraAspect) && cameraAspect > 0 ? cameraAspect : 16 / 9;
-  const pipWidth = Math.round(width * scale);
-  const pipHeight = Math.round(pipWidth / aspect);
+  // A portrait camera must not overflow the frame: fit by both dimensions,
+  // then derive the height from the clamped width so the inset keeps its
+  // source aspect ratio.
+  const maxWidth = Math.max(1, width - margin * 2);
+  const maxHeight = Math.max(1, height - margin * 2);
+  const pipWidth = Math.max(
+    1,
+    Math.min(
+      Math.round(width * scale),
+      maxWidth,
+      Math.round(maxHeight * aspect),
+    ),
+  );
+  const pipHeight = Math.max(1, Math.round(pipWidth / aspect));
   const right = width - margin - pipWidth;
   const bottom = height - margin - pipHeight;
 
@@ -267,7 +278,6 @@ export class LiveCaptureCompositorService {
 
     return {
       stream: output,
-      canvas,
       updateLayout(next: Partial<LiveCompositeLayout>): void {
         layout = { ...layout, ...next };
       },

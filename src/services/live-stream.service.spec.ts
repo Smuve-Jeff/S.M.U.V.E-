@@ -249,9 +249,15 @@ describe("live-stream service", () => {
       const active = mockStreamStore.filter((r) => r.active);
       expect(active.length).toBe(1);
       expect(second.platform).toBe("kick");
-      // Earlier row is still present but flipped to inactive.
+      // Earlier row is still present but flipped to inactive, and its
+      // destination rows cannot keep claiming they are live.
       const inactive = mockStreamStore.filter((r) => !r.active);
       expect(inactive.length).toBe(1);
+      expect(
+        mockDestinationStore.filter(
+          (row) => row.streamId === inactive[0].id,
+        ),
+      ).toEqual([expect.objectContaining({ status: 'ended' })]);
     });
 
 

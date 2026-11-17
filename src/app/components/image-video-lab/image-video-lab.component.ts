@@ -631,9 +631,10 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
   voiceTranscript = signal<string | null>(null);
   /** Fallback command line for browsers without speech recognition. */
   commandInput = signal('');
-  livePlatform = signal<GoLivePlatform>('smuve');
   /** Every platform selected for one Go Live session. */
   liveDestinations = signal<GoLivePlatform[]>(['smuve']);
+  /** First selection, used as the session's compatibility platform. */
+  readonly livePlatform = computed(() => this.liveDestinations()[0] ?? 'smuve');
   markerDraft = signal('');
   readonly livePlatforms = GO_LIVE_PLATFORMS;
   readonly exportWindowOptions = EXPORT_WINDOW_OPTIONS;
@@ -2685,7 +2686,6 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
       }
       return [...current, platform];
     });
-    this.livePlatform.set(this.liveDestinations()[0] ?? 'smuve');
   }
 
   /** Cycle the camera inset corner without touching either capture. */

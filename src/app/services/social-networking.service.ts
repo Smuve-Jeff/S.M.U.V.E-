@@ -438,7 +438,11 @@ export class SocialNetworkingService {
       const composite = session.stream.getVideoTracks()[0];
       if (!composite) throw new Error('LIVE_COMPOSITE_NO_VIDEO_TRACK');
       screen.video.addEventListener('ended', () => {
-        if (this.videoSource() === 'camera-pip' && this.captureActive()) {
+        if (
+          this.videoSource() === 'camera-pip' &&
+          this.captureActive() &&
+          this.compositeRawTracks[0] === screen.video
+        ) {
           void this.setVideoSource('camera').catch(() => undefined);
         }
       });
@@ -1491,20 +1495,25 @@ export class SocialNetworkingService {
       }
     }
     if (this.videoSource() === 'screen' && this.screenShareSupported()) {
+      let screen: { video: MediaStreamTrack; systemAudio: MediaStreamTrack[] } | null =
+        null;
       try {
-        const { video, systemAudio } = await this.acquireScreenCapture(preset);
+        screen = await this.acquireScreenCapture(preset);
         const mic = await navigator.mediaDevices.getUserMedia({
           audio: { echoCancellation: true, noiseSuppression: true },
         });
         const micTracks = mic.getAudioTracks();
         micTracks.forEach((t) => this.micTrackIds.add(t.id));
-        this.setHostStream(new MediaStream([video, ...micTracks]), 'screen');
+        this.setHostStream(new MediaStream([screen.video, ...micTracks]), 'screen');
         // System sound joins alongside the mic; the player mixes both.
-        systemAudio.forEach((t) => this.localStream()?.addTrack(t));
-        this.screenAudioAvailable.set(this.screenAudioReady(systemAudio));
+        screen.systemAudio.forEach((t) => this.localStream()?.addTrack(t));
+        this.screenAudioAvailable.set(this.screenAudioReady(screen.systemAudio));
         return;
       } catch {
-        // Picker cancelled or capture unsupported — fall through to camera.
+        // A cancelled picker, a denied mic, or an unsupported capture must not
+        // leave the browser's screen-sharing indicator running.
+        screen?.video.stop();
+        screen?.systemAudio.forEach((track) => track.stop());
         this.videoSource.set('camera');
       }
     }

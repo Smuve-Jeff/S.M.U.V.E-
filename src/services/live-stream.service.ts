@@ -152,6 +152,13 @@ export const generateShareToken = (): string =>
   // 24 hex chars = 96 bits; matches the GameInvite token scheme.
   randomBytes(12).toString("hex");
 
+/** Mark the destination rows for the given sessions ended. */
+const endDestinationRows = async (streamIds: number[]): Promise<void> => {
+  for (const streamId of streamIds) {
+    await repo().destinations.update({ streamId }, { status: "ended" });
+  }
+};
+
 /** Validate and de-duplicate the platform set for one session. */
 const selectedDestinations = (
   input: StartLiveStreamInput,
@@ -211,6 +218,7 @@ export const startLiveStream = async (
   }
   if (existing.length) {
     await repo().streams.save(existing);
+    await endDestinationRows(existing.map((row) => row.id));
   }
 
   // Token retry: the unique index can collide on regeneration (1 in 2^96)
@@ -331,9 +339,7 @@ export const endLiveStream = async (
     row.endedAt = new Date();
   }
   await repo().streams.save(active);
-  for (const row of active) {
-    await repo().destinations.update({ streamId: row.id }, { status: "ended" });
-  }
+  await endDestinationRows(active.map((row) => row.id));
   return { success: true, streamId: active[0]?.id ?? null };
 };
 

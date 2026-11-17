@@ -164,7 +164,6 @@ beforeEach(() => {
           stop: jest.fn(async () => undefined),
           state: signal('idle'),
           activeRelayId: signal(null),
-          sessionPlatforms: signal([]),
           primeAudioContext: jest.fn(),
           closePrimedAudioContext: jest.fn(),
         },
