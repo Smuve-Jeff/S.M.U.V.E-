@@ -18,12 +18,13 @@ import {
 import { createTestPattern } from './test-pattern';
 import { WhipPublisher } from './whip-publisher';
 
-export type IngestPlatform = 'twitch' | 'kick' | 'facebook';
+export type IngestPlatform = 'twitch' | 'kick' | 'facebook' | 'custom';
 
 interface DestinationStatusDto {
   platform?: string;
   ready?: boolean;
   detail?: string;
+  label?: string;
 }
 
 interface DestinationsResponse {
@@ -84,6 +85,7 @@ export class BroadcastIngestService {
     { id: 'twitch', label: 'TWITCH' },
     { id: 'kick', label: 'KICK' },
     { id: 'facebook', label: 'FACEBOOK' },
+    { id: 'custom', label: 'CUSTOM RTMP' },
   ];
 
   readonly destinations = signal<
@@ -251,6 +253,11 @@ export class BroadcastIngestService {
     return this.destinations()[platform]?.detail ?? '';
   }
 
+  /** The saved host-facing name, so a custom target reads "TikTok", not "CUSTOM". */
+  platformLabel(platform: IngestPlatform): string {
+    return this.destinations()[platform]?.label?.trim() || platform.toUpperCase();
+  }
+
   async load(): Promise<void> {
     this.loading.set(true);
     try {
@@ -277,15 +284,16 @@ export class BroadcastIngestService {
 
   /** Store a manual RTMP URL + key; the key is never echoed back. */
   async saveDestination(
-    platform: 'kick' | 'facebook',
+    platform: 'kick' | 'facebook' | 'custom',
     rtmpUrl: string,
     streamKey: string,
+    label = '',
   ): Promise<boolean> {
     try {
       const status = await firstValueFrom(
         this.http.put<DestinationStatusDto>(
           this.endpoint(`/destinations/${platform}`),
-          { rtmpUrl, streamKey },
+          { rtmpUrl, streamKey, label },
           { headers: this.headers() },
         ),
       );
@@ -293,7 +301,9 @@ export class BroadcastIngestService {
         ...current,
         [platform]: status,
       }));
-      this.snackbar.success(`${platform.toUpperCase()} DESTINATION SAVED`);
+      this.snackbar.success(
+        `${status?.label || label || platform.toUpperCase()} DESTINATION SAVED`,
+      );
       return true;
     } catch (error) {
       this.snackbar.error(this.describe(error));

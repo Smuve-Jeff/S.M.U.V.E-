@@ -13,6 +13,7 @@ import { CreateStreamingDestinations1786243200013 } from "./1786243200013-Create
 import { CreateBroadcastSessions1786243200014 } from "./1786243200014-CreateBroadcastSessions";
 import { CreateLiveStreamViewerJoins1786243200015 } from "./1786243200015-CreateLiveStreamViewerJoins";
 import { CreateLiveStreamDestinations1786243200016 } from "./1786243200016-CreateLiveStreamDestinations";
+import { AddStreamingDestinationLabel1786243200017 } from "./1786243200017-AddStreamingDestinationLabel";
 
 /**
  * Metadata per migration drives dialect assertions:
@@ -42,6 +43,7 @@ const migrations: MigrationEntry[] = [
   { migration: new CreateBroadcastSessions1786243200014(), hasSerialColumn: true, hasJson: false },
   { migration: new CreateLiveStreamViewerJoins1786243200015(), hasSerialColumn: true, hasJson: false },
   { migration: new CreateLiveStreamDestinations1786243200016(), hasSerialColumn: true, hasJson: false },
+  { migration: new AddStreamingDestinationLabel1786243200017(), hasSerialColumn: false, hasJson: false },
 ];
 
 const migrationNames = [
@@ -59,6 +61,7 @@ const migrationNames = [
   "CreateBroadcastSessions1786243200014",
   "CreateLiveStreamViewerJoins1786243200015",
   "CreateLiveStreamDestinations1786243200016",
+  "AddStreamingDestinationLabel1786243200017",
 ];
 
 /** Stand-in QueryRunner that records every statement it is asked to run. */

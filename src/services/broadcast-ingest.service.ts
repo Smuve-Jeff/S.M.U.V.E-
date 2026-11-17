@@ -18,10 +18,10 @@ import {
   rememberBroadcastSession,
 } from "@/services/broadcast-recordings.service";
 
-export const INGEST_PLATFORMS = ["twitch", "kick", "facebook"] as const;
+export const INGEST_PLATFORMS = ["twitch", "kick", "facebook", "custom"] as const;
 
 /** Providers whose RTMP URL and key are entered from their dashboard. */
-const MANUAL_INGEST_PLATFORMS = ["kick", "facebook"] as const;
+const MANUAL_INGEST_PLATFORMS = ["kick", "facebook", "custom"] as const;
 type ManualIngestPlatform = (typeof MANUAL_INGEST_PLATFORMS)[number];
 
 export interface DestinationStatus {
@@ -29,6 +29,8 @@ export interface DestinationStatus {
   ready: boolean;
   /** What the host sees next to the platform: an account or the next step. */
   detail: string;
+  /** Host-facing name, especially for the generic custom destination. */
+  label: string;
 }
 
 export interface DestinationOverview {
@@ -154,16 +156,19 @@ export async function destinationOverview(
   userId: number | string,
 ): Promise<DestinationOverview> {
   const owner = Number(userId);
-  const [twitchAccount, kickRow, facebookRow] = await Promise.all([
+  const [twitchAccount, kickRow, facebookRow, customRow] = await Promise.all([
     accountRepository().findOne({ where: { userId: owner, platform: "twitch" } }),
     destinationRepository().findOne({ where: { userId: owner, platform: "kick" } }),
     destinationRepository().findOne({ where: { userId: owner, platform: "facebook" } }),
+    destinationRepository().findOne({ where: { userId: owner, platform: "custom" } }),
   ]);
 
   const status = (
     platform: IngestPlatform,
     detail: string,
-  ): DestinationStatus => ({ platform, ready: !!detail, detail });
+    label = platform.toUpperCase(),
+  ): DestinationStatus => ({ platform, ready: !!detail, detail, label });
+  const customLabel = customRow?.label?.trim() || "CUSTOM RTMP";
 
   return {
     relayConfigured: !!relayConfiguration(),
@@ -175,6 +180,13 @@ export async function destinationOverview(
       facebookRow
         ? status("facebook", `FACEBOOK — ${ingestHost(facebookRow.rtmpUrl)}`)
         : status("facebook", ""),
+      customRow
+        ? status(
+            "custom",
+            `${customLabel.toUpperCase()} — ${ingestHost(customRow.rtmpUrl)}`,
+            customLabel,
+          )
+        : status("custom", "", customLabel),
     ],
   };
 }
@@ -187,6 +199,18 @@ function ingestHost(rtmpUrl: string): string {
   }
 }
 
+/** A custom destination needs a short host-facing name in the picker. */
+function customLabel(value: unknown): string {
+  const label = typeof value === "string" ? value.trim() : "";
+  if (!/^[A-Za-z0-9][A-Za-z0-9 ._+&-]{0,39}$/.test(label)) {
+    throw new AppError(
+      400,
+      "Give the custom destination a label (TikTok, Instagram, X, LinkedIn, …).",
+    );
+  }
+  return label;
+}
+
 /**
  * Store a manual RTMP destination the host copied from their dashboard. Both
  * values are checked here because a typo would otherwise surface as a silent
@@ -195,15 +219,15 @@ function ingestHost(rtmpUrl: string): string {
 export async function saveManualDestination(
   userId: number | string,
   platform: string,
-  input: { rtmpUrl?: unknown; streamKey?: unknown },
+  input: { rtmpUrl?: unknown; streamKey?: unknown; label?: unknown },
 ): Promise<DestinationStatus> {
   const key = asManualPlatform(platform);
-  const label = key.toUpperCase();
   const rtmpUrl = typeof input.rtmpUrl === "string" ? input.rtmpUrl.trim() : "";
   const streamKey =
     typeof input.streamKey === "string" ? input.streamKey.trim() : "";
+  const label = key === "custom" ? customLabel(input.label) : key.toUpperCase();
 
-  if (!/^rtmps?:\/\/\S+$/i.test(rtmpUrl)) {
+  if (!/^rtmps?:\/\/\S+$/i.test(rtmpUrl) || /[|\[\]]/.test(rtmpUrl)) {
     throw new AppError(
       400,
       `The ${label} stream URL must be the rtmps:// address from your creator dashboard.`,
@@ -219,13 +243,19 @@ export async function saveManualDestination(
   const values = {
     userId: owner,
     platform: key,
+    label,
     rtmpUrl,
     streamKey: sealSecret(streamKey),
   };
   if (existing) await rows.update({ id: existing.id }, values);
   else await rows.save(rows.create(values));
 
-  return { platform: key, ready: true, detail: `${label} — ${ingestHost(rtmpUrl)}` };
+  return {
+    platform: key,
+    ready: true,
+    detail: `${label} — ${ingestHost(rtmpUrl)}`,
+    label,
+  };
 }
 
 export async function clearManualDestination(

@@ -143,6 +143,63 @@ describe("broadcast ingest manual destinations", () => {
     });
   });
 
+  it("stores a labelled, sealed custom RTMP destination", async () => {
+    mockRepo.create.mockImplementation((row: any) => row);
+    mockRepo.save.mockImplementation(async (row: any) => row);
+
+    const result = await saveManualDestination("7", "custom", {
+      label: "TikTok",
+      rtmpUrl: "rtmps://ingest.example.com/live",
+      streamKey: "TIKTOK_KEY_123",
+    });
+
+    expect(mockRepo.save).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: 7,
+        platform: "custom",
+        label: "TikTok",
+        rtmpUrl: "rtmps://ingest.example.com/live",
+        streamKey: "sealed:TIKTOK_KEY_123",
+      }),
+    );
+    expect(result).toMatchObject({
+      platform: "custom",
+      ready: true,
+      label: "TikTok",
+      detail: expect.stringContaining("TikTok"),
+    });
+  });
+
+  it("rejects a custom destination without a label", async () => {
+    await expect(
+      saveManualDestination(7, "custom", {
+        rtmpUrl: "rtmps://ingest.example.com/live",
+        streamKey: "TIKTOK_KEY_123",
+      }),
+    ).rejects.toMatchObject({ statusCode: 400 });
+    expect(mockRepo.save).not.toHaveBeenCalled();
+  });
+
+  it("reports a saved custom destination with its host label", async () => {
+    mockRepo.findOne
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({
+        label: "Instagram",
+        rtmpUrl: "rtmps://ingest.example.com/live",
+      });
+
+    const result = await destinationOverview(7);
+    const custom = result.platforms.find((row) => row.platform === "custom");
+
+    expect(custom).toMatchObject({
+      ready: true,
+      label: "Instagram",
+      detail: expect.stringContaining("INSTAGRAM"),
+    });
+  });
+
   it("clears the Facebook destination by platform", async () => {
     await clearManualDestination(7, "facebook");
 
@@ -205,6 +262,43 @@ describe("broadcast ingest multi-destination sessions", () => {
       {
         rtmpUrl: "rtmps://facebook.example:443/rtmp",
         streamKey: "FACEBOOK_KEY_123",
+      },
+    ]);
+  });
+
+  it("resolves a custom destination by its stored label", async () => {
+    mockRepo.findOne.mockResolvedValue({
+      id: 3,
+      userId: 7,
+      platform: "custom",
+      label: "X",
+      rtmpUrl: "rtmps://ingest.example.com/live",
+      streamKey: "sealed:CUSTOM_KEY_123",
+    });
+    const fetchMock = jest.fn(async () => ({
+      ok: true,
+      json: async () => ({
+        id: "relay-custom",
+        whipUrl: "https://relay.test/relay-custom/whip",
+      }),
+    }));
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+
+    const session = await startIngestSession(7, ["custom"]);
+
+    expect(session).toMatchObject({
+      platform: "custom",
+      platforms: ["custom"],
+      relayId: "relay-custom",
+    });
+    const body = JSON.parse(
+      (fetchMock.mock.calls[0] as unknown as [string, RequestInit])[1]
+        .body as string,
+    );
+    expect(body.destinations).toEqual([
+      {
+        rtmpUrl: "rtmps://ingest.example.com/live",
+        streamKey: "CUSTOM_KEY_123",
       },
     ]);
   });

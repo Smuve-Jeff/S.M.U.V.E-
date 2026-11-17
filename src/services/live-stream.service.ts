@@ -21,6 +21,7 @@ export const LIVE_STREAM_PLATFORMS = [
   "twitch",
   "kick",
   "facebook",
+  "custom",
   "youtube",
   "tiktok",
 ] as const;
@@ -28,8 +29,9 @@ export type LiveStreamPlatform = (typeof LIVE_STREAM_PLATFORMS)[number];
 
 /**
  * Platforms the Go Live flow can actually broadcast to today: the native
- * S.M.U.V.E room, plus Twitch, Kick and Facebook through the WHIP -> RTMP
- * relay. Kick and Facebook take a dashboard URL + key; Twitch uses its grant.
+ * S.M.U.V.E room, plus Twitch, Kick, Facebook and one generic custom RTMP
+ * target through the WHIP -> RTMP relay. Kick, Facebook and custom take a
+ * dashboard URL + key; Twitch uses its grant.
  *
  * `youtube` and `tiktok` stay in LIVE_STREAM_PLATFORMS so rows created before
  * this matrix was tightened still decode, but a new broadcast cannot be
@@ -41,6 +43,7 @@ export const LIVE_GO_LIVE_PLATFORMS = [
   "twitch",
   "kick",
   "facebook",
+  "custom",
 ] as const;
 export type GoLivePlatform = (typeof LIVE_GO_LIVE_PLATFORMS)[number];
 

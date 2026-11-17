@@ -21,6 +21,7 @@ const stream = {
 
 const httpPost = jest.fn();
 const httpGet = jest.fn();
+const httpPut = jest.fn();
 const httpDelete = jest.fn();
 const primeAudioContext = jest.fn();
 const closePrimedAudioContext = jest.fn();
@@ -36,6 +37,7 @@ beforeEach(() => {
   TestBed.resetTestingModule();
   httpPost.mockReset();
   httpGet.mockReset();
+  httpPut.mockReset();
   httpDelete.mockReset();
   primeAudioContext.mockReset();
   closePrimedAudioContext.mockReset();
@@ -53,6 +55,7 @@ beforeEach(() => {
         useValue: {
           post: httpPost,
           get: httpGet,
+          put: httpPut,
           delete: httpDelete,
         },
       },
@@ -138,6 +141,41 @@ describe('BroadcastIngestService reconnect capture', () => {
     expect(await service.start('twitch')).toBe(true);
 
     expect(whipReplaceTracks).toHaveBeenCalledWith(switched);
+  });
+});
+
+describe('BroadcastIngestService custom RTMP destination', () => {
+  it('saves the label and shows it in the destination picker', async () => {
+    httpPut.mockReturnValueOnce(
+      of({
+        platform: 'custom',
+        ready: true,
+        detail: 'TikTok — ingest.example.com',
+        label: 'TikTok',
+      }),
+    );
+    const service = TestBed.inject(BroadcastIngestService);
+
+    expect(
+      await service.saveDestination(
+        'custom',
+        'rtmps://ingest.example.com/live',
+        'TIKTOK_KEY_123',
+        'TikTok',
+      ),
+    ).toBe(true);
+
+    expect(httpPut).toHaveBeenCalledWith(
+      expect.stringContaining('/destinations/custom'),
+      {
+        rtmpUrl: 'rtmps://ingest.example.com/live',
+        streamKey: 'TIKTOK_KEY_123',
+        label: 'TikTok',
+      },
+      expect.anything(),
+    );
+    expect(service.ready('custom')).toBe(true);
+    expect(service.platformLabel('custom')).toBe('TikTok');
   });
 });
 

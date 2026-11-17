@@ -8,7 +8,7 @@ import {
 } from "typeorm";
 
 /** Platforms this app can push a broadcast to. */
-export type IngestPlatform = "twitch" | "kick" | "facebook";
+export type IngestPlatform = "twitch" | "kick" | "facebook" | "custom";
 
 /**
  * A manual RTMP destination for a provider whose API cannot hand us the key.
@@ -31,6 +31,10 @@ export class StreamingDestination {
 
   @Column({ type: "varchar", length: 16 })
   platform: IngestPlatform;
+
+  /** Host-facing name for a generic custom destination, e.g. "TikTok". */
+  @Column({ type: "varchar", length: 40, nullable: true })
+  label: string | null;
 
   /** Ingest URL from the provider dashboard, e.g. `rtmps://…:443/app`. */
   @Column({ type: "varchar", length: 512 })

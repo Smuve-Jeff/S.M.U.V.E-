@@ -203,6 +203,7 @@ describe('LiveStreamService', () => {
         'twitch',
         'kick',
         'facebook',
+        'custom',
       ]);
       expect(GO_LIVE_PLATFORMS).not.toContain('youtube');
       expect(GO_LIVE_PLATFORMS).not.toContain('tiktok');

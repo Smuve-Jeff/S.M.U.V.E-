@@ -1435,6 +1435,9 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   readonly kickStreamKey = signal('');
   readonly facebookRtmpUrl = signal('');
   readonly facebookStreamKey = signal('');
+  readonly customLabel = signal('');
+  readonly customRtmpUrl = signal('');
+  readonly customStreamKey = signal('');
   /**
    * Viewer mix split: the host publishes camera and game (screen) video
    * slots plus voice and system-sound audio slots, so the player divides
@@ -4252,19 +4255,38 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
    * Keep a manual RTMP destination on the server so the stream key never has
    * to be typed again, and drop it from this component's state once saved.
    */
-  async saveManualDestination(platform: 'kick' | 'facebook'): Promise<void> {
+  async saveManualDestination(
+    platform: 'kick' | 'facebook' | 'custom',
+  ): Promise<void> {
     const url =
-      platform === 'kick' ? this.kickRtmpUrl() : this.facebookRtmpUrl();
+      platform === 'kick'
+        ? this.kickRtmpUrl()
+        : platform === 'facebook'
+          ? this.facebookRtmpUrl()
+          : this.customRtmpUrl();
     const key =
-      platform === 'kick' ? this.kickStreamKey() : this.facebookStreamKey();
+      platform === 'kick'
+        ? this.kickStreamKey()
+        : platform === 'facebook'
+          ? this.facebookStreamKey()
+          : this.customStreamKey();
+    const label =
+      platform === 'custom' ? this.customLabel().trim() : platform.toUpperCase();
     const saved = await this.ingest.saveDestination(
       platform,
       url.trim(),
       key.trim(),
+      label,
     );
     if (!saved) return;
     if (platform === 'kick') this.kickStreamKey.set('');
-    else this.facebookStreamKey.set('');
+    else if (platform === 'facebook') this.facebookStreamKey.set('');
+    else this.customStreamKey.set('');
+  }
+
+  /** The label the host gave the custom RTMP target, not a generic "CUSTOM". */
+  goLiveLabel(platform: GoLivePlatform): string {
+    return platform === 'smuve' ? 'SMUVE' : this.ingest.platformLabel(platform);
   }
 
   /**

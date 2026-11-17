@@ -1963,7 +1963,7 @@
               <div class="broadcast-source-row" role="group" aria-label="Live destinations">
                 @for (platform of livePlatforms; track platform) {
                   <button type="button" class="director-button" [class.active]="liveDestinations().includes(platform)" [attr.aria-pressed]="liveDestinations().includes(platform)" (click)="toggleLiveDestination(platform)">
-                    {{ platform | uppercase }}
+                    {{ livePlatformLabel(platform) }}
                   </button>
                 }
               </div>

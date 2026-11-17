@@ -267,9 +267,16 @@ describe("live-stream service", () => {
         "twitch",
         "kick",
         "facebook",
+        "custom",
       ]);
       expect(LIVE_GO_LIVE_PLATFORMS).not.toContain("youtube");
       expect(LIVE_GO_LIVE_PLATFORMS).not.toContain("tiktok");
+    });
+
+    it("accepts a custom RTMP Go Live destination", async () => {
+      const custom = await startLiveStream({ hostId: "42", platform: "custom" });
+      expect(custom.platform).toBe("custom");
+      expect(custom.active).toBe(true);
     });
 
     it("accepts Kick and Facebook as Go Live destinations", async () => {

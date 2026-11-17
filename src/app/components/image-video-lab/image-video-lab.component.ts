@@ -126,6 +126,7 @@ import {
   VoiceArchetype,
 } from '../../services/speech-synthesis.service';
 import { GO_LIVE_PLATFORMS, GoLivePlatform, LiveStreamService } from '../../services/live-stream.service';
+import { BroadcastIngestService } from '../../services/broadcast-ingest.service';
 import { LiveVideoService } from '../../services/live-video.service';
 import { SocialNetworkingService } from '../../services/social-networking.service';
 import { LiveRelayStripComponent } from '../live-relay-strip/live-relay-strip.component';
@@ -334,6 +335,8 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
   private speechRecognition = inject(SpeechRecognitionService);
   private speechSynthesis = inject(SpeechSynthesisService);
   public liveStream = inject(LiveStreamService);
+  /** Saved destination labels (the custom RTMP target has a host-chosen name). */
+  public ingest = inject(BroadcastIngestService);
   /** Owns camera/screen capture and the preflight preview. */
   public social = inject(SocialNetworkingService);
   /** Delivers the host camera feed to viewers over WebRTC. */
@@ -2677,6 +2680,10 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
   }
 
   /** Toggle one destination; the picker never becomes empty. */
+  livePlatformLabel(platform: GoLivePlatform): string {
+    return platform === 'smuve' ? 'SMUVE' : this.ingest.platformLabel(platform);
+  }
+
   toggleLiveDestination(platform: GoLivePlatform): void {
     this.liveDestinations.update((current) => {
       if (current.includes(platform)) {

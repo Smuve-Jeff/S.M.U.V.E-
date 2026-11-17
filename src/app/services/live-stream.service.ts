@@ -18,13 +18,20 @@ import type { Socket } from 'socket.io-client';
  * destination (share link only, no OAuth popup).
  */
 export type LiveStreamPlatform =
-  'smuve' | 'twitch' | 'kick' | 'facebook' | 'youtube' | 'tiktok';
+  | 'smuve'
+  | 'twitch'
+  | 'kick'
+  | 'facebook'
+  | 'custom'
+  | 'youtube'
+  | 'tiktok';
 
 export const LIVE_STREAM_PLATFORMS: LiveStreamPlatform[] = [
   'smuve',
   'twitch',
   'kick',
   'facebook',
+  'custom',
   'youtube',
   'tiktok',
 ];
@@ -32,14 +39,16 @@ export const LIVE_STREAM_PLATFORMS: LiveStreamPlatform[] = [
 /**
  * What the Go Live picker may offer today. YouTube's stored grant is
  * read-only and TikTok has no ingest path, so both stay in
- * LIVE_STREAM_PLATFORMS only so old rows still decode. Facebook uses the
- * manual RTMP URL + key saved in Broadcast Push, just like Kick.
+ * LIVE_STREAM_PLATFORMS only so old rows still decode. Facebook and the
+ * generic custom destination use the manual RTMP URL + key saved in
+ * Broadcast Push, just like Kick.
  */
 export const GO_LIVE_PLATFORMS = [
   'smuve',
   'twitch',
   'kick',
   'facebook',
+  'custom',
 ] as const;
 export type GoLivePlatform = (typeof GO_LIVE_PLATFORMS)[number];
 
@@ -286,7 +295,10 @@ export class LiveStreamService {
   private providerPlatforms(destinations: GoLivePlatform[]): IngestPlatform[] {
     return destinations.filter(
       (platform): platform is IngestPlatform =>
-        platform === 'twitch' || platform === 'kick' || platform === 'facebook',
+        platform === 'twitch' ||
+        platform === 'kick' ||
+        platform === 'facebook' ||
+        platform === 'custom',
     );
   }
 

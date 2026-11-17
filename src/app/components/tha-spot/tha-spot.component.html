@@ -1362,9 +1362,10 @@
       <div class="share-tray-body">
         <p class="share-tray-label">
           Pick one or more destinations. SMUVE LIVE starts instantly; Twitch
-          opens its connect window first; Kick and Facebook use the stream URL
-          and key saved in Broadcast Push. Your viewer share link is copied as
-          soon as the stream is live.
+          opens its connect window first; Kick, Facebook and the custom RTMP
+          target (TikTok, Instagram, X, LinkedIn) use the stream URL and key
+          saved in Broadcast Push. Your viewer share link is copied as soon as
+          the stream is live.
         </p>
         <div class="platform-picker" role="group" aria-label="Live platforms">
           <button
@@ -1386,7 +1387,7 @@
                       : "flash_on"
               }}</span
             >
-            {{ p | uppercase }}
+            {{ goLiveLabel(p) }}
           </button>
         </div>
       </div>
@@ -3388,6 +3389,34 @@
                 <button
                   class="quality-btn"
                   (click)="saveManualDestination('facebook')"
+                >
+                  SAVE
+                </button>
+              </div>
+              <div class="account-row manual-destination">
+                <span class="account-name">CUSTOM RTMP</span>
+                <input
+                  class="account-input"
+                  placeholder="TIKTOK / INSTAGRAM / X / LINKEDIN"
+                  [value]="customLabel()"
+                  (input)="customLabel.set($any($event.target).value)"
+                />
+                <input
+                  class="account-input"
+                  placeholder="rtmps://.../app"
+                  [value]="customRtmpUrl()"
+                  (input)="customRtmpUrl.set($any($event.target).value)"
+                />
+                <input
+                  class="account-input"
+                  type="password"
+                  placeholder="STREAM KEY"
+                  [value]="customStreamKey()"
+                  (input)="customStreamKey.set($any($event.target).value)"
+                />
+                <button
+                  class="quality-btn"
+                  (click)="saveManualDestination('custom')"
                 >
                   SAVE
                 </button>
