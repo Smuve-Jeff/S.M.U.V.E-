@@ -254,7 +254,7 @@ describe('WhipPublisher.start', () => {
     }
   });
 
-  it('closes the primed context when RTCPeerConnection construction fails', async () => {
+  it('closes the primed context and records the error when RTCPeerConnection construction fails', async () => {
     const mixed = { kind: 'audio', id: 'mixed', stop: jest.fn() };
     const mediaStream = installAudioMixer(mixed);
     const publisher = new WhipPublisher();
@@ -272,10 +272,47 @@ describe('WhipPublisher.start', () => {
       );
 
       expect(mediaStream.context.close).toHaveBeenCalled();
+      expect(publisher.state()).toBe('error');
+      expect(publisher.error()).toBe('WebRTC unavailable');
       expect(fetchMock).not.toHaveBeenCalled();
     } finally {
       mediaStream.restore();
     }
+  });
+
+  it('does not tear down a newer session when an older start fails', async () => {
+    installH264();
+    let rejectOld!: (error: Error) => void;
+    const oldRequest = new Promise<Response>((_, reject) => {
+      rejectOld = reject;
+    });
+    fetchMock
+      .mockImplementationOnce(() => oldRequest)
+      .mockResolvedValueOnce({
+        ok: true,
+        headers: { get: () => 'https://relay.test/s/whip/new' },
+        text: async () => 'v=0',
+      });
+    const publisher = new WhipPublisher();
+
+    const oldStart = publisher.start('https://relay.test/s/whip/old', stream);
+    for (let i = 0; i < 10 && fetchMock.mock.calls.length === 0; i++) {
+      await Promise.resolve();
+    }
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    expect(await publisher.start('https://relay.test/s/whip/new', stream)).toBe(
+      true
+    );
+    const newerPc = lastPc;
+
+    rejectOld(new Error('old network failure'));
+    expect(await oldStart).toBe(false);
+
+    expect(publisher.state()).toBe('live');
+    expect(publisher.error()).toBeNull();
+    expect(newerPc.close).not.toHaveBeenCalled();
+    await publisher.stop();
   });
 
   it('closes a context primed for a push that never reaches WHIP', () => {

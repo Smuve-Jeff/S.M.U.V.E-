@@ -174,8 +174,14 @@ export class WhipPublisher {
       return true;
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
+      // A newer start or stop has already torn this attempt down. Do not call
+      // stop() here: this.pc now belongs to the newer session.
+      if (round !== this.round) return false;
+
+      // stop() bumps the round. Accept only the bump it makes itself, so a
+      // start that races the teardown cannot have its state overwritten.
       await this.stop();
-      if (round === this.round) {
+      if (this.round === round + 1) {
         this.state.set('error');
         this.error.set(message.replace(/_/g, ' '));
       }
