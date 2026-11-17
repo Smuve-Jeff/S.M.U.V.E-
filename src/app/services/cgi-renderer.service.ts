@@ -1,7 +1,7 @@
 import { Injectable, OnDestroy } from '@angular/core';
 import * as THREE from 'three';
 import type { CgiObject, CgiSceneSettings } from './cgi-scene';
-import { cgiCameraPose } from './cgi-scene';
+import { resolveCgiFrame } from './cgi-scene';
 
 /**
  * Three.js renderer for one transparent CGI overlay.
@@ -49,6 +49,7 @@ export class CgiRendererService implements OnDestroy {
     const renderer = this.renderer!;
     const scene = this.scene!;
     const camera = this.camera!;
+    const frame = resolveCgiFrame(settings, clipLocalTime, duration);
 
     if (width !== this.surfaceWidth || height !== this.surfaceHeight) {
       renderer.setSize(width, height, false);
@@ -68,7 +69,7 @@ export class CgiRendererService implements OnDestroy {
     }
 
     if (this.keyLight) {
-      this.keyLight.intensity = 1.2 + settings.lightIntensity * 1.8;
+      this.keyLight.intensity = 1.2 + frame.lightIntensity * 1.8;
       this.keyLight.castShadow = settings.shadows;
     }
     if (this.ground) {
@@ -77,10 +78,7 @@ export class CgiRendererService implements OnDestroy {
     }
 
     this.syncObjects(settings);
-
-    const progress =
-      duration > 0 ? Math.max(0, Math.min(1, clipLocalTime / duration)) : 0;
-    const pose = cgiCameraPose(settings, clipLocalTime, progress);
+    const pose = frame.cameraPose;
     camera.fov = settings.fov;
     camera.aspect = width / height;
     camera.position.set(
@@ -91,24 +89,34 @@ export class CgiRendererService implements OnDestroy {
     camera.lookAt(0, pose.targetY, 0);
     camera.updateProjectionMatrix();
 
-    const time = Math.max(0, clipLocalTime);
-    this.objectRoot?.children.forEach((child, index) => {
-      const object = settings.objects.find(
-        (candidate) => candidate.id === child.userData['cgiObjectId'],
-      );
-      if (!object) return;
-      child.position.set(
-        object.position[0],
-        object.position[1] + Math.sin(time * 0.8 + index) * 0.035,
-        object.position[2],
-      );
-      child.rotation.y = object.spin * settings.spin * time;
+    const objectsById = new Map(
+      settings.objects.map((object) => [object.id, object]),
+    );
+    const resolvedById = new Map(
+      frame.objects.map((object) => [object.id, object]),
+    );
+    this.objectRoot?.children.forEach((child) => {
+      const id = child.userData['cgiObjectId'] as string | undefined;
+      const object = id ? objectsById.get(id) : undefined;
+      const resolved = id ? resolvedById.get(id) : undefined;
+      if (!object || !resolved) return;
+
+      child.position.set(...resolved.position);
+      child.rotation.set(...resolved.rotation);
+      const baseScale = child.userData['cgiBaseScale'] as
+        | THREE.Vector3
+        | undefined;
+      if (baseScale) child.scale.copy(baseScale).multiplyScalar(resolved.scale);
+      else child.scale.setScalar(resolved.scale);
+
       if (child.userData['cgiPrimitive'] === true) {
         const material = (child as THREE.Mesh).material;
         if (material instanceof THREE.MeshStandardMaterial) {
           material.color.set(object.color);
+          material.emissive.copy(material.color);
         }
       }
+      this.applyMaterialLook(child, resolved.opacity, resolved.emissive);
     });
 
     renderer.render(scene, camera);
@@ -227,18 +235,16 @@ export class CgiRendererService implements OnDestroy {
   }
 
   /**
-   * Rebuild only when the object list's structure changes. Position, spin and
-   * colour are applied every frame, so dragging a slider does not recreate
-   * geometry or reload a model.
+   * Rebuild only when the object list's structure changes. Transform, opacity,
+   * emissive and colour are applied every frame, so dragging a slider or
+   * scrubbing an animation does not recreate geometry or reload a model.
    */
   private syncObjects(settings: CgiSceneSettings): void {
     if (!this.objectRoot) return;
     const signature = settings.objects
       .map(
         (object) =>
-          `${object.id}:${object.kind}:${object.scale}:${
-            object.modelDataUrl?.length ?? 0
-          }`,
+          `${object.id}:${object.kind}:${object.modelDataUrl?.length ?? 0}`,
       )
       .join('|');
     if (!this.objectsDirty && signature === this.objectSignature) return;
@@ -249,6 +255,7 @@ export class CgiRendererService implements OnDestroy {
     for (const child of [...this.objectRoot.children]) {
       this.objectRoot.remove(child);
       if (child.userData['cgiPrimitive'] === true) this.disposeObject(child);
+      else this.disposeMaterials(child);
     }
 
     settings.objects.forEach((object) => {
@@ -298,24 +305,94 @@ export class CgiRendererService implements OnDestroy {
       metalness: 0.72,
       roughness: 0.22,
       envMapIntensity: 1.15,
+      emissiveIntensity: 0,
     });
     const mesh = new THREE.Mesh(geometry, material);
-    mesh.position.set(...object.position);
-    mesh.scale.setScalar(object.scale);
     mesh.castShadow = true;
     mesh.receiveShadow = true;
     mesh.userData['cgiPrimitive'] = true;
     mesh.userData['cgiObjectId'] = object.id;
+    mesh.userData['cgiBaseScale'] = mesh.scale.clone();
+    this.cacheMaterials(mesh);
     return mesh;
   }
 
   private addModelClone(source: THREE.Group, object: CgiObject): void {
     const clone = source.clone(true);
-    clone.position.set(...object.position);
-    clone.scale.multiplyScalar(object.scale);
+    // Object3D.clone shares materials. Opacity/emissive are per overlay object,
+    // so each clone needs its own material copies before the first render.
+    this.cloneModelMaterials(clone);
     clone.userData['cgiPrimitive'] = false;
     clone.userData['cgiObjectId'] = object.id;
+    // Preserve the auto-fit scale; the resolver supplies the authored scale.
+    clone.userData['cgiBaseScale'] = clone.scale.clone();
+    this.cacheMaterials(clone);
     this.objectRoot?.add(clone);
+  }
+
+  private cloneModelMaterials(root: THREE.Object3D): void {
+    root.traverse((child) => {
+      if (!(child instanceof THREE.Mesh)) return;
+      const material = child.material;
+      child.material = Array.isArray(material)
+        ? material.map((entry) => entry.clone())
+        : material.clone();
+    });
+  }
+
+  /** Flatten the object's materials once so the render loop avoids a traverse. */
+  private cacheMaterials(root: THREE.Object3D): void {
+    const materials: THREE.Material[] = [];
+    root.traverse((child) => {
+      if (!(child instanceof THREE.Mesh)) return;
+      const material = child.material;
+      if (Array.isArray(material)) materials.push(...material);
+      else if (material) materials.push(material);
+    });
+    root.userData['cgiMaterials'] = materials;
+  }
+
+  private applyMaterialLook(
+    root: THREE.Object3D,
+    opacity: number,
+    emissive: number,
+  ): void {
+    const materials =
+      (root.userData['cgiMaterials'] as THREE.Material[] | undefined) ?? [];
+    for (const material of materials) {
+      const data = material.userData;
+      if (!Number.isFinite(data['cgiBaseOpacity'])) {
+        data['cgiBaseOpacity'] = material.opacity;
+      }
+      if (typeof data['cgiBaseTransparent'] !== 'boolean') {
+        data['cgiBaseTransparent'] = material.transparent;
+      }
+
+      const nextOpacity =
+        Math.max(0, Math.min(1, opacity)) *
+        (data['cgiBaseOpacity'] as number);
+      const transparent =
+        data['cgiBaseTransparent'] === true || nextOpacity < 1;
+      if (material.transparent !== transparent) {
+        material.transparent = transparent;
+        material.needsUpdate = true;
+      }
+      material.opacity = nextOpacity;
+
+      if (material instanceof THREE.MeshStandardMaterial) {
+        if (!Number.isFinite(data['cgiBaseEmissiveIntensity'])) {
+          const hasEmissive =
+            material.emissive.getHex() !== 0 || !!material.emissiveMap;
+          data['cgiBaseEmissiveIntensity'] = hasEmissive
+            ? material.emissiveIntensity
+            : 0;
+          if (!hasEmissive) material.emissive.copy(material.color);
+        }
+        material.emissiveIntensity =
+          (data['cgiBaseEmissiveIntensity'] as number) +
+          Math.max(0, emissive);
+      }
+    }
   }
 
   private async loadModel(dataUrl: string): Promise<void> {
@@ -373,9 +450,24 @@ export class CgiRendererService implements OnDestroy {
     });
   }
 
+  /** Model clones share geometry with the cache; only their materials are theirs. */
+  private disposeMaterials(root: THREE.Object3D): void {
+    const materials = root.userData['cgiMaterials'] as
+      | THREE.Material[]
+      | undefined;
+    materials?.forEach((material) => material.dispose());
+  }
+
   dispose(): void {
-    if (this.objectRoot) this.disposeObject(this.objectRoot);
-    this.objectRoot?.clear();
+    if (this.objectRoot) {
+      for (const child of [...this.objectRoot.children]) {
+        if (child.userData['cgiPrimitive'] === true) this.disposeObject(child);
+        else this.disposeMaterials(child);
+      }
+      this.objectRoot.clear();
+    }
+    for (const model of this.modelCache.values()) this.disposeObject(model);
+    this.modelCache.clear();
     this.scene?.clear();
     this.environment?.dispose();
     this.renderer?.dispose();
@@ -385,7 +477,6 @@ export class CgiRendererService implements OnDestroy {
     this.objectRoot = null;
     this.ground = null;
     this.keyLight = null;
-    this.modelCache.clear();
     this.loadingModels.clear();
     this.objectSignature = '';
     this.objectsDirty = false;

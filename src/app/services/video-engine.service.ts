@@ -94,7 +94,11 @@ export { sanitizeLut } from './lut';
 import { sanitizeLut } from './lut';
 export { evaluateKeyframes, sanitizeKeyframes, addKeyframe, removeKeyframe } from './clip-keyframes';
 import { evaluateKeyframes, sanitizeKeyframes, addKeyframe, removeKeyframe } from './clip-keyframes';
-import { sanitizeCgiScene, type CgiSceneSettings } from './cgi-scene';
+import {
+  sanitizeCgiScene,
+  splitCgiAnimationAt,
+  type CgiSceneSettings,
+} from './cgi-scene';
 
 /** How a title card is drawn on the program monitor. */
 export type TitleStyle = 'title-card' | 'lower-third' | 'caption' | 'centered';
@@ -1018,6 +1022,21 @@ export class VideoEngineService {
             return;
           }
 
+          const splitLocal = time - activeStart;
+          const cgiScene = clip.effects.cgiScene;
+          const splitAnimation = cgiScene
+            ? splitCgiAnimationAt(cgiScene.animation, splitLocal)
+            : null;
+          const splitCgiScene = (side: 'left' | 'right') => {
+            const cgi = cgiScene!;
+            return {
+              ...cgi,
+              // Objects are shared data, not animation; clone them so each half
+              // owns its scene while the renderer can still rebuild safely.
+              objects: cgi.objects.map((object) => ({ ...object })),
+              ...(splitAnimation ? { animation: splitAnimation[side] } : {}),
+            };
+          };
           const right: VideoClip = {
             ...clip,
             id: this.mintClipId(),
@@ -1026,15 +1045,24 @@ export class VideoEngineService {
             // The right half starts wherever the left half had advanced to, at
             // the clip's own playback rate — a 2× shot must not restart its
             // source from the middle of the timeline it just left.
-            offset: this.resolveSourceTime(clip, time - activeStart),
-            effects: { ...clip.effects, trimStart: 0, fx: (clip.effects.fx ?? []).map((entry) => ({ ...entry })) },
+            offset: this.resolveSourceTime(clip, splitLocal),
+            effects: {
+              ...clip.effects,
+              trimStart: 0,
+              fx: (clip.effects.fx ?? []).map((entry) => ({ ...entry })),
+              ...(cgiScene ? { cgiScene: splitCgiScene('right') } : {}),
+            },
           };
           created.push(right.id);
           clips.push(
             {
               ...clip,
               duration: leftDuration,
-              effects: { ...clip.effects, trimEnd: 0 },
+              effects: {
+                ...clip.effects,
+                trimEnd: 0,
+                ...(cgiScene ? { cgiScene: splitCgiScene('left') } : {}),
+              },
             },
             right
           );

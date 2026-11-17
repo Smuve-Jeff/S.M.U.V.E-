@@ -1,9 +1,13 @@
 import {
+  MAX_CGI_KEYFRAMES_PER_TRACK,
   MAX_CGI_OBJECTS,
   cgiCameraPose,
   createCgiPrimitive,
   createDefaultCgiScene,
+  resolveCgiFrame,
   sanitizeCgiScene,
+  splitCgiAnimationAt,
+  type CgiAnimationTrack,
 } from './cgi-scene';
 
 describe('CGI scene data', () => {
@@ -150,5 +154,339 @@ describe('CGI scene data', () => {
     expect(start.distance).toBeCloseTo(8.1);
     expect(end.distance).toBeCloseTo(4.8);
     expect(end.targetY).toBe(0.1);
+  });
+});
+
+describe('CGI animation data', () => {
+  const animatedScene = (tracks: CgiAnimationTrack[]) => {
+    const scene = createDefaultCgiScene();
+    scene.animation = { version: 1, tracks };
+    return scene;
+  };
+
+  it('leaves a legacy scene without an animation block untouched', () => {
+    const scene = sanitizeCgiScene(createDefaultCgiScene());
+
+    expect(scene).not.toBeNull();
+    expect(scene?.animation).toBeUndefined();
+  });
+
+  it('merges duplicate channel tracks, sorts keys and folds equal times', () => {
+    const scene = sanitizeCgiScene({
+      objects: [{ id: 'hero', kind: 'cube', name: 'Hero' }],
+      animation: {
+        version: 1,
+        tracks: [
+          {
+            targetObjectId: 'hero',
+            channel: 'position.x',
+            keys: [
+              { time: 2, value: 99, easing: 'step' },
+              { time: 1, value: 3, easing: 'ease-in' },
+              { time: 1, value: 4, easing: 'not-an-easing' },
+            ],
+          },
+          {
+            targetObjectId: 'hero',
+            channel: 'position.x',
+            keys: [{ time: 3, value: -99 }],
+          },
+          {
+            targetObjectId: null,
+            channel: 'camera.height',
+            keys: [{ time: -5, value: 99, easing: 'ease-out' }],
+          },
+        ],
+      },
+    });
+
+    expect(scene?.animation?.version).toBe(1);
+    expect(scene?.animation?.tracks).toHaveLength(2);
+    const position = scene?.animation?.tracks.find(
+      (track) => track.channel === 'position.x',
+    );
+    expect(position?.targetObjectId).toBe('hero');
+    expect(position?.keys.map((key) => key.time)).toEqual([1, 2, 3]);
+    expect(position?.keys.map((key) => key.value)).toEqual([4, 20, -20]);
+    expect(position?.keys[0].easing).toBe('linear');
+    expect(position?.keys[1].easing).toBe('step');
+
+    const light = scene?.animation?.tracks.find(
+      (track) => track.channel === 'camera.height',
+    );
+    expect(light?.targetObjectId).toBeNull();
+    expect(light?.keys[0]).toMatchObject({ time: 0, value: 8 });
+  });
+
+  it('drops deleted targets, wrong scopes and unknown channels', () => {
+    const scene = sanitizeCgiScene({
+      objects: [{ id: 'hero', kind: 'cube' }],
+      animation: {
+        version: 1,
+        tracks: [
+          {
+            targetObjectId: 'deleted',
+            channel: 'scale',
+            keys: [{ time: 1, value: 2 }],
+          },
+          {
+            targetObjectId: null,
+            channel: 'scale',
+            keys: [{ time: 1, value: 2 }],
+          },
+          {
+            targetObjectId: 'hero',
+            channel: 'camera.distance',
+            keys: [{ time: 1, value: 8 }],
+          },
+          {
+            targetObjectId: 'hero',
+            channel: 'not.a.channel',
+            keys: [{ time: 1, value: 2 }],
+          },
+          {
+            targetObjectId: 'hero',
+            channel: 'opacity',
+            keys: [{ time: 'nope', value: 2 }],
+          },
+        ],
+      },
+    });
+
+    expect(scene?.animation?.tracks).toEqual([]);
+  });
+
+  it('caps an individual track so project JSON stays bounded', () => {
+    const keys = Array.from(
+      { length: MAX_CGI_KEYFRAMES_PER_TRACK + 30 },
+      (_, index) => ({ time: index, value: 1 }),
+    );
+    const scene = sanitizeCgiScene({
+      objects: [{ id: 'hero', kind: 'cube' }],
+      animation: {
+        version: 1,
+        tracks: [
+          { targetObjectId: 'hero', channel: 'scale', keys },
+        ],
+      },
+    });
+
+    expect(scene?.animation?.tracks[0].keys).toHaveLength(
+      MAX_CGI_KEYFRAMES_PER_TRACK,
+    );
+  });
+
+  it('resolves the existing static scene when no channels are keyed', () => {
+    const scene = createDefaultCgiScene();
+    const frame = resolveCgiFrame(scene, 0, 4);
+
+    expect(frame.objects).toHaveLength(1);
+    expect(frame.objects[0].position).toEqual([0, 0, 0]);
+    expect(frame.objects[0].scale).toBe(1);
+    expect(frame.objects[0].opacity).toBe(1);
+    expect(frame.objects[0].emissive).toBe(0);
+    expect(frame.cameraDistance).toBe(6);
+    expect(frame.cameraHeight).toBe(1.4);
+    expect(frame.lightIntensity).toBe(1.5);
+    expect(frame.cameraPose.azimuth).toBeCloseTo(0.55);
+  });
+
+  it('interpolates object channels and lets rotation override the procedural spin', () => {
+    const scene = animatedScene([
+      {
+        targetObjectId: 'cgi-torus',
+        channel: 'position.x',
+        keys: [
+          { id: 'a', time: 0, value: 0, easing: 'linear' },
+          { id: 'b', time: 2, value: 10, easing: 'linear' },
+        ],
+      },
+      {
+        targetObjectId: 'cgi-torus',
+        channel: 'scale',
+        keys: [
+          { id: 'c', time: 0, value: 1, easing: 'ease-in' },
+          { id: 'd', time: 2, value: 2, easing: 'linear' },
+        ],
+      },
+      {
+        targetObjectId: 'cgi-torus',
+        channel: 'opacity',
+        keys: [
+          { id: 'e', time: 0, value: 1, easing: 'linear' },
+          { id: 'f', time: 2, value: 0, easing: 'linear' },
+        ],
+      },
+      {
+        targetObjectId: 'cgi-torus',
+        channel: 'emissive',
+        keys: [
+          { id: 'g', time: 0, value: 0, easing: 'linear' },
+          { id: 'h', time: 2, value: 4, easing: 'linear' },
+        ],
+      },
+      {
+        targetObjectId: 'cgi-torus',
+        channel: 'rotation.y',
+        keys: [
+          { id: 'i', time: 0, value: 0, easing: 'linear' },
+          { id: 'j', time: 2, value: Math.PI, easing: 'linear' },
+        ],
+      },
+    ]);
+
+    const frame = resolveCgiFrame(scene, 1, 2);
+
+    expect(frame.objects[0].position[0]).toBeCloseTo(5);
+    expect(frame.objects[0].scale).toBeCloseTo(1.25);
+    expect(frame.objects[0].opacity).toBeCloseTo(0.5);
+    expect(frame.objects[0].emissive).toBeCloseTo(2);
+    expect(frame.objects[0].rotation[1]).toBeCloseTo(Math.PI / 2);
+  });
+
+  it('holds the first and last key outside the authored range', () => {
+    const scene = animatedScene([
+      {
+        targetObjectId: 'cgi-torus',
+        channel: 'scale',
+        keys: [
+          { id: 'a', time: 1, value: 1.5, easing: 'step' },
+          { id: 'b', time: 2, value: 3, easing: 'linear' },
+        ],
+      },
+    ]);
+
+    expect(resolveCgiFrame(scene, 0).objects[0].scale).toBe(1.5);
+    expect(resolveCgiFrame(scene, 1.5).objects[0].scale).toBe(1.5);
+    expect(resolveCgiFrame(scene, 2).objects[0].scale).toBe(3);
+    expect(resolveCgiFrame(scene, 99).objects[0].scale).toBe(3);
+  });
+
+  it('resolves scene camera and light tracks into the camera pose', () => {
+    const scene = animatedScene([
+      {
+        targetObjectId: null,
+        channel: 'camera.distance',
+        keys: [
+          { id: 'a', time: 0, value: 10, easing: 'linear' },
+          { id: 'b', time: 2, value: 4, easing: 'linear' },
+        ],
+      },
+      {
+        targetObjectId: null,
+        channel: 'camera.height',
+        keys: [
+          { id: 'c', time: 0, value: 0, easing: 'linear' },
+          { id: 'd', time: 2, value: 4, easing: 'linear' },
+        ],
+      },
+      {
+        targetObjectId: null,
+        channel: 'light.intensity',
+        keys: [
+          { id: 'e', time: 0, value: 1, easing: 'linear' },
+          { id: 'f', time: 2, value: 3, easing: 'linear' },
+        ],
+      },
+    ]);
+
+    const frame = resolveCgiFrame(scene, 1, 2);
+
+    expect(frame.cameraDistance).toBe(7);
+    expect(frame.cameraHeight).toBe(2);
+    expect(frame.lightIntensity).toBe(2);
+    expect(frame.cameraPose.distance).toBe(7);
+    expect(frame.cameraPose.height).toBe(2);
+  });
+
+  it('does not mutate the persisted scene while resolving', () => {
+    const scene = animatedScene([
+      {
+        targetObjectId: 'cgi-torus',
+        channel: 'scale',
+        keys: [
+          { id: 'a', time: 0, value: 1, easing: 'linear' },
+          { id: 'b', time: 2, value: 2, easing: 'linear' },
+        ],
+      },
+    ]);
+    const before = JSON.stringify(scene);
+
+    resolveCgiFrame(scene, 1, 2);
+
+    expect(JSON.stringify(scene)).toBe(before);
+  });
+
+  it('suppresses the idle float when any position channel is keyed', () => {
+    const scene = createDefaultCgiScene();
+    const idle = resolveCgiFrame(scene, 1.2).objects[0].position[1];
+    expect(Math.abs(idle)).toBeGreaterThan(0.001);
+
+    scene.animation = {
+      version: 1,
+      tracks: [
+        {
+          targetObjectId: 'cgi-torus',
+          channel: 'position.x',
+          keys: [
+            { id: 'a', time: 0, value: 0, easing: 'linear' },
+            { id: 'b', time: 2, value: 2, easing: 'linear' },
+          ],
+        },
+      ],
+    };
+
+    const keyed = resolveCgiFrame(scene, 1.2).objects[0];
+    expect(keyed.position).toEqual([1.2, 0, 0]);
+  });
+
+  it('splits animation into deep-cloned halves with a right boundary key', () => {
+    const animation = {
+      version: 1 as const,
+      tracks: [
+        {
+          targetObjectId: 'cgi-torus',
+          channel: 'position.x' as const,
+          keys: [
+            { id: 'a', time: 0, value: 0, easing: 'ease-in' as const },
+            { id: 'b', time: 4, value: 4, easing: 'linear' as const },
+          ],
+        },
+      ],
+    };
+
+    const split = splitCgiAnimationAt(animation, 2)!;
+
+    expect(split.left.tracks[0].keys.map((key) => key.value)).toEqual([0, 4]);
+    expect(split.right.tracks[0].keys).toMatchObject([
+      { time: 0, value: 1, easing: 'ease-in' },
+      { time: 2, value: 4 },
+    ]);
+    expect(split.left.tracks[0].keys).not.toBe(animation.tracks[0].keys);
+    expect(split.right.tracks[0].keys).not.toBe(animation.tracks[0].keys);
+
+    split.left.tracks[0].keys[0].value = 99;
+    expect(split.right.tracks[0].keys[0].value).toBe(1);
+    expect(animation.tracks[0].keys[0].value).toBe(0);
+  });
+
+  it('holds the last authored value when the split is past every key', () => {
+    const animation = {
+      version: 1 as const,
+      tracks: [
+        {
+          targetObjectId: 'cgi-torus',
+          channel: 'scale' as const,
+          keys: [{ id: 'a', time: 1, value: 2, easing: 'linear' as const }],
+        },
+      ],
+    };
+
+    const split = splitCgiAnimationAt(animation, 5)!;
+
+    expect(split.right.tracks[0].keys).toMatchObject([
+      { time: 0, value: 2 },
+    ]);
+    expect(splitCgiAnimationAt(undefined, 5)).toBeNull();
   });
 });

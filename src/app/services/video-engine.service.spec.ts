@@ -2,7 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { AudioEngineService } from './audio-engine.service';
 import { CinemaSnapshot, VideoClip, VideoEngineService } from './video-engine.service';
 import { AI_VFX_PRESETS } from './ai-vfx';
-import { createDefaultCgiScene } from './cgi-scene';
+import { createDefaultCgiScene, resolveCgiFrame } from './cgi-scene';
 
 /**
  * The project snapshot is the only thing keeping a film or a broadcast rundown
@@ -323,6 +323,72 @@ describe('VideoEngineService project snapshot', () => {
       expect(right.startTime).toBe(6);
       // Source time at the cut: offset 4 + head trim 2 + 4s of picture elapsed.
       expect(right.offset).toBe(10);
+    });
+
+    it('rebases and deep-clones CGI animation when a trimmed clip splits', () => {
+      const engine = createEngine();
+      const scene = createDefaultCgiScene();
+      scene.animation = {
+        version: 1,
+        tracks: [
+          {
+            targetObjectId: 'cgi-torus',
+            channel: 'position.x',
+            keys: [
+              { id: 'a', time: 0, value: 0, easing: 'linear' },
+              { id: 'b', time: 4, value: 4, easing: 'linear' },
+            ],
+          },
+        ],
+      };
+      const id = engine.addClip(
+        't2',
+        clip({
+          name: 'CGI',
+          url: '',
+          type: 'overlay',
+          source: 'ai',
+          startTime: 0,
+          duration: 4,
+          effects: {
+            ...clip().effects,
+            trimStart: 1,
+            cgiScene: scene,
+          },
+        }),
+      );
+
+      const rightIds = engine.splitClipsAt(2);
+      const left = engine.findClip(id)!;
+      const right = engine.findClip(rightIds[0])!;
+      const leftAnimation = left.effects.cgiScene!.animation!;
+      const rightAnimation = right.effects.cgiScene!.animation!;
+
+      expect(left.duration).toBe(2);
+      expect(right.startTime).toBe(2);
+      // Visible split point is 2 − 0 − trimStart 1 = 1.
+      expect(leftAnimation.tracks[0].keys.map((key) => key.value)).toEqual([
+        0, 4,
+      ]);
+      expect(rightAnimation.tracks[0].keys).toMatchObject([
+        { time: 0, value: 1 },
+        { time: 3, value: 4 },
+      ]);
+      expect(leftAnimation.tracks[0].keys).not.toBe(
+        rightAnimation.tracks[0].keys,
+      );
+
+      // Both sides show the same authored value on their first frame at the cut.
+      expect(
+        resolveCgiFrame(left.effects.cgiScene!, 1).objects[0].position[0],
+      ).toBe(1);
+      expect(
+        resolveCgiFrame(right.effects.cgiScene!, 0).objects[0].position[0],
+      ).toBe(1);
+
+      leftAnimation.tracks[0].keys[0].value = 99;
+      expect(rightAnimation.tracks[0].keys[0].value).toBe(1);
+      expect(scene.animation.tracks[0].keys[0].value).toBe(0);
     });
 
     it('upgrades a v1 snapshot instead of refusing it', () => {
