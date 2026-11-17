@@ -49,6 +49,19 @@ const THA_SPOT_PREVIEW_TEMPLATE = (() => {
   return full.slice(start, end);
 })();
 
+/** The real live source selectors and the separate video mute control. */
+const THA_SPOT_LIVE_SOURCE_TEMPLATE = (() => {
+  const full = readFileSync(join(__dirname, "tha-spot.component.html"), "utf8");
+  const marker = "<!-- live-source-controls-start -->";
+  const endMarker = "<!-- live-source-controls-end -->";
+  const start = full.indexOf(marker);
+  const end = full.indexOf(endMarker, start);
+  if (start < 0 || end < 0) {
+    throw new Error("Tha Spot live source controls are missing from the template");
+  }
+  return full.slice(start + marker.length, end);
+})();
+
 /** The real four custom RTMP rows, including their CLEAR wiring. */
 const THA_SPOT_CUSTOM_ROWS_TEMPLATE = (() => {
   const full = readFileSync(join(__dirname, "tha-spot.component.html"), "utf8");
@@ -167,9 +180,18 @@ describe("ThaSpotComponent", () => {
       previewStarting: signal(false),
       previewCancelled: signal(false),
       switchingSource: signal(false),
+      cameraEnabled: signal(true),
+      toggleCamera: jest.fn(() =>
+        socialServiceMock.cameraEnabled.set(!socialServiceMock.cameraEnabled()),
+      ),
+      screenShareSupported: signal(true),
+      screenShareUnavailableReason: signal(null),
+      screenAudioWarning: signal(null),
       startPreview: jest.fn().mockResolvedValue(true),
       stopPreview: jest.fn(),
-      setVideoSource: jest.fn().mockResolvedValue(undefined),
+      setVideoSource: jest.fn(async (source: "camera" | "screen" | "camera-pip") => {
+        socialServiceMock.videoSource.set(source);
+      }),
       streamError: signal(null),
       captureBlocked: signal(false),
       loadFriends: jest.fn(),
@@ -301,6 +323,7 @@ describe("ThaSpotComponent", () => {
         set: {
           imports: [CommonModule],
           template: `<div class="preview-dom">${THA_SPOT_PREVIEW_TEMPLATE}</div>
+            <div class="live-source-dom">${THA_SPOT_LIVE_SOURCE_TEMPLATE}</div>
             <div class="custom-rows-dom">${THA_SPOT_CUSTOM_ROWS_TEMPLATE}</div>`,
         },
       })
@@ -320,6 +343,45 @@ describe("ThaSpotComponent", () => {
 
   it("should create", () => {
     expect(component).toBeTruthy();
+  });
+
+  describe("live source controls", () => {
+    const sourceButtons = () =>
+      Array.from(
+        fixture.nativeElement.querySelectorAll(
+          ".live-source-dom .av-btn",
+        ),
+      ) as HTMLButtonElement[];
+    const button = (label: string) =>
+      sourceButtons().find((entry) =>
+        entry.textContent?.toUpperCase().includes(label),
+      );
+
+    it("switches the live source from CAMERA and SCREEN, with mute kept separate", async () => {
+      socialServiceMock.isStreaming.set(true);
+      socialServiceMock.videoSource.set("screen");
+      jest
+        .spyOn(component.ingest, "primeAudioContext")
+        .mockImplementation(() => undefined);
+      fixture.detectChanges();
+
+      button("CAMERA")!.click();
+      await fixture.whenStable();
+      expect(socialServiceMock.setVideoSource).toHaveBeenLastCalledWith("camera");
+
+      button("SCREEN")!.click();
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      fixture.detectChanges();
+      expect(socialServiceMock.setVideoSource).toHaveBeenLastCalledWith("screen");
+
+      const mute = button("MUTE VIDEO");
+      expect(mute).toBeTruthy();
+      mute!.click();
+      fixture.detectChanges();
+      expect(socialServiceMock.toggleCamera).toHaveBeenCalledTimes(1);
+      expect(button("UNMUTE")).toBeTruthy();
+      expect(socialServiceMock.setVideoSource).toHaveBeenCalledTimes(2);
+    });
   });
 
   describe("custom RTMP rows", () => {

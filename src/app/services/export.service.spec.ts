@@ -811,6 +811,39 @@ describe('ExportService (Sprint A6)', () => {
       jest.useRealTimers();
     });
 
+    it('records the master bus on its own for a frame-locked video pass', async () => {
+      const FakeMediaStream = class {
+        constructor(public tracks: unknown[]) {}
+      };
+      const originalMediaStream = (globalThis as { MediaStream?: unknown })
+        .MediaStream;
+      (globalThis as { MediaStream?: unknown }).MediaStream = FakeMediaStream;
+      try {
+        const session = await svc.startAudioExport();
+
+        expect(session).not.toBeNull();
+        expect(FakeMediaRecorder.instances).toHaveLength(1);
+        expect(FakeMediaRecorder.instances[0].options).toEqual(
+          expect.objectContaining({ audioBitsPerSecond: 192_000 })
+        );
+
+        session!.stop();
+        const blob = await session!.result;
+        expect(blob.size).toBeGreaterThan(0);
+        expect(blob.type).toBe('audio/webm');
+      } finally {
+        (globalThis as { MediaStream?: unknown }).MediaStream =
+          originalMediaStream;
+      }
+    });
+
+    it('returns null for a frame-locked audio pass when the context is suspended', async () => {
+      mockEngine.ctx.state = 'suspended';
+
+      expect(await svc.startAudioExport()).toBeNull();
+      expect(FakeMediaRecorder.instances).toHaveLength(0);
+    });
+
     it('rejects the result when the recorder errors out', async () => {
       const { canvas } = makeCanvas();
       const session = await svc.startVideoExport(canvas);

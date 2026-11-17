@@ -1074,6 +1074,8 @@ describe('SocialNetworkingService video source (camera ↔ screen)', () => {
     const sysAudio = makeTrack('audio', 'sys-a');
     getDisplayMedia.mockResolvedValue(fakeMedia([screenVideo, sysAudio]));
     await service.setVideoSource('screen');
+    service.setScreenAudioOnly(true);
+    expect(service.screenAudioOnly()).toBe(true);
 
     const camVideo2 = makeTrack('video', 'cam-v2');
     getUserMedia.mockResolvedValue(fakeMedia([camVideo2]));
@@ -1082,6 +1084,7 @@ describe('SocialNetworkingService video source (camera ↔ screen)', () => {
     await service.setVideoSource('camera');
 
     expect(service.videoSource()).toBe('camera');
+    expect(service.screenAudioOnly()).toBe(false);
     expect(service.localStream()!.getVideoTracks()[0]).toBe(camVideo2);
     expect(service.localStream()!.getAudioTracks()).toEqual([mic]);
     expect(sysAudio.stop).toHaveBeenCalled();

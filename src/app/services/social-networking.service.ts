@@ -1730,6 +1730,10 @@ export class SocialNetworkingService {
         const video = await this.acquireCameraTrack(preset);
         next = new MediaStream([video, ...this.micAudioOf(current)]);
         this.screenAudioAvailable.set(false);
+        // GAME ONLY only applies while the shared screen can carry game sound.
+        // Leaving it on made viewers stay on the system-audio mix after the
+        // host switched back to the camera.
+        this.screenAudioOnly.set(false);
         void androidScreenCapture.stop();
       }
       if (!this.captureActive()) {

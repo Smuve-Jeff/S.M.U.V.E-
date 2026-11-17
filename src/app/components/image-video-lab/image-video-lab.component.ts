@@ -54,7 +54,18 @@ import { FfmpegVideoExportService } from '../../services/ffmpeg-video-export.ser
 import {
   createFrameLockPlan,
   frameProgressPercent,
+  frameTimeSeconds,
+  type FrameLockPlan,
 } from '../../services/frame-locked-export';
+import {
+  createFrameLockedVideoEncoder,
+  isFrameLockedEncodeSupported,
+  type FrameLockedVideoEncoder,
+} from '../../services/frame-locked-video-encoder';
+import {
+  extractWebmOpus,
+  type WebmOpusAudio,
+} from '../../services/webm-opus';
 import {
   MUSIC_BARS_PER_PART_OPTIONS,
   buildFilmManifest,
@@ -6432,12 +6443,28 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
       return false;
     }
 
+    // WebCodecs gives us the thing MediaRecorder cannot: a file whose frames
+    // are the exact frames we painted, not whatever survived a render loop.
+    if (isFrameLockedEncodeSupported()) {
+      return this.runFrameLockedRange(
+        start,
+        seconds,
+        fileNameHint,
+        master,
+        width,
+        height,
+        fps,
+        framePlan,
+        wantsMp4,
+      );
+    }
+
     this.isExporting.set(true);
     this.exportProgress.set(0);
     this.aiFeedback.set(
       `INITIALIZING ${seconds}s ${this.exportCodec().toUpperCase()} EXPORT FROM ${this.formatClock(
         start
-      )} AT ${width}x${height} ${fps}FPS. STAND BY FOR ELITE CAPTURE.`
+      )} AT ${width}x${height} ${fps}FPS. THIS BROWSER HAS NO WEBCODECS FRAME LOCK; USING REAL-TIME CAPTURE.`
     );
 
     const wasPlaying = this.videoEngine.isPlaying();
@@ -6582,6 +6609,309 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
       this.releaseExportCanvas();
       this.isExporting.set(false);
     }
+  }
+
+  /**
+   * Paint and encode every delivery slot once, with exact timestamps.
+   *
+   * Audio still has to be recorded in real time, because the Studio's master is
+   * a Web Audio graph rather than a buffer. It runs first, then the timeline is
+   * stepped frame by frame with the transport paused. A slow CGI frame adds
+   * render time; it no longer removes a frame from the master.
+   */
+  private async runFrameLockedRange(
+    start: number,
+    seconds: number,
+    fileNameHint: string | undefined,
+    master: { canvas: HTMLCanvasElement; ctx: CanvasRenderingContext2D },
+    width: number,
+    height: number,
+    fps: number,
+    framePlan: FrameLockPlan,
+    wantsMp4: boolean,
+  ): Promise<boolean> {
+    this.isExporting.set(true);
+    this.exportProgress.set(0);
+    this.aiFeedback.set(
+      `FRAME-LOCKING ${framePlan.totalFrames} FRAMES AT ${width}x${height} ${fps}FPS FROM ${this.formatClock(
+        start
+      )}. EACH SLOT IS RENDERED BEFORE IT IS ENCODED.`
+    );
+
+    const wasPlaying = this.videoEngine.isPlaying();
+    let encoder: FrameLockedVideoEncoder | null = null;
+    let audioSession: {
+      stop: () => void;
+      result: Promise<Blob>;
+    } | null = null;
+    let renderedFrames = 0;
+
+    try {
+      this.videoEngine.pause();
+      this.videoEngine.seek(start);
+
+      // Real-time audio pass. It is trimmed to the requested window during
+      // muxing, so the tail guard cannot lengthen the delivery master.
+      let audioBlob: Blob | null = null;
+      let audioTrack: WebmOpusAudio | null = null;
+      this.exportService.setClipAudioLevel(1);
+      audioSession = await this.exportService.startAudioExport();
+      if (audioSession) {
+        this.videoEngine.play();
+        await this.waitMs(seconds * 1000 + EXPORT_TAIL_GUARD_MS);
+        audioSession.stop();
+        this.videoEngine.pause();
+        audioBlob = await audioSession.result;
+        if (!audioBlob || audioBlob.size === 0) {
+          audioBlob = null;
+        } else {
+          audioTrack = extractWebmOpus(await audioBlob.arrayBuffer());
+        }
+      }
+      this.exportService.setClipAudioLevel(0);
+
+      this.aiFeedback.set(
+        `AUDIO CAPTURED - RENDERING ${framePlan.totalFrames} FRAME-LOCKED SLOTS. THE TAB MAY TAKE AS LONG AS THE CGI NEEDS.`
+      );
+      encoder = await createFrameLockedVideoEncoder({
+        width,
+        height,
+        fps,
+        durationSeconds: seconds,
+        bitrate: this.exportBitrate(),
+        audio: audioTrack,
+      });
+
+      this.videoEngine.pause();
+      this.videoEngine.seek(start);
+      for (
+        let frameIndex = 0;
+        frameIndex < framePlan.totalFrames;
+        frameIndex++
+      ) {
+        await this.prepareFrameForExport(
+          start + frameTimeSeconds(framePlan, frameIndex)
+        );
+        this.paintFrame(master.canvas, master.ctx, true);
+        await encoder.encode(master.canvas, frameIndex);
+        renderedFrames = frameIndex + 1;
+        this.exportProgress.set(
+          Math.min(
+            90,
+            Math.round((renderedFrames / framePlan.totalFrames) * 90)
+          )
+        );
+        // Yield between frames so the progress readout and the tab's own
+        // events are not starved by a long 4K loop.
+        if ((frameIndex & 1) === 0) await this.waitMs(0);
+      }
+
+      const encoded = await encoder.finish();
+      encoder = null;
+      this.exportProgress.set(92);
+
+      let deliverable = encoded.blob;
+      let extension = 'webm';
+      let muxed = false;
+      const embeddedAudio = !!audioTrack;
+      const needsMux = wantsMp4 || (!embeddedAudio && !!audioBlob);
+      if (needsMux && this.ffmpegExport) {
+        try {
+          this.aiFeedback.set(
+            `VIDEO FRAMES LOCKED - MUXING ${
+              audioBlob ? 'AUDIO AND ' : ''
+            }${wantsMp4 ? 'H.264 MP4' : 'WEBM'}. STAND BY.`
+          );
+          const masterMode =
+            this.videoEngine.productionMode() === 'movie' ||
+            this.videoEngine.productionMode() === 'music';
+          deliverable = await this.ffmpegExport.muxFrameLocked(
+            encoded.blob,
+            embeddedAudio ? null : audioBlob,
+            {
+              container: wantsMp4 ? 'mp4' : 'webm',
+              audioFromVideo: embeddedAudio,
+              frameRate: fps,
+              trimSeconds: seconds,
+              crf: masterMode ? 18 : 20,
+              preset: masterMode ? 'fast' : 'veryfast',
+              onProgress: (progress) =>
+                this.exportProgress.set(
+                  Math.min(99, 92 + Math.round(progress * 7))
+                ),
+            }
+          );
+          muxed = true;
+          extension = wantsMp4 ? 'mp4' : 'webm';
+        } catch (error: any) {
+          this.logger.error(
+            'Frame-locked mux failed, keeping the video-only master',
+            error
+          );
+        }
+      }
+
+      this.exportProgress.set(100);
+      const fileName = fileNameHint
+        ? `${fileNameHint}.${extension}`
+        : `smuve_${this.videoEngine.productionMode()}_${this.activePreset().id}_${Date.now()}.${extension}`;
+      this.lastExportFileName.set(fileName);
+      this.exportService.downloadBlob(deliverable, fileName);
+
+      const containerLabel = muxed && wantsMp4
+        ? 'MP4/H.264'
+        : `WEBM/${encoded.codec}`;
+      // A WebM delivery already carries its Opus track when the direct mux
+      // succeeded; only an MP4 transcode (or a direct-mux failure) needs the
+      // FFmpeg result to decide whether the file is silent.
+      const audioInDeliverable = muxed || (extension === 'webm' && embeddedAudio);
+      const audioNote = audioBlob
+        ? audioInDeliverable
+          ? ' AUDIO MUXED.'
+          : ' AUDIO COULD NOT BE MUXED; THIS FILE IS SILENT.'
+        : ' NO AUDIO TRACK WAS AVAILABLE.';
+      const mp4Note =
+        wantsMp4 && !muxed
+          ? ' MP4 MUX UNAVAILABLE; KEPT THE FRAME-LOCKED WEBM. TRY A BROWSER WITH FFMPEG SUPPORT.'
+          : '';
+      this.aiFeedback.set(
+        `FRAME-LOCKED EXPORT COMPLETE - ${renderedFrames}/${framePlan.totalFrames} EXACT FRAMES AT ${width}x${height} ${fps}FPS ${containerLabel}.${audioNote}${mp4Note}`
+      );
+      return true;
+    } catch (error: any) {
+      this.exportProgress.set(0);
+      this.logger.error('Frame-locked video export failed', error);
+      this.aiFeedback.set(
+        error?.message
+          ? `FRAME-LOCKED EXPORT FAILED: ${String(error.message).toUpperCase()}`
+          : 'FRAME-LOCKED EXPORT FAILED. TRY A SHORTER RANGE OR A LOWER RESOLUTION.'
+      );
+      return false;
+    } finally {
+      encoder?.close();
+      if (audioSession) {
+        try {
+          audioSession.stop();
+        } catch {
+          /* already stopped */
+        }
+      }
+      this.exportService.setClipAudioLevel(0);
+      this.videoEngine.pause();
+      this.videoEngine.seek(start);
+      if (wasPlaying) this.videoEngine.play();
+      this.releaseExportCanvas();
+      this.isExporting.set(false);
+    }
+  }
+
+  /**
+   * Park the transport on one exact slot and wait for every video decoder to
+   * present the requested source frame before the caller paints it.
+   */
+  private async prepareFrameForExport(time: number): Promise<void> {
+    this.videoEngine.pause();
+    this.videoEngine.seek(time);
+    const activeClips = this.videoEngine.getActiveClips(time);
+    await Promise.all(
+      activeClips.map(async (clip) => {
+        const media = this.resolveMediaElement(clip);
+        if (media instanceof HTMLImageElement) {
+          await this.waitForImageReady(media);
+          return;
+        }
+        if (!(media instanceof HTMLVideoElement)) return;
+
+        await this.waitForVideoReady(media, 2, 2_500);
+        const trimStart = Math.max(0, clip.effects.trimStart || 0);
+        const clipLocalTime = Math.max(
+          0,
+          time - (clip.startTime + trimStart)
+        );
+        const sourceTime = this.resolveClipSourceTime(clip, clipLocalTime);
+        if (sourceTime === null) return;
+        const target = this.clampToMediaDuration(media, sourceTime);
+        if (
+          Math.abs(media.currentTime - target) <= EXACT_SEEK_EPSILON_SECONDS
+        ) {
+          return;
+        }
+        if (!media.paused) this.pauseQuietly(media);
+        await this.seekVideoAndWait(media, target);
+      })
+    );
+  }
+
+  /** A still must have decoded before drawImage can put it on the frame. */
+  private async waitForImageReady(image: HTMLImageElement): Promise<void> {
+    if (image.complete && image.naturalWidth > 0) return;
+    await new Promise<void>((resolve) => {
+      let settled = false;
+      const finish = () => {
+        if (settled) return;
+        settled = true;
+        image.removeEventListener('load', finish);
+        image.removeEventListener('error', finish);
+        clearTimeout(timer);
+        resolve();
+      };
+      const timer = setTimeout(finish, 2_500);
+      image.addEventListener('load', finish, { once: true });
+      image.addEventListener('error', finish, { once: true });
+    });
+  }
+
+  /** Wait until a video has enough decoded data for drawImage. */
+  private async waitForVideoReady(
+    video: HTMLVideoElement,
+    readyState: number,
+    timeoutMs: number
+  ): Promise<void> {
+    if (video.readyState >= readyState) return;
+    await new Promise<void>((resolve) => {
+      let settled = false;
+      const finish = () => {
+        if (settled) return;
+        settled = true;
+        video.removeEventListener('loadeddata', finish);
+        video.removeEventListener('canplay', finish);
+        video.removeEventListener('error', finish);
+        clearTimeout(timer);
+        resolve();
+      };
+      const timer = setTimeout(finish, timeoutMs);
+      video.addEventListener('loadeddata', finish, { once: true });
+      video.addEventListener('canplay', finish, { once: true });
+      video.addEventListener('error', finish, { once: true });
+    });
+  }
+
+  /** Resolve only when the decoder has presented the requested source frame. */
+  private async seekVideoAndWait(
+    video: HTMLVideoElement,
+    target: number
+  ): Promise<void> {
+    await new Promise<void>((resolve) => {
+      let settled = false;
+      const finish = () => {
+        if (settled) return;
+        settled = true;
+        video.removeEventListener('seeked', finish);
+        clearTimeout(timer);
+        resolve();
+      };
+      const timer = setTimeout(finish, 1_500);
+      video.addEventListener('seeked', finish, { once: true });
+      try {
+        video.currentTime = target;
+      } catch {
+        finish();
+      }
+    });
+  }
+
+  private waitMs(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, Math.max(0, ms)));
   }
 
   /**

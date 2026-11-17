@@ -1211,7 +1211,7 @@ const cgiLessons: GuideLesson[] = [
     steps: [
       "Set Start and the capture window so the export covers the whole effect.",
       "Choose Raster, Rate and Codec. The export summary shows the delivery before you commit.",
-      "Press EXPORT VIDEO and leave the tab visible. The frame-locked capture requests every output frame instead of trusting a slow paint loop.",
+      "Press EXPORT VIDEO. Frame-locked export steps and stamps each frame; slow CGI costs time, not cadence.",
     ],
     controls: [
       "Start and capture-window controls",

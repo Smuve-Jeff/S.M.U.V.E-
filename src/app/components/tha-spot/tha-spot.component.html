@@ -3644,29 +3644,68 @@
               </button>
             </div>
             <div class="stream-av-controls">
+              <!-- live-source-controls-start -->
+              <!-- Source selectors, not track toggles: pressing CAMERA while
+                   sharing the screen must bring the camera back, not disable
+                   the screen track and leave a black feed. -->
               <button
                 class="av-btn"
-                (click)="socialService.toggleCamera()"
-                title="Toggle camera"
+                [class.active]="socialService.videoSource() === 'camera'"
+                [disabled]="socialService.switchingSource()"
+                (click)="selectStreamSource('camera')"
+                title="Show your camera"
               >
                 <span class="material-symbols-outlined">videocam</span>
                 CAMERA
               </button>
               <button
                 class="av-btn"
-                (click)="toggleLiveSource()"
-                [disabled]="socialService.switchingSource()"
-                [title]="socialService.videoSource() === 'camera' ? 'Switch to screen share — viewers keep watching' : 'Switch back to camera'"
+                [class.active]="socialService.videoSource() === 'screen'"
+                [disabled]="
+                  socialService.switchingSource() ||
+                  !socialService.screenShareSupported()
+                "
+                (click)="selectStreamSource('screen')"
+                [title]="
+                  socialService.screenShareUnavailableReason() ||
+                  'Share a tab, window or display'
+                "
+              >
+                <span class="material-symbols-outlined">screen_share</span>
+                SCREEN
+              </button>
+              <button
+                class="av-btn"
+                [class.active]="socialService.videoSource() === 'camera-pip'"
+                [disabled]="
+                  socialService.switchingSource() ||
+                  !socialService.screenShareSupported()
+                "
+                (click)="selectStreamSource('camera-pip')"
+                [title]="
+                  socialService.screenShareUnavailableReason() ||
+                  'Share a screen with your camera inset'
+                "
+              >
+                <span class="material-symbols-outlined">picture_in_picture</span>
+                CAM + SCREEN
+              </button>
+              <button
+                class="av-btn"
+                [class.active]="!socialService.cameraEnabled()"
+                (click)="socialService.toggleCamera()"
+                [title]="
+                  socialService.cameraEnabled()
+                    ? 'Mute the picture — viewers keep the stream'
+                    : 'Unmute the picture'
+                "
               >
                 <span class="material-symbols-outlined">{{
-                  socialService.videoSource() === 'camera'
-                    ? 'screen_share'
-                    : 'videocam'
+                  socialService.cameraEnabled() ? 'videocam' : 'videocam_off'
                 }}</span>
-                {{
-                  socialService.videoSource() === 'camera' ? 'SCREEN' : 'CAM'
-                }}
+                {{ socialService.cameraEnabled() ? 'MUTE VIDEO' : 'UNMUTE' }}
               </button>
+              <!-- live-source-controls-end -->
               <button
                 class="av-btn"
                 (click)="socialService.setScreenAudioOnly(!socialService.screenAudioOnly())"

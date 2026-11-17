@@ -107,6 +107,7 @@
     "typeorm": "^1.1.0",
     "typescript": "^5.9.3",
     "wait-on": "^9.0.5",
+    "webm-muxer": "^5.1.4",
     "zod": "^4.4.3",
     "zone.js": "^0.15.1"
   },

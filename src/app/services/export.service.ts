@@ -72,6 +72,7 @@ const VIDEO_MIME_CANDIDATES = [
   'video/mp4',
 ];
 
+
 /**
  * Supported export formats. `ext` drives the download filename; `mime` the
  * blob type; `webCodecs` the AudioEncoder codec string (when available).
@@ -2161,6 +2162,80 @@ export class ExportService {
   }
 
   /**
+   * Record the Studio's audio master on its own, for a frame-locked video pass.
+   *
+   * WebCodecs video has no canvas-stream muxer, so the audio is captured in
+   * real time first and joined to the exact video timestamps by FFmpeg. The
+   * caller owns the stop: it runs the timeline for the requested window, then
+   * stops this recorder. Returns null when the host cannot supply an audio
+   * track, which lets the caller ship a silent but still frame-locked video.
+   */
+  async startAudioExport(options: {
+    clipAudio?: AudioNode | null;
+    bitsPerSecond?: number;
+  } = {}): Promise<{
+    stop: () => void;
+    result: Promise<Blob>;
+    mimeType: string | null;
+  } | null> {
+    if (typeof MediaRecorder === 'undefined') return null;
+
+    try {
+      await this.engine.resume();
+      if (this.engine.ctx?.state !== 'running') {
+        this.logger.warn(
+          'Frame-locked export is running video-only: audio context is suspended'
+        );
+        return null;
+      }
+      const track = this.buildExportAudioTrack(options.clipAudio);
+      if (!track || typeof MediaStream === 'undefined') return null;
+
+      const stream = new MediaStream([track]);
+      const preferredAudioMime = 'audio/webm;codecs=opus';
+      const mimeType =
+        typeof MediaRecorder.isTypeSupported === 'function' &&
+        MediaRecorder.isTypeSupported(preferredAudioMime)
+          ? preferredAudioMime
+          : null;
+      const recorderOptions: MediaRecorderOptions = {
+        audioBitsPerSecond: options.bitsPerSecond ?? 192_000,
+      };
+      if (mimeType) recorderOptions.mimeType = mimeType;
+
+      const chunks: BlobPart[] = [];
+      const recorder = new MediaRecorder(stream, recorderOptions);
+      recorder.ondataavailable = (event) => {
+        if (event.data && event.data.size > 0) chunks.push(event.data);
+      };
+
+      const result = new Promise<Blob>((resolve, reject) => {
+        recorder.onstop = () => {
+          resolve(new Blob(chunks, { type: mimeType || 'audio/webm' }));
+        };
+        recorder.onerror = (event) => {
+          reject(
+            (event as unknown as { error?: Error })?.error ??
+              new Error('Audio recording failed')
+          );
+        };
+      });
+
+      recorder.start(250);
+      return {
+        stop: () => {
+          if (recorder.state !== 'inactive') recorder.stop();
+        },
+        result,
+        mimeType,
+      };
+    } catch (err) {
+      this.logger.warn('Frame-locked export has no audio track', err);
+      return null;
+    }
+  }
+
+  /**
    * Tap a timeline clip's own soundtrack for the master.
    *
    * A clip element is muted and never touches the audio graph, so a take with
@@ -2265,6 +2340,7 @@ export class ExportService {
       ) ?? null
     );
   }
+
 
   public downloadBlob(blob: Blob, filename: string) {
     const url = URL.createObjectURL(blob);

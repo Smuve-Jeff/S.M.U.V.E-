@@ -1,6 +1,8 @@
 import {
   FfmpegVideoExportService,
   buildConcatArgs,
+  buildFrameLockedMp4Args,
+  buildFrameLockedWebmArgs,
   buildMp4Args,
   validateMp4Bytes,
   validateMp4Blob,
@@ -136,6 +138,64 @@ describe('buildConcatArgs', () => {
   });
 });
 
+describe('frame-locked mux arguments', () => {
+  it('maps the frame-locked video and separate audio without retiming', () => {
+    const args = buildFrameLockedMp4Args('video.webm', 'audio.webm', 'master.mp4', {
+      frameRate: 60,
+      trimSeconds: 8,
+    });
+
+    expect(args).toEqual(
+      expect.arrayContaining([
+        '-i',
+        'video.webm',
+        '-i',
+        'audio.webm',
+        '-map',
+        '0:v:0',
+        '-map',
+        '1:a:0',
+        '-c:v',
+        'libx264',
+        '-c:a',
+        'aac',
+        '-r',
+        '60',
+      ]),
+    );
+    expect(args).not.toContain('-vf');
+    expect(args[args.indexOf('-t') + 1]).toBe('8.000');
+  });
+
+  it('maps the audio already inside the frame-locked video for MP4', () => {
+    const args = buildFrameLockedMp4Args('video.webm', null, 'master.mp4', {
+      audioFromVideo: true,
+    });
+
+    expect(args).toEqual(
+      expect.arrayContaining(['-map', '0:v:0', '-map', '0:a:0?', '-c:a', 'aac']),
+    );
+    expect(args).not.toContain('-an');
+  });
+
+  it('drops audio cleanly when the host had no audio track', () => {
+    const args = buildFrameLockedMp4Args('video.webm', null, 'master.mp4');
+
+    expect(args).toContain('-an');
+    expect(args).not.toContain('audio.webm');
+  });
+
+  it('stream-copies both tracks for a WebM delivery', () => {
+    const args = buildFrameLockedWebmArgs('video.webm', 'audio.webm', 'master.webm', {
+      trimSeconds: 5,
+    });
+
+    expect(args).toEqual(
+      expect.arrayContaining(['-map', '0:v:0', '-map', '1:a:0', '-c', 'copy', '-t', '5.000']),
+    );
+  });
+});
+
 describe('FfmpegVideoExportService', () => {
   let svc: FfmpegVideoExportService;
 
@@ -166,6 +226,49 @@ describe('FfmpegVideoExportService', () => {
     // In-memory FS is cleaned up after the encode.
     expect(ffmpeg.written.size).toBe(0);
     await expect(validateMp4Blob(out)).resolves.toMatchObject({ valid: true });
+  });
+
+  it('muxes frame-locked video and audio into a validated MP4', async () => {
+    const mp4 = fakeMp4();
+    const ffmpeg = fakeFfmpeg(mp4);
+    svc.ffmpegLoader = async () => ({
+      ffmpeg,
+      fetchFile: async (input: Blob) => new Uint8Array(await input.arrayBuffer()),
+    });
+
+    const out = await svc.muxFrameLocked(
+      new Blob([new Uint8Array([0x1a, 0x45, 0xdf, 0xa3, 1, 2, 3])], {
+        type: 'video/webm',
+      }),
+      new Blob([new Uint8Array([0x1a, 0x45, 0xdf, 0xa3, 4, 5, 6])], {
+        type: 'audio/webm',
+      }),
+      { container: 'mp4', frameRate: 30, trimSeconds: 5 },
+    );
+
+    expect(out.type).toBe('video/mp4');
+    expect(ffmpeg.calls[0]).toEqual(
+      expect.arrayContaining(['-i', 'frame-locked-video.webm', '-i', 'frame-locked-audio.webm', 'libx264']),
+    );
+    expect(ffmpeg.written.size).toBe(0);
+  });
+
+  it('remuxes a frame-locked WebM without transcoding', async () => {
+    const webm = new Uint8Array([0x1a, 0x45, 0xdf, 0xa3, 1, 2, 3, 4]);
+    const ffmpeg = fakeFfmpeg(webm);
+    svc.ffmpegLoader = async () => ({
+      ffmpeg,
+      fetchFile: async () => new Uint8Array([1, 2, 3]),
+    });
+
+    const out = await svc.muxFrameLocked(new Blob(['v']), null, {
+      container: 'webm',
+    });
+
+    expect(out.type).toBe('video/webm');
+    expect(ffmpeg.calls[0]).toEqual(
+      expect.arrayContaining(['-c', 'copy', 'output.webm']),
+    );
   });
 
   it('throws when FFmpeg output fails MP4 validation', async () => {

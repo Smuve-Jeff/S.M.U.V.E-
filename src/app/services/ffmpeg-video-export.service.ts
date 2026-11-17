@@ -20,6 +20,12 @@ import { LoggingService } from './logging.service';
  */
 
 export const FFMPEG_CORE_VERSION = '0.12.10';
+/**
+ * A wedged wasm worker used to leave a finished export at 92% forever. The
+ * load is the only indefinite step; transcoding itself may legitimately take
+ * minutes, so only startup is bounded.
+ */
+export const FFMPEG_LOAD_TIMEOUT_MS = 60_000;
 export const FFMPEG_CORE_BASE_URL = `https://cdn.jsdelivr.net/npm/@ffmpeg/core@${FFMPEG_CORE_VERSION}/dist/esm`;
 
 export interface Mp4Validation {
@@ -40,12 +46,25 @@ export interface Mp4TranscodeOptions {
   /** Trim the output to this many seconds (queue sections carry a tail guard). */
   trimSeconds?: number;
   /**
-   * Delivery rate. The capture can be slower than the paint loop; the encoder
-   * repeats the last frame into every missing slot so the master is still the
-   * requested 30/60fps rather than silently becoming a 3fps slideshow.
+   * Delivery rate. The real-time capture can be slower than the paint loop; the
+   * encoder repeats frames onto this grid so the master is still the requested
+   * 30/60fps rather than silently becoming a 3fps slideshow. A frame-locked
+   * input already carries exact timestamps and does not use this filter.
    */
   frameRate?: number;
   onProgress?: (progress: number) => void;
+}
+
+export type FrameLockedContainer = 'mp4' | 'webm';
+
+export interface FrameLockedMuxOptions extends Mp4TranscodeOptions {
+  /** MP4 for delivery, WebM when the operator chose the fast codec. */
+  container?: FrameLockedContainer;
+  /**
+   * The video WebM already carries its Opus audio track (direct muxing), so no
+   * second input is needed. Used by the MP4 transcode path.
+   */
+  audioFromVideo?: boolean;
 }
 
 /** Minimal shape of the `@ffmpeg/ffmpeg` instance this service drives. */
@@ -74,6 +93,12 @@ function asciiAt(bytes: Uint8Array, offset: number, length: number): string {
     out += String.fromCharCode(bytes[offset + i]);
   }
   return out;
+}
+
+function isEbmlBytes(bytes: Uint8Array): boolean {
+  return (
+    bytes.length > 4 && EBML_MAGIC.every((value, index) => bytes[index] === value)
+  );
 }
 
 function indexOfAscii(bytes: Uint8Array, needle: string): number {
@@ -183,6 +208,83 @@ export function buildConcatArgs(
   ];
 }
 
+/**
+ * Join a frame-locked WebCodecs video and its separately recorded audio.
+ *
+ * The video is already on the exact delivery grid, so there is deliberately
+ * no `fps=` filter here: re-timing exact frames through a sampler can drop or
+ * duplicate them. `-r` only declares the output rate; the input timestamps
+ * already sit on it.
+ */
+export function buildFrameLockedMp4Args(
+  video = 'frame-locked-video.webm',
+  audio: string | null = 'frame-locked-audio.webm',
+  output = 'output.mp4',
+  options: FrameLockedMuxOptions = {},
+): string[] {
+  const crf = Number.isFinite(options.crf) ? Math.round(options.crf!) : 20;
+  const fps = Number.isFinite(options.frameRate)
+    ? Math.max(1, Math.round(options.frameRate!))
+    : 30;
+  const trim = Number.isFinite(options.trimSeconds)
+    ? Math.max(0, options.trimSeconds!)
+    : null;
+  const hasAudio = !!audio;
+  const hasVideoAudio = !hasAudio && options.audioFromVideo === true;
+  return [
+    '-y',
+    '-i',
+    video,
+    ...(hasAudio ? ['-i', audio] : []),
+    ...(hasAudio
+      ? ['-map', '0:v:0', '-map', '1:a:0']
+      : hasVideoAudio
+        ? ['-map', '0:v:0', '-map', '0:a:0?']
+        : ['-map', '0:v:0']),
+    '-c:v',
+    'libx264',
+    '-pix_fmt',
+    'yuv420p',
+    '-crf',
+    String(Math.max(0, Math.min(51, crf))),
+    '-preset',
+    options.preset || 'veryfast',
+    ...(hasAudio || hasVideoAudio
+      ? ['-c:a', 'aac', '-b:a', options.audioBitrate || '192k']
+      : ['-an']),
+    '-r',
+    String(fps),
+    '-movflags',
+    '+faststart',
+    ...(trim ? ['-t', trim.toFixed(3)] : []),
+    output,
+  ];
+}
+
+/** Remux the frame-locked video and audio without a second generation loss. */
+export function buildFrameLockedWebmArgs(
+  video = 'frame-locked-video.webm',
+  audio: string | null = 'frame-locked-audio.webm',
+  output = 'output.webm',
+  options: FrameLockedMuxOptions = {},
+): string[] {
+  const trim = Number.isFinite(options.trimSeconds)
+    ? Math.max(0, options.trimSeconds!)
+    : null;
+  const hasAudio = !!audio;
+  return [
+    '-y',
+    '-i',
+    video,
+    ...(hasAudio ? ['-i', audio] : []),
+    ...(hasAudio ? ['-map', '0:v:0', '-map', '1:a:0'] : ['-map', '0:v:0']),
+    '-c',
+    'copy',
+    ...(trim ? ['-t', trim.toFixed(3)] : []),
+    output,
+  ];
+}
+
 /** Browser stitching is bounded by wasm memory, not by the timeline. */
 export const MAX_STITCH_BYTES = 1_500_000_000;
 
@@ -254,7 +356,28 @@ export class FfmpegVideoExportService {
           `${FFMPEG_CORE_BASE_URL}/ffmpeg-core.wasm`,
           'application/wasm',
         );
-        await ffmpeg.load({ coreURL, wasmURL });
+        let loadTimer: ReturnType<typeof setTimeout> | null = null;
+        try {
+          await Promise.race([
+            ffmpeg.load({ coreURL, wasmURL }),
+            new Promise<never>((_, reject) => {
+              loadTimer = setTimeout(
+                () =>
+                  reject(
+                    new Error(
+                      'The FFmpeg core did not start. Check the connection and retry.',
+                    ),
+                  ),
+                FFMPEG_LOAD_TIMEOUT_MS,
+              );
+            }),
+          ]);
+        } catch (error) {
+          ffmpeg.terminate?.();
+          throw error;
+        } finally {
+          if (loadTimer !== null) clearTimeout(loadTimer);
+        }
         return { ffmpeg, fetchFile: fetchFile as (input: Blob | string) => Promise<Uint8Array> };
       })().catch((error) => {
         // Never cache a failed load: the next export retries the download.
@@ -292,6 +415,76 @@ export class FfmpegVideoExportService {
       `FFmpeg MP4 export ready: ${validation.size} bytes, brand=${validation.brand ?? '?'}`,
     );
     return new Blob([outputBytes as BlobPart], { type: 'video/mp4' });
+  }
+
+  /**
+   * Mux the frame-locked WebCodecs video with its separately recorded audio.
+   *
+   * MP4 is a real H.264/AAC delivery master; WebM is a stream copy so the
+   * exact frame timestamps and original VP9 quality survive untouched. Audio
+   * may be null when the host has no running audio context, in which case the
+   * video is still delivered (silent) rather than failing the whole take.
+   */
+  async muxFrameLocked(
+    video: Blob,
+    audio: Blob | null,
+    options: FrameLockedMuxOptions = {},
+  ): Promise<Blob> {
+    if (!video || video.size === 0) {
+      throw new Error('Frame-locked export produced no video bytes.');
+    }
+    const container: FrameLockedContainer = options.container ?? 'mp4';
+    const hasAudio = !!audio && audio.size > 0;
+    const { ffmpeg, fetchFile } = await this.loadFfmpeg(options.onProgress);
+    const videoName = 'frame-locked-video.webm';
+    const audioName = 'frame-locked-audio.webm';
+    const outputName = container === 'webm' ? 'output.webm' : 'output.mp4';
+
+    try {
+      await ffmpeg.writeFile(videoName, await fetchFile(video));
+      if (hasAudio) {
+        await ffmpeg.writeFile(audioName, await fetchFile(audio as Blob));
+      }
+      const args =
+        container === 'webm'
+          ? buildFrameLockedWebmArgs(
+              videoName,
+              hasAudio ? audioName : null,
+              outputName,
+              options,
+            )
+          : buildFrameLockedMp4Args(
+              videoName,
+              hasAudio ? audioName : null,
+              outputName,
+              options,
+            );
+      // The direct-mux path passed video with audio and no second input.
+      const exitCode = await ffmpeg.exec(args);
+      if (exitCode !== 0) {
+        throw new Error(`FFmpeg could not mux the frame-locked export (code ${exitCode}).`);
+      }
+      const bytes = await this.readOutput(ffmpeg, outputName);
+      if (container === 'webm') {
+        if (!isEbmlBytes(bytes)) {
+          throw new Error('FFmpeg produced an invalid WebM frame-locked master.');
+        }
+        return new Blob([bytes as BlobPart], { type: 'video/webm' });
+      }
+      const validation = validateMp4Bytes(bytes);
+      if (!validation.valid) {
+        throw new Error(`FFmpeg produced an invalid MP4: ${validation.reason}.`);
+      }
+      return new Blob([bytes as BlobPart], { type: 'video/mp4' });
+    } finally {
+      for (const path of [videoName, audioName, outputName]) {
+        try {
+          await ffmpeg.deleteFile(path);
+        } catch {
+          /* already gone */
+        }
+      }
+    }
   }
 
   /**

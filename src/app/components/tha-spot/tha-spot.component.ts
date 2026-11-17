@@ -745,6 +745,15 @@ const LIVE_DIRECTORY_REFRESH_INTERVAL_MS = 20000;
         background: rgba(16, 185, 129, 0.18);
         border-color: rgba(16, 185, 129, 0.6);
       }
+      .av-btn.active {
+        background: rgba(16, 185, 129, 0.28);
+        border-color: #10b981;
+        color: #fff;
+      }
+      .av-btn:disabled {
+        cursor: not-allowed;
+        opacity: 0.45;
+      }
       .av-btn .material-symbols-outlined {
         font-size: 0.85rem;
       }

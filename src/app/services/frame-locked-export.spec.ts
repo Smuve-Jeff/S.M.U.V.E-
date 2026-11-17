@@ -1,7 +1,10 @@
 import {
   createFrameLockPlan,
+  frameDurationMicros,
+  frameKeyInterval,
   frameProgressPercent,
   frameTimeSeconds,
+  frameTimestampMicros,
 } from './frame-locked-export';
 
 describe('frame-locked export schedule', () => {
@@ -21,6 +24,22 @@ describe('frame-locked export schedule', () => {
 
     expect(plan.totalFrames).toBe(2);
     expect(frameProgressPercent(plan, 1)).toBe(50);
+  });
+
+  it('stamps every encoded frame from its slot, with no accumulated drift', () => {
+    const plan = createFrameLockPlan(10, 30);
+
+    expect(frameTimestampMicros(plan, 0)).toBe(0);
+    expect(frameTimestampMicros(plan, 1)).toBe(33_333);
+    expect(frameTimestampMicros(plan, 29)).toBe(966_667);
+    expect(frameTimestampMicros(plan, 30)).toBe(1_000_000);
+    expect(frameTimestampMicros(plan, 299)).toBe(9_966_667);
+    // The interval is uniform all the way to the tail (no 33.3µs creep).
+    expect(frameTimestampMicros(plan, 30) - frameTimestampMicros(plan, 29)).toBe(
+      33_333,
+    );
+    expect(frameDurationMicros(plan)).toBe(33_333);
+    expect(frameKeyInterval(plan)).toBe(60);
   });
 
   it('clamps malformed rates and reports frame-count progress', () => {
