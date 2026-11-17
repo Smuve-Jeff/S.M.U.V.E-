@@ -72,6 +72,19 @@ describe("Studio Masterclass content", () => {
     }
   });
 
+  it("teaches the custom RTMP setup and clear flow in Tha Spot", () => {
+    const spot = ALL_GUIDE_LESSONS.find((lesson) => lesson.id === "app-spot");
+    expect(spot).toBeDefined();
+    const steps = spot!.steps.join(" ");
+
+    expect(steps).toContain("BROADCAST PUSH");
+    expect(steps).toContain("CUSTOM");
+    expect(steps).toContain("RTMPS");
+    expect(steps).toContain("SAVE");
+    expect(steps).toContain("GO LIVE");
+    expect(steps).toContain("CLEAR");
+  });
+
   it("keeps every lesson actionable and correctly targeted", () => {
     const lessonIds = ALL_GUIDE_LESSONS.map((lesson) => lesson.id);
     expect(new Set(lessonIds).size).toBe(lessonIds.length);

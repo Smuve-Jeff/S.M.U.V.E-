@@ -179,17 +179,21 @@ export const COMPLETE_GUIDE_LESSONS: readonly CompleteGuideLesson[] = [
     title: "Tha Spot: play, compete, broadcast",
     kicker: "Community",
     summary:
-      "Tha Spot is the community arcade: discover games, filter the catalogue, join rooms and lobbies, squad up, challenge rivals, split-screen and go live.",
+      "Tha Spot is the community arcade: discover games, filter the catalogue, join rooms and lobbies, squad up, challenge rivals, split-screen and broadcast to S.M.U.V.E, Twitch, Kick, Facebook or four custom RTMP destinations.",
     features: [
       "Catalogue filters, search and recommendations",
       "Rooms, lobbies, squads and rival challenges",
       "Split-screen, spectator reactions and post-run ratings",
       "S.M.U.V.E TV, Jeff Radio and Go Live viewer links",
+      "Broadcast Push with four saved custom RTMP destinations",
     ],
     steps: [
       "Pick a cabinet from the catalogue and read the launch options before opening it.",
       "Join or host a lobby, invite a squad, and use split-screen for local play.",
       "Use the Inbox for challenges and the TV or radio guide when you are not playing.",
+      "To add a custom RTMP target, open Tha Spot, choose a cabinet, then open the LIVE tab in the rival hub and find BROADCAST PUSH.",
+      "In one of the four CUSTOM rows, enter a name, the platform's RTMPS URL and stream key, then press SAVE. The key stays server-side and is never shown again.",
+      "Press GO LIVE, select that saved custom destination, and confirm. Press CLEAR on a saved row to delete its key and reset the label, URL and key fields.",
     ],
     mistake:
       "Opening a game without checking its launch mode. Some cabinets are embedded, some open externally, and some are self-hosted WASM.",
