@@ -20,7 +20,11 @@ describe('ExportService (Sprint A6)', () => {
     getTempoMap: () => [],
     stepAtBar: (bar: number) => bar * 16,
     barCountForStep: (step: number) => Math.ceil(step / 16),
-    ctx: { createMediaStreamDestination: () => ({ stream: {} }) },
+    ctx: {
+      state: 'running' as AudioContextState,
+      createMediaStreamDestination: () => ({ stream: {} }),
+    },
+    resume: jest.fn().mockResolvedValue(undefined),
     masterGain: { connect: () => {} },
     isPlaying: () => false,
     start: () => {},
@@ -685,6 +689,8 @@ describe('ExportService (Sprint A6)', () => {
       masterStream.mockImplementation(() => ({
         stream: { getAudioTracks: () => [{ id: 'master-audio' }] },
       }));
+      mockEngine.resume.mockClear();
+      mockEngine.ctx.state = 'running';
     });
 
     afterEach(() => {
@@ -710,6 +716,7 @@ describe('ExportService (Sprint A6)', () => {
       const session = await svc.startVideoExport(canvas, { fps: 24 });
 
       expect(canvas.captureStream).toHaveBeenCalledWith(24);
+      expect(mockEngine.resume).toHaveBeenCalled();
       expect(stream.addTrack).toHaveBeenCalledWith(
         expect.objectContaining({ id: 'master-audio' })
       );
@@ -728,6 +735,21 @@ describe('ExportService (Sprint A6)', () => {
       const blob = await session.result;
       expect(blob.size).toBeGreaterThan(0);
       expect(blob.type).toBe('video/webm;codecs=vp9,opus');
+    });
+
+    it('keeps the video take when the audio context stays suspended', async () => {
+      mockEngine.ctx.state = 'suspended';
+      const { canvas, stream } = makeCanvas();
+
+      const session = await svc.startVideoExport(canvas);
+      session.recorder.stop();
+      const blob = await session.result;
+
+      expect(stream.addTrack).not.toHaveBeenCalled();
+      expect(blob.size).toBeGreaterThan(0);
+      expect(mockLogger.warn).toHaveBeenCalledWith(
+        expect.stringContaining('audio context is suspended')
+      );
     });
 
     it('records video-only when the master bus is unavailable', async () => {

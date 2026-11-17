@@ -131,6 +131,12 @@ import { LiveVideoService } from '../../services/live-video.service';
 import { SocialNetworkingService } from '../../services/social-networking.service';
 import { LiveRelayStripComponent } from '../live-relay-strip/live-relay-strip.component';
 import { LiveChatComponent } from '../live-chat/live-chat.component';
+import { CgiScenePanelComponent } from './cgi-scene-panel/cgi-scene-panel.component';
+import { CgiRendererService } from '../../services/cgi-renderer.service';
+import {
+  createDefaultCgiScene,
+  type CgiSceneSettings,
+} from '../../services/cgi-scene';
 import type { ViewerHealthThresholds } from '../../services/viewer-health';
 import { isValidViewerHealth } from '../../services/viewer-health';
 import { ViewerHealthSettingsService } from '../../services/viewer-health-settings.service';
@@ -313,7 +319,13 @@ interface PinchState {
 @Component({
   selector: 'app-image-video-lab',
   standalone: true,
-  imports: [CommonModule, FormsModule, LiveRelayStripComponent, LiveChatComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    LiveRelayStripComponent,
+    LiveChatComponent,
+    CgiScenePanelComponent,
+  ],
   templateUrl: './image-video-lab.component.html',
   styleUrls: ['./image-video-lab.component.css'],
 })
@@ -328,6 +340,7 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
   private exportService = inject(ExportService);
   private ffmpegExport = inject(FfmpegVideoExportService, { optional: true });
   private whisper = inject(WhisperTranscriptionService, { optional: true });
+  private cgiRenderer = inject(CgiRendererService);
   transcribing = signal(false);
   public camera = inject(CameraCaptureService);
   public director = inject(CinemaDirectorService);
@@ -480,7 +493,6 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
    */
   coachJourney = computed(() => assessJourney(this.buildCoachState()));
 
-  highQualityEnhancer = signal(false);
   selectedFilter = signal<ClipFilter>('cinematic');
   selectedTransition = signal<ClipTransition>('fade');
   transitionDuration = signal(0.5);
@@ -1131,6 +1143,10 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
   });
   selectedClipLane = computed(
     () => this.selectedClip()?.trackId ?? null
+  );
+  /** Scene authoring target: only a clip that already carries a CGI layer. */
+  selectedCgiScene = computed<CgiSceneSettings | null>(
+    () => this.selectedClip()?.effects.cgiScene ?? null,
   );
   /**
    * Shot length in bars.
@@ -2494,8 +2510,68 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
    * The lane used to paint one exactly like a take, so a planned frame could
    * be mistaken for footage that had already been shot.
    */
-  isShotCard(clip: Pick<VideoClip, 'source' | 'type' | 'url'>): boolean {
-    return clip.source === 'ai' && clip.type === 'overlay' && !clip.url;
+  isShotCard(
+    clip: Pick<VideoClip, 'source' | 'type' | 'url'> & {
+      effects?: VideoClip['effects'];
+    },
+  ): boolean {
+    return (
+      clip.source === 'ai' &&
+      clip.type === 'overlay' &&
+      !clip.url &&
+      !clip.effects?.cgiScene
+    );
+  }
+
+  /** Create a real 3D overlay clip at the playhead. */
+  addCgiLayer(): void {
+    const track = this.videoEngine
+      .tracks()
+      .find((candidate) => candidate.id === 't2');
+    if (track?.locked) {
+      this.aiFeedback.set('THE OVERLAY LANE IS LOCKED — UNLOCK IT, THEN ADD CGI.');
+      return;
+    }
+    const start = this.videoEngine.currentTime();
+    const duration = Math.max(
+      MIN_ACTIVE_CLIP_DURATION,
+      Math.min(8, Math.max(0.1, this.videoEngine.duration() - start)),
+    );
+    const id = this.videoEngine.addClip('t2', {
+      name: 'CGI Scene',
+      url: '',
+      startTime: start,
+      duration,
+      offset: 0,
+      type: 'overlay',
+      source: 'ai',
+      effects: createDefaultEffects({
+        cgiScene: createDefaultCgiScene(),
+      }),
+    });
+    this.selectedClipId.set(id);
+    this.aiFeedback.set(
+      'CGI LAYER ADDED — THREE.JS SCENE RENDERING ON THE OVERLAY LANE.',
+    );
+  }
+
+  /** Replace the selected CGI clip's scene with a validated panel result. */
+  updateSelectedCgiScene(scene: CgiSceneSettings): void {
+    const clip = this.selectedClip();
+    if (!clip) return;
+    this.videoEngine.updateClip(clip.id, {
+      effects: { ...clip.effects, cgiScene: scene },
+    });
+    this.aiFeedback.set('CGI SCENE UPDATED — PREVIEW AND EXPORT USE THIS PASS.');
+  }
+
+  /** Remove the CGI clip rather than leave an empty storyboard placeholder. */
+  removeSelectedCgiLayer(): void {
+    const clip = this.selectedClip();
+    if (!clip?.effects.cgiScene) return;
+    this.videoEngine.removeClip(clip.id);
+    this.selectedClipId.set(null);
+    this.aiFeedback.set('CGI LAYER REMOVED FROM THE TIMELINE.');
   }
 
   /** How many storyboard placeholders are sitting on the visuals lane. */
@@ -2573,7 +2649,6 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
       note: shot.description,
       shotType: shot.size,
       effects: createDefaultEffects({
-        upscale: this.highQualityEnhancer(),
         bgRemoval: false,
         noiseReduction: false,
         brightness: 1,
@@ -3427,7 +3502,6 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
       type: isPhoto ? 'image' : 'video',
       source: this.camera.sourceType(),
       effects: createDefaultEffects({
-        upscale: this.highQualityEnhancer(),
         bgRemoval: false,
         noiseReduction: false,
         brightness: 1,
@@ -3861,6 +3935,20 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
       ? this.drawMediaContain(ctx, layer, media, clip, clipLocalTime)
       : false;
 
+    // The Three.js layer is transparent by default, so it composites over the
+    // decoded media. Drawing it before the key/mask/grade passes keeps a CGI
+    // layer inside the same finish chain as footage.
+    const cgiCanvas = clip.effects.cgiScene?.enabled
+      ? this.cgiRenderer.render(
+          clip.effects.cgiScene,
+          layer.width,
+          layer.height,
+          clipLocalTime,
+          activeDuration,
+        )
+      : null;
+    if (cgiCanvas) ctx.drawImage(cgiCanvas, 0, 0);
+
     // Real chroma key. Legacy `bgRemoval` (no settings) keys the green
     // screen; explicit settings win when present.
     const chroma = this.resolveChromaKey(clip.effects);
@@ -3878,7 +3966,7 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
 
     if (clip.effects.title) {
       this.drawTitleCard(ctx, layer, clip.effects.title);
-    } else if (!painted && !clip.effects.voiceover) {
+    } else if (!painted && !clip.effects.voiceover && !cgiCanvas) {
       this.drawSignalPlaceholder(ctx, layer, clip);
     }
 
@@ -6575,7 +6663,6 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
         type: clipType,
         source: 'upload',
         effects: createDefaultEffects({
-          upscale: this.highQualityEnhancer(),
           bgRemoval: false,
           noiseReduction: false,
           brightness: 1,
@@ -6836,7 +6923,6 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
       type: 'image',
       source: isScreenShare ? 'screen' : 'camera',
       effects: createDefaultEffects({
-        upscale: this.highQualityEnhancer(),
         bgRemoval: false,
         noiseReduction: false,
         brightness: 1,
@@ -6891,7 +6977,6 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
         type: 'video',
         source: this.camera.sourceType() === 'screen' ? 'screen' : 'camera',
         effects: createDefaultEffects({
-          upscale: this.highQualityEnhancer(),
           bgRemoval: false,
           noiseReduction: false,
           brightness: 1,
@@ -7129,7 +7214,6 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
         type: 'image',
         source: 'ai',
         effects: createDefaultEffects({
-          upscale: true,
           bgRemoval: false,
           noiseReduction: false,
           brightness: 1,
@@ -7293,7 +7377,6 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
       type: 'image',
       source: 'ai',
       effects: createDefaultEffects({
-        upscale: true,
         bgRemoval: false,
         noiseReduction: false,
         brightness: 1,
@@ -7421,7 +7504,6 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
         type: 'video',
         source: 'ai',
         effects: createDefaultEffects({
-          upscale: this.highQualityEnhancer(),
           bgRemoval: false,
           noiseReduction: false,
           brightness: 1,
@@ -7961,6 +8043,7 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     this.mediaCache.clear();
     this.ownedObjectUrls.forEach((url) => URL.revokeObjectURL(url));
     this.ownedObjectUrls.clear();
+    this.cgiRenderer.dispose();
   }
 
 

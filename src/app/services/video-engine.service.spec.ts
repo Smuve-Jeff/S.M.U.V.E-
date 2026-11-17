@@ -2,6 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { AudioEngineService } from './audio-engine.service';
 import { CinemaSnapshot, VideoClip, VideoEngineService } from './video-engine.service';
 import { AI_VFX_PRESETS } from './ai-vfx';
+import { createDefaultCgiScene } from './cgi-scene';
 
 /**
  * The project snapshot is the only thing keeping a film or a broadcast rundown
@@ -370,6 +371,47 @@ describe('VideoEngineService project snapshot', () => {
 
       expect(restored.effects.fx).toEqual([{ id: 'vignette', value: 0.5 }]);
       expect(restored.effects.speed).toBe(4);
+    });
+
+    it('restores a CGI scene through the same sanitizer as the renderer', () => {
+      const engine = createEngine();
+      const snapshot = engine.snapshot();
+      snapshot.tracks[1].clips.push({
+        ...clip({ name: 'CGI', url: '' }),
+        id: 'cgi',
+        trackId: 't2',
+        type: 'overlay',
+        source: 'ai',
+        effects: {
+          ...clip().effects,
+          cgiScene: {
+            ...createDefaultCgiScene(),
+            lightIntensity: 999,
+            cameraMove: 'not-a-move' as never,
+            objects: [
+              {
+                id: 'cube',
+                name: 'Cube',
+                kind: 'cube',
+                color: '#FF0000',
+                position: [99, 0, 0],
+                scale: 1,
+                spin: 1,
+              },
+              { kind: 'model' } as never,
+            ],
+          },
+        },
+      });
+
+      engine.restore(snapshot);
+      const restored = engine.findClip('cgi')!;
+
+      expect(restored.effects.cgiScene?.lightIntensity).toBe(4);
+      expect(restored.effects.cgiScene?.cameraMove).toBe('orbit-left');
+      expect(restored.effects.cgiScene?.objects).toHaveLength(1);
+      expect(restored.effects.cgiScene?.objects[0].color).toBe('#ff0000');
+      expect(restored.effects.cgiScene?.objects[0].position).toEqual([20, 0, 0]);
     });
   });
 

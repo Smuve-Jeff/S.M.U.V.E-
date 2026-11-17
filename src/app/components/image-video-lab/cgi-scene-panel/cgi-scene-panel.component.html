@@ -1,0 +1,146 @@
+<div class="cgi-card" aria-labelledby="cgi-scene-title">
+  <div class="cgi-head">
+    <h4 id="cgi-scene-title">CGI / 3D Stage</h4>
+    <span class="cgi-badge">THREE.JS</span>
+  </div>
+
+  @if (!scene()) {
+    <p class="cgi-copy">
+      Build a real 3D overlay with lights, shadows, reflections, imported GLB
+      models and an animated camera. It renders into the monitor and export like
+      any other layer.
+    </p>
+    <button type="button" class="cgi-button cgi-primary" (click)="addLayer.emit()">
+      ADD CGI LAYER
+    </button>
+  } @else {
+    @if (scene(); as stage) {
+      <div class="cgi-row">
+        <label class="cgi-field">
+          <span>Primitive</span>
+          <select
+            class="cgi-select"
+            aria-label="CGI primitive"
+            [(ngModel)]="primitive"
+          >
+            @for (item of primitives; track item.id) {
+              <option [value]="item.id">{{ item.label }}</option>
+            }
+          </select>
+        </label>
+        <button type="button" class="cgi-button" (click)="addPrimitive()">
+          ADD OBJECT
+        </button>
+      </div>
+
+      <div class="cgi-import">
+        <input
+          type="file"
+          accept=".glb,.gltf,model/gltf-binary,model/gltf+json"
+          aria-label="Import a GLB or self-contained GLTF model"
+          (change)="onModelFile($event)"
+        />
+        <span>GLB / embedded GLTF · stored in the project</span>
+      </div>
+      @if (modelError(); as error) {
+        <p class="cgi-error">{{ error }}</p>
+      }
+
+      <label class="cgi-field">
+        <span>Camera move</span>
+        <select
+          class="cgi-select"
+          aria-label="CGI camera move"
+          [ngModel]="stage.cameraMove"
+          (ngModelChange)="setCameraMove($event)"
+        >
+          @for (move of cameraMoves; track move.id) {
+            <option [value]="move.id">{{ move.label }}</option>
+          }
+        </select>
+      </label>
+
+      <label class="cgi-field">
+        <span>Key light {{ (stage.lightIntensity * 100) | number: '1.0-0' }}%</span>
+        <input
+          type="range"
+          min="0.2"
+          max="3"
+          step="0.1"
+          aria-label="CGI key light intensity"
+          [ngModel]="stage.lightIntensity"
+          (ngModelChange)="patch({ lightIntensity: +$event })"
+        />
+      </label>
+
+      <label class="cgi-field">
+        <span>Object spin {{ (stage.spin * 100) | number: '1.0-0' }}%</span>
+        <input
+          type="range"
+          min="0"
+          max="1.5"
+          step="0.05"
+          aria-label="CGI object spin speed"
+          [ngModel]="stage.spin"
+          (ngModelChange)="patch({ spin: +$event })"
+        />
+      </label>
+
+      <div class="cgi-toggles">
+        <label>
+          <input
+            type="checkbox"
+            [ngModel]="stage.shadows"
+            (ngModelChange)="patch({ shadows: !!$event })"
+          />
+          SHADOWS
+        </label>
+        <label>
+          <input
+            type="checkbox"
+            [ngModel]="stage.reflections"
+            (ngModelChange)="patch({ reflections: !!$event })"
+          />
+          REFLECTIONS
+        </label>
+        <label>
+          <input
+            type="checkbox"
+            [ngModel]="stage.background === 'dark'"
+            (ngModelChange)="patch({ background: $event ? 'dark' : 'transparent' })"
+          />
+          DARK PLATE
+        </label>
+      </div>
+
+      <div class="cgi-objects" aria-label="CGI scene objects">
+        @for (object of stage.objects; track object.id) {
+          <div class="cgi-object">
+            <span class="cgi-object-name">{{ object.name }}</span>
+            @if (object.kind !== 'model') {
+              <input
+                type="color"
+                [ngModel]="object.color"
+                (ngModelChange)="setObjectColor(object.id, $event)"
+                [attr.aria-label]="'Colour for ' + object.name"
+              />
+            } @else {
+              <span class="cgi-object-kind">MODEL</span>
+            }
+            <button
+              type="button"
+              aria-label="Remove CGI object"
+              (click)="removeObject(object.id)"
+            >
+              ×
+            </button>
+          </div>
+        }
+      </div>
+
+      <button type="button" class="cgi-button cgi-danger" (click)="removeLayer.emit()">
+        REMOVE CGI LAYER
+      </button>
+    }
+  }
+</div>

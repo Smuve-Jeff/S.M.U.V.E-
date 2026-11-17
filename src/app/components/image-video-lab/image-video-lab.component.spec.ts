@@ -29,6 +29,7 @@ import { InteractionDialogService } from '../../services/interaction-dialog.serv
 import { CinemaEngineService } from '../../services/cinema-engine.service';
 import { SpeechSynthesisService } from '../../services/speech-synthesis.service';
 import { SocialNetworkingService } from '../../services/social-networking.service';
+import { createDefaultCgiScene } from '../../services/cgi-scene';
 
 /** The real preflight panel, mounted with the component for DOM tests. */
 const LAB_PREVIEW_TEMPLATE = (() => {
@@ -3020,6 +3021,131 @@ describe('ImageVideoLabComponent', () => {
     });
   });
 
+  describe('CGI stage', () => {
+    it('adds a real Three.js overlay clip on the overlay lane', async () => {
+      const { component, videoEngine } = await createComponent();
+      videoEngine.addClip.mockReturnValue('cgi-1');
+      videoEngine.currentTime.set(4);
+
+      component.addCgiLayer();
+
+      const [trackId, clip] = videoEngine.addClip.mock.calls[0];
+      expect(trackId).toBe('t2');
+      expect(clip.type).toBe('overlay');
+      expect(clip.effects.cgiScene.enabled).toBe(true);
+      expect(clip.effects.cgiScene.objects[0].kind).toBe('torus');
+      expect(component.selectedClipId()).toBe('cgi-1');
+    });
+
+    it('persists scene edits onto the selected CGI clip', async () => {
+      const { component, videoEngine } = await createComponent();
+      const clip = createVideoClip({
+        id: 'cgi-1',
+        trackId: 't2',
+        type: 'overlay',
+        source: 'ai',
+        url: '',
+        effects: {
+          ...createVideoClip().effects,
+          cgiScene: createDefaultCgiScene(),
+        },
+      });
+      const next = {
+        ...createDefaultCgiScene(),
+        cameraMove: 'push-in' as const,
+        lightIntensity: 2.2,
+      };
+      videoEngine.findClip.mockReturnValue(clip);
+      component.selectedClipId.set('cgi-1');
+
+      component.updateSelectedCgiScene(next);
+
+      expect(videoEngine.updateClip).toHaveBeenCalledWith('cgi-1', {
+        effects: { ...clip.effects, cgiScene: next },
+      });
+    });
+
+    it('removes the CGI clip instead of leaving an empty placeholder', async () => {
+      const { component, videoEngine } = await createComponent();
+      const clip = createVideoClip({
+        id: 'cgi-1',
+        trackId: 't2',
+        type: 'overlay',
+        source: 'ai',
+        url: '',
+        effects: {
+          ...createVideoClip().effects,
+          cgiScene: createDefaultCgiScene(),
+        },
+      });
+      videoEngine.findClip.mockReturnValue(clip);
+      component.selectedClipId.set('cgi-1');
+
+      component.removeSelectedCgiLayer();
+
+      expect(videoEngine.removeClip).toHaveBeenCalledWith('cgi-1');
+      expect(videoEngine.updateClip).not.toHaveBeenCalled();
+      expect(component.selectedClipId()).toBeNull();
+    });
+
+    it('does not mistake a CGI overlay for a storyboard shot card', async () => {
+      const { component } = await createComponent();
+      const clip = createVideoClip({
+        trackId: 't2',
+        type: 'overlay',
+        source: 'ai',
+        url: '',
+        effects: {
+          ...createVideoClip().effects,
+          cgiScene: createDefaultCgiScene(),
+        },
+      });
+
+      expect(component.isShotCard(clip)).toBe(false);
+      expect(
+        component.isShotCard({ ...clip, effects: createVideoClip().effects }),
+      ).toBe(true);
+    });
+
+    it('composites the rendered WebGL canvas and skips the signal placeholder', async () => {
+      const { component, videoEngine, renderFrame } = await createComponent();
+      const scene = createDefaultCgiScene();
+      const cgiCanvas = document.createElement('canvas');
+      const renderSpy = jest
+        .spyOn(
+          (component as unknown as { cgiRenderer: { render: () => unknown } })
+            .cgiRenderer as { render: () => HTMLCanvasElement },
+          'render',
+        )
+        .mockReturnValue(cgiCanvas);
+      videoEngine.getActiveClips.mockReturnValue([
+        createVideoClip({
+          id: 'cgi-1',
+          trackId: 't2',
+          type: 'overlay',
+          source: 'ai',
+          url: '',
+          effects: { ...createVideoClip().effects, cgiScene: scene },
+        }),
+      ]);
+      (ctxStub.drawImage as jest.Mock).mockClear();
+      (ctxStub.createLinearGradient as jest.Mock).mockClear();
+
+      renderFrame();
+
+      expect(renderSpy).toHaveBeenCalledWith(
+        scene,
+        expect.any(Number),
+        expect.any(Number),
+        expect.any(Number),
+        expect.any(Number),
+      );
+      expect(ctxStub.drawImage).toHaveBeenCalledWith(cgiCanvas, 0, 0);
+      expect(ctxStub.createLinearGradient).not.toHaveBeenCalled();
+      renderSpy.mockRestore();
+    });
+  });
+
   describe('cinema engine room upgrades', () => {
     it('composites a clip through its transition instead of drawing straight in', async () => {
       const { videoEngine, renderFrame } = await createComponent();
@@ -6007,7 +6133,7 @@ describe('ImageVideoLabComponent', () => {
       expect(component.failedImagePrompt()).toBeNull();
     });
 
-    it('sends the staged prompt and lands the frame on the visuals lane', async () => {
+    it('sends the staged prompt and lands the frame on the overlay lane', async () => {
       const { component, videoEngine } = await createComponent();
       const ai = aiMock();
       ai.generateImage.mockResolvedValue('https://cdn.example/frame.png');

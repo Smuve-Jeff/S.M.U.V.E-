@@ -242,6 +242,21 @@ describe('ImageVideoLabComponent section disclosures', () => {
    * the two previously-dead controls reachable.
    */
   describe('control wiring', () => {
+    it('does not advertise a 4K upscale the renderer cannot apply', () => {
+      expect(template).not.toContain('Upscale 4K');
+      expect(template).not.toContain('highQualityEnhancer');
+      expect(source).not.toContain('highQualityEnhancer');
+    });
+
+    it('labels a generated frame as landing on the overlay lane', () => {
+      expect(template).toContain(
+        'Last frame — placed on the overlay lane at the playhead'
+      );
+      expect(template).not.toContain(
+        'Last frame — placed on the visuals lane at the playhead'
+      );
+    });
+
     it('feeds Synthesize from a prompt the operator can set', () => {
       expect(template).toContain('aria-label="Concept art prompt"');
       expect(template).toContain('[ngModel]="imagePrompt()"');

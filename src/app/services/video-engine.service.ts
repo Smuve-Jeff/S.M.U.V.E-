@@ -94,6 +94,7 @@ export { sanitizeLut } from './lut';
 import { sanitizeLut } from './lut';
 export { evaluateKeyframes, sanitizeKeyframes, addKeyframe, removeKeyframe } from './clip-keyframes';
 import { evaluateKeyframes, sanitizeKeyframes, addKeyframe, removeKeyframe } from './clip-keyframes';
+import { sanitizeCgiScene, type CgiSceneSettings } from './cgi-scene';
 
 /** How a title card is drawn on the program monitor. */
 export type TitleStyle = 'title-card' | 'lower-third' | 'caption' | 'centered';
@@ -294,6 +295,8 @@ export interface VideoClip {
     title?: TitleCard;
     /** Narration line when this clip is a voiceover. */
     voiceover?: VoiceoverLine;
+    /** A real Three.js scene rendered as this overlay clip's picture. */
+    cgiScene?: CgiSceneSettings;
   };
 }
 
@@ -2043,6 +2046,7 @@ export class VideoEngineService {
             speedCurve: sanitizeSpeedCurve(effects.speedCurve),
             stabilization: sanitizeStabilization(effects.stabilization) ?? undefined,
             lut: sanitizeLut(effects.lut) ?? undefined,
+            cgiScene: sanitizeCgiScene(effects.cgiScene) ?? undefined,
             freezeAt: Number.isFinite(effects.freezeAt) ? Math.max(0, effects.freezeAt) : undefined,
             reversed: effects.reversed === true,
             opticalFlow: effects.opticalFlow === true,

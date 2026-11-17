@@ -2034,8 +2034,19 @@ export class ExportService {
     // of it: a take with dialogue in it used to download silent.
     if (options.withAudio !== false) {
       try {
-        const audioTrack = this.buildExportAudioTrack(options.clipAudio);
-        if (audioTrack) stream.addTrack(audioTrack);
+        // Chrome can refuse to mux a canvas stream that carries a track from a
+        // suspended AudioContext: the recorder then finishes with zero bytes.
+        // Resume before adding audio, and keep the video take video-only when
+        // autoplay policy still blocks the context.
+        await this.engine.resume();
+        if (this.engine.ctx?.state === 'running') {
+          const audioTrack = this.buildExportAudioTrack(options.clipAudio);
+          if (audioTrack) stream.addTrack(audioTrack);
+        } else {
+          this.logger.warn(
+            'Video export is running video-only: audio context is suspended'
+          );
+        }
       } catch (err) {
         this.logger.warn('Video export is running without an audio track', err);
       }

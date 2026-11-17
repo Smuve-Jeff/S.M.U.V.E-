@@ -39,6 +39,9 @@ module.exports = {
         // build resolves has to be repeated here.
         '^cinema-engine$': '<rootDir>/cinema-engine/src/index.ts',
         '^tone$': '<rootDir>/node_modules/tone/build/Tone.js',
+        // Three 0.187 is ESM-only; the CommonJS Jest preset cannot parse it.
+        // Tests have no WebGL, so the renderer only needs its fallback path.
+        '^three$': '<rootDir>/src/app/services/three.test-stub.ts',
         // Intercept the ML worker factory so Jest never parses import.meta.url.
         // Production code keeps using the real factory via Angular esbuild bundling.
       },
