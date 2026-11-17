@@ -52,6 +52,10 @@ import {
 import { ExportService } from '../../services/export.service';
 import { FfmpegVideoExportService } from '../../services/ffmpeg-video-export.service';
 import {
+  createFrameLockPlan,
+  frameProgressPercent,
+} from '../../services/frame-locked-export';
+import {
   MUSIC_BARS_PER_PART_OPTIONS,
   buildFilmManifest,
   planMasterRanges,
@@ -6413,6 +6417,7 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     this.lastExportFileName.set(null);
     const { width, height } = this.exportDimensions();
     const fps = this.exportFps();
+    const framePlan = createFrameLockPlan(seconds, fps);
     const wantsMp4 = this.exportCodec() === 'mp4';
 
     const master = this.ensureExportCanvas(width, height);
@@ -6436,6 +6441,7 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     );
 
     const wasPlaying = this.videoEngine.isPlaying();
+    let renderedFrames = 0;
     let session: {
       recorder: { stop: () => void };
       result: Promise<Blob>;
@@ -6450,6 +6456,16 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
         fps,
         withAudio: true,
         bitsPerSecond: this.exportBitrate(),
+        // Ask for one frame per delivery slot. A slow paint can hold a frame,
+        // but it can no longer silently decide the file's frame rate.
+        frameLocked: true,
+        durationSeconds: seconds,
+        onFrame: (delivered, total) => {
+          renderedFrames = delivered;
+          this.exportProgress.set(
+            Math.min(99, frameProgressPercent(framePlan, delivered))
+          );
+        },
       });
       // From here the recorder captures the clean master, and the monitor shows
       // a mirror of it instead of the diagnostic view.
@@ -6472,15 +6488,8 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     this.videoEngine.seek(start);
     this.videoEngine.play();
 
-    const startedAt = Date.now();
-    const ticker = setInterval(() => {
-      const elapsed = (Date.now() - startedAt) / 1000;
-      this.exportProgress.set(Math.min(99, Math.round((elapsed / seconds) * 100)));
-    }, 250);
-
     const stopTimer = setTimeout(() => {
       session.recorder.stop();
-      clearInterval(ticker);
       this.videoEngine.pause();
       if (wasPlaying) this.videoEngine.play();
     }, seconds * 1000 + EXPORT_TAIL_GUARD_MS);
@@ -6488,7 +6497,6 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     try {
       const blob = await session.result;
       clearTimeout(stopTimer);
-      clearInterval(ticker);
 
       if (blob.size === 0) {
         this.exportProgress.set(0);
@@ -6517,6 +6525,9 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
             // social cut; the capture bitrate already bounded the source.
             crf: masterMode ? 18 : 20,
             preset: masterMode ? 'fast' : 'veryfast',
+            // Hold the captured frames on the exact delivery grid. A slow
+            // paint becomes a held frame, not a lower frame rate.
+            frameRate: fps,
             // The recorder runs a 250ms tail guard; trim it so queued
             // sections stay exactly contiguous when they are joined.
             trimSeconds: seconds,
@@ -6540,17 +6551,27 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
         : `smuve_${this.videoEngine.productionMode()}_${this.activePreset().id}_${Date.now()}.${extension}`;
       this.lastExportFileName.set(fileName);
       this.exportService.downloadBlob(deliverable, fileName);
+      // Never hide a render that could not supply every slot. The MP4 path
+      // holds the missing frames on the delivery grid; the WebM fast path
+      // keeps the capture's own cadence, so say which file the operator has.
+      const slowCapture =
+        renderedFrames > 0 && renderedFrames < framePlan.totalFrames
+          ? ` CAPTURE SUPPLIED ${renderedFrames}/${framePlan.totalFrames} FRAMES; ` +
+            (transcoded
+              ? `THE ${fps}FPS MASTER HOLDS EACH FRAME TO KEEP DELIVERY TIMING.`
+              : 'THE WEBM CAPTURE KEPT THE RENDERED CADENCE.')
+          : '';
       this.aiFeedback.set(
-        transcoded
+        (transcoded
           ? `VIDEO EXPORT COMPLETE - ${width}x${height} ${fps}FPS MP4/H.264 MASTER IS READY FOR DEPLOYMENT.`
           : wantsMp4
             ? `VIDEO EXPORT COMPLETE - ${width}x${height} ${fps}FPS ${extension.toUpperCase()} MASTER IS READY FOR DEPLOYMENT. MP4 ENCODER UNAVAILABLE, KEPT THE ORIGINAL CAPTURE.`
-            : `VIDEO EXPORT COMPLETE - ${width}x${height} ${fps}FPS WEBM MASTER IS READY. FAST CODEC SELECTED; TRANSCODE OUTSIDE THE BROWSER IF YOU NEED MP4.`
+            : `VIDEO EXPORT COMPLETE - ${width}x${height} ${fps}FPS WEBM MASTER IS READY. FAST CODEC SELECTED; TRANSCODE OUTSIDE THE BROWSER IF YOU NEED MP4.`) +
+        slowCapture
       );
       return true;
     } catch (error: any) {
       clearTimeout(stopTimer);
-      clearInterval(ticker);
       this.exportProgress.set(0);
       this.logger.error('Video export failed', error);
       this.aiFeedback.set(

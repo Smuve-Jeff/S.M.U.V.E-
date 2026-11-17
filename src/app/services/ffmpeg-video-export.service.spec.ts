@@ -105,6 +105,17 @@ describe('buildMp4Args trim', () => {
   it('does not add a trim when no duration is requested', () => {
     expect(buildMp4Args('in.webm', 'out.mp4')).not.toContain('-t');
   });
+
+  it('puts a slow capture back on the requested delivery grid', () => {
+    const args = buildMp4Args('in.webm', 'out.mp4', {
+      frameRate: 30,
+      trimSeconds: 5,
+    });
+    const filter = args[args.indexOf('-vf') + 1];
+
+    expect(filter).toContain('fps=30');
+    expect(filter).toContain('scale=trunc(iw/2)*2:trunc(ih/2)*2');
+  });
 });
 
 describe('buildConcatArgs', () => {

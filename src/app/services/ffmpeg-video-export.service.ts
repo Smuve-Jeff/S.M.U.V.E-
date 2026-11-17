@@ -39,6 +39,12 @@ export interface Mp4TranscodeOptions {
   audioBitrate?: string;
   /** Trim the output to this many seconds (queue sections carry a tail guard). */
   trimSeconds?: number;
+  /**
+   * Delivery rate. The capture can be slower than the paint loop; the encoder
+   * repeats the last frame into every missing slot so the master is still the
+   * requested 30/60fps rather than silently becoming a 3fps slideshow.
+   */
+  frameRate?: number;
   onProgress?: (progress: number) => void;
 }
 
@@ -193,11 +199,20 @@ export function buildMp4Args(
   const trim = Number.isFinite(options.trimSeconds)
     ? Math.max(0, options.trimSeconds!)
     : null;
-  return [
-    '-i', input,
+  const frameRate = Number.isFinite(options.frameRate)
+    ? Math.max(1, Math.round(options.frameRate!))
+    : null;
+  const filters = [
+    // Duplicate/drop source frames onto the exact delivery grid. This is what
+    // keeps a slow headless capture from becoming a low-frame-rate master.
+    ...(frameRate ? [`fps=${frameRate}`] : []),
     // x264 needs even dimensions for yuv420p; odd rasters are nudged down
     // by at most one pixel instead of failing the whole encode.
-    '-vf', 'scale=trunc(iw/2)*2:trunc(ih/2)*2',
+    'scale=trunc(iw/2)*2:trunc(ih/2)*2',
+  ];
+  return [
+    '-i', input,
+    '-vf', filters.join(','),
     '-c:v', 'libx264',
     '-pix_fmt', 'yuv420p',
     '-crf', String(Math.max(0, Math.min(51, crf))),

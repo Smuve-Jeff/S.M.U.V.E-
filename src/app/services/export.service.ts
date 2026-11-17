@@ -21,6 +21,7 @@ import { VcaBusService } from '../studio/vca-bus.service';
 import { PluginRegistry } from '../studio/effects/plugin-interface';
 import { bindFxSlotParams } from '../studio/effects/fx-param-specs';
 import { VideoEngineService } from './video-engine.service';
+import { createFrameLockPlan } from './frame-locked-export';
 import { WavEncoder } from '../studio/wav-encoder.util';
 import {
   ABSOLUTE_GATE_LUFS,
@@ -2003,6 +2004,16 @@ export class ExportService {
       bitsPerSecond?: number;
       /** Clip sound to sum into the master, when the callsite has any. */
       clipAudio?: AudioNode | null;
+      /**
+       * Ask the canvas track for one frame per output slot instead of letting
+       * the browser sample paint events. The encoder still receives a frame
+       * when the renderer is late; delivery re-times the capture to `fps`.
+       */
+      frameLocked?: boolean;
+      /** Window length used to size the frame-locked schedule. */
+      durationSeconds?: number;
+      /** Called as frame slots are requested, for frame-count progress. */
+      onFrame?: (delivered: number, total: number) => void;
     } = {}
   ): Promise<{
     recorder: { stop: () => void };
@@ -2067,8 +2078,54 @@ export class ExportService {
       if (event.data && event.data.size > 0) chunks.push(event.data);
     };
 
+    // A frame-locked take is paced by frame slots, not by the paint loop. A
+    // slow CGI frame can no longer decide how many frames the file receives:
+    // every slot asks the canvas track for a frame, and the delivery encoder
+    // holds that frame until the next one arrives.
+    const framePlan = options.frameLocked
+      ? createFrameLockPlan(options.durationSeconds ?? 0, options.fps ?? 30)
+      : null;
+    const canvasTrack = canvasTracks.find((track) => track.kind === 'video') as
+      | (MediaStreamTrack & { requestFrame?: () => void })
+      | undefined;
+    let frameTimer: ReturnType<typeof setTimeout> | null = null;
+    let deliveredFrames = 0;
+    let nextFrameAt = 0;
+
+    const stopFramePump = () => {
+      if (frameTimer !== null) {
+        clearTimeout(frameTimer);
+        frameTimer = null;
+      }
+    };
+
+    const requestNextFrame = () => {
+      frameTimer = null;
+      if (!framePlan || recorder.state === 'inactive') return;
+      try {
+        canvasTrack?.requestFrame?.();
+      } catch {
+        // Some embedded WebViews expose the method but reject a manual frame;
+        // the recorder's own capture remains the fallback.
+      }
+      deliveredFrames += 1;
+      options.onFrame?.(deliveredFrames, framePlan.totalFrames);
+      if (deliveredFrames >= framePlan.totalFrames) return;
+      // Keep the average cadence instead of adding the callback's own cost to
+      // every interval. A late tick moves to now rather than firing a burst.
+      nextFrameAt = Math.max(
+        nextFrameAt + framePlan.frameIntervalMs,
+        performance.now(),
+      );
+      frameTimer = setTimeout(
+        requestNextFrame,
+        Math.max(0, nextFrameAt - performance.now()),
+      );
+    };
+
     const result = new Promise<Blob>((resolve, reject) => {
       recorder.onstop = () => {
+        stopFramePump();
         this.endCapture();
         // captureStream() owns tracks that otherwise remain alive after the
         // download, keeping camera/audio resources and encoders resident.
@@ -2076,6 +2133,7 @@ export class ExportService {
         resolve(new Blob(chunks, { type: mimeType || 'video/webm' }));
       };
       recorder.onerror = (event) => {
+        stopFramePump();
         this.endCapture();
         canvasTracks.forEach((track) => track.stop());
         reject(
@@ -2089,6 +2147,7 @@ export class ExportService {
     this.transportWasRolling = this.videoEngine.isPlaying();
     this.isCapturing.set(true);
     recorder.start(250);
+    if (framePlan) frameTimer = setTimeout(requestNextFrame, 0);
 
     return {
       recorder: {

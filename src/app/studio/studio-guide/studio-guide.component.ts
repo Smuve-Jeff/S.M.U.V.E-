@@ -158,6 +158,8 @@ export class StudioGuideComponent {
       "A finished record is not inspiration. It is a sequence of decisions. Make them with me.",
     mastery:
       "You know enough to be dangerous. Now learn precision; power without control is only noise.",
+    cgi:
+      "A flat frame is a window. A three-dimensional stage is a room. We are going to build the room, then put the camera inside it.",
     "whole-app":
       "The Studio is one room. The system is the building. Walk with me; touch nothing I have not named.",
   };
@@ -169,6 +171,8 @@ export class StudioGuideComponent {
       "Do not rush the handoffs. A record is finished by the decisions you refuse to skip.",
     mastery:
       "Speed is not mastery. The machine will obey the hand that understands it.",
+    cgi:
+      "Light, depth and restraint. The object is not the effect; the way it sits in the shot is the effect.",
     "whole-app":
       "The rooms remember you. Profile, projects and case file follow you through every door.",
   };

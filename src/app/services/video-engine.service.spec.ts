@@ -391,6 +391,77 @@ describe('VideoEngineService project snapshot', () => {
       expect(scene.animation.tracks[0].keys[0].value).toBe(0);
     });
 
+    it('keeps the tail trim and rebases the CGI boundary with both trims set', () => {
+      const engine = createEngine();
+      const scene = createDefaultCgiScene();
+      scene.animation = {
+        version: 1,
+        tracks: [
+          {
+            targetObjectId: 'cgi-torus',
+            channel: 'position.x',
+            keys: [
+              { id: 'a', time: 0, value: 0, easing: 'linear' },
+              { id: 'b', time: 2, value: 2, easing: 'linear' },
+              { id: 'c', time: 5, value: 5, easing: 'linear' },
+            ],
+          },
+        ],
+      };
+      const id = engine.addClip(
+        't2',
+        clip({
+          name: 'CGI',
+          url: '',
+          type: 'overlay',
+          source: 'ai',
+          startTime: 0,
+          duration: 10,
+          effects: {
+            ...clip().effects,
+            trimStart: 2,
+            trimEnd: 3,
+            cgiScene: scene,
+          },
+        }),
+      );
+
+      // Active picture is 2s..7s; cut inside it at 4s.
+      const rightIds = engine.splitClipsAt(4);
+      const left = engine.findClip(id)!;
+      const right = engine.findClip(rightIds[0])!;
+      const rightAnimation = right.effects.cgiScene!.animation!;
+
+      expect(left.duration).toBe(4);
+      expect(left.effects.trimEnd).toBe(0);
+      expect(right.startTime).toBe(4);
+      // The right half owns the original out-point, not the whole clip length.
+      expect(right.duration).toBe(6);
+      expect(right.effects.trimStart).toBe(0);
+      expect(right.effects.trimEnd).toBe(3);
+      expect(right.duration - right.effects.trimStart! - right.effects.trimEnd!).toBe(3);
+
+      // Visible split point is 4 - 0 - trimStart 2 = 2. The right half starts
+      // with that authored value at local 0 and retains the tail key at local 3.
+      expect(rightAnimation.tracks[0].keys).toMatchObject([
+        { time: 0, value: 2 },
+        { time: 3, value: 5 },
+      ]);
+      expect(
+        resolveCgiFrame(left.effects.cgiScene!, 2).objects[0].position[0],
+      ).toBe(2);
+      expect(
+        resolveCgiFrame(right.effects.cgiScene!, 0).objects[0].position[0],
+      ).toBe(2);
+
+      // Both halves own their animation, and the source scene is untouched.
+      expect(rightAnimation.tracks[0].keys).not.toBe(
+        left.effects.cgiScene!.animation!.tracks[0].keys,
+      );
+      rightAnimation.tracks[0].keys[1].value = 99;
+      expect(scene.animation.tracks[0].keys[2].value).toBe(5);
+    });
+
     it('upgrades a v1 snapshot instead of refusing it', () => {
       const engine = createEngine();
       engine.addClip('t1', clip({ url: 'data:image/jpeg;base64,AAAA' }));

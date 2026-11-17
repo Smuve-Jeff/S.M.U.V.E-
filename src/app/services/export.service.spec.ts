@@ -779,6 +779,38 @@ describe('ExportService (Sprint A6)', () => {
       expect(stream.addTrack).not.toHaveBeenCalled();
     });
 
+    it('requests one canvas frame for every frame-locked delivery slot', async () => {
+      jest.useFakeTimers();
+      const requestFrame = jest.fn();
+      const videoTrack = { kind: 'video', requestFrame, stop: jest.fn() };
+      const stream = {
+        addTrack: jest.fn(),
+        getTracks: () => [videoTrack],
+      } as unknown as MediaStream;
+      const canvas = {
+        captureStream: jest.fn(() => stream),
+      } as unknown as HTMLCanvasElement;
+      const onFrame = jest.fn();
+
+      const session = await svc.startVideoExport(canvas, {
+        fps: 10,
+        durationSeconds: 0.3,
+        frameLocked: true,
+        withAudio: false,
+        onFrame,
+      });
+      jest.advanceTimersByTime(20);
+
+      expect(requestFrame).toHaveBeenCalledTimes(1);
+      jest.advanceTimersByTime(250);
+      expect(requestFrame).toHaveBeenCalledTimes(3);
+      expect(onFrame).toHaveBeenLastCalledWith(3, 3);
+
+      session.recorder.stop();
+      await session.result;
+      jest.useRealTimers();
+    });
+
     it('rejects the result when the recorder errors out', async () => {
       const { canvas } = makeCanvas();
       const session = await svc.startVideoExport(canvas);

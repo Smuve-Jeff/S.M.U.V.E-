@@ -7,10 +7,11 @@ import type { StudioSurfaceId } from "../studio-surfaces";
  * This file is the single source of truth for the in-app guide. It has two
  * jobs:
  *
- *  1. `GUIDE_TRACKS` — four learn-by-doing paths. A "First Loop" for kids and
+ *  1. `GUIDE_TRACKS` — five learn-by-doing paths. A "First Loop" for kids and
  *     first-timers, a "Full Song" path that walks a record from empty project to
- *     delivery, a "Mastery" path for the pro surfaces, and a "Whole App" path
- *     that teaches the rest of S.M.U.V.E. end to end.
+ *     delivery, a "Mastery" path for the pro surfaces, a "CGI Stage" path for
+ *     three-dimensional overlays, and a "Whole App" path that teaches the rest
+ *     of S.M.U.V.E. end to end.
  *  2. `GUIDE_SURFACE_ATLAS` — one entry for every surface the Studio can show.
  *     `studio-guide.data.spec.ts` asserts the atlas covers `STUDIO_SURFACES`
  *     exactly, so a new surface cannot ship undocumented.
@@ -24,6 +25,7 @@ export type GuideTrackId =
   | "first-loop"
   | "full-song"
   | "mastery"
+  | "cgi"
   | "whole-app";
 
 /** A real route outside the Studio, used by whole-application lessons. */
@@ -1034,6 +1036,222 @@ const masteryLessons: GuideLesson[] = [
 ];
 
 /**
+ * The CGI course is deliberately a separate path: a 3D overlay is a visual
+ * craft with its own controls, budget and delivery checks. Every step names a
+ * control that exists in Image & Video Lab's CGI / 3D Stage panel.
+ */
+const cgiWorkspace: GuideWorkspaceTarget = {
+  path: "/image-video-lab",
+  label: "Image & Video Lab",
+  description:
+    "The visual room for footage, overlays and 3D.",
+  icon: "movie",
+};
+
+const cgiLessons: GuideLesson[] = [
+  {
+    id: "cgi-stage",
+    track: "cgi",
+    title: "Build your first 3D layer",
+    kicker: "STAGE",
+    minutes: 6,
+    goal: "Put a real three-dimensional object over the picture and see it move.",
+    plain:
+      "A CGI layer is a small 3D stage over the timeline. Its objects have depth, lights and a camera, and they render into the export.",
+    steps: [
+      "Open Image & Video Lab and find the CGI / 3D Stage panel.",
+      "Press ADD CGI LAYER. Choose Chrome Torus, Metal Cube or Gloss Sphere, then press ADD OBJECT.",
+      "Press Play and watch the object turn over the footage. REMOVE CGI LAYER clears the whole stage.",
+    ],
+    controls: [
+      "ADD CGI LAYER and REMOVE CGI LAYER",
+      "Primitive menu and ADD OBJECT",
+      "Transport Play / Pause",
+    ],
+    workspace: cgiWorkspace,
+    action: "Open the Lab",
+    proTip:
+      "Start with one object. A single well-lit form reads as production design; five unlit objects read as a demo.",
+  },
+  {
+    id: "cgi-models",
+    track: "cgi",
+    title: "Import a model you own",
+    kicker: "ASSETS",
+    minutes: 8,
+    goal: "Bring a GLB or self-contained GLTF into the stage and keep it inside the project.",
+    plain:
+      "A GLB is a 3D model in one file. The Lab embeds it, so a saved session opens without hunting for the original.",
+    steps: [
+      "Use the GLB / embedded GLTF file control in the CGI / 3D Stage panel.",
+      "Pick a .glb or self-contained .gltf. The model lands in the first free stage slot.",
+      "Play the shot and check its scale and silhouette. Remove it with its × button before trying another.",
+    ],
+    controls: [
+      "GLB / embedded GLTF file input",
+      "CGI object list and per-object × button",
+      "Camera move menu and Key light slider",
+    ],
+    workspace: cgiWorkspace,
+    action: "Open the Lab",
+    proTip:
+      "Import a model with a clear silhouette. Detail that lives only in the texture disappears when the shot is scaled for a phone.",
+    pitfall:
+      "A model too large for an embedded layer is rejected instead of half-loaded. Export a smaller GLB.",
+  },
+  {
+    id: "cgi-composition",
+    track: "cgi",
+    title: "Compose objects in depth",
+    kicker: "COMPOSITION",
+    minutes: 7,
+    goal: "Place several primitives so the stage has foreground, subject and background.",
+    plain:
+      "Depth separates a 3D overlay from a sticker. Put objects at different distances and let the camera reveal the gap.",
+    steps: [
+      "Add two more objects. Each new object takes the next free slot instead of landing inside the last one.",
+      "Use each colour swatch to separate the hero object from its support.",
+      "Choose Orbit Left or Orbit Right and play the shot. Remove any object that does not earn its place.",
+    ],
+    controls: [
+      "Primitive menu and ADD OBJECT",
+      "Per-object colour swatch",
+      "CGI object list and camera move menu",
+    ],
+    workspace: cgiWorkspace,
+    action: "Open the Lab",
+    proTip:
+      "Give every object a different distance from the camera. Two objects at the same depth compete; two depths tell a story.",
+  },
+  {
+    id: "cgi-lighting",
+    track: "cgi",
+    title: "Light for form and mood",
+    kicker: "LIGHT",
+    minutes: 7,
+    goal: "Use the key light, shadows and reflections to make the CGI look intentional.",
+    plain:
+      "Light separates the object from the background. A bright key makes chrome read; a low key makes a silhouette.",
+    steps: [
+      "Move Key light from low to high and watch the object's edges change.",
+      "Turn SHADOWS on so the object sits on the stage instead of floating.",
+      "Use REFLECTIONS for chrome and gloss, DARK PLATE for a controlled background, and Object spin for movement.",
+    ],
+    controls: [
+      "Key light and Object spin sliders",
+      "SHADOWS, REFLECTIONS and DARK PLATE toggles",
+      "CGI object list",
+    ],
+    workspace: cgiWorkspace,
+    action: "Open the Lab",
+    proTip:
+      "Set the light before the colour. A colour that only works at one brightness is not a palette, it is an accident.",
+    pitfall:
+      "Reflections and shadows on every object can turn a phone export into a slideshow. Use them where the shot can afford them.",
+  },
+  {
+    id: "cgi-camera",
+    track: "cgi",
+    title: "Direct the CGI camera",
+    kicker: "CAMERA",
+    minutes: 6,
+    goal: "Choose a camera move that supports the cut instead of distracting from it.",
+    plain:
+      "The CGI camera is a second camera inside the shot. Its move must agree with the footage camera, or two pictures fight.",
+    steps: [
+      "Choose Locked Off when the footage already has a strong camera move.",
+      "Try Push In for a reveal, Crane Up for a title, or Orbit Left/Right when shape is the point.",
+      "Watch the move at the cut. A camera that reverses direction at the edit reads as a mistake.",
+    ],
+    controls: [
+      "Camera move menu: Locked Off, Orbit Left, Orbit Right, Push In, Crane Up",
+      "Transport Play / Pause",
+      "Timeline playhead and CUT",
+    ],
+    workspace: cgiWorkspace,
+    action: "Open the Lab",
+    proTip:
+      "Match the CGI move to the footage move. If the real camera pushes in, a CGI orbit pulls the eye in two directions.",
+  },
+  {
+    id: "cgi-timeline",
+    track: "cgi",
+    title: "Place the stage on the timeline",
+    kicker: "TIMELINE",
+    minutes: 8,
+    goal: "Put the CGI clip where the effect belongs and cut it cleanly.",
+    plain:
+      "The CGI stage lives on a clip with a start and an end. An object that arrives one beat late feels late.",
+    steps: [
+      "Find the CGI overlay clip on the timeline and drag its start to the moment the object should appear.",
+      "Park the playhead at the end of the effect and use CUT to split the clip. Delete the half you do not need.",
+      "Play across the edit and save the project once the placement is right.",
+    ],
+    controls: [
+      "CGI overlay clip, timeline playhead and CUT",
+      "Delete clip",
+      "Project save status",
+    ],
+    workspace: cgiWorkspace,
+    action: "Open the Lab",
+    proTip:
+      "Cut the CGI clip on the frame where the audience should notice it, not where the render happened to finish.",
+    pitfall:
+      "A CGI clip that runs under a scene change can put the object in a shot where it does not belong. Cut both ends.",
+  },
+  {
+    id: "cgi-export",
+    track: "cgi",
+    title: "Render the stage into the master",
+    kicker: "DELIVERY",
+    minutes: 10,
+    goal: "Export the composite at the chosen raster and frame rate, with the CGI baked in.",
+    plain:
+      "The monitor is not the master. Export renders the clean frame, including CGI, at the size and rate you choose.",
+    steps: [
+      "Set Start and the capture window so the export covers the whole effect.",
+      "Choose Raster, Rate and Codec. The export summary shows the delivery before you commit.",
+      "Press EXPORT VIDEO and leave the tab visible. The frame-locked capture requests every output frame instead of trusting a slow paint loop.",
+    ],
+    controls: [
+      "Start and capture-window controls",
+      "Raster, Rate and Codec menus",
+      "EXPORT VIDEO and export progress",
+    ],
+    workspace: cgiWorkspace,
+    action: "Open the Lab",
+    proTip:
+      "Export a short proof before rendering the full section. A ten-second check saves a ten-minute mistake.",
+    pitfall:
+      "A high raster does not fix a weak composition. Choose the size the platform needs, then spend the render time on the look.",
+  },
+  {
+    id: "cgi-cleanup",
+    track: "cgi",
+    title: "Keep the stage fast and reusable",
+    kicker: "PERFORMANCE",
+    minutes: 6,
+    goal: "Leave a CGI scene that renders reliably and can be reopened later.",
+    plain:
+      "A 3D scene has a budget. Every model and reflection costs render time, and a scene nobody can reopen is not reusable.",
+    steps: [
+      "Remove unused objects with their × buttons and keep the object list short.",
+      "Turn REFLECTIONS and SHADOWS off for objects that do not need them on long timelines.",
+      "Check project save after importing a model. Remove the CGI layer when the effect is no longer needed.",
+    ],
+    controls: [
+      "CGI object list and remove buttons",
+      "SHADOWS and REFLECTIONS toggles",
+      "Project save status and REMOVE CGI LAYER",
+    ],
+    workspace: cgiWorkspace,
+    action: "Open the Lab",
+    proTip:
+      "Build a reusable hero object, not a reusable scene. One strong model can carry several shots; a crowded stage carries none.",
+  },
+];
+
+/**
  * Lessons that can be checked by observing the real Studio. Lessons without an
  * entry stay manual on purpose: their proof is a listening or judgement call
  * (finger dynamics, DJ transitions, ear training), not a signal this app can
@@ -1116,6 +1334,18 @@ export const GUIDE_TRACKS: GuideTrack[] = [
     accent: "#c084fc",
     outcome: "Live performance, sampling, DJ, notation, AI and effect-chain fluency.",
     lessons: masteryLessons,
+  },
+  {
+    id: "cgi",
+    label: "CGI Stage",
+    tagline: "Three-dimensional overlays that render into the master.",
+    forWho: "Artists adding depth and camera moves to a cut",
+    minutes: cgiLessons.reduce((sum, lesson) => sum + lesson.minutes, 0),
+    icon: "view_in_ar",
+    accent: "#38bdf8",
+    outcome:
+      "A lit 3D stage placed on the timeline and delivered at the chosen raster and rate.",
+    lessons: cgiLessons,
   },
   {
     id: "whole-app",

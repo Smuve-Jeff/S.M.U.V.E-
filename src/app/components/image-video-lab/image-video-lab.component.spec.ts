@@ -5189,7 +5189,14 @@ describe('ImageVideoLabComponent', () => {
 
       expect(exportService.startVideoExport).toHaveBeenCalledWith(
         expect.any(HTMLCanvasElement),
-        { fps: 30, withAudio: true, bitsPerSecond: expect.any(Number) }
+        expect.objectContaining({
+          fps: 30,
+          withAudio: true,
+          bitsPerSecond: expect.any(Number),
+          frameLocked: true,
+          durationSeconds: 5,
+          onFrame: expect.any(Function),
+        })
       );
       expect(videoEngine.seek).toHaveBeenCalledWith(0);
       expect(videoEngine.play).toHaveBeenCalledTimes(1);

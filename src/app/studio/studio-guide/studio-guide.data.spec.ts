@@ -40,11 +40,12 @@ describe("Studio Masterclass content", () => {
     }
   });
 
-  it("defines four distinct paths with real lessons", () => {
+  it("defines five distinct paths with real lessons", () => {
     expect(GUIDE_TRACKS.map((track) => track.id)).toEqual([
       "first-loop",
       "full-song",
       "mastery",
+      "cgi",
       "whole-app",
     ]);
     for (const track of GUIDE_TRACKS) {
