@@ -18,7 +18,11 @@ import {
   rememberBroadcastSession,
 } from "@/services/broadcast-recordings.service";
 
-export const INGEST_PLATFORMS = ["twitch", "kick"] as const;
+export const INGEST_PLATFORMS = ["twitch", "kick", "facebook"] as const;
+
+/** Providers whose RTMP URL and key are entered from their dashboard. */
+const MANUAL_INGEST_PLATFORMS = ["kick", "facebook"] as const;
+type ManualIngestPlatform = (typeof MANUAL_INGEST_PLATFORMS)[number];
 
 export interface DestinationStatus {
   platform: IngestPlatform;
@@ -59,6 +63,14 @@ function asPlatform(value: string): IngestPlatform {
     throw new AppError(404, `${key || "That"} is not a broadcast destination.`);
   }
   return key as IngestPlatform;
+}
+
+function asManualPlatform(value: string): ManualIngestPlatform {
+  const key = String(value || "").toLowerCase();
+  if (!(MANUAL_INGEST_PLATFORMS as readonly string[]).includes(key)) {
+    throw new AppError(400, `${key || "That"} uses an account connection, not a manual stream key.`);
+  }
+  return key as ManualIngestPlatform;
 }
 
 function relayConfiguration(): { base: string; token: string } | null {
@@ -115,18 +127,21 @@ async function twitchDestination(userId: number): Promise<IngestDestination> {
   return { platform: "twitch", rtmpUrl: TWITCH_RTMP_URL, streamKey };
 }
 
-async function kickDestination(userId: number): Promise<IngestDestination> {
+async function manualDestination(
+  userId: number,
+  platform: ManualIngestPlatform,
+): Promise<IngestDestination> {
   const row = await destinationRepository().findOne({
-    where: { userId, platform: "kick" },
+    where: { userId, platform },
   });
   if (!row) {
     throw new AppError(
       409,
-      "Add your Kick stream URL and key before pushing a broadcast.",
+      `Add your ${platform.toUpperCase()} stream URL and key before pushing a broadcast.`,
     );
   }
   return {
-    platform: "kick",
+    platform,
     rtmpUrl: row.rtmpUrl,
     streamKey: openSecret(row.streamKey),
   };
@@ -136,9 +151,10 @@ export async function destinationOverview(
   userId: number | string,
 ): Promise<DestinationOverview> {
   const owner = Number(userId);
-  const [twitchAccount, kickRow] = await Promise.all([
+  const [twitchAccount, kickRow, facebookRow] = await Promise.all([
     accountRepository().findOne({ where: { userId: owner, platform: "twitch" } }),
     destinationRepository().findOne({ where: { userId: owner, platform: "kick" } }),
+    destinationRepository().findOne({ where: { userId: owner, platform: "facebook" } }),
   ]);
 
   const status = (
@@ -153,6 +169,9 @@ export async function destinationOverview(
         ? status("twitch", `TWITCH — ${twitchAccount.displayName}`)
         : status("twitch", ""),
       kickRow ? status("kick", `KICK — ${ingestHost(kickRow.rtmpUrl)}`) : status("kick", ""),
+      facebookRow
+        ? status("facebook", `FACEBOOK — ${ingestHost(facebookRow.rtmpUrl)}`)
+        : status("facebook", ""),
     ],
   };
 }
@@ -166,14 +185,17 @@ function ingestHost(rtmpUrl: string): string {
 }
 
 /**
- * Store the Kick destination the host copied from their dashboard. Both values
- * are checked here because a typo would otherwise surface as a silent failure
- * in the middle of a broadcast.
+ * Store a manual RTMP destination the host copied from their dashboard. Both
+ * values are checked here because a typo would otherwise surface as a silent
+ * failure in the middle of a broadcast.
  */
-export async function saveKickDestination(
+export async function saveManualDestination(
   userId: number | string,
+  platform: string,
   input: { rtmpUrl?: unknown; streamKey?: unknown },
 ): Promise<DestinationStatus> {
+  const key = asManualPlatform(platform);
+  const label = key.toUpperCase();
   const rtmpUrl = typeof input.rtmpUrl === "string" ? input.rtmpUrl.trim() : "";
   const streamKey =
     typeof input.streamKey === "string" ? input.streamKey.trim() : "";
@@ -181,30 +203,34 @@ export async function saveKickDestination(
   if (!/^rtmps?:\/\/\S+$/i.test(rtmpUrl)) {
     throw new AppError(
       400,
-      "The Kick stream URL must be the rtmps:// address from your creator dashboard.",
+      `The ${label} stream URL must be the rtmps:// address from your creator dashboard.`,
     );
   }
   if (!/^[A-Za-z0-9_-]{8,200}$/.test(streamKey)) {
-    throw new AppError(400, "That does not look like a Kick stream key.");
+    throw new AppError(400, `That does not look like a ${label} stream key.`);
   }
 
   const owner = Number(userId);
   const rows = destinationRepository();
-  const existing = await rows.findOne({ where: { userId: owner, platform: "kick" } });
+  const existing = await rows.findOne({ where: { userId: owner, platform: key } });
   const values = {
     userId: owner,
-    platform: "kick" as const,
+    platform: key,
     rtmpUrl,
     streamKey: sealSecret(streamKey),
   };
   if (existing) await rows.update({ id: existing.id }, values);
   else await rows.save(rows.create(values));
 
-  return { platform: "kick", ready: true, detail: `KICK — ${ingestHost(rtmpUrl)}` };
+  return { platform: key, ready: true, detail: `${label} — ${ingestHost(rtmpUrl)}` };
 }
 
-export async function clearKickDestination(userId: number | string): Promise<void> {
-  await destinationRepository().delete({ userId: Number(userId), platform: "kick" });
+export async function clearManualDestination(
+  userId: number | string,
+  platform: string,
+): Promise<void> {
+  const key = asManualPlatform(platform);
+  await destinationRepository().delete({ userId: Number(userId), platform: key });
 }
 
 /**
@@ -228,7 +254,9 @@ export async function startIngestSession(
   }
   const owner = Number(userId);
   const destination =
-    key === "twitch" ? await twitchDestination(owner) : await kickDestination(owner);
+    key === "twitch"
+      ? await twitchDestination(owner)
+      : await manualDestination(owner, key);
 
   const response = await callRelay(relay, "/sessions", {
     method: "POST",

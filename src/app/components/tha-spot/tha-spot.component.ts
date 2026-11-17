@@ -1433,6 +1433,8 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   public ingest = inject(BroadcastIngestService);
   readonly kickRtmpUrl = signal('');
   readonly kickStreamKey = signal('');
+  readonly facebookRtmpUrl = signal('');
+  readonly facebookStreamKey = signal('');
   /**
    * Viewer mix split: the host publishes camera and game (screen) video
    * slots plus voice and system-sound audio slots, so the player divides
@@ -4004,8 +4006,11 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     }
   }
 
-  startVoiceChat(userId: string) {
-    this.peerService.startCall(userId);
+  async startVoiceChat(userId: string) {
+    const started = await this.peerService.startCall(userId);
+    if (!started) {
+      this.snackbarService.info("END THE CURRENT VOICE CALL FIRST");
+    }
   }
 
   endVoiceChat() {
@@ -4229,15 +4234,22 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   /**
-   * Keep the Kick destination on the server so the stream key never has to be
-   * typed again, and drop it from this component's state once it is saved.
+   * Keep a manual RTMP destination on the server so the stream key never has
+   * to be typed again, and drop it from this component's state once saved.
    */
-  async saveKickDestination(): Promise<void> {
-    const saved = await this.ingest.saveKick(
-      this.kickRtmpUrl().trim(),
-      this.kickStreamKey().trim(),
+  async saveManualDestination(platform: 'kick' | 'facebook'): Promise<void> {
+    const url =
+      platform === 'kick' ? this.kickRtmpUrl() : this.facebookRtmpUrl();
+    const key =
+      platform === 'kick' ? this.kickStreamKey() : this.facebookStreamKey();
+    const saved = await this.ingest.saveDestination(
+      platform,
+      url.trim(),
+      key.trim(),
     );
-    if (saved) this.kickStreamKey.set("");
+    if (!saved) return;
+    if (platform === 'kick') this.kickStreamKey.set('');
+    else this.facebookStreamKey.set('');
   }
 
   /**
@@ -4252,6 +4264,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
       SMUVE: "smuve",
       Twitch: "twitch",
       Kick: "kick",
+      Facebook: "facebook",
     };
     const target = targets[platform];
     if (!target) {

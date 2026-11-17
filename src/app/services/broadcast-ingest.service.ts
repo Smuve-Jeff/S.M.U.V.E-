@@ -18,7 +18,7 @@ import {
 import { createTestPattern } from './test-pattern';
 import { WhipPublisher } from './whip-publisher';
 
-export type IngestPlatform = 'twitch' | 'kick';
+export type IngestPlatform = 'twitch' | 'kick' | 'facebook';
 
 interface DestinationStatusDto {
   platform?: string;
@@ -65,7 +65,8 @@ interface IngestSessionDto {
  * Push the host's capture to a connected channel.
  *
  * The server resolves the provider's RTMP destination (Twitch over Helix, Kick
- * from the dashboard values the host pasted) and opens a relay session; the
+ * or Facebook from the dashboard values the host pasted) and opens a relay
+ * session; the
  * browser only ever receives a WHIP URL, never a stream key. Destination state
  * is re-read on sign-in so the panel shows what is actually ready.
  */
@@ -81,6 +82,7 @@ export class BroadcastIngestService {
   readonly platforms: readonly { id: IngestPlatform; label: string }[] = [
     { id: 'twitch', label: 'TWITCH' },
     { id: 'kick', label: 'KICK' },
+    { id: 'facebook', label: 'FACEBOOK' },
   ];
 
   readonly destinations = signal<
@@ -254,7 +256,9 @@ export class BroadcastIngestService {
       const next: Partial<Record<IngestPlatform, DestinationStatusDto>> = {};
       for (const row of response?.platforms ?? []) {
         const id = String(row.platform ?? '').toLowerCase() as IngestPlatform;
-        if (id === 'twitch' || id === 'kick') next[id] = row;
+        if (this.platforms.some((platform) => platform.id === id)) {
+          next[id] = row;
+        }
       }
       this.destinations.set(next);
       this.relayConfigured.set(response?.relayConfigured !== false);
@@ -265,18 +269,25 @@ export class BroadcastIngestService {
     }
   }
 
-  /** Store the Kick URL + key; the key is never echoed back. */
-  async saveKick(rtmpUrl: string, streamKey: string): Promise<boolean> {
+  /** Store a manual RTMP URL + key; the key is never echoed back. */
+  async saveDestination(
+    platform: 'kick' | 'facebook',
+    rtmpUrl: string,
+    streamKey: string,
+  ): Promise<boolean> {
     try {
       const status = await firstValueFrom(
         this.http.put<DestinationStatusDto>(
-          this.endpoint('/destinations/kick'),
+          this.endpoint(`/destinations/${platform}`),
           { rtmpUrl, streamKey },
           { headers: this.headers() },
         ),
       );
-      this.destinations.update((current) => ({ ...current, kick: status }));
-      this.snackbar.success('KICK DESTINATION SAVED');
+      this.destinations.update((current) => ({
+        ...current,
+        [platform]: status,
+      }));
+      this.snackbar.success(`${platform.toUpperCase()} DESTINATION SAVED`);
       return true;
     } catch (error) {
       this.snackbar.error(this.describe(error));

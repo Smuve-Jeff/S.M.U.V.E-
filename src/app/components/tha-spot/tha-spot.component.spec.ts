@@ -36,6 +36,18 @@ import { signal } from "@angular/core";
 import { LiveVideoService } from "../../services/live-video.service";
 import { TokenService } from "../../services/token.service";
 
+/** The real preview row, mounted in isolation for DOM hit-target tests. */
+const THA_SPOT_PREVIEW_TEMPLATE = (() => {
+  const full = readFileSync(join(__dirname, "tha-spot.component.html"), "utf8");
+  const marker = full.indexOf('<span class="quality-readout">PREVIEW</span>');
+  const start = full.lastIndexOf('<div class="stream-quality-row">', marker);
+  const end = full.indexOf("<video", marker);
+  if (marker < 0 || start < 0 || end < 0) {
+    throw new Error("Tha Spot preview controls are missing from the template");
+  }
+  return full.slice(start, end);
+})();
+
 describe("ThaSpotComponent", () => {
   let component: ThaSpotComponent;
   let fixture: ComponentFixture<ThaSpotComponent>;
@@ -177,7 +189,7 @@ describe("ThaSpotComponent", () => {
       isCallActive: signal(false),
       remoteStream: signal(null),
       voiceActivityLevel: jest.fn().mockReturnValue(0),
-      startCall: jest.fn(),
+      startCall: jest.fn().mockResolvedValue(true),
       endCall: jest.fn(),
       toggleMute: jest.fn(),
     };
@@ -272,7 +284,10 @@ describe("ThaSpotComponent", () => {
       ],
     })
       .overrideComponent(ThaSpotComponent, {
-        set: { imports: [], template: "<div></div>" },
+        set: {
+          imports: [],
+          template: `<div class="preview-dom">${THA_SPOT_PREVIEW_TEMPLATE}</div>`,
+        },
       })
       .compileComponents();
 
@@ -1619,6 +1634,52 @@ describe("ThaSpotComponent", () => {
 
       expect(socialServiceMock.startPreview).toHaveBeenCalledTimes(1);
       expect(socialServiceMock.stopPreview).not.toHaveBeenCalled();
+    });
+
+    it("dispatches a real DOM double-click to the mounted PREVIEW control", async () => {
+      let resolvePreview: (value: boolean) => void = () => undefined;
+      socialServiceMock.startPreview.mockImplementation(() => {
+        socialServiceMock.previewStarting.set(true);
+        return new Promise<boolean>((resolve) => {
+          resolvePreview = resolve;
+        });
+      });
+      fixture.detectChanges();
+      const buttons = Array.from(
+        fixture.nativeElement.querySelectorAll("button"),
+      ) as HTMLButtonElement[];
+      const start = buttons.find((button) =>
+        button.textContent?.includes("START PREVIEW"),
+      );
+      const stop = buttons.find((button) =>
+        button.textContent?.includes("STOP PREVIEW"),
+      );
+      expect(start).toBeTruthy();
+      expect(stop).toBeTruthy();
+      expect(stop!.disabled).toBe(true);
+      expect(start!.type).toBe("button");
+      expect(stop!.type).toBe("button");
+      expect(start!.parentElement).toBe(stop!.parentElement);
+      expect(
+        Array.from(start!.parentElement!.querySelectorAll("button")).indexOf(
+          start!,
+        ),
+      ).toBeLessThan(
+        Array.from(stop!.parentElement!.querySelectorAll("button")).indexOf(
+          stop!,
+        ),
+      );
+
+      start!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      start!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      fixture.detectChanges();
+
+      expect(socialServiceMock.startPreview).toHaveBeenCalledTimes(1);
+      expect(socialServiceMock.stopPreview).not.toHaveBeenCalled();
+      expect(stop!.isConnected).toBe(true);
+
+      resolvePreview(true);
+      await Promise.resolve();
     });
 
     it("reports a deliberate pending cancel without a failure message", async () => {

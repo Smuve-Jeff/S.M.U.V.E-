@@ -731,6 +731,42 @@ describe('SocialNetworkingService video source (camera ↔ screen)', () => {
     expect(service.localStream()!.getVideoTracks()[0]).toBe(camVideo);
   });
 
+  it('warns when the camera preview has no microphone', async () => {
+    getUserMedia.mockResolvedValue(
+      fakeMedia([makeTrack('video', 'cam-no-mic')])
+    );
+
+    await expect(service.startPreview()).resolves.toBe(true);
+
+    expect(service.previewAudioWarning()).toContain('NO MICROPHONE IN PREVIEW');
+  });
+
+  it('warns when the preview microphone is muted', async () => {
+    getUserMedia.mockResolvedValue(
+      fakeMedia([
+        makeTrack('video', 'cam-muted'),
+        makeTrack('audio', 'mic-muted'),
+      ])
+    );
+    await service.startPreview();
+
+    service.toggleMicrophone();
+
+    expect(service.previewAudioWarning()).toContain('MICROPHONE IS MUTED');
+  });
+
+  it('clears the preview audio warning when capture stops', async () => {
+    getUserMedia.mockResolvedValue(
+      fakeMedia([makeTrack('video', 'cam-warning-stop')])
+    );
+    await service.startPreview();
+    expect(service.previewAudioWarning()).toContain('NO MICROPHONE');
+
+    service.stopPreview();
+
+    expect(service.previewAudioWarning()).toBeNull();
+  });
+
   it('switches source in preview and reuses that capture when going live', async () => {
     const camVideo = makeTrack('video', 'cam-preview');
     const mic = makeTrack('audio', 'mic-preview');

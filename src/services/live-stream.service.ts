@@ -15,6 +15,7 @@ export const LIVE_STREAM_PLATFORMS = [
   "smuve",
   "twitch",
   "kick",
+  "facebook",
   "youtube",
   "tiktok",
 ] as const;
@@ -22,14 +23,20 @@ export type LiveStreamPlatform = (typeof LIVE_STREAM_PLATFORMS)[number];
 
 /**
  * Platforms the Go Live flow can actually broadcast to today: the native
- * S.M.U.V.E room, plus the two providers with a working WHIP -> RTMP ingest.
+ * S.M.U.V.E room, plus Twitch, Kick and Facebook through the WHIP -> RTMP
+ * relay. Kick and Facebook take a dashboard URL + key; Twitch uses its grant.
  *
  * `youtube` and `tiktok` stay in LIVE_STREAM_PLATFORMS so rows created before
  * this matrix was tightened still decode, but a new broadcast cannot be
  * started on them: YouTube's stored grant is read-only and TikTok has no
  * ingest path at all.
  */
-export const LIVE_GO_LIVE_PLATFORMS = ["smuve", "twitch", "kick"] as const;
+export const LIVE_GO_LIVE_PLATFORMS = [
+  "smuve",
+  "twitch",
+  "kick",
+  "facebook",
+] as const;
 export type GoLivePlatform = (typeof LIVE_GO_LIVE_PLATFORMS)[number];
 
 export interface StartLiveStreamInput {

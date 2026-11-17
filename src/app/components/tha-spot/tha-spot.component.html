@@ -836,7 +836,7 @@
                 <span class="material-symbols-outlined">splitscreen_right</span>
                 SPLIT-SCREEN
               </button>
-              <!-- GO LIVE / STOP LIVE CTA — Twitch, Kick, YouTube backed.
+              <!-- GO LIVE / STOP LIVE CTA — S.M.U.V.E, Twitch, Kick and Facebook backed.
                    The button toggles between Go-Live and Stop-Live so a
                    single tap handles the full lifecycle. -->
               <button
@@ -1362,8 +1362,9 @@
       <div class="share-tray-body">
         <p class="share-tray-label">
           Pick a platform. SMUVE LIVE starts instantly; Twitch opens its connect
-          window first; Kick uses the stream URL and key saved in Broadcast
-          Push. Your viewer share link is copied as soon as the stream is live.
+          window first; Kick and Facebook use the stream URL and key saved in
+          Broadcast Push. Your viewer share link is copied as soon as the
+          stream is live.
         </p>
         <div class="platform-picker" role="radiogroup" aria-label="Live platform">
           <button
@@ -1380,7 +1381,9 @@
                   ? "graphic_eq"
                   : p === "twitch"
                     ? "live_tv"
-                    : "flash_on"
+                    : p === "facebook"
+                      ? "public"
+                      : "flash_on"
               }}</span
             >
             {{ p | uppercase }}
@@ -1403,7 +1406,9 @@
                 ? "START SMUVE LIVE"
                 : selectedGoLivePlatform() === "kick"
                   ? "GO LIVE ON KICK"
-                  : "OPEN TWITCH AUTH & GO LIVE"
+                  : selectedGoLivePlatform() === "facebook"
+                    ? "GO LIVE ON FACEBOOK"
+                    : "OPEN TWITCH AUTH & GO LIVE"
           }}
         </button>
         <button
@@ -3153,6 +3158,7 @@
               <!-- Keep both slots mounted so a fast second click cannot land
                    on a STOP control that appeared under the cursor. -->
               <button
+                type="button"
                 class="quality-btn"
                 [class.active]="socialService.previewActive()"
                 [disabled]="
@@ -3166,6 +3172,7 @@
                 START PREVIEW
               </button>
               <button
+                type="button"
                 class="quality-btn"
                 [disabled]="
                   !socialService.previewActive() &&
@@ -3201,6 +3208,14 @@
             <p class="stream-error" *ngIf="socialService.streamError()">
               {{ socialService.streamError() }}
             </p>
+            <p
+              class="stream-audio-warning"
+              role="status"
+              *ngIf="socialService.previewAudioWarning() as audioWarning"
+            >
+              <span class="material-symbols-outlined">volume_off</span>
+              {{ audioWarning }}
+            </p>
             <div class="stream-accounts">
               <div class="stream-accounts-head">
                 <span class="quality-readout">STREAMING ACCOUNTS</span>
@@ -3231,9 +3246,9 @@
                       : "NOT CONNECTED"
                   }}
                 </span>
-                <span class="account-broadcast" *ngIf="!platform.connectable"
-                  >COMING SOON</span
-                >
+                <span class="account-broadcast" *ngIf="!platform.connectable">
+                  {{ platform.broadcast ? "MANUAL PUSH" : "COMING SOON" }}
+                </span>
                 <button
                   class="quality-btn"
                   *ngIf="platform.connectable"
@@ -3318,7 +3333,7 @@
                   STOP
                 </button>
               </div>
-              <div class="account-row kick-destination">
+              <div class="account-row manual-destination">
                 <span class="account-name">KICK URL + KEY</span>
                 <input
                   class="account-input"
@@ -3333,7 +3348,32 @@
                   [value]="kickStreamKey()"
                   (input)="kickStreamKey.set($any($event.target).value)"
                 />
-                <button class="quality-btn" (click)="saveKickDestination()">
+                <button
+                  class="quality-btn"
+                  (click)="saveManualDestination('kick')"
+                >
+                  SAVE
+                </button>
+              </div>
+              <div class="account-row manual-destination">
+                <span class="account-name">FACEBOOK URL + KEY</span>
+                <input
+                  class="account-input"
+                  placeholder="rtmps://.../app"
+                  [value]="facebookRtmpUrl()"
+                  (input)="facebookRtmpUrl.set($any($event.target).value)"
+                />
+                <input
+                  class="account-input"
+                  type="password"
+                  placeholder="STREAM KEY"
+                  [value]="facebookStreamKey()"
+                  (input)="facebookStreamKey.set($any($event.target).value)"
+                />
+                <button
+                  class="quality-btn"
+                  (click)="saveManualDestination('facebook')"
+                >
                   SAVE
                 </button>
               </div>
@@ -3505,6 +3545,12 @@
               </button>
               <button class="platform-btn kick" (click)="goLive('Kick')">
                 KICK
+              </button>
+              <button
+                class="platform-btn facebook"
+                (click)="goLive('Facebook')"
+              >
+                FACEBOOK
               </button>
             </div>
           </div>

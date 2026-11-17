@@ -4494,6 +4494,10 @@
   border-color: rgba(16, 185, 129, 0.45);
   color: #6ee7b7;
 }
+.platform-btn.facebook {
+  border-color: rgba(24, 119, 242, 0.55);
+  color: #93c5fd;
+}
 .platform-btn.tiktok {
   border-color: rgba(254, 44, 85, 0.5);
   color: #ff7a93;

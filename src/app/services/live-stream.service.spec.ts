@@ -193,7 +193,12 @@ describe('LiveStreamService', () => {
     const ingest = () => TestBed.inject(BroadcastIngestService);
 
     it('offers only the platforms with a working broadcast path', () => {
-      expect(GO_LIVE_PLATFORMS).toEqual(['smuve', 'twitch', 'kick']);
+      expect(GO_LIVE_PLATFORMS).toEqual([
+        'smuve',
+        'twitch',
+        'kick',
+        'facebook',
+      ]);
       expect(GO_LIVE_PLATFORMS).not.toContain('youtube');
       expect(GO_LIVE_PLATFORMS).not.toContain('tiktok');
     });
@@ -369,6 +374,22 @@ describe('LiveStreamService', () => {
       expect(ingest.stop).toHaveBeenCalledTimes(1);
       expect(social().stopStream).toHaveBeenCalled();
       expect(service.currentStream()).toBeNull();
+    });
+
+    it('issues a Facebook row after the saved-destination preflight and starts the push', async () => {
+      service = TestBed.inject(LiveStreamService);
+      tokenRef = { value: 'TKN' };
+      profileRef = { value: { id: '77', artistName: 'JEFF' } };
+      httpResponses.push(makeRow({ platform: 'facebook' }));
+
+      const result = await service.golive({ platform: 'facebook' });
+
+      expect(result).not.toBeNull();
+      expect(openedPopups).toEqual([]);
+      expect(httpCalls).toHaveLength(1);
+      expect(httpCalls[0].url).toContain('/users/77/live-streams');
+      expect(ingest().load).toHaveBeenCalled();
+      expect(ingest().start).toHaveBeenCalledWith('facebook');
     });
 
     it('issues a Kick row after the saved-destination preflight and starts the push', async () => {

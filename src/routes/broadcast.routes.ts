@@ -4,10 +4,10 @@ import rateLimit from "express-rate-limit";
 import { AppError } from "@/lib";
 import { authenticate } from "@/middleware/auth";
 import {
-  clearKickDestination,
+  clearManualDestination,
   destinationOverview,
   ingestStatus,
-  saveKickDestination,
+  saveManualDestination,
   selfTestStatus,
   startIngestSession,
   startSelfTest,
@@ -65,14 +65,20 @@ router.get("/destinations", authenticate, async (req, res) => {
   res.json(await destinationOverview(actorOf(req)));
 });
 
-// PUT /api/broadcast/destinations/kick — store the dashboard URL + key.
-router.put("/destinations/kick", authenticate, async (req, res) => {
-  res.json(await saveKickDestination(actorOf(req), req.body ?? {}));
+// PUT /api/broadcast/destinations/:platform — store a manual RTMP URL + key.
+router.put("/destinations/:platform", authenticate, async (req, res) => {
+  res.json(
+    await saveManualDestination(
+      actorOf(req),
+      String(req.params.platform || ""),
+      req.body ?? {},
+    ),
+  );
 });
 
-// DELETE /api/broadcast/destinations/kick — forget the Kick destination.
-router.delete("/destinations/kick", authenticate, async (req, res) => {
-  await clearKickDestination(actorOf(req));
+// DELETE /api/broadcast/destinations/:platform — forget a manual destination.
+router.delete("/destinations/:platform", authenticate, async (req, res) => {
+  await clearManualDestination(actorOf(req), String(req.params.platform || ""));
   res.status(204).end();
 });
 

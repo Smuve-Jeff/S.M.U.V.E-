@@ -122,8 +122,8 @@ jest.mock("@/services/studio-collab.service", () => ({
 }));
 
 jest.mock("@/services/live-stream.service", () => ({
-  LIVE_STREAM_PLATFORMS: ["smuve", "twitch", "kick", "youtube"],
-  LIVE_GO_LIVE_PLATFORMS: ["smuve", "twitch", "kick"],
+  LIVE_STREAM_PLATFORMS: ["smuve", "twitch", "kick", "facebook", "youtube"],
+  LIVE_GO_LIVE_PLATFORMS: ["smuve", "twitch", "kick", "facebook"],
   listActiveLiveStreams: jest.fn(async () => []),
   startLiveStream: jest.fn(async (input: any) => ({
     id: 1,

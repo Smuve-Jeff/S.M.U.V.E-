@@ -217,16 +217,28 @@ describe("live-stream service", () => {
 
 
     it("exposes only destinations with a working broadcast path", () => {
-      expect(LIVE_GO_LIVE_PLATFORMS).toEqual(["smuve", "twitch", "kick"]);
+      expect(LIVE_GO_LIVE_PLATFORMS).toEqual([
+        "smuve",
+        "twitch",
+        "kick",
+        "facebook",
+      ]);
       expect(LIVE_GO_LIVE_PLATFORMS).not.toContain("youtube");
       expect(LIVE_GO_LIVE_PLATFORMS).not.toContain("tiktok");
     });
 
-    it("accepts Kick as a Go Live destination", async () => {
-      const row = await startLiveStream({ hostId: "42", platform: "kick" });
-      expect(row.platform).toBe("kick");
-      expect(row.active).toBe(true);
-      expect(row.shareUrl).toContain(`live=${row.shareToken}`);
+    it("accepts Kick and Facebook as Go Live destinations", async () => {
+      const kick = await startLiveStream({ hostId: "42", platform: "kick" });
+      expect(kick.platform).toBe("kick");
+      expect(kick.active).toBe(true);
+      expect(kick.shareUrl).toContain(`live=${kick.shareToken}`);
+
+      const facebook = await startLiveStream({
+        hostId: "43",
+        platform: "facebook",
+      });
+      expect(facebook.platform).toBe("facebook");
+      expect(facebook.active).toBe(true);
     });
 
     it("rejects youtube and tiktok for new broadcasts", async () => {

@@ -1994,7 +1994,11 @@
                   {{ social.previewActive() ? 'PREVIEW ONLY — NOT ON AIR. THE SAME CAPTURE IS REUSED WHEN YOU GO LIVE.' : 'ON AIR — LOCAL CAPTURE MONITOR (MUTED).' }}
                 </p>
               }
-              @if (social.screenAudioWarning(); as audioWarning) {
+              @if (
+                social.previewAudioWarning() ||
+                  social.screenAudioWarning();
+                as audioWarning
+              ) {
                 <p class="broadcast-preview-warning">{{ audioWarning }}</p>
               }
               @if (social.streamError(); as previewError) {
@@ -2016,7 +2020,7 @@
               <ol class="broadcast-step-list">
                 <li><span>01</span> Pick the platform and set the lower third.</li>
                 <li><span>02</span> Set CAMERA or SCREEN and start PREVIEW; check the frame and audio.</li>
-                <li><span>03</span> Finish Twitch authorization, or save Kick's RTMP URL and key before going live.</li>
+                <li><span>03</span> Finish Twitch authorization, or save the Kick/Facebook RTMP URL and key before going live.</li>
                 <li><span>04</span> Press GO LIVE, then copy the viewer link once the broadcast is live.</li>
               </ol>
               <p class="broadcast-next-step" role="status" aria-live="polite">{{ broadcastNextStep() }}</p>

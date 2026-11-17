@@ -21,6 +21,7 @@ export type LiveStreamPlatform =
   | 'smuve'
   | 'twitch'
   | 'kick'
+  | 'facebook'
   | 'youtube'
   | 'tiktok';
 
@@ -28,6 +29,7 @@ export const LIVE_STREAM_PLATFORMS: LiveStreamPlatform[] = [
   'smuve',
   'twitch',
   'kick',
+  'facebook',
   'youtube',
   'tiktok',
 ];
@@ -35,9 +37,15 @@ export const LIVE_STREAM_PLATFORMS: LiveStreamPlatform[] = [
 /**
  * What the Go Live picker may offer today. YouTube's stored grant is
  * read-only and TikTok has no ingest path, so both stay in
- * LIVE_STREAM_PLATFORMS only so old rows still decode.
+ * LIVE_STREAM_PLATFORMS only so old rows still decode. Facebook uses the
+ * manual RTMP URL + key saved in Broadcast Push, just like Kick.
  */
-export const GO_LIVE_PLATFORMS = ['smuve', 'twitch', 'kick'] as const;
+export const GO_LIVE_PLATFORMS = [
+  'smuve',
+  'twitch',
+  'kick',
+  'facebook',
+] as const;
 export type GoLivePlatform = (typeof GO_LIVE_PLATFORMS)[number];
 
 /** Per-tab proof that this browser is the one serving the broadcast. */
@@ -278,7 +286,8 @@ export class LiveStreamService {
     // The GO LIVE click is the user gesture that lets the browser start the
     // mixer. Prime before OAuth, destination preflight, or the row request:
     // all of those await, and the WHIP mix is built after them.
-    const providerPush = platform === 'twitch' || platform === 'kick';
+    const providerPush =
+      platform === 'twitch' || platform === 'kick' || platform === 'facebook';
     if (providerPush) this.ingest.primeAudioContext();
 
     this.pendingGolive.set(platform);
@@ -295,15 +304,16 @@ export class LiveStreamService {
         }
         await this.ingest.load();
       }
-      // Kick has no OAuth: its destination is the RTMP URL + key saved in
-      // Broadcast Push, so refuse now instead of pushing to nowhere.
-      if (platform === 'kick') {
+      // Kick and Facebook have no OAuth: their destinations are the RTMP URL
+      // + key saved in Broadcast Push, so refuse now instead of pushing to
+      // nowhere.
+      if (platform === 'kick' || platform === 'facebook') {
         await this.ingest.load();
-        if (!this.ingest.ready('kick')) {
+        if (!this.ingest.ready(platform)) {
           this.pendingGolive.set(null);
           this.ingest.closePrimedAudioContext();
           this.notify.show(
-            'SAVE YOUR KICK STREAM URL AND KEY IN BROADCAST PUSH FIRST',
+            `SAVE YOUR ${platform.toUpperCase()} STREAM URL AND KEY IN BROADCAST PUSH FIRST`,
             'warning',
           );
           return null;
@@ -565,8 +575,12 @@ export class LiveStreamService {
     this.social.updateStatus(this.livePresenceMetadata());
     // A reload killed the browser's WHIP publisher even though the relay and
     // the server row survived. Re-open the provider push in the owning tab so
-    // Twitch/Kick do not keep showing a frozen frame after recovery.
-    if (row.platform === 'twitch' || row.platform === 'kick') {
+    // Twitch/Kick/Facebook do not keep showing a frozen frame after recovery.
+    if (
+      row.platform === 'twitch' ||
+      row.platform === 'kick' ||
+      row.platform === 'facebook'
+    ) {
       await this.ingest.load();
       await this.ingest.start(row.platform);
     }
@@ -899,7 +913,9 @@ export class LiveStreamService {
     if (!stream?.active || !stream.shareToken) return false;
     // This click can restart the WHIP push; prime before capture/start awaits.
     const providerPlatform =
-      stream.platform === 'twitch' || stream.platform === 'kick'
+      stream.platform === 'twitch' ||
+      stream.platform === 'kick' ||
+      stream.platform === 'facebook'
         ? stream.platform
         : null;
     if (providerPlatform) this.ingest.primeAudioContext();

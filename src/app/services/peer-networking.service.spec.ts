@@ -28,6 +28,40 @@ describe('PeerNetworkingService', () => {
     expect(service.callState()).toBe('calling');
   });
 
+  it('refuses a second call while the first is still ringing', async () => {
+    await expect(service.startCall('peer-1')).resolves.toBe(true);
+    await expect(service.startCall('peer-2')).resolves.toBe(false);
+
+    expect(socialMock.sendVoiceSignal).toHaveBeenCalledTimes(1);
+    expect(socialMock.sendVoiceSignal).toHaveBeenCalledWith('peer-1', {
+      type: 'KNOCK',
+    });
+    expect(service.callState()).toBe('calling');
+  });
+
+  it('auto-declines a knock while another call is active', () => {
+    service.startCall('peer-1');
+    socialMock.sendVoiceSignal.mockClear();
+
+    service.handleSignal('peer-2', { type: 'KNOCK' });
+
+    expect(socialMock.sendVoiceSignal).toHaveBeenCalledWith('peer-2', {
+      type: 'KNOCK_DECLINED',
+    });
+    expect(service.knockFromUserId()).toBeNull();
+    expect(service.callState()).toBe('calling');
+  });
+
+  it('ignores signals from a peer other than the call target', async () => {
+    await service.startCall('peer-1');
+
+    await service.handleSignal('peer-2', { type: 'KNOCK_DECLINED' });
+    await service.handleSignal('peer-2', { type: 'KNOCK_ACCEPTED' });
+
+    expect(service.callState()).toBe('calling');
+    expect(service.isCallActive()).toBe(true);
+  });
+
   it('expires an unanswered knock so the UI never hangs on "calling"', () => {
     jest.useFakeTimers();
     try {

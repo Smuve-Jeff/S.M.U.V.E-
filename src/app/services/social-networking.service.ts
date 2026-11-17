@@ -306,6 +306,28 @@ export class SocialNetworkingService {
       ? 'NO GAME SOUND YET — START THE GAME; IF IT STAYS SILENT THIS DEVICE WILL NOT SHARE PLAYBACK AUDIO'
       : 'NO GAME AUDIO CAPTURED — TICK "SHARE TAB AUDIO" (OR SYSTEM AUDIO) IN THE PICKER, OR VIEWERS HEAR YOUR MIC ONLY';
   });
+  /**
+   * What the host must fix in the local preflight before viewers arrive.
+   * The video monitor is muted, so a missing or muted mic was invisible
+   * until after GO LIVE.
+   */
+  readonly previewAudioWarning = computed(() => {
+    if (!this.previewActive()) return null;
+    if (this.screenAudioOnly()) return this.screenAudioWarning();
+    const stream = this.localStream();
+    if (!stream) return null;
+    const mic = stream
+      .getAudioTracks()
+      .find((track) => this.audioRoleOf(track) === 'mic');
+    if (!mic) {
+      return 'NO MICROPHONE IN PREVIEW — VIEWERS WILL HEAR SILENCE';
+    }
+    if (!mic.enabled) {
+      return 'MICROPHONE IS MUTED — VIEWERS WILL HEAR SILENCE';
+    }
+    return this.screenAudioWarning();
+  });
+
   /** Mic track ids, so a switch back to camera drops system audio but keeps voice. */
   private micTrackIds = new Set<string>();
 

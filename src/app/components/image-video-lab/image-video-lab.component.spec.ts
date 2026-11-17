@@ -29,6 +29,21 @@ import { InteractionDialogService } from '../../services/interaction-dialog.serv
 import { CinemaEngineService } from '../../services/cinema-engine.service';
 import { SpeechSynthesisService } from '../../services/speech-synthesis.service';
 import { SocialNetworkingService } from '../../services/social-networking.service';
+
+/** The real preflight panel, mounted with the component for DOM tests. */
+const LAB_PREVIEW_TEMPLATE = (() => {
+  const full = readFileSync(
+    join(__dirname, 'image-video-lab.component.html'),
+    'utf8',
+  );
+  const start = full.indexOf('<div class="broadcast-preview-panel">');
+  const end = full.indexOf('<div class="broadcast-input-grid">', start);
+  if (start < 0 || end < 0) {
+    throw new Error('Lab preview controls are missing from the template');
+  }
+  return full.slice(start, end);
+})();
+
 describe('ImageVideoLabComponent', () => {
   /** Shared 2D context stub so render assertions can inspect the draw calls. */
   let ctxStub: Record<string, jest.Mock | string | number>;
@@ -712,7 +727,8 @@ describe('ImageVideoLabComponent', () => {
       .overrideComponent(ImageVideoLabComponent, {
         set: {
           template:
-            '<canvas #previewCanvas></canvas><video #cameraFeed></video>',
+            '<canvas #previewCanvas></canvas><video #cameraFeed></video>' +
+            LAB_PREVIEW_TEMPLATE,
         },
       })
       .compileComponents();
@@ -6671,6 +6687,54 @@ describe('ImageVideoLabComponent', () => {
       expect(start).toHaveBeenCalledTimes(1);
       expect(stop).not.toHaveBeenCalled();
       expect(component.aiFeedback()).toContain('PREVIEW LIVE');
+      fixture.destroy();
+    });
+
+    it('dispatches a real DOM double-click to the mounted PREVIEW control', async () => {
+      const { fixture } = await createComponent();
+      const social = TestBed.inject(SocialNetworkingService);
+      let resolvePreview: (value: boolean) => void = () => undefined;
+      jest.spyOn(social, 'startPreview').mockImplementation(() => {
+        social.previewStarting.set(true);
+        return new Promise<boolean>((resolve) => {
+          resolvePreview = resolve;
+        });
+      });
+      const stop = jest.spyOn(social, 'stopPreview');
+      fixture.detectChanges();
+      const buttons = Array.from(
+        fixture.nativeElement.querySelectorAll('button'),
+      ) as HTMLButtonElement[];
+      const start = buttons.find((button) =>
+        button.textContent?.includes('START PREVIEW'),
+      );
+      const stopButton = buttons.find((button) =>
+        button.textContent?.includes('STOP PREVIEW'),
+      );
+      expect(start).toBeTruthy();
+      expect(stopButton).toBeTruthy();
+      expect(stopButton!.disabled).toBe(true);
+      expect(start!.parentElement).toBe(stopButton!.parentElement);
+      expect(
+        Array.from(start!.parentElement!.querySelectorAll('button')).indexOf(
+          start!,
+        ),
+      ).toBeLessThan(
+        Array.from(
+          stopButton!.parentElement!.querySelectorAll('button'),
+        ).indexOf(stopButton!),
+      );
+
+      start!.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      start!.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      fixture.detectChanges();
+
+      expect(social.startPreview).toHaveBeenCalledTimes(1);
+      expect(stop).not.toHaveBeenCalled();
+      expect(stopButton!.isConnected).toBe(true);
+
+      resolvePreview(true);
+      await Promise.resolve();
       fixture.destroy();
     });
 

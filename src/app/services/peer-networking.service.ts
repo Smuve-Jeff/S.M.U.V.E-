@@ -33,7 +33,13 @@ export class PeerNetworkingService {
   /** Auxiliary graph for the voice-activity analyser, owned by endCall(). */
   private activityContext: AudioContext | null = null;
 
-  async startCall(toUserId: string) {
+  async startCall(toUserId: string): Promise<boolean> {
+    // One live uplink at a time. A second call used to overwrite the target
+    // and later replace the RTCPeerConnection without releasing the first
+    // microphone or analyser.
+    if (this.callState() === 'failed') this.endCall();
+    if (this.callState() !== 'idle' || this.isCallActive()) return false;
+
     this.callState.set('calling');
     this.targetUserId = toUserId;
     this.social.sendVoiceSignal(toUserId, { type: 'KNOCK' });
@@ -49,6 +55,7 @@ export class PeerNetworkingService {
         this.targetUserId = null;
       }
     }, this.KNOCK_TIMEOUT_MS);
+    return true;
   }
 
   private clearKnockTimeout(): void {
@@ -60,9 +67,25 @@ export class PeerNetworkingService {
 
   async handleSignal(fromUserId: string, data: any) {
     if (data.type === 'KNOCK') {
+      // Busy: decline the new knock instead of letting it steal the ringing
+      // prompt from the call already in progress.
+      if (
+        this.callState() !== 'idle' ||
+        this.isCallActive() ||
+        this.isKnocking()
+      ) {
+        this.social.sendVoiceSignal(fromUserId, { type: 'KNOCK_DECLINED' });
+        return;
+      }
       this.knockFromUserId.set(fromUserId);
       this.isKnocking.set(true);
       this.callState.set('ringing');
+      return;
+    }
+
+    // A call has exactly one remote owner. Unsolicited offers, answers and
+    // candidates from anyone else must not touch its peer connection.
+    if (!this.targetUserId || fromUserId !== this.targetUserId) {
       return;
     }
 
@@ -180,6 +203,11 @@ export class PeerNetworkingService {
   }
 
   private async initializePeerConnection(targetUserId: string) {
+    // A duplicate accept must not replace the connection and strand the
+    // microphone that is already attached to the first one.
+    if (this.peerConnection && this.targetUserId === targetUserId) return;
+
+    this.releaseCallMedia();
     this.targetUserId = targetUserId;
     this.pendingCandidates = [];
 
@@ -191,9 +219,13 @@ export class PeerNetworkingService {
       ],
     });
 
-    // Monitor connection state for disconnects/failures
-    this.peerConnection.onconnectionstatechange = () => {
-      const state = this.peerConnection?.connectionState;
+    // Monitor connection state for disconnects/failures. Capture the
+    // connection this handler belongs to: a later call must not inherit a
+    // delayed close from the previous one.
+    const connection = this.peerConnection;
+    connection.onconnectionstatechange = () => {
+      if (connection !== this.peerConnection) return;
+      const state = connection.connectionState;
       if (state === 'connected') {
         this.clearKnockTimeout();
         this.callState.set('connected');
@@ -280,8 +312,8 @@ export class PeerNetworkingService {
     return this.voiceActivityLevel() > 15;
   }
 
-  endCall() {
-    this.clearKnockTimeout();
+  /** Release the media and peer resources without touching call identity. */
+  private releaseCallMedia(): void {
     if (this.activityInterval) {
       clearInterval(this.activityInterval);
       this.activityInterval = null;
@@ -295,12 +327,26 @@ export class PeerNetworkingService {
       void Promise.resolve(activityContext.close?.()).catch(() => undefined);
     }
     this.voiceActivityLevel.set(0);
-    this.peerConnection?.close();
+    // Detach first. Closing fires onconnectionstatechange synchronously in
+    // some browsers; its one-second auto-cleanup would otherwise tear down a
+    // call that replaced this one.
+    const connection = this.peerConnection;
     this.peerConnection = undefined;
+    if (connection) {
+      connection.onconnectionstatechange = null;
+      connection.ontrack = null;
+      connection.onicecandidate = null;
+      connection.close();
+    }
     this.localStream?.getTracks().forEach((t) => t.stop());
     this.localStream = undefined;
     this.pendingCandidates = [];
     this.remoteStream.set(null);
+  }
+
+  endCall() {
+    this.clearKnockTimeout();
+    this.releaseCallMedia();
     this.isCallActive.set(false);
     this.isKnocking.set(false);
     this.knockFromUserId.set(null);
