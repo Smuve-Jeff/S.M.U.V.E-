@@ -1,0 +1,37 @@
+<section class="live-chat" aria-label="Live stream chat">
+  <header class="live-chat-head">
+    <span class="live-chat-title">Live Chat</span>
+    <span class="live-chat-count">{{ live.chatMessages().length }}</span>
+  </header>
+
+  <div #chatList class="live-chat-list" aria-live="polite">
+    @if (live.chatMessages().length === 0) {
+      <p class="live-chat-empty">
+        {{ live.chatAvailable() ? 'No messages yet. Start the conversation.' : 'Connecting live chat…' }}
+      </p>
+    }
+    @for (line of live.chatMessages(); track line.id) {
+      <p class="live-chat-line">
+        <strong>{{ line.fromUserName }}</strong>
+        <span>{{ line.message }}</span>
+      </p>
+    }
+  </div>
+
+  <form class="live-chat-composer" (ngSubmit)="send()">
+    <input
+      type="text"
+      name="liveChatMessage"
+      maxlength="500"
+      autocomplete="off"
+      [placeholder]="live.chatAvailable() ? 'Message the live room…' : 'Live chat unavailable'"
+      [disabled]="!live.chatAvailable()"
+      [ngModel]="draft()"
+      (ngModelChange)="draft.set($event)"
+      aria-label="Live chat message"
+    />
+    <button type="submit" [disabled]="!live.chatAvailable() || !draft().trim()">
+      SEND
+    </button>
+  </form>
+</section>

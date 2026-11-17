@@ -2,7 +2,10 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { BehaviorSubject, of } from "rxjs";
 import { provideHttpClient } from "@angular/common/http";
-import { provideHttpClientTesting } from "@angular/common/http/testing";
+import {
+  HttpTestingController,
+  provideHttpClientTesting,
+} from "@angular/common/http/testing";
 import { ComponentFixture, TestBed } from "@angular/core/testing";
 import { ThaSpotComponent } from "./tha-spot.component";
 import { UserProfileService } from "../../services/user-profile.service";
@@ -31,6 +34,7 @@ import {
 } from "@angular/router";
 import { signal } from "@angular/core";
 import { LiveVideoService } from "../../services/live-video.service";
+import { TokenService } from "../../services/token.service";
 
 describe("ThaSpotComponent", () => {
   let component: ThaSpotComponent;
@@ -133,6 +137,13 @@ describe("ThaSpotComponent", () => {
       localStream: signal(null),
       videoSource: signal("camera"),
       isStreaming: signal(false),
+      previewActive: signal(false),
+      previewStarting: signal(false),
+      previewCancelled: signal(false),
+      switchingSource: signal(false),
+      startPreview: jest.fn().mockResolvedValue(true),
+      stopPreview: jest.fn(),
+      setVideoSource: jest.fn().mockResolvedValue(undefined),
       streamError: signal(null),
       captureBlocked: signal(false),
       loadFriends: jest.fn(),
@@ -183,6 +194,7 @@ describe("ThaSpotComponent", () => {
       sendLobbyChatMessage: jest.fn(),
       startSpectateLobby: jest.fn(),
       stopSpectateLobby: jest.fn(),
+      activeSplitLobby: jest.fn().mockReturnValue(null),
       myLobby: jest.fn().mockReturnValue(null),
       startReplay: jest.fn(),
       stopReplay: jest.fn(),
@@ -1582,4 +1594,157 @@ describe("ThaSpotComponent", () => {
       expect(component.viewerDisplayStream()?.getTracks()).toEqual([camera]);
     });
   });
+
+  describe("preview lifecycle", () => {
+    it("leaves one preview running across repeat PREVIEW clicks", async () => {
+      let resolvePreview: (value: boolean) => void = () => undefined;
+      socialServiceMock.startPreview.mockImplementation(() => {
+        socialServiceMock.previewStarting.set(true);
+        return new Promise<boolean>((resolve) => {
+          resolvePreview = resolve;
+        });
+      });
+
+      const first = component.startStreamPreview();
+      const second = component.startStreamPreview();
+
+      expect(socialServiceMock.startPreview).toHaveBeenCalledTimes(1);
+      expect(socialServiceMock.stopPreview).not.toHaveBeenCalled();
+
+      resolvePreview(true);
+      socialServiceMock.previewStarting.set(false);
+      socialServiceMock.previewActive.set(true);
+      await first;
+      await second;
+
+      expect(socialServiceMock.startPreview).toHaveBeenCalledTimes(1);
+      expect(socialServiceMock.stopPreview).not.toHaveBeenCalled();
+    });
+
+    it("reports a deliberate pending cancel without a failure message", async () => {
+      let resolvePreview: (value: boolean) => void = () => undefined;
+      socialServiceMock.startPreview.mockImplementation(() => {
+        socialServiceMock.previewStarting.set(true);
+        return new Promise<boolean>((resolve) => {
+          resolvePreview = resolve;
+        });
+      });
+      socialServiceMock.stopPreview.mockImplementation(() => {
+        socialServiceMock.previewStarting.set(false);
+        socialServiceMock.previewActive.set(false);
+        socialServiceMock.previewCancelled.set(true);
+      });
+      const snackbar = TestBed.inject(SnackbarService);
+
+      const pending = component.startStreamPreview();
+      component.stopStreamPreview();
+
+      expect(socialServiceMock.stopPreview).toHaveBeenCalledTimes(1);
+      expect(snackbar.info).toHaveBeenCalledWith(
+        "PREVIEW CANCELLED — CAPTURE RELEASED",
+      );
+
+      resolvePreview(false);
+      await pending;
+
+      expect(snackbar.error).not.toHaveBeenCalled();
+    });
+
+    it("does not stop an immediately-started preview on the second click", async () => {
+      socialServiceMock.startPreview.mockImplementation(() => {
+        // Fast permission path: the capture is running before the second
+        // click of a double-click is delivered.
+        socialServiceMock.previewActive.set(true);
+        socialServiceMock.previewStarting.set(false);
+        return Promise.resolve(true);
+      });
+
+      const first = component.startStreamPreview();
+      const second = component.startStreamPreview();
+      await Promise.all([first, second]);
+
+      expect(socialServiceMock.startPreview).toHaveBeenCalledTimes(1);
+      expect(socialServiceMock.stopPreview).not.toHaveBeenCalled();
+      expect(socialServiceMock.previewActive()).toBe(true);
+    });
+
+    it("hands the active preview to the real GO LIVE row handoff", async () => {
+      const tokens = TestBed.inject(TokenService);
+      const http = TestBed.inject(HttpTestingController);
+      tokens.setToken("TKN");
+      profileServiceMock.profile.set({
+        ...profileServiceMock.profile(),
+        id: "77",
+        artistName: "JEFF",
+      });
+      socialServiceMock.localStream.set({
+        getVideoTracks: () => [{ kind: "video", id: "preview-track" }],
+        getAudioTracks: () => [],
+        getTracks: () => [{ kind: "video", id: "preview-track" }],
+      } as any);
+      socialServiceMock.startPreview.mockImplementation(() => {
+        socialServiceMock.previewActive.set(true);
+        socialServiceMock.previewStarting.set(false);
+        return Promise.resolve(true);
+      });
+      socialServiceMock.startStream.mockImplementation(async () => {
+        // LiveStreamService must hand the existing preview to startStream,
+        // which reuses this local capture instead of prompting again.
+        expect(socialServiceMock.localStream()).not.toBeNull();
+        socialServiceMock.previewActive.set(false);
+        socialServiceMock.isStreaming.set(true);
+        return true;
+      });
+      jest.spyOn(component.liveVideo, "startHosting").mockImplementation(() => undefined);
+
+      await component.startStreamPreview();
+      component.showGoLivePicker.set(true);
+
+      const golive = component.confirmGoLive("smuve");
+      const request = http.expectOne(
+        (req) => req.method === "POST" && req.url.endsWith("/users/77/live-streams"),
+      );
+      request.flush({
+        id: 11,
+        shareToken: "tok-live",
+        hostId: "77",
+        hostDisplayName: "JEFF",
+        platform: "smuve",
+        gameId: null,
+        lobbyId: null,
+        payload: null,
+        active: true,
+        startedAt: new Date().toISOString(),
+        endedAt: null,
+        viewerJoins: 0,
+        shareUrl: "https://x/live/tok-live",
+      });
+      await golive;
+
+      expect(socialServiceMock.startStream).toHaveBeenCalledTimes(1);
+      expect(socialServiceMock.startStream).toHaveBeenCalledWith("smuve");
+      expect(socialServiceMock.stopPreview).not.toHaveBeenCalled();
+      expect(component.liveStream.pendingGolive()).toBeNull();
+      expect(component.liveStream.currentStream()?.shareToken).toBe("tok-live");
+      expect(component.liveStream.currentStream()?.active).toBe(true);
+      expect(component.showGoLivePicker()).toBe(false);
+
+      const end = component.liveStream.endStream();
+      const endRequest = http.expectOne((req) =>
+        req.url.endsWith("/users/77/live-streams/end"),
+      );
+      endRequest.flush({ success: true, streamId: 11 });
+      await end;
+      tokens.setToken(null);
+    });
+
+    it("releases a pending preview when Tha Spot is left", () => {
+      socialServiceMock.previewStarting.set(true);
+
+      component.ngOnDestroy();
+
+      expect(socialServiceMock.stopPreview).toHaveBeenCalled();
+    });
+  });
+
 });

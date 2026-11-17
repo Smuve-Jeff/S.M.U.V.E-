@@ -39,6 +39,15 @@ export interface LiveTurnHealth {
   source: "cloudflare" | "static" | "public" | "none";
 }
 
+/** One chat line in the current live room. */
+export interface LiveChatMessage {
+  id: string;
+  fromUserId: string;
+  fromUserName: string;
+  message: string;
+  timestamp: number;
+}
+
 /** Host-side view of one viewer's media path. */
 export interface LiveViewerConnection {
   socketId: string;
@@ -154,6 +163,12 @@ export class LiveVideoService {
    * wrong thing to hang a "connection lost" banner on.
    */
   readonly viewerTransportUp = signal(false);
+  /** Real live-room chat shared by the host and every viewer. */
+  readonly chatMessages = signal<LiveChatMessage[]>([]);
+  private chatRoleActive = signal(false);
+  readonly chatAvailable = computed(
+    () => this.viewerTransportUp() && this.chatRoleActive(),
+  );
   /** Whether the host cut their mic from the viewers' mix. */
   readonly hostScreenAudioOnly = signal(false);
   /** TURN relay state reported alongside the ICE configuration. */
@@ -212,6 +227,8 @@ export class LiveVideoService {
     }
     this.stopHosting();
     this.replacedToken.set(null);
+    this.chatMessages.set([]);
+    this.chatRoleActive.set(true);
     this.hostToken = stream.shareToken;
     this.hostStreamId = stream.id;
     // Camera ↔ screen switches arrive here: every viewer peer's sender
@@ -301,6 +318,8 @@ export class LiveVideoService {
 
   /** Stop accepting viewers and close every peer (camera is owned elsewhere). */
   stopHosting(): void {
+    this.chatMessages.set([]);
+    this.chatRoleActive.set(false);
     const socket = this.hostSocket;
     const token = this.hostToken;
     if (socket?.connected && token) {
@@ -775,6 +794,8 @@ export class LiveVideoService {
     }
     this.stopWatching();
     this.viewerToken = token;
+    this.chatMessages.set([]);
+    this.chatRoleActive.set(true);
     this.watchingToken.set(token);
     this.status.set("connecting");
     this.feedError.set(null);
@@ -813,6 +834,16 @@ export class LiveVideoService {
     this.finishViewing("idle", null);
   }
 
+  /** Send a line to the live room. Returns false when this tab is not in it. */
+  sendLiveChat(message: string): boolean {
+    const text = message.trim().slice(0, 500);
+    const socket = this.boundSocket;
+    if (!text || !socket?.connected) return false;
+    if (!this.hostToken && !this.viewerToken) return false;
+    socket.emit("live_stream_chat", { message: text });
+    return true;
+  }
+
   toggleMute(): void {
     const next = !this.isMuted();
     this.isMuted.set(next);
@@ -830,6 +861,32 @@ export class LiveVideoService {
       this.hostSharingScreen.set(data.videoSource === "screen");
       this.hostScreenAudioOnly.set(data?.screenAudioOnly === true);
     }
+  };
+
+  private onChatMessage = (data: SocketPayload) => {
+    if (!this.hostToken && !this.viewerToken) return;
+    const message = typeof data?.message === "string" ? data.message.trim() : "";
+    const fromUserId =
+      typeof data?.fromUserId === "string" ? data.fromUserId : "";
+    if (!message || !fromUserId) return;
+    this.chatMessages.update((messages) => {
+      const id = typeof data?.id === "string" ? data.id : `chat-${Date.now()}`;
+      if (messages.some((line) => line.id === id)) return messages;
+      return [
+        ...messages,
+        {
+          id,
+          fromUserId,
+          fromUserName:
+            typeof data?.fromUserName === "string" && data.fromUserName
+              ? data.fromUserName
+              : fromUserId,
+          message,
+          timestamp:
+            typeof data?.timestamp === "number" ? data.timestamp : Date.now(),
+        },
+      ].slice(-100);
+    });
   };
 
   private onWatchFailed = (data: SocketPayload) => {
@@ -1200,6 +1257,8 @@ export class LiveVideoService {
     this.status.set(status);
     this.feedError.set(message);
     this.recovering.set(false);
+    this.chatMessages.set([]);
+    this.chatRoleActive.set(false);
   }
 
   private startViewerPoll(token: string): void {
@@ -1260,6 +1319,7 @@ export class LiveVideoService {
     socket.on("live_stream_watch_failed", this.onWatchFailed);
     socket.on("live_stream_feed_unavailable", this.onFeedUnavailable);
     socket.on("live_stream_source_changed", this.onSourceChanged);
+    socket.on("live_stream_chat_message", this.onChatMessage);
     socket.on("live_stream_ended", this.onStreamEnded);
     socket.on("live_stream_host_dropped", this.onHostDropped);
     socket.on("live_stream_host_replaced", this.onHostReplaced);
@@ -1280,6 +1340,7 @@ export class LiveVideoService {
     socket.off("live_stream_watch_failed", this.onWatchFailed);
     socket.off("live_stream_feed_unavailable", this.onFeedUnavailable);
     socket.off("live_stream_source_changed", this.onSourceChanged);
+    socket.off("live_stream_chat_message", this.onChatMessage);
     socket.off("live_stream_ended", this.onStreamEnded);
     socket.off("live_stream_host_dropped", this.onHostDropped);
     socket.off("live_stream_host_replaced", this.onHostReplaced);

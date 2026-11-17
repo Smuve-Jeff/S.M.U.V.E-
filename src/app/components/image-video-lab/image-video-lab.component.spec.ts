@@ -6624,6 +6624,96 @@ describe('ImageVideoLabComponent', () => {
     });
   });
 
+  describe('broadcast preview lifecycle', () => {
+    it('starts one capture across repeat PREVIEW clicks', async () => {
+      const { component, fixture } = await createComponent();
+      const social = TestBed.inject(SocialNetworkingService);
+      let resolvePreview: (value: boolean) => void = () => undefined;
+      const start = jest.spyOn(social, 'startPreview').mockImplementation(() => {
+        social.previewStarting.set(true);
+        return new Promise<boolean>((resolve) => {
+          resolvePreview = resolve;
+        });
+      });
+      const stop = jest.spyOn(social, 'stopPreview');
+
+      const first = component.startBroadcastPreview();
+      const second = component.startBroadcastPreview();
+
+      expect(start).toHaveBeenCalledTimes(1);
+      expect(stop).not.toHaveBeenCalled();
+
+      resolvePreview(true);
+      social.previewStarting.set(false);
+      social.previewActive.set(true);
+      await first;
+      await second;
+      expect(start).toHaveBeenCalledTimes(1);
+      expect(stop).not.toHaveBeenCalled();
+      fixture.destroy();
+    });
+
+    it('does not stop an immediately-started preview on the second click', async () => {
+      const { component, fixture } = await createComponent();
+      const social = TestBed.inject(SocialNetworkingService);
+      const start = jest.spyOn(social, 'startPreview').mockImplementation(() => {
+        social.previewActive.set(true);
+        social.previewStarting.set(false);
+        return Promise.resolve(true);
+      });
+      const stop = jest.spyOn(social, 'stopPreview');
+
+      await Promise.all([
+        component.startBroadcastPreview(),
+        component.startBroadcastPreview(),
+      ]);
+
+      expect(start).toHaveBeenCalledTimes(1);
+      expect(stop).not.toHaveBeenCalled();
+      expect(component.aiFeedback()).toContain('PREVIEW LIVE');
+      fixture.destroy();
+    });
+
+    it('reports a deliberate pending cancel without a failure message', async () => {
+      const { component, fixture } = await createComponent();
+      const social = TestBed.inject(SocialNetworkingService);
+      let resolvePreview: (value: boolean) => void = () => undefined;
+      jest.spyOn(social, 'startPreview').mockImplementation(() => {
+        social.previewStarting.set(true);
+        return new Promise<boolean>((resolve) => {
+          resolvePreview = resolve;
+        });
+      });
+      jest.spyOn(social, 'stopPreview').mockImplementation(() => {
+        social.previewStarting.set(false);
+        social.previewActive.set(false);
+        social.previewCancelled.set(true);
+      });
+
+      const pending = component.startBroadcastPreview();
+      component.stopBroadcastPreview();
+
+      expect(component.aiFeedback()).toContain('PREVIEW CANCELLED');
+
+      resolvePreview(false);
+      await pending;
+
+      expect(component.aiFeedback()).not.toContain('COULD NOT START');
+      fixture.destroy();
+    });
+
+    it('releases a pending preview when the Lab is left', async () => {
+      const { component, fixture } = await createComponent();
+      const social = TestBed.inject(SocialNetworkingService);
+      social.previewStarting.set(true);
+      const stop = jest.spyOn(social, 'stopPreview');
+
+      fixture.destroy();
+
+      expect(stop).toHaveBeenCalled();
+    });
+  });
+
   describe('host capture warning', () => {
     const liveRow = {
       id: 3,

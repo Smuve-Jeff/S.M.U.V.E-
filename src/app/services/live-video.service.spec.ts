@@ -751,6 +751,47 @@ describe("LiveVideoService", () => {
     expect(service.feedError()).toContain("UNAVAILABLE");
   });
 
+  it("shares live chat with the host room and clears it on stop", async () => {
+    service.startHosting(stream);
+    await flush();
+
+    expect(service.chatAvailable()).toBe(true);
+    expect(service.sendLiveChat("  hello room  ")).toBe(true);
+    expect(socket.emitted).toContainEqual({
+      event: "live_stream_chat",
+      data: { message: "hello room" },
+    });
+
+    socket.trigger("live_stream_chat_message", {
+      id: "chat-1",
+      streamId: 5,
+      fromUserId: "viewer-1",
+      fromUserName: "Viewer One",
+      message: "what's good",
+      timestamp: 123,
+    });
+    expect(service.chatMessages()).toEqual([
+      expect.objectContaining({
+        id: "chat-1",
+        fromUserId: "viewer-1",
+        fromUserName: "Viewer One",
+        message: "what's good",
+      }),
+    ]);
+
+    service.stopHosting();
+    expect(service.chatAvailable()).toBe(false);
+    expect(service.chatMessages()).toEqual([]);
+  });
+
+  it("does not send live chat before joining a room", () => {
+    expect(service.chatAvailable()).toBe(false);
+    expect(service.sendLiveChat("hello")).toBe(false);
+    expect(socket.emitted.some((entry) => entry.event === "live_stream_chat")).toBe(
+      false,
+    );
+  });
+
   it("emits unwatch and closes the viewer peer when stopped", async () => {
     await service.watch("tok");
     socket.trigger("live_webrtc_offer", {

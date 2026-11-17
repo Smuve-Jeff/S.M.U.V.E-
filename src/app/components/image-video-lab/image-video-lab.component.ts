@@ -127,7 +127,9 @@ import {
 } from '../../services/speech-synthesis.service';
 import { GO_LIVE_PLATFORMS, GoLivePlatform, LiveStreamService } from '../../services/live-stream.service';
 import { LiveVideoService } from '../../services/live-video.service';
+import { SocialNetworkingService } from '../../services/social-networking.service';
 import { LiveRelayStripComponent } from '../live-relay-strip/live-relay-strip.component';
+import { LiveChatComponent } from '../live-chat/live-chat.component';
 import type { ViewerHealthThresholds } from '../../services/viewer-health';
 import { isValidViewerHealth } from '../../services/viewer-health';
 import { ViewerHealthSettingsService } from '../../services/viewer-health-settings.service';
@@ -310,7 +312,7 @@ interface PinchState {
 @Component({
   selector: 'app-image-video-lab',
   standalone: true,
-  imports: [CommonModule, FormsModule, LiveRelayStripComponent],
+  imports: [CommonModule, FormsModule, LiveRelayStripComponent, LiveChatComponent],
   templateUrl: './image-video-lab.component.html',
   styleUrls: ['./image-video-lab.component.css'],
 })
@@ -332,6 +334,8 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
   private speechRecognition = inject(SpeechRecognitionService);
   private speechSynthesis = inject(SpeechSynthesisService);
   public liveStream = inject(LiveStreamService);
+  /** Owns camera/screen capture and the preflight preview. */
+  public social = inject(SocialNetworkingService);
   /** Delivers the host camera feed to viewers over WebRTC. */
   public liveVideo = inject(LiveVideoService);
   /** Persisted per-preset viewer-health overrides. */
@@ -886,6 +890,7 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
   aiFeedback = signal(
     'S.M.U.V.E 2.0 Cinema Engine Offline. Initialize for executive visual capture.'
   );
+  private destroyed = false;
 
   private canvasCtx: CanvasRenderingContext2D | null = null;
   private animFrame: number | null = null;
@@ -1149,6 +1154,29 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
   lowerThird = computed(() => this.videoEngine.lowerThird());
   countdownLabel = computed(() => this.videoEngine.countdownLabel());
   broadcastStream = computed(() => this.liveStream.currentStream());
+  /** The single next action for the Broadcast Kit checklist. */
+  broadcastNextStep = computed(() => {
+    const stream = this.broadcastStream();
+    if (stream?.active) {
+      if (!this.liveStream.ownsBroadcast()) {
+        return 'THIS TAB IS WATCHING — USE RESUME HERE TO TAKE OVER CAPTURE.';
+      }
+      if (this.liveVideo.hostFeedMissing()) {
+        return 'CAPTURE IS MISSING — RETRY CAMERA/MIC OR END THE BROADCAST.';
+      }
+      return 'LIVE — COPY THE VIEWER LINK OR END THE BROADCAST WHEN DONE.';
+    }
+    if (this.liveStream.pendingGolive()) {
+      return 'FINISH THE AUTHORIZATION WINDOW TO START THE PUSH.';
+    }
+    if (this.social.previewStarting()) {
+      return 'WAITING FOR CAMERA OR SCREEN PERMISSION — PREVIEW IS NOT LIVE YET.';
+    }
+    if (this.social.previewActive()) {
+      return `PREVIEW IS LIVE — PRESS GO LIVE FOR ${this.livePlatform().toUpperCase()} WHEN THE FRAME AND AUDIO ARE RIGHT.`;
+    }
+    return 'NEXT: PREVIEW CAMERA OR SCREEN, THEN GO LIVE.';
+  });
   /**
    * On air with no capture running: viewers get a room with nothing in it.
    * Same source of truth as Tha Spot, so both consoles warn alike.
@@ -2642,6 +2670,73 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
       `${restored} viewer health override${
         restored === 1 ? '' : 's'
       } restored.`,
+    );
+  }
+
+  /** Pick the live source before or during the preflight preview. */
+  async selectBroadcastSource(source: 'camera' | 'screen'): Promise<void> {
+    if (
+      this.social.videoSource() === source &&
+      !this.social.switchingSource()
+    ) {
+      return;
+    }
+    if (!this.social.previewActive() && !this.social.isStreaming()) {
+      if (source === 'screen') {
+        const reason = this.social.screenShareUnavailableReason();
+        if (reason) {
+          this.aiFeedback.set(reason.toUpperCase());
+          return;
+        }
+      }
+      this.social.videoSource.set(source);
+      return;
+    }
+    await this.social.setVideoSource(source);
+    const error = this.social.streamError();
+    if (error) this.aiFeedback.set(error.toUpperCase());
+  }
+
+  /** Start local capture without creating a live stream row. */
+  async startBroadcastPreview(): Promise<void> {
+    if (
+      this.social.isStreaming() ||
+      this.social.previewActive() ||
+      this.social.previewStarting() ||
+      this.social.switchingSource()
+    ) {
+      // A repeat click must never cancel the capture it just started.
+      return;
+    }
+    const started = await this.social.startPreview();
+    if (this.destroyed) return;
+    if (!started) {
+      // STOP/CANCEL has its own confirmation; do not report it as a failure.
+      if (this.social.previewCancelled()) return;
+      this.aiFeedback.set(
+        (this.social.streamError() || 'PREVIEW COULD NOT START.').toUpperCase(),
+      );
+      return;
+    }
+    if (this.social.isStreaming()) return;
+    const source =
+      this.social.videoSource() === 'screen' ? 'SCREEN SHARE' : 'CAMERA';
+    this.aiFeedback.set(
+      `PREVIEW LIVE — ${source}. CHECK THE FRAME AND AUDIO, THEN GO LIVE.`,
+    );
+  }
+
+  /** Deliberate STOP/CANCEL: also releases a capture awaiting permission. */
+  stopBroadcastPreview(): void {
+    if (this.social.isStreaming()) return;
+    const wasActive = this.social.previewActive();
+    const wasStarting = !wasActive && this.social.previewStarting();
+    if (!wasStarting && !wasActive) return;
+    this.social.stopPreview();
+    this.aiFeedback.set(
+      wasStarting
+        ? 'PREVIEW CANCELLED — CAPTURE RELEASED.'
+        : 'PREVIEW STOPPED — CAPTURE RELEASED.',
     );
   }
 
@@ -7795,6 +7890,7 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
   }
 
   ngOnDestroy() {
+    this.destroyed = true;
     if (this.animFrame) cancelAnimationFrame(this.animFrame);
     this.liveVideo.stopHosting();
     this.liveVideo.resetViewerHealthThresholds();
@@ -7803,6 +7899,8 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     // that is only watching its own broadcast must not end it.
     if (this.liveStream.ownsBroadcast()) {
       void this.liveStream.endStream();
+    } else {
+      this.social.stopPreview();
     }
     // Never leave the device light on: releasing the stream is the only way the
     // OS hands the camera back to other apps.

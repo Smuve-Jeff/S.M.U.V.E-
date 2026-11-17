@@ -400,6 +400,7 @@ const RATE_LIMITS: Record<string, { windowMs: number; max: number }> = {
   live_stream_host_join: { windowMs: 10_000, max: 5 },
   live_stream_watch: { windowMs: 10_000, max: 10 },
   live_stream_source: { windowMs: 10_000, max: 10 },
+  live_stream_chat: { windowMs: 10_000, max: 10 },
   // A full viewer mesh is ICE-heavy: eight viewers can legitimately produce
   // dozens of candidates per second during setup, and 40/s dropped signaling
   // for later joiners on a perfectly healthy broadcast.
@@ -1221,6 +1222,27 @@ export const setupSocketIO = (httpServer: HttpServer): Server => {
             screenAudioOnly,
           },
         );
+      },
+    );
+
+    // Real live-room chat: the host and every proven viewer can talk without
+    // leaving the player. Messages are ephemeral and scoped to the stream room.
+    socket.on(
+      "live_stream_chat",
+      (data: { message?: unknown } = {}) => {
+        const role = liveHosts.get(socket.id) ?? liveViewers.get(socket.id);
+        if (!role) return;
+        const message = normalizeChatMessage(data?.message);
+        if (!message) return;
+        if (isRateLimited(userId, "live_stream_chat")) return;
+        io.to(getLiveRoom(role.streamId)).emit("live_stream_chat_message", {
+          id: randomUUID(),
+          streamId: role.streamId,
+          fromUserId: role.userId,
+          fromUserName: getSenderMeta(role.userId).artistName || role.userId,
+          message,
+          timestamp: Date.now(),
+        });
       },
     );
 

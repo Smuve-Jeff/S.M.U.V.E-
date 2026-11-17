@@ -1966,10 +1966,62 @@
                 }
               </select>
             </label>
+            <div class="broadcast-preview-panel">
+              <div class="director-console-heading">
+                <div>
+                  <span class="upgrade-eyebrow">Preflight</span>
+                  <h4 class="director-console-title">Source Preview</h4>
+                </div>
+                <span class="director-state" [class.busy]="social.previewActive() || social.previewStarting()">
+                  {{ social.previewActive() ? 'PREVIEW' : social.previewStarting() ? 'STARTING' : broadcastStream() ? 'ON AIR' : 'OFF' }}
+                </span>
+              </div>
+              <div class="broadcast-source-row" role="group" aria-label="Broadcast source">
+                <button type="button" class="director-button" [class.active]="social.videoSource() === 'camera'" [disabled]="social.switchingSource() || social.previewStarting()" (click)="selectBroadcastSource('camera')">CAMERA</button>
+                <button type="button" class="director-button" [class.active]="social.videoSource() === 'screen'" [disabled]="social.switchingSource() || social.previewStarting() || !social.screenShareSupported()" [title]="social.screenShareUnavailableReason() || 'Share a tab, window or display'" (click)="selectBroadcastSource('screen')">SCREEN</button>
+                <!-- Both slots stay mounted so the stop hit target never
+                     appears under a fast second PREVIEW click. -->
+                <button type="button" class="director-button" [class.active]="social.previewActive()" (click)="startBroadcastPreview()" [disabled]="!!broadcastStream() || social.switchingSource() || social.previewActive() || social.previewStarting()">
+                  START PREVIEW
+                </button>
+                <button type="button" class="director-button" (click)="stopBroadcastPreview()" [disabled]="!social.previewActive() && !social.previewStarting()">
+                  {{ social.previewStarting() ? 'CANCEL' : 'STOP PREVIEW' }}
+                </button>
+              </div>
+              @if (social.localStream() && (social.previewActive() || social.previewStarting() || broadcastStream())) {
+                <video class="broadcast-preview-video" [srcObject]="social.localStream()" autoplay muted playsinline></video>
+                <p class="broadcast-preview-note" role="status">
+                  {{ social.previewActive() ? 'PREVIEW ONLY — NOT ON AIR. THE SAME CAPTURE IS REUSED WHEN YOU GO LIVE.' : 'ON AIR — LOCAL CAPTURE MONITOR (MUTED).' }}
+                </p>
+              }
+              @if (social.screenAudioWarning(); as audioWarning) {
+                <p class="broadcast-preview-warning">{{ audioWarning }}</p>
+              }
+              @if (social.streamError(); as previewError) {
+                <p class="broadcast-preview-warning">{{ previewError }}</p>
+              }
+            </div>
             <div class="broadcast-input-grid">
               <input type="text" aria-label="Lower third title" placeholder="Host / show title" [ngModel]="lowerThird().title" (ngModelChange)="videoEngine.setLowerThird({ title: $event })" />
               <input type="text" aria-label="Lower third subtitle" placeholder="Topic / subtitle" [ngModel]="lowerThird().subtitle" (ngModelChange)="videoEngine.setLowerThird({ subtitle: $event })" />
             </div>
+            <div class="broadcast-steps" aria-label="Streaming and go-live steps">
+              <div class="director-console-heading">
+                <div>
+                  <span class="upgrade-eyebrow">Run of Show</span>
+                  <h4 class="director-console-title">Go-Live Steps</h4>
+                </div>
+                <span class="director-state">PREFLIGHT</span>
+              </div>
+              <ol class="broadcast-step-list">
+                <li><span>01</span> Pick the platform and set the lower third.</li>
+                <li><span>02</span> Set CAMERA or SCREEN and start PREVIEW; check the frame and audio.</li>
+                <li><span>03</span> Finish Twitch authorization, or save Kick's RTMP URL and key before going live.</li>
+                <li><span>04</span> Press GO LIVE, then copy the viewer link once the broadcast is live.</li>
+              </ol>
+              <p class="broadcast-next-step" role="status" aria-live="polite">{{ broadcastNextStep() }}</p>
+            </div>
+
             <div class="director-actions director-actions-compact">
               <button type="button" class="director-button" [class.active]="lowerThird().enabled" (click)="toggleLowerThird()">LOWER THIRD</button>
               <button type="button" class="director-button director-button-primary" (click)="fireBroadcastCue()">{{ countdownLabel() ? 'CANCEL CUE' : '3…2…1 CUE' }}</button>
@@ -2017,6 +2069,10 @@
                 COPY VIEWER LINK
               </button>
             </div>
+
+            @if (broadcastStream()) {
+              <app-live-chat />
+            }
 
             <!--
               Per-preset viewer health. The shared strip applies these limits

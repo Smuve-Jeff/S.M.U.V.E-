@@ -54,6 +54,7 @@ import {
 } from "../../services/live-stream.service";
 import { LiveVideoService } from "../../services/live-video.service";
 import { LiveRelayStripComponent } from "../live-relay-strip/live-relay-strip.component";
+import { LiveChatComponent } from "../live-chat/live-chat.component";
 import { SplitScreenPanelComponent } from "../split-screen-panel/split-screen-panel.component";
 import { SmuveTvComponent } from "../smuve-tv/smuve-tv.component";
 import { FormatTimePipe } from "./format-time.pipe";
@@ -71,6 +72,7 @@ const LIVE_DIRECTORY_REFRESH_INTERVAL_MS = 20000;
     SplitScreenPanelComponent,
     SmuveTvComponent,
     LiveRelayStripComponent,
+    LiveChatComponent,
     FormatTimePipe,
   ],
   templateUrl: "./tha-spot.component.html",
@@ -694,10 +696,14 @@ const LIVE_DIRECTORY_REFRESH_INTERVAL_MS = 20000;
         cursor: pointer;
         transition: all 0.2s ease;
       }
-      .quality-btn:hover {
+      .quality-btn:hover:not(:disabled) {
         border-color: rgba(0, 229, 255, 0.5);
         background: rgba(0, 229, 255, 0.12);
         color: #fff;
+      }
+      .quality-btn:disabled {
+        cursor: not-allowed;
+        opacity: 0.5;
       }
       .quality-btn.active {
         border-color: #00e5ff;
@@ -1313,6 +1319,7 @@ const LIVE_DIRECTORY_REFRESH_INTERVAL_MS = 20000;
 })
 /* S.M.U.V.E. v4.2 Enhanced Catalog Access */
 export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
+  private destroyed = false;
   private gameService = inject(GameService);
   /** Covers and title artwork share one resolver across cards and launch previews. */
   getGameImage(game: Game | null | undefined): string {
@@ -2505,6 +2512,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   ngOnDestroy() {
+    this.destroyed = true;
     if (this.gameLiveNoticeTimer) clearTimeout(this.gameLiveNoticeTimer);
     this.clearGameLoadWatchdog();
     this.clearGameReloadTimer();
@@ -2530,6 +2538,8 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     this.liveVideo.stopHosting();
     if (this.liveStream.ownsBroadcast()) {
       void this.liveStream.endStream();
+    } else {
+      this.socialService.stopPreview();
     }
   }
 
@@ -4278,15 +4288,65 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     await this.requestScreenSource();
   }
 
+  /** Start local capture without creating a live stream row. */
+  async startStreamPreview(): Promise<void> {
+    if (
+      this.socialService.isStreaming() ||
+      this.socialService.previewActive() ||
+      this.socialService.previewStarting() ||
+      this.socialService.switchingSource()
+    ) {
+      // A repeat click must never cancel the capture it just started.
+      return;
+    }
+    const started = await this.socialService.startPreview();
+    if (this.destroyed) return;
+    if (!started) {
+      // The deliberate STOP/CANCEL control already reported this.
+      if (this.socialService.previewCancelled()) return;
+      const error = this.socialService.streamError();
+      if (error) this.snackbarService.error(error);
+      return;
+    }
+    if (this.socialService.isStreaming()) return;
+    const source =
+      this.socialService.videoSource() === 'screen' ? 'SCREEN SHARE' : 'CAMERA';
+    this.snackbarService.success(
+      `PREVIEW LIVE — ${source}. GO LIVE REUSES THIS CAPTURE.`,
+    );
+  }
+
+  /** Deliberate STOP/CANCEL: also releases a capture awaiting permission. */
+  stopStreamPreview(): void {
+    if (this.socialService.isStreaming()) return;
+    const wasActive = this.socialService.previewActive();
+    const wasStarting = !wasActive && this.socialService.previewStarting();
+    if (!wasStarting && !wasActive) return;
+    this.socialService.stopPreview();
+    this.snackbarService.info(
+      wasStarting
+        ? 'PREVIEW CANCELLED — CAPTURE RELEASED'
+        : 'PREVIEW STOPPED — CAPTURE RELEASED',
+    );
+  }
+
   /** Pre-stream source picker: choosing SCREEN explains when it cannot run. */
   selectStreamSource(source: 'camera' | 'screen'): void {
     if (source === 'camera') {
+      if (this.socialService.previewActive() || this.socialService.isStreaming()) {
+        void this.socialService.setVideoSource('camera');
+        return;
+      }
       this.socialService.videoSource.set('camera');
       return;
     }
     const reason = this.socialService.screenShareUnavailableReason();
     if (reason) {
       this.flashGameLiveNotice(reason);
+      return;
+    }
+    if (this.socialService.previewActive() || this.socialService.isStreaming()) {
+      void this.requestScreenSource();
       return;
     }
     this.socialService.videoSource.set('screen');

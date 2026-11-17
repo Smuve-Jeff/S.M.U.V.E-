@@ -718,6 +718,177 @@ describe('SocialNetworkingService video source (camera ↔ screen)', () => {
     );
   });
 
+  it('previews local capture without marking the session live', async () => {
+    const camVideo = makeTrack('video', 'cam-preview');
+    const mic = makeTrack('audio', 'mic-preview');
+    getUserMedia.mockResolvedValue(fakeMedia([camVideo, mic]));
+
+    await expect(service.startPreview()).resolves.toBe(true);
+
+    expect(service.previewActive()).toBe(true);
+    expect(service.isStreaming()).toBe(false);
+    expect(service.currentPlatform()).toBeNull();
+    expect(service.localStream()!.getVideoTracks()[0]).toBe(camVideo);
+  });
+
+  it('switches source in preview and reuses that capture when going live', async () => {
+    const camVideo = makeTrack('video', 'cam-preview');
+    const mic = makeTrack('audio', 'mic-preview');
+    getUserMedia.mockResolvedValue(fakeMedia([camVideo, mic]));
+    await service.startPreview();
+
+    const screenVideo = makeTrack('video', 'screen-preview');
+    getDisplayMedia.mockResolvedValue(fakeMedia([screenVideo]));
+    await service.setVideoSource('screen');
+    expect(service.previewActive()).toBe(true);
+    expect(service.videoSource()).toBe('screen');
+
+    await service.startStream('S.M.U.V.E.');
+
+    expect(getDisplayMedia).toHaveBeenCalledTimes(1);
+    expect(getUserMedia).toHaveBeenCalledTimes(1);
+    expect(service.isStreaming()).toBe(true);
+    expect(service.previewActive()).toBe(false);
+    expect(service.localStream()!.getVideoTracks()[0]).toBe(screenVideo);
+  });
+
+  it('releases a preview without starting a broadcast', async () => {
+    const camVideo = makeTrack('video', 'cam-preview');
+    const mic = makeTrack('audio', 'mic-preview');
+    getUserMedia.mockResolvedValue(fakeMedia([camVideo, mic]));
+    await service.startPreview();
+
+    service.stopPreview();
+
+    expect(service.previewActive()).toBe(false);
+    expect(service.isStreaming()).toBe(false);
+    expect(service.localStream()).toBeNull();
+    expect(camVideo.stop).toHaveBeenCalled();
+    expect(mic.stop).toHaveBeenCalled();
+  });
+
+  it('shares one capture between double-clicked preview starts', async () => {
+    let resolveMedia!: (stream: any) => void;
+    getUserMedia.mockReturnValue(
+      new Promise((resolve) => {
+        resolveMedia = resolve;
+      })
+    );
+    const camVideo = makeTrack('video', 'cam-shared');
+    const mic = makeTrack('audio', 'mic-shared');
+
+    const first = service.startPreview();
+    const second = service.startPreview();
+
+    expect(getUserMedia).toHaveBeenCalledTimes(1);
+    resolveMedia(fakeMedia([camVideo, mic]));
+
+    await expect(first).resolves.toBe(true);
+    await expect(second).resolves.toBe(true);
+    expect(service.previewActive()).toBe(true);
+    expect(service.localStream()!.getVideoTracks()[0]).toBe(camVideo);
+  });
+
+  it('refuses a preview while a source switch is in flight', async () => {
+    service.switchingSource.set(true);
+
+    await expect(service.startPreview()).resolves.toBe(false);
+
+    expect(getUserMedia).not.toHaveBeenCalled();
+    expect(service.previewStarting()).toBe(false);
+  });
+
+  it('coalesces immediate double-clicked preview starts', async () => {
+    const camVideo = makeTrack('video', 'cam-immediate');
+    const mic = makeTrack('audio', 'mic-immediate');
+    getUserMedia.mockResolvedValue(fakeMedia([camVideo, mic]));
+
+    const first = service.startPreview();
+    const second = service.startPreview();
+
+    await expect(first).resolves.toBe(true);
+    await expect(second).resolves.toBe(true);
+    expect(getUserMedia).toHaveBeenCalledTimes(1);
+    expect(service.previewActive()).toBe(true);
+    expect(service.localStream()!.getVideoTracks()[0]).toBe(camVideo);
+  });
+
+  it('releases a capture that resolves after preview is stopped', async () => {
+    let resolveMedia!: (stream: any) => void;
+    getUserMedia.mockReturnValue(
+      new Promise((resolve) => {
+        resolveMedia = resolve;
+      })
+    );
+    const camVideo = makeTrack('video', 'cam-late');
+    const mic = makeTrack('audio', 'mic-late');
+
+    const preview = service.startPreview();
+    service.stopPreview();
+    resolveMedia(fakeMedia([camVideo, mic]));
+
+    await expect(preview).resolves.toBe(false);
+    expect(service.previewActive()).toBe(false);
+    expect(service.previewCancelled()).toBe(true);
+    expect(service.localStream()).toBeNull();
+    expect(camVideo.stop).toHaveBeenCalled();
+    expect(mic.stop).toHaveBeenCalled();
+  });
+
+  it('clears cancellation state when a new preview starts', async () => {
+    service.previewCancelled.set(true);
+    getUserMedia.mockResolvedValue(
+      fakeMedia([makeTrack('video', 'cam-fresh'), makeTrack('audio', 'mic-fresh')])
+    );
+
+    await expect(service.startPreview()).resolves.toBe(true);
+
+    expect(service.previewCancelled()).toBe(false);
+    expect(service.previewActive()).toBe(true);
+  });
+
+  it('aborts a stream start stopped while capture is pending', async () => {
+    let resolveMedia!: (stream: any) => void;
+    getUserMedia.mockReturnValue(
+      new Promise((resolve) => {
+        resolveMedia = resolve;
+      })
+    );
+    const camVideo = makeTrack('video', 'cam-stream-late');
+    const mic = makeTrack('audio', 'mic-stream-late');
+
+    const started = service.startStream('S.M.U.V.E.');
+    service.stopStream();
+    resolveMedia(fakeMedia([camVideo, mic]));
+
+    await expect(started).resolves.toBe(false);
+    expect(service.isStreaming()).toBe(false);
+    expect(service.localStream()).toBeNull();
+    expect(camVideo.stop).toHaveBeenCalled();
+  });
+
+  it('waits for an in-flight preview and reuses it instead of capturing twice', async () => {
+    let resolveMedia!: (stream: any) => void;
+    getUserMedia.mockReturnValue(
+      new Promise((resolve) => {
+        resolveMedia = resolve;
+      })
+    );
+    const camVideo = makeTrack('video', 'cam-go-live');
+    const mic = makeTrack('audio', 'mic-go-live');
+
+    const preview = service.startPreview();
+    const started = service.startStream('S.M.U.V.E.');
+    resolveMedia(fakeMedia([camVideo, mic]));
+
+    await expect(preview).resolves.toBe(true);
+    await expect(started).resolves.toBe(true);
+    expect(getUserMedia).toHaveBeenCalledTimes(1);
+    expect(service.previewActive()).toBe(false);
+    expect(service.isStreaming()).toBe(true);
+    expect(service.localStream()!.getVideoTracks()[0]).toBe(camVideo);
+  });
+
   it('falls back to camera when the pre-stream screen picker is refused', async () => {
     getDisplayMedia.mockRejectedValue(
       Object.assign(new Error('denied'), { name: 'NotAllowedError' })
@@ -917,7 +1088,7 @@ describe('SocialNetworkingService video source (camera ↔ screen)', () => {
     expect(getDisplayMedia).not.toHaveBeenCalled();
   });
 
-  it('ignores a second switch while one is already in flight', async () => {
+  it('coalesces a duplicate switch while one is already in flight', async () => {
     const camVideo = makeTrack('video', 'cam-v');
     const mic = makeTrack('audio', 'mic-1');
     getUserMedia.mockResolvedValue(fakeMedia([camVideo, mic]));
@@ -931,16 +1102,68 @@ describe('SocialNetworkingService video source (camera ↔ screen)', () => {
     );
     const first = service.setVideoSource('screen');
     expect(service.switchingSource()).toBe(true);
-    // Same destination, still the old source: only the in-flight guard
-    // can refuse this — and it must, or two pickers open.
-    await service.setVideoSource('screen');
+    // Same destination, still the old source: never open a second picker.
+    const duplicate = service.setVideoSource('screen');
     expect(getDisplayMedia).toHaveBeenCalledTimes(1);
 
     const screenVideo = makeTrack('video', 'screen-v');
     resolveDisplay(fakeMedia([screenVideo]));
-    await first;
+    await Promise.all([first, duplicate]);
     expect(service.switchingSource()).toBe(false);
     expect(service.localStream()!.getVideoTracks()[0]).toBe(screenVideo);
+  });
+
+  it('does not reopen a cancelled picker for a duplicate request', async () => {
+    const camVideo = makeTrack('video', 'cam-v');
+    const mic = makeTrack('audio', 'mic-1');
+    getUserMedia.mockResolvedValue(fakeMedia([camVideo, mic]));
+    await service.startStream('S.M.U.V.E.');
+
+    let rejectDisplay!: (reason: unknown) => void;
+    getDisplayMedia.mockReturnValueOnce(
+      new Promise((_resolve, reject) => {
+        rejectDisplay = reject;
+      })
+    );
+    const first = service.setVideoSource('screen');
+    const duplicate = service.setVideoSource('screen');
+    rejectDisplay(
+      Object.assign(new Error('cancelled'), { name: 'NotAllowedError' })
+    );
+    await Promise.all([first, duplicate]);
+
+    expect(getDisplayMedia).toHaveBeenCalledTimes(1);
+    expect(service.videoSource()).toBe('camera');
+    expect(service.localStream()!.getVideoTracks()[0]).toBe(camVideo);
+    expect(service.switchingSource()).toBe(false);
+  });
+
+  it('runs the latest opposite switch after the in-flight picker finishes', async () => {
+    const camVideo = makeTrack('video', 'cam-v');
+    const mic = makeTrack('audio', 'mic-1');
+    getUserMedia.mockResolvedValue(fakeMedia([camVideo, mic]));
+    await service.startStream('S.M.U.V.E.');
+
+    let resolveDisplay!: (value: any) => void;
+    getDisplayMedia.mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveDisplay = resolve;
+      })
+    );
+    const toScreen = service.setVideoSource('screen');
+    const backToCamera = service.setVideoSource('camera');
+
+    const camVideo2 = makeTrack('video', 'cam-v2');
+    getUserMedia.mockResolvedValue(fakeMedia([camVideo2]));
+    const screenVideo = makeTrack('video', 'screen-v');
+    resolveDisplay(fakeMedia([screenVideo]));
+    await Promise.all([toScreen, backToCamera]);
+
+    expect(getDisplayMedia).toHaveBeenCalledTimes(1);
+    expect(service.videoSource()).toBe('camera');
+    expect(service.localStream()!.getVideoTracks()[0]).toBe(camVideo2);
+    expect(screenVideo.stop).toHaveBeenCalled();
+    expect(service.switchingSource()).toBe(false);
   });
 
   it('releases a late-resolving switch when the session ends first', async () => {

@@ -855,6 +855,26 @@ describe('LiveStreamService', () => {
   });
 
   describe('smuve native broadcast', () => {
+    it('rolls back the native row when capture is stopped mid-start', async () => {
+      service = TestBed.inject(LiveStreamService);
+      tokenRef = { value: 'TKN' };
+      profileRef = { value: { id: '77', artistName: 'JEFF' } };
+      const social = TestBed.inject(SocialNetworkingService);
+      httpResponses.push(makeRow({ platform: 'smuve' }));
+      httpResponses.push({ success: true, streamId: 1 });
+      social.startStream.mockResolvedValueOnce(false);
+
+      const result = await service.golive({ platform: 'smuve' });
+
+      expect(result).toBeNull();
+      expect(service.currentStream()).toBeNull();
+      expect(service.pendingGolive()).toBeNull();
+      expect(social.stopStream).toHaveBeenCalled();
+      expect(httpCalls.some((call) => call.url.endsWith('/live-streams/end'))).toBe(
+        true,
+      );
+    });
+
     it('starts without an OAuth popup and stays live', async () => {
       service = TestBed.inject(LiveStreamService);
       tokenRef = { value: 'TKN' };

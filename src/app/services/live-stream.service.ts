@@ -248,6 +248,15 @@ export class LiveStreamService {
     lobbyId?: string;
     payload?: Record<string, unknown>;
   }): Promise<LiveStreamRecord | null> {
+    if (this.pendingGolive()) {
+      // A double-click must not issue a second row or start a second capture.
+      this.notify.show('GO LIVE IS ALREADY STARTING', 'info');
+      return null;
+    }
+    if (this.currentStream()?.active) {
+      this.notify.show('ALREADY LIVE — END THE CURRENT BROADCAST FIRST', 'info');
+      return null;
+    }
     const platform = opts.platform;
     const token = this.tokenService.jwtToken();
     if (!token) {
@@ -320,7 +329,19 @@ export class LiveStreamService {
       //    the host effect and the live presence metadata.
       this.markHostingToken(issued.shareToken);
       this.currentStream.set({ ...issued, active: true });
-      await this.social.startStream(platform);
+      const started = await this.social.startStream(platform);
+      if (started === false) {
+        // STOP or leaving the surface cancelled the capture after the row was
+        // issued. Roll the row back instead of advertising a ghost broadcast.
+        this.pendingGolive.set(null);
+        this.clearStreamPoll();
+        this.clearHostingToken();
+        this.social.stopStream();
+        this.currentStream.set(null);
+        this.social.updateStatus({ live: false });
+        await this.endServerStreamQuietly();
+        return null;
+      }
       this.social.updateStatus(this.livePresenceMetadata());
       this.startStreamPoll();
       this.haptic.medium();
@@ -534,7 +555,11 @@ export class LiveStreamService {
     // control; starting capture there would make two hosts compete for the
     // same room and answer every viewer twice.
     if (!this.ownsBroadcast()) return;
-    await this.social.startStream(row.platform);
+    const started = await this.social.startStream(row.platform);
+    if (started === false) {
+      this.social.updateStatus({ live: false });
+      return;
+    }
     // Re-announce after a reload: the socket may have registered presence
     // before the session was restored, leaving the host invisible as live.
     this.social.updateStatus(this.livePresenceMetadata());
@@ -880,7 +905,11 @@ export class LiveStreamService {
     if (providerPlatform) this.ingest.primeAudioContext();
     try {
       this.markHostingToken(stream.shareToken);
-      await this.social.startStream(stream.platform);
+      const started = await this.social.startStream(stream.platform);
+      if (started === false) {
+        this.abandonHostingTakeover();
+        return false;
+      }
       this.social.updateStatus(this.livePresenceMetadata());
       this.startStreamPoll();
       if (providerPlatform) {

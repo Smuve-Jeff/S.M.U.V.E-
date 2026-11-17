@@ -1694,6 +1694,7 @@
           CLOSE
         </button>
       </div>
+      <app-live-chat *ngIf="liveVideo.watchingToken()"></app-live-chat>
     </div>
   </div>
 
@@ -3132,19 +3133,74 @@
               <button
                 class="quality-btn"
                 [class.active]="socialService.videoSource() === 'camera'"
-                (click)="socialService.videoSource.set('camera')"
+                [disabled]="socialService.previewStarting()"
+                (click)="selectStreamSource('camera')"
               >
                 CAMERA
               </button>
               <button
                 class="quality-btn"
                 [class.active]="socialService.videoSource() === 'screen'"
+                [disabled]="socialService.previewStarting()"
                 (click)="selectStreamSource('screen')"
                 title="Share your screen — pick a tab, window or display when you go live"
               >
                 SCREEN
               </button>
             </div>
+            <div class="stream-quality-row">
+              <span class="quality-readout">PREVIEW</span>
+              <!-- Keep both slots mounted so a fast second click cannot land
+                   on a STOP control that appeared under the cursor. -->
+              <button
+                class="quality-btn"
+                [class.active]="socialService.previewActive()"
+                [disabled]="
+                  socialService.isStreaming() ||
+                  socialService.previewActive() ||
+                  socialService.previewStarting() ||
+                  socialService.switchingSource()
+                "
+                (click)="startStreamPreview()"
+              >
+                START PREVIEW
+              </button>
+              <button
+                class="quality-btn"
+                [disabled]="
+                  !socialService.previewActive() &&
+                  !socialService.previewStarting()
+                "
+                (click)="stopStreamPreview()"
+              >
+                {{
+                  socialService.previewStarting() ? 'CANCEL' : 'STOP PREVIEW'
+                }}
+              </button>
+              <span class="accounts-count">
+                {{
+                  socialService.previewActive()
+                    ? 'LOCAL ONLY — NOT ON AIR'
+                    : socialService.previewStarting()
+                      ? 'WAITING FOR PERMISSION'
+                      : 'NO CAPTURE'
+                }}
+              </span>
+            </div>
+            <video
+              *ngIf="
+                socialService.localStream() &&
+                (socialService.previewActive() || socialService.previewStarting())
+              "
+              class="stream-local-preview"
+              [srcObject]="socialService.localStream()"
+              autoplay
+              muted
+              playsinline
+            ></video>
+            <p class="stream-error" *ngIf="socialService.streamError()">
+              {{ socialService.streamError() }}
+            </p>
             <div class="stream-accounts">
               <div class="stream-accounts-head">
                 <span class="quality-readout">STREAMING ACCOUNTS</span>
@@ -3561,6 +3617,7 @@
 
             <!-- Shared relay health + per-viewer media path. -->
             <app-live-relay-strip />
+            <app-live-chat *ngIf="liveStream.currentStream()"></app-live-chat>
           </div>
         </div>
       </ng-container>

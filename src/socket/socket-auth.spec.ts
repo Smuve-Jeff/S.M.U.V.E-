@@ -1824,6 +1824,37 @@ describe("resolved-match lobby provisioning + in-match relays", () => {
       (resolveViewerJoin as jest.Mock).mockReset().mockResolvedValue(liveRow());
     });
 
+    it("delivers live chat to the host and viewers, not to outsiders", async () => {
+      const [host, viewer] = pair(321, 322);
+      const outsider = mk(323);
+      joined.push(outsider);
+      await Promise.all([connect(host), connect(viewer), connect(outsider)]);
+
+      host.emit("live_stream_host_join", { token: "tok_live" });
+      await settle();
+      const okP = once<any>(viewer, "live_stream_watch_ok");
+      viewer.emit("live_stream_watch", { token: "tok_live" });
+      await okP;
+
+      let leaked = false;
+      outsider.on("live_stream_chat_message", () => {
+        leaked = true;
+      });
+      const hostChatP = once<any>(host, "live_stream_chat_message");
+      const viewerChatP = once<any>(viewer, "live_stream_chat_message");
+      viewer.emit("live_stream_chat", { message: "  hello room  " });
+      const [toHost, toViewer] = await Promise.all([hostChatP, viewerChatP]);
+
+      expect(toHost.streamId).toBe(5);
+      expect(toHost.fromUserId).toBe("322");
+      expect(toHost.message).toBe("hello room");
+      expect(toViewer.message).toBe("hello room");
+
+      outsider.emit("live_stream_chat", { message: "not in the room" });
+      await settle();
+      expect(leaked).toBe(false);
+    });
+
     it("relays an offer, answer and ICE between one host and one viewer", async () => {
       const [host, viewer] = pair(301, 302);
       await Promise.all([connect(host), connect(viewer)]);

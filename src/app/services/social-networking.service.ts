@@ -241,6 +241,16 @@ export class SocialNetworkingService {
 
   // Go Live State
   isStreaming = signal(false);
+  /** Local capture is live for preflight only: no stream row, no viewers. */
+  previewActive = signal(false);
+  /** A preview capture request is waiting on a browser permission picker. */
+  previewStarting = signal(false);
+  /** The last pending preview was deliberately stopped before it resolved. */
+  previewCancelled = signal(false);
+  /** Invalidates a capture that resolves after STOP or a newer start. */
+  private captureRound = 0;
+  private previewStartPromise: Promise<boolean> | null = null;
+  private liveStarting = false;
   currentPlatform = signal<string | null>(null);
   streamTelemetry = signal<StreamTelemetry>({
     viewers: 0,
@@ -310,8 +320,13 @@ export class SocialNetworkingService {
    * keeps working underneath and takes over again on camera or on exit.
    */
   screenAudioOnly = signal(false);
-  /** True while a camera/screen acquisition is in flight — the UI locks the switch until it lands. */
+  /** True while camera/screen switches are running — the UI locks until the queue drains. */
   switchingSource = signal(false);
+  /** Latest requested source while a switch is in flight. */
+  private pendingVideoSource: 'camera' | 'screen' | null = null;
+  /** The source whose picker/acquisition is currently running. */
+  private switchingToVideoSource: 'camera' | 'screen' | null = null;
+  private videoSwitchLoop?: Promise<void>;
   /** Host-peer senders refresh when the source tracks change. */
   private hostStreamListeners = new Set<(update: HostStreamUpdate) => void>();
 
@@ -1089,39 +1104,65 @@ export class SocialNetworkingService {
 
   /**
    * Start a live stream: acquires real camera + mic via getUserMedia,
-   * reports telemetry at the selected quality tier, and simulates an
-   * audience chat feed (no ingest server is configured client-side).
+   * reports telemetry at the selected quality tier, and reuses an existing
+   * preflight capture instead of prompting the host a second time.
    */
-  async startStream(platform: string): Promise<void> {
-    this.streamError.set(null);
-    if (!this.localStream()) {
-      try {
-        await this.acquireHostMedia();
-        this.captureBlocked.set(false);
-      } catch (err: unknown) {
-        this.streamError.set(this.describeCaptureError(err));
-        void this.refreshCaptureBlocked();
+  async startStream(platform: string): Promise<boolean> {
+    if (this.liveStarting) return false;
+    this.liveStarting = true;
+    const startRound = this.captureRound;
+    try {
+      // GO LIVE while a preview picker is open: wait for that same capture,
+      // then reuse it. A STOP during the wait invalidates the round.
+      const pendingPreview = this.previewStartPromise;
+      if (pendingPreview) await pendingPreview.catch(() => false);
+      if (startRound !== this.captureRound) return false;
+
+      const round = ++this.captureRound;
+      this.streamError.set(null);
+      this.previewActive.set(false);
+      this.previewCancelled.set(false);
+      if (!this.localStream()) {
+        try {
+          await this.acquireHostMedia();
+          if (round === this.captureRound) this.captureBlocked.set(false);
+        } catch (err: unknown) {
+          if (round !== this.captureRound) {
+            this.releaseInactiveCapture();
+            return false;
+          }
+          this.streamError.set(this.describeCaptureError(err));
+          void this.refreshCaptureBlocked();
+        }
       }
+
+      if (round !== this.captureRound) {
+        this.releaseInactiveCapture();
+        return false;
+      }
+
+      this.isStreaming.set(true);
+      this.currentPlatform.set(platform);
+      this.simulatedLiveChat.set([]);
+      const preset = STREAM_QUALITY_PRESETS[this.streamQuality()];
+      this.streamTelemetry.set({
+        viewers: Math.floor(this.getSecureRandom() * 24),
+        health: 'Good',
+        platform,
+        bitrate: `${preset.bitrate} kbps`,
+      });
+
+      if (this.streamInterval) clearInterval(this.streamInterval);
+      this.streamInterval = setInterval(() => {
+        this.updateStreamTelemetry(platform);
+        if (this.getSecureRandom() > 0.6) {
+          this.generateSimulatedComment();
+        }
+      }, 3000);
+      return true;
+    } finally {
+      this.liveStarting = false;
     }
-
-    this.isStreaming.set(true);
-    this.currentPlatform.set(platform);
-    this.simulatedLiveChat.set([]);
-    const preset = STREAM_QUALITY_PRESETS[this.streamQuality()];
-    this.streamTelemetry.set({
-      viewers: Math.floor(this.getSecureRandom() * 24),
-      health: 'Good',
-      platform,
-      bitrate: `${preset.bitrate} kbps`,
-    });
-
-    if (this.streamInterval) clearInterval(this.streamInterval);
-    this.streamInterval = setInterval(() => {
-      this.updateStreamTelemetry(platform);
-      if (this.getSecureRandom() > 0.6) {
-        this.generateSimulatedComment();
-      }
-    }, 3000);
   }
 
   /**
@@ -1172,9 +1213,97 @@ export class SocialNetworkingService {
       : 'MEDIA_CAPTURE_UNAVAILABLE — USING SIMULATION ONLY';
   }
 
+  /**
+   * Start local capture for a preflight preview. Double-clicks share one
+   * acquisition promise, and STOP/leave invalidates a picker that resolves
+   * late so it can never leave a camera or screen capture behind.
+   */
+  startPreview(): Promise<boolean> {
+    if (this.previewActive()) return Promise.resolve(true);
+    if (
+      this.isStreaming() ||
+      this.liveStarting ||
+      this.switchingSource()
+    ) {
+      return Promise.resolve(false);
+    }
+    if (this.previewStartPromise) return this.previewStartPromise;
+
+    const round = ++this.captureRound;
+    this.previewCancelled.set(false);
+    this.previewStarting.set(true);
+    const tracked = this.beginPreview(round).finally(() => {
+      if (this.previewStartPromise === tracked) {
+        this.previewStartPromise = null;
+        this.previewStarting.set(false);
+      }
+    });
+    this.previewStartPromise = tracked;
+    return tracked;
+  }
+
+  private async beginPreview(round: number): Promise<boolean> {
+    this.streamError.set(null);
+    if (!this.localStream()) {
+      try {
+        await this.acquireHostMedia();
+        if (round === this.captureRound) this.captureBlocked.set(false);
+      } catch (err: unknown) {
+        if (round !== this.captureRound) {
+          this.releaseInactiveCapture();
+          return false;
+        }
+        this.streamError.set(this.describeCaptureError(err));
+        await this.refreshCaptureBlocked();
+        return false;
+      }
+    }
+    if (
+      round !== this.captureRound ||
+      this.isStreaming() ||
+      !this.localStream()
+    ) {
+      this.releaseInactiveCapture();
+      return false;
+    }
+    this.previewActive.set(true);
+    return true;
+  }
+
+  /** Release capture that resolved after its preview was cancelled. */
+  private releaseInactiveCapture(): void {
+    if (this.isStreaming() || this.previewActive()) return;
+    this.localStream()?.getTracks().forEach((track) => track.stop());
+    this.localStream.set(null);
+    this.micTrackIds.clear();
+    this.screenAudioAvailable.set(false);
+    this.cameraEnabled.set(true);
+    this.micEnabled.set(true);
+    this.videoSource.set('camera');
+    this.screenAudioOnly.set(false);
+    void androidScreenCapture.stop();
+  }
+
+  /** Release a preflight preview, including a capture still awaiting permission. */
+  stopPreview(): void {
+    if (this.isStreaming()) return;
+    this.captureRound++;
+    if (this.previewStarting()) this.previewCancelled.set(true);
+    this.previewActive.set(false);
+    this.stopStream();
+  }
+
+  private captureActive(): boolean {
+    return this.isStreaming() || this.previewActive();
+  }
+
   /** Stop the stream and release camera/mic. */
   stopStream() {
+    this.captureRound++;
+    if (this.previewStarting()) this.previewCancelled.set(true);
+    this.pendingVideoSource = null;
     this.isStreaming.set(false);
+    this.previewActive.set(false);
     this.currentPlatform.set(null);
     if (this.streamInterval) clearInterval(this.streamInterval);
     this.streamInterval = undefined;
@@ -1244,7 +1373,7 @@ export class SocialNetworkingService {
       // feeds JPEG frames that a canvas turns into a real video track. It has
       // no game audio, which the host is warned about separately.
       androidScreenCapture.onEnded = () => {
-        if (this.videoSource() === 'screen' && this.isStreaming()) {
+        if (this.videoSource() === 'screen' && this.captureActive()) {
           void this.setVideoSource('camera').catch(() => undefined);
         }
       };
@@ -1309,7 +1438,7 @@ export class SocialNetworkingService {
     video.addEventListener('ended', () => {
       if (
         this.videoSource() === 'screen' &&
-        this.isStreaming() &&
+        this.captureActive() &&
         this.localStream()?.getVideoTracks()[0] === video
       ) {
         void this.setVideoSource('camera').catch(() => undefined);
@@ -1345,19 +1474,41 @@ export class SocialNetworkingService {
    * the audience watches straight through the cut, chat uninterrupted.
    */
   async setVideoSource(source: 'camera' | 'screen'): Promise<void> {
-    if (
-      !this.isStreaming() ||
-      this.videoSource() === source ||
-      this.switchingSource()
-    ) {
-      return;
+    if (!this.captureActive()) return;
+    if (this.switchingSource()) {
+      // A picker already open cannot be replaced. If the latest request is
+      // the source already being acquired, there is nothing left to queue.
+      this.pendingVideoSource =
+        source === this.switchingToVideoSource ? null : source;
+      return this.videoSwitchLoop ?? Promise.resolve();
     }
+    if (source === this.videoSource()) return;
+
+    this.pendingVideoSource = source;
+
     this.switchingSource.set(true);
-    try {
-      await this.switchVideoSource(source);
-    } finally {
-      this.switchingSource.set(false);
-    }
+    const run = (async () => {
+      try {
+        while (this.pendingVideoSource && this.captureActive()) {
+          const next = this.pendingVideoSource;
+          this.pendingVideoSource = null;
+          if (next === this.videoSource()) continue;
+          this.switchingToVideoSource = next;
+          try {
+            await this.switchVideoSource(next);
+          } finally {
+            this.switchingToVideoSource = null;
+          }
+        }
+      } finally {
+        this.pendingVideoSource = null;
+        this.switchingToVideoSource = null;
+        this.switchingSource.set(false);
+        this.videoSwitchLoop = undefined;
+      }
+    })();
+    this.videoSwitchLoop = run;
+    return run;
   }
 
   private async switchVideoSource(
@@ -1393,7 +1544,7 @@ export class SocialNetworkingService {
         this.screenAudioAvailable.set(false);
         void androidScreenCapture.stop();
       }
-      if (!this.isStreaming()) {
+      if (!this.captureActive()) {
         // The session ended while the picker was open: release the fresh
         // tracks instead of publishing them into a dead broadcast.
         next.getTracks().forEach((t) => t.stop());
