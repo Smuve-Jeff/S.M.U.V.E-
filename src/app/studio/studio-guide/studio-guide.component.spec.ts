@@ -173,6 +173,20 @@ describe("StudioGuideComponent", () => {
     expect(openSurface).not.toHaveBeenCalled();
   });
 
+  it("opens Tha Spot on the Broadcast Push panel", () => {
+    component.selectTrack("whole-app");
+    const lesson = component
+      .selectedTrack()
+      .lessons.find((candidate) => candidate.id === "app-spot");
+    const openWorkspace = jest.spyOn(component.openWorkspace, "emit");
+
+    component.openLessonTarget(lesson!);
+
+    expect(openWorkspace).toHaveBeenCalledWith(
+      "/tha-spot?panel=broadcast",
+    );
+  });
+
   it("shows the Academy program strip with progress on the Whole App path", () => {
     const element = fixture.nativeElement as HTMLElement;
     component.selectTrack("whole-app");

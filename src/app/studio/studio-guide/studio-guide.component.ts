@@ -400,7 +400,12 @@ export class StudioGuideComponent {
     }
     if (lesson.workspace) {
       this.autoCheck.clear();
-      this.openWorkspace.emit(lesson.workspace.path);
+      const query = new URLSearchParams(
+        lesson.workspace.queryParams ?? {},
+      ).toString();
+      this.openWorkspace.emit(
+        query ? `${lesson.workspace.path}?${query}` : lesson.workspace.path,
+      );
     }
   }
 

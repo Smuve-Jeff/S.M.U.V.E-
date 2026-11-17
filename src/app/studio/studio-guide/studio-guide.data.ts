@@ -29,6 +29,8 @@ export type GuideTrackId =
 /** A real route outside the Studio, used by whole-application lessons. */
 export interface GuideWorkspaceTarget {
   path: string;
+  /** Optional deep-link state for the route, such as a panel to open. */
+  queryParams?: Readonly<Record<string, string>>;
   label: string;
   description: string;
   icon: string;
@@ -730,6 +732,7 @@ const wholeAppLessons: GuideLesson[] = COMPLETE_GUIDE_LESSONS.map((lesson) => ({
   controls: [...lesson.features],
   workspace: {
     path: lesson.route,
+    queryParams: lesson.queryParams,
     label: lesson.workspaceLabel,
     description: lesson.summary,
     icon: wholeAppIcons[lesson.route] ?? "explore",

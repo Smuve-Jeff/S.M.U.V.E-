@@ -16,6 +16,8 @@ export interface CompleteGuideLesson {
   steps: readonly string[];
   mistake: string;
   route: string;
+  /** Optional deep-link state for the workspace route (for example a panel). */
+  queryParams?: Readonly<Record<string, string>>;
   workspaceLabel: string;
   /** Chapter start in seconds inside the tutorial video. */
   tutorialAt: number;
@@ -198,6 +200,7 @@ export const COMPLETE_GUIDE_LESSONS: readonly CompleteGuideLesson[] = [
     mistake:
       "Opening a game without checking its launch mode. Some cabinets are embedded, some open externally, and some are self-hosted WASM.",
     route: "/tha-spot",
+    queryParams: { panel: "broadcast" },
     workspaceLabel: "Tha Spot",
     tutorialAt: 194.51,
   },

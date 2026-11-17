@@ -802,12 +802,9 @@
 }
 
 .sg-lesson-goal {
-  overflow: hidden;
   color: #8e9ab1;
   font-size: 0.74rem;
   line-height: 1.4;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .sg-lesson-toggle {
@@ -1654,10 +1651,6 @@ input:focus-visible {
   .sg-lesson-head {
     gap: 9px;
     padding: 11px;
-  }
-
-  .sg-lesson-goal {
-    white-space: normal;
   }
 
   .sg-lesson-body {

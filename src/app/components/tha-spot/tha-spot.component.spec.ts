@@ -395,6 +395,13 @@ describe("ThaSpotComponent", () => {
     expect(component.incomingFriendRequestCount()).toBe(1);
   });
 
+  it("opens the LIVE tab and Broadcast Push from a guide deep link", () => {
+    routeQueryParamMap.next(convertToParamMap({ panel: "broadcast" }));
+
+    expect(component.showRivalHub()).toBe(true);
+    expect(component.activeHubTab()).toBe("stream");
+  });
+
   it("polls the live directory only while NET is open and the socket is down", () => {
     const loadSpy = jest.spyOn(component.liveStream, "loadActiveStreams");
     try {

@@ -140,6 +140,16 @@ describe('MasterclassPageComponent', () => {
     expect(router.navigate).toHaveBeenCalledWith(['/academy']);
   });
 
+  it('opens a whole-application lesson with its deep-link state', async () => {
+    await create();
+
+    component.openWorkspace('/tha-spot?panel=broadcast');
+
+    expect(router.navigate).toHaveBeenCalledWith(['/tha-spot'], {
+      queryParams: { panel: 'broadcast' },
+    });
+  });
+
   it('opens an Academy program pick on that Academy program', async () => {
     await create();
 

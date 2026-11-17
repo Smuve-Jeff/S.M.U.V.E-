@@ -2397,6 +2397,18 @@ describe("StudioComponent", () => {
       expect(mockRouter.navigate).toHaveBeenCalledWith(["/academy"]);
     });
 
+    it("leaves the Studio for a deep-linked guide workspace state", () => {
+      component.openStudioGuide();
+      mockRouter.navigate.mockClear();
+
+      component.onGuideOpenWorkspace("/tha-spot?panel=broadcast");
+
+      expect(component.showStudioGuide()).toBe(false);
+      expect(mockRouter.navigate).toHaveBeenCalledWith(["/tha-spot"], {
+        queryParams: { panel: "broadcast" },
+      });
+    });
+
     it("leaves the Studio for a picked Academy program", () => {
       component.openStudioGuide();
       mockRouter.navigate.mockClear();

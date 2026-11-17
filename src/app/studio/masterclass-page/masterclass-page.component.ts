@@ -83,7 +83,14 @@ export class MasterclassPageComponent {
 
   /** Whole-application lessons open their real workspace route. */
   openWorkspace(path: string): void {
-    void this.router.navigate([path]);
+    const [route, query = ""] = path.split("?");
+    if (query) {
+      void this.router.navigate([route], {
+        queryParams: Object.fromEntries(new URLSearchParams(query)),
+      });
+      return;
+    }
+    void this.router.navigate([route]);
   }
 
   /** Academy program picks open the Academy pre-selected to that program. */

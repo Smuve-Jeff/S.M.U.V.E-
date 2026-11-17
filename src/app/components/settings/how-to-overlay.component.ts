@@ -250,7 +250,11 @@ export class HowToOverlayComponent implements AfterViewInit, OnDestroy {
   openWorkspace(): void {
     this.pauseVideo();
     this.close.emit();
-    void this.router.navigateByUrl(this.selectedLesson().route);
+    const lesson = this.selectedLesson();
+    const query = new URLSearchParams(lesson.queryParams ?? {}).toString();
+    void this.router.navigateByUrl(
+      query ? `${lesson.route}?${query}` : lesson.route,
+    );
   }
 
   closeGuide(): void {

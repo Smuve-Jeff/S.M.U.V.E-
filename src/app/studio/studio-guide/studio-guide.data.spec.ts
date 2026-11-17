@@ -83,6 +83,7 @@ describe("Studio Masterclass content", () => {
     expect(steps).toContain("SAVE");
     expect(steps).toContain("GO LIVE");
     expect(steps).toContain("CLEAR");
+    expect(spot!.workspace?.queryParams).toEqual({ panel: "broadcast" });
   });
 
   it("keeps every lesson actionable and correctly targeted", () => {

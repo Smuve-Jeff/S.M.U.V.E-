@@ -1722,6 +1722,10 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   private latestSearchQuery: string = "";
   private pendingGameId: string | null = null;
   private pendingRoomId: string | null = null;
+  /** A shareable Masterclass link has already opened Broadcast Push. */
+  private broadcastPanelDeepLinkApplied = false;
+  private broadcastPanelPending = false;
+  private viewInitialized = false;
   private readonly RECENT_GAMES_KEY = "tha_spot_recent_games";
 
   // Social & Streaming Signals
@@ -2436,6 +2440,20 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
           if (!this.showRivalHub()) this.toggleRivalHub();
         }
 
+        if (
+          params.get("panel") === "broadcast" &&
+          !this.broadcastPanelDeepLinkApplied
+        ) {
+          this.broadcastPanelDeepLinkApplied = true;
+          if (this.viewInitialized) {
+            this.openBroadcastPanel();
+          } else {
+            // The constructor's social-tab effect still runs during the first
+            // change detection, so wait for the view before overriding it.
+            this.broadcastPanelPending = true;
+          }
+        }
+
         if (gameId) {
           this.pendingGameId = gameId;
           this.applyPendingGameSelection();
@@ -2536,7 +2554,12 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   ngAfterViewInit() {
+    this.viewInitialized = true;
     this.scrollToBottom();
+    if (this.broadcastPanelPending) {
+      this.broadcastPanelPending = false;
+      this.openBroadcastPanel();
+    }
   }
 
   ngOnDestroy() {
@@ -4272,6 +4295,31 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
       this.scrollContainer.nativeElement.scrollTop =
         this.scrollContainer.nativeElement.scrollHeight;
     }
+  }
+
+  /** Open LIVE and land the guide deep link on Broadcast Push. */
+  private openBroadcastPanel(): void {
+    if (!this.showRivalHub()) this.toggleRivalHub();
+    this.setHubTab("stream");
+    this.revealBroadcastPush();
+  }
+
+  /** Bring the saved custom RTMP rows into view for a guide deep link. */
+  private revealBroadcastPush(attempt = 0): void {
+    setTimeout(() => {
+      const scroller = this.scrollContainer?.nativeElement;
+      const section = scroller?.querySelector<HTMLElement>(".stream-push");
+      if (!scroller) return;
+      if (!section) {
+        if (attempt < 8) this.revealBroadcastPush(attempt + 1);
+        return;
+      }
+      const top =
+        section.getBoundingClientRect().top -
+        scroller.getBoundingClientRect().top +
+        scroller.scrollTop;
+      scroller.scrollTo({ top: Math.max(0, top - 8), behavior: "smooth" });
+    }, attempt === 0 ? 180 : 100);
   }
 
   /**

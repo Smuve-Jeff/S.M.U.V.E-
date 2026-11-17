@@ -405,6 +405,15 @@ describe('HowToOverlayComponent', () => {
     expect(close).toHaveBeenCalled();
   });
 
+  it('opens the Tha Spot chapter on the Broadcast Push panel', () => {
+    const spot = COMPLETE_GUIDE_LESSONS.find((lesson) => lesson.id === 'spot')!;
+    component.selectLesson(spot);
+
+    component.openWorkspace();
+
+    expect(navigateByUrl).toHaveBeenCalledWith('/tha-spot?panel=broadcast');
+  });
+
   it('keeps a chapter selected while the video seek is pending', () => {
     const video = fixture.nativeElement.querySelector(
       'video'

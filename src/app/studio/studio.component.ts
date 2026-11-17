@@ -1731,7 +1731,14 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   /** A whole-application lesson leaves the Studio for its real workspace. */
   onGuideOpenWorkspace(path: string): void {
     this.dismissGuideForNavigation();
-    void this.router.navigate([path]);
+    const [route, query = ""] = path.split("?");
+    if (query) {
+      void this.router.navigate([route], {
+        queryParams: Object.fromEntries(new URLSearchParams(query)),
+      });
+      return;
+    }
+    void this.router.navigate([route]);
   }
 
   /** An Academy program pick leaves the Studio for that Academy program. */
