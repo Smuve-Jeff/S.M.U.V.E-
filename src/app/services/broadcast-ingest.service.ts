@@ -285,8 +285,8 @@ export class BroadcastIngestService {
   }
 
   async start(platform: IngestPlatform): Promise<boolean> {
-    const stream = this.social.localStream();
-    if (!stream) {
+    const initialStream = this.social.localStream();
+    if (!initialStream) {
       this.snackbar.warning('NO CAPTURE YET — SWITCH THE CAMERA ON FIRST');
       return false;
     }
@@ -304,6 +304,10 @@ export class BroadcastIngestService {
       );
       if (!session?.whipUrl) throw new Error('THE RELAY RETURNED NO PUBLISH URL');
       this.relayId = session.relayId ?? null;
+      // The session request can outlive a camera ↔ screen switch. Start with
+      // the capture that exists now, not the one captured before the await.
+      const stream = this.social.localStream();
+      if (!stream) throw new Error('CAPTURE ENDED BEFORE THE PUSH STARTED');
       const started = await this.whip.start(session.whipUrl, stream);
       if (!started) {
         this.closePrimedAudioContext();
@@ -312,6 +316,12 @@ export class BroadcastIngestService {
           this.whip.error() ?? `${platform.toUpperCase()} PUSH FAILED`,
         );
         return false;
+      }
+      // A switch can still finish while WHIP negotiates, before its senders
+      // exist. Apply the newest capture once start() has installed them.
+      const latestStream = this.social.localStream();
+      if (latestStream && latestStream !== stream) {
+        this.whip.replaceTracks(latestStream);
       }
       this.watchEgress(this.relayId);
       this.snackbar.success(`PUSHING TO ${platform.toUpperCase()}`);

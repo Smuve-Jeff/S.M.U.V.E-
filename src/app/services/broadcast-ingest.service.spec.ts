@@ -26,6 +26,7 @@ const primeAudioContext = jest.fn();
 const closePrimedAudioContext = jest.fn();
 const whipStart = jest.fn(async () => true);
 const whipStop = jest.fn(async () => undefined);
+const whipReplaceTracks = jest.fn();
 const testPattern = {
   stream,
   stop: jest.fn(),
@@ -40,6 +41,7 @@ beforeEach(() => {
   closePrimedAudioContext.mockReset();
   whipStart.mockReset().mockResolvedValue(true);
   whipStop.mockReset().mockResolvedValue(undefined);
+  whipReplaceTracks.mockReset();
   testPattern.stop.mockReset();
   (createTestPattern as jest.Mock).mockReset().mockReturnValue(testPattern);
 
@@ -88,7 +90,7 @@ beforeEach(() => {
           closePrimedAudioContext,
           start: whipStart,
           stop: whipStop,
-          replaceTracks: jest.fn(),
+          replaceTracks: whipReplaceTracks,
         },
       },
     ],
@@ -97,6 +99,46 @@ beforeEach(() => {
 
 afterEach(() => {
   TestBed.resetTestingModule();
+});
+
+describe('BroadcastIngestService reconnect capture', () => {
+  it('starts with the capture that exists after the relay session request', async () => {
+    const switched = {
+      getVideoTracks: () => [{ kind: 'video', id: 'screen' }],
+      getAudioTracks: () => [{ kind: 'audio', id: 'mic' }],
+    } as unknown as MediaStream;
+    const social = TestBed.inject(SocialNetworkingService);
+    httpPost.mockImplementationOnce(() => {
+      social.localStream.set(switched);
+      return of({ whipUrl: 'https://relay.test/whip' });
+    });
+    const service = TestBed.inject(BroadcastIngestService);
+
+    expect(await service.start('twitch')).toBe(true);
+
+    expect(whipStart).toHaveBeenCalledWith(
+      'https://relay.test/whip',
+      switched,
+    );
+  });
+
+  it('re-applies a switch that finishes while WHIP is starting', async () => {
+    const switched = {
+      getVideoTracks: () => [{ kind: 'video', id: 'screen' }],
+      getAudioTracks: () => [{ kind: 'audio', id: 'mic' }],
+    } as unknown as MediaStream;
+    const social = TestBed.inject(SocialNetworkingService);
+    httpPost.mockReturnValueOnce(of({ whipUrl: 'https://relay.test/whip' }));
+    whipStart.mockImplementationOnce(async () => {
+      social.localStream.set(switched);
+      return true;
+    });
+    const service = TestBed.inject(BroadcastIngestService);
+
+    expect(await service.start('twitch')).toBe(true);
+
+    expect(whipReplaceTracks).toHaveBeenCalledWith(switched);
+  });
 });
 
 describe('BroadcastIngestService audio priming', () => {

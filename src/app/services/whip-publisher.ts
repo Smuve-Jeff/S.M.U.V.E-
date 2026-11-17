@@ -106,6 +106,9 @@ export class WhipPublisher {
   private audioMixSources: MediaStreamAudioSourceNode[] = [];
   private audioMixDestination?: MediaStreamAudioDestinationNode;
   private audioMixTrack?: MediaStreamTrack;
+  private audioResumeCleanup?: () => void;
+  /** The last capture handed to the current senders. */
+  private appliedStream?: MediaStream;
   /** Bumped on every start/stop so a late answer cannot resurrect a dead push. */
   private round = 0;
 
@@ -142,6 +145,7 @@ export class WhipPublisher {
       if (!video && !audio) {
         return this.failAttempt(round, 'NOTHING TO SEND — NO CAPTURE TRACKS');
       }
+      this.appliedStream = stream;
 
       if (video && this.videoSender) {
         const codecProblem = applyH264Preference(pc, this.videoSender);
@@ -235,9 +239,44 @@ export class WhipPublisher {
    */
   primeAudioContext(): void {
     const context = this.ensureAudioContext();
-    if (context && context.state !== 'running') {
-      void context.resume().catch(() => undefined);
+    if (!context) return;
+    if (context.state === 'running') {
+      this.disarmAudioResume();
+      return;
     }
+    void context.resume().catch(() => undefined);
+    const activation =
+      typeof navigator === 'undefined'
+        ? undefined
+        : (
+            navigator as Navigator & {
+              userActivation?: { isActive?: boolean };
+            }
+          ).userActivation;
+    // A reload restores the push without a gesture, so the resumed context is
+    // suspended. The host's next gesture is the first moment it can restart.
+    if (activation?.isActive === false) this.resumeOnNextGesture(context);
+  }
+
+  private resumeOnNextGesture(context: AudioContext): void {
+    if (this.audioResumeCleanup || typeof window === 'undefined') return;
+    const resume = () => {
+      this.disarmAudioResume();
+      if (context.state !== 'running') {
+        void context.resume().catch(() => undefined);
+      }
+    };
+    window.addEventListener('pointerdown', resume, { once: true, capture: true });
+    window.addEventListener('keydown', resume, { once: true, capture: true });
+    this.audioResumeCleanup = () => {
+      window.removeEventListener('pointerdown', resume, { capture: true });
+      window.removeEventListener('keydown', resume, { capture: true });
+      this.audioResumeCleanup = undefined;
+    };
+  }
+
+  private disarmAudioResume(): void {
+    this.audioResumeCleanup?.();
   }
 
   /**
@@ -262,6 +301,11 @@ export class WhipPublisher {
    * camera ↔ screen switch.
    */
   replaceTracks(stream: MediaStream): void {
+    if (this.appliedStream === stream) return;
+    // A reconnect owns the senders while it is between sessions. The caller
+    // re-applies the newest capture once start() has installed them.
+    if (!this.videoSender && !this.audioSender) return;
+    this.appliedStream = stream;
     this.replaceVideoTrack(stream.getVideoTracks()[0] ?? null);
     this.replaceAudioTracks(stream.getAudioTracks());
   }
@@ -337,6 +381,7 @@ export class WhipPublisher {
     if (this.audioContext && this.audioContext.state !== 'closed') {
       return this.audioContext;
     }
+    this.disarmAudioResume();
     try {
       this.audioContext = new Ctor();
       return this.audioContext;
@@ -347,6 +392,7 @@ export class WhipPublisher {
   }
 
   private closeAudioContext(): void {
+    this.disarmAudioResume();
     this.clearAudioMix();
     if (this.audioContext) {
       void this.audioContext.close().catch(() => undefined);
@@ -372,6 +418,7 @@ export class WhipPublisher {
     else this.clearAudioMix();
     this.videoSender = undefined;
     this.audioSender = undefined;
+    this.appliedStream = undefined;
     this.pc?.close();
     this.pc = undefined;
     if (this.state() !== 'idle') this.state.set('idle');

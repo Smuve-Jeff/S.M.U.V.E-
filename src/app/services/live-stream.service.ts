@@ -358,9 +358,17 @@ export class LiveStreamService {
         e?.status === 401 ? 'LOGIN EXPIRED' : 'GO_LIVE_FAILED',
         'warning',
       );
-      // A primed context is only useful until WHIP starts. Keep it if the
-      // push itself is live; otherwise release it with the failed attempt.
-      if (this.ingest.state() !== 'live') {
+      // A failure after WHIP went live must stop the push too; otherwise the
+      // camera would be released while the relay kept publishing. A primed
+      // context is only useful until WHIP starts.
+      const pushState = this.ingest.state();
+      if (pushState === 'live' || pushState === 'connecting') {
+        try {
+          await this.ingest.stop();
+        } catch {
+          /* best-effort cleanup */
+        }
+      } else {
         this.ingest.closePrimedAudioContext();
       }
       // A failure after the row was issued must not leave a ghost live row
@@ -878,20 +886,42 @@ export class LiveStreamService {
       if (providerPlatform) {
         await this.ingest.load();
         if (stream.platform === 'twitch' && !this.ingest.ready('twitch')) {
-          await this.authorizeProvider('twitch');
+          if (!(await this.authorizeProvider('twitch'))) {
+            this.ingest.closePrimedAudioContext();
+            this.abandonHostingTakeover();
+            return false;
+          }
           await this.ingest.load();
         }
-        await this.ingest.start(providerPlatform);
+        if (!(await this.ingest.start(providerPlatform))) {
+          this.abandonHostingTakeover();
+          return false;
+        }
       }
       this.haptic.medium();
       this.notify.show('BROADCAST RESUMED IN THIS TAB', 'success');
       return true;
     } catch (error) {
-      if (this.ingest.state() !== 'live') {
+      const pushState = this.ingest.state();
+      if (pushState === 'live' || pushState === 'connecting') {
+        try {
+          await this.ingest.stop();
+        } catch {
+          /* best-effort cleanup */
+        }
+      } else {
         this.ingest.closePrimedAudioContext();
       }
+      this.abandonHostingTakeover();
       throw error;
     }
+  }
+
+  /** A failed takeover must not leave the host token, camera, or LIVE state. */
+  private abandonHostingTakeover(): void {
+    this.clearHostingToken();
+    this.social.stopStream();
+    this.social.updateStatus({ live: false });
   }
 
   // ── Helpers ─────────────────────────────────────────────────────────

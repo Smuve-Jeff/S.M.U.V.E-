@@ -329,6 +329,40 @@ describe('WhipPublisher.start', () => {
     }
   });
 
+  it('resumes a context primed without user activation on the next gesture', () => {
+    const mixed = { kind: 'audio', id: 'mixed', stop: jest.fn() };
+    const mediaStream = installAudioMixer(mixed);
+    mediaStream.context.state = 'suspended';
+    const original = Object.getOwnPropertyDescriptor(
+      window.navigator,
+      'userActivation'
+    );
+    Object.defineProperty(window.navigator, 'userActivation', {
+      configurable: true,
+      value: { isActive: false },
+    });
+    const publisher = new WhipPublisher();
+
+    try {
+      publisher.primeAudioContext();
+      expect(mediaStream.context.resume).toHaveBeenCalledTimes(1);
+      mediaStream.context.resume.mockClear();
+
+      window.dispatchEvent(new Event('pointerdown'));
+
+      expect(mediaStream.context.resume).toHaveBeenCalledTimes(1);
+    } finally {
+      if (original) {
+        Object.defineProperty(window.navigator, 'userActivation', original);
+      } else {
+        delete (
+          window.navigator as Navigator & { userActivation?: unknown }
+        ).userActivation;
+      }
+      mediaStream.restore();
+    }
+  });
+
   it('closes the primed context and records the error when RTCPeerConnection construction fails', async () => {
     const mixed = { kind: 'audio', id: 'mixed', stop: jest.fn() };
     const mediaStream = installAudioMixer(mixed);
@@ -481,6 +515,17 @@ describe('WhipPublisher.start', () => {
       expect(lastPc.audioSender.replaceTrack).toHaveBeenLastCalledWith(mixed);
       expect(mediaStream.context.createMediaStreamSource).toHaveBeenCalledTimes(
         2
+      );
+
+      const mixCalls = mediaStream.context.createMediaStreamSource.mock.calls
+        .length;
+      const replaceCalls = lastPc.audioSender.replaceTrack.mock.calls.length;
+      publisher.replaceTracks(screenStream);
+      expect(mediaStream.context.createMediaStreamSource).toHaveBeenCalledTimes(
+        mixCalls
+      );
+      expect(lastPc.audioSender.replaceTrack).toHaveBeenCalledTimes(
+        replaceCalls
       );
 
       publisher.replaceTracks(cameraStream);

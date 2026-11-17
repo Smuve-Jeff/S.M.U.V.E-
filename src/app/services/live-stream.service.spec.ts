@@ -157,6 +157,7 @@ beforeEach(() => {
           load: jest.fn(async () => undefined),
           ready: jest.fn(() => true),
           start: jest.fn(async () => true),
+          stop: jest.fn(async () => undefined),
           state: signal('idle'),
           primeAudioContext: jest.fn(),
           closePrimedAudioContext: jest.fn(),
@@ -347,6 +348,27 @@ describe('LiveStreamService', () => {
       expect(service.pendingGolive()).toBeNull();
       expect(social().startStream).not.toHaveBeenCalled();
       expect(ingest().closePrimedAudioContext).toHaveBeenCalledTimes(1);
+    });
+
+    it('stops a provider push that went live before a later GO LIVE step failed', async () => {
+      service = TestBed.inject(LiveStreamService);
+      tokenRef = { value: 'TKN' };
+      profileRef = { value: { id: '77', artistName: 'JEFF' } };
+      httpResponses.push(makeRow({ platform: 'kick' }));
+      const ingest = TestBed.inject(BroadcastIngestService) as any;
+      (ingest.start as jest.Mock).mockImplementationOnce(async () => {
+        ingest.state.set('live');
+        return true;
+      });
+      jest
+        .spyOn(service, 'copyShareUrl')
+        .mockRejectedValueOnce(new Error('clipboard failed'));
+
+      expect(await service.golive({ platform: 'kick' })).toBeNull();
+
+      expect(ingest.stop).toHaveBeenCalledTimes(1);
+      expect(social().stopStream).toHaveBeenCalled();
+      expect(service.currentStream()).toBeNull();
     });
 
     it('issues a Kick row after the saved-destination preflight and starts the push', async () => {
@@ -942,6 +964,49 @@ describe('LiveStreamService', () => {
       expect(ingest.start).toHaveBeenCalledWith('kick');
     });
 
+    it('returns false when the provider push fails to resume', async () => {
+      service = TestBed.inject(LiveStreamService);
+      tokenRef = { value: 'TKN' };
+      profileRef = { value: { id: '77', artistName: 'JEFF' } };
+      service.currentStream.set(makeRow({ platform: 'kick' }));
+      const ingest = TestBed.inject(BroadcastIngestService);
+      (ingest.start as jest.Mock).mockResolvedValueOnce(false);
+      const notify = TestBed.inject(NotificationService) as any;
+      const haptic = TestBed.inject(HapticService) as any;
+      const social = TestBed.inject(SocialNetworkingService);
+
+      expect(await service.resumeBroadcastHere()).toBe(false);
+
+      expect(notify.show).not.toHaveBeenCalledWith(
+        'BROADCAST RESUMED IN THIS TAB',
+        'success',
+      );
+      expect(haptic.medium).not.toHaveBeenCalled();
+      expect(service.ownsBroadcast()).toBe(false);
+      expect(social.stopStream).toHaveBeenCalled();
+      expect(updateStatusCalls.at(-1)).toEqual({ live: false });
+    });
+
+    it('does not start a Twitch push when re-authorization is refused', async () => {
+      service = TestBed.inject(LiveStreamService);
+      tokenRef = { value: 'TKN' };
+      profileRef = { value: { id: '77', artistName: 'JEFF' } };
+      service.currentStream.set(makeRow({ platform: 'twitch' }));
+      httpResponses.push({ authorizeUrl: 'https://auth.example/twitch' });
+      (window.open as jest.Mock).mockReturnValueOnce(null);
+      const ingest = TestBed.inject(BroadcastIngestService);
+      const social = TestBed.inject(SocialNetworkingService);
+      (ingest.ready as jest.Mock).mockReturnValueOnce(false);
+
+      expect(await service.resumeBroadcastHere()).toBe(false);
+
+      expect(ingest.start).not.toHaveBeenCalled();
+      expect(ingest.closePrimedAudioContext).toHaveBeenCalledTimes(1);
+      expect(service.ownsBroadcast()).toBe(false);
+      expect(social.stopStream).toHaveBeenCalled();
+      expect(updateStatusCalls.at(-1)).toEqual({ live: false });
+    });
+
     it('closes the primed mixer when the capture restart fails before WHIP', async () => {
       service = TestBed.inject(LiveStreamService);
       tokenRef = { value: 'TKN' };
@@ -958,6 +1023,10 @@ describe('LiveStreamService', () => {
 
       expect(ingest.primeAudioContext).toHaveBeenCalledTimes(1);
       expect(ingest.closePrimedAudioContext).toHaveBeenCalledTimes(1);
+      expect(
+        TestBed.inject(SocialNetworkingService).stopStream,
+      ).toHaveBeenCalled();
+      expect(updateStatusCalls.at(-1)).toEqual({ live: false });
     });});
 
   describe('endStream when the server row is already gone', () => {
