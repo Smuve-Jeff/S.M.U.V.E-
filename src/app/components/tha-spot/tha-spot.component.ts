@@ -1133,11 +1133,16 @@ const LIVE_DIRECTORY_REFRESH_INTERVAL_MS = 20000;
         }
       }
       .platform-picker {
-        display: flex;
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
         gap: 0.4rem;
       }
       .picker-chip {
-        flex: 1 1 auto;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.25rem;
+        min-width: 0;
         min-height: 40px;
         padding: 0.4rem 0.5rem;
         border-radius: 8px;
@@ -1159,6 +1164,11 @@ const LIVE_DIRECTORY_REFRESH_INTERVAL_MS = 20000;
         background: rgba(239, 68, 68, 0.2);
         color: #fff;
         box-shadow: 0 0 10px rgba(239, 68, 68, 0.4);
+      }
+      @media (max-width: 768px) {
+        .platform-picker {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
       }
       .go-live-panel-actions {
         display: flex;
@@ -4315,6 +4325,14 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
       this.customLabelValue(slot).trim(),
     );
     if (saved) this.setCustomDraft(slot, 'streamKey', '');
+  }
+
+  async clearCustomDestination(slot: CustomIngestPlatform): Promise<void> {
+    if (!(await this.ingest.clearDestination(slot))) return;
+    this.customDrafts.update((current) => ({
+      ...current,
+      [slot]: { label: '', rtmpUrl: '', streamKey: '' },
+    }));
   }
 
   /** The label the host gave the custom RTMP target, not a generic "CUSTOM". */

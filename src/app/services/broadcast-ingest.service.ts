@@ -334,6 +334,29 @@ export class BroadcastIngestService {
     }
   }
 
+  /** Forget a saved manual destination; the key is deleted server-side. */
+  async clearDestination(platform: CustomIngestPlatform): Promise<boolean> {
+    try {
+      await firstValueFrom(
+        this.http.delete(this.endpoint(`/destinations/${platform}`), {
+          headers: this.headers(),
+        }),
+      );
+      this.destinations.update((current) => {
+        const next = { ...current };
+        delete next[platform];
+        return next;
+      });
+      this.snackbar.success(
+        `${this.platformLabel(platform)} DESTINATION CLEARED`,
+      );
+      return true;
+    } catch (error) {
+      this.snackbar.error(this.describe(error));
+      return false;
+    }
+  }
+
   async start(platform: IngestPlatform | IngestPlatform[]): Promise<boolean> {
     const platforms = [
       ...new Set(Array.isArray(platform) ? platform : [platform]),

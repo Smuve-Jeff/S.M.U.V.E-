@@ -215,6 +215,38 @@ describe('BroadcastIngestService custom RTMP destination', () => {
     ]);
     expect(slots.every(([slot]) => service.ready(slot))).toBe(true);
   });
+
+  it('clears a saved custom slot and falls back to its numbered label', async () => {
+    httpPut.mockReturnValueOnce(
+      of({
+        platform: 'custom2',
+        ready: true,
+        detail: 'Instagram — ingest.example.com',
+        label: 'Instagram',
+      }),
+    );
+    httpDelete.mockReturnValueOnce(of(null));
+    const service = TestBed.inject(BroadcastIngestService);
+
+    expect(
+      await service.saveDestination(
+        'custom2',
+        'rtmps://instagram.example.com/live',
+        'INSTAGRAM_KEY_123',
+        'Instagram',
+      ),
+    ).toBe(true);
+    expect(service.platformLabel('custom2')).toBe('Instagram');
+
+    expect(await service.clearDestination('custom2')).toBe(true);
+
+    expect(httpDelete).toHaveBeenCalledWith(
+      expect.stringContaining('/destinations/custom2'),
+      expect.anything(),
+    );
+    expect(service.ready('custom2')).toBe(false);
+    expect(service.platformLabel('custom2')).toBe('CUSTOM 2');
+  });
 });
 
 describe('BroadcastIngestService audio priming', () => {

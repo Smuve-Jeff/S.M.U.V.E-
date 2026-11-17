@@ -4552,6 +4552,42 @@
   padding: 0.2rem 0.45rem;
   font-size: 0.55rem;
 }
+.account-row.manual-destination {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.3rem 0.4rem;
+}
+.manual-destination .account-name {
+  grid-column: 1;
+  grid-row: 1;
+  min-width: 0;
+}
+.manual-destination .manual-fields {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-row: 2;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.3rem;
+  min-width: 0;
+}
+.manual-destination .manual-fields .account-input {
+  width: 100%;
+}
+/* The custom label gets its own line; URL + key share the next one. */
+.manual-destination .manual-fields .custom-label {
+  grid-column: 1 / -1;
+}
+.manual-destination .manual-actions {
+  display: flex;
+  grid-column: 2;
+  grid-row: 1;
+  gap: 0.25rem;
+}
+@media (max-width: 768px) {
+  .manual-destination .manual-fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
 .stream-push {
   display: flex;
   flex-direction: column;

@@ -3351,84 +3351,107 @@
               </div>
               <div class="account-row manual-destination">
                 <span class="account-name">KICK URL + KEY</span>
-                <input
-                  class="account-input"
-                  placeholder="rtmps://.../app"
-                  [value]="kickRtmpUrl()"
-                  (input)="kickRtmpUrl.set($any($event.target).value)"
-                />
-                <input
-                  class="account-input"
-                  type="password"
-                  placeholder="STREAM KEY"
-                  [value]="kickStreamKey()"
-                  (input)="kickStreamKey.set($any($event.target).value)"
-                />
-                <button
-                  class="quality-btn"
-                  (click)="saveManualDestination('kick')"
-                >
-                  SAVE
-                </button>
+                <div class="manual-fields">
+                  <input
+                    class="account-input"
+                    placeholder="rtmps://.../app"
+                    [value]="kickRtmpUrl()"
+                    (input)="kickRtmpUrl.set($any($event.target).value)"
+                  />
+                  <input
+                    class="account-input"
+                    type="password"
+                    placeholder="STREAM KEY"
+                    [value]="kickStreamKey()"
+                    (input)="kickStreamKey.set($any($event.target).value)"
+                  />
+                </div>
+                <div class="manual-actions">
+                  <button
+                    class="quality-btn"
+                    (click)="saveManualDestination('kick')"
+                  >
+                    SAVE
+                  </button>
+                </div>
               </div>
               <div class="account-row manual-destination">
                 <span class="account-name">FACEBOOK URL + KEY</span>
-                <input
-                  class="account-input"
-                  placeholder="rtmps://.../app"
-                  [value]="facebookRtmpUrl()"
-                  (input)="facebookRtmpUrl.set($any($event.target).value)"
-                />
-                <input
-                  class="account-input"
-                  type="password"
-                  placeholder="STREAM KEY"
-                  [value]="facebookStreamKey()"
-                  (input)="facebookStreamKey.set($any($event.target).value)"
-                />
-                <button
-                  class="quality-btn"
-                  (click)="saveManualDestination('facebook')"
-                >
-                  SAVE
-                </button>
+                <div class="manual-fields">
+                  <input
+                    class="account-input"
+                    placeholder="rtmps://.../app"
+                    [value]="facebookRtmpUrl()"
+                    (input)="facebookRtmpUrl.set($any($event.target).value)"
+                  />
+                  <input
+                    class="account-input"
+                    type="password"
+                    placeholder="STREAM KEY"
+                    [value]="facebookStreamKey()"
+                    (input)="facebookStreamKey.set($any($event.target).value)"
+                  />
+                </div>
+                <div class="manual-actions">
+                  <button
+                    class="quality-btn"
+                    (click)="saveManualDestination('facebook')"
+                  >
+                    SAVE
+                  </button>
+                </div>
               </div>
               <div
                 class="account-row manual-destination"
                 *ngFor="let slot of customSlots"
               >
                 <span class="account-name">{{ ingest.platformLabel(slot) }}</span>
-                <input
-                  class="account-input"
-                  placeholder="LABEL (TIKTOK / INSTAGRAM / X / LINKEDIN)"
-                  [value]="customLabelValue(slot)"
-                  (input)="
-                    setCustomDraft(slot, 'label', $any($event.target).value)
-                  "
-                />
-                <input
-                  class="account-input"
-                  placeholder="rtmps://.../app"
-                  [value]="customDraft(slot, 'rtmpUrl')"
-                  (input)="
-                    setCustomDraft(slot, 'rtmpUrl', $any($event.target).value)
-                  "
-                />
-                <input
-                  class="account-input"
-                  type="password"
-                  placeholder="STREAM KEY"
-                  [value]="customDraft(slot, 'streamKey')"
-                  (input)="
-                    setCustomDraft(slot, 'streamKey', $any($event.target).value)
-                  "
-                />
-                <button
-                  class="quality-btn"
-                  (click)="saveCustomDestination(slot)"
-                >
-                  SAVE
-                </button>
+                <div class="manual-fields">
+                  <input
+                    class="account-input custom-label"
+                    placeholder="LABEL (TIKTOK / INSTAGRAM / X / LINKEDIN)"
+                    [value]="customLabelValue(slot)"
+                    (input)="
+                      setCustomDraft(slot, 'label', $any($event.target).value)
+                    "
+                  />
+                  <input
+                    class="account-input"
+                    placeholder="rtmps://.../app"
+                    [value]="customDraft(slot, 'rtmpUrl')"
+                    (input)="
+                      setCustomDraft(slot, 'rtmpUrl', $any($event.target).value)
+                    "
+                  />
+                  <input
+                    class="account-input"
+                    type="password"
+                    placeholder="STREAM KEY"
+                    [value]="customDraft(slot, 'streamKey')"
+                    (input)="
+                      setCustomDraft(
+                        slot,
+                        'streamKey',
+                        $any($event.target).value
+                      )
+                    "
+                  />
+                </div>
+                <div class="manual-actions">
+                  <button
+                    class="quality-btn"
+                    (click)="saveCustomDestination(slot)"
+                  >
+                    SAVE
+                  </button>
+                  <button
+                    class="quality-btn recording-delete"
+                    *ngIf="ingest.ready(slot)"
+                    (click)="clearCustomDestination(slot)"
+                  >
+                    CLEAR
+                  </button>
+                </div>
               </div>
               <p class="account-note" *ngIf="ingest.error()">
                 {{ ingest.error() }}
