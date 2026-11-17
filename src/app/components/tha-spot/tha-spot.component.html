@@ -1361,19 +1361,19 @@
       </header>
       <div class="share-tray-body">
         <p class="share-tray-label">
-          Pick a platform. SMUVE LIVE starts instantly; Twitch opens its connect
-          window first; Kick and Facebook use the stream URL and key saved in
-          Broadcast Push. Your viewer share link is copied as soon as the
-          stream is live.
+          Pick one or more destinations. SMUVE LIVE starts instantly; Twitch
+          opens its connect window first; Kick and Facebook use the stream URL
+          and key saved in Broadcast Push. Your viewer share link is copied as
+          soon as the stream is live.
         </p>
-        <div class="platform-picker" role="radiogroup" aria-label="Live platform">
+        <div class="platform-picker" role="group" aria-label="Live platforms">
           <button
             *ngFor="let p of livePlatforms"
             type="button"
             class="picker-chip"
-            [class.selected]="selectedGoLivePlatform() === p"
-            (click)="selectedGoLivePlatform.set(p)"
-            [attr.aria-pressed]="selectedGoLivePlatform() === p"
+            [class.selected]="selectedGoLivePlatforms().includes(p)"
+            (click)="toggleGoLivePlatform(p)"
+            [attr.aria-pressed]="selectedGoLivePlatforms().includes(p)"
           >
             <span class="material-symbols-outlined" style="font-size: 0.85rem"
               >{{
@@ -1394,22 +1394,16 @@
         <button
           type="button"
           class="action-btn primary"
-          (click)="confirmGoLive(selectedGoLivePlatform())"
+          (click)="confirmGoLive()"
           [disabled]="!!liveStream.currentStream() || !!pendingGolive()"
         >
-          {{
-            pendingGolive()
-              ? selectedGoLivePlatform() === "twitch"
-                ? "AUTH PENDING…"
-                : "STARTING…"
-              : selectedGoLivePlatform() === "smuve"
-                ? "START SMUVE LIVE"
-                : selectedGoLivePlatform() === "kick"
-                  ? "GO LIVE ON KICK"
-                  : selectedGoLivePlatform() === "facebook"
-                    ? "GO LIVE ON FACEBOOK"
-                    : "OPEN TWITCH AUTH & GO LIVE"
-          }}
+          @if (pendingGolive()) {
+            AUTH PENDING…
+          } @else {
+            GO LIVE ON {{ selectedGoLivePlatforms().length }} DESTINATION{{
+              selectedGoLivePlatforms().length === 1 ? "" : "S"
+            }}
+          }
         </button>
         <button
           type="button"
@@ -3151,6 +3145,27 @@
                 title="Share your screen — pick a tab, window or display when you go live"
               >
                 SCREEN
+              </button>
+              <button
+                class="quality-btn"
+                [class.active]="socialService.videoSource() === 'camera-pip'"
+                [disabled]="
+                  socialService.previewStarting() ||
+                  !socialService.screenShareSupported()
+                "
+                (click)="selectStreamSource('camera-pip')"
+                title="Share your screen with your camera inset"
+              >
+                CAM + SCREEN
+              </button>
+              <button
+                *ngIf="socialService.videoSource() === 'camera-pip'"
+                type="button"
+                class="quality-btn"
+                (click)="cycleCompositeCorner()"
+                title="Move the camera inset"
+              >
+                PIP {{ socialService.compositeLayout().corner | uppercase }}
               </button>
             </div>
             <div class="stream-quality-row">

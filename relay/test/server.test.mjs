@@ -14,7 +14,9 @@ function makeManager() {
     deleted,
     list: () => created.map((session) => ({ id: session.id })),
     create: async (body, { kind } = {}) => {
-      if (!body.rtmpUrl) throw new ValidationError("rtmpUrl is required");
+      if (!body.rtmpUrl && !Array.isArray(body.destinations)) {
+        throw new ValidationError("rtmpUrl is required");
+      }
       const session = {
         id: `id${created.length + 1}`,
         kind: kind ?? "broadcast",
@@ -127,6 +129,24 @@ test("creates a session for the API that holds the token", async () => {
   const body = await response.json();
   assert.equal(body.whipUrl, "https://relay.example.com/id1/whip");
   assert.equal(manager.created[0].kind, "broadcast");
+});
+
+test("accepts a multi-destination session body", async () => {
+  const { base, manager } = await startServer();
+
+  const response = await fetch(`${base}/sessions`, {
+    method: "POST",
+    headers: { ...bearer, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      destinations: [
+        { rtmpUrl: "rtmp://live.twitch.tv/app", streamKey: "abcdefghij" },
+        { rtmpUrl: "rtmps://kick.example:443/app", streamKey: "abcdefghijk" },
+      ],
+    }),
+  });
+
+  assert.equal(response.status, 201);
+  assert.equal(manager.created[0].body.destinations.length, 2);
 });
 
 test("maps a bad destination to 400, not a relay failure", async () => {

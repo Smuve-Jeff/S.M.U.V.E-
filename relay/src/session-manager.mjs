@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { pushUrl, validateDestination, ValidationError } from "./destinations.mjs";
+import { pushUrl, validateDestinations, ValidationError } from "./destinations.mjs";
 
 /** An ffmpeg that dies this fast never got a usable input: retry it. */
 const RESTART_WINDOW_MS = 5_000;
@@ -9,6 +9,9 @@ const RECOVERY_DELAY_MS = 1_000;
 
 /**
  * One session = one MediaMTX publish path + one ffmpeg pushing RTSP to RTMP.
+ * A session may name up to four destinations; the sender uses ffmpeg's tee
+ * muxer so one encode feeds every provider. Independent per-output retry is a
+ * later step, so a process failure still stops the whole session.
  *
  * The WebRTC receiver (MediaMTX) and the RTMP sender (ffmpeg) are separate
  * processes, so this supervises the sender: an ffmpeg that starts before the
@@ -127,7 +130,9 @@ export class SessionManager {
   }
 
   async create(input, { kind = "broadcast" } = {}) {
-    const { rtmpUrl, streamKey } = validateDestination(input);
+    const destinations = validateDestinations(input).map((destination) =>
+      pushUrl(destination.rtmpUrl, destination.streamKey),
+    );
     const id = randomUUID().replace(/-/g, "");
     const recording = this.#recordingOptions(kind);
     await this.#mediamtx.addPath(id, recording?.config);
@@ -143,7 +148,10 @@ export class SessionManager {
     const session = {
       id,
       kind,
-      destination: pushUrl(rtmpUrl, streamKey),
+      // `destination` stays the first output for compatibility with older
+      // stored sessions and operators; `destinations` is the fan-out list.
+      destination: destinations[0],
+      destinations,
       // The file itself is named after the path (`<dir>/<id>.mp4`), and
       // segmentation may add a timestamp, so what is reported is the directory
       // MediaMTX writes into.
@@ -225,7 +233,17 @@ export class SessionManager {
       const id = typeof record?.id === "string" ? record.id : "";
       const destination =
         typeof record?.destination === "string" ? record.destination : "";
-      if (!id || !destination) continue;
+      const storedDestinations = Array.isArray(record?.destinations)
+        ? record.destinations.filter(
+            (value) => typeof value === "string" && value,
+          )
+        : [];
+      const destinations = storedDestinations.length
+        ? storedDestinations
+        : destination
+          ? [destination]
+          : [];
+      if (!id || destinations.length === 0) continue;
 
       const path =
         typeof this.#mediamtx.getPath === "function"
@@ -241,7 +259,8 @@ export class SessionManager {
       this.#sessions.set(id, {
         id,
         kind: record.kind === "selftest" ? "selftest" : "broadcast",
-        destination,
+        destination: destinations[0],
+        destinations,
         createdAt: Number(record.createdAt) || Date.now(),
         restarts: 0,
         stopped: false,
@@ -317,6 +336,7 @@ export class SessionManager {
       id: session.id,
       kind: session.kind,
       destination: session.destination,
+      destinations: session.destinations,
       createdAt: session.createdAt,
     }));
     try {
@@ -668,6 +688,19 @@ export class SessionManager {
 
   #startFfmpeg(session) {
     const startedAt = Date.now();
+    const outputs =
+      session.destinations.length > 1
+        ? [
+            // The tee muxer does not auto-select streams; without this it
+            // opens the outputs and then fails with "does not contain any
+            // stream" before connecting to a provider.
+            "-map",
+            "0",
+            "-f",
+            "tee",
+            session.destinations.map((url) => `[f=flv]${url}`).join("|"),
+          ]
+        : ["-f", "flv", session.destinations[0]];
     const child = this.#spawn(
       this.#ffmpegPath,
       [
@@ -694,9 +727,7 @@ export class SessionManager {
         this.#audioBitrate,
         "-ac",
         String(this.#audioChannels),
-        "-f",
-        "flv",
-        session.destination,
+        ...outputs,
       ],
       { stdio: ["ignore", "pipe", "pipe"] },
     );

@@ -4,6 +4,7 @@ jest.mock("@/entities/LiveStream", () => ({
 }));
 jest.mock("@/entities", () => ({
   LiveStream: class LiveStream {},
+  LiveStreamDestination: class LiveStreamDestination {},
   LiveStreamViewerJoin: class LiveStreamViewerJoin {},
 }));
 
@@ -81,6 +82,39 @@ const mockRepo = {
   ),
 };
 
+const mockDestinationStore: any[] = [];
+let nextDestinationId = 1;
+const mockDestinationRepo = {
+  create: jest.fn((row: any) => ({ ...row })),
+  save: jest.fn(async (input: any) => {
+    const rows = Array.isArray(input) ? input : [input];
+    for (const row of rows) {
+      if (!row.id) {
+        row.id = nextDestinationId++;
+        mockDestinationStore.push(row);
+      } else {
+        const index = mockDestinationStore.findIndex((r) => r.id === row.id);
+        if (index >= 0) mockDestinationStore[index] = row;
+      }
+    }
+    return input;
+  }),
+  find: jest.fn(async ({ where }: { where: { streamId?: number } }) =>
+    mockDestinationStore.filter((row) => row.streamId === where?.streamId),
+  ),
+  update: jest.fn(
+    async (
+      where: { streamId?: number },
+      values: Record<string, unknown>,
+    ) => {
+      for (const row of mockDestinationStore) {
+        if (row.streamId === where?.streamId) Object.assign(row, values);
+      }
+      return { affected: 1 };
+    },
+  ),
+};
+
 const mockViewerJoinStore: Array<{ streamId: number; viewerKey: string }> = [];
 
 const mockViewerJoinRepo = {
@@ -119,9 +153,11 @@ jest.mock("@/database/data-source", () => ({
         ) => mockRepo.increment(conditions, propertyPath, value),
       }),
     ),
-    getRepository: jest.fn((entity: { name?: string }) =>
-      entity?.name === "LiveStreamViewerJoin" ? mockViewerJoinRepo : mockRepo,
-    ),
+    getRepository: jest.fn((entity: { name?: string }) => {
+      if (entity?.name === "LiveStreamViewerJoin") return mockViewerJoinRepo;
+      if (entity?.name === "LiveStreamDestination") return mockDestinationRepo;
+      return mockRepo;
+    }),
   },
 }));
 
@@ -136,14 +172,17 @@ import {
   liveViewerKey,
   normalizeLiveViewerId,
   generateShareToken,
+  updateLiveStreamDestinations,
 } from "./live-stream.service";
 
 const tokenA = "tokA";
 describe("live-stream service", () => {
   beforeEach(() => {
     mockStreamStore.length = 0;
+    mockDestinationStore.length = 0;
     mockViewerJoinStore.length = 0;
     nextInsertId = 1;
+    nextDestinationId = 1;
     jest.clearAllMocks();
     // Reprovision findOne to also support getCurrentLiveStream's
     // { where, order } shape — we keep this simple by directly matching
@@ -239,6 +278,36 @@ describe("live-stream service", () => {
       });
       expect(facebook.platform).toBe("facebook");
       expect(facebook.active).toBe(true);
+    });
+
+    it("persists every platform selected for one session", async () => {
+      const row = await startLiveStream({
+        hostId: "multi",
+        platform: "smuve",
+        destinations: ["smuve", "twitch", "kick", "facebook"],
+      });
+
+      expect(row.destinations).toHaveLength(4);
+      expect(mockDestinationStore).toHaveLength(4);
+      expect(row.destinations).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ platform: "smuve", status: "live" }),
+          expect.objectContaining({ platform: "twitch", status: "pending" }),
+          expect.objectContaining({ platform: "kick", status: "pending" }),
+          expect.objectContaining({ platform: "facebook", status: "pending" }),
+        ]),
+      );
+    });
+
+    it("de-duplicates a repeated destination in one session", async () => {
+      const row = await startLiveStream({
+        hostId: "dedupe",
+        platform: "smuve",
+        destinations: ["smuve", "twitch", "kick", "facebook", "smuve"],
+      });
+
+      expect(row.destinations).toHaveLength(4);
+      expect(mockDestinationStore).toHaveLength(4);
     });
 
     it("rejects youtube and tiktok for new broadcasts", async () => {

@@ -18,12 +18,7 @@ import type { Socket } from 'socket.io-client';
  * destination (share link only, no OAuth popup).
  */
 export type LiveStreamPlatform =
-  | 'smuve'
-  | 'twitch'
-  | 'kick'
-  | 'facebook'
-  | 'youtube'
-  | 'tiktok';
+  'smuve' | 'twitch' | 'kick' | 'facebook' | 'youtube' | 'tiktok';
 
 export const LIVE_STREAM_PLATFORMS: LiveStreamPlatform[] = [
   'smuve',
@@ -64,6 +59,13 @@ export interface LiveDirectoryEntry {
   viewerJoins?: number;
 }
 
+export interface LiveDestinationRecord {
+  platform: GoLivePlatform;
+  status: 'pending' | 'connecting' | 'live' | 'degraded' | 'failed' | 'ended';
+  relayId: string | null;
+  error: string | null;
+}
+
 export interface LiveStreamRecord {
   id: number;
   shareToken: string;
@@ -77,6 +79,8 @@ export interface LiveStreamRecord {
   startedAt: string;
   endedAt: string | null;
   viewerJoins: number;
+  /** Platforms in this one session; old rows may omit it. */
+  destinations?: LiveDestinationRecord[];
   shareUrl: string;
 }
 
@@ -141,7 +145,7 @@ export class LiveStreamService {
   readonly liveDirectory = computed<LiveDirectoryEntry[]>(() => {
     const selfId = this.profileService.profile().id;
     const blocked = new Set(
-      this.social.blockedUsers().map((u) => String(u.userId))
+      this.social.blockedUsers().map((u) => String(u.userId)),
     );
     const entries = new Map<string, LiveDirectoryEntry>();
     for (const row of this.activeStreams()) {
@@ -170,7 +174,7 @@ export class LiveStreamService {
       });
     }
     return [...entries.values()].sort(
-      (a, b) => (b.viewerJoins ?? 0) - (a.viewerJoins ?? 0)
+      (a, b) => (b.viewerJoins ?? 0) - (a.viewerJoins ?? 0),
     );
   });
 
@@ -192,7 +196,11 @@ export class LiveStreamService {
       // Start/end events are lost while the socket is down. Reconcile once on
       // reconnect; the first run is not a reconnect (opening the surface
       // already loads the directory).
-      if (this.socketStateInitialized && connected && !this.socketWasConnected) {
+      if (
+        this.socketStateInitialized &&
+        connected &&
+        !this.socketWasConnected
+      ) {
         void this.loadActiveStreams();
       }
       this.socketStateInitialized = true;
@@ -245,6 +253,73 @@ export class LiveStreamService {
     return t ? { Authorization: `Bearer ${t}` } : {};
   }
 
+  private destinationSet(opts: {
+    platform: LiveStreamPlatform;
+    destinations?: GoLivePlatform[];
+  }): GoLivePlatform[] {
+    const requested =
+      Array.isArray(opts.destinations) && opts.destinations.length
+        ? opts.destinations
+        : [opts.platform];
+    const unique: GoLivePlatform[] = [];
+    for (const platform of requested) {
+      if (!this.isGoLivePlatform(platform)) {
+        throw new Error(
+          `${platform.toUpperCase()} IS NOT AVAILABLE FOR GO LIVE YET`,
+        );
+      }
+      if (!unique.includes(platform)) unique.push(platform);
+    }
+    const primary = opts.platform;
+    if (this.isGoLivePlatform(primary) && !unique.includes(primary)) {
+      unique.unshift(primary);
+    }
+    if (unique.length === 0) {
+      throw new Error('CHOOSE AT LEAST ONE GO LIVE DESTINATION');
+    }
+    if (unique.length > 4) {
+      throw new Error('CHOOSE AT MOST 4 GO LIVE DESTINATIONS');
+    }
+    return unique;
+  }
+
+  private providerPlatforms(destinations: GoLivePlatform[]): IngestPlatform[] {
+    return destinations.filter(
+      (platform): platform is IngestPlatform =>
+        platform === 'twitch' || platform === 'kick' || platform === 'facebook',
+    );
+  }
+
+  /** Provider outputs for a row, including rows created before destinations. */
+  private providerDestinations(
+    stream: Pick<LiveStreamRecord, 'platform' | 'destinations'>,
+  ): IngestPlatform[] {
+    const platforms = stream.destinations?.length
+      ? stream.destinations.map((destination) => destination.platform)
+      : [stream.platform as GoLivePlatform];
+    return this.providerPlatforms(platforms);
+  }
+
+  /** Record the relay's per-destination verdict on the live row. */
+  private async persistDestinationStatuses(
+    relayId: string | null,
+    statuses: Partial<Record<GoLivePlatform, LiveDestinationRecord['status']>>,
+  ): Promise<void> {
+    const id = this.profileService.profile().id;
+    if (!id || !relayId) return;
+    try {
+      await firstValueFrom(
+        this.http.patch<LiveStreamRecord>(
+          `${APP_SECURITY_CONFIG.api_url}/users/${encodeURIComponent(id)}/live-streams/destinations`,
+          { relayId, statuses },
+          { headers: this.authHeaders() },
+        ),
+      );
+    } catch {
+      // Live local state is already correct; persistence is best effort.
+    }
+  }
+
   /**
    * Start a Go-Live session. Issues a server-backed stream row first
    * (so the shareUrl is deterministic), then opens the OAuth popup.
@@ -252,6 +327,7 @@ export class LiveStreamService {
    */
   async golive(opts: {
     platform: LiveStreamPlatform;
+    destinations?: GoLivePlatform[];
     gameId?: string;
     lobbyId?: string;
     payload?: Record<string, unknown>;
@@ -262,7 +338,10 @@ export class LiveStreamService {
       return null;
     }
     if (this.currentStream()?.active) {
-      this.notify.show('ALREADY LIVE — END THE CURRENT BROADCAST FIRST', 'info');
+      this.notify.show(
+        'ALREADY LIVE — END THE CURRENT BROADCAST FIRST',
+        'info',
+      );
       return null;
     }
     const platform = opts.platform;
@@ -282,20 +361,27 @@ export class LiveStreamService {
       );
       return null;
     }
+    let destinations: GoLivePlatform[];
+    try {
+      destinations = this.destinationSet(opts);
+    } catch (error: any) {
+      this.notify.show(String(error?.message ?? error), 'warning');
+      return null;
+    }
+    const providerPlatforms = this.providerPlatforms(destinations);
 
     // The GO LIVE click is the user gesture that lets the browser start the
     // mixer. Prime before OAuth, destination preflight, or the row request:
     // all of those await, and the WHIP mix is built after them.
-    const providerPush =
-      platform === 'twitch' || platform === 'kick' || platform === 'facebook';
-    if (providerPush) this.ingest.primeAudioContext();
+    if (providerPlatforms.length) this.ingest.primeAudioContext();
 
     this.pendingGolive.set(platform);
     let issued: LiveStreamRecord | null = null;
     try {
-      // 1. Prove the destination before creating a row or turning on a
-      //    camera. A cancelled auth used to leave a ghost live row behind.
-      if (platform === 'twitch') {
+      // 1. Prove every provider destination before creating a row or turning
+      //    on a camera. A cancelled auth used to leave a ghost live row behind.
+      await this.ingest.load();
+      if (providerPlatforms.includes('twitch')) {
         const authorized = await this.authorizeProvider('twitch');
         if (!authorized) {
           this.pendingGolive.set(null);
@@ -304,20 +390,17 @@ export class LiveStreamService {
         }
         await this.ingest.load();
       }
-      // Kick and Facebook have no OAuth: their destinations are the RTMP URL
-      // + key saved in Broadcast Push, so refuse now instead of pushing to
-      // nowhere.
-      if (platform === 'kick' || platform === 'facebook') {
-        await this.ingest.load();
-        if (!this.ingest.ready(platform)) {
-          this.pendingGolive.set(null);
-          this.ingest.closePrimedAudioContext();
-          this.notify.show(
-            `SAVE YOUR ${platform.toUpperCase()} STREAM URL AND KEY IN BROADCAST PUSH FIRST`,
-            'warning',
-          );
-          return null;
-        }
+      const missing = providerPlatforms.find(
+        (value) => !this.ingest.ready(value),
+      );
+      if (missing) {
+        this.pendingGolive.set(null);
+        this.ingest.closePrimedAudioContext();
+        this.notify.show(
+          `SAVE YOUR ${missing.toUpperCase()} STREAM URL AND KEY IN BROADCAST PUSH FIRST`,
+          'warning',
+        );
+        return null;
       }
 
       // 2. Issue the row only once the destination is usable.
@@ -326,6 +409,7 @@ export class LiveStreamService {
           `${APP_SECURITY_CONFIG.api_url}${this.hostRoute}`,
           {
             platform,
+            destinations,
             gameId: opts.gameId,
             lobbyId: opts.lobbyId,
             payload: opts.payload,
@@ -356,30 +440,32 @@ export class LiveStreamService {
       this.startStreamPoll();
       this.haptic.medium();
 
-      if (platform === 'smuve') {
-        // Native S.M.U.V.E Live: the share link IS the broadcast, so the
-        // session is live as soon as the row exists. No auth state to wedge.
-        this.pendingGolive.set(null);
-        const copied = await this.copyShareUrl(true);
-        this.notify.show(
-          copied
-            ? 'SMUVE_LIVE_STARTED — SHARE LINK COPIED'
-            : 'SMUVE_LIVE_STARTED — COPY THE SHARE LINK',
-          'success',
+      // 4. One relay session fans out to every selected provider. The native
+      //    share link is already live; a failed push is reported without
+      //    tearing that room down.
+      const pushed = providerPlatforms.length
+        ? await this.ingest.start(providerPlatforms)
+        : true;
+      if (providerPlatforms.length) {
+        await this.persistDestinationStatuses(
+          this.ingest.activeRelayId(),
+          Object.fromEntries(
+            providerPlatforms.map((value) => [
+              value,
+              pushed ? 'live' : 'failed',
+            ]),
+          ) as Partial<Record<GoLivePlatform, 'live' | 'failed'>>,
         );
-        return issued;
       }
-
-      // 4. Push to the provider. The native share link is already live; a
-      //    failed push is reported without tearing that room down.
-      const ingestPlatform: IngestPlatform = platform;
-      const pushed = await this.ingest.start(ingestPlatform);
       this.pendingGolive.set(null);
       const copied = await this.copyShareUrl(true);
+      const label = destinations
+        .map((value) => value.toUpperCase())
+        .join(' + ');
       this.notify.show(
         pushed
-          ? `${platform.toUpperCase()} PUSH STARTED — ${copied ? 'SHARE LINK COPIED' : 'COPY THE SHARE LINK'}`
-          : `${platform.toUpperCase()} PUSH FAILED — SHARE LINK IS STILL LIVE`,
+          ? `${label} LIVE${copied ? ' — SHARE LINK COPIED' : ' — COPY THE SHARE LINK'}`
+          : `${label} PUSH FAILED — SHARE LINK IS STILL LIVE`,
         pushed ? 'success' : 'warning',
       );
       return issued;
@@ -446,11 +532,11 @@ export class LiveStreamService {
       await firstValueFrom(
         this.http.post(
           `${APP_SECURITY_CONFIG.api_url}/users/${encodeURIComponent(
-            id
+            id,
           )}/live-streams/end`,
           {},
-          { headers: this.authHeaders() }
-        )
+          { headers: this.authHeaders() },
+        ),
       );
     } catch {
       /* rollback is best-effort — the socket disconnect sweep is the net */
@@ -576,13 +662,10 @@ export class LiveStreamService {
     // A reload killed the browser's WHIP publisher even though the relay and
     // the server row survived. Re-open the provider push in the owning tab so
     // Twitch/Kick/Facebook do not keep showing a frozen frame after recovery.
-    if (
-      row.platform === 'twitch' ||
-      row.platform === 'kick' ||
-      row.platform === 'facebook'
-    ) {
+    const providers = this.providerDestinations(row);
+    if (providers.length) {
       await this.ingest.load();
-      await this.ingest.start(row.platform);
+      await this.ingest.start(providers);
     }
   }
 
@@ -598,13 +681,13 @@ export class LiveStreamService {
       const rows = await firstValueFrom(
         this.http.get<LiveStreamRecord[]>(
           `${APP_SECURITY_CONFIG.api_url}/live-streams/active`,
-          { headers: this.authHeaders() }
-        )
+          { headers: this.authHeaders() },
+        ),
       );
       this.activeStreams.set(
         Array.isArray(rows)
           ? rows.filter((row) => !!row?.active && !!row.shareToken)
-          : []
+          : [],
       );
     } catch {
       // Keep the previous directory; presence still covers online hosts.
@@ -622,9 +705,9 @@ export class LiveStreamService {
       const row = await firstValueFrom(
         this.http.get<LiveStreamRecord>(
           `${APP_SECURITY_CONFIG.api_url}/live-streams/join/${encodeURIComponent(
-            token
-          )}`
-        )
+            token,
+          )}`,
+        ),
       );
       this.inboundPreview.set(row);
       return row;
@@ -699,10 +782,7 @@ export class LiveStreamService {
     const url = this.currentStream()?.shareUrl;
     if (!url) return false;
     try {
-      if (
-        typeof navigator !== 'undefined' &&
-        navigator.clipboard?.writeText
-      ) {
+      if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
         await navigator.clipboard.writeText(url);
         if (!silent) this.notify.show('SHARE LINK COPIED', 'success');
         return true;
@@ -726,7 +806,6 @@ export class LiveStreamService {
       return false;
     }
   }
-
 
   private ingest = inject(BroadcastIngestService);
 
@@ -912,13 +991,8 @@ export class LiveStreamService {
     const stream = this.currentStream();
     if (!stream?.active || !stream.shareToken) return false;
     // This click can restart the WHIP push; prime before capture/start awaits.
-    const providerPlatform =
-      stream.platform === 'twitch' ||
-      stream.platform === 'kick' ||
-      stream.platform === 'facebook'
-        ? stream.platform
-        : null;
-    if (providerPlatform) this.ingest.primeAudioContext();
+    const providers = this.providerDestinations(stream);
+    if (providers.length) this.ingest.primeAudioContext();
     try {
       this.markHostingToken(stream.shareToken);
       const started = await this.social.startStream(stream.platform);
@@ -928,9 +1002,9 @@ export class LiveStreamService {
       }
       this.social.updateStatus(this.livePresenceMetadata());
       this.startStreamPoll();
-      if (providerPlatform) {
+      if (providers.length) {
         await this.ingest.load();
-        if (stream.platform === 'twitch' && !this.ingest.ready('twitch')) {
+        if (providers.includes('twitch') && !this.ingest.ready('twitch')) {
           if (!(await this.authorizeProvider('twitch'))) {
             this.ingest.closePrimedAudioContext();
             this.abandonHostingTakeover();
@@ -938,7 +1012,7 @@ export class LiveStreamService {
           }
           await this.ingest.load();
         }
-        if (!(await this.ingest.start(providerPlatform))) {
+        if (!(await this.ingest.start(providers))) {
           this.abandonHostingTakeover();
           return false;
         }
@@ -996,4 +1070,5 @@ export class LiveStreamService {
       this.fallbackViewerId ??= `anon-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
       return this.fallbackViewerId;
     }
-  }}
+  }
+}

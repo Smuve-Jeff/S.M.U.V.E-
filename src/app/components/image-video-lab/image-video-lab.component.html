@@ -1958,14 +1958,16 @@
               </div>
               <span class="director-state" [class.busy]="countdownLabel()">{{ countdownLabel() || 'STANDBY' }}</span>
             </div>
-            <label class="director-field">
-              <span>Platform</span>
-              <select [ngModel]="livePlatform()" (ngModelChange)="livePlatform.set($event)">
+            <div class="director-field">
+              <span>Destinations</span>
+              <div class="broadcast-source-row" role="group" aria-label="Live destinations">
                 @for (platform of livePlatforms; track platform) {
-                  <option [value]="platform">{{ platform | uppercase }}</option>
+                  <button type="button" class="director-button" [class.active]="liveDestinations().includes(platform)" [attr.aria-pressed]="liveDestinations().includes(platform)" (click)="toggleLiveDestination(platform)">
+                    {{ platform | uppercase }}
+                  </button>
                 }
-              </select>
-            </label>
+              </div>
+            </div>
             <div class="broadcast-preview-panel">
               <div class="director-console-heading">
                 <div>
@@ -1979,6 +1981,10 @@
               <div class="broadcast-source-row" role="group" aria-label="Broadcast source">
                 <button type="button" class="director-button" [class.active]="social.videoSource() === 'camera'" [disabled]="social.switchingSource() || social.previewStarting()" (click)="selectBroadcastSource('camera')">CAMERA</button>
                 <button type="button" class="director-button" [class.active]="social.videoSource() === 'screen'" [disabled]="social.switchingSource() || social.previewStarting() || !social.screenShareSupported()" [title]="social.screenShareUnavailableReason() || 'Share a tab, window or display'" (click)="selectBroadcastSource('screen')">SCREEN</button>
+                <button type="button" class="director-button" [class.active]="social.videoSource() === 'camera-pip'" [disabled]="social.switchingSource() || social.previewStarting() || !social.screenShareSupported()" [title]="social.screenShareUnavailableReason() || 'Share a screen with your camera inset'" (click)="selectBroadcastSource('camera-pip')">CAM + SCREEN</button>
+                @if (social.videoSource() === 'camera-pip') {
+                  <button type="button" class="director-button" (click)="cycleCompositeCorner()">PIP {{ social.compositeLayout().corner | uppercase }}</button>
+                }
                 <!-- Both slots stay mounted so the stop hit target never
                      appears under a fast second PREVIEW click. -->
                 <button type="button" class="director-button" [class.active]="social.previewActive()" (click)="startBroadcastPreview()" [disabled]="!!broadcastStream() || social.switchingSource() || social.previewActive() || social.previewStarting()">

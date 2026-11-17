@@ -21,6 +21,9 @@ jest.mock("@/entities/Project", () => ({ Project: class Project {} }));
 jest.mock("@/entities/ArtistIdentity", () => ({ ArtistIdentity: class ArtistIdentity {} }));
 jest.mock("@/entities/GameInvite", () => ({ GameInvite: class GameInvite {} }));
 jest.mock("@/entities/LiveStream", () => ({ LiveStream: class LiveStream {} }));
+jest.mock("@/entities/LiveStreamDestination", () => ({
+  LiveStreamDestination: class LiveStreamDestination {},
+}));
 jest.mock("@/entities/UserBlock", () => ({ UserBlock: class UserBlock {} }));
 jest.mock("@/entities/RoomMessage", () => ({ RoomMessage: class RoomMessage {} }));
 jest.mock("@/entities/AccountToken", () => ({

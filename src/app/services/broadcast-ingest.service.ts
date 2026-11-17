@@ -57,6 +57,7 @@ export interface BroadcastRecordingDto {
 
 interface IngestSessionDto {
   platform?: string;
+  platforms?: string[];
   relayId?: string;
   whipUrl?: string;
 }
@@ -92,6 +93,10 @@ export class BroadcastIngestService {
   readonly loading = signal(false);
   /** The platform whose push is starting, if any. */
   readonly pushing = signal<IngestPlatform | null>(null);
+  /** Every provider sharing the current relay session. */
+  readonly sessionPlatforms = signal<IngestPlatform[]>([]);
+  /** Relay id of the current push, or null when no WHIP session is open. */
+  readonly activeRelayId = signal<string | null>(null);
   readonly state = this.whip.state;
   readonly error = this.whip.error;
 
@@ -122,7 +127,10 @@ export class BroadcastIngestService {
   }>({ recovering: false, recoveries: 0, gaveUp: false });
 
   /** Result of the last relay self-test, shown next to the button. */
-  readonly selfTest = signal<{ status: 'idle' | 'running' | 'pass' | 'fail'; detail: string }>({
+  readonly selfTest = signal<{
+    status: 'idle' | 'running' | 'pass' | 'fail';
+    detail: string;
+  }>({
     status: 'idle',
     detail: '',
   });
@@ -295,7 +303,14 @@ export class BroadcastIngestService {
     }
   }
 
-  async start(platform: IngestPlatform): Promise<boolean> {
+  async start(platform: IngestPlatform | IngestPlatform[]): Promise<boolean> {
+    const platforms = [
+      ...new Set(Array.isArray(platform) ? platform : [platform]),
+    ];
+    if (platforms.length === 0) {
+      this.snackbar.warning('CHOOSE AT LEAST ONE BROADCAST DESTINATION');
+      return false;
+    }
     const initialStream = this.social.localStream();
     if (!initialStream) {
       this.snackbar.warning('NO CAPTURE YET — SWITCH THE CAMERA ON FIRST');
@@ -304,17 +319,20 @@ export class BroadcastIngestService {
     // Run this before the first await: the PUSH click is the user gesture that
     // lets the browser start the AudioContext the mixer will use.
     this.primeAudioContext();
-    this.pushing.set(platform);
+    this.pushing.set(platforms[0]);
     try {
       const session = await firstValueFrom(
         this.http.post<IngestSessionDto>(
-          this.endpoint(`/ingest/${platform}`),
-          {},
+          this.endpoint('/ingest'),
+          { platforms },
           { headers: this.headers() },
         ),
       );
-      if (!session?.whipUrl) throw new Error('THE RELAY RETURNED NO PUBLISH URL');
+      if (!session?.whipUrl)
+        throw new Error('THE RELAY RETURNED NO PUBLISH URL');
       this.relayId = session.relayId ?? null;
+      this.activeRelayId.set(this.relayId);
+      this.sessionPlatforms.set(platforms);
       // The session request can outlive a camera ↔ screen switch. Start with
       // the capture that exists now, not the one captured before the await.
       const stream = this.social.localStream();
@@ -324,7 +342,8 @@ export class BroadcastIngestService {
         this.closePrimedAudioContext();
         await this.releaseRelay();
         this.snackbar.error(
-          this.whip.error() ?? `${platform.toUpperCase()} PUSH FAILED`,
+          this.whip.error() ??
+            `${platforms.map((value) => value.toUpperCase()).join(' + ')} PUSH FAILED`,
         );
         return false;
       }
@@ -335,7 +354,9 @@ export class BroadcastIngestService {
         this.whip.replaceTracks(latestStream);
       }
       this.watchEgress(this.relayId);
-      this.snackbar.success(`PUSHING TO ${platform.toUpperCase()}`);
+      this.snackbar.success(
+        `PUSHING TO ${platforms.map((value) => value.toUpperCase()).join(' + ')}`,
+      );
       return true;
     } catch (error) {
       // A primed context is only useful until WHIP starts. If the session or
@@ -348,6 +369,8 @@ export class BroadcastIngestService {
       } catch {
         /* best-effort cleanup */
       }
+      this.activeRelayId.set(null);
+      this.sessionPlatforms.set([]);
       this.snackbar.error(this.describe(error));
       return false;
     } finally {
@@ -359,6 +382,8 @@ export class BroadcastIngestService {
     this.stopWatching();
     await this.whip.stop();
     await this.releaseRelay();
+    this.activeRelayId.set(null);
+    this.sessionPlatforms.set([]);
     this.stopPlayback();
     this.snackbar.info('BROADCAST PUSH STOPPED');
     // The show that just ended is the one the host is most likely to want.
@@ -375,7 +400,10 @@ export class BroadcastIngestService {
   private watchEgress(relayId: string | null): void {
     this.stopWatching();
     if (!relayId) return;
-    this.egressTimer = setInterval(() => void this.refreshEgress(relayId), 5_000);
+    this.egressTimer = setInterval(
+      () => void this.refreshEgress(relayId),
+      5_000,
+    );
   }
 
   private stopWatching(): void {
@@ -418,7 +446,8 @@ export class BroadcastIngestService {
       });
     } catch (error) {
       // A session the relay no longer knows about is not a stall: stop asking.
-      if ((error as { status?: number } | null)?.status === 404) this.stopWatching();
+      if ((error as { status?: number } | null)?.status === 404)
+        this.stopWatching();
     }
   }
 
@@ -486,7 +515,10 @@ export class BroadcastIngestService {
       return;
     }
 
-    this.selfTest.set({ status: 'running', detail: 'PUBLISHING A TEST PATTERN…' });
+    this.selfTest.set({
+      status: 'running',
+      detail: 'PUBLISHING A TEST PATTERN…',
+    });
     let relayId: string | null = null;
     try {
       const session = await firstValueFrom(
@@ -537,7 +569,8 @@ export class BroadcastIngestService {
       } else {
         this.selfTest.set({
           status: 'fail',
-          detail: 'THE RELAY RECEIVED NO MEDIA — CHECK THE WHIP URL, TLS AND UDP',
+          detail:
+            'THE RELAY RECEIVED NO MEDIA — CHECK THE WHIP URL, TLS AND UDP',
         });
         this.snackbar.error('SELF-TEST FAILED');
       }
@@ -565,6 +598,8 @@ export class BroadcastIngestService {
   private async releaseRelay(): Promise<void> {
     const id = this.relayId;
     this.relayId = null;
+    this.activeRelayId.set(null);
+    this.sessionPlatforms.set([]);
     if (!id) return;
     try {
       await firstValueFrom(
@@ -668,7 +703,9 @@ export class BroadcastIngestService {
       });
     } catch {
       this.playback.set(null);
-      this.playbackError.set('COULD NOT OPEN THAT RECORDING — DOWNLOAD IT INSTEAD');
+      this.playbackError.set(
+        'COULD NOT OPEN THAT RECORDING — DOWNLOAD IT INSTEAD',
+      );
     } finally {
       this.playbackLoading.set(false);
     }
@@ -686,10 +723,13 @@ export class BroadcastIngestService {
   async downloadRecording(recording: BroadcastRecordingDto): Promise<void> {
     try {
       const blob = await firstValueFrom(
-        this.http.get(`${APP_SECURITY_CONFIG.api_url}${recording.downloadPath}`, {
-          headers: this.headers(),
-          responseType: 'blob',
-        }),
+        this.http.get(
+          `${APP_SECURITY_CONFIG.api_url}${recording.downloadPath}`,
+          {
+            headers: this.headers(),
+            responseType: 'blob',
+          },
+        ),
       );
       const url = URL.createObjectURL(blob);
       const anchor = document.createElement('a');
@@ -776,7 +816,8 @@ export class BroadcastIngestService {
     if (
       playing &&
       !live.some(
-        (row) => this.recordingKey(row) === this.recordingKey(playing.recording),
+        (row) =>
+          this.recordingKey(row) === this.recordingKey(playing.recording),
       )
     ) {
       this.stopPlayback();
@@ -786,7 +827,11 @@ export class BroadcastIngestService {
 
   /** `IN 4H` / `IN 45M` while a show is close to the sweeper, else empty. */
   expiryLabel(recording: BroadcastRecordingDto): string {
-    return expiryLabel(recording.expiresAt, this.clock(), this.expiryWarningHours);
+    return expiryLabel(
+      recording.expiresAt,
+      this.clock(),
+      this.expiryWarningHours,
+    );
   }
 
   /** How many shows the panel should warn about right now. */
@@ -834,7 +879,9 @@ export class BroadcastIngestService {
             ...row,
             keepHours: kept?.keepHours ?? null,
             keepUntil: kept?.keepUntil ?? null,
-            expiresAt: Number.isFinite(next) ? new Date(next).toISOString() : null,
+            expiresAt: Number.isFinite(next)
+              ? new Date(next).toISOString()
+              : null,
           };
         }),
       );

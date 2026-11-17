@@ -102,7 +102,10 @@ async function loadWerift() {
           kind: "broken",
           what: `RELAY_WERIFT_PATH=${root} does not contain werift (expected lib/webrtc/src/index.js)`,
         }
-      : { kind: "missing", what: "werift is not installed (set RELAY_WERIFT_PATH)" },
+      : {
+          kind: "missing",
+          what: "werift is not installed (set RELAY_WERIFT_PATH)",
+        },
   };
 }
 
@@ -124,7 +127,9 @@ if (broken.length > 0 || (requireTools && missing.length > 0)) {
       "the media path cannot run here:",
       ...issues.map((issue) => `  - ${issue.what}`),
       ...(requireTools && missing.length > 0
-        ? ["RELAY_E2E_REQUIRE_TOOLS=1 is set, so a missing tool fails instead of skipping."]
+        ? [
+            "RELAY_E2E_REQUIRE_TOOLS=1 is set, so a missing tool fails instead of skipping.",
+          ]
         : []),
     ].join("\n"),
   );
@@ -158,7 +163,9 @@ async function bounded(work, label, ms = TEARDOWN_LIMIT_MS) {
   const winner = await Promise.race([settled, givingUp]);
   clearTimeout(timer);
   if (winner === "timeout") {
-    console.warn(`[relay-e2e] ${label} did not finish within ${ms} ms; giving up`);
+    console.warn(
+      `[relay-e2e] ${label} did not finish within ${ms} ms; giving up`,
+    );
     return undefined;
   }
   return winner.value;
@@ -169,7 +176,8 @@ async function until(check, { timeoutMs = 20_000, everyMs = 250, label }) {
   for (;;) {
     const value = await check();
     if (value) return value;
-    if (Date.now() > deadline) throw new Error(`timed out waiting for ${label}`);
+    if (Date.now() > deadline)
+      throw new Error(`timed out waiting for ${label}`);
     await sleep(everyMs);
   }
 }
@@ -282,7 +290,10 @@ test(
     t.after(async () => {
       // Every step is bounded so a wedged child costs seconds, not the job.
       const status = session
-        ? await bounded(manager.status(session.id), "reading the session status")
+        ? await bounded(
+            manager.status(session.id),
+            "reading the session status",
+          )
         : null;
 
       // Diagnostics were asked for, so they have to arrive: a job that goes red
@@ -320,7 +331,10 @@ test(
           // Already gone, which is the usual case.
         }
       }
-      await bounded(rm(dir, { recursive: true, force: true }), "removing the temp directory");
+      await bounded(
+        rm(dir, { recursive: true, force: true }),
+        "removing the temp directory",
+      );
 
       if (diagnosticsError) {
         throw new Error(
@@ -462,5 +476,126 @@ test(
       { label: "bytes still arriving at the RTMP ingest" },
     );
     assert.ok(receivedAfter > receivedBeforeRestart);
+  },
+);
+
+test(
+  "one WHIP publish fans out to two real RTMP ingests",
+  { skip, timeout: 120_000 },
+  async (t) => {
+    const dir = await mkdtemp(join(tmpdir(), "relay-e2e-fanout-"));
+    const configPath = join(dir, "mediamtx.yml");
+    await writeFile(configPath, mediaMtxConfig());
+    const media = spawn(MEDIAMTX, [configPath], {
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    let mediaLog = "";
+    media.stdout.on("data", (chunk) => (mediaLog += String(chunk)));
+    media.stderr.on("data", (chunk) => (mediaLog += String(chunk)));
+
+    const relayLog = [];
+    const manager = new SessionManager({
+      spawn,
+      mediamtx: {
+        addPath: async () => {},
+        deletePath: async () => {},
+      },
+      publicUrl: "http://127.0.0.1:8080",
+      rtspUrl: `rtsp://127.0.0.1:${RTSP_PORT}`,
+      ffmpegPath: FFMPEG,
+      logger: {
+        info: (line) => relayLog.push(`info ${line}`),
+        warn: (line) => relayLog.push(`warn ${line}`),
+        error: (line) => relayLog.push(`error ${line}`),
+      },
+    });
+    let whip = null;
+    let session = null;
+
+    const pathBytes = async (path) => {
+      const response = await fetch(
+        `${API}/v3/paths/get/${encodeURIComponent(path)}`,
+      );
+      if (!response.ok) return 0;
+      const body = await response.json();
+      return Number(body?.bytesReceived ?? 0);
+    };
+
+    t.after(async () => {
+      await bounded(manager.stopAll(), "stopping the fan-out sessions");
+      await bounded(whip?.stop(), "closing the fan-out WHIP publish");
+      media.kill("SIGKILL");
+      await bounded(
+        rm(dir, { recursive: true, force: true }),
+        "removing the fan-out temp directory",
+      );
+    });
+
+    await until(
+      async () => {
+        try {
+          return (await fetch(`${API}/v3/config/global/get`)).ok;
+        } catch {
+          return false;
+        }
+      },
+      { label: `MediaMTX for fan-out (${mediaLog.slice(-300)})` },
+    );
+
+    session = await manager.create({
+      destinations: [
+        {
+          rtmpUrl: `rtmp://127.0.0.1:${RTMP_PORT}/live`,
+          streamKey: "fanout_a",
+        },
+        {
+          rtmpUrl: `rtmp://127.0.0.1:${RTMP_PORT}/live`,
+          streamKey: "fanout_b",
+        },
+      ],
+    });
+
+    whip = await createWhipPublisher({
+      werift,
+      whipUrl: `http://127.0.0.1:${WHIP_PORT}/${session.id}/whip`,
+      ffmpegPath: FFMPEG,
+      logger: { info() {}, warn() {}, error() {} },
+    });
+    await whip.start();
+
+    let first;
+    let second;
+    try {
+      first = await until(
+        async () => {
+          const bytes = await pathBytes("live/fanout_a");
+          return bytes > 1_000 ? bytes : 0;
+        },
+        { timeoutMs: 45_000, label: "first fan-out sink" },
+      );
+      second = await until(
+        async () => {
+          const bytes = await pathBytes("live/fanout_b");
+          return bytes > 1_000 ? bytes : 0;
+        },
+        { timeoutMs: 45_000, label: "second fan-out sink" },
+      );
+    } catch (error) {
+      const status = await manager.status(session.id).catch(() => null);
+      const paths = await fetch(`${API}/v3/paths/list`)
+        .then((response) => (response.ok ? response.json() : null))
+        .catch(() => null);
+      throw new Error(
+        `${error.message}\nstatus: ${JSON.stringify(status)}\n` +
+          `paths: ${JSON.stringify(paths)}\n` +
+          `relay log:\n${relayLog.slice(-30).join("\n")}\n` +
+          `mediamtx log:\n${mediaLog.slice(-1000)}`,
+      );
+    }
+
+    const status = await manager.status(session.id);
+    assert.ok(status.running, "the relay ffmpeg is still running");
+    assert.ok(first > 1_000, `first sink received ${first} bytes`);
+    assert.ok(second > 1_000, `second sink received ${second} bytes`);
   },
 );

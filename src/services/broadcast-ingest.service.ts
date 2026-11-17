@@ -38,7 +38,10 @@ export interface DestinationOverview {
 }
 
 export interface IngestSession {
+  /** Primary provider, kept for clients that only understand one output. */
   platform: IngestPlatform;
+  /** Every provider sharing this one relay session. */
+  platforms: IngestPlatform[];
   relayId: string;
   /** WHIP endpoint the browser publishes to. */
   whipUrl: string;
@@ -242,9 +245,16 @@ export async function clearManualDestination(
  */
 export async function startIngestSession(
   userId: number | string,
-  platform: string,
+  platform: string | string[],
 ): Promise<IngestSession> {
-  const key = asPlatform(platform);
+  const requested = Array.isArray(platform) ? platform : [platform];
+  const keys = [...new Set(requested.map((value) => asPlatform(value)))];
+  if (keys.length === 0) {
+    throw new AppError(400, "Choose at least one broadcast destination.");
+  }
+  if (keys.length > 4) {
+    throw new AppError(400, "At most 4 broadcast destinations are allowed.");
+  }
   const relay = relayConfiguration();
   if (!relay) {
     throw new AppError(
@@ -253,17 +263,23 @@ export async function startIngestSession(
     );
   }
   const owner = Number(userId);
-  const destination =
-    key === "twitch"
-      ? await twitchDestination(owner)
-      : await manualDestination(owner, key);
+  const destinations = await Promise.all(
+    keys.map(async (key): Promise<IngestDestination> => ({
+      platform: key,
+      ...(key === "twitch"
+        ? await twitchDestination(owner)
+        : await manualDestination(owner, key)),
+    })),
+  );
 
   const response = await callRelay(relay, "/sessions", {
     method: "POST",
     headers: { "Content-Type": "application/json", Accept: "application/json" },
     body: JSON.stringify({
-      rtmpUrl: destination.rtmpUrl,
-      streamKey: destination.streamKey,
+      destinations: destinations.map((destination) => ({
+        rtmpUrl: destination.rtmpUrl,
+        streamKey: destination.streamKey,
+      })),
     }),
   });
   const payload = (await response.json().catch(() => ({}))) as {
@@ -283,8 +299,17 @@ export async function startIngestSession(
   }
   // The relay records this session under `id`; the row is what later proves a
   // recording belongs to this host.
-  await rememberBroadcastSession({ userId: owner, relayId: id, platform: key });
-  return { platform: key, relayId: id, whipUrl };
+  await rememberBroadcastSession({
+    userId: owner,
+    relayId: id,
+    platform: keys[0],
+  });
+  return {
+    platform: keys[0],
+    platforms: keys,
+    relayId: id,
+    whipUrl,
+  };
 }
 
 export interface SelfTestSession {

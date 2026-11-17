@@ -82,8 +82,19 @@ router.delete("/destinations/:platform", authenticate, async (req, res) => {
   res.status(204).end();
 });
 
-// POST /api/broadcast/ingest/:platform — open a relay session and hand back
-// the WHIP URL to publish to. The stream key stays on the server.
+// POST /api/broadcast/ingest — one relay session for a provider fan-out.
+// The stream keys stay on the server; the browser only gets the WHIP URL.
+router.post("/ingest", authenticate, pushLimiter, async (req, res) => {
+  const platforms = Array.isArray(req.body?.platforms)
+    ? req.body.platforms.filter((value: unknown) => typeof value === "string")
+    : [];
+  res
+    .status(201)
+    .json(await startIngestSession(actorOf(req), platforms as string[]));
+});
+
+// POST /api/broadcast/ingest/:platform — compatibility for one-destination
+// callers. New clients use the list route above.
 router.post("/ingest/:platform", authenticate, pushLimiter, async (req, res) => {
   res.status(201).json(
     await startIngestSession(actorOf(req), String(req.params.platform || "")),

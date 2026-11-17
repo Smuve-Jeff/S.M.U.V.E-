@@ -1,5 +1,10 @@
 import { AppDataSource } from "@/database/data-source";
-import { LiveStream, LiveStreamViewerJoin } from "@/entities";
+import {
+  LiveStream,
+  LiveStreamDestination,
+  LiveStreamViewerJoin,
+  type LiveDestinationStatus,
+} from "@/entities";
 import { AppError } from "@/lib";
 import { randomBytes } from "node:crypto";
 
@@ -43,9 +48,18 @@ export interface StartLiveStreamInput {
   hostId: string;
   hostDisplayName?: string;
   platform: LiveStreamPlatform;
+  /** Every platform selected for this one session; defaults to `platform`. */
+  destinations?: GoLivePlatform[];
   gameId?: string;
   lobbyId?: string;
   payload?: Record<string, unknown> | null;
+}
+
+export interface LiveStreamDestinationRow {
+  platform: GoLivePlatform;
+  status: LiveDestinationStatus;
+  relayId: string | null;
+  error: string | null;
 }
 
 export interface LiveStreamRow {
@@ -61,12 +75,29 @@ export interface LiveStreamRow {
   startedAt: string;
   endedAt: string | null;
   viewerJoins: number;
+  /** Platforms selected for this session, native and provider alike. */
+  destinations: LiveStreamDestinationRow[];
   /**
    * Absolute share URL pointing at `/tha-spot?game=<id>&lobby=<id>&live=<token>`.
    * Viewers who open it land on the tap-to-join overlay.
    */
   shareUrl: string;
 }
+
+const LIVE_DESTINATION_STATUSES: readonly LiveDestinationStatus[] = [
+  "pending",
+  "connecting",
+  "live",
+  "degraded",
+  "failed",
+  "ended",
+];
+
+const isLiveDestinationStatus = (
+  value: unknown,
+): value is LiveDestinationStatus =>
+  typeof value === "string" &&
+  LIVE_DESTINATION_STATUSES.includes(value as LiveDestinationStatus);
 
 const SHARE_BASE_URL =
   process.env.SHARE_BASE_URL ||
@@ -75,6 +106,7 @@ const SHARE_BASE_URL =
 
 const repo = () => ({
   streams: AppDataSource.getRepository(LiveStream),
+  destinations: AppDataSource.getRepository(LiveStreamDestination),
   viewerJoins: AppDataSource.getRepository(LiveStreamViewerJoin),
 });
 
@@ -87,7 +119,19 @@ const buildShareUrl = (row: LiveStream): string => {
   return `${SHARE_BASE_URL.replace(/\/$/, "")}/tha-spot?${params.toString()}`;
 };
 
-const rowToWire = (row: LiveStream): LiveStreamRow => ({
+const destinationToWire = (
+  row: LiveStreamDestination,
+): LiveStreamDestinationRow => ({
+  platform: row.platform as GoLivePlatform,
+  status: row.status ?? "pending",
+  relayId: row.relayId ?? null,
+  error: row.error ?? null,
+});
+
+const rowToWire = (
+  row: LiveStream,
+  destinations: LiveStreamDestination[] = [],
+): LiveStreamRow => ({
   id: row.id,
   shareToken: row.shareToken,
   hostId: row.hostId,
@@ -100,12 +144,41 @@ const rowToWire = (row: LiveStream): LiveStreamRow => ({
   startedAt: new Date(row.startedAt).toISOString(),
   endedAt: row.endedAt ? new Date(row.endedAt).toISOString() : null,
   viewerJoins: row.viewerJoins,
+  destinations: destinations.map(destinationToWire),
   shareUrl: buildShareUrl(row),
 });
 
 export const generateShareToken = (): string =>
   // 24 hex chars = 96 bits; matches the GameInvite token scheme.
   randomBytes(12).toString("hex");
+
+/** Validate and de-duplicate the platform set for one session. */
+const selectedDestinations = (
+  input: StartLiveStreamInput,
+): GoLivePlatform[] => {
+  const requested =
+    Array.isArray(input.destinations) && input.destinations.length
+      ? input.destinations
+      : [input.platform as GoLivePlatform];
+  const unique: GoLivePlatform[] = [];
+  for (const value of requested) {
+    if (!LIVE_GO_LIVE_PLATFORMS.includes(value)) {
+      throw new AppError(
+        400,
+        `destinations must contain only: ${LIVE_GO_LIVE_PLATFORMS.join(", ")}`,
+      );
+    }
+    if (!unique.includes(value)) unique.push(value);
+  }
+  if (unique.length > 4) {
+    throw new AppError(400, "at most 4 broadcast destinations are allowed");
+  }
+  const primary = input.platform as GoLivePlatform;
+  if (LIVE_GO_LIVE_PLATFORMS.includes(primary) && !unique.includes(primary)) {
+    unique.unshift(primary);
+  }
+  return unique;
+};
 
 /**
  * Issue a new live stream row. The OAuth popup that opens immediately
@@ -124,6 +197,7 @@ export const startLiveStream = async (
       `platform must be one of: ${LIVE_GO_LIVE_PLATFORMS.join(", ")}`,
     );
   }
+  const destinations = selectedDestinations(input);
 
   // End any other active streams the host is running so we don't leave
   // ghost rows in the index. Host can only be live on one platform at
@@ -155,7 +229,28 @@ export const startLiveStream = async (
           active: true,
         }),
       );
-      return rowToWire(saved);
+      let destinationRows: LiveStreamDestination[] = [];
+      try {
+        destinationRows = await repo().destinations.save(
+          destinations.map((platform) =>
+            repo().destinations.create({
+              streamId: saved.id,
+              platform,
+              status: platform === "smuve" ? "live" : "pending",
+              relayId: null,
+              error: null,
+            }),
+          ),
+        );
+      } catch (error) {
+        // A session without its destination set cannot be resumed or stopped
+        // reliably. Roll the just-issued row back instead of advertising it.
+        saved.active = false;
+        saved.endedAt = new Date();
+        await repo().streams.save(saved);
+        throw error;
+      }
+      return rowToWire(saved, destinationRows);
     } catch (err: any) {
       const msg = String(err?.driverError?.message ?? err?.message ?? "");
       if (msg.includes("live_streams_share_token_unique") && attempt === 0) {
@@ -174,18 +269,27 @@ export const startLiveStream = async (
  * summary.
  */
 export const getCurrentLiveStream = async (
-  hostId: string
+  hostId: string,
 ): Promise<LiveStreamRow | null> => {
   const active = await repo().streams.findOne({
     where: { hostId, active: true },
     order: { startedAt: "DESC" },
   });
-  if (active) return rowToWire(active);
+  if (active) {
+    const destinations = await repo().destinations.find({
+      where: { streamId: active.id },
+    });
+    return rowToWire(active, destinations);
+  }
   const latest = await repo().streams.findOne({
     where: { hostId },
     order: { startedAt: "DESC" },
   });
-  return latest ? rowToWire(latest) : null;
+  if (!latest) return null;
+  const destinations = await repo().destinations.find({
+    where: { streamId: latest.id },
+  });
+  return rowToWire(latest, destinations);
 };
 
 /**
@@ -194,14 +298,14 @@ export const getCurrentLiveStream = async (
  * just signed in (or missed the presence broadcast) still find a live stream.
  */
 export const listActiveLiveStreams = async (
-  limit = 50
+  limit = 50,
 ): Promise<LiveStreamRow[]> => {
   const rows = await repo().streams.find({
     where: { active: true },
     order: { startedAt: "DESC" },
     take: Math.min(Math.max(Math.trunc(limit), 1), 100),
   });
-  return rows.map(rowToWire);
+  return rows.map((row) => rowToWire(row));
 };
 
 /**
@@ -210,7 +314,7 @@ export const listActiveLiveStreams = async (
  */
 export const endLiveStream = async (
   hostId: string,
- isAdmin = false
+  isAdmin = false,
 ): Promise<{ success: boolean; streamId: number | null }> => {
   const active = await repo().streams.find({
     where: isAdmin ? { active: true } : { hostId, active: true },
@@ -227,7 +331,47 @@ export const endLiveStream = async (
     row.endedAt = new Date();
   }
   await repo().streams.save(active);
+  for (const row of active) {
+    await repo().destinations.update({ streamId: row.id }, { status: "ended" });
+  }
   return { success: true, streamId: active[0]?.id ?? null };
+};
+
+/**
+ * Persist the relay's verdict for the session's provider destinations. The
+ * native S.M.U.V.E row is already live and is left alone.
+ */
+export const updateLiveStreamDestinations = async (
+  hostId: string,
+  relayId: string,
+  statuses: Partial<Record<GoLivePlatform, LiveDestinationStatus>>,
+): Promise<LiveStreamRow> => {
+  const active = await repo().streams.findOne({
+    where: { hostId, active: true },
+    order: { startedAt: "DESC" },
+  });
+  if (!active) throw new AppError(404, "No active live stream");
+  for (const [platform, status] of Object.entries(statuses)) {
+    if (!LIVE_GO_LIVE_PLATFORMS.includes(platform as GoLivePlatform)) {
+      throw new AppError(400, `Unknown live destination: ${platform}`);
+    }
+    if (!isLiveDestinationStatus(status)) {
+      throw new AppError(400, `Invalid live destination status: ${status}`);
+    }
+  }
+  const rows = await repo().destinations.find({
+    where: { streamId: active.id },
+  });
+  for (const row of rows) {
+    if (row.platform === "smuve") continue;
+    const next = statuses[row.platform as GoLivePlatform];
+    if (next) row.status = next;
+    if (relayId) row.relayId = relayId;
+    if (next === "failed") row.error = "Provider push failed";
+    if (next === "live") row.error = null;
+  }
+  await repo().destinations.save(rows);
+  return rowToWire(active, rows);
 };
 
 /**
@@ -235,7 +379,7 @@ export const endLiveStream = async (
  * anyone with the share URL can call it to render a preview card.
  */
 export const resolveViewerJoin = async (
-  token: string
+  token: string,
 ): Promise<LiveStreamRow> => {
   if (!token) throw new AppError(400, "token is required");
   const row = await repo().streams.findOne({ where: { shareToken: token } });
@@ -348,6 +492,6 @@ export const redeemViewerJoin = async (
 
 /** Convenience lookup used by the socket layer for low-latency joins. */
 export const findStreamByToken = async (
-  token: string
+  token: string,
 ): Promise<LiveStream | null> =>
   repo().streams.findOne({ where: { shareToken: token } });

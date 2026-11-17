@@ -1,8 +1,10 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
+  MAX_DESTINATIONS,
   pushUrl,
   validateDestination,
+  validateDestinations,
   ValidationError,
 } from "../src/destinations.mjs";
 
@@ -72,5 +74,58 @@ test("keeps a query flag after the key", () => {
   assert.equal(
     pushUrl("rtmps://host:443/app", "sk_us_kick_123456"),
     "rtmps://host:443/app/sk_us_kick_123456",
+  );
+});
+
+test("accepts multiple destinations and preserves the legacy single shape", () => {
+  const twitch = {
+    rtmpUrl: "rtmp://live.twitch.tv/app",
+    streamKey: "live_123456789_abcdef",
+  };
+  const kick = {
+    rtmpUrl: "rtmps://kick.example:443/app",
+    streamKey: "sk_us_kick_123456",
+  };
+
+  assert.deepEqual(validateDestinations(twitch), [twitch]);
+  assert.deepEqual(
+    validateDestinations({ destinations: [twitch, kick] }),
+    [twitch, kick],
+  );
+});
+
+test("refuses an empty, oversized, or duplicate fan-out list", () => {
+  const destination = {
+    rtmpUrl: "rtmp://live.twitch.tv/app",
+    streamKey: "live_123456789_abcdef",
+  };
+  assert.throws(
+    () => validateDestinations({ destinations: [] }),
+    ValidationError,
+  );
+  assert.throws(
+    () =>
+      validateDestinations({
+        destinations: Array.from({ length: MAX_DESTINATIONS + 1 }, (_, i) => ({
+          ...destination,
+          streamKey: `${destination.streamKey}${i}`,
+        })),
+      }),
+    ValidationError,
+  );
+  assert.throws(
+    () => validateDestinations({ destinations: [destination, destination] }),
+    ValidationError,
+  );
+});
+
+test("refuses a tee separator inside an ingest URL", () => {
+  assert.throws(
+    () =>
+      validateDestination({
+        rtmpUrl: "rtmp://live.twitch.tv/app|[f=flv]rtmp://other/app",
+        streamKey: "live_123456789_abcdef",
+      }),
+    ValidationError,
   );
 });

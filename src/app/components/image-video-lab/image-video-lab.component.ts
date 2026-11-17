@@ -632,6 +632,8 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
   /** Fallback command line for browsers without speech recognition. */
   commandInput = signal('');
   livePlatform = signal<GoLivePlatform>('smuve');
+  /** Every platform selected for one Go Live session. */
+  liveDestinations = signal<GoLivePlatform[]>(['smuve']);
   markerDraft = signal('');
   readonly livePlatforms = GO_LIVE_PLATFORMS;
   readonly exportWindowOptions = EXPORT_WINDOW_OPTIONS;
@@ -2673,8 +2675,36 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     );
   }
 
+  /** Toggle one destination; the picker never becomes empty. */
+  toggleLiveDestination(platform: GoLivePlatform): void {
+    this.liveDestinations.update((current) => {
+      if (current.includes(platform)) {
+        return current.length === 1
+          ? current
+          : current.filter((value) => value !== platform);
+      }
+      return [...current, platform];
+    });
+    this.livePlatform.set(this.liveDestinations()[0] ?? 'smuve');
+  }
+
+  /** Cycle the camera inset corner without touching either capture. */
+  cycleCompositeCorner(): void {
+    const corners = [
+      'top-left',
+      'top-right',
+      'bottom-right',
+      'bottom-left',
+    ] as const;
+    const current = this.social.compositeLayout().corner;
+    const next = corners[(corners.indexOf(current) + 1) % corners.length];
+    this.social.setCompositeLayout({ corner: next });
+  }
+
   /** Pick the live source before or during the preflight preview. */
-  async selectBroadcastSource(source: 'camera' | 'screen'): Promise<void> {
+  async selectBroadcastSource(
+    source: 'camera' | 'screen' | 'camera-pip',
+  ): Promise<void> {
     if (
       this.social.videoSource() === source &&
       !this.social.switchingSource()
@@ -2682,7 +2712,7 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
       return;
     }
     if (!this.social.previewActive() && !this.social.isStreaming()) {
-      if (source === 'screen') {
+      if (source === 'screen' || source === 'camera-pip') {
         const reason = this.social.screenShareUnavailableReason();
         if (reason) {
           this.aiFeedback.set(reason.toUpperCase());
@@ -2720,7 +2750,11 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     }
     if (this.social.isStreaming()) return;
     const source =
-      this.social.videoSource() === 'screen' ? 'SCREEN SHARE' : 'CAMERA';
+      this.social.videoSource() === 'screen'
+        ? 'SCREEN SHARE'
+        : this.social.videoSource() === 'camera-pip'
+          ? 'CAMERA + SCREEN'
+          : 'CAMERA';
     this.aiFeedback.set(
       `PREVIEW LIVE — ${source}. CHECK THE FRAME AND AUDIO, THEN GO LIVE.`,
     );
@@ -2752,9 +2786,11 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
       );
       return;
     }
-    const platform = this.livePlatform();
+    const destinations = [...this.liveDestinations()];
+    const platform = destinations[0] ?? this.livePlatform();
     const issued = await this.liveStream.golive({
       platform,
+      destinations,
       payload: {
         source: 'cinema-engine',
         preset: this.videoEngine.deliveryPreset().id,

@@ -6077,6 +6077,26 @@ describe('ImageVideoLabComponent', () => {
       copy.mockRestore();
     });
 
+    it('sends every selected destination in one Go Live request', async () => {
+      const { component } = await createComponent();
+      const golive = jest
+        .spyOn(component.liveStream, 'golive')
+        .mockResolvedValue(null);
+
+      component.toggleLiveDestination('kick');
+      component.toggleLiveDestination('facebook');
+      await component.goLive();
+
+      expect(golive).toHaveBeenCalledTimes(1);
+      expect(golive).toHaveBeenCalledWith(
+        expect.objectContaining({
+          platform: 'smuve',
+          destinations: ['smuve', 'kick', 'facebook'],
+        })
+      );
+      golive.mockRestore();
+    });
+
     it('refuses a second broadcast while one is already on air', async () => {
       const { component } = await createComponent();
       component.liveStream.currentStream.set(liveRecord);

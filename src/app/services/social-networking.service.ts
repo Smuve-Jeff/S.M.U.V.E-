@@ -19,6 +19,12 @@ import {
   StudioSessionEventEnvelope,
   StudioSessionSyncState,
 } from '../types/studio-orchestration.types';
+import {
+  DEFAULT_LIVE_COMPOSITE_LAYOUT,
+  LiveCaptureCompositorService,
+  type LiveCompositeLayout,
+  type LiveCompositeSession,
+} from './live-capture-compositor.service';
 
 export interface OnlineUser {
   userId: string;
@@ -84,11 +90,13 @@ export interface StreamTelemetry {
 export type StreamQuality = '480p' | '720p' | '1080p';
 
 /** Resolution + bitrate targets per quality tier. */
+export type StreamVideoSource = 'camera' | 'screen' | 'camera-pip';
+
 export interface HostStreamUpdate {
   /** Rebuilt host media: camera and/or screen video, mic, system sound. */
   stream: MediaStream;
   /** Which picture the host is showing — the viewer's display follows it. */
-  videoSource: 'camera' | 'screen';
+  videoSource: StreamVideoSource;
   /** Viewers hear game sound only while this is set. */
   screenAudioOnly: boolean;
 }
@@ -154,6 +162,7 @@ export class SocialNetworkingService {
   /** Last status update emitted while offline; flushed on the next connect. */
   private pendingStatus: Record<string, unknown> | null = null;
   private injector = inject(Injector);
+  private compositor = inject(LiveCaptureCompositorService);
   private http = inject(HttpClient);
   private tokenService = inject(TokenService);
 
@@ -212,9 +221,7 @@ export class SocialNetworkingService {
     const blocked = new Set(this.blockedUsers().map((u) => String(u.userId)));
     return this.onlineUsers().filter(
       (u) =>
-        u.live === true &&
-        !!u.liveShareToken &&
-        !blocked.has(String(u.userId))
+        u.live === true && !!u.liveShareToken && !blocked.has(String(u.userId)),
     );
   });
   partyMembers = signal<OnlineUser[]>([]);
@@ -279,17 +286,21 @@ export class SocialNetworkingService {
    * honors it, so choosing SCREEN before going live opens only the screen
    * picker (no camera-then-screen double prompt).
    */
-  videoSource = signal<'camera' | 'screen'>('camera');
+  videoSource = signal<StreamVideoSource>('camera');
+  /** Camera PiP layout while a composite source is active. */
+  readonly compositeLayout = signal<LiveCompositeLayout>({
+    ...DEFAULT_LIVE_COMPOSITE_LAYOUT,
+  });
   /**
    * getDisplayMedia availability: desktop browsers and the Electron shell.
    * Absent in the mobile app builds, where the switch explains the gap.
    */
   readonly screenShareSupported = signal(
-    describeScreenShareUnavailable() === null
+    describeScreenShareUnavailable() === null,
   );
   /** Why screen capture cannot run here, or null when it is usable. */
   readonly screenShareUnavailableReason = signal(
-    describeScreenShareUnavailable()
+    describeScreenShareUnavailable(),
   );
   /** The live screen capture carries game/system sound, not just the mic. */
   readonly screenAudioAvailable = signal(false);
@@ -299,7 +310,11 @@ export class SocialNetworkingService {
    * audience with no audio at all.
    */
   readonly screenAudioWarning = computed(() => {
-    if (this.videoSource() !== 'screen' || this.screenAudioAvailable()) {
+    if (
+      (this.videoSource() !== 'screen' &&
+        this.videoSource() !== 'camera-pip') ||
+      this.screenAudioAvailable()
+    ) {
       return null;
     }
     return nativeScreenCaptureAvailable()
@@ -330,6 +345,9 @@ export class SocialNetworkingService {
 
   /** Mic track ids, so a switch back to camera drops system audio but keeps voice. */
   private micTrackIds = new Set<string>();
+  /** The active canvas composite and the raw tracks feeding it. */
+  private compositeSession: LiveCompositeSession | null = null;
+  private compositeRawTracks: MediaStreamTrack[] = [];
 
   /** What a host audio track carries: ledger voice, or system sound. */
   audioRoleOf(track: MediaStreamTrack): 'mic' | 'system' {
@@ -345,9 +363,9 @@ export class SocialNetworkingService {
   /** True while camera/screen switches are running — the UI locks until the queue drains. */
   switchingSource = signal(false);
   /** Latest requested source while a switch is in flight. */
-  private pendingVideoSource: 'camera' | 'screen' | null = null;
+  private pendingVideoSource: StreamVideoSource | null = null;
   /** The source whose picker/acquisition is currently running. */
-  private switchingToVideoSource: 'camera' | 'screen' | null = null;
+  private switchingToVideoSource: StreamVideoSource | null = null;
   private videoSwitchLoop?: Promise<void>;
   /** Host-peer senders refresh when the source tracks change. */
   private hostStreamListeners = new Set<(update: HostStreamUpdate) => void>();
@@ -363,6 +381,83 @@ export class SocialNetworkingService {
     return () => {
       this.hostStreamListeners.delete(cb);
     };
+  }
+
+  /** Move or resize the camera inset without re-prompting for capture. */
+  setCompositeLayout(layout: Partial<LiveCompositeLayout>): void {
+    const next = { ...this.compositeLayout(), ...layout };
+    this.compositeLayout.set(next);
+    this.compositeSession?.updateLayout(layout);
+  }
+
+  private stopComposite(
+    session: LiveCompositeSession | null,
+    raw: MediaStreamTrack[],
+  ): void {
+    session?.stop();
+    raw.forEach((track) => track.stop());
+  }
+
+  /** Release the current canvas composite and both raw source tracks. */
+  private releaseCompositeCapture(): void {
+    const session = this.compositeSession;
+    const raw = this.compositeRawTracks;
+    this.compositeSession = null;
+    this.compositeRawTracks = [];
+    this.stopComposite(session, raw);
+  }
+
+  /**
+   * Acquire the two pictures, hand them to the compositor, and keep the raw
+   * tracks alive so a later layout change or source switch needs no second
+   * permission prompt. Audio is never routed through the canvas.
+   */
+  private async buildCompositeStream(
+    preset: { width: number; height: number },
+    micAudio: MediaStreamTrack[],
+  ): Promise<{
+    stream: MediaStream;
+    session: LiveCompositeSession;
+    raw: MediaStreamTrack[];
+  }> {
+    const screen = await this.acquireScreenCapture(preset);
+    let camera: MediaStreamTrack | null = null;
+    let session: LiveCompositeSession | null = null;
+    try {
+      camera = await this.acquireCameraTrack(preset);
+      session = this.compositor.create(
+        new MediaStream([screen.video]),
+        new MediaStream([camera]),
+        {
+          width: preset.width,
+          height: preset.height,
+          fps: 30,
+          layout: this.compositeLayout(),
+        },
+      );
+      const composite = session.stream.getVideoTracks()[0];
+      if (!composite) throw new Error('LIVE_COMPOSITE_NO_VIDEO_TRACK');
+      screen.video.addEventListener('ended', () => {
+        if (this.videoSource() === 'camera-pip' && this.captureActive()) {
+          void this.setVideoSource('camera').catch(() => undefined);
+        }
+      });
+      return {
+        stream: new MediaStream([
+          composite,
+          ...micAudio,
+          ...screen.systemAudio,
+        ]),
+        session,
+        raw: [screen.video, camera],
+      };
+    } catch (error) {
+      session?.stop();
+      [screen.video, camera, ...screen.systemAudio]
+        .filter((track): track is MediaStreamTrack => !!track)
+        .forEach((track) => track.stop());
+      throw error;
+    }
   }
 
   neuralSyncStatus = signal<'idle' | 'syncing' | 'synced'>('idle');
@@ -514,7 +609,7 @@ export class SocialNetworkingService {
         }
         this.notifications?.show?.(
           `${queued.length} MESSAGE${queued.length === 1 ? '' : 'S'} SENT`,
-          'success'
+          'success',
         );
       }
       this.socket?.emit('register_presence', {
@@ -576,15 +671,15 @@ export class SocialNetworkingService {
         // blocks someone lets the next broadcast put the blocked account back
         // in the roster. Apply the current blocklist to every snapshot.
         const blocked = new Set(
-          this.blockedUsers().map((u) => String(u.userId))
+          this.blockedUsers().map((u) => String(u.userId)),
         );
         this.onlineUsers.set(
           users.filter(
             (u) =>
               u.userId !== userId &&
               u.artistName !== 'Incognito' &&
-              !blocked.has(String(u.userId))
-          )
+              !blocked.has(String(u.userId)),
+          ),
         );
       }
     });
@@ -611,9 +706,9 @@ export class SocialNetworkingService {
         });
         this.notifications?.show?.(
           `${hostDisplayName.toUpperCase()} IS LIVE - OPEN LIVE NOW TO WATCH`,
-          'info'
+          'info',
         );
-      }
+      },
     );
 
     this.socket.on(
@@ -625,21 +720,26 @@ export class SocialNetworkingService {
         if (!current || !data?.shareToken) return;
         if (current.shareToken !== data.shareToken) return;
         this.friendWentLive.set(null);
-      }
+      },
     );
 
-    this.socket.on('friend_request_received', (data: { fromUserId?: string }) => {
-      if (!data?.fromUserId) return;
-      // The event only carries the sender id; reload so the request appears in
-      // the friends list with its name, avatar, and incoming direction.
-      void this.loadFriends();
-      this.notifications?.show?.('NEW FRIEND REQUEST', 'info');
-    });
+    this.socket.on(
+      'friend_request_received',
+      (data: { fromUserId?: string }) => {
+        if (!data?.fromUserId) return;
+        // The event only carries the sender id; reload so the request appears in
+        // the friends list with its name, avatar, and incoming direction.
+        void this.loadFriends();
+        this.notifications?.show?.('NEW FRIEND REQUEST', 'info');
+      },
+    );
 
     this.socket.on('friend_requests_read', () => {
       // The server bulk-marked friend-request notifications when the friends
       // list was fetched; clear the unread dot on any loaded inbox.
-      this.injector.get(ChallengeInboxService, null)?.markFriendRequestsRead?.();
+      this.injector
+        .get(ChallengeInboxService, null)
+        ?.markFriendRequestsRead?.();
     });
 
     this.socket.on(
@@ -705,7 +805,7 @@ export class SocialNetworkingService {
       'studio_session_event',
       (data: StudioSessionEventEnvelope) => {
         this.studioSessionEvents.update((events) => [...events, data]);
-      }
+      },
     );
 
     this.socket.on('studio_session_invite', (data: any) => {
@@ -729,7 +829,7 @@ export class SocialNetworkingService {
                 ...sync.comments.filter((comment) => comment.id !== data.id),
               ],
             }
-          : sync
+          : sync,
       );
     });
 
@@ -741,10 +841,10 @@ export class SocialNetworkingService {
               comments: sync.comments.map((comment) =>
                 comment.id === data.commentId
                   ? { ...comment, resolved: true, updatedAt: Date.now() }
-                  : comment
+                  : comment,
               ),
             }
-          : sync
+          : sync,
       );
     });
 
@@ -767,10 +867,10 @@ export class SocialNetworkingService {
                       },
                       updatedAt: Date.now(),
                     }
-                  : approval
+                  : approval,
               ),
             }
-          : sync
+          : sync,
       );
     });
 
@@ -784,14 +884,14 @@ export class SocialNetworkingService {
                 ...sync,
                 asyncPackets: [
                   ...sync.asyncPackets.filter(
-                    (packet) => packet.id !== data.id
+                    (packet) => packet.id !== data.id,
                   ),
                   data,
                 ],
               }
-            : sync
+            : sync,
         );
-      }
+      },
     );
 
     this.socket.on('async_packet_applied', (data: any) => {
@@ -803,8 +903,8 @@ export class SocialNetworkingService {
                 status: 'applied',
                 appliedAt: Date.now(),
               }
-            : packet
-        )
+            : packet,
+        ),
       );
       this.sessionSyncState.update((sync) =>
         sync
@@ -817,10 +917,10 @@ export class SocialNetworkingService {
                       status: 'applied',
                       appliedAt: Date.now(),
                     }
-                  : packet
+                  : packet,
               ),
             }
-          : sync
+          : sync,
       );
     });
 
@@ -834,7 +934,7 @@ export class SocialNetworkingService {
                 ...sync.remixLineage.filter((record) => record.id !== data.id),
               ],
             }
-          : sync
+          : sync,
       );
     });
 
@@ -879,7 +979,7 @@ export class SocialNetworkingService {
     });
     this.socket.on('user_left_party', (data: any) => {
       this.partyMembers.update((members) =>
-        members.filter((m) => m.userId !== data.userId)
+        members.filter((m) => m.userId !== data.userId),
       );
     });
 
@@ -931,8 +1031,8 @@ export class SocialNetworkingService {
       const history = await firstValueFrom(
         this.http.get<RoomMessage[]>(
           `${APP_SECURITY_CONFIG.api_url}/rooms/${encodeURIComponent(roomId)}/messages`,
-          { headers }
-        )
+          { headers },
+        ),
       );
       if (this.currentRoomId === roomId) {
         this.roomMessages.set(history);
@@ -1015,18 +1115,30 @@ export class SocialNetworkingService {
       this.pendingMessages.push({ toUserId, message: text });
       this.messages.update((msgs) => [
         ...msgs,
-        { fromUserId, fromUserName, toUserId, message: text, timestamp: Date.now() },
+        {
+          fromUserId,
+          fromUserName,
+          toUserId,
+          message: text,
+          timestamp: Date.now(),
+        },
       ]);
       this.notifications?.show?.(
         'CONNECTION RECOVERING — MESSAGE QUEUED, WILL SEND WHEN ONLINE',
-        'warning'
+        'warning',
       );
       return;
     }
     this.socket?.emit('send_message', { toUserId, message: text });
     this.messages.update((msgs) => [
       ...msgs,
-      { fromUserId, fromUserName, toUserId, message: text, timestamp: Date.now() },
+      {
+        fromUserId,
+        fromUserName,
+        toUserId,
+        message: text,
+        timestamp: Date.now(),
+      },
     ]);
   }
 
@@ -1056,11 +1168,14 @@ export class SocialNetworkingService {
     platform: string,
     authorizeUrl: string,
     onConnected?: () => void,
-    onFailed?: (message: string) => void
+    onFailed?: (message: string) => void,
   ) {
     const key = (platform || '').toLowerCase();
     if (!key || !authorizeUrl) {
-      this.notifications?.show?.('CONNECT IS NOT AVAILABLE RIGHT NOW', 'warning');
+      this.notifications?.show?.(
+        'CONNECT IS NOT AVAILABLE RIGHT NOW',
+        'warning',
+      );
       onFailed?.('CONNECT IS NOT AVAILABLE RIGHT NOW');
       return;
     }
@@ -1071,12 +1186,12 @@ export class SocialNetworkingService {
     const popup = window.open(
       authorizeUrl,
       `${key} Auth`,
-      `width=${width},height=${height},left=${left},top=${top}`
+      `width=${width},height=${height},left=${left},top=${top}`,
     );
     if (!popup) {
       this.notifications?.show?.(
         'POPUP BLOCKED — ALLOW POPUPS TO CONNECT',
-        'warning'
+        'warning',
       );
       onFailed?.('POPUP BLOCKED — ALLOW POPUPS TO CONNECT');
       return;
@@ -1097,7 +1212,10 @@ export class SocialNetworkingService {
       clearInterval(watch);
     };
     const handler = (event: MessageEvent) => {
-      if (event.origin !== apiOrigin && event.origin !== window.location.origin) {
+      if (
+        event.origin !== apiOrigin &&
+        event.origin !== window.location.origin
+      ) {
         return;
       }
       if (!event.data || typeof event.data !== 'object') return;
@@ -1213,9 +1331,8 @@ export class SocialNetworkingService {
    * something we cannot verify.
    */
   private async refreshCaptureBlocked(): Promise<void> {
-    const permissions = (
-      navigator as Navigator & { permissions?: Permissions }
-    ).permissions;
+    const permissions = (navigator as Navigator & { permissions?: Permissions })
+      .permissions;
     if (!permissions?.query) return;
     try {
       const camera = await permissions.query({
@@ -1242,11 +1359,7 @@ export class SocialNetworkingService {
    */
   startPreview(): Promise<boolean> {
     if (this.previewActive()) return Promise.resolve(true);
-    if (
-      this.isStreaming() ||
-      this.liveStarting ||
-      this.switchingSource()
-    ) {
+    if (this.isStreaming() || this.liveStarting || this.switchingSource()) {
       return Promise.resolve(false);
     }
     if (this.previewStartPromise) return this.previewStartPromise;
@@ -1295,7 +1408,10 @@ export class SocialNetworkingService {
   /** Release capture that resolved after its preview was cancelled. */
   private releaseInactiveCapture(): void {
     if (this.isStreaming() || this.previewActive()) return;
-    this.localStream()?.getTracks().forEach((track) => track.stop());
+    this.releaseCompositeCapture();
+    this.localStream()
+      ?.getTracks()
+      .forEach((track) => track.stop());
     this.localStream.set(null);
     this.micTrackIds.clear();
     this.screenAudioAvailable.set(false);
@@ -1323,13 +1439,16 @@ export class SocialNetworkingService {
   stopStream() {
     this.captureRound++;
     if (this.previewStarting()) this.previewCancelled.set(true);
+    this.releaseCompositeCapture();
     this.pendingVideoSource = null;
     this.isStreaming.set(false);
     this.previewActive.set(false);
     this.currentPlatform.set(null);
     if (this.streamInterval) clearInterval(this.streamInterval);
     this.streamInterval = undefined;
-    this.localStream()?.getTracks().forEach((t) => t.stop());
+    this.localStream()
+      ?.getTracks()
+      .forEach((t) => t.stop());
     this.localStream.set(null);
     this.cameraEnabled.set(true);
     this.micEnabled.set(true);
@@ -1348,10 +1467,32 @@ export class SocialNetworkingService {
    */
   private async acquireHostMedia(): Promise<void> {
     const preset = STREAM_QUALITY_PRESETS[this.streamQuality()];
+    if (this.videoSource() === 'camera-pip' && this.screenShareSupported()) {
+      let mic: MediaStream | null = null;
+      try {
+        mic = await navigator.mediaDevices.getUserMedia({
+          audio: { echoCancellation: true, noiseSuppression: true },
+        });
+        const micTracks = mic.getAudioTracks();
+        micTracks.forEach((track) => this.micTrackIds.add(track.id));
+        const built = await this.buildCompositeStream(preset, micTracks);
+        this.compositeSession = built.session;
+        this.compositeRawTracks = built.raw;
+        this.screenAudioAvailable.set(
+          built.stream.getAudioTracks().length > micTracks.length,
+        );
+        this.setHostStream(built.stream, 'camera-pip');
+        return;
+      } catch (error) {
+        mic?.getTracks().forEach((track) => track.stop());
+        this.streamError.set(this.describeCaptureError(error));
+        // A refused display picker should still leave a usable camera feed.
+        this.videoSource.set('camera');
+      }
+    }
     if (this.videoSource() === 'screen' && this.screenShareSupported()) {
       try {
-        const { video, systemAudio } =
-          await this.acquireScreenCapture(preset);
+        const { video, systemAudio } = await this.acquireScreenCapture(preset);
         const mic = await navigator.mediaDevices.getUserMedia({
           audio: { echoCancellation: true, noiseSuppression: true },
         });
@@ -1415,7 +1556,10 @@ export class SocialNetworkingService {
       };
       this.screenAudioAvailable.set(androidScreenCapture.hasGameAudio);
       const nativeAudio = androidScreenCapture.audioTrack;
-      return { video: nativeVideo, systemAudio: nativeAudio ? [nativeAudio] : [] };
+      return {
+        video: nativeVideo,
+        systemAudio: nativeAudio ? [nativeAudio] : [],
+      };
     }
     const display = await navigator.mediaDevices.getDisplayMedia({
       video: {
@@ -1427,11 +1571,9 @@ export class SocialNetworkingService {
     });
     const video = display.getVideoTracks()[0];
     const systemAudio = display.getAudioTracks();
-    display
-      .getTracks()
-      .forEach((t) => {
-        if (t !== video && !systemAudio.includes(t)) t.stop();
-      });
+    display.getTracks().forEach((t) => {
+      if (t !== video && !systemAudio.includes(t)) t.stop();
+    });
     if (!video) {
       display.getTracks().forEach((t) => t.stop());
       throw new Error('SCREEN_CAPTURE_NO_VIDEO_TRACK');
@@ -1495,7 +1637,7 @@ export class SocialNetworkingService {
    * Every connected viewer peer gets the new track via replaceTrack —
    * the audience watches straight through the cut, chat uninterrupted.
    */
-  async setVideoSource(source: 'camera' | 'screen'): Promise<void> {
+  async setVideoSource(source: StreamVideoSource): Promise<void> {
     if (!this.captureActive()) return;
     if (this.switchingSource()) {
       // A picker already open cannot be replaced. If the latest request is
@@ -1533,30 +1675,45 @@ export class SocialNetworkingService {
     return run;
   }
 
-  private async switchVideoSource(
-    source: 'camera' | 'screen'
-  ): Promise<void> {
-    if (source === 'screen' && !this.screenShareSupported()) {
+  private async switchVideoSource(source: StreamVideoSource): Promise<void> {
+    if (
+      (source === 'screen' || source === 'camera-pip') &&
+      !this.screenShareSupported()
+    ) {
       this.streamError.set(
         this.screenShareUnavailableReason() ||
-          'SCREEN_SHARE_UNSUPPORTED — USE DESKTOP CHROME, EDGE OR SAFARI'
+          'SCREEN_SHARE_UNSUPPORTED — USE DESKTOP CHROME, EDGE OR SAFARI',
       );
       return;
     }
     const current = this.localStream();
     if (!current) {
-      this.streamError.set(
-        'MEDIA_CAPTURE_UNAVAILABLE — USING SIMULATION ONLY'
-      );
+      this.streamError.set('MEDIA_CAPTURE_UNAVAILABLE — USING SIMULATION ONLY');
       return;
     }
     const preset = STREAM_QUALITY_PRESETS[this.streamQuality()];
     const previousVideo = current.getVideoTracks()[0];
+    const previousComposite = this.compositeSession;
+    const previousRaw = this.compositeRawTracks;
     try {
       let next: MediaStream;
-      if (source === 'screen') {
-        const { video, systemAudio } =
-          await this.acquireScreenCapture(preset);
+      let nextComposite: {
+        session: LiveCompositeSession;
+        raw: MediaStreamTrack[];
+      } | null = null;
+      if (source === 'camera-pip') {
+        const built = await this.buildCompositeStream(
+          preset,
+          this.micAudioOf(current),
+        );
+        next = built.stream;
+        nextComposite = { session: built.session, raw: built.raw };
+        this.screenAudioAvailable.set(
+          built.stream.getAudioTracks().length >
+            this.micAudioOf(current).length,
+        );
+      } else if (source === 'screen') {
+        const { video, systemAudio } = await this.acquireScreenCapture(preset);
         const micAudio = this.micAudioOf(current);
         next = new MediaStream([video, ...micAudio, ...systemAudio]);
         this.screenAudioAvailable.set(this.screenAudioReady(systemAudio));
@@ -1570,10 +1727,15 @@ export class SocialNetworkingService {
         // The session ended while the picker was open: release the fresh
         // tracks instead of publishing them into a dead broadcast.
         next.getTracks().forEach((t) => t.stop());
+        nextComposite?.session.stop();
+        nextComposite?.raw.forEach((track) => track.stop());
         return;
       }
+      this.compositeSession = nextComposite?.session ?? null;
+      this.compositeRawTracks = nextComposite?.raw ?? [];
       this.setHostStream(next, source);
       previousVideo?.stop();
+      this.stopComposite(previousComposite, previousRaw);
       // The old screen track's system audio leaves with the switch.
       current.getAudioTracks().forEach((t) => {
         if (!this.micTrackIds.has(t.id)) t.stop();
@@ -1581,14 +1743,16 @@ export class SocialNetworkingService {
     } catch (err: any) {
       // Android's consent dialog denied: say so instead of a generic failure.
       if (String(err?.message || '').includes('SCREEN_CAPTURE_DENIED')) {
-        this.streamError.set('SCREEN SHARING WAS DENIED — ALLOW IT TO SHOW THE GAME');
+        this.streamError.set(
+          'SCREEN SHARING WAS DENIED — ALLOW IT TO SHOW THE GAME',
+        );
         return;
       }
       // Picker cancelled mid-show: stay on the current source.
       if (err?.name !== 'NotAllowedError') {
         this.streamError.set(
           'VIDEO_SOURCE_SWITCH_FAILED — STAYED ON ' +
-            this.videoSource().toUpperCase()
+            this.videoSource().toUpperCase(),
         );
       }
     }
@@ -1596,15 +1760,14 @@ export class SocialNetworkingService {
 
   /** The mic ledger first; every audio track when capture predates it. */
   private micAudioOf(stream: MediaStream): MediaStreamTrack[] {
-    const mic = stream.getAudioTracks().filter((t) => this.micTrackIds.has(t.id));
+    const mic = stream
+      .getAudioTracks()
+      .filter((t) => this.micTrackIds.has(t.id));
     return mic.length ? mic : stream.getAudioTracks();
   }
 
   /** Publish a rebuilt host stream and push the update to viewers. */
-  private setHostStream(
-    stream: MediaStream,
-    source: 'camera' | 'screen'
-  ): void {
+  private setHostStream(stream: MediaStream, source: StreamVideoSource): void {
     this.localStream.set(stream);
     this.videoSource.set(source);
     this.cameraEnabled.set(true);
@@ -1650,7 +1813,9 @@ export class SocialNetworkingService {
   toggleCamera() {
     const next = !this.cameraEnabled();
     this.cameraEnabled.set(next);
-    this.localStream()?.getVideoTracks().forEach((t) => (t.enabled = next));
+    this.localStream()
+      ?.getVideoTracks()
+      .forEach((t) => (t.enabled = next));
   }
 
   /** Toggle the microphone (voice) tracks on the live stream. */
@@ -1705,7 +1870,7 @@ export class SocialNetworkingService {
       viewers: Math.max(0, t.viewers + Math.floor(this.getSecureRandom() * 5)),
       bitrate: `${Math.max(
         500,
-        preset.bitrate + Math.floor(this.getSecureRandom() * 400) - 200
+        preset.bitrate + Math.floor(this.getSecureRandom() * 400) - 200,
       )} kbps`,
       health: this.getSecureRandom() > 0.9 ? 'Fair' : 'Good',
     }));
@@ -1778,7 +1943,7 @@ export class SocialNetworkingService {
           console.error('Neural sync failed:', response.error);
           this.neuralSyncStatus.set('idle');
         }
-      }
+      },
     );
   }
 
@@ -1791,8 +1956,8 @@ export class SocialNetworkingService {
       const history = await firstValueFrom(
         this.http.get<any[]>(
           `${APP_SECURITY_CONFIG.api_url}/users/${userId}/messages/${friendId}`,
-          { headers }
-        )
+          { headers },
+        ),
       );
       this.messages.set(history);
     } catch (e) {
@@ -1809,8 +1974,8 @@ export class SocialNetworkingService {
       const blocked = await firstValueFrom(
         this.http.get<OnlineUser[]>(
           `${APP_SECURITY_CONFIG.api_url}/users/${userId}/blocks`,
-          { headers }
-        )
+          { headers },
+        ),
       );
       this.blockedUsers.set(blocked);
       // The blocklist usually arrives after the first presence snapshot. Purge
@@ -1818,10 +1983,10 @@ export class SocialNetworkingService {
       // next broadcast (or a refresh).
       const blockedIds = new Set(blocked.map((u) => String(u.userId)));
       this.onlineUsers.update((users) =>
-        users.filter((u) => !blockedIds.has(String(u.userId)))
+        users.filter((u) => !blockedIds.has(String(u.userId))),
       );
       this.friends.update((users) =>
-        users.filter((u) => !blockedIds.has(String(u.userId)))
+        users.filter((u) => !blockedIds.has(String(u.userId))),
       );
       return blocked;
     } catch (e) {
@@ -1841,18 +2006,18 @@ export class SocialNetworkingService {
         this.http.put(
           `${APP_SECURITY_CONFIG.api_url}/users/${userId}/blocks/${targetUserId}`,
           {},
-          { headers }
-        )
+          { headers },
+        ),
       );
       // Reflect locally: remove from discovery surfaces + drop their DMs.
       this.onlineUsers.update((users) =>
-        users.filter((u) => u.userId !== targetUserId)
+        users.filter((u) => u.userId !== targetUserId),
       );
       this.friends.update((users) =>
-        users.filter((u) => u.userId !== targetUserId)
+        users.filter((u) => u.userId !== targetUserId),
       );
       this.messages.update((msgs) =>
-        msgs.filter((m) => m.fromUserId !== targetUserId)
+        msgs.filter((m) => m.fromUserId !== targetUserId),
       );
       await this.loadBlockedUsers();
       return true;
@@ -1872,8 +2037,8 @@ export class SocialNetworkingService {
       await firstValueFrom(
         this.http.delete(
           `${APP_SECURITY_CONFIG.api_url}/users/${userId}/blocks/${targetUserId}`,
-          { headers }
-        )
+          { headers },
+        ),
       );
       await this.loadBlockedUsers();
       return true;
@@ -1892,8 +2057,8 @@ export class SocialNetworkingService {
       const friends = await firstValueFrom(
         this.http.get<OnlineUser[]>(
           `${APP_SECURITY_CONFIG.api_url}/users/${userId}/friends`,
-          { headers }
-        )
+          { headers },
+        ),
       );
       this.friends.set(friends);
     } catch (e) {
@@ -1911,8 +2076,8 @@ export class SocialNetworkingService {
         this.http.post(
           `${APP_SECURITY_CONFIG.api_url}/users/${userId}/friends/${friendId}`,
           {},
-          { headers }
-        )
+          { headers },
+        ),
       );
       await this.loadFriends();
     } catch (e) {
@@ -1922,7 +2087,7 @@ export class SocialNetworkingService {
 
   async respondToFriendRequest(
     friendId: string,
-    status: 'accepted' | 'declined'
+    status: 'accepted' | 'declined',
   ) {
     const userId = this.profileService.profile().id;
     if (!userId) return;
@@ -1933,8 +2098,8 @@ export class SocialNetworkingService {
         this.http.patch(
           `${APP_SECURITY_CONFIG.api_url}/users/${userId}/friends/${friendId}`,
           { status },
-          { headers }
-        )
+          { headers },
+        ),
       );
       await this.loadFriends();
     } catch (e) {
@@ -1951,8 +2116,8 @@ export class SocialNetworkingService {
       await firstValueFrom(
         this.http.delete(
           `${APP_SECURITY_CONFIG.api_url}/users/${userId}/friends/${friendId}`,
-          { headers }
-        )
+          { headers },
+        ),
       );
       await this.loadFriends();
     } catch (e) {
@@ -2053,7 +2218,7 @@ export class SocialNetworkingService {
   inviteToStudioSession(
     sessionId: string,
     toUserId: string,
-    role: StudioCollaborationRole = 'viewer'
+    role: StudioCollaborationRole = 'viewer',
   ) {
     this.socket?.emit('invite_to_studio_session', {
       sessionId,
@@ -2064,7 +2229,7 @@ export class SocialNetworkingService {
 
   joinStudioSession(
     sessionId: string,
-    role: StudioCollaborationRole = 'viewer'
+    role: StudioCollaborationRole = 'viewer',
   ) {
     this.socket?.emit('join_studio_session', { sessionId, role });
   }
@@ -2131,8 +2296,8 @@ export class SocialNetworkingService {
           {
             params: { q: query },
             headers,
-          }
-        )
+          },
+        ),
       );
     } catch {
       return [];
@@ -2146,8 +2311,8 @@ export class SocialNetworkingService {
       return await firstValueFrom(
         this.http.get<OnlineUser[]>(
           `${APP_SECURITY_CONFIG.api_url}/users/featured`,
-          { headers }
-        )
+          { headers },
+        ),
       );
     } catch {
       return [];

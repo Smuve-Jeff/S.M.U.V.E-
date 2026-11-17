@@ -1762,6 +1762,11 @@ describe("ThaSpotComponent", () => {
       component.showGoLivePicker.set(true);
 
       const golive = component.confirmGoLive("smuve");
+      const preflight = http.expectOne((req) =>
+        req.url.endsWith("/api/broadcast/destinations"),
+      );
+      preflight.flush([]);
+      await new Promise((resolve) => setTimeout(resolve, 0));
       const request = http.expectOne(
         (req) => req.method === "POST" && req.url.endsWith("/users/77/live-streams"),
       );
@@ -1797,6 +1802,38 @@ describe("ThaSpotComponent", () => {
       endRequest.flush({ success: true, streamId: 11 });
       await end;
       tokens.setToken(null);
+    });
+
+    it("sends every selected destination in one Go Live request", async () => {
+      const golive = jest
+        .spyOn(component.liveStream, "golive")
+        .mockResolvedValue(null);
+
+      component.toggleGoLivePlatform("kick");
+      component.toggleGoLivePlatform("facebook");
+      await component.confirmGoLive();
+
+      expect(golive).toHaveBeenCalledTimes(1);
+      expect(golive).toHaveBeenCalledWith(
+        expect.objectContaining({
+          platform: "smuve",
+          destinations: ["smuve", "kick", "facebook"],
+        }),
+      );
+      golive.mockRestore();
+    });
+
+    it("maps the Facebook CTA to the Facebook Go Live destination", async () => {
+      const golive = jest
+        .spyOn(component.liveStream, "golive")
+        .mockResolvedValue(null);
+
+      await component.goLive("Facebook");
+
+      expect(golive).toHaveBeenCalledWith(
+        expect.objectContaining({ platform: "facebook" }),
+      );
+      expect(component.activeHubTab()).toBe("stream");
     });
 
     it("releases a pending preview when Tha Spot is left", () => {

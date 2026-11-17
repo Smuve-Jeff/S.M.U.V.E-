@@ -80,6 +80,40 @@ test("opens a path and pushes RTSP to the provider's RTMP ingest", async () => {
   assert.equal(manager.list()[0].running, true);
 });
 
+test("fans one ffmpeg output out to multiple destinations", async () => {
+  const { manager, calls, added } = harness();
+  const second = {
+    rtmpUrl: "rtmps://kick.example:443/app",
+    streamKey: "sk_us_kick_123456",
+  };
+
+  const session = await manager.create({
+    destinations: [destination, second],
+  });
+
+  assert.deepEqual(added, [session.id]);
+  assert.equal(calls.length, 1);
+  assert.deepEqual(calls[0].args.slice(-5), [
+    "-map",
+    "0",
+    "-f",
+    "tee",
+    "[f=flv]rtmp://live.twitch.tv/app/live_123456789_abcdef|[f=flv]rtmps://kick.example:443/app/sk_us_kick_123456",
+  ]);
+});
+
+test("refuses an oversized fan-out before touching the media server", async () => {
+  const { manager, added } = harness();
+  const destinations = Array.from({ length: 5 }, (_, index) => ({
+    rtmpUrl: `rtmp://ingest.example/app${index}`,
+    streamKey: `live_123456789_abcdef${index}`,
+  }));
+
+  await assert.rejects(manager.create({ destinations }));
+  assert.deepEqual(added, []);
+  assert.equal(manager.list().length, 0);
+});
+
 test("audio settings are configurable, and bad values are refused", async () => {
   const { manager, calls } = harness({ audioBitrate: "96k", audioChannels: 1 });
   await manager.create(destination);

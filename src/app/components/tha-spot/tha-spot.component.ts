@@ -1674,8 +1674,12 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   readonly splitScreenModeActive = signal(false);
 
   // ── Go-Live / live-stream overlay state ─────────────
-  /** Local picker key: which platform the host wants to broadcast on. */
-  readonly selectedGoLivePlatform = signal<GoLivePlatform>("smuve");
+  /** Local picker: every platform the host wants in this one session. */
+  readonly selectedGoLivePlatforms = signal<GoLivePlatform[]>(["smuve"]);
+  /** First selection, used as the session's compatibility platform. */
+  readonly selectedGoLivePlatform = computed<GoLivePlatform>(
+    () => this.selectedGoLivePlatforms()[0] ?? "smuve",
+  );
   readonly showGoLivePicker = signal(false);
   /**
    * Tap-to-join inbound preview from `?live=...`. Rendered as an overlay
@@ -2893,9 +2897,23 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     this.showGoLivePicker.set(true);
   }
 
-  /** Confirm the platform pick: authorize if needed, then issue the row. */
-  async confirmGoLive(platform: GoLivePlatform): Promise<void> {
-    this.selectedGoLivePlatform.set(platform);
+  /** Toggle one destination; the picker never becomes empty. */
+  toggleGoLivePlatform(platform: GoLivePlatform): void {
+    this.selectedGoLivePlatforms.update((current) => {
+      if (current.includes(platform)) {
+        return current.length === 1
+          ? current
+          : current.filter((value) => value !== platform);
+      }
+      return [...current, platform];
+    });
+  }
+
+  /** Confirm the selection: authorize providers, then issue one session. */
+  async confirmGoLive(platform?: GoLivePlatform): Promise<void> {
+    if (platform) this.selectedGoLivePlatforms.set([platform]);
+    const destinations = [...this.selectedGoLivePlatforms()];
+    const primary = destinations[0] ?? "smuve";
     const game = this.selectedGame();
     // Only carry a lobby id when the host actually has one. A faceless
     // broadcast (no game selected) ships lobbyId: null so the share URL
@@ -2913,7 +2931,8 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
           ? { gameId: game.id }
           : null;
     const issued = await this.liveStream.golive({
-      platform,
+      platform: primary,
+      destinations,
       gameId: game?.id,
       lobbyId,
       payload,
@@ -4274,10 +4293,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
       return;
     }
     this.activeHubTab.set("stream");
-    await this.liveStream.golive({
-      platform: target,
-      gameId: this.selectedGame()?.id,
-    });
+    await this.confirmGoLive(target);
   }
 
   /** Stop the real session (server row + capture), not just the preview. */
@@ -4294,11 +4310,11 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
 
   /** In-game bar: cut between the camera and the game without leaving it. */
   async toggleLiveSource(): Promise<void> {
-    if (this.socialService.videoSource() === 'screen') {
+    if (this.socialService.videoSource() !== 'camera') {
       await this.socialService.setVideoSource('camera');
       return;
     }
-    await this.requestScreenSource();
+    await this.requestScreenSource('screen');
   }
 
   /** Start local capture without creating a live stream row. */
@@ -4323,7 +4339,11 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     }
     if (this.socialService.isStreaming()) return;
     const source =
-      this.socialService.videoSource() === 'screen' ? 'SCREEN SHARE' : 'CAMERA';
+      this.socialService.videoSource() === 'screen'
+        ? 'SCREEN SHARE'
+        : this.socialService.videoSource() === 'camera-pip'
+          ? 'CAMERA + SCREEN'
+          : 'CAMERA';
     this.snackbarService.success(
       `PREVIEW LIVE — ${source}. GO LIVE REUSES THIS CAPTURE.`,
     );
@@ -4344,7 +4364,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   /** Pre-stream source picker: choosing SCREEN explains when it cannot run. */
-  selectStreamSource(source: 'camera' | 'screen'): void {
+  selectStreamSource(source: 'camera' | 'screen' | 'camera-pip'): void {
     if (source === 'camera') {
       if (this.socialService.previewActive() || this.socialService.isStreaming()) {
         void this.socialService.setVideoSource('camera');
@@ -4359,14 +4379,29 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
       return;
     }
     if (this.socialService.previewActive() || this.socialService.isStreaming()) {
-      void this.requestScreenSource();
+      void this.requestScreenSource(source);
       return;
     }
-    this.socialService.videoSource.set('screen');
+    this.socialService.videoSource.set(source);
+  }
+
+  /** Cycle the camera inset corner without touching either capture. */
+  cycleCompositeCorner(): void {
+    const corners = [
+      'top-left',
+      'top-right',
+      'bottom-right',
+      'bottom-left',
+    ] as const;
+    const current = this.socialService.compositeLayout().corner;
+    const next = corners[(corners.indexOf(current) + 1) % corners.length];
+    this.socialService.setCompositeLayout({ corner: next });
   }
 
   /** Ask for a display, or say why the host cannot on this build. */
-  private async requestScreenSource(): Promise<void> {
+  private async requestScreenSource(
+    target: 'screen' | 'camera-pip' = 'screen',
+  ): Promise<void> {
     const reason = this.socialService.screenShareUnavailableReason();
     if (reason) {
       this.flashGameLiveNotice(reason);
@@ -4376,8 +4411,8 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     // The display picker and capture setup both await; prime the mixer while
     // this click still counts as user activation.
     this.ingest.primeAudioContext();
-    await this.socialService.setVideoSource('screen');
-    if (this.socialService.videoSource() === 'screen') {
+    await this.socialService.setVideoSource(target);
+    if (this.socialService.videoSource() === target) {
       const audioWarning = this.socialService.screenAudioWarning();
       if (audioWarning) this.flashGameLiveNotice(audioWarning);
     }

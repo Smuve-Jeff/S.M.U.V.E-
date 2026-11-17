@@ -3,7 +3,9 @@ import { authenticate } from "@/middleware/auth";
 import {
   LIVE_GO_LIVE_PLATFORMS,
   LiveStreamPlatform,
+  type GoLivePlatform,
   startLiveStream as issueStart,
+  updateLiveStreamDestinations,
   getCurrentLiveStream,
   listActiveLiveStreams,
   endLiveStream,
@@ -69,8 +71,21 @@ router.post(
       // already proven to be that user by the ownership check above.
       const hostId =
         actor.role === "admin" ? req.params.userId : String(actor.userId);
+      let destinations: GoLivePlatform[] | undefined;
+      if (Array.isArray(req.body?.destinations)) {
+        const requested = req.body.destinations.map((value: unknown) =>
+          sanitizePlatform(value),
+        ) as Array<LiveStreamPlatform | null>;
+        if (requested.some((value) => !value)) {
+          return res.status(400).json({
+            error: `destinations must contain only: ${LIVE_GO_LIVE_PLATFORMS.join(", ")}`,
+          });
+        }
+        destinations = [...new Set(requested)] as GoLivePlatform[];
+      }
       const row = await issueStart({
         hostId,
+        destinations,
         hostDisplayName:
           typeof req.body?.hostDisplayName === "string"
             ? req.body.hostDisplayName
@@ -99,6 +114,42 @@ router.post(
         hostDisplayName: row.hostDisplayName,
       });
       return res.status(201).json(row);
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
+// PATCH /api/users/:userId/live-streams/destinations
+//   body: { relayId, statuses: { twitch: 'live', kick: 'failed', ... } }
+router.patch(
+  "/users/:userId/live-streams/destinations",
+  authenticate,
+  async (req, res, next) => {
+    try {
+      const actor = lookupActor(req);
+      if (!actor) return res.status(401).json({ error: "auth required" });
+      if (
+        actor.role !== "admin" &&
+        String(actor.userId) !== req.params.userId
+      ) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      const relayId =
+        typeof req.body?.relayId === "string" ? req.body.relayId : "";
+      if (!relayId) {
+        return res.status(400).json({ error: "relayId is required" });
+      }
+      const statuses =
+        req.body?.statuses && typeof req.body.statuses === "object"
+          ? req.body.statuses
+          : {};
+      const row = await updateLiveStreamDestinations(
+        req.params.userId,
+        relayId,
+        statuses,
+      );
+      return res.json(row);
     } catch (err) {
       return next(err);
     }

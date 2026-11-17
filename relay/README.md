@@ -4,13 +4,13 @@ Twitch and Kick accept RTMP(S). A browser cannot send it. This relay is the
 missing hop:
 
 ```
-browser ──WHIP (WebRTC)──▶ MediaMTX ──RTSP──▶ ffmpeg ──RTMP(S)──▶ Twitch / Kick
+browser ──WHIP (WebRTC)──▶ MediaMTX ──RTSP──▶ ffmpeg ──RTMP(S)──▶ Twitch / Kick / Facebook
 ```
 
-The S.M.U.V.E API decides the destination (Twitch's stream key over Helix, or
-the Kick URL + key the host saved) and asks this relay to open a session. The
-browser only ever receives a single-purpose WHIP URL; stream keys never leave
-the server side.
+The S.M.U.V.E API decides the destinations (Twitch's stream key over Helix, or
+the Kick/Facebook URL + key the host saved) and asks this relay to open a
+session. The browser only ever receives a single-purpose WHIP URL; stream keys
+never leave the server side.
 
 ## Control API
 
@@ -18,7 +18,7 @@ The API server's `MEDIA_RELAY_URL` points at this service. Contract:
 
 | Method | Path | Body | Response |
 | --- | --- | --- | --- |
-| `POST` | `/sessions` | `{ rtmpUrl, streamKey }` | `201 { id, whipUrl }` |
+| `POST` | `/sessions` | `{ rtmpUrl, streamKey }` or `{ destinations: [{ rtmpUrl, streamKey }] }` (up to 4) | `201 { id, whipUrl }` |
 | `DELETE` | `/sessions/:id` | — | `204` |
 | `GET` | `/recordings` | — | `200 { retentionHours, recordings: [{ name, bytes, modifiedAt, durationSeconds, keepHours, keepUntil }] }`; `durationSeconds` comes from the file's own `mvhd`, so listing spawns nothing; `retentionHours` lets a caller say when an unpinned show goes; `503` when `RECORDING_DIR` is unset |
 | `PUT` | `/recordings/:name/retention` | `{ "hours": 168 }` | keeps the file past the window for that many hours (max 2160, `0` clears it); answers `{ keepHours, keepUntil }` |
@@ -29,6 +29,11 @@ The API server's `MEDIA_RELAY_URL` points at this service. Contract:
 | `GET` | `/sessions/:id` | — | `200 { ready, bytesReceived, tracks, bytesOut, bitrateKbps, drops, silentMs, recoveries, recovering, stalled, stalledForMs, recording, … }` |
 
 Every route except `/health` requires `Authorization: Bearer $RELAY_TOKEN`.
+
+A multi-destination session still has one WHIP ingest and one recording. The
+relay uses ffmpeg's `tee` muxer to feed every RTMP output from that one encode.
+The process is supervised as a unit for now, so one output failure ends the
+whole push; independent per-output retry is a follow-up.
 
 `/health` probes MediaMTX rather than just reporting liveness: a relay that can
 accept sessions but cannot reach its media server fails every publish, so it

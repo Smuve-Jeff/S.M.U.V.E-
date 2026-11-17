@@ -49,6 +49,10 @@ const httpStub = {
     const next = httpResponses.shift();
     return next === undefined ? of(null) : of(next);
   }),
+  patch: jest.fn((url: string, body?: unknown, options?: any) => {
+    httpCalls.push({ method: 'PATCH', url, body, headers: options?.headers });
+    return of(null);
+  }),
 };
 
 /** One canonical wire row so new lifecycle tests stay readable. */
@@ -159,6 +163,8 @@ beforeEach(() => {
           start: jest.fn(async () => true),
           stop: jest.fn(async () => undefined),
           state: signal('idle'),
+          activeRelayId: signal(null),
+          sessionPlatforms: signal([]),
           primeAudioContext: jest.fn(),
           closePrimedAudioContext: jest.fn(),
         },
@@ -275,7 +281,7 @@ describe('LiveStreamService', () => {
       expect(service.currentStream()?.active).toBe(true);
       expect(service.ownsBroadcast()).toBe(true);
       expect(social().startStream).toHaveBeenCalledWith('twitch');
-      expect(ingest().start).toHaveBeenCalledWith('twitch');
+      expect(ingest().start).toHaveBeenCalledWith(['twitch']);
     });
 
     it('does not issue a row when the Twitch popup is blocked', async () => {
@@ -389,7 +395,7 @@ describe('LiveStreamService', () => {
       expect(httpCalls).toHaveLength(1);
       expect(httpCalls[0].url).toContain('/users/77/live-streams');
       expect(ingest().load).toHaveBeenCalled();
-      expect(ingest().start).toHaveBeenCalledWith('facebook');
+      expect(ingest().start).toHaveBeenCalledWith(['facebook']);
     });
 
     it('issues a Kick row after the saved-destination preflight and starts the push', async () => {
@@ -405,7 +411,36 @@ describe('LiveStreamService', () => {
       expect(httpCalls).toHaveLength(1);
       expect(httpCalls[0].url).toContain('/users/77/live-streams');
       expect(ingest().load).toHaveBeenCalled();
-      expect(ingest().start).toHaveBeenCalledWith('kick');
+      expect(ingest().start).toHaveBeenCalledWith(['kick']);
+    });
+
+    it('issues one session and one relay fan-out for multiple destinations', async () => {
+      service = TestBed.inject(LiveStreamService);
+      tokenRef = { value: 'TKN' };
+      profileRef = { value: { id: '77', artistName: 'JEFF' } };
+      httpResponses.push(
+        makeRow({
+          platform: 'smuve',
+          destinations: [
+            { platform: 'smuve', status: 'live', relayId: null, error: null },
+            { platform: 'kick', status: 'pending', relayId: null, error: null },
+            { platform: 'facebook', status: 'pending', relayId: null, error: null },
+          ],
+        }),
+      );
+
+      const result = await service.golive({
+        platform: 'smuve',
+        destinations: ['smuve', 'kick', 'facebook'],
+      });
+
+      expect(result).not.toBeNull();
+      expect(httpCalls[0].body).toMatchObject({
+        platform: 'smuve',
+        destinations: ['smuve', 'kick', 'facebook'],
+      });
+      expect(social().startStream).toHaveBeenCalledWith('smuve');
+      expect(ingest().start).toHaveBeenCalledWith(['kick', 'facebook']);
     });
 
     it('returns null + rolls back a failed native row', async () => {
@@ -960,7 +995,7 @@ describe('LiveStreamService', () => {
 
       const ingest = TestBed.inject(BroadcastIngestService);
       expect(ingest.load).toHaveBeenCalled();
-      expect(ingest.start).toHaveBeenCalledWith('kick');
+      expect(ingest.start).toHaveBeenCalledWith(['kick']);
     });
 
     it('does not start a competing capture in a tab that does not own the broadcast', async () => {
@@ -1002,7 +1037,7 @@ describe('LiveStreamService', () => {
 
       expect(primedBeforeStart).toBe(true);
       expect(prime).toHaveBeenCalledTimes(1);
-      expect(ingest.start).toHaveBeenCalledWith('kick');
+      expect(ingest.start).toHaveBeenCalledWith(['kick']);
     });
 
     it('returns false when the provider push fails to resume', async () => {
