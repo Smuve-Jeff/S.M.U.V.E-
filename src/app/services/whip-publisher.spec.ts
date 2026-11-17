@@ -300,17 +300,57 @@ describe('WhipPublisher.start', () => {
       await Promise.resolve();
     }
     expect(fetchMock).toHaveBeenCalledTimes(1);
+    const olderPc = lastPc;
 
     expect(await publisher.start('https://relay.test/s/whip/new', stream)).toBe(
       true
     );
     const newerPc = lastPc;
+    olderPc.close.mockClear();
 
     rejectOld(new Error('old network failure'));
     expect(await oldStart).toBe(false);
 
+    expect(olderPc.close).toHaveBeenCalledTimes(1);
     expect(publisher.state()).toBe('live');
     expect(publisher.error()).toBeNull();
+    expect(newerPc.close).not.toHaveBeenCalled();
+    await publisher.stop();
+  });
+
+  it('closes a stale attempt that resolves after a newer session starts', async () => {
+    installH264();
+    let resolveOld!: (response: Response) => void;
+    const oldRequest = new Promise<Response>((resolve) => {
+      resolveOld = resolve;
+    });
+    fetchMock
+      .mockImplementationOnce(() => oldRequest)
+      .mockResolvedValueOnce({
+        ok: true,
+        headers: { get: () => 'https://relay.test/s/whip/new' },
+        text: async () => 'v=0',
+      });
+    const publisher = new WhipPublisher();
+
+    const oldStart = publisher.start('https://relay.test/s/whip/old', stream);
+    for (let i = 0; i < 10 && fetchMock.mock.calls.length === 0; i++) {
+      await Promise.resolve();
+    }
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const stalePc = lastPc;
+
+    expect(await publisher.start('https://relay.test/s/whip/new', stream)).toBe(
+      true
+    );
+    const newerPc = lastPc;
+    stalePc.close.mockClear();
+
+    resolveOld({} as Response);
+    expect(await oldStart).toBe(false);
+
+    expect(stalePc.close).toHaveBeenCalledTimes(1);
+    expect(publisher.state()).toBe('live');
     expect(newerPc.close).not.toHaveBeenCalled();
     await publisher.stop();
   });

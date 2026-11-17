@@ -117,8 +117,10 @@ export class WhipPublisher {
     this.error.set(null);
     this.state.set('connecting');
 
+    let ownedPc: RTCPeerConnection | undefined;
     try {
       const pc = new RTCPeerConnection({ iceServers: STUN_SERVERS });
+      ownedPc = pc;
       this.pc = pc;
       const video = stream.getVideoTracks()[0];
       const audioTracks = stream.getAudioTracks();
@@ -159,7 +161,10 @@ export class WhipPublisher {
         },
         body: sdp,
       });
-      if (round !== this.round) return false;
+      if (round !== this.round) {
+        pc.close();
+        return false;
+      }
       if (!response.ok) throw new Error(`WHIP_HTTP_${response.status}`);
 
       const location = response.headers.get('Location');
@@ -169,14 +174,21 @@ export class WhipPublisher {
       const answer = await response.text();
       if (!answer.trim()) throw new Error('WHIP_EMPTY_ANSWER');
       await pc.setRemoteDescription({ type: 'answer', sdp: answer });
-      if (round !== this.round) return false;
+      if (round !== this.round) {
+        pc.close();
+        return false;
+      }
       this.state.set('live');
       return true;
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       // A newer start or stop has already torn this attempt down. Do not call
-      // stop() here: this.pc now belongs to the newer session.
-      if (round !== this.round) return false;
+      // stop() here: this.pc now belongs to the newer session. Close only the
+      // peer connection this attempt owns.
+      if (round !== this.round) {
+        ownedPc?.close();
+        return false;
+      }
 
       // stop() bumps the round. Accept only the bump it makes itself, so a
       // start that races the teardown cannot have its state overwritten.
