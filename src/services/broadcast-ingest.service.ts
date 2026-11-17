@@ -18,11 +18,36 @@ import {
   rememberBroadcastSession,
 } from "@/services/broadcast-recordings.service";
 
-export const INGEST_PLATFORMS = ["twitch", "kick", "facebook", "custom"] as const;
+export const CUSTOM_INGEST_PLATFORMS = [
+  "custom",
+  "custom2",
+  "custom3",
+  "custom4",
+] as const;
+export type CustomIngestPlatform = (typeof CUSTOM_INGEST_PLATFORMS)[number];
+
+export const INGEST_PLATFORMS = [
+  "twitch",
+  "kick",
+  "facebook",
+  ...CUSTOM_INGEST_PLATFORMS,
+] as const;
 
 /** Providers whose RTMP URL and key are entered from their dashboard. */
-const MANUAL_INGEST_PLATFORMS = ["kick", "facebook", "custom"] as const;
+const MANUAL_INGEST_PLATFORMS = [
+  "kick",
+  "facebook",
+  ...CUSTOM_INGEST_PLATFORMS,
+] as const;
 type ManualIngestPlatform = (typeof MANUAL_INGEST_PLATFORMS)[number];
+
+const isCustomIngestPlatform = (
+  platform: IngestPlatform,
+): platform is CustomIngestPlatform =>
+  (CUSTOM_INGEST_PLATFORMS as readonly string[]).includes(platform);
+
+const defaultCustomLabel = (platform: CustomIngestPlatform): string =>
+  `CUSTOM ${CUSTOM_INGEST_PLATFORMS.indexOf(platform) + 1}`;
 
 export interface DestinationStatus {
   platform: IngestPlatform;
@@ -156,11 +181,15 @@ export async function destinationOverview(
   userId: number | string,
 ): Promise<DestinationOverview> {
   const owner = Number(userId);
-  const [twitchAccount, kickRow, facebookRow, customRow] = await Promise.all([
+  const [twitchAccount, kickRow, facebookRow, customRows] = await Promise.all([
     accountRepository().findOne({ where: { userId: owner, platform: "twitch" } }),
     destinationRepository().findOne({ where: { userId: owner, platform: "kick" } }),
     destinationRepository().findOne({ where: { userId: owner, platform: "facebook" } }),
-    destinationRepository().findOne({ where: { userId: owner, platform: "custom" } }),
+    Promise.all(
+      CUSTOM_INGEST_PLATFORMS.map((platform) =>
+        destinationRepository().findOne({ where: { userId: owner, platform } }),
+      ),
+    ),
   ]);
 
   const status = (
@@ -168,7 +197,6 @@ export async function destinationOverview(
     detail: string,
     label = platform.toUpperCase(),
   ): DestinationStatus => ({ platform, ready: !!detail, detail, label });
-  const customLabel = customRow?.label?.trim() || "CUSTOM RTMP";
 
   return {
     relayConfigured: !!relayConfiguration(),
@@ -180,13 +208,17 @@ export async function destinationOverview(
       facebookRow
         ? status("facebook", `FACEBOOK — ${ingestHost(facebookRow.rtmpUrl)}`)
         : status("facebook", ""),
-      customRow
-        ? status(
-            "custom",
-            `${customLabel.toUpperCase()} — ${ingestHost(customRow.rtmpUrl)}`,
-            customLabel,
-          )
-        : status("custom", "", customLabel),
+      ...CUSTOM_INGEST_PLATFORMS.map((platform, index) => {
+        const row = customRows[index];
+        const label = row?.label?.trim() || defaultCustomLabel(platform);
+        return row
+          ? status(
+              platform,
+              `${label.toUpperCase()} — ${ingestHost(row.rtmpUrl)}`,
+              label,
+            )
+          : status(platform, "", label);
+      }),
     ],
   };
 }
@@ -225,7 +257,9 @@ export async function saveManualDestination(
   const rtmpUrl = typeof input.rtmpUrl === "string" ? input.rtmpUrl.trim() : "";
   const streamKey =
     typeof input.streamKey === "string" ? input.streamKey.trim() : "";
-  const label = key === "custom" ? customLabel(input.label) : key.toUpperCase();
+  const label = isCustomIngestPlatform(key)
+    ? customLabel(input.label)
+    : key.toUpperCase();
 
   if (!/^rtmps?:\/\/\S+$/i.test(rtmpUrl) || /[|\[\]]/.test(rtmpUrl)) {
     throw new AppError(

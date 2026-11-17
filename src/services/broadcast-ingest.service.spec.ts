@@ -170,6 +170,29 @@ describe("broadcast ingest manual destinations", () => {
     });
   });
 
+  it("stores a second labelled custom slot independently", async () => {
+    mockRepo.create.mockImplementation((row: any) => row);
+    mockRepo.save.mockImplementation(async (row: any) => row);
+
+    const result = await saveManualDestination(7, "custom2", {
+      label: "Instagram",
+      rtmpUrl: "rtmps://instagram.example.com/live",
+      streamKey: "INSTAGRAM_KEY_123",
+    });
+
+    expect(mockRepo.save).toHaveBeenCalledWith(
+      expect.objectContaining({
+        platform: "custom2",
+        label: "Instagram",
+        streamKey: "sealed:INSTAGRAM_KEY_123",
+      }),
+    );
+    expect(result).toMatchObject({
+      platform: "custom2",
+      label: "Instagram",
+    });
+  });
+
   it("rejects a custom destination without a label", async () => {
     await expect(
       saveManualDestination(7, "custom", {
@@ -178,6 +201,41 @@ describe("broadcast ingest manual destinations", () => {
       }),
     ).rejects.toMatchObject({ statusCode: 400 });
     expect(mockRepo.save).not.toHaveBeenCalled();
+  });
+
+  it("reports every saved custom slot in one overview", async () => {
+    mockRepo.findOne
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({
+        label: "TikTok",
+        rtmpUrl: "rtmps://tiktok.example.com/live",
+      })
+      .mockResolvedValueOnce({
+        label: "Instagram",
+        rtmpUrl: "rtmps://instagram.example.com/live",
+      })
+      .mockResolvedValueOnce({
+        label: "X",
+        rtmpUrl: "rtmps://x.example.com/live",
+      })
+      .mockResolvedValueOnce({
+        label: "LinkedIn",
+        rtmpUrl: "rtmps://linkedin.example.com/live",
+      });
+
+    const result = await destinationOverview(7);
+    const custom = result.platforms.filter((row) =>
+      String(row.platform).startsWith("custom"),
+    );
+
+    expect(custom).toEqual([
+      expect.objectContaining({ platform: "custom", label: "TikTok", ready: true }),
+      expect.objectContaining({ platform: "custom2", label: "Instagram", ready: true }),
+      expect.objectContaining({ platform: "custom3", label: "X", ready: true }),
+      expect.objectContaining({ platform: "custom4", label: "LinkedIn", ready: true }),
+    ]);
   });
 
   it("reports a saved custom destination with its host label", async () => {
@@ -301,6 +359,48 @@ describe("broadcast ingest multi-destination sessions", () => {
         streamKey: "CUSTOM_KEY_123",
       },
     ]);
+  });
+
+  it("fans out to all four labelled custom slots", async () => {
+    mockRepo.findOne.mockImplementation(async ({ where }: any) => ({
+      id: where.platform,
+      userId: 7,
+      platform: where.platform,
+      label: where.platform,
+      rtmpUrl: `rtmps://${where.platform}.example.com/live`,
+      streamKey: `sealed:${where.platform.toUpperCase()}_KEY_123`,
+    }));
+    const fetchMock = jest.fn(async () => ({
+      ok: true,
+      json: async () => ({
+        id: "relay-four",
+        whipUrl: "https://relay.test/relay-four/whip",
+      }),
+    }));
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+
+    const session = await startIngestSession(7, [
+      "custom",
+      "custom2",
+      "custom3",
+      "custom4",
+    ]);
+
+    expect(session.platforms).toEqual([
+      "custom",
+      "custom2",
+      "custom3",
+      "custom4",
+    ]);
+    const body = JSON.parse(
+      (fetchMock.mock.calls[0] as unknown as [string, RequestInit])[1]
+        .body as string,
+    );
+    expect(body.destinations).toHaveLength(4);
+    expect(body.destinations[3]).toEqual({
+      rtmpUrl: "rtmps://custom4.example.com/live",
+      streamKey: "CUSTOM4_KEY_123",
+    });
   });
 
   it("rejects an empty provider set before calling the relay", async () => {

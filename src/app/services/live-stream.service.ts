@@ -23,6 +23,9 @@ export type LiveStreamPlatform =
   | 'kick'
   | 'facebook'
   | 'custom'
+  | 'custom2'
+  | 'custom3'
+  | 'custom4'
   | 'youtube'
   | 'tiktok';
 
@@ -32,6 +35,9 @@ export const LIVE_STREAM_PLATFORMS: LiveStreamPlatform[] = [
   'kick',
   'facebook',
   'custom',
+  'custom2',
+  'custom3',
+  'custom4',
   'youtube',
   'tiktok',
 ];
@@ -39,9 +45,9 @@ export const LIVE_STREAM_PLATFORMS: LiveStreamPlatform[] = [
 /**
  * What the Go Live picker may offer today. YouTube's stored grant is
  * read-only and TikTok has no ingest path, so both stay in
- * LIVE_STREAM_PLATFORMS only so old rows still decode. Facebook and the
- * generic custom destination use the manual RTMP URL + key saved in
- * Broadcast Push, just like Kick.
+ * LIVE_STREAM_PLATFORMS only so old rows still decode. Facebook and the four
+ * custom RTMP slots use the manual URL + key saved in Broadcast Push, just
+ * like Kick.
  */
 export const GO_LIVE_PLATFORMS = [
   'smuve',
@@ -49,6 +55,9 @@ export const GO_LIVE_PLATFORMS = [
   'kick',
   'facebook',
   'custom',
+  'custom2',
+  'custom3',
+  'custom4',
 ] as const;
 export type GoLivePlatform = (typeof GO_LIVE_PLATFORMS)[number];
 
@@ -286,8 +295,11 @@ export class LiveStreamService {
     if (unique.length === 0) {
       throw new Error('CHOOSE AT LEAST ONE GO LIVE DESTINATION');
     }
-    if (unique.length > 4) {
-      throw new Error('CHOOSE AT MOST 4 GO LIVE DESTINATIONS');
+    if (unique.length > 5) {
+      throw new Error('CHOOSE AT MOST 5 GO LIVE DESTINATIONS');
+    }
+    if (unique.filter((value) => value !== 'smuve').length > 4) {
+      throw new Error('CHOOSE AT MOST 4 PROVIDER DESTINATIONS');
     }
     return unique;
   }
@@ -298,7 +310,10 @@ export class LiveStreamService {
         platform === 'twitch' ||
         platform === 'kick' ||
         platform === 'facebook' ||
-        platform === 'custom',
+        platform === 'custom' ||
+        platform === 'custom2' ||
+        platform === 'custom3' ||
+        platform === 'custom4',
     );
   }
 

@@ -8,7 +8,14 @@ import {
 } from "typeorm";
 
 /** Platforms this app can push a broadcast to. */
-export type IngestPlatform = "twitch" | "kick" | "facebook" | "custom";
+export type IngestPlatform =
+  | "twitch"
+  | "kick"
+  | "facebook"
+  | "custom"
+  | "custom2"
+  | "custom3"
+  | "custom4";
 
 /**
  * A manual RTMP destination for a provider whose API cannot hand us the key.

@@ -1362,8 +1362,8 @@
       <div class="share-tray-body">
         <p class="share-tray-label">
           Pick one or more destinations. SMUVE LIVE starts instantly; Twitch
-          opens its connect window first; Kick, Facebook and the custom RTMP
-          target (TikTok, Instagram, X, LinkedIn) use the stream URL and key
+          opens its connect window first; Kick, Facebook and the four custom
+          RTMP slots (TikTok, Instagram, X, LinkedIn) use the stream URL and key
           saved in Broadcast Push. Your viewer share link is copied as soon as
           the stream is live.
         </p>
@@ -3393,30 +3393,39 @@
                   SAVE
                 </button>
               </div>
-              <div class="account-row manual-destination">
-                <span class="account-name">CUSTOM RTMP</span>
+              <div
+                class="account-row manual-destination"
+                *ngFor="let slot of customSlots"
+              >
+                <span class="account-name">{{ ingest.platformLabel(slot) }}</span>
                 <input
                   class="account-input"
-                  placeholder="TIKTOK / INSTAGRAM / X / LINKEDIN"
-                  [value]="customLabel()"
-                  (input)="customLabel.set($any($event.target).value)"
+                  placeholder="LABEL (TIKTOK / INSTAGRAM / X / LINKEDIN)"
+                  [value]="customLabelValue(slot)"
+                  (input)="
+                    setCustomDraft(slot, 'label', $any($event.target).value)
+                  "
                 />
                 <input
                   class="account-input"
                   placeholder="rtmps://.../app"
-                  [value]="customRtmpUrl()"
-                  (input)="customRtmpUrl.set($any($event.target).value)"
+                  [value]="customDraft(slot, 'rtmpUrl')"
+                  (input)="
+                    setCustomDraft(slot, 'rtmpUrl', $any($event.target).value)
+                  "
                 />
                 <input
                   class="account-input"
                   type="password"
                   placeholder="STREAM KEY"
-                  [value]="customStreamKey()"
-                  (input)="customStreamKey.set($any($event.target).value)"
+                  [value]="customDraft(slot, 'streamKey')"
+                  (input)="
+                    setCustomDraft(slot, 'streamKey', $any($event.target).value)
+                  "
                 />
                 <button
                   class="quality-btn"
-                  (click)="saveManualDestination('custom')"
+                  (click)="saveCustomDestination(slot)"
                 >
                   SAVE
                 </button>

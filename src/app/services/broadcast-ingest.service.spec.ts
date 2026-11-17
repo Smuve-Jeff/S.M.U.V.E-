@@ -177,6 +177,44 @@ describe('BroadcastIngestService custom RTMP destination', () => {
     expect(service.ready('custom')).toBe(true);
     expect(service.platformLabel('custom')).toBe('TikTok');
   });
+
+  it('keeps four custom slots available at the same time', async () => {
+    const slots = [
+      ['custom', 'TikTok'],
+      ['custom2', 'Instagram'],
+      ['custom3', 'X'],
+      ['custom4', 'LinkedIn'],
+    ] as const;
+    httpPut.mockImplementation((url: string) => {
+      const slot = slots.find(([value]) => url.endsWith(`/${value}`));
+      return of({
+        platform: slot?.[0],
+        ready: true,
+        detail: `${slot?.[1]} — ingest.example.com`,
+        label: slot?.[1],
+      });
+    });
+    const service = TestBed.inject(BroadcastIngestService);
+
+    for (const [slot, label] of slots) {
+      expect(
+        await service.saveDestination(
+          slot,
+          `rtmps://${label.toLowerCase()}.example.com/live`,
+          `${label.toUpperCase()}_KEY_123`,
+          label,
+        ),
+      ).toBe(true);
+    }
+
+    expect(slots.map(([slot]) => service.platformLabel(slot))).toEqual([
+      'TikTok',
+      'Instagram',
+      'X',
+      'LinkedIn',
+    ]);
+    expect(slots.every(([slot]) => service.ready(slot))).toBe(true);
+  });
 });
 
 describe('BroadcastIngestService audio priming', () => {

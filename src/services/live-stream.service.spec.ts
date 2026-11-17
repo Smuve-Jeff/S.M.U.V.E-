@@ -268,6 +268,9 @@ describe("live-stream service", () => {
         "kick",
         "facebook",
         "custom",
+        "custom2",
+        "custom3",
+        "custom4",
       ]);
       expect(LIVE_GO_LIVE_PLATFORMS).not.toContain("youtube");
       expect(LIVE_GO_LIVE_PLATFORMS).not.toContain("tiktok");
@@ -310,6 +313,42 @@ describe("live-stream service", () => {
           expect.objectContaining({ platform: "facebook", status: "pending" }),
         ]),
       );
+    });
+
+    it("persists all four custom RTMP destinations with the native room", async () => {
+      const row = await startLiveStream({
+        hostId: "custom-multi",
+        platform: "smuve",
+        destinations: ["smuve", "custom", "custom2", "custom3", "custom4"],
+      });
+
+      expect(row.destinations).toHaveLength(5);
+      expect(mockDestinationStore).toHaveLength(5);
+      expect(row.destinations).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ platform: "smuve", status: "live" }),
+          expect.objectContaining({ platform: "custom", status: "pending" }),
+          expect.objectContaining({ platform: "custom2", status: "pending" }),
+          expect.objectContaining({ platform: "custom3", status: "pending" }),
+          expect.objectContaining({ platform: "custom4", status: "pending" }),
+        ]),
+      );
+    });
+
+    it("rejects a fifth provider destination", async () => {
+      await expect(
+        startLiveStream({
+          hostId: "too-many",
+          platform: "smuve",
+          destinations: [
+            "twitch",
+            "kick",
+            "facebook",
+            "custom",
+            "custom2",
+          ],
+        }),
+      ).rejects.toMatchObject({ statusCode: 400 });
     });
 
     it("de-duplicates a repeated destination in one session", async () => {

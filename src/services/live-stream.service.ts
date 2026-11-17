@@ -22,6 +22,9 @@ export const LIVE_STREAM_PLATFORMS = [
   "kick",
   "facebook",
   "custom",
+  "custom2",
+  "custom3",
+  "custom4",
   "youtube",
   "tiktok",
 ] as const;
@@ -29,9 +32,9 @@ export type LiveStreamPlatform = (typeof LIVE_STREAM_PLATFORMS)[number];
 
 /**
  * Platforms the Go Live flow can actually broadcast to today: the native
- * S.M.U.V.E room, plus Twitch, Kick, Facebook and one generic custom RTMP
- * target through the WHIP -> RTMP relay. Kick, Facebook and custom take a
- * dashboard URL + key; Twitch uses its grant.
+ * S.M.U.V.E room, plus Twitch, Kick, Facebook and up to four generic custom
+ * RTMP targets through the WHIP -> RTMP relay. Kick, Facebook and the custom
+ * slots take a dashboard URL + key; Twitch uses its grant.
  *
  * `youtube` and `tiktok` stay in LIVE_STREAM_PLATFORMS so rows created before
  * this matrix was tightened still decode, but a new broadcast cannot be
@@ -44,6 +47,9 @@ export const LIVE_GO_LIVE_PLATFORMS = [
   "kick",
   "facebook",
   "custom",
+  "custom2",
+  "custom3",
+  "custom4",
 ] as const;
 export type GoLivePlatform = (typeof LIVE_GO_LIVE_PLATFORMS)[number];
 
@@ -180,8 +186,11 @@ const selectedDestinations = (
     }
     if (!unique.includes(value)) unique.push(value);
   }
-  if (unique.length > 4) {
-    throw new AppError(400, "at most 4 broadcast destinations are allowed");
+  if (unique.length > 5) {
+    throw new AppError(400, "at most 5 broadcast destinations are allowed");
+  }
+  if (unique.filter((platform) => platform !== "smuve").length > 4) {
+    throw new AppError(400, "at most 4 provider destinations are allowed");
   }
   const primary = input.platform as GoLivePlatform;
   if (LIVE_GO_LIVE_PLATFORMS.includes(primary) && !unique.includes(primary)) {

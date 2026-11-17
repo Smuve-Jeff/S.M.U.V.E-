@@ -18,7 +18,22 @@ import {
 import { createTestPattern } from './test-pattern';
 import { WhipPublisher } from './whip-publisher';
 
-export type IngestPlatform = 'twitch' | 'kick' | 'facebook' | 'custom';
+export type IngestPlatform =
+  | 'twitch'
+  | 'kick'
+  | 'facebook'
+  | 'custom'
+  | 'custom2'
+  | 'custom3'
+  | 'custom4';
+
+export const CUSTOM_INGEST_PLATFORMS = [
+  'custom',
+  'custom2',
+  'custom3',
+  'custom4',
+] as const;
+export type CustomIngestPlatform = (typeof CUSTOM_INGEST_PLATFORMS)[number];
 
 interface DestinationStatusDto {
   platform?: string;
@@ -85,7 +100,10 @@ export class BroadcastIngestService {
     { id: 'twitch', label: 'TWITCH' },
     { id: 'kick', label: 'KICK' },
     { id: 'facebook', label: 'FACEBOOK' },
-    { id: 'custom', label: 'CUSTOM RTMP' },
+    { id: 'custom', label: 'CUSTOM 1' },
+    { id: 'custom2', label: 'CUSTOM 2' },
+    { id: 'custom3', label: 'CUSTOM 3' },
+    { id: 'custom4', label: 'CUSTOM 4' },
   ];
 
   readonly destinations = signal<
@@ -255,7 +273,12 @@ export class BroadcastIngestService {
 
   /** The saved host-facing name, so a custom target reads "TikTok", not "CUSTOM". */
   platformLabel(platform: IngestPlatform): string {
-    return this.destinations()[platform]?.label?.trim() || platform.toUpperCase();
+    const saved = this.destinations()[platform]?.label?.trim();
+    if (saved) return saved;
+    if (platform.startsWith('custom')) {
+      return `CUSTOM ${platform === 'custom' ? '1' : platform.slice(6)}`;
+    }
+    return platform.toUpperCase();
   }
 
   async load(): Promise<void> {
@@ -284,7 +307,7 @@ export class BroadcastIngestService {
 
   /** Store a manual RTMP URL + key; the key is never echoed back. */
   async saveDestination(
-    platform: 'kick' | 'facebook' | 'custom',
+    platform: 'kick' | 'facebook' | CustomIngestPlatform,
     rtmpUrl: string,
     streamKey: string,
     label = '',

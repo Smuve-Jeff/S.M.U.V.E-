@@ -204,9 +204,52 @@ describe('LiveStreamService', () => {
         'kick',
         'facebook',
         'custom',
+        'custom2',
+        'custom3',
+        'custom4',
       ]);
       expect(GO_LIVE_PLATFORMS).not.toContain('youtube');
       expect(GO_LIVE_PLATFORMS).not.toContain('tiktok');
+    });
+
+    it('starts all four custom slots in one relay fan-out', async () => {
+      service = TestBed.inject(LiveStreamService);
+      tokenRef = { value: 'TKN' };
+      profileRef = { value: { id: '77', artistName: 'JEFF' } };
+      httpResponses.push(makeRow({ platform: 'smuve' }));
+
+      const result = await service.golive({
+        platform: 'smuve',
+        destinations: [
+          'smuve',
+          'custom',
+          'custom2',
+          'custom3',
+          'custom4',
+        ],
+      });
+
+      expect(result).not.toBeNull();
+      expect(ingest().start).toHaveBeenCalledWith([
+        'custom',
+        'custom2',
+        'custom3',
+        'custom4',
+      ]);
+      const startCall = httpCalls.find(
+        (call) => call.method === 'POST' && call.url.endsWith('/live-streams'),
+      );
+      expect(startCall?.body).toEqual(
+        expect.objectContaining({
+          destinations: [
+            'smuve',
+            'custom',
+            'custom2',
+            'custom3',
+            'custom4',
+          ],
+        }),
+      );
     });
 
     it('rejects a legacy platform before touching the API or a camera', async () => {

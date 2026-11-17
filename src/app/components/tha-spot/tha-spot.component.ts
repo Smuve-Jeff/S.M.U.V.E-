@@ -37,7 +37,11 @@ import { ChallengeInboxService } from "../../services/challenge-inbox.service";
 import { PeerNetworkingService } from "../../services/peer-networking.service";
 import { SnackbarService } from "../../services/snackbar.service";
 import { StreamingPlatformsService } from "../../services/streaming-platforms.service";
-import { BroadcastIngestService } from "../../services/broadcast-ingest.service";
+import {
+  BroadcastIngestService,
+  CUSTOM_INGEST_PLATFORMS,
+  type CustomIngestPlatform,
+} from "../../services/broadcast-ingest.service";
 import { MatchmakingService } from "../../hub/matchmaking.service";
 import { ActivatedRoute, Router } from "@angular/router";
 import { DailyMissionsService } from "../../services/daily-missions.service";
@@ -1435,9 +1439,18 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   readonly kickStreamKey = signal('');
   readonly facebookRtmpUrl = signal('');
   readonly facebookStreamKey = signal('');
-  readonly customLabel = signal('');
-  readonly customRtmpUrl = signal('');
-  readonly customStreamKey = signal('');
+  readonly customSlots = CUSTOM_INGEST_PLATFORMS;
+  readonly customDrafts = signal<
+    Record<
+      CustomIngestPlatform,
+      { label: string; rtmpUrl: string; streamKey: string }
+    >
+  >({
+    custom: { label: '', rtmpUrl: '', streamKey: '' },
+    custom2: { label: '', rtmpUrl: '', streamKey: '' },
+    custom3: { label: '', rtmpUrl: '', streamKey: '' },
+    custom4: { label: '', rtmpUrl: '', streamKey: '' },
+  });
   /**
    * Viewer mix split: the host publishes camera and game (screen) video
    * slots plus voice and system-sound audio slots, so the player divides
@@ -4255,33 +4268,53 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
    * Keep a manual RTMP destination on the server so the stream key never has
    * to be typed again, and drop it from this component's state once saved.
    */
-  async saveManualDestination(
-    platform: 'kick' | 'facebook' | 'custom',
-  ): Promise<void> {
+  async saveManualDestination(platform: 'kick' | 'facebook'): Promise<void> {
     const url =
-      platform === 'kick'
-        ? this.kickRtmpUrl()
-        : platform === 'facebook'
-          ? this.facebookRtmpUrl()
-          : this.customRtmpUrl();
+      platform === 'kick' ? this.kickRtmpUrl() : this.facebookRtmpUrl();
     const key =
-      platform === 'kick'
-        ? this.kickStreamKey()
-        : platform === 'facebook'
-          ? this.facebookStreamKey()
-          : this.customStreamKey();
-    const label =
-      platform === 'custom' ? this.customLabel().trim() : platform.toUpperCase();
+      platform === 'kick' ? this.kickStreamKey() : this.facebookStreamKey();
     const saved = await this.ingest.saveDestination(
       platform,
       url.trim(),
       key.trim(),
-      label,
+      platform.toUpperCase(),
     );
     if (!saved) return;
     if (platform === 'kick') this.kickStreamKey.set('');
-    else if (platform === 'facebook') this.facebookStreamKey.set('');
-    else this.customStreamKey.set('');
+    else this.facebookStreamKey.set('');
+  }
+
+  customDraft(
+    slot: CustomIngestPlatform,
+    field: 'label' | 'rtmpUrl' | 'streamKey',
+  ): string {
+    return this.customDrafts()[slot][field];
+  }
+
+  /** Show the saved label until the host starts typing a replacement. */
+  customLabelValue(slot: CustomIngestPlatform): string {
+    return this.customDraft(slot, 'label') || this.ingest.platformLabel(slot);
+  }
+
+  setCustomDraft(
+    slot: CustomIngestPlatform,
+    field: 'label' | 'rtmpUrl' | 'streamKey',
+    value: string,
+  ): void {
+    this.customDrafts.update((current) => ({
+      ...current,
+      [slot]: { ...current[slot], [field]: value },
+    }));
+  }
+
+  async saveCustomDestination(slot: CustomIngestPlatform): Promise<void> {
+    const saved = await this.ingest.saveDestination(
+      slot,
+      this.customDraft(slot, 'rtmpUrl').trim(),
+      this.customDraft(slot, 'streamKey').trim(),
+      this.customLabelValue(slot).trim(),
+    );
+    if (saved) this.setCustomDraft(slot, 'streamKey', '');
   }
 
   /** The label the host gave the custom RTMP target, not a generic "CUSTOM". */
