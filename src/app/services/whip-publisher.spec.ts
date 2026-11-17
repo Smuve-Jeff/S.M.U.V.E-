@@ -125,6 +125,12 @@ describe('WhipPublisher.start', () => {
     getAudioTracks: () => [],
   } as unknown as MediaStream;
 
+  const whipResponse = (location: string | null = null) => ({
+    ok: true,
+    headers: { get: () => location },
+    text: async () => 'v=0',
+  });
+
   let lastPc: FakePeerConnection;
   let fetchMock: jest.Mock;
   let originalPc: unknown;
@@ -177,6 +183,75 @@ describe('WhipPublisher.start', () => {
     expect(publisher.state()).toBe('live');
     expect(publisher.error()).toBeNull();
     expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps a newer session when an older start is still tearing down', async () => {
+    installH264();
+    let finishDelete!: (response: Response) => void;
+    const pendingDelete = new Promise<Response>((resolve) => {
+      finishDelete = resolve;
+    });
+    fetchMock
+      .mockResolvedValueOnce(whipResponse('https://relay.test/s/whip/old'))
+      .mockImplementationOnce(() => pendingDelete)
+      .mockResolvedValueOnce(whipResponse('https://relay.test/s/whip/new'))
+      .mockResolvedValue(whipResponse());
+    const publisher = new WhipPublisher();
+
+    expect(await publisher.start('https://relay.test/s/whip/old', stream)).toBe(
+      true
+    );
+    const oldPc = lastPc;
+
+    const staleStart = publisher.start('https://relay.test/s/whip/stale', stream);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(oldPc.close).toHaveBeenCalled();
+
+    expect(await publisher.start('https://relay.test/s/whip/new', stream)).toBe(
+      true
+    );
+    const newerPc = lastPc;
+
+    finishDelete({ ok: true } as Response);
+    expect(await staleStart).toBe(false);
+
+    expect(publisher.state()).toBe('live');
+    expect(lastPc).toBe(newerPc);
+    expect(newerPc.close).not.toHaveBeenCalled();
+    await publisher.stop();
+  });
+
+  it('does not post SDP from a start that loses the round while gathering ICE', async () => {
+    installH264();
+    class GatheringPeerConnection extends FakePeerConnection {
+      iceGatheringState: RTCIceGatheringState = 'gathering';
+    }
+    (global as unknown as { RTCPeerConnection: unknown }).RTCPeerConnection =
+      GatheringPeerConnection;
+    fetchMock.mockResolvedValue(whipResponse('https://relay.test/s/whip/new'));
+    const publisher = new WhipPublisher();
+
+    const staleStart = publisher.start('https://relay.test/s/whip/stale', stream);
+    for (let i = 0; i < 10; i++) await Promise.resolve();
+    const stalePc = lastPc;
+    expect(stalePc.addEventListener).toHaveBeenCalled();
+
+    (global as unknown as { RTCPeerConnection: unknown }).RTCPeerConnection =
+      FakePeerConnection;
+    expect(await publisher.start('https://relay.test/s/whip/new', stream)).toBe(
+      true
+    );
+    const newerPc = lastPc;
+
+    stalePc.iceGatheringState = 'complete';
+    const onGathering = stalePc.addEventListener.mock.calls[0][1] as () => void;
+    onGathering();
+
+    expect(await staleStart).toBe(false);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(publisher.state()).toBe('live');
+    expect(newerPc.close).not.toHaveBeenCalled();
+    await publisher.stop();
   });
 
   it('mixes mic and screen sound into the one audio track WHIP can carry', async () => {
@@ -326,11 +401,8 @@ describe('WhipPublisher.start', () => {
     });
     fetchMock
       .mockImplementationOnce(() => oldRequest)
-      .mockResolvedValueOnce({
-        ok: true,
-        headers: { get: () => 'https://relay.test/s/whip/new' },
-        text: async () => 'v=0',
-      });
+      .mockResolvedValueOnce(whipResponse('https://relay.test/s/whip/new'))
+      .mockResolvedValue(whipResponse());
     const publisher = new WhipPublisher();
 
     const oldStart = publisher.start('https://relay.test/s/whip/old', stream);
@@ -346,10 +418,14 @@ describe('WhipPublisher.start', () => {
     const newerPc = lastPc;
     stalePc.close.mockClear();
 
-    resolveOld({} as Response);
+    resolveOld(whipResponse('https://relay.test/s/whip/stale'));
     expect(await oldStart).toBe(false);
 
     expect(stalePc.close).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://relay.test/s/whip/stale',
+      { method: 'DELETE' }
+    );
     expect(publisher.state()).toBe('live');
     expect(newerPc.close).not.toHaveBeenCalled();
     await publisher.stop();

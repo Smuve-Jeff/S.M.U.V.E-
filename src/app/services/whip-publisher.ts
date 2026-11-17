@@ -110,18 +110,27 @@ export class WhipPublisher {
   private round = 0;
 
   async start(whipUrl: string, stream: MediaStream): Promise<boolean> {
+    // Reserve this attempt before the teardown await. A slower, older start
+    // must not resume afterward and install its session over a newer one.
+    const round = ++this.round;
     // Keep the context primed by the click: start() runs after the API's
     // session round trip, so a context created here can already be suspended.
-    await this.teardown(false);
-    const round = ++this.round;
-    this.error.set(null);
+    await this.clearSession(false);
+    if (round !== this.round) return false;
+
     this.state.set('connecting');
+    this.error.set(null);
 
     let ownedPc: RTCPeerConnection | undefined;
     try {
       const pc = new RTCPeerConnection({ iceServers: STUN_SERVERS });
       ownedPc = pc;
       this.pc = pc;
+      const stale = (): boolean => {
+        if (round === this.round) return false;
+        pc.close();
+        return true;
+      };
       const video = stream.getVideoTracks()[0];
       const audioTracks = stream.getAudioTracks();
       const audio =
@@ -131,25 +140,20 @@ export class WhipPublisher {
       if (video) this.videoSender = pc.addTrack(video, stream);
       if (audio) this.audioSender = pc.addTrack(audio, stream);
       if (!video && !audio) {
-        await this.stop();
-        this.state.set('error');
-        this.error.set('NOTHING TO SEND — NO CAPTURE TRACKS');
-        return false;
+        return this.failAttempt(round, 'NOTHING TO SEND — NO CAPTURE TRACKS');
       }
 
       if (video && this.videoSender) {
         const codecProblem = applyH264Preference(pc, this.videoSender);
-        if (codecProblem) {
-          await this.stop();
-          this.state.set('error');
-          this.error.set(codecProblem);
-          return false;
-        }
+        if (codecProblem) return this.failAttempt(round, codecProblem);
       }
 
       const offer = await pc.createOffer();
+      if (stale()) return false;
       await pc.setLocalDescription(offer);
+      if (stale()) return false;
       await waitForIceGathering(pc);
+      if (stale()) return false;
       const sdp = pc.localDescription?.sdp;
       if (!sdp) throw new Error('NO_LOCAL_SDP');
 
@@ -161,8 +165,8 @@ export class WhipPublisher {
         },
         body: sdp,
       });
-      if (round !== this.round) {
-        pc.close();
+      if (stale()) {
+        this.discardStaleResource(response, whipUrl);
         return false;
       }
       if (!response.ok) throw new Error(`WHIP_HTTP_${response.status}`);
@@ -172,12 +176,10 @@ export class WhipPublisher {
         ? new URL(location, whipUrl).toString()
         : null;
       const answer = await response.text();
+      if (stale()) return false;
       if (!answer.trim()) throw new Error('WHIP_EMPTY_ANSWER');
       await pc.setRemoteDescription({ type: 'answer', sdp: answer });
-      if (round !== this.round) {
-        pc.close();
-        return false;
-      }
+      if (stale()) return false;
       this.state.set('live');
       return true;
     } catch (error) {
@@ -190,14 +192,33 @@ export class WhipPublisher {
         return false;
       }
 
-      // stop() bumps the round. Accept only the bump it makes itself, so a
-      // start that races the teardown cannot have its state overwritten.
-      await this.stop();
-      if (this.round === round + 1) {
-        this.state.set('error');
-        this.error.set(message.replace(/_/g, ' '));
-      }
-      return false;
+      return this.failAttempt(round, message);
+    }
+  }
+
+  /**
+   * Stop a current attempt and record why it failed. stop() bumps the round,
+   * so only publish the error if no newer start raced the teardown.
+   */
+  private async failAttempt(round: number, message: string): Promise<false> {
+    if (round !== this.round) return false;
+    await this.stop();
+    if (this.round === round + 1) {
+      this.state.set('error');
+      this.error.set(message.replace(/_/g, ' '));
+    }
+    return false;
+  }
+
+  /** Remove a WHIP resource created by a POST that lost the round race. */
+  private discardStaleResource(response: Response, whipUrl: string): void {
+    const location = response.headers.get('Location');
+    if (!location) return;
+    try {
+      const resource = new URL(location, whipUrl).toString();
+      void fetch(resource, { method: 'DELETE' }).catch(() => undefined);
+    } catch {
+      // A malformed Location cannot name a resource we could delete.
     }
   }
 
@@ -334,15 +355,17 @@ export class WhipPublisher {
   }
 
   async stop(): Promise<void> {
-    await this.teardown(true);
+    this.round += 1;
+    await this.clearSession(true);
   }
 
   /**
-   * Tear down the WHIP session. `start()` preserves the primed AudioContext;
-   * an actual stop closes it and releases the mixer's destination track.
+   * Tear down the WHIP session without changing the round. start() reserves
+   * its round before awaiting this, so callers own the race bookkeeping.
+   * `start()` preserves the primed AudioContext; an actual stop closes it and
+   * releases the mixer's destination track.
    */
-  private async teardown(closeAudio: boolean): Promise<void> {
-    this.round += 1;
+  private async clearSession(closeAudio: boolean): Promise<void> {
     const resource = this.resourceUrl;
     this.resourceUrl = null;
     if (closeAudio) this.closeAudioContext();
