@@ -47,19 +47,36 @@ interface DestinationsResponse {
   relayConfigured?: boolean;
 }
 
-/** One recording the relay still holds for this account. */
-export interface BroadcastRecordingDto {
-  relayId: string;
-  platform: string;
-  startedAt: string;
-  endedAt: string | null;
+/** One hourly file of a show: a show over an hour is kept in segments. */
+export interface BroadcastRecordingPartDto {
   /** File name on the relay. */
   name: string;
   bytes: number;
   recordedAt: string;
   /** Relative to the API base, e.g. `/broadcast/recordings/<id>/download?name=…`. */
   downloadPath: string;
-  /** Seconds of media as the file itself reports them; null when unknown. */
+  /** Seconds of media in this segment; null when the relay did not read it. */
+  durationSeconds?: number | null;
+  /** When the sweeper will take this segment, or null when it is unknown. */
+  expiresAt?: string | null;
+}
+
+/** One recording the relay still holds for this account. */
+export interface BroadcastRecordingDto {
+  relayId: string;
+  platform: string;
+  startedAt: string;
+  endedAt: string | null;
+  /** The show's first segment; the API addresses the whole show by it. */
+  name: string;
+  /** Every segment, oldest first; one entry for a show under an hour. */
+  parts?: BroadcastRecordingPartDto[];
+  bytes: number;
+  /** When the show's last segment was written. */
+  recordedAt: string;
+  /** Relative to the API base, e.g. `/broadcast/recordings/<id>/download?name=…`. */
+  downloadPath: string;
+  /** Seconds of media across the show; null when no segment reported one. */
   durationSeconds?: number | null;
   /** A small JPEG still as a data URL; null when the relay could not frame it. */
   thumbnail?: string | null;
@@ -67,8 +84,10 @@ export interface BroadcastRecordingDto {
   keepHours?: number | null;
   /** When that promise runs out, if one was made. */
   keepUntil?: string | null;
-  /** When the sweeper will take this file: the window, or a longer pin. */
+  /** When the sweeper takes the show's last segment. */
   expiresAt?: string | null;
+  /** When the show starts losing segments: its first one's deadline. */
+  partExpiryAt?: string | null;
 }
 
 interface IngestSessionDto {
@@ -166,6 +185,9 @@ export class BroadcastIngestService {
   readonly playback = signal<{
     recording: BroadcastRecordingDto;
     url: string;
+    /** Which segment is playing, and how many the show has. */
+    partIndex: number;
+    partCount: number;
   } | null>(null);
   readonly playbackLoading = signal(false);
   readonly playbackError = signal('');
@@ -720,7 +742,16 @@ export class BroadcastIngestService {
       ? ''
       : `${when.toISOString().replace('T', ' ').slice(0, 16)} UTC`;
     const duration = this.recordingDuration(recording.durationSeconds);
-    return [platform, size, duration, stamp].filter(Boolean).join(' · ');
+    const parts = recording.parts?.length ?? 0;
+    const split = parts > 1 ? `${parts} PARTS` : '';
+    return [platform, size, duration, split, stamp].filter(Boolean).join(' · ');
+  }
+
+  /** A show's segments, or the recording itself when the API sent no parts. */
+  private recordingParts(
+    recording: BroadcastRecordingDto,
+  ): { name: string; downloadPath: string }[] {
+    return recording.parts?.length ? recording.parts : [recording];
   }
 
   /**
@@ -732,22 +763,16 @@ export class BroadcastIngestService {
    * the API and the relay both answer byte ranges.
    */
   async playRecording(recording: BroadcastRecordingDto): Promise<void> {
+    const parts = this.recordingParts(recording);
     this.playbackLoading.set(true);
     this.playbackError.set('');
     try {
-      const ticket = await firstValueFrom(
-        this.http.post<{ path?: string }>(
-          this.endpoint(
-            `/recordings/${encodeURIComponent(recording.relayId)}/playback?name=${encodeURIComponent(recording.name)}`,
-          ),
-          {},
-          { headers: this.headers() },
-        ),
-      );
-      if (!ticket?.path) throw new Error('NO PLAYBACK URL');
+      const url = await this.playbackUrl(recording.relayId, parts[0].name);
       this.playback.set({
         recording,
-        url: `${APP_SECURITY_CONFIG.api_url}${ticket.path}`,
+        url,
+        partIndex: 0,
+        partCount: parts.length,
       });
     } catch {
       this.playback.set(null);
@@ -757,6 +782,44 @@ export class BroadcastIngestService {
     } finally {
       this.playbackLoading.set(false);
     }
+  }
+
+  /**
+   * Continue a longer show when the player reaches the end of a segment. Each
+   * segment has its own file and ticket, so they are stitched in the player
+   * rather than by copying the show on the relay.
+   */
+  async playNextRecordingPart(): Promise<void> {
+    const current = this.playback();
+    if (!current) return;
+    const parts = this.recordingParts(current.recording);
+    const next = current.partIndex + 1;
+    if (next >= parts.length) return;
+    try {
+      const url = await this.playbackUrl(
+        current.recording.relayId,
+        parts[next].name,
+      );
+      this.playback.set({ ...current, url, partIndex: next });
+    } catch {
+      this.playbackError.set(
+        'COULD NOT CONTINUE THAT RECORDING — DOWNLOAD IT INSTEAD',
+      );
+    }
+  }
+
+  private async playbackUrl(relayId: string, name: string): Promise<string> {
+    const ticket = await firstValueFrom(
+      this.http.post<{ path?: string }>(
+        this.endpoint(
+          `/recordings/${encodeURIComponent(relayId)}/playback?name=${encodeURIComponent(name)}`,
+        ),
+        {},
+        { headers: this.headers() },
+      ),
+    );
+    if (!ticket?.path) throw new Error('NO PLAYBACK URL');
+    return `${APP_SECURITY_CONFIG.api_url}${ticket.path}`;
   }
 
   stopPlayback(): void {
@@ -769,23 +832,32 @@ export class BroadcastIngestService {
    * browser only ever sees the bytes it just downloaded.
    */
   async downloadRecording(recording: BroadcastRecordingDto): Promise<void> {
+    const parts = this.recordingParts(recording);
     try {
-      const blob = await firstValueFrom(
-        this.http.get(
-          `${APP_SECURITY_CONFIG.api_url}${recording.downloadPath}`,
-          {
-            headers: this.headers(),
-            responseType: 'blob',
-          },
-        ),
+      // Every hour of the show is its own file, so a download is the set of
+      // them. Each arrives through the API; the relay token stays on the server.
+      for (const part of parts) {
+        const blob = await firstValueFrom(
+          this.http.get(
+            `${APP_SECURITY_CONFIG.api_url}${part.downloadPath}`,
+            {
+              headers: this.headers(),
+              responseType: 'blob',
+            },
+          ),
+        );
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement('a');
+        anchor.href = url;
+        anchor.download = part.name;
+        anchor.click();
+        URL.revokeObjectURL(url);
+      }
+      this.snackbar.success(
+        parts.length > 1
+          ? `RECORDING DOWNLOADED (${parts.length} PARTS)`
+          : 'RECORDING DOWNLOADED',
       );
-      const url = URL.createObjectURL(blob);
-      const anchor = document.createElement('a');
-      anchor.href = url;
-      anchor.download = recording.name;
-      anchor.click();
-      URL.revokeObjectURL(url);
-      this.snackbar.success('RECORDING DOWNLOADED');
     } catch {
       this.snackbar.error('DOWNLOAD FAILED — TRY AGAIN');
     }
@@ -873,10 +945,14 @@ export class BroadcastIngestService {
     return true;
   }
 
-  /** `IN 4H` / `IN 45M` while a show is close to the sweeper, else empty. */
+  /**
+   * `IN 4H` / `IN 45M` while a show is close to the sweeper, else empty. A show
+   * in segments warns on its first segment: that is when it starts losing
+   * pieces, even though the whole show is only gone at `expiresAt`.
+   */
   expiryLabel(recording: BroadcastRecordingDto): string {
     return expiryLabel(
-      recording.expiresAt,
+      recording.partExpiryAt ?? recording.expiresAt,
       this.clock(),
       this.expiryWarningHours,
     );

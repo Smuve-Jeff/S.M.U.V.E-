@@ -206,9 +206,9 @@ it survives the session ending.
 
 | | |
 | --- | --- |
-| Where | `RECORDING_DIR/<session id>.mp4` |
+| Where | `RECORDING_DIR/<session id>-<YYYY-MM-DD_HH-MM-SS-micros>.mp4` |
 | Format | fragmented MP4, H.264 + Opus, exactly what the browser sent |
-| Segments | hourly, so a show longer than an hour continues in the next file |
+| Segments | hourly, each in its own file, so a show over an hour keeps every hour |
 | Retention | `RECORDING_RETENTION_HOURS` (default 24), swept by the relay every minute; `0` keeps everything |
 | Self-tests | never recorded: they prove the path, they should not fill the volume |
 

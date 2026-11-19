@@ -686,8 +686,11 @@ const LIVE_DIRECTORY_REFRESH_INTERVAL_MS = 20000;
         gap: 0.4rem;
         margin-bottom: 0.75rem;
       }
+      /* Only the quality/source/preview tiers split their row; every other
+         .quality-btn (account rows, panel headers, recordings) is sized by
+         its label instead of stretching to fill the row. */
       .quality-btn {
-        flex: 1 1 auto;
+        flex: 0 0 auto;
         min-height: 34px;
         padding: 0.35rem 0.6rem;
         border-radius: 8px;
@@ -721,6 +724,7 @@ const LIVE_DIRECTORY_REFRESH_INTERVAL_MS = 20000;
       }
       .stream-av-controls {
         display: flex;
+        flex-wrap: wrap;
         align-items: center;
         gap: 0.5rem;
         margin: 0.5rem 0;
@@ -757,13 +761,28 @@ const LIVE_DIRECTORY_REFRESH_INTERVAL_MS = 20000;
       .av-btn .material-symbols-outlined {
         font-size: 0.85rem;
       }
+      .stream-quality-row .quality-btn {
+        flex: 1 1 auto;
+      }
       .quality-readout {
-        margin-left: auto;
         font-size: 0.58rem;
         font-weight: 800;
         letter-spacing: 0.08em;
         color: rgba(0, 229, 255, 0.85);
         text-transform: uppercase;
+      }
+      /* The live AV row ends with the tier pill; head rows start with it. */
+      .stream-av-controls .quality-readout {
+        margin-left: auto;
+      }
+      /* The PREVIEW row's status is a .accounts-count outside a head row, so
+         it needs the head rows' type scale instead of body text. */
+      .accounts-count {
+        align-self: center;
+        font-size: 0.58rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        color: rgba(232, 251, 255, 0.72);
       }
       .stream-local-preview {
         width: 100%;
@@ -4501,7 +4520,10 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     }
     const reason = this.socialService.screenShareUnavailableReason();
     if (reason) {
+      // The in-game bar only exists inside the immersive overlay; the hub's
+      // pre-stream picker needs the snackbar to explain the same refusal.
       this.flashGameLiveNotice(reason);
+      this.snackbarService.info(reason);
       return;
     }
     if (this.socialService.previewActive() || this.socialService.isStreaming()) {

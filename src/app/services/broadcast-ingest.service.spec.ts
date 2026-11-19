@@ -3,7 +3,10 @@ import { TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
 import { of, throwError } from 'rxjs';
 import { createTestPattern } from './test-pattern';
-import { BroadcastIngestService } from './broadcast-ingest.service';
+import {
+  BroadcastIngestService,
+  BroadcastRecordingDto,
+} from './broadcast-ingest.service';
 import { SnackbarService } from './snackbar.service';
 import { SocialNetworkingService } from './social-networking.service';
 import { TokenService } from './token.service';
@@ -293,5 +296,118 @@ describe('BroadcastIngestService audio priming', () => {
     expect(primeAudioContext).toHaveBeenCalledTimes(1);
     expect(closePrimedAudioContext).toHaveBeenCalledTimes(1);
     expect(httpPost).not.toHaveBeenCalled();
+  });
+});
+
+describe('BroadcastIngestService segmented recordings', () => {
+  const show: BroadcastRecordingDto = {
+    relayId: 'aaaa',
+    platform: 'twitch',
+    startedAt: '2026-01-01T10:00:00.000Z',
+    endedAt: '2026-01-01T12:00:00.000Z',
+    name: 'aaaa-10.mp4',
+    parts: [
+      {
+        name: 'aaaa-10.mp4',
+        bytes: 100,
+        recordedAt: '2026-01-01T10:00:00.000Z',
+        downloadPath: '/broadcast/recordings/aaaa/download?name=aaaa-10.mp4',
+        durationSeconds: 3600,
+      },
+      {
+        name: 'aaaa-11.mp4',
+        bytes: 150,
+        recordedAt: '2026-01-01T11:00:00.000Z',
+        downloadPath: '/broadcast/recordings/aaaa/download?name=aaaa-11.mp4',
+        durationSeconds: 1800,
+      },
+    ],
+    bytes: 250,
+    recordedAt: '2026-01-01T11:00:00.000Z',
+    downloadPath: '/broadcast/recordings/aaaa/download?name=aaaa-10.mp4',
+    durationSeconds: 5400,
+  };
+
+  it('says the show is in segments, with the whole length and size', () => {
+    const service = TestBed.inject(BroadcastIngestService);
+
+    const label = service.recordingLabel(show);
+
+    expect(label).toContain('2 PARTS');
+    expect(label).toContain('1:30:00');
+    expect(label).toContain('1 KB');
+  });
+
+  it('plays the next segment when the player reaches the end of one', async () => {
+    httpPost
+      .mockReturnValueOnce(of({ path: '/broadcast/recordings/aaaa/stream?sig=1' }))
+      .mockReturnValueOnce(of({ path: '/broadcast/recordings/aaaa/stream?sig=2' }));
+    const service = TestBed.inject(BroadcastIngestService);
+
+    await service.playRecording(show);
+
+    expect(service.playback()?.partIndex).toBe(0);
+    expect(service.playback()?.partCount).toBe(2);
+    expect(httpPost).toHaveBeenLastCalledWith(
+      expect.stringContaining('name=aaaa-10.mp4'),
+      {},
+      expect.anything(),
+    );
+
+    await service.playNextRecordingPart();
+
+    expect(httpPost).toHaveBeenLastCalledWith(
+      expect.stringContaining('name=aaaa-11.mp4'),
+      {},
+      expect.anything(),
+    );
+    expect(service.playback()?.partIndex).toBe(1);
+    expect(service.playback()?.url).toContain('sig=2');
+
+    // Nothing follows the last segment: the player stays where it is.
+    await service.playNextRecordingPart();
+    expect(service.playback()?.partIndex).toBe(1);
+    expect(httpPost).toHaveBeenCalledTimes(2);
+  });
+
+  it('downloads every segment of a show', async () => {
+    httpGet
+      .mockReturnValueOnce(of(new Blob(['first hour'])))
+      .mockReturnValueOnce(of(new Blob(['second half hour'])));
+    const service = TestBed.inject(BroadcastIngestService);
+    const downloaded: string[] = [];
+    const createElement = document.createElement.bind(document);
+    const spy = jest
+      .spyOn(document, 'createElement')
+      .mockImplementation((tag: string) => {
+        const element = createElement(tag);
+        if (tag === 'a') {
+          (element as HTMLAnchorElement).click = () => {
+            downloaded.push((element as HTMLAnchorElement).download);
+          };
+        }
+        return element;
+      });
+    const createObjectURL = jest.fn(() => 'blob:recording');
+    const revokeObjectURL = jest.fn();
+    const originalCreate = URL.createObjectURL;
+    const originalRevoke = URL.revokeObjectURL;
+    URL.createObjectURL = createObjectURL as typeof URL.createObjectURL;
+    URL.revokeObjectURL = revokeObjectURL as typeof URL.revokeObjectURL;
+
+    try {
+      await service.downloadRecording(show);
+    } finally {
+      spy.mockRestore();
+      URL.createObjectURL = originalCreate;
+      URL.revokeObjectURL = originalRevoke;
+    }
+
+    expect(httpGet.mock.calls.map((call) => call[0])).toEqual([
+      expect.stringContaining('name=aaaa-10.mp4'),
+      expect.stringContaining('name=aaaa-11.mp4'),
+    ]);
+    expect(downloaded).toEqual(['aaaa-10.mp4', 'aaaa-11.mp4']);
+    expect(createObjectURL).toHaveBeenCalledTimes(2);
   });
 });

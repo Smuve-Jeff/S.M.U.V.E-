@@ -39,9 +39,13 @@ export function isSwept(
   return until.getTime() <= now;
 }
 
-/** How one recording is addressed across reloads. */
+/**
+ * How one recording is addressed across reloads. A show is the relay session,
+ * so every segment of it shares the key even as the API's first-segment name
+ * changes when the oldest segment is swept.
+ */
 export const recordingKey = (row: { relayId: string; name: string }): string =>
-  `${row.relayId}/${row.name}`;
+  `${row.relayId}`;
 
 /**
  * Keep a row this panel already watched expire off the list, even when the

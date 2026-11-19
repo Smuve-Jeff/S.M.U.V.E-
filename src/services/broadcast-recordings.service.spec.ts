@@ -102,8 +102,8 @@ describe("broadcast recordings", () => {
     seed("bbbb", 9);
     fetchMock.mockResolvedValueOnce(
       relayListed([
-        { name: "aaaa.mp4", bytes: 100, modifiedAt: "2026-01-01T10:00:00.000Z" },
-        { name: "aaaa-2026-01-01.mp4", bytes: 200, modifiedAt: "2026-01-01T11:00:00.000Z" },
+        { name: "aaaa-2026-01-01_10-00-00-000000.mp4", bytes: 100, modifiedAt: "2026-01-01T10:00:00.000Z" },
+        { name: "aaaa-2026-01-01_11-00-00-000000.mp4", bytes: 200, modifiedAt: "2026-01-01T11:00:00.000Z" },
         { name: "bbbb.mp4", bytes: 300, modifiedAt: "2026-01-01T12:00:00.000Z" },
         { name: "something-else.mp4", bytes: 400, modifiedAt: "2026-01-01T13:00:00.000Z" },
       ]),
@@ -111,17 +111,21 @@ describe("broadcast recordings", () => {
 
     const list = await listBroadcastRecordings(7);
 
+    // Both hourly segments are one show, addressed by its first file.
     expect(list.map((row) => row.name)).toEqual([
-      "aaaa-2026-01-01.mp4",
-      "aaaa.mp4",
+      "aaaa-2026-01-01_10-00-00-000000.mp4",
     ]);
     expect(list[0]).toMatchObject({
       relayId: "aaaa",
       platform: "twitch",
-      bytes: 200,
+      bytes: 300,
     });
+    expect(list[0].parts.map((part) => part.name)).toEqual([
+      "aaaa-2026-01-01_10-00-00-000000.mp4",
+      "aaaa-2026-01-01_11-00-00-000000.mp4",
+    ]);
     expect(list[0].downloadPath).toBe(
-      "/broadcast/recordings/aaaa/download?name=aaaa-2026-01-01.mp4",
+      "/broadcast/recordings/aaaa/download?name=aaaa-2026-01-01_10-00-00-000000.mp4",
     );
     // The relay is called with the token, never from the browser.
     expect(fetchMock).toHaveBeenCalledWith(
@@ -459,6 +463,148 @@ it("keeps a show for as long as the host asks", async () => {
   );
 });
 
+it("keeps a show together when the relay recorded it in hourly segments", async () => {
+  seed("aaaa", 7);
+  fetchMock.mockImplementation(async (url: string) => {
+    if (String(url).endsWith("/thumbnail")) {
+      return { ok: false, status: 404 } as unknown as Response;
+    }
+    return relayListing(
+      [
+        {
+          name: "aaaa-2026-01-01_10-00-00-000000.mp4",
+          bytes: 100,
+          modifiedAt: "2026-01-01T10:00:00.000Z",
+          durationSeconds: 3600,
+        },
+        {
+          name: "aaaa-2026-01-01_11-00-00-000000.mp4",
+          bytes: 150,
+          modifiedAt: "2026-01-01T11:00:00.000Z",
+          durationSeconds: 1800,
+        },
+      ],
+      24,
+    ) as unknown as Response;
+  });
+
+  const shows = await listBroadcastRecordings(7);
+
+  expect(shows).toHaveLength(1);
+  const [show] = shows;
+  expect(show.name).toBe("aaaa-2026-01-01_10-00-00-000000.mp4");
+  expect(show.parts.map((part) => part.name)).toEqual([
+    "aaaa-2026-01-01_10-00-00-000000.mp4",
+    "aaaa-2026-01-01_11-00-00-000000.mp4",
+  ]);
+  expect(show.bytes).toBe(250);
+  expect(show.durationSeconds).toBe(5400);
+  expect(show.recordedAt).toBe("2026-01-01T11:00:00.000Z");
+  // The list warns on the first segment's deadline (that is when the show
+  // starts losing pieces) but only drops it after the last segment's.
+  expect(show.partExpiryAt).toBe("2026-01-02T10:00:00.000Z");
+  expect(show.expiresAt).toBe("2026-01-02T11:00:00.000Z");
+  expect(show.parts.map((part) => part.expiresAt)).toEqual([
+    "2026-01-02T10:00:00.000Z",
+    "2026-01-02T11:00:00.000Z",
+  ]);
+  expect(show.parts.map((part) => part.downloadPath)).toEqual([
+    "/broadcast/recordings/aaaa/download?name=aaaa-2026-01-01_10-00-00-000000.mp4",
+    "/broadcast/recordings/aaaa/download?name=aaaa-2026-01-01_11-00-00-000000.mp4",
+  ]);
+});
+
+it("pins and deletes every segment of a show, not just its first hour", async () => {
+  seed("aaaa", 7);
+  const calls: string[] = [];
+  fetchMock.mockImplementation(async (url: string, init?: RequestInit) => {
+    const address = String(url);
+    const method = init?.method ?? "GET";
+    if (method === "GET" && address.endsWith("/recordings")) {
+      return relayListed([
+        {
+          name: "aaaa-2026-01-01_10-00-00-000000.mp4",
+          bytes: 100,
+          modifiedAt: "2026-01-01T10:00:00.000Z",
+        },
+        {
+          name: "aaaa-2026-01-01_11-00-00-000000.mp4",
+          bytes: 150,
+          modifiedAt: "2026-01-01T11:00:00.000Z",
+        },
+      ]) as unknown as Response;
+    }
+    calls.push(`${method} ${address}`);
+    if (method === "PUT") {
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          keepHours: 168,
+          keepUntil: "2026-11-23T00:00:00.000Z",
+        }),
+      } as unknown as Response;
+    }
+    return { ok: true, status: 204 } as unknown as Response;
+  });
+
+  // Addressing either segment addresses the whole show.
+  const kept = await setBroadcastRetention(
+    7,
+    "aaaa",
+    "aaaa-2026-01-01_10-00-00-000000.mp4",
+    168,
+  );
+  await deleteBroadcastRecording(
+    7,
+    "aaaa",
+    "aaaa-2026-01-01_11-00-00-000000.mp4",
+  );
+
+  expect(kept).toEqual({
+    keepHours: 168,
+    keepUntil: "2026-11-23T00:00:00.000Z",
+  });
+  expect(calls).toEqual([
+    "PUT http://relay.test/recordings/aaaa-2026-01-01_10-00-00-000000.mp4/retention",
+    "PUT http://relay.test/recordings/aaaa-2026-01-01_11-00-00-000000.mp4/retention",
+    "DELETE http://relay.test/recordings/aaaa-2026-01-01_10-00-00-000000.mp4",
+    "DELETE http://relay.test/recordings/aaaa-2026-01-01_11-00-00-000000.mp4",
+  ]);
+});
+
+it("opens any segment of a show, and no file it never listed", async () => {
+  seed("aaaa", 7);
+  fetchMock.mockImplementation(async (url: string) => {
+    if (String(url).endsWith("/thumbnail")) {
+      return { ok: false, status: 404 } as unknown as Response;
+    }
+    return relayListed([
+      {
+        name: "aaaa-2026-01-01_10-00-00-000000.mp4",
+        bytes: 100,
+        modifiedAt: "2026-01-01T10:00:00.000Z",
+      },
+      {
+        name: "aaaa-2026-01-01_11-00-00-000000.mp4",
+        bytes: 150,
+        modifiedAt: "2026-01-01T11:00:00.000Z",
+      },
+    ]) as unknown as Response;
+  });
+
+  const second = await issuePlaybackTicket(
+    7,
+    "aaaa",
+    "aaaa-2026-01-01_11-00-00-000000.mp4",
+  );
+
+  expect(second.path).toContain("sig=");
+  await expect(
+    issuePlaybackTicket(7, "aaaa", "aaaa-2026-01-01_12-00-00-000000.mp4"),
+  ).rejects.toThrow(/does not exist/);
+});
+
 it("will not change retention for another host's show, or for a bad duration", async () => {
   seed("aaaa", 7);
   const puts: string[] = [];
@@ -535,6 +681,8 @@ it("lists how long each show is kept for", async () => {
 
 it("says when a show will be swept, and a longer pin pushes that out", async () => {
   seed("aaaa", 7);
+  seed("bbbb", 7);
+  seed("cccc", 7);
   const recordedAt = "2026-01-01T10:00:00.000Z";
   const windowEnd = "2026-01-02T10:00:00.000Z";
   fetchMock.mockImplementation(async (url: string) => {
@@ -545,14 +693,14 @@ it("says when a show will be swept, and a longer pin pushes that out", async () 
       [
         { name: "aaaa.mp4", bytes: 1, modifiedAt: recordedAt },
         {
-          name: "aaaa-kept.mp4",
+          name: "bbbb.mp4",
           bytes: 1,
           modifiedAt: recordedAt,
           keepHours: 168,
           keepUntil: "2026-01-08T10:00:00.000Z",
         },
         {
-          name: "aaaa-short-pin.mp4",
+          name: "cccc.mp4",
           bytes: 1,
           modifiedAt: recordedAt,
           keepHours: 1,
@@ -564,15 +712,13 @@ it("says when a show will be swept, and a longer pin pushes that out", async () 
   });
 
   const rows = await listBroadcastRecordings(7);
-  const byName = new Map(rows.map((row) => [row.name, row]));
+  const byRelay = new Map(rows.map((row) => [row.relayId, row]));
 
-  expect(byName.get("aaaa.mp4")?.expiresAt).toBe(windowEnd);
-  expect(byName.get("aaaa-kept.mp4")?.expiresAt).toBe(
-    "2026-01-08T10:00:00.000Z",
-  );
+  expect(byRelay.get("aaaa")?.expiresAt).toBe(windowEnd);
+  expect(byRelay.get("bbbb")?.expiresAt).toBe("2026-01-08T10:00:00.000Z");
   // A pin shorter than the window does not bring the sweep forward: the file
   // only goes once both the window and the pin are over.
-  expect(byName.get("aaaa-short-pin.mp4")?.expiresAt).toBe(windowEnd);
+  expect(byRelay.get("cccc")?.expiresAt).toBe(windowEnd);
 });
 
 it("has no deadline to warn about when the relay keeps recordings forever", async () => {

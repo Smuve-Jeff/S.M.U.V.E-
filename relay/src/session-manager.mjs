@@ -303,10 +303,17 @@ export class SessionManager {
       dir: this.#recordingDir,
       config: {
         record: true,
-        recordPath: `${this.#recordingDir}/%path`,
+        // MediaMTX opens every segment with O_CREAT|O_TRUNC, so a template
+        // without a time placeholder makes each hourly segment replace the
+        // previous one. The timestamp keeps the show's segments side by side;
+        // %f keeps them unique even when two land in the same second (and when
+        // a clock goes back for DST). No %z: '+' is not a name we accept.
+        recordPath: `${this.#recordingDir}/%path-%Y-%m-%d_%H-%M-%S-%f`,
         // fMP4 because a browser can play it and it survives a kill -9 without
         // the trailing moov atom a plain MP4 needs.
         recordFormat: "fmp4",
+        // Segments are hourly so a long show is durable: a crash costs at most
+        // the segment being written. Each gets its own name (see recordPath).
         recordSegmentDuration: "1h",
         // Explicitly off, because MediaMTX defaults to 1d: its window counts
         // against the segment still being written (so a short window deletes a

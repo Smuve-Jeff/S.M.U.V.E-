@@ -3143,7 +3143,10 @@
                 [class.active]="socialService.videoSource() === 'screen'"
                 [disabled]="socialService.previewStarting()"
                 (click)="selectStreamSource('screen')"
-                title="Share your screen — pick a tab, window or display when you go live"
+                [title]="
+                  socialService.screenShareUnavailableReason() ||
+                  'Share your screen — pick a tab, window or display when you go live'
+                "
               >
                 SCREEN
               </button>
@@ -3209,6 +3212,45 @@
                       : 'NO CAPTURE'
                 }}
               </span>
+            </div>
+            <div class="stream-quality-row">
+              <span class="quality-readout">AUDIO</span>
+              <!-- Same handlers as the live AV row: these set the capture
+                   state GO LIVE inherits, so the mix is checked before air. -->
+              <button
+                type="button"
+                class="quality-btn"
+                [class.active]="socialService.screenAudioOnly()"
+                [disabled]="
+                  socialService.videoSource() !== 'screen' ||
+                  !socialService.screenAudioAvailable()
+                "
+                [title]="
+                  socialService.screenAudioAvailable()
+                    ? 'Viewers hear game sound only — your mic stays out of their mix'
+                    : 'No game audio is captured, so this would leave viewers in silence'
+                "
+                (click)="
+                  socialService.setScreenAudioOnly(
+                    !socialService.screenAudioOnly()
+                  )
+                "
+              >
+                GAME ONLY
+              </button>
+              <button
+                type="button"
+                class="quality-btn"
+                [class.active]="!socialService.micEnabled()"
+                [title]="
+                  socialService.micEnabled()
+                    ? 'Mute the microphone — viewers will hear no voice'
+                    : 'Unmute the microphone'
+                "
+                (click)="socialService.toggleMicrophone()"
+              >
+                {{ socialService.micEnabled() ? 'MIC' : 'MIC MUTED' }}
+              </button>
             </div>
             <video
               *ngIf="
@@ -3493,6 +3535,13 @@
                     <span class="accounts-count">
                       {{ ingest.recordingLabel(playback.recording) }}
                     </span>
+                    <span
+                      class="accounts-count"
+                      *ngIf="playback.partCount > 1"
+                      title="This show was recorded in hourly segments; playing continues into the next one"
+                    >
+                      PART {{ playback.partIndex + 1 }}/{{ playback.partCount }}
+                    </span>
                     <button class="quality-btn" (click)="ingest.stopPlayback()">
                       CLOSE
                     </button>
@@ -3503,6 +3552,7 @@
                     controls
                     autoplay
                     playsinline
+                    (ended)="ingest.playNextRecordingPart()"
                   ></video>
                 </div>
                 <div
@@ -3725,11 +3775,18 @@
               </button>
               <button
                 class="av-btn"
+                [class.active]="!socialService.micEnabled()"
                 (click)="socialService.toggleMicrophone()"
-                title="Toggle microphone"
+                [title]="
+                  socialService.micEnabled()
+                    ? 'Mute the microphone — viewers will hear no voice'
+                    : 'Unmute the microphone'
+                "
               >
-                <span class="material-symbols-outlined">mic</span>
-                MIC
+                <span class="material-symbols-outlined">{{
+                  socialService.micEnabled() ? 'mic' : 'mic_off'
+                }}</span>
+                {{ socialService.micEnabled() ? 'MIC' : 'MIC MUTED' }}
               </button>
               <span class="quality-readout">{{
                 socialService.streamQuality() | uppercase

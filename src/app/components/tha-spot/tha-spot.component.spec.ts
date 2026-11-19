@@ -187,6 +187,14 @@ describe("ThaSpotComponent", () => {
       screenShareSupported: signal(true),
       screenShareUnavailableReason: signal(null),
       screenAudioWarning: signal(null),
+      screenAudioAvailable: signal(false),
+      micEnabled: signal(true),
+      toggleMicrophone: jest.fn(() =>
+        socialServiceMock.micEnabled.set(!socialServiceMock.micEnabled()),
+      ),
+      setScreenAudioOnly: jest.fn((on: boolean) =>
+        socialServiceMock.screenAudioOnly.set(on),
+      ),
       startPreview: jest.fn().mockResolvedValue(true),
       stopPreview: jest.fn(),
       setVideoSource: jest.fn(async (source: "camera" | "screen" | "camera-pip") => {
@@ -381,6 +389,69 @@ describe("ThaSpotComponent", () => {
       expect(socialServiceMock.toggleCamera).toHaveBeenCalledTimes(1);
       expect(button("UNMUTE")).toBeTruthy();
       expect(socialServiceMock.setVideoSource).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe("pre-stream audio controls", () => {
+    const audioButton = (label: string) =>
+      (
+        Array.from(
+          fixture.nativeElement.querySelectorAll(".preview-dom button"),
+        ) as HTMLButtonElement[]
+      ).find((entry) => entry.textContent?.trim() === label);
+
+    it("mutes the microphone through the service and shows the muted state", () => {
+      const mic = audioButton("MIC");
+      expect(mic).toBeTruthy();
+      expect(mic!.classList.contains("active")).toBe(false);
+
+      mic!.click();
+      fixture.detectChanges();
+
+      expect(socialServiceMock.toggleMicrophone).toHaveBeenCalledTimes(1);
+      expect(socialServiceMock.micEnabled()).toBe(false);
+      const muted = audioButton("MIC MUTED");
+      expect(muted).toBeTruthy();
+      expect(muted!.classList.contains("active")).toBe(true);
+      expect(muted!.title).toContain("Unmute");
+
+      muted!.click();
+      fixture.detectChanges();
+
+      expect(socialServiceMock.toggleMicrophone).toHaveBeenCalledTimes(2);
+      expect(audioButton("MIC")).toBeTruthy();
+    });
+
+    it("enables GAME ONLY only with captured screen audio and toggles it through the service", () => {
+      const gameOnly = () => audioButton("GAME ONLY")!;
+      expect(gameOnly().disabled).toBe(true);
+
+      // A shared screen with no game audio would leave viewers silent.
+      socialServiceMock.videoSource.set("screen");
+      fixture.detectChanges();
+      expect(gameOnly().disabled).toBe(true);
+
+      socialServiceMock.screenAudioAvailable.set(true);
+      fixture.detectChanges();
+      expect(gameOnly().disabled).toBe(false);
+
+      gameOnly().click();
+      fixture.detectChanges();
+      expect(socialServiceMock.setScreenAudioOnly).toHaveBeenCalledWith(true);
+      expect(socialServiceMock.screenAudioOnly()).toBe(true);
+      expect(gameOnly().classList.contains("active")).toBe(true);
+
+      gameOnly().click();
+      fixture.detectChanges();
+      expect(socialServiceMock.setScreenAudioOnly).toHaveBeenLastCalledWith(
+        false,
+      );
+      expect(socialServiceMock.screenAudioOnly()).toBe(false);
+
+      // The composite shares the screen but never carries game-only audio.
+      socialServiceMock.videoSource.set("camera-pip");
+      fixture.detectChanges();
+      expect(gameOnly().disabled).toBe(true);
     });
   });
 

@@ -10,38 +10,67 @@ import {
 
 /**
  * Recordings live on the relay's volume, named after the relay session
- * (`<relayId>.mp4`). The relay knows nothing about accounts, so this service
- * joins its file list against the sessions this server opened — a host sees
- * their own shows, never another host's.
+ * (`<relayId>-<timestamp>.mp4`; older relays wrote one `<relayId>.mp4`). A show
+ * longer than an hour is recorded in segments, one file per hour, so a show is
+ * a list of files rather than a single one. The relay knows nothing about
+ * accounts, so this service joins its file list against the sessions this
+ * server opened — a host sees their own shows, never another host's.
  */
+
+/** One hourly file of a show. */
+export interface BroadcastRecordingPart {
+  /** File name on the relay. */
+  name: string;
+  bytes: number;
+  recordedAt: string;
+  /** Where the app downloads this segment from, relative to the API. */
+  downloadPath: string;
+  /** Seconds of media in this segment; null when the relay did not read it. */
+  durationSeconds: number | null;
+  /** When the sweeper will take this segment, or null when it is unknown. */
+  expiresAt: string | null;
+}
 
 export interface BroadcastRecording {
   relayId: string;
   platform: string;
   startedAt: string;
   endedAt: string | null;
-  /** File name on the relay. */
+  /**
+   * The show's first segment. This is the name the API uses to address the
+   * whole show (delete it, keep it); playback addresses a single segment.
+   */
   name: string;
+  /** Every segment, oldest first. One entry for a show under an hour. */
+  parts: BroadcastRecordingPart[];
+  /** Bytes across every segment. */
   bytes: number;
+  /** When the last segment was written, so the list reads newest show first. */
   recordedAt: string;
-  /** Where the app downloads it from, relative to the API. */
+  /** Where the app downloads the first segment from, relative to the API. */
   downloadPath: string;
-  /** Seconds of media, read from the file's own header; null when unknown. */
+  /** Seconds of media across the show; null when no segment reported one. */
   durationSeconds: number | null;
   /**
    * A small JPEG frame as a data URL, so an `<img>` needs no token of its own.
    * Null when the relay has no ffmpeg or could not frame the file.
    */
   thumbnail: string | null;
-  /** Hours the host asked to keep this show for; null means the default window. */
+  /** The shortest pin on any segment; null means the default window everywhere. */
   keepHours: number | null;
-  /** When that promise runs out, if one was made. */
+  /** The first pin to run out, if one was made. */
   keepUntil: string | null;
   /**
-   * When the sweeper will take this file: the end of the default window, or a
-   * longer pin, whichever is later. Null when retention is off or unknown.
+   * When the sweeper takes the show's last segment: the end of the default
+   * window, or a longer pin, whichever is later. Null when retention is off or
+   * unknown. A show is only gone once this has passed.
    */
   expiresAt: string | null;
+  /**
+   * When the show's first segment goes, i.e. when it starts losing pieces.
+   * Equals `expiresAt` for a show kept in one file; null when no deadline.
+   */
+  partExpiryAt: string | null;
 }
 
 interface RelayFile {
@@ -125,6 +154,22 @@ export async function markBroadcastSessionEnded(relayId: string): Promise<void> 
   }
 }
 
+/** When the sweeper takes one file: its window and its pin, whichever is later. */
+function sweepTime(file: RelayFile, retentionHours: number): number | null {
+  const windowEnd =
+    retentionHours > 0
+      ? Date.parse(file.modifiedAt) + retentionHours * 3_600_000
+      : null;
+  const pinEnd = file.keepUntil ? Date.parse(file.keepUntil) : null;
+  // A file goes when both its window and its pin are over. Math.max would turn
+  // a missing deadline into NaN and lose the other one, so collect only the
+  // deadlines that exist.
+  const deadlines = [windowEnd, pinEnd].filter(
+    (value): value is number => value !== null && Number.isFinite(value),
+  );
+  return deadlines.length ? Math.max(...deadlines) : null;
+}
+
 const EMPTY_RELAY_LIST = { files: [] as RelayFile[], retentionHours: 0 };
 
 /** The relay's recordings and its default window, when it keeps any. */
@@ -197,38 +242,67 @@ async function collectRecordings(owner: number): Promise<{
 
   const recordings: BroadcastRecording[] = [];
   for (const row of rows) {
-    for (const file of files) {
-      if (!belongsTo(file.name, row.relayId)) continue;
-      const windowEnd =
-        retentionHours > 0
-          ? Date.parse(file.modifiedAt) + retentionHours * 3_600_000
-          : null;
-      const pinEnd = file.keepUntil ? Date.parse(file.keepUntil) : null;
-      // A file goes when both its window and its pin are over. Math.max would
-      // turn a missing deadline into NaN and lose the other one, so collect
-      // only the deadlines that exist.
-      const deadlines = [windowEnd, pinEnd].filter(
-        (value): value is number => value !== null && Number.isFinite(value),
+    // A show is every file the session wrote, oldest first. The relay names
+    // hourly segments after the session, so they sort by the time they were
+    // written; the name breaks a tie within the same millisecond.
+    const entries = files
+      .filter((file) => belongsTo(file.name, row.relayId))
+      .map((file) => ({ file, sweepAt: sweepTime(file, retentionHours) }))
+      .sort(
+        (a, b) =>
+          a.file.modifiedAt.localeCompare(b.file.modifiedAt) ||
+          a.file.name.localeCompare(b.file.name),
       );
-      const sweepAt = deadlines.length ? Math.max(...deadlines) : null;
-      recordings.push({
-        relayId: row.relayId,
-        platform: row.platform,
-        startedAt: new Date(row.startedAt).toISOString(),
-        endedAt: row.endedAt ? new Date(row.endedAt).toISOString() : null,
-        name: file.name,
-        bytes: file.bytes,
-        recordedAt: file.modifiedAt,
-        durationSeconds: file.durationSeconds,
-        keepHours: file.keepHours,
-        keepUntil: file.keepUntil,
-        expiresAt: sweepAt === null ? null : new Date(sweepAt).toISOString(),
-        thumbnail: null,
-        downloadPath: `/broadcast/recordings/${encodeURIComponent(
-          row.relayId,
-        )}/download?name=${encodeURIComponent(file.name)}`,
-      });
-    }
+    if (!entries.length) continue;
+
+    const parts: BroadcastRecordingPart[] = entries.map(({ file, sweepAt }) => ({
+      name: file.name,
+      bytes: file.bytes,
+      recordedAt: file.modifiedAt,
+      durationSeconds: file.durationSeconds,
+      expiresAt: sweepAt === null ? null : new Date(sweepAt).toISOString(),
+      downloadPath: `/broadcast/recordings/${encodeURIComponent(
+        row.relayId,
+      )}/download?name=${encodeURIComponent(file.name)}`,
+    }));
+    const durations = parts
+      .map((part) => part.durationSeconds)
+      .filter((value): value is number => value !== null && value > 0);
+    const sweeps = entries
+      .map(({ sweepAt }) => sweepAt)
+      .filter((value): value is number => value !== null);
+    const pins = entries
+      .map(({ file }) => (file.keepUntil ? Date.parse(file.keepUntil) : NaN))
+      .filter((value) => Number.isFinite(value));
+    const keepHours = entries
+      .map(({ file }) => file.keepHours)
+      .filter((value): value is number => typeof value === "number" && value > 0);
+
+    recordings.push({
+      relayId: row.relayId,
+      platform: row.platform,
+      startedAt: new Date(row.startedAt).toISOString(),
+      endedAt: row.endedAt ? new Date(row.endedAt).toISOString() : null,
+      name: parts[0].name,
+      parts,
+      bytes: parts.reduce((sum, part) => sum + part.bytes, 0),
+      recordedAt: parts[parts.length - 1].recordedAt,
+      durationSeconds: durations.length
+        ? durations.reduce((sum, value) => sum + value, 0)
+        : null,
+      thumbnail: null,
+      keepHours: keepHours.length ? Math.min(...keepHours) : null,
+      keepUntil: pins.length
+        ? new Date(Math.min(...pins)).toISOString()
+        : null,
+      expiresAt: sweeps.length
+        ? new Date(Math.max(...sweeps)).toISOString()
+        : null,
+      partExpiryAt: sweeps.length
+        ? new Date(Math.min(...sweeps)).toISOString()
+        : null,
+      downloadPath: parts[0].downloadPath,
+    });
   }
   return {
     relay,
@@ -323,9 +397,11 @@ export async function openBroadcastRecording(
   }
 
   const collected = await collectRecordings(owner);
-  const match = collected?.recordings.find(
-    (recording) => recording.relayId === id && recording.name === name,
-  );
+  // A show is addressed segment by segment here: the name must be one of the
+  // session's own files, not the show's first segment by assumption.
+  const match = collected?.recordings
+    .find((recording) => recording.relayId === id)
+    ?.parts.find((part) => part.name === name);
   if (!match) throw new AppError(404, "That recording does not exist.");
 
   const relayHeaders: Record<string, string> = {};
@@ -368,7 +444,9 @@ export async function issuePlaybackTicket(
   }
   const collected = await collectRecordings(owner);
   const owned = collected?.recordings.some(
-    (recording) => recording.relayId === id && recording.name === name,
+    (recording) =>
+      recording.relayId === id &&
+      recording.parts.some((part) => part.name === name),
   );
   if (!owned) {
     throw new AppError(404, "That recording does not exist.");
@@ -447,7 +525,9 @@ export async function setBroadcastRetention(
   }
   const collected = await collectRecordings(owner);
   const owned = collected?.recordings.find(
-    (recording) => recording.relayId === id && recording.name === name,
+    (recording) =>
+      recording.relayId === id &&
+      recording.parts.some((part) => part.name === name),
   );
   if (!collected || !owned) {
     throw new AppError(404, "That recording does not exist.");
@@ -457,49 +537,67 @@ export async function setBroadcastRetention(
     502,
     "The relay could not update that recording's retention.",
   );
-  let response: Response;
-  try {
-    response = await callRelay(
-      collected.relay,
-      `/recordings/${encodeURIComponent(owned.name)}/retention`,
-      {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ hours: value }),
-      },
-    );
-  } catch {
-    throw failed;
-  }
-  if (response.status === 404) {
-    throw new AppError(404, "That recording does not exist.");
-  }
-  if (response.status === 400) {
-    throw new AppError(
-      400,
-      `Keep a recording for whole hours between 0 and ${MAX_KEEP_HOURS}.`,
-    );
-  }
-  if (response.status === 503) {
-    throw new AppError(
-      503,
-      "Broadcast push is not configured on this server, so there are no recordings.",
-    );
-  }
-  if (!response.ok) throw failed;
+  // The promise is per file on the relay, so a show in hourly segments needs
+  // every one of them pinned; otherwise the first hour survives and the rest
+  // expire on the default window.
+  const keepHours: number[] = [];
+  const keepUntils: number[] = [];
+  let answered = 0;
+  for (const part of owned.parts) {
+    let response: Response;
+    try {
+      response = await callRelay(
+        collected.relay,
+        `/recordings/${encodeURIComponent(part.name)}/retention`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ hours: value }),
+        },
+      );
+    } catch {
+      throw failed;
+    }
+    // A segment the sweeper took between the listing and this call cannot be
+    // pinned; the rest still can, and the promise is therefore one segment
+    // shorter rather than refused outright.
+    if (response.status === 404) continue;
+    if (response.status === 400) {
+      throw new AppError(
+        400,
+        `Keep a recording for whole hours between 0 and ${MAX_KEEP_HOURS}.`,
+      );
+    }
+    if (response.status === 503) {
+      throw new AppError(
+        503,
+        "Broadcast push is not configured on this server, so there are no recordings.",
+      );
+    }
+    if (!response.ok) throw failed;
+    answered += 1;
 
-  const payload = (await response.json().catch(() => ({}))) as {
-    keepHours?: unknown;
-    keepUntil?: unknown;
-  };
-  const kept = Number(payload.keepHours);
-  return {
-    keepHours: Number.isInteger(kept) && kept > 0 ? kept : null,
-    keepUntil:
+    const payload = (await response.json().catch(() => ({}))) as {
+      keepHours?: unknown;
+      keepUntil?: unknown;
+    };
+    const kept = Number(payload.keepHours);
+    if (Number.isInteger(kept) && kept > 0) keepHours.push(kept);
+    if (
       typeof payload.keepUntil === "string" &&
       !Number.isNaN(Date.parse(payload.keepUntil))
-        ? payload.keepUntil
-        : null,
+    ) {
+      keepUntils.push(Date.parse(payload.keepUntil));
+    }
+  }
+  if (!answered) throw new AppError(404, "That recording does not exist.");
+
+  // The show is only guaranteed for as long as its shortest pin.
+  return {
+    keepHours: keepHours.length ? Math.min(...keepHours) : null,
+    keepUntil: keepUntils.length
+      ? new Date(Math.min(...keepUntils)).toISOString()
+      : null,
   };
 }
 
@@ -522,30 +620,40 @@ export async function deleteBroadcastRecording(
   }
   const collected = await collectRecordings(owner);
   const owned = collected?.recordings.find(
-    (recording) => recording.relayId === id && recording.name === name,
+    (recording) =>
+      recording.relayId === id &&
+      recording.parts.some((part) => part.name === name),
   );
   if (!collected || !owned) {
     throw new AppError(404, "That recording does not exist.");
   }
 
-  let response: Response;
-  try {
-    response = await callRelay(
-      collected.relay,
-      `/recordings/${encodeURIComponent(owned.name)}`,
-      { method: "DELETE" },
-    );
-  } catch {
-    throw new AppError(502, "The relay could not delete that recording.");
+  // Deleting a show means every hour of it: leaving the older segments behind
+  // would free half the space and keep the list row alive.
+  const failed = new AppError(
+    502,
+    "The relay could not delete that recording.",
+  );
+  for (const part of owned.parts) {
+    let response: Response;
+    try {
+      response = await callRelay(
+        collected.relay,
+        `/recordings/${encodeURIComponent(part.name)}`,
+        { method: "DELETE" },
+      );
+    } catch {
+      throw failed;
+    }
+    if (response.status === 204 || response.status === 404) continue;
+    if (response.status === 503) {
+      throw new AppError(
+        503,
+        "Broadcast push is not configured on this server, so there are no recordings.",
+      );
+    }
+    throw failed;
   }
-  if (response.status === 204 || response.status === 404) return;
-  if (response.status === 503) {
-    throw new AppError(
-      503,
-      "Broadcast push is not configured on this server, so there are no recordings.",
-    );
-  }
-  throw new AppError(502, "The relay could not delete that recording.");
 }
 
 /** The claims carried by a media URL, ready for `verifyPlaybackTicket`. */

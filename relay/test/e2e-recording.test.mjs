@@ -218,7 +218,12 @@ test(
       await fetch(`${API}/v3/config/paths/get/${encodeURIComponent(session.id)}`)
     ).json();
     assert.equal(pathConfig.record, true, "the session path is not set to record");
-    assert.equal(pathConfig.recordPath, `${recordingDir}/%path`);
+    // Every segment needs its own name; a static path is truncated by the next
+    // hourly segment.
+    assert.equal(
+      pathConfig.recordPath,
+      `${recordingDir}/%path-%Y-%m-%d_%H-%M-%S-%f`,
+    );
     assert.equal(pathConfig.recordFormat, "fmp4");
     // Retention is the relay's job. MediaMTX defaults this to 1d, and its window
     // counts against the segment being written, so it must be off here (it

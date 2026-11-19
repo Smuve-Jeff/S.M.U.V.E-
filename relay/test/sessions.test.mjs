@@ -644,7 +644,9 @@ test("a broadcast asks MediaMTX to record it into the recording volume", async (
       id: broadcast.id,
       options: {
         record: true,
-        recordPath: "/recordings/%path",
+        // A unique name per segment: MediaMTX truncates whatever it opens, so a
+        // static path would make every hour replace the one before it.
+        recordPath: "/recordings/%path-%Y-%m-%d_%H-%M-%S-%f",
         recordFormat: "fmp4",
         recordSegmentDuration: "1h",
         // MediaMTX's own retention must stay off; the relay sweeps the volume.
