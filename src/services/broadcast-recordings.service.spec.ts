@@ -650,6 +650,60 @@ it("packs every segment of a show into one download", async () => {
   await expect(recordingArchive(9, "aaaa")).rejects.toThrow(/does not exist/);
 });
 
+it("gives the listing and the segment read the download's cancellation signal", async () => {
+  seed("aaaa", 7);
+  const signals: (AbortSignal | undefined)[] = [];
+  fetchMock.mockImplementation(async (url: string, init?: RequestInit) => {
+    signals.push(init?.signal ?? undefined);
+    if (String(url).endsWith("/recordings")) {
+      return relayListed([
+        {
+          name: "aaaa-2026-01-01_10-00-00-000000.mp4",
+          bytes: 100,
+          modifiedAt: "2026-01-01T10:00:00.000Z",
+        },
+      ]) as unknown as Response;
+    }
+    return { ok: true, status: 200, body: { stream: true } } as unknown as Response;
+  });
+  const controller = new AbortController();
+
+  const archive = await recordingArchive(7, "aaaa", {
+    signal: controller.signal,
+  });
+  await archive.entries[0].open();
+
+  expect(signals).toHaveLength(2);
+  expect(signals.every((signal) => signal === controller.signal)).toBe(true);
+});
+
+it("stops at the relay listing when the download is cancelled", async () => {
+  seed("aaaa", 7);
+  const controller = new AbortController();
+  // What fetch does with a signal: reject once it is aborted, whether the
+  // abort came before the request or while it was in flight.
+  fetchMock.mockImplementation(
+    (_url: string, init?: RequestInit) =>
+      new Promise((_resolve, reject) => {
+        const fail = () =>
+          reject(
+            Object.assign(new Error("The operation was aborted"), {
+              name: "AbortError",
+            }),
+          );
+        const signal = init?.signal;
+        if (!signal) return;
+        if (signal.aborted) return fail();
+        signal.addEventListener("abort", fail, { once: true });
+      }),
+  );
+
+  const pending = recordingArchive(7, "aaaa", { signal: controller.signal });
+  controller.abort();
+
+  await expect(pending).rejects.toThrow(/abort/i);
+});
+
 it("mints one signed download for the whole show, and only for its owner", async () => {
   seed("aaaa", 7);
   fetchMock.mockImplementation(async (url: string) => {

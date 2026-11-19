@@ -260,6 +260,12 @@ router.get(
   "/recordings/:relayId/archive",
   streamLimiter,
   async (req, res, next) => {
+    // Opened before anything is fetched: giving up while the relay is still
+    // being listed, or before the first segment arrives, cancels both.
+    const download = new AbortController();
+    res.on("close", () => {
+      if (!res.writableEnded) download.abort();
+    });
     try {
       const relayId = String(req.params.relayId || "");
       const name = typeof req.query.name === "string" ? req.query.name : "";
@@ -278,8 +284,9 @@ router.get(
           .json({ error: "That download link is not valid." });
       }
 
-      const archive = await recordingArchive(Number(req.query.u), relayId);
-      const download = new AbortController();
+      const archive = await recordingArchive(Number(req.query.u), relayId, {
+        signal: download.signal,
+      });
       // The first segment is opened before any header is written: a relay that
       // cannot hand over the first hour answers with an error, not an empty zip.
       const zip = await openArchiveStream(
@@ -296,13 +303,11 @@ router.get(
         "Cache-Control": "private, no-store",
         "X-Content-Type-Options": "nosniff",
       });
-      // Closing the response means the browser stopped waiting; stop pulling
-      // the show from the relay with it.
-      res.on("close", () => {
-        if (!res.writableEnded) download.abort();
-      });
       zip.on("error", () => res.destroy()).pipe(res);
     } catch (error) {
+      // Nobody is waiting for this response any more: the abort already said
+      // everything the caller needed.
+      if (download.signal.aborted) return;
       next(error);
     }
   },

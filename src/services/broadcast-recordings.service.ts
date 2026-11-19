@@ -177,10 +177,12 @@ const EMPTY_RELAY_LIST = { files: [] as RelayFile[], retentionHours: 0 };
 /** The relay's recordings and its default window, when it keeps any. */
 async function relayRecordings(
   relay: Relay,
+  signal?: AbortSignal,
 ): Promise<{ files: RelayFile[]; retentionHours: number }> {
   const response = await callRelay(relay, "/recordings", {
     method: "GET",
     headers: { Accept: "application/json" },
+    ...(signal ? { signal } : {}),
   });
   if (response.status === 503) return EMPTY_RELAY_LIST;
   if (!response.ok) {
@@ -226,7 +228,10 @@ const belongsTo = (name: string, relayId: string): boolean =>
  * lookups. Ownership checks use this: they must not spawn ffmpeg on the relay
  * just to answer a request.
  */
-async function collectRecordings(owner: number): Promise<{
+async function collectRecordings(
+  owner: number,
+  signal?: AbortSignal,
+): Promise<{
   relay: Relay;
   recordings: BroadcastRecording[];
 } | null> {
@@ -239,7 +244,7 @@ async function collectRecordings(owner: number): Promise<{
     take: 200,
   });
   if (!rows.length) return null;
-  const { files, retentionHours } = await relayRecordings(relay);
+  const { files, retentionHours } = await relayRecordings(relay, signal);
   if (!files.length) return null;
 
   const recordings: BroadcastRecording[] = [];
@@ -480,6 +485,7 @@ export interface RecordingArchive {
 async function ownedShow(
   userId: number | string,
   relayId: string,
+  signal?: AbortSignal,
 ): Promise<{ relay: Relay; show: BroadcastRecording }> {
   const relay = relayConfiguration();
   if (!relay) {
@@ -493,7 +499,7 @@ async function ownedShow(
   if (!Number.isFinite(owner) || !/^[A-Za-z0-9_-]{1,128}$/.test(id)) {
     throw new AppError(404, "That recording does not exist.");
   }
-  const collected = await collectRecordings(owner);
+  const collected = await collectRecordings(owner, signal);
   const show = collected?.recordings.find(
     (recording) => recording.relayId === id,
   );
@@ -511,8 +517,10 @@ async function ownedShow(
 export async function recordingArchive(
   userId: number | string,
   relayId: string,
+  options: { signal?: AbortSignal } = {},
 ): Promise<RecordingArchive> {
-  const { relay, show } = await ownedShow(userId, relayId);
+  const { signal } = options;
+  const { relay, show } = await ownedShow(userId, relayId, signal);
   return {
     filename: `${show.relayId}.zip`,
     entries: show.parts.map((part) => ({
@@ -522,7 +530,7 @@ export async function recordingArchive(
         const response = await callRelay(
           relay,
           `/recordings/${encodeURIComponent(part.name)}`,
-          { method: "GET" },
+          { method: "GET", ...(signal ? { signal } : {}) },
         );
         if (!response.ok || !response.body) {
           throw new AppError(

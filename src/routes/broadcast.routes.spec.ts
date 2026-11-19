@@ -135,6 +135,43 @@ describe("broadcast recordings archive route", () => {
     expect(cancelled).toBe(true);
   });
 
+  it("aborts the relay listing when the browser gives up before the first segment", async () => {
+    let seen: AbortSignal | undefined;
+    let listingStarted: () => void = () => {};
+    const started = new Promise<void>((resolve) => {
+      listingStarted = resolve;
+    });
+    archiveMock.mockImplementation(
+      (
+        _userId: number,
+        _relayId: string,
+        options: { signal?: AbortSignal } = {},
+      ) => {
+        seen = options.signal;
+        listingStarted();
+        // A relay listing that only settles by being cancelled.
+        return new Promise((_resolve, reject) => {
+          options.signal?.addEventListener("abort", () =>
+            reject(Object.assign(new Error("The operation was aborted"), { name: "AbortError" })),
+          );
+        });
+      },
+    );
+
+    const client = new AbortController();
+    const request = fetch(archiveUrl(), { signal: client.signal });
+    request.catch(() => {});
+    await started;
+    client.abort();
+
+    await expect(request).rejects.toThrow(/abort/i);
+    const deadline = Date.now() + 3000;
+    while (!seen?.aborted && Date.now() < deadline) {
+      await new Promise((resolve) => setTimeout(resolve, 25));
+    }
+    expect(seen?.aborted).toBe(true);
+  });
+
   it("refuses a ticket that is not for the whole show", async () => {
     const response = await fetch(archiveUrl("aaaa-2026-01-01_10-00-00.mp4"));
 
