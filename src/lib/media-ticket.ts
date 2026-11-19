@@ -17,6 +17,13 @@ const VERSION = "v1";
 /** Long enough for an hour-long show to be watched without re-minting. */
 export const PLAYBACK_TICKET_TTL_MS = 2 * 60 * 60 * 1_000;
 
+/**
+ * A ticket otherwise names one file, and an archive is not a file. A recording
+ * name can never contain `@`, so this can only ever mean "the whole show": a
+ * single-file ticket cannot be replayed as an archive, or the other way round.
+ */
+export const ARCHIVE_TICKET_NAME = "@archive";
+
 export interface PlaybackTicket {
   userId: number;
   relayId: string;
@@ -101,6 +108,15 @@ export function verifyPlaybackTicket(input: {
 
 /** The ticket as query parameters, relative to the API base. */
 export function playbackPath(ticket: PlaybackTicket): string {
+  return ticketPath(ticket, "stream");
+}
+
+/** The same ticket, addressed at the whole-show archive instead of one file. */
+export function archivePath(ticket: PlaybackTicket): string {
+  return ticketPath(ticket, "archive");
+}
+
+function ticketPath(ticket: PlaybackTicket, route: string): string {
   const query = new URLSearchParams({
     name: ticket.name,
     u: String(ticket.userId),
@@ -109,5 +125,5 @@ export function playbackPath(ticket: PlaybackTicket): string {
   });
   return `/broadcast/recordings/${encodeURIComponent(
     ticket.relayId,
-  )}/stream?${query.toString()}`;
+  )}/${route}?${query.toString()}`;
 }

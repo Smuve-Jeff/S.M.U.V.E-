@@ -3,6 +3,8 @@ import { AppDataSource } from "@/database/data-source";
 import { BroadcastSession } from "@/entities/BroadcastSession";
 import { AppError } from "@/lib";
 import {
+  ARCHIVE_TICKET_NAME,
+  archivePath,
   mintPlaybackTicket,
   playbackPath,
   verifyPlaybackTicket,
@@ -459,6 +461,101 @@ export async function issuePlaybackTicket(
   };
 }
 
+export interface RecordingArchiveEntry {
+  /** The file that appears inside the archive. */
+  name: string;
+  modifiedAt: string;
+  /** Opens that segment from the relay, when the archive reaches it. */
+  open: () => Promise<ReadableStream<Uint8Array>>;
+}
+
+export interface RecordingArchive {
+  /** The name the browser should save it as. */
+  filename: string;
+  /** Oldest first, the order the show was recorded in. */
+  entries: RecordingArchiveEntry[];
+}
+
+/** The show a relay id names, with ownership already proven. */
+async function ownedShow(
+  userId: number | string,
+  relayId: string,
+): Promise<{ relay: Relay; show: BroadcastRecording }> {
+  const relay = relayConfiguration();
+  if (!relay) {
+    throw new AppError(
+      503,
+      "Broadcast push is not configured on this server, so there are no recordings.",
+    );
+  }
+  const owner = Number(userId);
+  const id = String(relayId || "");
+  if (!Number.isFinite(owner) || !/^[A-Za-z0-9_-]{1,128}$/.test(id)) {
+    throw new AppError(404, "That recording does not exist.");
+  }
+  const collected = await collectRecordings(owner);
+  const show = collected?.recordings.find(
+    (recording) => recording.relayId === id,
+  );
+  if (!collected || !show) {
+    throw new AppError(404, "That recording does not exist.");
+  }
+  return { relay: collected.relay, show };
+}
+
+/**
+ * Every segment of one show, ready to be packed into a single download. A host
+ * gets one file rather than one browser download per hour, which is what a
+ * show longer than an hour used to cost.
+ */
+export async function recordingArchive(
+  userId: number | string,
+  relayId: string,
+): Promise<RecordingArchive> {
+  const { relay, show } = await ownedShow(userId, relayId);
+  return {
+    filename: `${show.relayId}.zip`,
+    entries: show.parts.map((part) => ({
+      name: part.name,
+      modifiedAt: part.recordedAt,
+      open: async () => {
+        const response = await callRelay(
+          relay,
+          `/recordings/${encodeURIComponent(part.name)}`,
+          { method: "GET" },
+        );
+        if (!response.ok || !response.body) {
+          throw new AppError(
+            502,
+            "The relay could not hand over that recording.",
+          );
+        }
+        return response.body;
+      },
+    })),
+  };
+}
+
+/**
+ * A signed URL for the whole show, so the browser can stream the archive to
+ * disk the way it streams a single file, without the API token in the URL.
+ */
+export async function issueArchiveTicket(
+  userId: number | string,
+  relayId: string,
+): Promise<{ path: string; expiresAt: string }> {
+  const { show } = await ownedShow(userId, relayId);
+  const ticket = mintPlaybackTicket({
+    userId: Number(userId),
+    relayId: show.relayId,
+    name: ARCHIVE_TICKET_NAME,
+  });
+  return {
+    path: archivePath(ticket),
+    expiresAt: new Date(ticket.expiresAt).toISOString(),
+  };
+}
+
 export interface RecordingStatus {
   /** Whether the relay records broadcasts at all; null when it cannot be asked. */
   enabled: boolean | null;
@@ -537,67 +634,52 @@ export async function setBroadcastRetention(
     502,
     "The relay could not update that recording's retention.",
   );
-  // The promise is per file on the relay, so a show in hourly segments needs
-  // every one of them pinned; otherwise the first hour survives and the rest
-  // expire on the default window.
-  const keepHours: number[] = [];
-  const keepUntils: number[] = [];
-  let answered = 0;
-  for (const part of owned.parts) {
-    let response: Response;
-    try {
-      response = await callRelay(
-        collected.relay,
-        `/recordings/${encodeURIComponent(part.name)}/retention`,
-        {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ hours: value }),
-        },
-      );
-    } catch {
-      throw failed;
-    }
-    // A segment the sweeper took between the listing and this call cannot be
-    // pinned; the rest still can, and the promise is therefore one segment
-    // shorter rather than refused outright.
-    if (response.status === 404) continue;
-    if (response.status === 400) {
-      throw new AppError(
-        400,
-        `Keep a recording for whole hours between 0 and ${MAX_KEEP_HOURS}.`,
-      );
-    }
-    if (response.status === 503) {
-      throw new AppError(
-        503,
-        "Broadcast push is not configured on this server, so there are no recordings.",
-      );
-    }
-    if (!response.ok) throw failed;
-    answered += 1;
+  // The relay keeps the promise beside the session, not the file, so one call
+  // covers the whole show — including the hours MediaMTX records after this
+  // one, which is what a pin made mid-show has to mean.
+  let response: Response;
+  try {
+    response = await callRelay(
+      collected.relay,
+      `/recordings/${encodeURIComponent(owned.parts[0].name)}/retention`,
+      {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ hours: value }),
+      },
+    );
+  } catch {
+    throw failed;
+  }
+  if (response.status === 404) {
+    throw new AppError(404, "That recording does not exist.");
+  }
+  if (response.status === 400) {
+    throw new AppError(
+      400,
+      `Keep a recording for whole hours between 0 and ${MAX_KEEP_HOURS}.`,
+    );
+  }
+  if (response.status === 503) {
+    throw new AppError(
+      503,
+      "Broadcast push is not configured on this server, so there are no recordings.",
+    );
+  }
+  if (!response.ok) throw failed;
 
-    const payload = (await response.json().catch(() => ({}))) as {
-      keepHours?: unknown;
-      keepUntil?: unknown;
-    };
-    const kept = Number(payload.keepHours);
-    if (Number.isInteger(kept) && kept > 0) keepHours.push(kept);
-    if (
+  const payload = (await response.json().catch(() => ({}))) as {
+    keepHours?: unknown;
+    keepUntil?: unknown;
+  };
+  const kept = Number(payload.keepHours);
+  return {
+    keepHours: Number.isInteger(kept) && kept > 0 ? kept : null,
+    keepUntil:
       typeof payload.keepUntil === "string" &&
       !Number.isNaN(Date.parse(payload.keepUntil))
-    ) {
-      keepUntils.push(Date.parse(payload.keepUntil));
-    }
-  }
-  if (!answered) throw new AppError(404, "That recording does not exist.");
-
-  // The show is only guaranteed for as long as its shortest pin.
-  return {
-    keepHours: keepHours.length ? Math.min(...keepHours) : null,
-    keepUntil: keepUntils.length
-      ? new Date(Math.min(...keepUntils)).toISOString()
-      : null,
+        ? payload.keepUntil
+        : null,
   };
 }
 

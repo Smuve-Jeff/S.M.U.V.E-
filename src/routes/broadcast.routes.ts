@@ -2,6 +2,8 @@ import { Router, type Request } from "express";
 import { Readable } from "node:stream";
 import rateLimit from "express-rate-limit";
 import { AppError } from "@/lib";
+import { ARCHIVE_TICKET_NAME } from "@/lib/media-ticket";
+import { openArchiveStream } from "@/lib/zip-archive";
 import { authenticate } from "@/middleware/auth";
 import {
   clearManualDestination,
@@ -15,10 +17,12 @@ import {
 } from "@/services/broadcast-ingest.service";
 import {
   deleteBroadcastRecording,
+  issueArchiveTicket,
   issuePlaybackTicket,
   listBroadcastRecordings,
   openBroadcastRecording,
   playbackTicketFromQuery,
+  recordingArchive,
   relayRecordingStatus,
   setBroadcastRetention,
 } from "@/services/broadcast-recordings.service";
@@ -223,6 +227,81 @@ router.post(
       );
       res.set("Cache-Control", "private, no-store");
       res.json(playback);
+    } catch (error) {
+      next(error);
+    }
+  },
+);
+
+// POST /api/broadcast/recordings/:relayId/archive — a signed URL for the whole
+// show as one file. Ownership is checked before minting, like playback.
+router.post(
+  "/recordings/:relayId/archive",
+  authenticate,
+  async (req, res, next) => {
+    try {
+      const archive = await issueArchiveTicket(
+        actorOf(req),
+        String(req.params.relayId || ""),
+      );
+      res.set("Cache-Control", "private, no-store");
+      res.json(archive);
+    } catch (error) {
+      next(error);
+    }
+  },
+);
+
+// GET /api/broadcast/recordings/:relayId/archive?name=@archive&u=…&exp=…&sig=…
+// Every segment of a show as one zip, streamed as the relay hands it over. A
+// show longer than an hour is one download instead of one per hour, and this
+// server holds no copy of it.
+router.get(
+  "/recordings/:relayId/archive",
+  streamLimiter,
+  async (req, res, next) => {
+    try {
+      const relayId = String(req.params.relayId || "");
+      const name = typeof req.query.name === "string" ? req.query.name : "";
+      const allowed =
+        name === ARCHIVE_TICKET_NAME &&
+        playbackTicketFromQuery({
+          userId: req.query.u,
+          relayId,
+          name,
+          expiresAt: req.query.exp,
+          signature: req.query.sig,
+        });
+      if (!allowed) {
+        return res
+          .status(403)
+          .json({ error: "That download link is not valid." });
+      }
+
+      const archive = await recordingArchive(Number(req.query.u), relayId);
+      const download = new AbortController();
+      // The first segment is opened before any header is written: a relay that
+      // cannot hand over the first hour answers with an error, not an empty zip.
+      const zip = await openArchiveStream(
+        archive.entries.map((entry) => ({
+          name: entry.name,
+          modifiedAt: entry.modifiedAt,
+          open: async () => Readable.fromWeb((await entry.open()) as never),
+        })),
+        { signal: download.signal },
+      );
+      res.writeHead(200, {
+        "Content-Type": "application/zip",
+        "Content-Disposition": `attachment; filename="${archive.filename}"`,
+        "Cache-Control": "private, no-store",
+        "X-Content-Type-Options": "nosniff",
+      });
+      // Closing the response means the browser stopped waiting; stop pulling
+      // the show from the relay with it.
+      res.on("close", () => {
+        if (!res.writableEnded) download.abort();
+      });
+      zip.on("error", () => res.destroy()).pipe(res);
     } catch (error) {
       next(error);
     }

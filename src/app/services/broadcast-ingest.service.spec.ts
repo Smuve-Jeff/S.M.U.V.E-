@@ -370,10 +370,48 @@ describe('BroadcastIngestService segmented recordings', () => {
     expect(httpPost).toHaveBeenCalledTimes(2);
   });
 
-  it('downloads every segment of a show', async () => {
-    httpGet
-      .mockReturnValueOnce(of(new Blob(['first hour'])))
-      .mockReturnValueOnce(of(new Blob(['second half hour'])));
+  it('downloads a multi-part show as one archive, not one download per hour', async () => {
+    httpPost.mockReturnValueOnce(
+      of({
+        path: '/broadcast/recordings/aaaa/archive?name=%40archive&u=7&exp=1&sig=x',
+      }),
+    );
+    const service = TestBed.inject(BroadcastIngestService);
+    const downloaded: string[] = [];
+    const hrefs: string[] = [];
+    const createElement = document.createElement.bind(document);
+    const spy = jest
+      .spyOn(document, 'createElement')
+      .mockImplementation((tag: string) => {
+        const element = createElement(tag);
+        if (tag === 'a') {
+          (element as HTMLAnchorElement).click = () => {
+            downloaded.push((element as HTMLAnchorElement).download);
+            hrefs.push((element as HTMLAnchorElement).href);
+          };
+        }
+        return element;
+      });
+
+    try {
+      await service.downloadRecording(show);
+    } finally {
+      spy.mockRestore();
+    }
+
+    expect(httpPost).toHaveBeenCalledWith(
+      expect.stringContaining('/recordings/aaaa/archive'),
+      {},
+      expect.anything(),
+    );
+    expect(downloaded).toEqual(['aaaa.zip']);
+    expect(hrefs[0]).toContain('/archive?');
+    // The browser streams the archive to disk; nothing is fetched as a blob.
+    expect(httpGet).not.toHaveBeenCalled();
+  });
+
+  it('downloads a show under an hour directly', async () => {
+    httpGet.mockReturnValueOnce(of(new Blob(['one file'])));
     const service = TestBed.inject(BroadcastIngestService);
     const downloaded: string[] = [];
     const createElement = document.createElement.bind(document);
@@ -388,26 +426,24 @@ describe('BroadcastIngestService segmented recordings', () => {
         }
         return element;
       });
-    const createObjectURL = jest.fn(() => 'blob:recording');
-    const revokeObjectURL = jest.fn();
     const originalCreate = URL.createObjectURL;
     const originalRevoke = URL.revokeObjectURL;
-    URL.createObjectURL = createObjectURL as typeof URL.createObjectURL;
-    URL.revokeObjectURL = revokeObjectURL as typeof URL.revokeObjectURL;
+    URL.createObjectURL = jest.fn(() => 'blob:recording') as typeof URL.createObjectURL;
+    URL.revokeObjectURL = jest.fn() as typeof URL.revokeObjectURL;
 
     try {
-      await service.downloadRecording(show);
+      await service.downloadRecording({ ...show, parts: undefined });
     } finally {
       spy.mockRestore();
       URL.createObjectURL = originalCreate;
       URL.revokeObjectURL = originalRevoke;
     }
 
-    expect(httpGet.mock.calls.map((call) => call[0])).toEqual([
+    expect(httpGet).toHaveBeenCalledWith(
       expect.stringContaining('name=aaaa-10.mp4'),
-      expect.stringContaining('name=aaaa-11.mp4'),
-    ]);
-    expect(downloaded).toEqual(['aaaa-10.mp4', 'aaaa-11.mp4']);
-    expect(createObjectURL).toHaveBeenCalledTimes(2);
+      expect.anything(),
+    );
+    expect(httpPost).not.toHaveBeenCalled();
+    expect(downloaded).toEqual(['aaaa-10.mp4']);
   });
 });

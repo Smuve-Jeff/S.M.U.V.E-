@@ -36,16 +36,37 @@ const isRecordingName = (name) => /\.mp4$/i.test(name) && RECORDING_NAME.test(na
 
 const thumbnailName = (name) => `${name.replace(/\.mp4$/i, "")}.jpg`;
 
-/** Where a host's "keep this one longer" request is remembered. */
-const retentionName = (name) =>
-  `${name.replace(/\.mp4$/i, "")}.retention.json`;
+/** MediaMTX names each hourly segment `<session>-YYYY-MM-DD_HH-MM-SS-micros`. */
+const SEGMENT_SUFFIX = /-\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}-\d{6}$/;
+
+/**
+ * The show a recording belongs to: its relay session, with the segment's
+ * timestamp removed. A keep promise is made about the show, not one file, so
+ * it covers the hours recorded after the host asked — MediaMTX keeps writing
+ * segments for as long as the broadcast runs.
+ */
+function showKey(name) {
+  if (!isRecordingName(name)) return null;
+  const show = name.replace(/\.mp4$/i, "").replace(SEGMENT_SUFFIX, "");
+  return RECORDING_NAME.test(show) ? show : null;
+}
+
+/** Where a host's "keep this show longer" request is remembered. */
+const RETENTION_SUFFIX = ".retention.json";
+const retentionFile = (show) => `${show}${RETENTION_SUFFIX}`;
+
+/** The show a `.retention.json` pin belongs to, if the file is one. */
+const pinOwner = (name) =>
+  name.endsWith(RETENTION_SUFFIX)
+    ? name.slice(0, -RETENTION_SUFFIX.length)
+    : null;
 
 /** A show can be kept for up to 90 days; beyond that, ask for more disk. */
 const MAX_KEEP_HOURS = 90 * 24;
 
-/** The recording a `.jpg` or `.retention.json` belongs to, if it is one. */
+/** The recording a `.jpg` frame belongs to, if it is one. */
 function sidecarOwner(name) {
-  const stem = name.replace(/\.retention\.json$|\.jpg$/i, "");
+  const stem = name.replace(/\.jpg$/i, "");
   return stem === name ? null : `${stem}.mp4`;
 }
 
@@ -145,15 +166,26 @@ class RecordingStore {
       if (isRecordingName(name)) {
         if (info.mtimeMs > cutoff) continue;
         // A host may keep one show past the default window; the pin is the
-        // promise, so an unexpired one wins over the window.
+        // promise, so an unexpired one wins over the window — for every
+        // segment of the show, including the ones written after the pin.
         const pin = await this.retention(name);
         if (pin && pin.until > now) continue;
         if (await this.#unlinkRecording(name)) deleted.push(name);
         continue;
       }
 
-      // Sidecars follow their recording, not their own age: sweeping a pin by
-      // mtime would silently drop a promise that outlives the window.
+      // A pin follows its show, not its own age: sweeping it by mtime would
+      // silently drop a promise that outlives the window. Once it has run out
+      // (or cannot be read) there is nothing left to honour.
+      const pinnedShow = pinOwner(name);
+      if (pinnedShow !== null) {
+        const pin = await this.#readPin(pinnedShow);
+        if (pin && pin.until > now) continue;
+        await unlink(file).catch(() => {});
+        continue;
+      }
+
+      // Frames follow their recording, not their own age.
       const owner = sidecarOwner(name);
       if (!owner || recordingNames.has(owner)) continue;
       if (info.mtimeMs > cutoff) continue;
@@ -202,8 +234,14 @@ class RecordingStore {
    * means the default window applies.
    */
   async retention(name) {
-    if (!isRecordingName(name)) return null;
-    const raw = await readFile(join(this.dir, retentionName(name)), "utf8").catch(
+    const show = showKey(name);
+    return show ? this.#readPin(show) : null;
+  }
+
+  /** The pin on a show, or null when it is not pinned (or unreadable). */
+  async #readPin(show) {
+    if (!show || !RECORDING_NAME.test(show)) return null;
+    const raw = await readFile(join(this.dir, retentionFile(show)), "utf8").catch(
       () => null,
     );
     if (!raw) return null;
@@ -225,7 +263,8 @@ class RecordingStore {
    * policy with 0. Returns the pin; null when there is no such recording.
    */
   async setRetention(name, hours) {
-    if (!isRecordingName(name)) {
+    const show = showKey(name);
+    if (!show) {
       throw new RangeError("that is not a recording");
     }
     const value = Number(hours);
@@ -236,7 +275,7 @@ class RecordingStore {
     }
     const info = await stat(join(this.dir, name)).catch(() => null);
     if (!info?.isFile()) return null;
-    const file = join(this.dir, retentionName(name));
+    const file = join(this.dir, retentionFile(show));
     if (value === 0) {
       await unlink(file).catch(() => {});
       return { hours: 0, until: null };
@@ -247,8 +286,9 @@ class RecordingStore {
   }
 
   /**
-   * Delete a recording with its frame and its pin, so a host can free the space
-   * now instead of waiting for retention. False means it was already gone.
+   * Delete a recording with its frame, so a host can free the space now instead
+   * of waiting for retention. The show's pin stays while any other segment of
+   * it is still there. False means it was already gone.
    */
   async remove(name) {
     if (!isRecordingName(name)) return false;
@@ -270,10 +310,27 @@ class RecordingStore {
       );
       return false;
     }
-    // The frame and the pin are only meaningful while the recording exists.
+    // The frame is only meaningful while its recording exists; the pin covers
+    // the whole show, so it stays while any other segment of it is left.
     await unlink(join(this.dir, thumbnailName(name))).catch(() => {});
-    await unlink(join(this.dir, retentionName(name))).catch(() => {});
+    await this.#dropPinIfUnused(showKey(name));
     return true;
+  }
+
+  /** Remove a show's pin once no recording of that show remains. */
+  async #dropPinIfUnused(show) {
+    if (!show) return;
+    let names;
+    try {
+      names = await readdir(this.dir);
+    } catch {
+      return;
+    }
+    const stillThere = names.some(
+      (name) => isRecordingName(name) && showKey(name) === show,
+    );
+    if (stillThere) return;
+    await unlink(join(this.dir, retentionFile(show))).catch(() => {});
   }
 
   /** One file on the volume, resolved inside it. Null means "not there". */

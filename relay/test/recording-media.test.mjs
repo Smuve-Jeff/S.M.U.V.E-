@@ -229,6 +229,62 @@ test("a pinned recording outlives the window, then goes when the pin ends", asyn
   assert.deepEqual(await readdir(dir), []);
 });
 
+test("a pin covers the hours recorded after it, not just the file it named", async () => {
+  const dir = await tempDir();
+  const now = Date.now();
+  const store = new RecordingStore({
+    dir,
+    retentionHours: 24,
+    clock: () => now,
+  });
+  const first = join(dir, "show-2026-01-01_10-00-00-000000.mp4");
+  await writeFile(first, mp4Header(3600));
+
+  // The first hour is on the volume when the host asks to keep the show.
+  await store.setRetention("show-2026-01-01_10-00-00-000000.mp4", 168);
+
+  // Two more hours are recorded after the pin, so they did not exist when it
+  // was made; the promise is about the show, not the file it named.
+  const second = join(dir, "show-2026-01-01_11-00-00-000000.mp4");
+  const third = join(dir, "show-2026-01-01_12-00-00-000000.mp4");
+  await writeFile(second, mp4Header(3600));
+  await writeFile(third, mp4Header(900));
+
+  // Every hour is now older than the window, pin included.
+  const aged = new Date(now - 25 * HOUR);
+  for (const file of [first, second, third]) {
+    await utimes(file, aged, aged);
+  }
+
+  assert.deepEqual(await store.sweep(), []);
+  assert.deepEqual((await readdir(dir)).sort(), [
+    "show-2026-01-01_10-00-00-000000.mp4",
+    "show-2026-01-01_11-00-00-000000.mp4",
+    "show-2026-01-01_12-00-00-000000.mp4",
+    "show.retention.json",
+  ]);
+  const rows = await store.list();
+  assert.equal(rows.length, 3);
+  assert.ok(rows.every((row) => row.keepHours === 168));
+});
+
+test("deleting one hour of a pinned show keeps the promise for the others", async () => {
+  const dir = await tempDir();
+  const store = new RecordingStore({ dir, retentionHours: 24 });
+  await writeFile(join(dir, "show-2026-01-01_10-00-00-000000.mp4"), mp4Header(3600));
+  await writeFile(join(dir, "show-2026-01-01_11-00-00-000000.mp4"), mp4Header(3600));
+  await store.setRetention("show-2026-01-01_10-00-00-000000.mp4", 168);
+
+  assert.equal(await store.remove("show-2026-01-01_10-00-00-000000.mp4"), true);
+
+  assert.equal(
+    (await store.retention("show-2026-01-01_11-00-00-000000.mp4"))?.hours,
+    168,
+  );
+  assert.equal(await store.remove("show-2026-01-01_11-00-00-000000.mp4"), true);
+  assert.deepEqual(await readdir(dir), []);
+});
+
 test("clearing a pin puts the recording back on the default window", async () => {
   const dir = await tempDir();
   await writeFile(join(dir, "old.mp4"), mp4Header(7));

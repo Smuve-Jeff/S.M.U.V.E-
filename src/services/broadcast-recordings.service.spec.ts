@@ -46,9 +46,11 @@ jest.mock("@/config/env", () => ({
 
 import {
   deleteBroadcastRecording,
+  issueArchiveTicket,
   issuePlaybackTicket,
   listBroadcastRecordings,
   markBroadcastSessionEnded,
+  recordingArchive,
   setBroadcastRetention,
   openBroadcastRecording,
   relayRecordingStatus,
@@ -514,7 +516,7 @@ it("keeps a show together when the relay recorded it in hourly segments", async 
   ]);
 });
 
-it("pins and deletes every segment of a show, not just its first hour", async () => {
+it("pins the show once, so later segments inherit it, and deletes every segment", async () => {
   seed("aaaa", 7);
   const calls: string[] = [];
   fetchMock.mockImplementation(async (url: string, init?: RequestInit) => {
@@ -566,8 +568,9 @@ it("pins and deletes every segment of a show, not just its first hour", async ()
     keepUntil: "2026-11-23T00:00:00.000Z",
   });
   expect(calls).toEqual([
+    // One pin, kept by the relay beside the session: the next hour recorded
+    // after it inherits the promise without another call.
     "PUT http://relay.test/recordings/aaaa-2026-01-01_10-00-00-000000.mp4/retention",
-    "PUT http://relay.test/recordings/aaaa-2026-01-01_11-00-00-000000.mp4/retention",
     "DELETE http://relay.test/recordings/aaaa-2026-01-01_10-00-00-000000.mp4",
     "DELETE http://relay.test/recordings/aaaa-2026-01-01_11-00-00-000000.mp4",
   ]);
@@ -603,6 +606,78 @@ it("opens any segment of a show, and no file it never listed", async () => {
   await expect(
     issuePlaybackTicket(7, "aaaa", "aaaa-2026-01-01_12-00-00-000000.mp4"),
   ).rejects.toThrow(/does not exist/);
+});
+
+it("packs every segment of a show into one download", async () => {
+  seed("aaaa", 7);
+  const body = { stream: true } as unknown as ReadableStream<Uint8Array>;
+  fetchMock.mockImplementation(async (url: string) => {
+    if (String(url).endsWith("/recordings")) {
+      return relayListed([
+        {
+          name: "aaaa-2026-01-01_10-00-00-000000.mp4",
+          bytes: 100,
+          modifiedAt: "2026-01-01T10:00:00.000Z",
+        },
+        {
+          name: "aaaa-2026-01-01_11-00-00-000000.mp4",
+          bytes: 150,
+          modifiedAt: "2026-01-01T11:00:00.000Z",
+        },
+      ]) as unknown as Response;
+    }
+    return { ok: true, status: 200, body } as unknown as Response;
+  });
+
+  const archive = await recordingArchive(7, "aaaa");
+
+  expect(archive.filename).toBe("aaaa.zip");
+  expect(archive.entries.map((entry) => entry.name)).toEqual([
+    "aaaa-2026-01-01_10-00-00-000000.mp4",
+    "aaaa-2026-01-01_11-00-00-000000.mp4",
+  ]);
+  // Nothing is opened until the archive reaches the entry.
+  expect(fetchMock).not.toHaveBeenCalledWith(
+    "http://relay.test/recordings/aaaa-2026-01-01_10-00-00-000000.mp4",
+    expect.anything(),
+  );
+
+  await expect(archive.entries[1].open()).resolves.toBe(body);
+  expect(fetchMock).toHaveBeenLastCalledWith(
+    "http://relay.test/recordings/aaaa-2026-01-01_11-00-00-000000.mp4",
+    expect.objectContaining({ method: "GET" }),
+  );
+  await expect(recordingArchive(9, "aaaa")).rejects.toThrow(/does not exist/);
+});
+
+it("mints one signed download for the whole show, and only for its owner", async () => {
+  seed("aaaa", 7);
+  fetchMock.mockImplementation(async (url: string) => {
+    if (String(url).endsWith("/recordings")) {
+      return relayListed([
+        {
+          name: "aaaa-2026-01-01_10-00-00-000000.mp4",
+          bytes: 100,
+          modifiedAt: "2026-01-01T10:00:00.000Z",
+        },
+        {
+          name: "aaaa-2026-01-01_11-00-00-000000.mp4",
+          bytes: 150,
+          modifiedAt: "2026-01-01T11:00:00.000Z",
+        },
+      ]) as unknown as Response;
+    }
+    return relayListed([]) as unknown as Response;
+  });
+
+  const link = await issueArchiveTicket(7, "aaaa");
+
+  expect(link.path.startsWith("/broadcast/recordings/aaaa/archive?")).toBe(true);
+  const query = new URLSearchParams(link.path.split("?")[1]);
+  // A name no recording can have: a single-file ticket cannot be replayed here.
+  expect(query.get("name")).toBe("@archive");
+  expect(query.get("sig")).toBeTruthy();
+  await expect(issueArchiveTicket(9, "aaaa")).rejects.toThrow(/does not exist/);
 });
 
 it("will not change retention for another host's show, or for a bad duration", async () => {

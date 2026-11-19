@@ -83,7 +83,7 @@ async function readJson(req) {
  *   GET    /recordings/:name -> the file itself, byte ranges included
  *   GET    /recordings/:name/thumbnail -> a cached JPEG frame of that file
  *   DELETE /recordings/:name -> 204, freeing the recording and its frame now
- *   PUT    /recordings/:name/retention { hours } -> keep it past the window
+ *   PUT    /recordings/:name/retention { hours } -> keep that whole show past the window, later segments included
  *   GET    /health         -> 200 { status, sessions, recordingEnabled, recordingRetentionHours } (open)
  */
 export function createRelayServer({

@@ -830,33 +830,64 @@ export class BroadcastIngestService {
   /**
    * Download through the API: the relay's token stays on the server, and the
    * browser only ever sees the bytes it just downloaded.
+   *
+   * A show in hourly segments is one zip rather than one download per hour:
+   * browsers throttle a burst of automatic downloads and only the first would
+   * reliably arrive. The archive is streamed to the browser's downloader, so a
+   * long show never passes through this page's memory.
    */
   async downloadRecording(recording: BroadcastRecordingDto): Promise<void> {
     const parts = this.recordingParts(recording);
+    if (parts.length > 1) {
+      await this.downloadArchive(recording);
+      return;
+    }
     try {
-      // Every hour of the show is its own file, so a download is the set of
-      // them. Each arrives through the API; the relay token stays on the server.
-      for (const part of parts) {
-        const blob = await firstValueFrom(
-          this.http.get(
-            `${APP_SECURITY_CONFIG.api_url}${part.downloadPath}`,
-            {
-              headers: this.headers(),
-              responseType: 'blob',
-            },
+      const part = parts[0];
+      const blob = await firstValueFrom(
+        this.http.get(
+          `${APP_SECURITY_CONFIG.api_url}${part.downloadPath}`,
+          {
+            headers: this.headers(),
+            responseType: 'blob',
+          },
+        ),
+      );
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = part.name;
+      anchor.click();
+      URL.revokeObjectURL(url);
+      this.snackbar.success('RECORDING DOWNLOADED');
+    } catch {
+      this.snackbar.error('DOWNLOAD FAILED — TRY AGAIN');
+    }
+  }
+
+  /** The whole show as one file, through a short-lived signed URL. */
+  private async downloadArchive(
+    recording: BroadcastRecordingDto,
+  ): Promise<void> {
+    try {
+      const ticket = await firstValueFrom(
+        this.http.post<{ path?: string }>(
+          this.endpoint(
+            `/recordings/${encodeURIComponent(recording.relayId)}/archive`,
           ),
-        );
-        const url = URL.createObjectURL(blob);
-        const anchor = document.createElement('a');
-        anchor.href = url;
-        anchor.download = part.name;
-        anchor.click();
-        URL.revokeObjectURL(url);
-      }
+          {},
+          { headers: this.headers() },
+        ),
+      );
+      if (!ticket?.path) throw new Error('NO ARCHIVE URL');
+      const anchor = document.createElement('a');
+      anchor.href = `${APP_SECURITY_CONFIG.api_url}${ticket.path}`;
+      anchor.download = `${recording.relayId}.zip`;
+      anchor.rel = 'noopener';
+      anchor.click();
+      const parts = this.recordingParts(recording).length;
       this.snackbar.success(
-        parts.length > 1
-          ? `RECORDING DOWNLOADED (${parts.length} PARTS)`
-          : 'RECORDING DOWNLOADED',
+        `DOWNLOAD STARTED — ${parts} PARTS IN ONE ZIP`,
       );
     } catch {
       this.snackbar.error('DOWNLOAD FAILED — TRY AGAIN');
