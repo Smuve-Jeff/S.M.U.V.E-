@@ -116,6 +116,65 @@ describe('CgiScenePanelComponent', () => {
     expect(component.channelSpec().scope).toBe('scene');
   });
 
+  it('loads a key for editing when its chip is selected', () => {
+    const scene = setCgiKeyframe(
+      createDefaultCgiScene(),
+      null,
+      'camera.distance',
+      2,
+      4,
+      'step',
+    );
+    const key = scene.animation!.tracks[0].keys[0];
+    const { component } = create(scene, 0);
+
+    component.selectKey('camera.distance', key.id);
+
+    expect(component.animEasing()).toBe('step');
+    expect(component.keyframeValue()).toBe(4);
+    expect(component.selectedKey()?.id).toBe(key.id);
+  });
+
+  it('updates a selected key in place instead of deleting and re-adding it', () => {
+    const scene = setCgiKeyframe(
+      createDefaultCgiScene(),
+      null,
+      'camera.distance',
+      2,
+      4,
+    );
+    const key = scene.animation!.tracks[0].keys[0];
+    const { component, emitted } = create(scene, 0);
+    component.selectKey('camera.distance', key.id);
+
+    component.setAnimEasing('linear');
+    component.setKeyframeValue('7');
+    component.updateKeyframe();
+
+    const keys = emitted[0].animation!.tracks[0].keys;
+    expect(keys).toHaveLength(1);
+    expect(keys[0]).toMatchObject({ time: 2, value: 7, easing: 'linear' });
+    expect(component.selectedKey()).toBeNull();
+  });
+
+  it('deletes the selected key from the actions row', () => {
+    const scene = setCgiKeyframe(
+      createDefaultCgiScene(),
+      null,
+      'camera.distance',
+      1,
+      6,
+    );
+    const key = scene.animation!.tracks[0].keys[0];
+    const { component, emitted } = create(scene, 0);
+    component.selectKey('camera.distance', key.id);
+
+    component.deleteSelectedKey();
+
+    expect(emitted[0].animation?.tracks ?? []).toHaveLength(0);
+    expect(component.selectedKey()).toBeNull();
+  });
+
   it('writes the selected easing onto a new key', () => {
     const { component, emitted } = create(createDefaultCgiScene(), 1);
 

@@ -181,18 +181,21 @@ export const COMPLETE_GUIDE_LESSONS: readonly CompleteGuideLesson[] = [
     title: "Tha Spot: play, compete, broadcast",
     kicker: "Community",
     summary:
-      "Tha Spot is the community arcade: discover games, filter the catalogue, join rooms and lobbies, squad up, challenge rivals, split-screen and broadcast to S.M.U.V.E, Twitch, Kick, Facebook or four custom RTMP destinations.",
+      "Tha Spot is the community arcade: discover games, join rooms and lobbies, squad up, challenge rivals, split-screen and broadcast. The pre-stream console sets quality, source, local preview and audio before GO LIVE; Broadcast Push covers S.M.U.V.E, Twitch, Kick, Facebook or four custom RTMP destinations.",
     features: [
       "Catalogue filters, search and recommendations",
       "Rooms, lobbies, squads and rival challenges",
       "Split-screen, spectator reactions and post-run ratings",
       "S.M.U.V.E TV, Jeff Radio and Go Live viewer links",
+      "Pre-stream console: quality, capture source, local preview, mic and game audio",
       "Broadcast Push with four saved custom RTMP destinations",
     ],
     steps: [
       "Pick a cabinet from the catalogue and read the launch options before opening it.",
       "Join or host a lobby, invite a squad, and use split-screen for local play.",
       "Use the Inbox for challenges and the TV or radio guide when you are not playing.",
+      "In Tha Spot's LIVE tab, set PRE-STREAM CONFIG: quality (SMOOTH 480p, HD 720p, FULL 1080p), source (CAMERA, SCREEN or CAM + SCREEN with its PIP button), then START PREVIEW to check framing while the readout says LOCAL ONLY - NOT ON AIR.",
+      "Set AUDIO with MIC / MIC MUTED and GAME ONLY, then check STREAMING ACCOUNTS and prove the relay with BROADCAST PUSH CHECK and SELF-TEST. A relay with recording off warns that the show will not be kept.",
       "To add a custom RTMP target, open Tha Spot, choose a cabinet, then open the LIVE tab in the rival hub and find BROADCAST PUSH.",
       "In one of the four CUSTOM rows, enter a name, the platform's RTMPS URL and stream key, then press SAVE. The key stays server-side and is never shown again.",
       "Press GO LIVE, select that saved custom destination, and confirm. Press CLEAR on a saved row to delete its key and reset the label, URL and key fields.",

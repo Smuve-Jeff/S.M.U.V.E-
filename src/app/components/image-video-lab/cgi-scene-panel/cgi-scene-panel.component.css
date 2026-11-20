@@ -291,7 +291,42 @@
   cursor: pointer;
 }
 
-.cgi-key:hover {
-  border-color: rgba(248, 113, 113, 0.5);
+.cgi-key:hover,
+.cgi-key.active {
+  border-color: rgba(56, 189, 248, 0.65);
+  color: #e0f2fe;
+}
+
+.cgi-key.active {
+  background: rgba(56, 189, 248, 0.22);
+}
+
+.cgi-key-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: #94a3b8;
+  font-size: 0.54rem;
+}
+
+.cgi-key-actions span {
+  flex: 1;
+}
+
+.cgi-key-actions button {
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  border-radius: 0.3rem;
+  background: rgba(56, 189, 248, 0.1);
+  color: #bae6fd;
+  font-size: 0.52rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  padding: 0.18rem 0.35rem;
+  cursor: pointer;
+}
+
+.cgi-key-actions button.danger {
+  border-color: rgba(248, 113, 113, 0.4);
+  background: rgba(248, 113, 113, 0.1);
   color: #fca5a5;
 }

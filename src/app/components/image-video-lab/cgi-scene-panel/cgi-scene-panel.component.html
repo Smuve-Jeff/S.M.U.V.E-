@@ -209,10 +209,12 @@
                     <button
                       type="button"
                       class="cgi-key"
+                      [class.active]="selectedKey()?.id === key.id"
+                      [attr.aria-pressed]="selectedKey()?.id === key.id"
                       [attr.aria-label]="
-                        'Delete key at ' + key.time + ' seconds'
+                        'Select key at ' + key.time + ' seconds to change it'
                       "
-                      (click)="removeKey(track.channel, key.id)"
+                      (click)="selectKey(track.channel, key.id)"
                     >
                       {{ key.time | number: '1.2-2' }}s ·
                       {{ key.value | number: '1.0-2' }} ·
@@ -229,6 +231,22 @@
             one; authored channels replace the static value and the procedural
             motion they cover.
           </p>
+        }
+
+        @if (selectedKey(); as key) {
+          <div class="cgi-key-actions">
+            <span>{{ key.time | number: '1.2-2' }}s selected</span>
+            <button type="button" (click)="updateKeyframe()">
+              UPDATE KEY
+            </button>
+            <button
+              type="button"
+              class="danger"
+              (click)="deleteSelectedKey()"
+            >
+              DELETE
+            </button>
+          </div>
         }
       </fieldset>
 

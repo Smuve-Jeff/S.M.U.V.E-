@@ -18,6 +18,7 @@ import {
   setCgiKeyframe,
   type CgiAnimationChannel,
   type CgiCameraMove,
+  type CgiKeyframe,
   type CgiObject,
   type CgiPrimitive,
   type CgiSceneSettings,
@@ -63,6 +64,11 @@ export class CgiScenePanelComponent {
   readonly animEasing = signal<KeyframeEasing>('ease-in-out');
   /** A value typed for the next key, or null to follow the playhead value. */
   private readonly valueDraft = signal<number | null>(null);
+  /** The key loaded for editing, tracked by channel and id across scene edits. */
+  private readonly selectedKeyRef = signal<{
+    channel: CgiAnimationChannel;
+    id: string;
+  } | null>(null);
 
   readonly atObjectLimit = computed(
     () => (this.scene()?.objects.length ?? 0) >= MAX_CGI_OBJECTS,
@@ -97,6 +103,12 @@ export class CgiScenePanelComponent {
       this.channelSpec().id,
       this.playhead(),
     );
+  });
+
+  /** The loaded key, or null when the scene no longer holds it. */
+  readonly selectedKey = computed<CgiKeyframe | null>(() => {
+    const ref = this.selectedKeyRef();
+    return (ref ? this.trackKey(ref.channel, ref.id) : null) ?? null;
   });
 
   readonly tracksForTarget = computed(() => {
@@ -197,11 +209,13 @@ export class CgiScenePanelComponent {
     this.animTarget.set(value);
     this.animChannel.set(value ? 'position.x' : 'camera.distance');
     this.valueDraft.set(null);
+    this.selectedKeyRef.set(null);
   }
 
   setAnimChannel(value: string): void {
     this.animChannel.set(value as CgiAnimationChannel);
     this.valueDraft.set(null);
+    this.selectedKeyRef.set(null);
   }
 
   setKeyframeValue(value: number | string): void {
@@ -241,12 +255,49 @@ export class CgiScenePanelComponent {
     );
   }
 
+  /** Load a key into the value and easing fields so it can be changed. */
+  selectKey(channel: CgiAnimationChannel, keyId: string): void {
+    const key = this.trackKey(channel, keyId);
+    if (!key) return;
+    this.animChannel.set(channel);
+    this.selectedKeyRef.set({ channel, id: keyId });
+    this.valueDraft.set(key.value);
+    this.animEasing.set(key.easing);
+  }
+
+  /** Re-write the loaded key at its own time with the current values. */
+  updateKeyframe(): void {
+    const scene = this.scene();
+    const ref = this.selectedKeyRef();
+    const key = this.selectedKey();
+    if (!scene || !ref || !key) return;
+    this.sceneChange.emit(
+      setCgiKeyframe(
+        scene,
+        this.animTarget() || null,
+        ref.channel,
+        key.time,
+        this.keyframeValue(),
+        this.animEasing(),
+      ),
+    );
+    this.selectedKeyRef.set(null);
+  }
+
+  deleteSelectedKey(): void {
+    const scene = this.scene();
+    const ref = this.selectedKeyRef();
+    if (!scene || !ref) return;
+    this.removeKey(ref.channel, ref.id);
+  }
+
   removeKey(channel: CgiAnimationChannel, keyId: string): void {
     const scene = this.scene();
     if (!scene) return;
     this.sceneChange.emit(
       removeCgiKeyframe(scene, this.animTarget() || null, channel, keyId),
     );
+    if (this.selectedKeyRef()?.id === keyId) this.selectedKeyRef.set(null);
   }
 
   clearTrack(channel: CgiAnimationChannel): void {
@@ -255,6 +306,22 @@ export class CgiScenePanelComponent {
     this.sceneChange.emit(
       removeCgiKeyframe(scene, this.animTarget() || null, channel),
     );
+    if (this.selectedKeyRef()?.channel === channel) {
+      this.selectedKeyRef.set(null);
+    }
+  }
+
+  private trackKey(
+    channel: CgiAnimationChannel,
+    keyId: string,
+  ): CgiKeyframe | undefined {
+    const target = this.animTarget() || null;
+    return (this.scene()?.animation?.tracks ?? [])
+      .find(
+        (track) =>
+          track.targetObjectId === target && track.channel === channel,
+      )
+      ?.keys.find((key) => key.id === keyId);
   }
 
   /**
