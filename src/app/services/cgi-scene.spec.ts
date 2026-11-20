@@ -1,7 +1,11 @@
 import {
+  CGI_MATERIAL_PRESETS,
+  CGI_SCENE_PRESETS,
   MAX_CGI_KEYFRAME_TIME,
   MAX_CGI_KEYFRAMES_PER_TRACK,
   MAX_CGI_OBJECTS,
+  applyCgiScenePreset,
+  applyCgiMaterialPreset,
   cgiCameraPose,
   cgiChannelValueAt,
   createCgiPrimitive,
@@ -36,6 +40,122 @@ describe('CGI scene data', () => {
     expect(cube.color).toMatch(/^#[0-9a-f]{6}$/);
     expect(cube.position).toEqual([0, 0, 0]);
     expect(cube.spin).toBe(-1);
+    expect(cube.metalness).toBe(0.72);
+    expect(cube.roughness).toBe(0.22);
+  });
+
+  it('offers a matte starting finish for the cone and a brushed cylinder', () => {
+    const cone = createCgiPrimitive('cone', 0);
+    const cylinder = createCgiPrimitive('cylinder', 0);
+
+    expect(cone.name).toBe('Matte Cone');
+    expect(cone.metalness).toBe(0.18);
+    expect(cone.roughness).toBe(0.62);
+    expect(cylinder.name).toBe('Brushed Cylinder');
+    expect(
+      sanitizeCgiScene({ objects: [cone, cylinder] })?.objects.map(
+        (object) => object.kind,
+      ),
+    ).toEqual(['cone', 'cylinder']);
+  });
+
+  it('keeps object ids unique so two objects cannot share one transform', () => {
+    const scene = sanitizeCgiScene({
+      objects: [
+        { id: 'hero', kind: 'cube' },
+        { id: 'hero', kind: 'sphere' },
+        { kind: 'cone' },
+      ],
+    });
+
+    expect(scene?.objects.map((object) => object.id)).toEqual([
+      'hero',
+      'hero-2',
+      'cgi-object-2',
+    ]);
+  });
+
+  it('clamps a restored PBR finish and defaults it for legacy objects', () => {
+    const scene = sanitizeCgiScene({
+      objects: [
+        {
+          id: 'a',
+          kind: 'cube',
+          metalness: 4,
+          roughness: -2,
+          emissive: 99,
+        },
+        { id: 'b', kind: 'sphere' },
+      ],
+    });
+
+    expect(scene?.objects[0]).toMatchObject({
+      metalness: 1,
+      roughness: 0,
+      emissive: 4,
+    });
+    expect(scene?.objects[1]).toMatchObject({
+      metalness: 0.72,
+      roughness: 0.22,
+      emissive: 0,
+    });
+  });
+
+  it('applies a one-click finish to a primitive and resolves its glow', () => {
+    const scene = createDefaultCgiScene();
+
+    const next = applyCgiMaterialPreset(scene, 'cgi-torus', 'neon');
+
+    expect(next.objects[0]).toMatchObject({
+      metalness: 0.14,
+      roughness: 0.16,
+      emissive: 1.6,
+    });
+    expect(resolveCgiFrame(next, 0).objects[0].emissive).toBe(1.6);
+    expect(cgiChannelValueAt(next, 'cgi-torus', 'emissive', 0)).toBe(1.6);
+    expect(CGI_MATERIAL_PRESETS).toHaveLength(4);
+    expect(applyCgiMaterialPreset(next, 'missing', 'chrome')).toBe(next);
+    expect(applyCgiMaterialPreset(next, 'cgi-torus', 'missing')).toBe(next);
+    expect(scene.objects[0].emissive).toBeUndefined();
+  });
+
+  it('does not overwrite an imported model with a primitive finish', () => {
+    const scene = sanitizeCgiScene({
+      objects: [
+        {
+          id: 'hero',
+          kind: 'model',
+          modelDataUrl: 'data:model/gltf-binary;base64,AAAA',
+        },
+      ],
+    })!;
+
+    expect(applyCgiMaterialPreset(scene, 'hero', 'chrome')).toBe(scene);
+  });
+
+  it('applies a stage look without disturbing objects, colours or keys', () => {
+    const scene = setCgiKeyframe(
+      createDefaultCgiScene(),
+      'cgi-torus',
+      'scale',
+      1,
+      1.6,
+    );
+    const before = JSON.stringify({
+      objects: scene.objects,
+      animation: scene.animation,
+    });
+
+    const next = applyCgiScenePreset(scene, 'neon-noir');
+
+    expect(next.cameraMove).toBe('orbit-right');
+    expect(next.background).toBe('dark');
+    expect(next.shadows).toBe(false);
+    expect(
+      JSON.stringify({ objects: next.objects, animation: next.animation }),
+    ).toBe(before);
+    expect(applyCgiScenePreset(scene, 'missing')).toBe(scene);
+    expect(CGI_SCENE_PRESETS).toHaveLength(4);
   });
 
   it('rejects absent or non-object scene data', () => {
@@ -259,6 +379,48 @@ describe('CGI animation data', () => {
     });
 
     expect(scene?.animation?.tracks).toEqual([]);
+  });
+
+  it('drops an embedded payload that is not a model data URL', () => {
+    const scene = sanitizeCgiScene({
+      objects: [
+        {
+          id: 'image',
+          kind: 'model',
+          modelDataUrl: 'data:image/png;base64,AAAA',
+        },
+        {
+          id: 'gltf',
+          kind: 'model',
+          modelDataUrl: 'data:model/gltf+json;base64,e30=',
+        },
+      ],
+    });
+
+    expect(scene?.objects.map((object) => object.id)).toEqual(['gltf']);
+  });
+
+  it('gives duplicate key ids in one track unique identity', () => {
+    const scene = sanitizeCgiScene({
+      objects: [{ id: 'hero', kind: 'cube' }],
+      animation: {
+        version: 1,
+        tracks: [
+          {
+            targetObjectId: 'hero',
+            channel: 'scale',
+            keys: [
+              { id: 'same', time: 0, value: 1 },
+              { id: 'same', time: 1, value: 2 },
+            ],
+          },
+        ],
+      },
+    });
+
+    expect(
+      scene?.animation?.tracks[0].keys.map((key) => key.id),
+    ).toEqual(['same', 'same-2']);
   });
 
   it('caps an individual track so project JSON stays bounded', () => {

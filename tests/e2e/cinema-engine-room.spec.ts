@@ -393,6 +393,54 @@ test('applies the FX rack dials to the clip under the playhead', async ({
     );
 });
 
+test('drives the CGI stage presets, camera controls and object inspector', async ({
+  page,
+}) => {
+  await page.goto('/image-video-lab');
+  await expect(page.locator('.project-console')).toBeVisible({
+    timeout: 60_000,
+  });
+
+  await page.getByRole('button', { name: 'ADD CGI LAYER' }).click();
+  await expect(page.getByRole('button', { name: 'Neon Noir' })).toBeVisible();
+
+  await page.getByRole('button', { name: 'Neon Noir' }).click();
+  const scene = await page.evaluate(() => {
+    const host = document.querySelector('app-image-video-lab') as any;
+    return (window as any).ng?.getComponent?.(host)?.selectedCgiScene?.();
+  });
+  expect(scene?.background).toBe('dark');
+  expect(scene?.cameraMove).toBe('orbit-right');
+
+  await page.getByRole('button', { name: 'Edit Chrome Torus' }).click();
+  await expect(page.getByRole('slider', { name: 'CGI object scale' })).toBeVisible();
+  await expect(
+    page.getByRole('slider', { name: 'CGI object metalness' }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('slider', { name: 'CGI camera field of view' }),
+  ).toBeVisible();
+
+  await page.getByRole('button', { name: 'Neon', exact: true }).click();
+  const finish = await page.evaluate(() => {
+    const host = document.querySelector('app-image-video-lab') as any;
+    return (window as any).ng?.getComponent?.(host)?.selectedCgiScene?.()
+      ?.objects?.[0];
+  });
+  expect(finish).toMatchObject({
+    metalness: 0.14,
+    roughness: 0.16,
+    emissive: 1.6,
+  });
+
+  const selectedObject = await page.evaluate(() => {
+    const panel = document.querySelector('app-cgi-scene-panel');
+    const component = (window as any).ng?.getComponent?.(panel);
+    return component?.selectedObjectId?.();
+  });
+  expect(selectedObject).toBe('cgi-torus');
+});
+
 test('divides the visuals lane into scene cards from the act structure', async ({
   page,
 }) => {

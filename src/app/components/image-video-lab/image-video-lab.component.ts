@@ -6939,6 +6939,29 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     this.aiFeedback.set('CANCELLING EXPORT — RELEASING THE RECORDER.');
   }
 
+  /**
+   * Finish any embedded-model reads before the first export frame. The preview
+   * intentionally paints while a GLB loads; an export must not encode a run of
+   * empty first slots because the model had not reached the GPU yet.
+   */
+  private async prepareCgiModelsForExport(): Promise<void> {
+    const scenes = this.videoEngine
+      .tracks()
+      .flatMap((track) => track.clips)
+      .map((clip) => clip.effects.cgiScene)
+      .filter(
+        (scene): scene is CgiSceneSettings =>
+          !!scene &&
+          scene.enabled &&
+          scene.objects.some(
+            (object) => object.kind === 'model' && !!object.modelDataUrl
+          )
+      );
+    if (!scenes.length) return;
+    this.aiFeedback.set('PREPARING IMPORTED CGI MODELS BEFORE EXPORT…');
+    await this.cgiRenderer.preload(scenes);
+  }
+
   /** Record one contiguous range and resolve true only when it downloads. */
   private async runExportRange(
     start: number,
@@ -6962,6 +6985,8 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
       );
       return false;
     }
+
+    await this.prepareCgiModelsForExport();
 
     // WebCodecs gives us the thing MediaRecorder cannot: a file whose frames
     // are the exact frames we painted, not whatever survived a render loop.

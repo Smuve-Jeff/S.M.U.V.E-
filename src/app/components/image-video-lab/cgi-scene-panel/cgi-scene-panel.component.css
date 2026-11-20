@@ -137,6 +137,34 @@
   font-weight: 700;
 }
 
+.cgi-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+.cgi-preset {
+  padding: 0.28rem 0.45rem;
+  border: 1px solid rgba(56, 189, 248, 0.22);
+  border-radius: 999px;
+  background: rgba(56, 189, 248, 0.07);
+  color: #bae6fd;
+  font-size: 0.52rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+}
+
+.cgi-preset:hover {
+  border-color: rgba(56, 189, 248, 0.65);
+  background: rgba(56, 189, 248, 0.15);
+  color: #e0f2fe;
+}
+
+.cgi-camera {
+  gap: 0.55rem;
+}
+
 .cgi-toggles {
   flex-wrap: wrap;
   gap: 0.35rem 0.7rem;
@@ -171,14 +199,29 @@
   background: rgba(15, 23, 42, 0.6);
 }
 
-.cgi-object-name {
+.cgi-object.active {
+  border-color: rgba(56, 189, 248, 0.55);
+  background: rgba(56, 189, 248, 0.1);
+}
+
+.cgi-object-pick {
   flex: 1;
+  min-width: 0;
+  padding: 0.16rem 0;
   overflow: hidden;
+  border: 0;
+  background: transparent;
   color: #cbd5e1;
   font-size: 0.62rem;
   font-weight: 700;
+  text-align: left;
   text-overflow: ellipsis;
   white-space: nowrap;
+  cursor: pointer;
+}
+
+.cgi-object-pick:hover {
+  color: #f8fafc;
 }
 
 .cgi-object-kind {
@@ -196,7 +239,7 @@
   background: transparent;
 }
 
-.cgi-object button {
+.cgi-object-remove {
   width: 1.4rem;
   height: 1.4rem;
   border: 0;
@@ -206,9 +249,34 @@
   cursor: pointer;
 }
 
-.cgi-object button:hover {
+.cgi-object-remove:hover {
   background: rgba(248, 113, 113, 0.18);
   color: #fca5a5;
+}
+
+.cgi-object-editor {
+  display: grid;
+  gap: 0.45rem;
+  margin: 0;
+  padding: 0.5rem;
+  border: 1px solid rgba(56, 189, 248, 0.18);
+  border-radius: 0.45rem;
+  background: rgba(15, 23, 42, 0.38);
+}
+
+.cgi-object-editor legend {
+  padding: 0 0.3rem;
+  color: #7dd3fc;
+  font-size: 0.52rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.cgi-axis-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.4rem;
 }
 
 .cgi-anim {

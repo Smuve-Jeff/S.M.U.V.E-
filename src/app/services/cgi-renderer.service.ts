@@ -58,7 +58,8 @@ export class CgiRendererService implements OnDestroy {
   /** A model finished loading, so the next frame must rebuild its object. */
   private objectsDirty = false;
   private readonly modelCache = new Map<string, THREE.Group>();
-  private readonly loadingModels = new Set<string>();
+  /** Shared in-flight reads, so a preview and an export never parse twice. */
+  private readonly modelLoads = new Map<string, Promise<void>>();
   /** Failed model reads, retried with backoff instead of vanishing. */
   private readonly modelFailures = new Map<
     string,
@@ -71,6 +72,25 @@ export class CgiRendererService implements OnDestroy {
   private retryAt = 0;
   /** Consecutive surface failures; successful creation resets the backoff. */
   private surfaceFailures = 0;
+
+  /**
+   * Load every embedded model a set of scenes references before an export
+   * starts. Preview can paint a frame while a GLB is still parsing; a
+   * frame-locked export must not encode the first slots with a missing model.
+   * Failed models resolve as well and keep their placeholder/retry behaviour.
+   */
+  async preload(scenes: readonly CgiSceneSettings[]): Promise<void> {
+    const urls = new Set<string>();
+    for (const scene of scenes) {
+      if (!scene.enabled) continue;
+      for (const object of scene.objects) {
+        if (object.kind === 'model' && object.modelDataUrl) {
+          urls.add(object.modelDataUrl);
+        }
+      }
+    }
+    await Promise.all([...urls].map((url) => this.loadModel(url)));
+  }
 
   /**
    * Render one frame. Returns null when WebGL is unavailable in this host; the
@@ -182,6 +202,8 @@ export class CgiRendererService implements OnDestroy {
         if (material instanceof THREE.MeshStandardMaterial) {
           material.color.set(object.color);
           material.emissive.copy(material.color);
+          material.metalness = object.metalness ?? 0.72;
+          material.roughness = object.roughness ?? 0.22;
         }
       }
       this.applyMaterialLook(child, resolved.opacity, resolved.emissive);
@@ -420,6 +442,12 @@ export class CgiRendererService implements OnDestroy {
       case 'sphere':
         geometry = new THREE.SphereGeometry(0.95, 64, 32);
         break;
+      case 'cylinder':
+        geometry = new THREE.CylinderGeometry(0.78, 0.78, 1.65, 64, 1);
+        break;
+      case 'cone':
+        geometry = new THREE.ConeGeometry(0.92, 1.7, 64, 1);
+        break;
       case 'torus':
       default:
         geometry = new THREE.TorusKnotGeometry(0.72, 0.24, 180, 32);
@@ -427,8 +455,8 @@ export class CgiRendererService implements OnDestroy {
     }
     const material = new THREE.MeshStandardMaterial({
       color: new THREE.Color(object.color),
-      metalness: 0.72,
-      roughness: 0.22,
+      metalness: object.metalness ?? 0.72,
+      roughness: object.roughness ?? 0.22,
       envMapIntensity: 1.15,
       emissiveIntensity: 0,
     });
@@ -520,52 +548,84 @@ export class CgiRendererService implements OnDestroy {
     }
   }
 
-  private async loadModel(dataUrl: string): Promise<void> {
-    if (this.loadingModels.has(dataUrl) || this.modelCache.has(dataUrl)) return;
-    this.loadingModels.add(dataUrl);
+  /** A shared read/parse for one embedded model. Resolves even on failure. */
+  private loadModel(dataUrl: string): Promise<void> {
+    if (this.modelCache.has(dataUrl)) return Promise.resolve();
+    const inFlight = this.modelLoads.get(dataUrl);
+    if (inFlight) return inFlight;
+
+    const read = this.readModel(dataUrl);
+    const tracked = read.finally(() => {
+      if (this.modelLoads.get(dataUrl) === tracked) {
+        this.modelLoads.delete(dataUrl);
+      }
+    });
+    this.modelLoads.set(dataUrl, tracked);
+    return tracked;
+  }
+
+  private async readModel(dataUrl: string): Promise<void> {
     try {
       const response = await fetch(dataUrl);
       if (!response.ok) throw new Error('CGI model could not be read');
-      const isJson = /^data:application\/(?:ld\+)?json/i.test(dataUrl);
-      const payload = isJson ? await response.text() : await response.arrayBuffer();
+      // Sniff the bytes instead of trusting the data URL's MIME type. A .gltf
+      // file can arrive as application/octet-stream or with an empty type, and
+      // parsing its JSON as a GLB fails with a misleading loader error. GLB
+      // starts with the ASCII magic "glTF"; everything else is JSON text.
+      const buffer = await response.arrayBuffer();
+      const bytes = new Uint8Array(buffer);
+      const isGlb =
+        bytes.length >= 4 &&
+        bytes[0] === 0x67 &&
+        bytes[1] === 0x6c &&
+        bytes[2] === 0x54 &&
+        bytes[3] === 0x46;
+      const payload: ArrayBuffer | string = isGlb
+        ? buffer
+        : new TextDecoder().decode(buffer);
       const { GLTFLoader } = await import(
         'three/examples/jsm/loaders/GLTFLoader.js'
       );
       const loader = new GLTFLoader();
-      loader.parse(
-        payload,
-        '',
-        (gltf) => {
-          const scene = gltf.scene;
-          scene.traverse((child) => {
-            if (!(child instanceof THREE.Mesh)) return;
-            child.castShadow = true;
-            child.receiveShadow = true;
-          });
-          const bounds = new THREE.Box3().setFromObject(scene);
-          const size = bounds.getSize(new THREE.Vector3());
-          const center = bounds.getCenter(new THREE.Vector3());
-          scene.position.sub(center);
-          const maxDimension = Math.max(size.x, size.y, size.z, 0.001);
-          const wrapper = new THREE.Group();
-          wrapper.add(scene);
-          wrapper.scale.setScalar(2 / maxDimension);
-          this.modelCache.set(dataUrl, wrapper);
-          this.modelFailures.delete(dataUrl);
-          this.objectsDirty = true;
-        },
-        () => this.noteModelFailure(dataUrl),
-      );
+      await new Promise<void>((resolve, reject) => {
+        loader.parse(
+          payload,
+          '',
+          (gltf) => {
+            try {
+              const scene = gltf.scene;
+              scene.traverse((child) => {
+                if (!(child instanceof THREE.Mesh)) return;
+                child.castShadow = true;
+                child.receiveShadow = true;
+              });
+              const bounds = new THREE.Box3().setFromObject(scene);
+              const size = bounds.getSize(new THREE.Vector3());
+              const center = bounds.getCenter(new THREE.Vector3());
+              scene.position.sub(center);
+              const maxDimension = Math.max(size.x, size.y, size.z, 0.001);
+              const wrapper = new THREE.Group();
+              wrapper.add(scene);
+              wrapper.scale.setScalar(2 / maxDimension);
+              this.modelCache.set(dataUrl, wrapper);
+              this.modelFailures.delete(dataUrl);
+              this.objectsDirty = true;
+              resolve();
+            } catch (error) {
+              reject(error);
+            }
+          },
+          (error) => reject(error),
+        );
+      });
     } catch {
       this.noteModelFailure(dataUrl);
-    } finally {
-      this.loadingModels.delete(dataUrl);
     }
   }
 
   /** Ask for a model unless it is cached, in flight, or backing off. */
   private requestModel(dataUrl: string): void {
-    if (this.modelCache.has(dataUrl) || this.loadingModels.has(dataUrl)) return;
+    if (this.modelCache.has(dataUrl) || this.modelLoads.has(dataUrl)) return;
     const failure = this.modelFailures.get(dataUrl);
     if (
       failure &&
@@ -717,9 +777,9 @@ export class CgiRendererService implements OnDestroy {
     for (const model of this.modelCache.values()) this.disposeObject(model);
     this.modelCache.clear();
     this.modelFailures.clear();
-    this.loadingModels.clear();
     for (const timer of this.modelRetryTimers) clearTimeout(timer);
     this.modelRetryTimers.clear();
+    this.modelLoads.clear();
     this.webglUnavailable = false;
     this.retryAt = 0;
     this.surfaceFailures = 0;

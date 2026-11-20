@@ -8,9 +8,13 @@ import {
 import {
   CGI_ANIMATION_CHANNELS,
   CGI_CAMERA_MOVES,
+  CGI_MATERIAL_PRESETS,
   CGI_PRIMITIVES,
+  CGI_SCENE_PRESETS,
   MAX_CGI_MODEL_DATA_URL,
   MAX_CGI_OBJECTS,
+  applyCgiMaterialPreset,
+  applyCgiScenePreset,
   cgiChannelValueAt,
   createCgiPrimitive,
   removeCgiKeyframe,
@@ -21,6 +25,7 @@ import {
   type CgiKeyframe,
   type CgiObject,
   type CgiPrimitive,
+  type CgiScenePresetId,
   type CgiSceneSettings,
 } from '../../../services/cgi-scene';
 
@@ -54,9 +59,17 @@ export class CgiScenePanelComponent {
 
   readonly cameraMoves = CGI_CAMERA_MOVES;
   readonly primitives = CGI_PRIMITIVES;
+  readonly presets = CGI_SCENE_PRESETS;
+  readonly materialPresets = CGI_MATERIAL_PRESETS;
   readonly keyframeEasings = KEYFRAME_EASINGS;
   readonly maxObjects = MAX_CGI_OBJECTS;
+  readonly axes = [
+    { index: 0 as const, label: 'X' },
+    { index: 1 as const, label: 'Y' },
+    { index: 2 as const, label: 'Z' },
+  ];
   readonly sceneError = signal<string | null>(null);
+  readonly selectedObjectId = signal<string | null>(null);
   primitive: Exclude<CgiPrimitive, 'model'> = 'cube';
 
   /** '' authors the scene (camera/light); otherwise an object id. */
@@ -75,6 +88,13 @@ export class CgiScenePanelComponent {
   readonly atObjectLimit = computed(
     () => (this.scene()?.objects.length ?? 0) >= MAX_CGI_OBJECTS,
   );
+
+  /** The object whose transform/material inspector is open. */
+  readonly selectedObject = computed<CgiObject | null>(() => {
+    const id = this.selectedObjectId();
+    if (!id) return null;
+    return this.scene()?.objects.find((object) => object.id === id) ?? null;
+  });
 
   readonly targetChannels = computed(() =>
     CGI_ANIMATION_CHANNELS.filter((channel) =>
@@ -134,13 +154,28 @@ export class CgiScenePanelComponent {
       ...createCgiPrimitive(this.primitive, scene.objects.length),
       position: this.slot(scene.objects),
     };
+    this.selectedObjectId.set(object.id);
     this.sceneChange.emit({ ...scene, objects: [...scene.objects, object] });
+  }
+
+  selectObject(id: string): void {
+    this.selectedObjectId.set(id);
+  }
+
+  /** Apply a stage look while preserving objects, colours and keyframes. */
+  applyPreset(presetId: string): void {
+    const scene = this.scene();
+    if (!scene) return;
+    this.sceneChange.emit(
+      applyCgiScenePreset(scene, presetId as CgiScenePresetId),
+    );
   }
 
   removeObject(id: string): void {
     const scene = this.scene();
     if (!scene) return;
     this.sceneError.set(null);
+    if (this.selectedObjectId() === id) this.selectedObjectId.set(null);
     // The sanitizer drops tracks whose object no longer exists, so deleting an
     // object cannot leave orphan animation behind in the project.
     const next = sanitizeCgiScene({
@@ -187,6 +222,7 @@ export class CgiScenePanelComponent {
         spin: 0.4,
         modelDataUrl,
       };
+      this.selectedObjectId.set(object.id);
       this.sceneChange.emit({ ...scene, objects: [...scene.objects, object] });
     };
     reader.onerror = () => this.sceneError.set('That model could not be read.');
@@ -198,13 +234,85 @@ export class CgiScenePanelComponent {
   }
 
   setObjectColor(id: string, value: string): void {
+    this.patchObject(id, { color: value });
+  }
+
+  setObjectPosition(
+    id: string,
+    axis: 0 | 1 | 2,
+    value: number | string,
+  ): void {
+    const object = this.scene()?.objects.find((entry) => entry.id === id);
+    if (!object) return;
+    const position = [...object.position] as [number, number, number];
+    position[axis] = this.clamp(value, -20, 20, position[axis]);
+    this.patchObject(id, { position });
+  }
+
+  setObjectScale(id: string, value: number | string): void {
+    const object = this.scene()?.objects.find((entry) => entry.id === id);
+    if (!object) return;
+    this.patchObject(id, { scale: this.clamp(value, 0.05, 5, object.scale) });
+  }
+
+  setObjectSpin(id: string, value: number | string): void {
+    const object = this.scene()?.objects.find((entry) => entry.id === id);
+    if (!object) return;
+    this.patchObject(id, { spin: this.clamp(value, -8, 8, object.spin) });
+  }
+
+  setObjectMaterial(
+    id: string,
+    field: 'metalness' | 'roughness',
+    value: number | string,
+  ): void {
+    const object = this.scene()?.objects.find((entry) => entry.id === id);
+    if (!object) return;
+    const fallback = field === 'metalness' ? 0.72 : 0.22;
+    this.patchObject(id, {
+      [field]: this.clamp(value, 0, 1, object[field] ?? fallback),
+    });
+  }
+
+  setObjectEmissive(id: string, value: number | string): void {
+    const object = this.scene()?.objects.find((entry) => entry.id === id);
+    if (!object) return;
+    this.patchObject(id, {
+      emissive: this.clamp(value, 0, 4, object.emissive ?? 0),
+    });
+  }
+
+  applyMaterialPreset(objectId: string, presetId: string): void {
     const scene = this.scene();
     if (!scene) return;
-    this.patch({
+    this.sceneChange.emit(applyCgiMaterialPreset(scene, objectId, presetId));
+  }
+
+  /**
+   * Persist one object edit through the sanitizer so a typed out-of-range
+   * number cannot produce a scene that reloads differently than it looked.
+   */
+  private patchObject(id: string, patch: Partial<CgiObject>): void {
+    const scene = this.scene();
+    if (!scene) return;
+    const next = sanitizeCgiScene({
+      ...scene,
       objects: scene.objects.map((object) =>
-        object.id === id ? { ...object, color: value } : object,
+        object.id === id ? { ...object, ...patch } : object,
       ),
     });
+    if (next) this.sceneChange.emit(next);
+  }
+
+  private clamp(
+    value: number | string,
+    min: number,
+    max: number,
+    fallback: number,
+  ): number {
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric)) return fallback;
+    return Math.max(min, Math.min(max, numeric));
   }
 
   setAnimTarget(value: string): void {

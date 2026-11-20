@@ -117,6 +117,66 @@ describe('CgiRendererService', () => {
     service.dispose();
   });
 
+  it('builds the new primitive geometries with their authored PBR finish', () => {
+    const service = new CgiRendererService();
+    const internals = service as unknown as {
+      createPrimitive: (object: Record<string, unknown>) => {
+        geometry: { type: string; dispose: () => void };
+        material: {
+          metalness: number;
+          roughness: number;
+          dispose: () => void;
+        };
+      };
+    };
+
+    const cylinder = internals.createPrimitive({
+      id: 'cylinder',
+      name: 'Brushed Cylinder',
+      kind: 'cylinder',
+      color: '#38bdf8',
+      position: [0, 0, 0],
+      scale: 1,
+      spin: 1,
+      metalness: 0.35,
+      roughness: 0.48,
+    });
+    const cone = internals.createPrimitive({
+      id: 'cone',
+      name: 'Matte Cone',
+      kind: 'cone',
+      color: '#f472b6',
+      position: [0, 0, 0],
+      scale: 1,
+      spin: 1,
+      metalness: 0.12,
+      roughness: 0.8,
+    });
+
+    expect(cylinder.geometry.type).toBe('CylinderGeometry');
+    expect(cylinder.material.metalness).toBe(0.35);
+    expect(cylinder.material.roughness).toBe(0.48);
+    expect(cone.geometry.type).toBe('ConeGeometry');
+    expect(cone.material.metalness).toBe(0.12);
+    expect(cone.material.roughness).toBe(0.8);
+
+    cylinder.geometry.dispose();
+    cylinder.material.dispose();
+    cone.geometry.dispose();
+    cone.material.dispose();
+    service.dispose();
+  });
+
+  it('preloads a scene without models without needing a GPU surface', async () => {
+    const service = new CgiRendererService();
+
+    await expect(service.preload([createDefaultCgiScene()])).resolves.toBe(
+      undefined,
+    );
+    expect(service.status()).toBe('idle');
+    service.dispose();
+  });
+
   it('can be disposed more than once', () => {
     const service = new CgiRendererService();
 

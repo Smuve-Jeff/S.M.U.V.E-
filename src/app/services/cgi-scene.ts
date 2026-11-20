@@ -14,7 +14,13 @@ import {
   type KeyframeEasing,
 } from './clip-keyframes';
 
-export type CgiPrimitive = 'cube' | 'sphere' | 'torus' | 'model';
+export type CgiPrimitive =
+  | 'cube'
+  | 'sphere'
+  | 'torus'
+  | 'cylinder'
+  | 'cone'
+  | 'model';
 
 export type CgiCameraMove =
   | 'static'
@@ -38,6 +44,12 @@ export interface CgiObject {
   spin: number;
   /** Self-contained GLB (or embedded-resource GLTF) as a data URL. */
   modelDataUrl?: string;
+  /** PBR finish for built-in primitives, 0..1. Imported models keep theirs. */
+  metalness?: number;
+  /** Surface roughness for built-in primitives, 0..1. */
+  roughness?: number;
+  /** Base glow for built-in primitives, 0..4. Keyframes override it. */
+  emissive?: number;
 }
 
 export type CgiAnimationChannel =
@@ -205,7 +217,146 @@ export const CGI_PRIMITIVES: { id: Exclude<CgiPrimitive, 'model'>; label: string
     { id: 'torus', label: 'Chrome Torus' },
     { id: 'cube', label: 'Metal Cube' },
     { id: 'sphere', label: 'Gloss Sphere' },
+    { id: 'cylinder', label: 'Brushed Cylinder' },
+    { id: 'cone', label: 'Matte Cone' },
   ];
+
+export type CgiScenePresetId =
+  | 'chrome-studio'
+  | 'neon-noir'
+  | 'product-turntable'
+  | 'kinetic-crane';
+
+/**
+ * A look preset changes the stage, not the objects: it is safe to try on an
+ * authored scene without throwing away placements, colours or keyframes.
+ */
+export interface CgiScenePreset {
+  id: CgiScenePresetId;
+  label: string;
+  description: string;
+  patch: Partial<
+    Pick<
+      CgiSceneSettings,
+      | 'cameraMove'
+      | 'cameraDistance'
+      | 'cameraHeight'
+      | 'fov'
+      | 'lightIntensity'
+      | 'shadows'
+      | 'reflections'
+      | 'background'
+      | 'spin'
+    >
+  >;
+}
+
+export type CgiMaterialPresetId =
+  | 'chrome'
+  | 'brushed-metal'
+  | 'matte'
+  | 'neon';
+
+export interface CgiMaterialPreset {
+  id: CgiMaterialPresetId;
+  label: string;
+  description: string;
+  patch: Pick<CgiObject, 'metalness' | 'roughness' | 'emissive'>;
+}
+
+export const CGI_MATERIAL_PRESETS: readonly CgiMaterialPreset[] = [
+  {
+    id: 'chrome',
+    label: 'Chrome',
+    description: 'Mirror-like metal with tight, bright reflections.',
+    patch: { metalness: 0.95, roughness: 0.08, emissive: 0 },
+  },
+  {
+    id: 'brushed-metal',
+    label: 'Brushed',
+    description: 'Satin metal that keeps its shape readable.',
+    patch: { metalness: 0.62, roughness: 0.42, emissive: 0 },
+  },
+  {
+    id: 'matte',
+    label: 'Matte',
+    description: 'Soft, low-shine surface for product and title work.',
+    patch: { metalness: 0.08, roughness: 0.82, emissive: 0 },
+  },
+  {
+    id: 'neon',
+    label: 'Neon',
+    description: 'Smooth surface with a coloured glow that survives export.',
+    patch: { metalness: 0.14, roughness: 0.16, emissive: 1.6 },
+  },
+];
+
+export const CGI_SCENE_PRESETS: readonly CgiScenePreset[] = [
+  {
+    id: 'chrome-studio',
+    label: 'Chrome Studio',
+    description: 'Clean metal, soft shadows and a slow orbit.',
+    patch: {
+      cameraMove: 'orbit-left',
+      cameraDistance: 6,
+      cameraHeight: 1.4,
+      fov: 42,
+      lightIntensity: 1.5,
+      shadows: true,
+      reflections: true,
+      background: 'transparent',
+      spin: 0.35,
+    },
+  },
+  {
+    id: 'neon-noir',
+    label: 'Neon Noir',
+    description: 'Dark plate, hard highlights and a faster counter-orbit.',
+    patch: {
+      cameraMove: 'orbit-right',
+      cameraDistance: 7,
+      cameraHeight: 0.9,
+      fov: 52,
+      lightIntensity: 2.4,
+      shadows: false,
+      reflections: true,
+      background: 'dark',
+      spin: 0.55,
+    },
+  },
+  {
+    id: 'product-turntable',
+    label: 'Product Turntable',
+    description: 'Locked camera, tight lens and a restrained spin.',
+    patch: {
+      cameraMove: 'static',
+      cameraDistance: 5,
+      cameraHeight: 1.6,
+      fov: 35,
+      lightIntensity: 2.2,
+      shadows: true,
+      reflections: true,
+      background: 'transparent',
+      spin: 0.18,
+    },
+  },
+  {
+    id: 'kinetic-crane',
+    label: 'Kinetic Crane',
+    description: 'A rising camera with a darker stage and lively objects.',
+    patch: {
+      cameraMove: 'crane-up',
+      cameraDistance: 7.5,
+      cameraHeight: 0.4,
+      fov: 55,
+      lightIntensity: 1.2,
+      shadows: true,
+      reflections: true,
+      background: 'dark',
+      spin: 0.55,
+    },
+  },
+];
 
 const DEFAULT_COLORS = ['#38bdf8', '#f472b6', '#fbbf24', '#a78bfa'];
 
@@ -224,6 +375,22 @@ const color = (value: unknown, fallback: string): string =>
     ? value.toLowerCase()
     : fallback;
 
+const uniqueId = (
+  value: unknown,
+  fallback: string,
+  used: Set<string>,
+): string => {
+  const base =
+    typeof value === 'string' && value.trim()
+      ? value.trim().slice(0, 120)
+      : fallback;
+  let id = base;
+  let suffix = 2;
+  while (used.has(id)) id = `${base}-${suffix++}`;
+  used.add(id);
+  return id;
+};
+
 const tuple = (
   value: unknown,
   fallback: [number, number, number],
@@ -240,7 +407,21 @@ const isPrimitive = (value: unknown): value is CgiPrimitive =>
   value === 'cube' ||
   value === 'sphere' ||
   value === 'torus' ||
+  value === 'cylinder' ||
+  value === 'cone' ||
   value === 'model';
+
+/**
+ * Only embedded model payloads belong in this slot. A project restored with an
+ * image or arbitrary data URL should fall back to a dropped model instead of
+ * handing the GLTF loader bytes it cannot parse.
+ */
+const isModelDataUrl = (value: unknown): value is string =>
+  typeof value === 'string' &&
+  value.length <= MAX_CGI_MODEL_DATA_URL &&
+  /^data:(?:model\/gltf-binary|model\/gltf\+json|application\/(?:gltf-buffer|octet-stream|json|ld\+json))?(?:;[^,]*)?,/i.test(
+    value,
+  );
 
 const isCameraMove = (value: unknown): value is CgiCameraMove =>
   CGI_CAMERA_MOVES.some((move) => move.id === value);
@@ -290,6 +471,9 @@ function sanitizeCgiAnimation(
   if (!Array.isArray(rawTracks)) return { version: 1, tracks: [] };
 
   const merged = new Map<string, CgiAnimationTrack>();
+  // Keys from merged duplicate tracks share this set too, so a remount can
+  // always target one row without deleting its twin.
+  const usedKeyIds = new Set<string>();
   rawTracks.forEach((entry, trackIndex) => {
     if (!entry || typeof entry !== 'object') return;
     const candidate = entry as Partial<CgiAnimationTrack>;
@@ -314,10 +498,11 @@ function sanitizeCgiAnimation(
       const key = rawKey as Partial<CgiKeyframe>;
       if (!Number.isFinite(key.time) || !Number.isFinite(key.value)) return;
       keys.push({
-        id:
-          typeof key.id === 'string' && key.id.trim()
-            ? key.id.trim().slice(0, 120)
-            : `cgi-kf-${trackIndex}-${keyIndex}`,
+        id: uniqueId(
+          key.id,
+          `cgi-kf-${trackIndex}-${keyIndex}`,
+          usedKeyIds,
+        ),
         time: Math.max(
           0,
           Math.min(MAX_CGI_KEYFRAME_TIME, key.time as number),
@@ -388,6 +573,8 @@ export function createCgiPrimitive(
     torus: 'Chrome Torus',
     cube: 'Metal Cube',
     sphere: 'Gloss Sphere',
+    cylinder: 'Brushed Cylinder',
+    cone: 'Matte Cone',
   };
   return {
     id: `cgi-${kind}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
@@ -397,7 +584,47 @@ export function createCgiPrimitive(
     position: [0, 0, 0],
     scale: 1,
     spin: index % 2 === 0 ? 1 : -1,
+    metalness: kind === 'cone' ? 0.18 : 0.72,
+    roughness: kind === 'cone' ? 0.62 : 0.22,
+    emissive: 0,
   };
+}
+
+/**
+ * Apply one of the stage looks without touching the authored objects or their
+ * keyframes. Unknown ids are a no-op, so a restored project cannot be broken by
+ * an old preset name.
+ */
+export function applyCgiScenePreset(
+  scene: CgiSceneSettings,
+  presetId: string,
+): CgiSceneSettings {
+  const preset = CGI_SCENE_PRESETS.find((entry) => entry.id === presetId);
+  if (!preset) return scene;
+  return sanitizeCgiScene({ ...scene, ...preset.patch }) ?? scene;
+}
+
+/**
+ * Apply a finish to one built-in primitive. Imported models keep their own
+ * materials, and unknown ids/objects are a no-op so a restored project stays
+ * intact.
+ */
+export function applyCgiMaterialPreset(
+  scene: CgiSceneSettings,
+  objectId: string,
+  presetId: string,
+): CgiSceneSettings {
+  const preset = CGI_MATERIAL_PRESETS.find((entry) => entry.id === presetId);
+  const object = scene.objects.find((entry) => entry.id === objectId);
+  if (!preset || !object || object.kind === 'model') return scene;
+  return (
+    sanitizeCgiScene({
+      ...scene,
+      objects: scene.objects.map((entry) =>
+        entry.id === objectId ? { ...entry, ...preset.patch } : entry,
+      ),
+    }) ?? scene
+  );
 }
 
 /**
@@ -409,6 +636,7 @@ export function sanitizeCgiScene(value: unknown): CgiSceneSettings | null {
   if (!value || typeof value !== 'object') return null;
   const raw = value as Partial<CgiSceneSettings>;
   const defaults = createDefaultCgiScene();
+  const usedObjectIds = new Set<string>();
   const objects = Array.isArray(raw.objects)
     ? (raw.objects as unknown[])
         .filter(
@@ -418,18 +646,12 @@ export function sanitizeCgiScene(value: unknown): CgiSceneSettings | null {
         .map((entry, index): CgiObject | null => {
           const candidate = entry as Partial<CgiObject>;
           if (!isPrimitive(candidate.kind)) return null;
-          const modelDataUrl =
-            typeof candidate.modelDataUrl === 'string' &&
-            candidate.modelDataUrl.startsWith('data:') &&
-            candidate.modelDataUrl.length <= MAX_CGI_MODEL_DATA_URL
-              ? candidate.modelDataUrl
-              : undefined;
+          const modelDataUrl = isModelDataUrl(candidate.modelDataUrl)
+            ? candidate.modelDataUrl
+            : undefined;
           if (candidate.kind === 'model' && !modelDataUrl) return null;
           return {
-            id:
-              typeof candidate.id === 'string' && candidate.id.trim()
-                ? candidate.id.trim().slice(0, 120)
-                : `cgi-object-${index}`,
+            id: uniqueId(candidate.id, `cgi-object-${index}`, usedObjectIds),
             name:
               typeof candidate.name === 'string' && candidate.name.trim()
                 ? candidate.name.trim().slice(0, 120)
@@ -442,6 +664,9 @@ export function sanitizeCgiScene(value: unknown): CgiSceneSettings | null {
             position: tuple(candidate.position, [0, 0, 0]),
             scale: num(candidate.scale, 1, 0.05, 5),
             spin: num(candidate.spin, 1, -8, 8),
+            metalness: num(candidate.metalness, 0.72, 0, 1),
+            roughness: num(candidate.roughness, 0.22, 0, 1),
+            emissive: num(candidate.emissive, 0, 0, 4),
             ...(modelDataUrl ? { modelDataUrl } : {}),
           };
         })
@@ -633,7 +858,7 @@ function staticCgiChannelValue(
     case 'opacity':
       return 1;
     case 'emissive':
-      return 0;
+      return object?.emissive ?? 0;
     case 'camera.distance':
       return scene.cameraDistance;
     case 'camera.height':
@@ -850,7 +1075,7 @@ export function resolveCgiFrame(
       ],
       scale: valueFor(object.id, 'scale', object.scale),
       opacity: valueFor(object.id, 'opacity', 1),
-      emissive: valueFor(object.id, 'emissive', 0),
+      emissive: valueFor(object.id, 'emissive', object.emissive ?? 0),
     };
   });
 

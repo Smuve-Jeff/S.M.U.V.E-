@@ -58,6 +58,19 @@
         <p class="cgi-error">{{ error }}</p>
       }
 
+      <div class="cgi-presets" role="group" aria-label="CGI stage looks">
+        @for (preset of presets; track preset.id) {
+          <button
+            type="button"
+            class="cgi-preset"
+            [title]="preset.description"
+            (click)="applyPreset(preset.id)"
+          >
+            {{ preset.label }}
+          </button>
+        }
+      </div>
+
       <label class="cgi-field">
         <span>Camera move</span>
         <select
@@ -70,6 +83,46 @@
             <option [value]="move.id">{{ move.label }}</option>
           }
         </select>
+      </label>
+
+      <div class="cgi-row cgi-camera">
+        <label class="cgi-field">
+          <span>Distance {{ stage.cameraDistance | number: '1.1-1' }}</span>
+          <input
+            type="range"
+            min="2"
+            max="20"
+            step="0.1"
+            aria-label="CGI camera distance"
+            [ngModel]="stage.cameraDistance"
+            (ngModelChange)="patch({ cameraDistance: +$event })"
+          />
+        </label>
+        <label class="cgi-field">
+          <span>Height {{ stage.cameraHeight | number: '1.1-1' }}</span>
+          <input
+            type="range"
+            min="-4"
+            max="8"
+            step="0.1"
+            aria-label="CGI camera height"
+            [ngModel]="stage.cameraHeight"
+            (ngModelChange)="patch({ cameraHeight: +$event })"
+          />
+        </label>
+      </div>
+
+      <label class="cgi-field">
+        <span>Field of view {{ stage.fov | number: '1.0-0' }}°</span>
+        <input
+          type="range"
+          min="20"
+          max="90"
+          step="1"
+          aria-label="CGI camera field of view"
+          [ngModel]="stage.fov"
+          (ngModelChange)="patch({ fov: +$event })"
+        />
       </label>
 
       <label class="cgi-field">
@@ -252,8 +305,19 @@
 
       <div class="cgi-objects" aria-label="CGI scene objects">
         @for (object of stage.objects; track object.id) {
-          <div class="cgi-object">
-            <span class="cgi-object-name">{{ object.name }}</span>
+          <div
+            class="cgi-object"
+            [class.active]="selectedObjectId() === object.id"
+          >
+            <button
+              type="button"
+              class="cgi-object-pick"
+              [attr.aria-pressed]="selectedObjectId() === object.id"
+              [attr.aria-label]="'Edit ' + object.name"
+              (click)="selectObject(object.id)"
+            >
+              {{ object.name }}
+            </button>
             @if (object.kind !== 'model') {
               <input
                 type="color"
@@ -266,6 +330,7 @@
             }
             <button
               type="button"
+              class="cgi-object-remove"
               aria-label="Remove CGI object"
               (click)="removeObject(object.id)"
             >
@@ -274,6 +339,120 @@
           </div>
         }
       </div>
+
+      @if (selectedObject(); as object) {
+        <fieldset class="cgi-object-editor">
+          <legend>{{ object.name }} · Object</legend>
+          <div class="cgi-axis-grid">
+            @for (axis of axes; track axis.index) {
+              <label class="cgi-field">
+                <span>{{ axis.label }}</span>
+                <input
+                  class="cgi-number"
+                  type="number"
+                  min="-20"
+                  max="20"
+                  step="0.1"
+                  [attr.aria-label]="axis.label + ' position for ' + object.name"
+                  [ngModel]="object.position[axis.index]"
+                  (ngModelChange)=
+                    "setObjectPosition(object.id, axis.index, $event)"
+                />
+              </label>
+            }
+          </div>
+
+          <label class="cgi-field">
+            <span>Scale {{ object.scale | number: '1.2-2' }}</span>
+            <input
+              type="range"
+              min="0.05"
+              max="5"
+              step="0.05"
+              aria-label="CGI object scale"
+              [ngModel]="object.scale"
+              (ngModelChange)="setObjectScale(object.id, $event)"
+            />
+          </label>
+
+          <label class="cgi-field">
+            <span>Spin {{ object.spin | number: '1.1-1' }}</span>
+            <input
+              type="range"
+              min="-8"
+              max="8"
+              step="0.1"
+              aria-label="CGI object spin"
+              [ngModel]="object.spin"
+              (ngModelChange)="setObjectSpin(object.id, $event)"
+            />
+          </label>
+
+          @if (object.kind !== 'model') {
+            <div class="cgi-presets" role="group" aria-label="CGI object finishes">
+              @for (preset of materialPresets; track preset.id) {
+                <button
+                  type="button"
+                  class="cgi-preset"
+                  [title]="preset.description"
+                  (click)="applyMaterialPreset(object.id, preset.id)"
+                >
+                  {{ preset.label }}
+                </button>
+              }
+            </div>
+
+            <div class="cgi-row">
+              <label class="cgi-field">
+                <span>Metalness {{ (object.metalness ?? 0.72) | number: '1.2-2' }}</span>
+                <input
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.05"
+                  aria-label="CGI object metalness"
+                  [ngModel]="object.metalness ?? 0.72"
+                  (ngModelChange)="setObjectMaterial(object.id, 'metalness', $event)"
+                />
+              </label>
+              <label class="cgi-field">
+                <span>Roughness {{ (object.roughness ?? 0.22) | number: '1.2-2' }}</span>
+                <input
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.05"
+                  aria-label="CGI object roughness"
+                  [ngModel]="object.roughness ?? 0.22"
+                  (ngModelChange)="setObjectMaterial(object.id, 'roughness', $event)"
+                />
+              </label>
+            </div>
+
+            <label class="cgi-field">
+              <span>Glow {{ (object.emissive ?? 0) | number: '1.2-2' }}</span>
+              <input
+                type="range"
+                min="0"
+                max="4"
+                step="0.1"
+                aria-label="CGI object glow"
+                [ngModel]="object.emissive ?? 0"
+                (ngModelChange)="setObjectEmissive(object.id, $event)"
+              />
+            </label>
+          } @else {
+            <p class="cgi-copy">
+              Imported models keep their own materials; position, scale and spin
+              still apply.
+            </p>
+          }
+        </fieldset>
+      } @else {
+        <p class="cgi-copy">
+          Select an object above to place it, scale it and tune its finish.
+        </p>
+      }
 
       <button type="button" class="cgi-button cgi-danger" (click)="removeLayer.emit()">
         REMOVE CGI LAYER

@@ -261,4 +261,55 @@ describe('CgiScenePanelComponent', () => {
 
     expect(emitted[0].animation?.tracks ?? []).toHaveLength(0);
   });
+
+  it('opens the inspector for an object and selects a newly added one', () => {
+    const { component, emitted } = create(createDefaultCgiScene());
+
+    component.selectObject('cgi-torus');
+    expect(component.selectedObject()?.name).toBe('Chrome Torus');
+
+    component.addPrimitive();
+    expect(component.selectedObjectId()).toBe(emitted[0].objects[1].id);
+  });
+
+  it('edits object placement, scale and finish through the sanitizer', () => {
+    const { component, emitted } = create(createDefaultCgiScene());
+
+    component.setObjectPosition('cgi-torus', 0, 2.5);
+    expect(emitted[0].objects[0].position).toEqual([2.5, 0, 0]);
+
+    component.setObjectScale('cgi-torus', 99);
+    expect(emitted[1].objects[0].scale).toBe(5);
+
+    component.setObjectMaterial('cgi-torus', 'metalness', -1);
+    expect(emitted[2].objects[0].metalness).toBe(0);
+
+    component.setObjectMaterial('cgi-torus', 'roughness', 0.65);
+    expect(emitted[3].objects[0].roughness).toBe(0.65);
+  });
+
+  it('applies a finish preset and clamps the glow control', () => {
+    const { component, emitted } = create(createDefaultCgiScene());
+
+    component.applyMaterialPreset('cgi-torus', 'neon');
+    expect(emitted[0].objects[0]).toMatchObject({
+      metalness: 0.14,
+      roughness: 0.16,
+      emissive: 1.6,
+    });
+
+    component.setObjectEmissive('cgi-torus', 99);
+    expect(emitted[1].objects[0].emissive).toBe(4);
+  });
+
+  it('applies a look preset while keeping the authored objects', () => {
+    const { component, emitted } = create(createDefaultCgiScene());
+
+    component.applyPreset('product-turntable');
+
+    expect(emitted[0].cameraMove).toBe('static');
+    expect(emitted[0].cameraDistance).toBe(5);
+    expect(emitted[0].objects).toHaveLength(1);
+    expect(emitted[0].objects[0].position).toEqual([0, 0, 0]);
+  });
 });
