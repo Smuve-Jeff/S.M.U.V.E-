@@ -213,3 +213,60 @@
   content: '';
   @apply absolute bottom-0 left-0 w-full h-0.5 bg-brand-primary shadow-v42-sm;
 }
+
+/* Phone settings keep every control inside the card: the 280px grid tracks
+   and single-line setting rows previously pushed Audio, Security and Hardware
+   controls past the rounded edge. */
+@media (max-width: 640px) {
+  .permissions-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1rem;
+  }
+
+  .permissions-grid > * {
+    min-width: 0;
+  }
+
+  .setting-item {
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  .setting-item > * {
+    min-width: 0;
+  }
+
+  .toggle-btn {
+    flex-shrink: 0;
+  }
+
+  .settings-content-area h4 {
+    min-width: 0;
+  }
+
+  .security-status-title {
+    overflow-wrap: anywhere;
+  }
+
+  .security-module button {
+    max-width: 100%;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .audio-device-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  .audio-device-row select {
+    flex: 1 1 12rem;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .audio-device-row .setting-btn {
+    flex: 0 0 auto;
+  }
+}

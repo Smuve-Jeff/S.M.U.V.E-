@@ -839,11 +839,12 @@ export class AppComponent {
    */
   showAdvisorFab(): boolean {
     if (this.isStudioShellRoute()) return false;
-    // Streaming settings is a dense form on phones; the fixed advisor button
-    // covered the RTMP controls. The header still carries the advisor entry.
+    // Settings is a dense form on phones; the fixed advisor button covered
+    // account and RTMP controls. The header still carries the advisor entry.
     if (
-      this.activeRoutePath() === 'settings/streaming' &&
-      window.innerWidth <= 480
+      window.innerWidth <= 480 &&
+      (this.activeRoutePath() === 'settings' ||
+        this.activeRoutePath() === 'settings/streaming')
     ) {
       return false;
     }
