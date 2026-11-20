@@ -42,6 +42,7 @@ import { ComponentRecordingService } from "./component-recording.service";
 import { LoggingService } from "../services/logging.service";
 import { CloudSyncService } from "../services/cloud-sync.service";
 import { HistoryService } from "../services/history.service";
+import { guideLessonById } from "./studio-guide/studio-guide-deep-link";
 
 describe("StudioComponent", () => {
   let component: StudioComponent;
@@ -2375,6 +2376,39 @@ describe("StudioComponent", () => {
           queryParams: { guide: null, lesson: null },
         }),
       );
+    });
+
+    it("closes the guide before a starter-groove completion so the celebration is not suppressed", async () => {
+      const groove = guideLessonById("loop-groove")!;
+      mockIdeasGenerator.recipes = [
+        {
+          id: "house",
+          name: "Rooftop House",
+          glyph: "\ud83c\udfe0",
+          bpm: 124,
+          vibe: "Four on the floor",
+          progression: [],
+          tracks: [],
+        },
+      ];
+
+      component.openStudioGuide({
+        track: "first-loop",
+        lessonId: "loop-groove",
+      });
+      // The real guide component reports itself open from its constructor; the
+      // shell spec stubs the template, so mirror that handshake explicitly.
+      component.guideAutoCheck.noteGuideOpen(true);
+      component.guideAutoCheck.track(groove);
+
+      component.onGuideStartRecipe("house");
+      await fixture.whenStable();
+
+      expect(component.showStudioGuide()).toBe(false);
+      expect(component.guideAutoCheck.celebration()).toMatchObject({
+        lessonId: "loop-groove",
+        nextLessonId: "loop-drums",
+      });
     });
 
     it("teaches the current Studio surface's lesson", () => {
