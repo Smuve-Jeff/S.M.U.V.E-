@@ -2,7 +2,6 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, computed, effect, inject, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { APP_SECURITY_CONFIG } from '../app.security';
-import { SocialNetworkingService } from './social-networking.service';
 import { SnackbarService } from './snackbar.service';
 import { TokenService } from './token.service';
 import { UserProfileService } from './user-profile.service';
@@ -143,7 +142,6 @@ interface SyncResponse extends ConnectionsResponse {
 @Injectable({ providedIn: 'root' })
 export class StreamingPlatformsService {
   private readonly http = inject(HttpClient);
-  private readonly social = inject(SocialNetworkingService);
   private readonly profile = inject(UserProfileService);
   private readonly tokenService = inject(TokenService);
   private readonly snackbar = inject(SnackbarService);
@@ -156,6 +154,8 @@ export class StreamingPlatformsService {
   readonly syncing = signal(false);
   /** The platform whose connect popup is open, if any. */
   readonly connecting = signal<StreamingPlatformId | null>(null);
+  /** Bumped by every new authorization so an older popup cannot resume. */
+  private authRound = 0;
   /** Pages the linked Facebook account can publish to. */
   readonly facebookPages = signal<FacebookPage[]>([]);
   readonly loadingFacebookPages = signal(false);
@@ -205,6 +205,8 @@ export class StreamingPlatformsService {
   /**
    * Ask the server for a signed authorize URL and open the provider popup.
    * Pressing it on a connected platform re-authorises and replaces the grant.
+   * This is the only popup implementation in the app: Tha Spot's account rows
+   * and the Lab's GO LIVE preflight both wait on `connectAndWait`.
    */
   async connect(id: StreamingPlatformId): Promise<void> {
     const platform = this.platformFor(id);
@@ -215,37 +217,142 @@ export class StreamingPlatformsService {
     }
     this.connecting.set(id);
     try {
+      const connected = await this.connectAndWait(id);
+      if (connected) {
+        await this.load();
+        this.snackbar.success(`${platform.label} CONNECTED`);
+      }
+    } finally {
+      this.connecting.set(null);
+    }
+  }
+
+  /**
+   * Run the provider OAuth flow and resolve once the popup reports back.
+   * Resolves false on an unavailable URL, a blocked popup, a provider refusal,
+   * a closed popup or a five-minute timeout; the caller decides whether that
+   * aborts a GO LIVE attempt.
+   *
+   * Cancelling is round-based: a newer authorization (or an explicit stop)
+   * abandons the older popup so a late callback cannot resume stale work.
+   */
+  async connectAndWait(id: StreamingPlatformId): Promise<boolean> {
+    const platform = this.platformFor(id);
+    if (!platform?.connectable) return false;
+    const round = ++this.authRound;
+
+    let authorizeUrl = '';
+    try {
       const response = await firstValueFrom(
         this.http.post<AuthorizeResponse>(this.endpoint(`/${id}/authorize`), {}, {
           headers: this.headers(),
         }),
       );
-      const authorizeUrl = response?.authorizeUrl;
-      if (!authorizeUrl) {
-        throw new Error('No authorize URL');
-      }
-      this.social.openConnectPopup(
-        id,
-        authorizeUrl,
-        () => {
-          this.connecting.set(null);
-          void this.load().then(() =>
-            this.snackbar.success(`${platform.label} CONNECTED`),
-          );
-        },
-        (message) => {
-          this.connecting.set(null);
-          this.snackbar.error(
-            message?.trim()
-              ? message.trim().toUpperCase()
-              : `${platform.label} CONNECT FAILED`,
-          );
-        },
-      );
+      authorizeUrl =
+        typeof response?.authorizeUrl === 'string' ? response.authorizeUrl : '';
     } catch (error) {
-      this.connecting.set(null);
+      // A stop/new attempt may have cancelled this round while the request was
+      // in flight; do not report a stale failure into the new flow.
+      if (this.authRound !== round) return false;
       this.snackbar.error(this.describe(error, platform.label));
+      return false;
     }
+    // Cancellation can land while the authorize request is pending. Never open
+    // a popup for a round the host already abandoned.
+    if (this.authRound !== round) return false;
+    if (!authorizeUrl) {
+      this.snackbar.warning(`${platform.label} AUTH UNAVAILABLE — TRY AGAIN`);
+      return false;
+    }
+    if (typeof window === 'undefined') return false;
+
+    const width = 500;
+    const height = 640;
+    const left = window.screen.width / 2 - width / 2;
+    const top = window.screen.height / 2 - height / 2;
+    let popup: Window | null = null;
+
+    const expectedType = `${id.toUpperCase()}_AUTH_SUCCESS`;
+    const failedType = `${id.toUpperCase()}_AUTH_FAILED`;
+    let apiOrigin = window.location.origin;
+    try {
+      apiOrigin = new URL(APP_SECURITY_CONFIG.api_url).origin;
+    } catch {
+      /* keep the page origin */
+    }
+
+    return new Promise<boolean>((resolve) => {
+      let settled = false;
+      let watch: ReturnType<typeof setInterval> | null = null;
+      let timeout: ReturnType<typeof setTimeout> | null = null;
+      const cleanup = () => {
+        window.removeEventListener('message', handler);
+        if (watch !== null) clearInterval(watch);
+        if (timeout !== null) clearTimeout(timeout);
+      };
+      const finish = (ok: boolean, reason?: string) => {
+        if (settled) return;
+        settled = true;
+        cleanup();
+        if (!ok && reason) this.snackbar.warning(reason);
+        resolve(ok);
+      };
+      const handler = (event: MessageEvent) => {
+        if (this.authRound !== round) return;
+        if (
+          event.origin !== apiOrigin &&
+          event.origin !== window.location.origin
+        ) {
+          return;
+        }
+        if (typeof event.data !== 'object' || !event.data) return;
+        const data = event.data as { type?: string; message?: string };
+        if (data.type === expectedType) {
+          finish(true);
+          return;
+        }
+        if (data.type === failedType) {
+          finish(
+            false,
+            typeof data.message === 'string' && data.message
+              ? data.message.toUpperCase()
+              : `${platform.label} AUTH FAILED`,
+          );
+        }
+      };
+      // Listen before opening: a fast provider callback must never beat the
+      // listener and leave the picker stuck in AUTH PENDING.
+      window.addEventListener('message', handler);
+      popup = window.open(
+        authorizeUrl,
+        `${id} Auth`,
+        `width=${width},height=${height},left=${left},top=${top}`,
+      );
+      if (!popup) {
+        finish(false, 'POPUP BLOCKED — ALLOW POPUPS TO CONNECT');
+        return;
+      }
+      watch = setInterval(() => {
+        if (this.authRound !== round) {
+          // The host stopped or started another attempt: take the stale
+          // provider window down with the listener instead of orphaning it.
+          popup?.close?.();
+          finish(false);
+          return;
+        }
+        if (popup?.closed) finish(false, 'AUTH CANCELLED');
+      }, 700);
+      // A forgotten popup must not hold the caller in AUTH PENDING forever.
+      timeout = setTimeout(
+        () => finish(false, 'AUTH TIMED OUT'),
+        5 * 60_000,
+      );
+    });
+  }
+
+  /** Abandon any popup still waiting for a provider callback. */
+  cancelPendingAuthorization(): void {
+    this.authRound++;
   }
 
   /**

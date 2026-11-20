@@ -75,6 +75,26 @@ describe('masterclass workspace wiring', () => {
   });
 });
 
+describe('streaming settings wiring', () => {
+  const protectedRoutes = routes.flatMap((route) => route.children ?? []);
+  const route = protectedRoutes.find(
+    (entry) => entry.path === 'settings/streaming'
+  );
+
+  it('is registered as a lazy protected route', () => {
+    expect(route).toBeDefined();
+    expect(typeof route?.loadComponent).toBe('function');
+  });
+
+  it('resolves to the shared streaming settings page', async () => {
+    const loaded = await (route!.loadComponent as unknown as LazyComponent)();
+    const component = (loaded['StreamingSettingsComponent'] ?? loaded) as {
+      name?: string;
+    };
+    expect(component.name).toBe('StreamingSettingsComponent');
+  });
+});
+
 describe('canvas piano roll wiring', () => {
   const protectedRoutes = routes.flatMap((route) => route.children ?? []);
   const route = protectedRoutes.find(

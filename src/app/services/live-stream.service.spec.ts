@@ -9,6 +9,7 @@ import { UserProfileService } from './user-profile.service';
 import { NotificationService } from './notification.service';
 import { HapticService } from './haptic.service';
 import { SocialNetworkingService } from './social-networking.service';
+import { StreamingPlatformsService } from './streaming-platforms.service';
 
 /**
  * Capture-input mocks — one set per test to keep state boundary clean.
@@ -325,6 +326,24 @@ describe('LiveStreamService', () => {
       expect(service.ownsBroadcast()).toBe(true);
       expect(social().startStream).toHaveBeenCalledWith('twitch');
       expect(ingest().start).toHaveBeenCalledWith(['twitch']);
+    });
+
+    it('delegates Twitch preflight to the shared streaming service', async () => {
+      service = TestBed.inject(LiveStreamService);
+      const shared = TestBed.inject(StreamingPlatformsService);
+      const connect = jest
+        .spyOn(shared, 'connectAndWait')
+        .mockResolvedValue(false);
+      tokenRef = { value: 'TKN' };
+      profileRef = { value: { id: '77', artistName: 'JEFF' } };
+
+      expect(await service.golive({ platform: 'twitch' })).toBeNull();
+
+      expect(connect).toHaveBeenCalledWith('twitch');
+      expect(
+        httpCalls.filter((call) => call.url.includes('/live-streams')),
+      ).toHaveLength(0);
+      expect(openedPopups).toEqual([]);
     });
 
     it('does not issue a row when the Twitch popup is blocked', async () => {
@@ -1185,7 +1204,11 @@ describe('LiveStreamService', () => {
         jest.advanceTimersByTime(800);
 
         expect(await pending).toBeNull();
-        expect(httpCalls).toHaveLength(1);
+        // The shared account store may sync alongside the auth attempt; the
+        // point of this test is that no live row is issued.
+        expect(
+          httpCalls.filter((call) => call.url.includes('/live-streams')),
+        ).toHaveLength(0);
         expect(service.currentStream()).toBeNull();
         expect(service.pendingGolive()).toBeNull();
         expect(

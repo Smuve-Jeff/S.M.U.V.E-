@@ -11,6 +11,7 @@ import {
   BroadcastIngestService,
   type IngestPlatform,
 } from './broadcast-ingest.service';
+import { StreamingPlatformsService } from './streaming-platforms.service';
 import type { Socket } from 'socket.io-client';
 
 /**
@@ -527,8 +528,6 @@ export class LiveStreamService {
       return null;
     }
   }
-  /** Monotonic id so an abandoned round can never act on a newer one. */
-  private goliveRound = 0;
   private streamPoll: ReturnType<typeof setInterval> | null = null;
 
   private clearStreamPoll(): void {
@@ -576,7 +575,7 @@ export class LiveStreamService {
    */
   async endStream(): Promise<boolean> {
     // Any auth round still in flight is abandoned by an explicit STOP.
-    this.goliveRound++;
+    this.platforms.cancelPendingAuthorization();
     this.clearStreamPoll();
     this.pendingGolive.set(null);
     this.clearHostingToken();
@@ -835,6 +834,8 @@ export class LiveStreamService {
   }
 
   private ingest = inject(BroadcastIngestService);
+  /** Owns the provider popup/authorize call so GO LIVE and Tha Spot share it. */
+  private platforms = inject(StreamingPlatformsService);
 
   /**
    * The broadcast token this tab is responsible for. Stored per tab so a
@@ -891,122 +892,11 @@ export class LiveStreamService {
   }
 
   /**
-   * Authorize a provider through its real backend route, then wait for the
-   * popup's postMessage. The old flow opened `/auth/${platform}`, a route that
-   * no longer exists, so every provider Go Live landed on a 404 while the
-   * server row and camera kept running. Nothing is issued until this resolves.
+   * GO LIVE and Tha Spot's account rows must run the same provider flow: one
+   * authorize request, one popup implementation, one shared connection store.
    */
-  private async authorizeProvider(provider: 'twitch'): Promise<boolean> {
-    let authorizeUrl = '';
-    try {
-      const response = await firstValueFrom(
-        this.http.post<{ authorizeUrl?: string }>(
-          `${APP_SECURITY_CONFIG.api_url}/stream-accounts/${provider}/authorize`,
-          {},
-          { headers: this.authHeaders() },
-        ),
-      );
-      authorizeUrl =
-        typeof response?.authorizeUrl === 'string' ? response.authorizeUrl : '';
-    } catch (e: any) {
-      console.error('[LiveStream] provider authorize failed', e);
-      this.notify.show(
-        e?.status === 401
-          ? 'LOGIN EXPIRED'
-          : `${provider.toUpperCase()} AUTH UNAVAILABLE`,
-        'warning',
-      );
-      return false;
-    }
-    if (!authorizeUrl) {
-      this.notify.show(
-        `${provider.toUpperCase()} AUTH UNAVAILABLE — TRY AGAIN`,
-        'warning',
-      );
-      return false;
-    }
-    if (typeof window === 'undefined') return false;
-
-    const width = 500;
-    const height = 640;
-    const left = window.screen.width / 2 - width / 2;
-    const top = window.screen.height / 2 - height / 2;
-    let popup: Window | null = null;
-
-    const round = ++this.goliveRound;
-    const expectedType = `${provider.toUpperCase()}_AUTH_SUCCESS`;
-    const failedType = `${provider.toUpperCase()}_AUTH_FAILED`;
-    let apiOrigin = window.location.origin;
-    try {
-      apiOrigin = new URL(APP_SECURITY_CONFIG.api_url).origin;
-    } catch {
-      /* keep the page origin */
-    }
-
-    return new Promise<boolean>((resolve) => {
-      let settled = false;
-      let watch: ReturnType<typeof setInterval> | null = null;
-      let timeout: ReturnType<typeof setTimeout> | null = null;
-      const cleanup = () => {
-        window.removeEventListener('message', handler);
-        if (watch !== null) clearInterval(watch);
-        if (timeout !== null) clearTimeout(timeout);
-      };
-      const finish = (ok: boolean, reason?: string) => {
-        if (settled) return;
-        settled = true;
-        cleanup();
-        if (!ok && reason) this.notify.show(reason, 'warning');
-        resolve(ok);
-      };
-      const handler = (event: MessageEvent) => {
-        if (this.goliveRound !== round) return;
-        if (
-          event.origin !== apiOrigin &&
-          event.origin !== window.location.origin
-        ) {
-          return;
-        }
-        if (typeof event.data !== 'object' || !event.data) return;
-        const data = event.data as { type?: string; message?: string };
-        if (data.type === expectedType) {
-          finish(true);
-          return;
-        }
-        if (data.type === failedType) {
-          finish(
-            false,
-            typeof data.message === 'string' && data.message
-              ? data.message.toUpperCase()
-              : `${provider.toUpperCase()} AUTH FAILED — NOT LIVE`,
-          );
-        }
-      };
-      // Listen before opening: a fast provider callback must never beat the
-      // listener and leave the picker stuck in AUTH PENDING.
-      window.addEventListener('message', handler);
-      popup = window.open(
-        authorizeUrl,
-        `${provider} Auth`,
-        `width=${width},height=${height},left=${left},top=${top}`,
-      );
-      if (!popup) {
-        finish(false, 'POPUP BLOCKED — ALLOW POPUPS TO GO LIVE');
-        return;
-      }
-      watch = setInterval(() => {
-        if (this.goliveRound !== round) {
-          finish(false);
-          return;
-        }
-        if (popup?.closed) finish(false, 'AUTH CANCELLED — NOT LIVE');
-      }, 700);
-      // A forgotten popup must not hold the picker in AUTH PENDING forever.
-      timeout = setTimeout(
-        () => finish(false, 'AUTH TIMED OUT — NOT LIVE'),
-        5 * 60_000,
-      );
-    });
+  private authorizeProvider(provider: 'twitch'): Promise<boolean> {
+    return this.platforms.connectAndWait(provider);
   }
 
   /**

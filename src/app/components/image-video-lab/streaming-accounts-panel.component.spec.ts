@@ -86,4 +86,11 @@ describe('StreamingAccountsPanelComponent', () => {
     expect(link.getAttribute('href')).toBe('/tha-spot?panel=broadcast');
     expect(link.getAttribute('target')).toBe('_blank');
   });
+
+  it('links to the shared Settings → Streaming page', () => {
+    const link = fixture.nativeElement.querySelector(
+      '.accounts-settings'
+    ) as HTMLAnchorElement;
+    expect(link.getAttribute('href')).toBe('/settings/streaming');
+  });
 });

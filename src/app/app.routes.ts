@@ -252,6 +252,13 @@ const protectedRoutes: Routes = [
       ),
   },
   {
+    path: 'settings/streaming',
+    loadComponent: () =>
+      import('./components/settings/streaming-settings.component').then(
+        (m) => m.StreamingSettingsComponent
+      ),
+  },
+  {
     path: 'settings',
     loadComponent: () =>
       import('./components/settings/settings.component').then(

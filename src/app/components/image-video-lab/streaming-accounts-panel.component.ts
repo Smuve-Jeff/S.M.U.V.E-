@@ -1,4 +1,10 @@
-import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+  input,
+} from '@angular/core';
 import { BroadcastIngestService, type IngestPlatform } from '../../services/broadcast-ingest.service';
 import {
   StreamingPlatformsService,
@@ -82,6 +88,11 @@ interface AccountRow {
       @if (ingest.checkError(); as error) {
         <p class="accounts-warning" role="status">{{ error }}</p>
       }
+      @if (showSettingsLink()) {
+        <a class="accounts-settings" [href]="settingsUrl">
+          ALL STREAMING SETTINGS →
+        </a>
+      }
     </section>
   `,
   styles: [
@@ -144,6 +155,19 @@ interface AccountRow {
       }
       .accounts-warning {
         color: #fbbf24;
+      }
+      .accounts-settings {
+        justify-self: start;
+        color: #64748b;
+        font-size: 0.55rem;
+        font-weight: 900;
+        letter-spacing: 0.12em;
+        text-decoration: none;
+      }
+      .accounts-settings:hover,
+      .accounts-settings:focus-visible {
+        color: #6ee7b7;
+        outline: none;
       }
       .accounts-list {
         display: grid;
@@ -215,9 +239,13 @@ interface AccountRow {
 export class StreamingAccountsPanelComponent {
   readonly platforms = inject(StreamingPlatformsService);
   readonly ingest = inject(BroadcastIngestService);
+  /** Off when this panel already sits on the Settings → Streaming page. */
+  readonly showSettingsLink = input(true);
 
   /** Where the full RTMP rows and keys live; the same editor Tha Spot opens. */
   readonly configUrl = '/tha-spot?panel=broadcast';
+  /** Shared Settings page that wraps this panel for Lab and Tha Spot. */
+  readonly settingsUrl = '/settings/streaming';
 
   private readonly oauthRows: {
     id: StreamingPlatformId;
