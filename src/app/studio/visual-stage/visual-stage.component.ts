@@ -24,10 +24,11 @@ import {
   BAR_RING_RADIUS,
   BASE_FLOOR_RADIUS,
   DEFAULT_ORBIT_RADIUS,
+  INNER_BAR_RING_RADIUS,
   MAX_ORBIT_RADIUS,
   MIN_ORBIT_RADIUS,
   orbitLimitsFor,
-  stageBarRingScale,
+  stageBarRings,
   stageCameraDistance,
   stageFloorScale,
   stageFogRange,
@@ -172,8 +173,6 @@ interface AvatarJoints {
 
 const BAR_COUNT = 64;
 const INNER_BAR_COUNT = 40;
-/** Radius of the inner light-bar ring at its designed size. */
-const INNER_BAR_RING_RADIUS = 1.5;
 const WAVE_POINTS = 96;
 
 /**
@@ -325,7 +324,8 @@ export class VisualStageComponent implements AfterViewInit, OnDestroy {
   private stageExtents: StageExtents | null = null;
   private frameRadius = DEFAULT_ORBIT_RADIUS;
   private floorScale = 1;
-  private barRingScale = 1;
+  private barInnerRadius = INNER_BAR_RING_RADIUS;
+  private barOuterRadius = BAR_RING_RADIUS;
   private minOrbitRadius = MIN_ORBIT_RADIUS;
   private maxOrbitRadius = MAX_ORBIT_RADIUS;
 
@@ -441,7 +441,9 @@ export class VisualStageComponent implements AfterViewInit, OnDestroy {
   private applyStageFloor(): void {
     this.floorScale = stageFloorScale(this.stageExtents);
     this.floorMesh?.scale.set(this.floorScale, this.floorScale, 1);
-    this.barRingScale = stageBarRingScale(this.stageExtents, this.floorScale);
+    const rings = stageBarRings(this.stageExtents, this.floorScale);
+    this.barInnerRadius = rings.inner;
+    this.barOuterRadius = rings.outer;
   }
 
   /** Keep the fog behind the performer when the camera has to pull back. */
@@ -2030,8 +2032,8 @@ export class VisualStageComponent implements AfterViewInit, OnDestroy {
   private updateSpectrum(): void {
     if (!this.bars || !this.innerBars || !this.three) return;
     const dummy = this.getDummy();
-    const ring = BAR_RING_RADIUS * this.barRingScale;
-    const innerRing = INNER_BAR_RING_RADIUS * this.barRingScale;
+    const ring = this.barOuterRadius;
+    const innerRing = this.barInnerRadius;
 
     for (let i = 0; i < BAR_COUNT; i += 1) {
       const angle = (i / BAR_COUNT) * Math.PI * 2 - Math.PI / 2;

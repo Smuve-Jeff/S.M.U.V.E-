@@ -2,10 +2,11 @@ import {
   BAR_RING_RADIUS,
   BASE_FLOOR_RADIUS,
   DEFAULT_ORBIT_RADIUS,
+  INNER_BAR_RING_RADIUS,
   MAX_ORBIT_RADIUS,
   MIN_ORBIT_RADIUS,
   orbitLimitsFor,
-  stageBarRingScale,
+  stageBarRings,
   stageCameraDistance,
   stageFloorScale,
   stageFogRange,
@@ -105,31 +106,54 @@ describe("stageFloorScale", () => {
   });
 });
 
-describe("stageBarRingScale", () => {
-  it("leaves the bars alone for the built-in performer", () => {
-    expect(stageBarRingScale(null)).toBe(1);
-    expect(stageBarRingScale(humanoid, 1)).toBe(1);
+describe("stageBarRings", () => {
+  it("leaves the bars at their designed radii for the built-in performer", () => {
+    const builtIn = stageBarRings(null);
+    expect(builtIn.inner).toBeCloseTo(INNER_BAR_RING_RADIUS, 6);
+    expect(builtIn.outer).toBeCloseTo(BAR_RING_RADIUS, 6);
+
+    const human = stageBarRings(humanoid, 1);
+    expect(human.inner).toBeCloseTo(INNER_BAR_RING_RADIUS, 6);
+    expect(human.outer).toBeCloseTo(BAR_RING_RADIUS, 6);
   });
 
-  it("moves the bars clear of a wide performer", () => {
-    const scale = stageBarRingScale(sofa, stageFloorScale(sofa));
+  it("moves both rings clear of a wide performer", () => {
+    const rings = stageBarRings(sofa, stageFloorScale(sofa));
+    const reach = Math.hypot(sofa.x, sofa.z) / 2;
 
-    expect(BAR_RING_RADIUS * scale).toBeGreaterThan(
-      Math.hypot(sofa.x, sofa.z) / 2,
+    expect(rings.inner).toBeGreaterThan(reach);
+    expect(rings.outer).toBeGreaterThan(rings.inner);
+  });
+
+  it("keeps the outer ring on the floor disc", () => {
+    const floorScale = stageFloorScale(sofa);
+    const rings = stageBarRings(sofa, floorScale);
+
+    expect(rings.outer).toBeLessThan(BASE_FLOOR_RADIUS * floorScale);
+  });
+
+  it("keeps the two rings' designed gap", () => {
+    const rings = stageBarRings(sofa, stageFloorScale(sofa));
+
+    expect(rings.outer - rings.inner).toBeCloseTo(
+      BAR_RING_RADIUS - INNER_BAR_RING_RADIUS,
+      6,
     );
   });
 
-  it("keeps the bars inside the floor disc", () => {
-    const scale = stageBarRingScale(sofa, stageFloorScale(sofa));
+  it("follows a floor that grew for a smaller model", () => {
+    const rings = stageBarRings(humanoid, 2);
 
-    expect(BAR_RING_RADIUS * scale).toBeLessThan(
-      BASE_FLOOR_RADIUS * stageFloorScale(sofa),
-    );
+    expect(rings.inner).toBeCloseTo(INNER_BAR_RING_RADIUS * 2, 6);
+    expect(rings.outer).toBeCloseTo(BAR_RING_RADIUS * 2, 6);
   });
 
-  it("never shrinks below the floor's own scale", () => {
-    expect(stageBarRingScale(null, 2.5)).toBe(2.5);
-    expect(stageBarRingScale(humanoid, 1.4)).toBe(1.4);
+  it("keeps the rings on a floor that stopped growing", () => {
+    const huge = { x: 60, y: 2.65, z: 10 };
+    const rings = stageBarRings(huge, stageFloorScale(huge));
+
+    expect(rings.outer).toBeLessThanOrEqual(BASE_FLOOR_RADIUS * 5);
+    expect(rings.inner).toBeLessThan(rings.outer);
   });
 });
 

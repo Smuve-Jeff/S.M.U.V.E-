@@ -75,25 +75,44 @@ export function stageFloorScale(extents: StageExtents | null): number {
   return Math.min(MAX_FLOOR_SCALE, Math.max(1, needed));
 }
 
-/** Outer radius of the spectrum's light-bar ring at its designed size. */
+/** Radii of the spectrum's two light-bar rings at their designed size. */
 export const BAR_RING_RADIUS = 2.02;
+export const INNER_BAR_RING_RADIUS = 1.5;
 /** The bars sit just outside the performer's furthest corner. */
 const BAR_RING_CLEARANCE = 1.06;
+/** Leave a sliver of floor between the outermost bars and the disc's edge. */
+const BAR_RING_EDGE = 0.97;
+const RING_GAP = BAR_RING_RADIUS - INNER_BAR_RING_RADIUS;
+
+export interface BarRings {
+  inner: number;
+  outer: number;
+}
 
 /**
- * Scale for the spectrum's light-bar rings. They follow the floor outwards, and
- * always clear the performer's footprint so a wide model cannot stand on top of
- * them, but they stay inside the floor disc the stage grew.
+ * Radii for the spectrum's light-bar rings. They follow the floor outwards, the
+ * inner ring clears the performer's footprint so a wide model cannot stand on
+ * top of it, and the outer ring keeps the designed gap between the two while
+ * staying on the floor disc — the floor growing is what makes room for both.
  */
-export function stageBarRingScale(
+export function stageBarRings(
   extents: StageExtents | null,
   floorScale = 1,
-): number {
+): BarRings {
   const floor = Number.isFinite(floorScale) && floorScale > 0 ? floorScale : 1;
-  if (!extents) return floor;
-  const reach = Math.hypot(Math.max(0, extents.x), Math.max(0, extents.z)) / 2;
-  if (!Number.isFinite(reach) || reach <= 0) return floor;
-  return Math.max(floor, (reach * BAR_RING_CLEARANCE) / BAR_RING_RADIUS);
+  const disc = BASE_FLOOR_RADIUS * floor;
+  let inner = INNER_BAR_RING_RADIUS * floor;
+  let outer = BAR_RING_RADIUS * floor;
+  const reach = extents
+    ? Math.hypot(Math.max(0, extents.x), Math.max(0, extents.z)) / 2
+    : 0;
+  if (Number.isFinite(reach) && reach > 0) {
+    inner = Math.max(inner, reach * BAR_RING_CLEARANCE);
+  }
+  outer = Math.min(Math.max(outer, inner + RING_GAP), disc * BAR_RING_EDGE);
+  // Only a disc capped below the model itself can force the rings closer.
+  inner = Math.min(inner, outer - RING_GAP);
+  return { inner, outer };
 }
 
 export interface OrbitLimits {
