@@ -1,4 +1,4 @@
-import { Injectable, OnDestroy } from '@angular/core';
+import { Injectable, OnDestroy, isDevMode } from '@angular/core';
 import * as THREE from 'three';
 import type { CgiObject, CgiSceneSettings } from './cgi-scene';
 import { resolveCgiFrame } from './cgi-scene';
@@ -239,6 +239,12 @@ export class CgiRendererService implements OnDestroy {
         'webglcontextlost',
         this.onContextLost,
       );
+      if (isDevMode()) {
+        // Dev-only handle for the manual context-loss drill: the surface never
+        // enters the DOM, so it cannot be reached from the page otherwise.
+        (globalThis as { __smuveCgiSurface?: HTMLCanvasElement })
+          .__smuveCgiSurface = renderer.domElement;
+      }
       this.surfaceFailures = 0;
       this.retryAt = 0;
       return true;
@@ -575,10 +581,15 @@ export class CgiRendererService implements OnDestroy {
     this.ground?.material.dispose();
     this.scene?.clear();
     this.environment?.dispose();
+    const renderer = this.renderer;
     try {
-      this.renderer?.dispose();
-      // Browsers cap how many contexts may be live, so hand this one back.
-      this.renderer?.forceContextLoss();
+      renderer?.dispose();
+      // Browsers cap how many contexts may be live, so hand this one back -
+      // but only if the driver has not already dropped it, because losing a
+      // lost context only logs a WebGL INVALID_OPERATION warning.
+      if (renderer && !renderer.getContext().isContextLost()) {
+        renderer.forceContextLoss();
+      }
     } catch {
       // The context was already gone.
     }

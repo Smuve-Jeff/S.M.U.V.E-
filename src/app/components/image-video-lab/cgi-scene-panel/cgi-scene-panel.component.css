@@ -210,3 +210,88 @@
   background: rgba(248, 113, 113, 0.18);
   color: #fca5a5;
 }
+
+.cgi-anim {
+  display: grid;
+  gap: 0.45rem;
+  margin: 0;
+  padding: 0.5rem;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 0.45rem;
+}
+
+.cgi-anim legend {
+  padding: 0 0.3rem;
+  color: #38bdf8;
+  font-size: 0.52rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.cgi-number {
+  width: 100%;
+  padding: 0.25rem 0.4rem;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  border-radius: 0.35rem;
+  background: rgba(15, 23, 42, 0.85);
+  color: #e2e8f0;
+  font-size: 0.62rem;
+}
+
+.cgi-keys {
+  display: grid;
+  gap: 0.35rem;
+  max-height: 9rem;
+  overflow: auto;
+}
+
+.cgi-track {
+  display: grid;
+  gap: 0.2rem;
+  padding: 0.3rem;
+  border-radius: 0.35rem;
+  background: rgba(15, 23, 42, 0.6);
+}
+
+.cgi-track-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: #cbd5e1;
+  font-size: 0.56rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.cgi-track-head button {
+  border: 0;
+  background: transparent;
+  color: #94a3b8;
+  font-size: 0.5rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+}
+
+.cgi-key-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.cgi-key {
+  padding: 0.15rem 0.3rem;
+  border: 1px solid rgba(56, 189, 248, 0.28);
+  border-radius: 999px;
+  background: rgba(56, 189, 248, 0.08);
+  color: #bae6fd;
+  font-size: 0.54rem;
+  cursor: pointer;
+}
+
+.cgi-key:hover {
+  border-color: rgba(248, 113, 113, 0.5);
+  color: #fca5a5;
+}

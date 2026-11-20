@@ -3035,6 +3035,7 @@
           <!-- Real Three.js overlay: primitives/GLB, lights, shadows, reflections -->
           <app-cgi-scene-panel
             [scene]="selectedCgiScene()"
+            [playhead]="cgiPlayhead()"
             (addLayer)="addCgiLayer()"
             (sceneChange)="updateSelectedCgiScene($event)"
             (removeLayer)="removeSelectedCgiLayer()"

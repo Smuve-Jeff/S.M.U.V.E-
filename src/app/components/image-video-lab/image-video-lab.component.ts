@@ -1166,6 +1166,17 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     () => this.selectedClip()?.effects.cgiScene ?? null,
   );
   /**
+   * Clip-local playhead for CGI keyframe authoring: the same time the renderer
+   * resolves the scene at, so a key lands on the frame the operator sees.
+   */
+  cgiPlayhead = computed(() => {
+    const clip = this.selectedClip();
+    if (!clip?.effects.cgiScene) return 0;
+    const start =
+      clip.startTime + Math.max(0, Number(clip.effects.trimStart) || 0);
+    return Math.max(0, this.videoEngine.currentTime() - start);
+  });
+  /**
    * Shot length in bars.
    *
    * Bars are the unit a music-video cut is actually planned in, and the engine

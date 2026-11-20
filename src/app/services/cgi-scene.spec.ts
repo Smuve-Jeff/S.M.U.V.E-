@@ -3,10 +3,13 @@ import {
   MAX_CGI_KEYFRAMES_PER_TRACK,
   MAX_CGI_OBJECTS,
   cgiCameraPose,
+  cgiChannelValueAt,
   createCgiPrimitive,
   createDefaultCgiScene,
+  removeCgiKeyframe,
   resolveCgiFrame,
   sanitizeCgiScene,
+  setCgiKeyframe,
   splitCgiAnimationAt,
   type CgiAnimationTrack,
 } from './cgi-scene';
@@ -549,5 +552,72 @@ describe('CGI split continuity data', () => {
     const cleared = sanitizeCgiScene({ timeOffset: 0, sequenceDuration: 0 });
     expect(cleared?.timeOffset).toBeUndefined();
     expect(cleared?.sequenceDuration).toBeUndefined();
+  });
+});
+
+describe('CGI keyframe authoring data', () => {
+  it('reads the static value until a channel is keyed', () => {
+    const scene = createDefaultCgiScene();
+
+    expect(cgiChannelValueAt(scene, null, 'camera.distance', 0)).toBe(6);
+    expect(cgiChannelValueAt(scene, 'cgi-torus', 'scale', 0)).toBe(1);
+    // Rotation falls back to the procedural spin, not a static angle.
+    expect(cgiChannelValueAt(scene, 'cgi-torus', 'rotation.y', 0)).toBe(0);
+  });
+
+  it('adds a key at the playhead and replaces a key at the same time', () => {
+    const scene = createDefaultCgiScene();
+    const first = setCgiKeyframe(scene, 'cgi-torus', 'position.x', 2, 3);
+    const track = first.animation!.tracks[0];
+
+    expect(track.targetObjectId).toBe('cgi-torus');
+    expect(track.keys).toMatchObject([{ time: 2, value: 3 }]);
+    expect(cgiChannelValueAt(first, 'cgi-torus', 'position.x', 2)).toBe(3);
+    expect(scene.animation).toBeUndefined();
+
+    const replaced = setCgiKeyframe(first, 'cgi-torus', 'position.x', 2, 4);
+    expect(replaced.animation!.tracks[0].keys).toMatchObject([
+      { time: 2, value: 4 },
+    ]);
+  });
+
+  it('clamps authored values and drops tracks for unknown targets', () => {
+    const clamped = setCgiKeyframe(
+      createDefaultCgiScene(),
+      null,
+      'light.intensity',
+      0,
+      99,
+    );
+    expect(clamped.animation!.tracks[0].keys[0].value).toBe(4);
+
+    const orphan = setCgiKeyframe(
+      createDefaultCgiScene(),
+      'missing',
+      'scale',
+      0,
+      2,
+    );
+    expect(orphan.animation?.tracks ?? []).toHaveLength(0);
+  });
+
+  it('removes one key, or the whole track when no key is named', () => {
+    let scene = setCgiKeyframe(
+      createDefaultCgiScene(),
+      null,
+      'camera.distance',
+      0,
+      6,
+    );
+    scene = setCgiKeyframe(scene, null, 'camera.distance', 2, 4);
+    const [first] = scene.animation!.tracks[0].keys;
+
+    const oneLeft = removeCgiKeyframe(scene, null, 'camera.distance', first.id);
+    expect(oneLeft.animation!.tracks[0].keys).toMatchObject([
+      { time: 2, value: 4 },
+    ]);
+
+    const cleared = removeCgiKeyframe(oneLeft, null, 'camera.distance');
+    expect(cleared.animation?.tracks ?? []).toHaveLength(0);
   });
 });

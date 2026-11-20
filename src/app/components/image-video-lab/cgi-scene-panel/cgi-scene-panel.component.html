@@ -28,7 +28,12 @@
             }
           </select>
         </label>
-        <button type="button" class="cgi-button" (click)="addPrimitive()">
+        <button
+          type="button"
+          class="cgi-button"
+          [disabled]="atObjectLimit()"
+          (click)="addPrimitive()"
+        >
           ADD OBJECT
         </button>
       </div>
@@ -38,11 +43,18 @@
           type="file"
           accept=".glb,.gltf,model/gltf-binary,model/gltf+json"
           aria-label="Import a GLB or self-contained GLTF model"
+          [disabled]="atObjectLimit()"
           (change)="onModelFile($event)"
         />
         <span>GLB / embedded GLTF · stored in the project</span>
       </div>
-      @if (modelError(); as error) {
+      @if (atObjectLimit()) {
+        <p class="cgi-error">
+          Scene full — {{ maxObjects }} objects is the cap. Remove one to add
+          another object or model.
+        </p>
+      }
+      @if (sceneError(); as error) {
         <p class="cgi-error">{{ error }}</p>
       }
 
@@ -112,6 +124,98 @@
           DARK PLATE
         </label>
       </div>
+
+      <fieldset class="cgi-anim">
+        <legend>Keyframes</legend>
+        <div class="cgi-row">
+          <label class="cgi-field">
+            <span>Target</span>
+            <select
+              class="cgi-select"
+              aria-label="Keyframe target"
+              [ngModel]="animTarget()"
+              (ngModelChange)="setAnimTarget($event)"
+            >
+              <option value="">Scene</option>
+              @for (object of stage.objects; track object.id) {
+                <option [value]="object.id">{{ object.name }}</option>
+              }
+            </select>
+          </label>
+          <label class="cgi-field">
+            <span>Channel</span>
+            <select
+              class="cgi-select"
+              aria-label="Keyframe channel"
+              [ngModel]="animChannel()"
+              (ngModelChange)="setAnimChannel($event)"
+            >
+              @for (channel of targetChannels(); track channel.id) {
+                <option [value]="channel.id">{{ channel.label }}</option>
+              }
+            </select>
+          </label>
+        </div>
+
+        <div class="cgi-row">
+          <label class="cgi-field">
+            <span>Value</span>
+            <input
+              class="cgi-number"
+              type="number"
+              aria-label="Keyframe value"
+              [min]="channelSpec().min"
+              [max]="channelSpec().max"
+              [step]="channelSpec().step"
+              [ngModel]="keyframeValue()"
+              (ngModelChange)="setKeyframeValue($event)"
+            />
+          </label>
+          <button type="button" class="cgi-button" (click)="addKeyframe()">
+            + KEY @ {{ playhead() | number: '1.2-2' }}s
+          </button>
+        </div>
+
+        @if (tracksForTarget().length) {
+          <div class="cgi-keys" aria-label="Authored CGI keyframes">
+            @for (track of tracksForTarget(); track track.channel) {
+              <div class="cgi-track">
+                <div class="cgi-track-head">
+                  <span>{{ channelLabel(track.channel) }}</span>
+                  <button
+                    type="button"
+                    [attr.aria-label]="'Clear ' + channelLabel(track.channel)"
+                    (click)="clearTrack(track.channel)"
+                  >
+                    CLEAR
+                  </button>
+                </div>
+                <div class="cgi-key-list">
+                  @for (key of track.keys; track key.id) {
+                    <button
+                      type="button"
+                      class="cgi-key"
+                      [attr.aria-label]="
+                        'Delete key at ' + key.time + ' seconds'
+                      "
+                      (click)="removeKey(track.channel, key.id)"
+                    >
+                      {{ key.time | number: '1.2-2' }}s ·
+                      {{ key.value | number: '1.0-2' }}
+                    </button>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+        } @else {
+          <p class="cgi-copy">
+            No keys on this target yet. Park the playhead, set a value and add
+            one; authored channels replace the static value and the procedural
+            motion they cover.
+          </p>
+        }
+      </fieldset>
 
       <div class="cgi-objects" aria-label="CGI scene objects">
         @for (object of stage.objects; track object.id) {

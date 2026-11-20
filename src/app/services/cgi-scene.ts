@@ -162,28 +162,34 @@ export const MAX_CGI_ANIMATION_TRACKS = 24;
 export const MAX_CGI_KEYFRAMES_PER_TRACK = 128;
 export const MAX_CGI_KEYFRAME_TIME = 86_400;
 
-const CHANNEL_SPECS: {
+/**
+ * Authorable channels, labelled for the keyframe panel and bounded for project
+ * JSON. `scope` decides whether a target is an object or the scene itself.
+ */
+export const CGI_ANIMATION_CHANNELS: {
   id: CgiAnimationChannel;
+  label: string;
   scope: 'object' | 'scene';
   min: number;
   max: number;
+  step: number;
 }[] = [
-  { id: 'position.x', scope: 'object', min: -20, max: 20 },
-  { id: 'position.y', scope: 'object', min: -20, max: 20 },
-  { id: 'position.z', scope: 'object', min: -20, max: 20 },
-  { id: 'rotation.x', scope: 'object', min: -1000, max: 1000 },
-  { id: 'rotation.y', scope: 'object', min: -1000, max: 1000 },
-  { id: 'rotation.z', scope: 'object', min: -1000, max: 1000 },
-  { id: 'scale', scope: 'object', min: 0.05, max: 5 },
-  { id: 'opacity', scope: 'object', min: 0, max: 1 },
-  { id: 'emissive', scope: 'object', min: 0, max: 4 },
-  { id: 'camera.distance', scope: 'scene', min: 2, max: 20 },
-  { id: 'camera.height', scope: 'scene', min: -4, max: 8 },
-  { id: 'light.intensity', scope: 'scene', min: 0.2, max: 4 },
+  { id: 'position.x', label: 'Position X', scope: 'object', min: -20, max: 20, step: 0.1 },
+  { id: 'position.y', label: 'Position Y', scope: 'object', min: -20, max: 20, step: 0.1 },
+  { id: 'position.z', label: 'Position Z', scope: 'object', min: -20, max: 20, step: 0.1 },
+  { id: 'rotation.x', label: 'Rotation X', scope: 'object', min: -1000, max: 1000, step: 0.1 },
+  { id: 'rotation.y', label: 'Rotation Y', scope: 'object', min: -1000, max: 1000, step: 0.1 },
+  { id: 'rotation.z', label: 'Rotation Z', scope: 'object', min: -1000, max: 1000, step: 0.1 },
+  { id: 'scale', label: 'Scale', scope: 'object', min: 0.05, max: 5, step: 0.05 },
+  { id: 'opacity', label: 'Opacity', scope: 'object', min: 0, max: 1, step: 0.05 },
+  { id: 'emissive', label: 'Emissive', scope: 'object', min: 0, max: 4, step: 0.1 },
+  { id: 'camera.distance', label: 'Camera Distance', scope: 'scene', min: 2, max: 20, step: 0.1 },
+  { id: 'camera.height', label: 'Camera Height', scope: 'scene', min: -4, max: 8, step: 0.1 },
+  { id: 'light.intensity', label: 'Light Intensity', scope: 'scene', min: 0.2, max: 4, step: 0.1 },
 ];
 
 const CHANNEL_BY_ID = new Map(
-  CHANNEL_SPECS.map((channel) => [channel.id, channel]),
+  CGI_ANIMATION_CHANNELS.map((channel) => [channel.id, channel]),
 );
 
 export const CGI_CAMERA_MOVES: { id: CgiCameraMove; label: string }[] = [
@@ -590,6 +596,140 @@ export function splitCgiAnimationAt(
     left: { version: 1, tracks: leftTracks },
     right: { version: 1, tracks: rightTracks },
   };
+}
+
+/** The value a channel shows when it has no authored keys. */
+function staticCgiChannelValue(
+  scene: CgiSceneSettings,
+  targetObjectId: string | null,
+  channel: CgiAnimationChannel,
+): number {
+  const object = targetObjectId
+    ? scene.objects.find((entry) => entry.id === targetObjectId)
+    : undefined;
+  switch (channel) {
+    case 'position.x':
+      return object?.position[0] ?? 0;
+    case 'position.y':
+      return object?.position[1] ?? 0;
+    case 'position.z':
+      return object?.position[2] ?? 0;
+    case 'rotation.x':
+    case 'rotation.y':
+    case 'rotation.z':
+      return 0;
+    case 'scale':
+      return object?.scale ?? 1;
+    case 'opacity':
+      return 1;
+    case 'emissive':
+      return 0;
+    case 'camera.distance':
+      return scene.cameraDistance;
+    case 'camera.height':
+      return scene.cameraHeight;
+    case 'light.intensity':
+      return scene.lightIntensity;
+  }
+}
+
+/**
+ * The channel's effective value at a visible clip-local time: the authored
+ * curve where one exists, otherwise the static scene value. The keyframe panel
+ * seeds its value field from this, so adding a key holds the picture instead of
+ * jumping it.
+ */
+export function cgiChannelValueAt(
+  scene: CgiSceneSettings,
+  targetObjectId: string | null,
+  channel: CgiAnimationChannel,
+  time: number,
+): number {
+  const track = (scene.animation?.tracks ?? []).find(
+    (entry) =>
+      entry.targetObjectId === targetObjectId && entry.channel === channel,
+  );
+  const authored = track
+    ? evaluateCgiTrack(track.keys, Math.max(0, Number.isFinite(time) ? time : 0))
+    : undefined;
+  return clampChannelValue(
+    channel,
+    authored ?? staticCgiChannelValue(scene, targetObjectId, channel),
+  );
+}
+
+/**
+ * Write one authored key at a visible clip-local time and return the sanitised
+ * scene. A key already at that time is replaced rather than stacked, and the
+ * sanitizer enforces target, scope, per-track cap and value bounds, so the
+ * panel cannot emit a scene that a project reload would later truncate.
+ */
+export function setCgiKeyframe(
+  scene: CgiSceneSettings,
+  targetObjectId: string | null,
+  channel: CgiAnimationChannel,
+  time: number,
+  value: number,
+): CgiSceneSettings {
+  const tracks = (scene.animation?.tracks ?? []).map((track) => ({
+    targetObjectId: track.targetObjectId,
+    channel: track.channel,
+    keys: track.keys.map((key) => ({ ...key })),
+  }));
+  const at = Math.max(0, Number.isFinite(time) ? time : 0);
+  const key: CgiKeyframe = {
+    id: `cgi-kf-${Date.now().toString(36)}-${Math.random()
+      .toString(36)
+      .slice(2, 7)}`,
+    time: at,
+    value: Number.isFinite(value) ? value : 0,
+    easing: 'ease-in-out',
+  };
+  const track = tracks.find(
+    (entry) =>
+      entry.targetObjectId === targetObjectId && entry.channel === channel,
+  );
+  if (track) {
+    track.keys = normalizeCgiKeys([
+      ...track.keys.filter((entry) => Math.abs(entry.time - at) >= 1e-6),
+      key,
+    ]);
+  } else {
+    tracks.push({ targetObjectId, channel, keys: [key] });
+  }
+  return (
+    sanitizeCgiScene({ ...scene, animation: { version: 1, tracks } }) ?? scene
+  );
+}
+
+/**
+ * Remove one key, or the whole track when no key id is given, and return the
+ * sanitised scene. Empty tracks are dropped so the panel and project JSON stay
+ * free of dead animation rows.
+ */
+export function removeCgiKeyframe(
+  scene: CgiSceneSettings,
+  targetObjectId: string | null,
+  channel: CgiAnimationChannel,
+  keyId: string | null = null,
+): CgiSceneSettings {
+  const tracks = (scene.animation?.tracks ?? [])
+    .map((track) => {
+      if (
+        track.targetObjectId !== targetObjectId ||
+        track.channel !== channel
+      ) {
+        return track;
+      }
+      return {
+        ...track,
+        keys: keyId ? track.keys.filter((key) => key.id !== keyId) : [],
+      };
+    })
+    .filter((track) => track.keys.length > 0);
+  return (
+    sanitizeCgiScene({ ...scene, animation: { version: 1, tracks } }) ?? scene
+  );
 }
 
 /** Easing of the segment that contains `time`, used by the right boundary key. */
