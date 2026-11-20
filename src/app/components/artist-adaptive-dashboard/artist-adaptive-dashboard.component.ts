@@ -147,10 +147,10 @@ import { MusicalDnaService } from '../../services/musical-dna.service';
     </section>
   `,
   styles: [`
-    .adaptive-dashboard { padding: 2rem; display: grid; gap: 2rem; }
+    .adaptive-dashboard { padding: 2rem; display: grid; grid-template-columns: minmax(0, 1fr); gap: 2rem; }
     .header { text-align: center; margin-bottom: 1rem; }
-    .container { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem; }
-    .card { border: 1px solid #2a2a2a; border-radius: 12px; padding: 1.5rem; background: rgba(255,255,255,0.02); backdrop-filter: blur(8px); }
+    .container { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1.5rem; }
+    .card { min-width: 0; border: 1px solid #2a2a2a; border-radius: 12px; padding: 1.5rem; background: rgba(255,255,255,0.02); backdrop-filter: blur(8px); }
     h2 { margin: 0 0 1rem 0; font-size: 1.1rem; }
     h3 { margin: 0.75rem 0 0.5rem 0; font-size: 0.9rem; opacity: 0.8; }
     .dna-signature { font-size: 0.95rem; opacity: 0.9; margin-bottom: 0.75rem; }
@@ -182,6 +182,13 @@ import { MusicalDnaService } from '../../services/musical-dna.service';
     .warnings-card { border-color: #ef4444; border-width: 2px; }
     .warning { font-size: 0.85rem; padding: 0.5rem 0; opacity: 0.9; }
     .action { font-size: 0.95rem; margin: 0; }
+    @media (max-width: 480px) {
+      .adaptive-dashboard { padding: 1.25rem; }
+      .evidence-row { flex-direction: column; gap: 0.25rem; }
+    }
+    @media (min-width: 720px) {
+      .container { grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
+    }
   `]
 })
 export class ArtistAdaptiveDashboardComponent {

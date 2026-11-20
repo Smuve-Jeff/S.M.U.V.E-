@@ -23,11 +23,13 @@
       </div>
 
       <!-- S.M.U.V.E. SCRUTINY / DEEP AUDIT BUTTONS -->
-      <div class="flex items-center gap-3">
+      <div
+        class="flex w-full flex-col items-stretch gap-3 md:w-auto md:flex-row md:items-center"
+      >
         <button
           (click)="aiService.performDeepAudit()"
           [disabled]="aiService.isScanning()"
-          class="px-6 py-3 rounded-full bg-brand-primary/10 border border-brand-primary/30 text-brand-primary text-[10px] font-black uppercase tracking-widest hover:bg-brand-primary hover:text-black transition-all flex items-center gap-3"
+          class="px-6 py-3 rounded-full bg-brand-primary/10 border border-brand-primary/30 text-brand-primary text-[10px] font-black uppercase tracking-widest hover:bg-brand-primary hover:text-black transition-all flex w-full items-center justify-center gap-3 md:w-auto"
         >
           <i
             class="fas fa-search-plus"
@@ -42,7 +44,7 @@
         <div class="h-10 w-px bg-white/10 hidden md:block"></div>
         <nav
           aria-label="Strategy views"
-          class="flex items-center gap-1 bg-white/5 p-1 rounded-full border border-white/10"
+          class="flex w-full flex-wrap items-center gap-1 rounded-2xl border border-white/10 bg-white/5 p-1 md:w-auto md:flex-nowrap md:rounded-full"
         >
           @for (
             tab of ['overview', 'campaigns', 'analytics', 'social'];
@@ -55,7 +57,7 @@
               [class.bg-white]="activeHubTab() === tab"
               [class.text-black]="activeHubTab() === tab"
               [class.text-white]="activeHubTab() !== tab"
-              class="px-3 md:px-4 py-2 rounded-full text-[9px] font-black uppercase tracking-widest transition-all"
+              class="min-w-0 flex-1 rounded-full px-3 py-2 text-[9px] font-black uppercase tracking-widest transition-all md:flex-none md:px-4"
             >
               {{ tab }}
             </button>

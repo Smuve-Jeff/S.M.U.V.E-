@@ -82,12 +82,12 @@ import { RouterModule } from '@angular/router';
     </section>
   `,
   styles: [`
-    .coach-container { padding: 2rem; display: grid; gap: 2rem; }
+    .coach-container { padding: 2rem; display: grid; grid-template-columns: minmax(0, 1fr); gap: 2rem; }
     .header { text-align: center; margin-bottom: 1rem; }
     .evidence-note { font-size: 0.85rem; opacity: 0.65; margin: 0.75rem 0 0 0; line-height: 1.5; }
     .link-button { display: inline-block; margin-top: 1rem; padding: 0.5rem 1rem; background: #6ee7b7; color: #000; border-radius: 6px; text-decoration: none; font-weight: 600; font-size: 0.9rem; }
-    .layout { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 1.5rem; }
-    .card { border: 1px solid #2a2a2a; border-radius: 12px; padding: 1.5rem; background: rgba(255,255,255,0.02); backdrop-filter: blur(8px); }
+    .layout { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1.5rem; }
+    .card { min-width: 0; border: 1px solid #2a2a2a; border-radius: 12px; padding: 1.5rem; background: rgba(255,255,255,0.02); backdrop-filter: blur(8px); }
     h2 { margin: 0 0 1rem 0; font-size: 1.1rem; font-weight: 600; }
     h3 { margin: 0; font-size: 1rem; }
     .release-strategy { grid-column: 1 / -1; }
@@ -99,7 +99,7 @@ import { RouterModule } from '@angular/router';
     .actions-card { grid-column: 1 / -1; }
     .action-list { display: grid; gap: 0.75rem; }
     .action-item { padding: 0.75rem; background: rgba(110, 231, 183, 0.1); border-left: 3px solid #6ee7b7; border-radius: 4px; font-size: 0.9rem; }
-    .coach-prompts { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 1.5rem; }
+    .coach-prompts { grid-column: 1 / -1; display: grid; grid-template-columns: minmax(0, 1fr); gap: 1.5rem; }
     .prompt-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; }
     .urgency { padding: 0.25rem 0.75rem; border-radius: 12px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; }
     .urgency[data-urgency="immediate"] { background: #ef4444; color: #fff; }
@@ -119,6 +119,14 @@ import { RouterModule } from '@angular/router';
     .warnings-card { border-color: #ef4444; border-width: 2px; }
     .warning-list { display: grid; gap: 0.75rem; }
     .warning-item { padding: 0.75rem; background: rgba(239,68,68,0.1); border-left: 3px solid #ef4444; border-radius: 4px; font-size: 0.9rem; }
+    @media (max-width: 480px) {
+      .coach-container { padding: 1.25rem; }
+      .row { flex-direction: column; gap: 0.25rem; }
+      .row strong { min-width: 0; }
+    }
+    @media (min-width: 720px) {
+      .layout, .coach-prompts { grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); }
+    }
   `]
 })
 export class ArtistAiCoachComponent {

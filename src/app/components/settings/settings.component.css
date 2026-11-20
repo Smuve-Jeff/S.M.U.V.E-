@@ -269,4 +269,27 @@
   .audio-device-row .setting-btn {
     flex: 0 0 auto;
   }
+
+  .profile-context-actions {
+    align-items: stretch;
+  }
+
+  .profile-context-actions p {
+    min-width: 0;
+  }
+
+  .profile-context-actions .guide-link-btn {
+    flex: 1 1 100%;
+    max-width: 100%;
+    white-space: normal;
+  }
+
+  .permissions-grid select {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .permissions-grid .flex.gap-2 {
+    flex-wrap: wrap;
+  }
 }

@@ -33,3 +33,19 @@
     gap: 0.5rem;
   }
 }
+
+/* Intrinsic card content must not widen the 12-column dashboard tracks. */
+.grid.grid-cols-12 {
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+}
+
+/* Eleven 32px gaps exceed a phone-width grid on their own. */
+@media (max-width: 768px) {
+  .grid.grid-cols-12 {
+    gap: 1rem;
+  }
+}
+
+.grid.grid-cols-12 > * {
+  min-width: 0;
+}

@@ -679,8 +679,9 @@
   .cinematic-stage-content { min-height: 360px; justify-content: flex-start; padding: 25px 20px 92px; }
   .cinematic-caption h2 { font-size: clamp(31px, 10vw, 46px); }
   .cinematic-controls { right: 14px; bottom: 15px; left: 14px; justify-content: space-between; max-width: none; }
-  .cinematic-thumbnails { flex: 1; justify-content: center; }
-  .cinematic-thumb { flex: 1; max-width: 82px; }
+  .cinematic-thumbnails { flex: 1; min-width: 0; justify-content: flex-start; overflow-x: auto; scrollbar-width: none; }
+  .cinematic-thumbnails::-webkit-scrollbar { display: none; }
+  .cinematic-thumb { flex: 0 0 74px; max-width: 82px; }
   .cinematic-thumb span { font-size: 7px; }
   .hub-shell {
  padding: 18px 14px 36px; }.hub-topline { align-items: flex-start; margin-bottom: 42px; }.hub-subline { display: none; }.hub-system-state { display: none; }.hero-copy h1 { font-size: clamp(41px, 14vw, 68px); }.hero-lede { font-size: 13px; }.hero-actions { align-items: stretch; flex-direction: column; }.hub-primary-button,.hub-secondary-button { width: 100%; }.hero-actions .hub-text-button { justify-content: flex-start; }.hero-readiness { align-items: flex-start; padding: 17px; }.readiness-ring { flex-basis: 102px; width: 102px; height: 102px; }.readiness-ring::before { width: 84px; height: 84px; }.readiness-ring strong { font-size: 22px; }.hub-signal-strip { grid-template-columns: repeat(2, 1fr); }.signal-item-wide { grid-column: 1 / -1; }.hub-onboarding { padding: 16px; }.onboarding-grid { grid-template-columns: 1fr; }.onboarding-step { min-height: 66px; }.onboarding-actions { align-items: flex-start; flex-direction: column; gap: 8px; }.workspace-grid { grid-template-columns: 1fr; }.workspace-card { min-height: 236px; }.hub-lower-grid { grid-template-columns: 1fr; }.signals-panel { grid-column: auto; }.explore-grid { grid-template-columns: repeat(2, 1fr); }.section-heading { align-items: flex-start; flex-direction: column; }.section-heading > .hub-text-button { justify-content: flex-start; }.hub-footer { gap: 12px; }
