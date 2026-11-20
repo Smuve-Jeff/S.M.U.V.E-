@@ -52,6 +52,8 @@ export interface CgiObject {
   emissive?: number;
   /** Opt-in finish for an imported model; primitives store resolved values. */
   materialPreset?: CgiMaterialPresetId;
+  /** Hide this object's bloom halo while keeping its emissive surface. */
+  bloom?: boolean;
 }
 
 export type CgiAnimationChannel =
@@ -730,6 +732,7 @@ export function sanitizeCgiScene(value: unknown): CgiSceneSettings | null {
             metalness: num(candidate.metalness, 0.72, 0, 1),
             roughness: num(candidate.roughness, 0.22, 0, 1),
             emissive: num(candidate.emissive, 0, 0, 4),
+            ...(candidate.bloom === false ? { bloom: false } : {}),
             ...(candidate.kind === 'model' && isMaterialPreset(candidate.materialPreset)
               ? { materialPreset: candidate.materialPreset }
               : {}),

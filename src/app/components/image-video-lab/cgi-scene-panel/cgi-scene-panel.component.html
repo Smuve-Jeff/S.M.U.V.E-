@@ -512,6 +512,18 @@
                 (ngModelChange)="setObjectEmissive(object.id, $event)"
               />
             </label>
+
+            <div class="cgi-toggles">
+              <label>
+                <input
+                  type="checkbox"
+                  [attr.aria-label]="'Bloom halo for ' + object.name"
+                  [ngModel]="object.bloom !== false"
+                  (ngModelChange)="setObjectBloom(object.id, !!$event)"
+                />
+                BLOOM HALO
+              </label>
+            </div>
           } @else {
             <p class="cgi-copy">
               Imported models keep their own materials unless you choose an
@@ -544,6 +556,18 @@
                   {{ preset.label }}
                 </button>
               }
+            </div>
+
+            <div class="cgi-toggles">
+              <label>
+                <input
+                  type="checkbox"
+                  [attr.aria-label]="'Bloom halo for ' + object.name"
+                  [ngModel]="object.bloom !== false"
+                  (ngModelChange)="setObjectBloom(object.id, !!$event)"
+                />
+                BLOOM HALO
+              </label>
             </div>
           }
         </fieldset>

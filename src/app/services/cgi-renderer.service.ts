@@ -234,7 +234,8 @@ export class CgiRendererService implements OnDestroy {
           0.25,
           Math.min(2.5, settings.bloomRadius ?? 1),
         );
-        glow.visible = glowAmount > 0.01 && strength > 0.001;
+        glow.visible =
+          object.bloom !== false && glowAmount > 0.01 && strength > 0.001;
         if (glow.visible) {
           const glowMaterial = glow.material;
           glowMaterial.color.set(object.color);

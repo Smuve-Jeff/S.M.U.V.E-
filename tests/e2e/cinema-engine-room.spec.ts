@@ -556,18 +556,51 @@ test('renders a neon bloom on the CGI program monitor', async ({ page }) => {
     )
     .toEqual({ strength: 0.8, radius: 1.6 });
 
-  const tunedBloom = await page.evaluate(() => {
-    const host = document.querySelector('app-image-video-lab') as any;
-    const mesh = (window as any).ng?.getComponent?.(host)?.cgiRenderer
-      ?.objectRoot?.children?.[0];
-    const glow = mesh?.userData?.cgiGlow;
-    return {
-      opacity: glow?.material?.opacity ?? 0,
-      scale: glow?.scale?.x ?? 0,
-    };
-  });
-  expect(tunedBloom.opacity).toBeGreaterThan(0.4);
-  expect(tunedBloom.scale).toBeGreaterThan(7);
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const host = document.querySelector('app-image-video-lab') as any;
+        const mesh = (window as any).ng?.getComponent?.(host)?.cgiRenderer
+          ?.objectRoot?.children?.[0];
+        return mesh?.userData?.cgiGlow?.scale?.x ?? 0;
+      }),
+    )
+    .toBeGreaterThan(7);
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const host = document.querySelector('app-image-video-lab') as any;
+        const mesh = (window as any).ng?.getComponent?.(host)?.cgiRenderer
+          ?.objectRoot?.children?.[0];
+        return mesh?.userData?.cgiGlow?.material?.opacity ?? 0;
+      }),
+    )
+    .toBeGreaterThan(0.4);
+
+  await page.getByRole('button', { name: 'Edit Chrome Torus' }).click();
+  await page
+    .getByRole('checkbox', { name: 'Bloom halo for Chrome Torus' })
+    .uncheck();
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const host = document.querySelector('app-image-video-lab') as any;
+        return (window as any).ng?.getComponent?.(host)?.selectedCgiScene?.()
+          ?.objects?.[0]?.bloom;
+      }),
+    )
+    .toBe(false);
+
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const host = document.querySelector('app-image-video-lab') as any;
+        const mesh = (window as any).ng?.getComponent?.(host)?.cgiRenderer
+          ?.objectRoot?.children?.[0];
+        return mesh?.userData?.cgiGlow?.visible ?? true;
+      }),
+    )
+    .toBe(false);
 });
 
 test('keeps the CGI finish strip visually stable', async ({ page }) => {

@@ -288,6 +288,10 @@ export class CgiScenePanelComponent {
     });
   }
 
+  setObjectBloom(id: string, enabled: boolean): void {
+    this.patchObject(id, { bloom: enabled });
+  }
+
   applyMaterialPreset(objectId: string, presetId: string): void {
     const scene = this.scene();
     if (!scene) return;

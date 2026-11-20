@@ -86,6 +86,7 @@ describe('CGI scene data', () => {
           metalness: 4,
           roughness: -2,
           emissive: 99,
+          bloom: false,
         },
         { id: 'b', kind: 'sphere' },
       ],
@@ -95,12 +96,14 @@ describe('CGI scene data', () => {
       metalness: 1,
       roughness: 0,
       emissive: 4,
+      bloom: false,
     });
     expect(scene?.objects[1]).toMatchObject({
       metalness: 0.72,
       roughness: 0.22,
       emissive: 0,
     });
+    expect(scene?.objects[1].bloom).toBeUndefined();
   });
 
   it('applies a one-click finish to a primitive and resolves its glow', () => {
