@@ -71,6 +71,22 @@
         }
       </div>
 
+      <div class="cgi-finish-all">
+        <span class="cgi-finish-label">Finish all</span>
+        <div class="cgi-presets" role="group" aria-label="CGI scene finishes">
+          @for (preset of materialPresets; track preset.id) {
+            <button
+              type="button"
+              class="cgi-preset"
+              [title]="preset.description"
+              (click)="applySceneMaterialPreset(preset.id)"
+            >
+              {{ preset.label }}
+            </button>
+          }
+        </div>
+      </div>
+
       <label class="cgi-field">
         <span>Camera move</span>
         <select

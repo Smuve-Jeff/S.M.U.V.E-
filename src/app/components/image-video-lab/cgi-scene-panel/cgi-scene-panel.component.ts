@@ -14,6 +14,7 @@ import {
   MAX_CGI_MODEL_DATA_URL,
   MAX_CGI_OBJECTS,
   applyCgiMaterialPreset,
+  applyCgiMaterialPresetToAll,
   applyCgiScenePreset,
   cgiChannelValueAt,
   createCgiPrimitive,
@@ -286,6 +287,12 @@ export class CgiScenePanelComponent {
     const scene = this.scene();
     if (!scene) return;
     this.sceneChange.emit(applyCgiMaterialPreset(scene, objectId, presetId));
+  }
+
+  applySceneMaterialPreset(presetId: string): void {
+    const scene = this.scene();
+    if (!scene) return;
+    this.sceneChange.emit(applyCgiMaterialPresetToAll(scene, presetId));
   }
 
   /**

@@ -421,7 +421,10 @@ test('drives the CGI stage presets, camera controls and object inspector', async
     page.getByRole('slider', { name: 'CGI camera field of view' }),
   ).toBeVisible();
 
-  await page.getByRole('button', { name: 'Neon', exact: true }).click();
+  await page
+    .getByRole('group', { name: 'CGI object finishes' })
+    .getByRole('button', { name: 'Neon', exact: true })
+    .click();
   const finish = await page.evaluate(() => {
     const host = document.querySelector('app-image-video-lab') as any;
     return (window as any).ng?.getComponent?.(host)?.selectedCgiScene?.()
@@ -431,6 +434,21 @@ test('drives the CGI stage presets, camera controls and object inspector', async
     metalness: 0.14,
     roughness: 0.16,
     emissive: 1.6,
+  });
+
+  await page
+    .getByRole('group', { name: 'CGI scene finishes' })
+    .getByRole('button', { name: 'Matte', exact: true })
+    .click();
+  const sceneFinish = await page.evaluate(() => {
+    const host = document.querySelector('app-image-video-lab') as any;
+    return (window as any).ng?.getComponent?.(host)?.selectedCgiScene?.()
+      ?.objects?.[0];
+  });
+  expect(sceneFinish).toMatchObject({
+    metalness: 0.08,
+    roughness: 0.82,
+    emissive: 0,
   });
 
   const selectedObject = await page.evaluate(() => {

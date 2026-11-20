@@ -6,6 +6,7 @@ import {
   MAX_CGI_OBJECTS,
   applyCgiScenePreset,
   applyCgiMaterialPreset,
+  applyCgiMaterialPresetToAll,
   cgiCameraPose,
   cgiChannelValueAt,
   createCgiPrimitive,
@@ -117,6 +118,41 @@ describe('CGI scene data', () => {
     expect(applyCgiMaterialPreset(next, 'missing', 'chrome')).toBe(next);
     expect(applyCgiMaterialPreset(next, 'cgi-torus', 'missing')).toBe(next);
     expect(scene.objects[0].emissive).toBeUndefined();
+  });
+
+  it('finishes every primitive at once and leaves imported models alone', () => {
+    const scene = createDefaultCgiScene();
+    scene.objects.push(createCgiPrimitive('cube', 1));
+    const withModel = sanitizeCgiScene({
+      ...scene,
+      objects: [
+        ...scene.objects,
+        {
+          id: 'hero',
+          kind: 'model',
+          modelDataUrl: 'data:model/gltf-binary;base64,AAAA',
+        },
+      ],
+    })!;
+
+    const next = applyCgiMaterialPresetToAll(withModel, 'matte');
+
+    expect(next.objects[0]).toMatchObject({
+      metalness: 0.08,
+      roughness: 0.82,
+      emissive: 0,
+    });
+    expect(next.objects[1]).toMatchObject({
+      metalness: 0.08,
+      roughness: 0.82,
+      emissive: 0,
+    });
+    expect(next.objects[2]).toMatchObject({
+      id: 'hero',
+      kind: 'model',
+      metalness: 0.72,
+    });
+    expect(applyCgiMaterialPresetToAll(withModel, 'missing')).toBe(withModel);
   });
 
   it('does not overwrite an imported model with a primitive finish', () => {

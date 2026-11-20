@@ -143,6 +143,21 @@
   gap: 0.3rem;
 }
 
+.cgi-finish-all {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.cgi-finish-label {
+  color: #64748b;
+  font-size: 0.5rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
 .cgi-preset {
   padding: 0.28rem 0.45rem;
   border: 1px solid rgba(56, 189, 248, 0.22);

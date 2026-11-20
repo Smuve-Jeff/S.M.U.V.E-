@@ -288,6 +288,23 @@ describe('CgiScenePanelComponent', () => {
     expect(emitted[3].objects[0].roughness).toBe(0.65);
   });
 
+  it('applies one finish to every built-in primitive', () => {
+    const scene = createDefaultCgiScene();
+    scene.objects.push(createCgiPrimitive('cube', 1));
+    const { component, emitted } = create(scene);
+
+    component.applySceneMaterialPreset('matte');
+
+    expect(emitted[0].objects).toHaveLength(2);
+    for (const object of emitted[0].objects) {
+      expect(object).toMatchObject({
+        metalness: 0.08,
+        roughness: 0.82,
+        emissive: 0,
+      });
+    }
+  });
+
   it('applies a finish preset and clamps the glow control', () => {
     const { component, emitted } = create(createDefaultCgiScene());
 

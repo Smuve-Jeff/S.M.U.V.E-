@@ -628,6 +628,28 @@ export function applyCgiMaterialPreset(
 }
 
 /**
+ * Apply one finish to every built-in primitive at once. Imported models keep
+ * their own materials, and scenes with nothing to finish are returned untouched.
+ */
+export function applyCgiMaterialPresetToAll(
+  scene: CgiSceneSettings,
+  presetId: string,
+): CgiSceneSettings {
+  const preset = CGI_MATERIAL_PRESETS.find((entry) => entry.id === presetId);
+  if (!preset || !scene.objects.some((entry) => entry.kind !== 'model')) {
+    return scene;
+  }
+  return (
+    sanitizeCgiScene({
+      ...scene,
+      objects: scene.objects.map((entry) =>
+        entry.kind === 'model' ? entry : { ...entry, ...preset.patch },
+      ),
+    }) ?? scene
+  );
+}
+
+/**
  * Coerce a restored/older scene into a renderable shape. Invalid objects are
  * dropped rather than guessed at, and oversized embedded models are refused so
  * a project cannot carry an unbounded string into the renderer.
