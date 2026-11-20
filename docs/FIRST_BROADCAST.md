@@ -179,8 +179,9 @@ Both also fill their broadcast destination automatically once connected:
   overwritten.
 - **Facebook** — the connector links a Page the account manages and each PUSH
   creates a Live Video on it, pushing to its stream URL; STOP ends the Live
-  Video. When the account manages several Pages, a **FACEBOOK PAGE** picker
-  below the account rows chooses the destination (`GET
+  Video. Under **Settings** → **Streaming** → **Streaming Accounts**, the
+  **FACEBOOK PAGE** row shows the current Page and offers a picker when the
+  account manages several (`GET
   /api/stream-accounts/facebook/pages` lists them, `PUT
   /api/stream-accounts/facebook/page` selects one; the server re-reads the Page
   token rather than trusting the request). Without a Page (or before Meta

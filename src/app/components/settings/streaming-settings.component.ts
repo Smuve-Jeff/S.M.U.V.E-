@@ -27,9 +27,10 @@ import { RtmpDestinationsEditorComponent } from './rtmp-destinations-editor.comp
           <span class="eyebrow">Settings / Streaming</span>
           <h1>Streaming Setup</h1>
           <p class="lede">
-            The complete streaming setup. Link Twitch, Kick or Facebook, then
-            save Kick, Facebook or custom RTMP destinations below — the Image
-            &amp; Video Lab and Tha Spot read the same connections and keys.
+            The complete streaming setup. Link Twitch, YouTube, Kick or
+            Facebook, choose the Facebook Page for Live Video, then save Kick,
+            Facebook or custom RTMP destinations below — the Image &amp; Video
+            Lab and Tha Spot read the same connections and keys.
           </p>
           <div class="surface-jumps">
             <a class="jump" routerLink="/image-video-lab">IMAGE &amp; VIDEO LAB</a>
@@ -47,9 +48,14 @@ import { RtmpDestinationsEditorComponent } from './rtmp-destinations-editor.comp
           <h2>How the shared setup works</h2>
           <ul>
             <li>
-              Twitch, Kick and Facebook links are stored against your account,
-              not against one editor. Signing into another account reloads only
-              that account's connections.
+              Twitch, YouTube, Kick and Facebook links are stored against your
+              account, not against one editor. Signing into another account
+              reloads only that account's connections.
+            </li>
+            <li>
+              Facebook Live Video publishes to the Page selected under
+              Streaming Accounts. Choosing another Page updates the Page name
+              and applies to the next broadcast.
             </li>
             <li>
               Kick, Facebook and custom RTMP keys are saved in the editor above.

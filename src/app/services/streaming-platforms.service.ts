@@ -165,13 +165,12 @@ export class StreamingPlatformsService {
   readonly facebookSelectedPageId = computed(
     () => this.facebookPages().find((page) => page.selected)?.id ?? '',
   );
-  /** The Page row earns its space while loading, failing, or offering a choice. */
-  readonly facebookPagePickerVisible = computed(
-    () =>
-      this.isConnected('facebook') &&
-      (this.facebookPages().length > 1 ||
-        this.loadingFacebookPages() ||
-        !!this.facebookPagesError()),
+  /**
+   * Keep the Page row visible whenever Facebook is linked: with one Page it
+   * shows the current destination, and with none it can explain the gap.
+   */
+  readonly facebookPagePickerVisible = computed(() =>
+    this.isConnected('facebook'),
   );
 
   readonly connectedCount = computed(

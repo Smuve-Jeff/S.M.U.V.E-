@@ -28,13 +28,12 @@ interface AccountRow {
 }
 
 /**
- * One streaming-account list shared by the Lab and Tha Spot.
+ * The complete account list for Settings → Streaming.
  *
- * The account connections and the relay destinations already live in two
- * account-scoped services; this panel reads those services directly instead of
- * keeping a third copy. A host can link Twitch/Kick/Facebook here or in Tha
- * Spot and both surfaces show the same state, while RTMP keys stay in the
- * server-side Broadcast Push config that both link to.
+ * The account connections and relay destinations live in two account-scoped
+ * services; this panel reads those services directly instead of keeping a
+ * third copy. The Lab and Tha Spot link here rather than rendering their own
+ * account or RTMP forms.
  */
 @Component({
   selector: 'app-streaming-accounts-panel',
@@ -136,6 +135,65 @@ interface AccountRow {
           </li>
         }
       </ul>
+      @if (platforms.facebookPagePickerVisible()) {
+        <div class="accounts-page" role="group" aria-label="Facebook Page">
+          <span class="accounts-name">FACEBOOK PAGE</span>
+          @if (platforms.loadingFacebookPages()) {
+            <span class="accounts-state">LOADING PAGES…</span>
+          }
+          @if (platforms.facebookPages().length > 1) {
+            <select
+              class="accounts-select"
+              [value]="platforms.facebookSelectedPageId()"
+              [disabled]="platforms.selectingFacebookPage()"
+              (change)="changeFacebookPage($event)"
+              aria-label="Facebook Page for Live Video"
+              title="Which Page receives the Facebook Live Video"
+            >
+              @for (page of platforms.facebookPages(); track page.id) {
+                <option [value]="page.id" [selected]="page.selected">
+                  {{ page.name }}{{ page.selected ? ' (CURRENT)' : '' }}
+                </option>
+              }
+            </select>
+          } @else if (
+            platforms.facebookPages().length === 1 &&
+            !platforms.loadingFacebookPages()
+          ) {
+            <span class="accounts-state">
+              {{ platforms.facebookPages()[0].name }} (CURRENT)
+            </span>
+          } @else if (
+            !platforms.loadingFacebookPages() &&
+            !platforms.facebookPagesError()
+          ) {
+            <span class="accounts-warning">
+              NO PAGES AVAILABLE — RECONNECT FACEBOOK WITH PAGE ACCESS
+            </span>
+          }
+          @if (platforms.facebookPagesError(); as pageError) {
+            <span class="accounts-warning" role="status">{{ pageError }}</span>
+            <button
+              type="button"
+              class="accounts-button"
+              [disabled]="platforms.loadingFacebookPages()"
+              (click)="platforms.loadFacebookPages()"
+            >
+              RETRY
+            </button>
+          }
+        </div>
+        @if (platforms.facebookPages().length > 1) {
+          <p class="accounts-note">
+            Facebook Live Video publishes to the selected Page. Changing it
+            also updates the Page name shown above.
+          </p>
+        } @else if (platforms.facebookPages().length === 1) {
+          <p class="accounts-note">
+            Facebook Live Video publishes to this Page.
+          </p>
+        }
+      }
       @if (ingest.checkError(); as error) {
         <p class="accounts-warning" role="status">{{ error }}</p>
       }
@@ -297,6 +355,26 @@ interface AccountRow {
       .accounts-rtmp-unverified {
         color: #fbbf24;
       }
+      .accounts-page {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.45rem;
+        padding: 0.45rem 0.55rem;
+        border: 1px solid rgba(148, 163, 184, 0.16);
+        border-radius: 0.5rem;
+      }
+      .accounts-select {
+        flex: 1;
+        min-width: 9rem;
+        padding: 0.35rem 0.45rem;
+        border: 1px solid rgba(148, 163, 184, 0.35);
+        border-radius: 0.4rem;
+        background: #0f172a;
+        color: #e2e8f0;
+        font: inherit;
+        font-size: 0.6rem;
+      }
     `,
   ],
 })
@@ -317,9 +395,12 @@ export class StreamingAccountsPanelComponent {
   private readonly oauthRows: {
     id: StreamingPlatformId;
     label: string;
-    rtmp: IngestPlatform;
+    rtmp: IngestPlatform | null;
   }[] = [
     { id: 'twitch', label: 'TWITCH', rtmp: 'twitch' },
+    // YouTube can be linked for account metadata but has no ingest path, so it
+    // stays visible here without claiming an RTMP destination.
+    { id: 'youtube', label: 'YOUTUBE', rtmp: null },
     { id: 'kick', label: 'KICK', rtmp: 'kick' },
     { id: 'facebook', label: 'FACEBOOK', rtmp: 'facebook' },
   ];
@@ -336,14 +417,15 @@ export class StreamingAccountsPanelComponent {
         state: connection ? (name ? `LINKED · ${name}` : 'LINKED') : 'NOT LINKED',
         connected: !!connection,
         connectable: true,
-        rtmpReady: !!destinations[entry.rtmp]?.ready,
-        rtmpVerification: destinations[entry.rtmp]?.verification ?? null,
+        rtmpReady: entry.rtmp ? !!destinations[entry.rtmp]?.ready : null,
+        rtmpVerification: entry.rtmp
+          ? (destinations[entry.rtmp]?.verification ?? null)
+          : null,
       };
     });
     // The four custom slots are one shared pool, not four equal rows: summarise
-    // the ones that are actually set and leave the per-slot editing to the
-    // Broadcast Push config this panel links to. That keeps the shared panel
-    // short enough to live inside the Lab's stream console.
+    // the ones that are actually set and leave per-slot editing to the RTMP
+    // editor directly below this panel on Settings → Streaming.
     const customSlots = this.ingest.platforms.filter((platform) =>
       platform.id.startsWith('custom'),
     );
@@ -396,6 +478,15 @@ export class StreamingAccountsPanelComponent {
     } finally {
       this.resyncing.set(false);
     }
+  }
+
+  /** Keep the Page picker honest: a refused change snaps back to the live one. */
+  async changeFacebookPage(event: Event): Promise<void> {
+    const select = event.target as HTMLSelectElement | null;
+    if (!select || this.platforms.selectingFacebookPage()) return;
+    const wanted = select.value;
+    if (await this.platforms.selectFacebookPage(wanted)) return;
+    select.value = this.platforms.facebookSelectedPageId();
   }
 
   async disconnect(row: AccountRow): Promise<void> {

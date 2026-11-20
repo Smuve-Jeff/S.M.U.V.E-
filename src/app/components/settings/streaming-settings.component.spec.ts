@@ -28,6 +28,14 @@ describe('StreamingSettingsComponent', () => {
             connect: jest.fn(),
             sync: jest.fn(async () => true),
             disconnect: jest.fn(async () => undefined),
+            facebookPages: signal([]),
+            loadingFacebookPages: signal(false),
+            selectingFacebookPage: signal(false),
+            facebookPagesError: signal<string | null>(null),
+            facebookSelectedPageId: () => '',
+            facebookPagePickerVisible: () => false,
+            selectFacebookPage: jest.fn(async () => true),
+            loadFacebookPages: jest.fn(async () => undefined),
           },
         },
         {
@@ -67,6 +75,10 @@ describe('StreamingSettingsComponent', () => {
     ) as HTMLElement | null;
     expect(panel).not.toBeNull();
     expect(panel?.textContent).toContain('Streaming Accounts');
+    expect(panel?.textContent).toContain('TWITCH');
+    expect(panel?.textContent).toContain('YOUTUBE');
+    expect(panel?.textContent).toContain('KICK');
+    expect(panel?.textContent).toContain('FACEBOOK');
     // The page is the settings destination, so the panel must not link to itself.
     expect(fixture.nativeElement.querySelector('.accounts-link')).toBeNull();
   });
@@ -78,6 +90,7 @@ describe('StreamingSettingsComponent', () => {
     expect(editor).not.toBeNull();
     expect(editor?.textContent).toContain('RTMP Destinations');
     expect(editor?.textContent).toContain('KICK');
+    expect(editor?.textContent).toContain('FACEBOOK');
     expect(editor?.textContent).toContain('CUSTOM 4');
   });
 
