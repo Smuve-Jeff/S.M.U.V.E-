@@ -24,6 +24,8 @@ describe('StreamingSettingsComponent', () => {
             connections: signal({}),
             connecting: signal<string | null>(null),
             connect: jest.fn(),
+            sync: jest.fn(async () => true),
+            disconnect: jest.fn(async () => undefined),
           },
         },
         {
@@ -39,6 +41,9 @@ describe('StreamingSettingsComponent', () => {
             checkError: signal<string | null>(null),
             ready: () => false,
             platformLabel: (id: string) => labels[id] ?? 'CUSTOM 1',
+            load: jest.fn(async () => undefined),
+            saveDestination: jest.fn(async () => true),
+            clearDestination: jest.fn(async () => true),
           },
         },
       ],
@@ -55,9 +60,17 @@ describe('StreamingSettingsComponent', () => {
     expect(panel).not.toBeNull();
     expect(panel?.textContent).toContain('Streaming Accounts');
     // The page is the settings destination, so the panel must not link to itself.
-    expect(
-      fixture.nativeElement.querySelector('.accounts-settings')
-    ).toBeNull();
+    expect(fixture.nativeElement.querySelector('.accounts-link')).toBeNull();
+  });
+
+  it('includes the RTMP editor so the page is the complete setup path', () => {
+    const editor = fixture.nativeElement.querySelector(
+      'app-rtmp-destinations-editor'
+    ) as HTMLElement | null;
+    expect(editor).not.toBeNull();
+    expect(editor?.textContent).toContain('RTMP Destinations');
+    expect(editor?.textContent).toContain('KICK');
+    expect(editor?.textContent).toContain('CUSTOM 4');
   });
 
   it('links back to Settings and out to both broadcast surfaces', () => {
@@ -68,12 +81,11 @@ describe('StreamingSettingsComponent', () => {
     expect(hrefs).toContain('/settings');
     expect(hrefs).toContain('/image-video-lab');
     expect(hrefs).toContain('/tha-spot');
-    expect(hrefs).toContain('/tha-spot?panel=broadcast');
   });
 
   it('explains where account links and RTMP keys live', () => {
     const text = fixture.nativeElement.textContent as string;
-    expect(text).toContain('One account list feeds every broadcast surface');
-    expect(text).toContain("Tha Spot's Broadcast Push config");
+    expect(text).toContain('The complete streaming setup');
+    expect(text).toContain('Keys are write-only');
   });
 });

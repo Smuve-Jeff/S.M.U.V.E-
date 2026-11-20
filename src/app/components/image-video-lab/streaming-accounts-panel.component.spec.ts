@@ -13,6 +13,16 @@ describe('StreamingAccountsPanelComponent', () => {
     connections: typeof connections;
     connecting: ReturnType<typeof signal<string | null>>;
     connect: jest.Mock;
+    sync: jest.Mock;
+    disconnect: jest.Mock;
+  };
+  let ingest: {
+    platforms: Array<{ id: string; label: string }>;
+    destinations: typeof destinations;
+    checkError: ReturnType<typeof signal<string | null>>;
+    ready: (id: string) => boolean;
+    platformLabel: (id: string) => string;
+    load: jest.Mock;
   };
 
   const labels: Record<string, string> = {
@@ -32,13 +42,16 @@ describe('StreamingAccountsPanelComponent', () => {
       connections,
       connecting: signal<string | null>(null),
       connect: jest.fn(),
+      sync: jest.fn(async () => true),
+      disconnect: jest.fn(async () => undefined),
     };
-    const ingest = {
+    ingest = {
       platforms: Object.keys(labels).map((id) => ({ id, label: labels[id] })),
       destinations,
       checkError: signal<string | null>(null),
       ready: (id: string) => !!destinations()[id]?.ready,
       platformLabel: (id: string) => labels[id] ?? id,
+      load: jest.fn(async () => undefined),
     };
 
     await TestBed.configureTestingModule({
@@ -74,23 +87,49 @@ describe('StreamingAccountsPanelComponent', () => {
     expect(text).toContain('SET · TikTok Live');
   });
 
-  it('connects through the shared platform service', () => {
-    component.connect(component.rows()[0]);
+  it('connects through the shared platform service and refreshes destinations', async () => {
+    await component.connect(component.rows()[0]);
+
     expect(platforms.connect).toHaveBeenCalledWith('twitch');
+    expect(ingest.load).toHaveBeenCalledTimes(1);
   });
 
-  it('links to the same Broadcast Push config Tha Spot opens', () => {
+  it('links to the complete Settings → Streaming setup', () => {
     const link = fixture.nativeElement.querySelector(
       '.accounts-link'
     ) as HTMLAnchorElement;
-    expect(link.getAttribute('href')).toBe('/tha-spot?panel=broadcast');
-    expect(link.getAttribute('target')).toBe('_blank');
+    expect(link.getAttribute('href')).toBe('/settings/streaming');
   });
 
-  it('links to the shared Settings → Streaming page', () => {
-    const link = fixture.nativeElement.querySelector(
-      '.accounts-settings'
-    ) as HTMLAnchorElement;
-    expect(link.getAttribute('href')).toBe('/settings/streaming');
+  it('re-syncs both the account list and the destinations', async () => {
+    await component.resync();
+
+    expect(platforms.sync).toHaveBeenCalledTimes(1);
+    expect(ingest.load).toHaveBeenCalledTimes(1);
+    expect(component.resyncing()).toBe(false);
+  });
+
+  it('requires a second click before disconnecting an account', async () => {
+    connections.set({ twitch: { displayName: 'SmuveJeff' } });
+    fixture.detectChanges();
+    const row = component.rows().find((entry) => entry.id === 'twitch')!;
+
+    await component.disconnect(row);
+    expect(platforms.disconnect).not.toHaveBeenCalled();
+    expect(component.pendingDisconnect()).toBe('twitch');
+
+    await component.disconnect(row);
+    expect(platforms.disconnect).toHaveBeenCalledWith('twitch');
+    expect(ingest.load).toHaveBeenCalledTimes(1);
+    expect(component.pendingDisconnect()).toBeNull();
+  });
+
+  it('does not offer disconnect for an unlinked account', async () => {
+    const row = component.rows().find((entry) => entry.id === 'twitch')!;
+
+    await component.disconnect(row);
+
+    expect(platforms.disconnect).not.toHaveBeenCalled();
+    expect(component.pendingDisconnect()).toBeNull();
   });
 });

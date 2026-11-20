@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { StreamingAccountsPanelComponent } from '../image-video-lab/streaming-accounts-panel.component';
+import { RtmpDestinationsEditorComponent } from './rtmp-destinations-editor.component';
 
 /**
  * Settings → Streaming: the one place that wraps the shared account panel.
@@ -12,7 +13,7 @@ import { StreamingAccountsPanelComponent } from '../image-video-lab/streaming-ac
   selector: 'app-streaming-settings',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [StreamingAccountsPanelComponent],
+  imports: [StreamingAccountsPanelComponent, RtmpDestinationsEditorComponent],
   template: `
     <div class="streaming-settings-page">
       <div class="settings-shell">
@@ -21,22 +22,21 @@ import { StreamingAccountsPanelComponent } from '../image-video-lab/streaming-ac
           <span class="eyebrow">Settings / Streaming</span>
           <h1>Streaming Setup</h1>
           <p class="lede">
-            One account list feeds every broadcast surface. Link Twitch, Kick or
-            Facebook once here; the Image &amp; Video Lab and Tha Spot read the
-            same connection and the same saved destinations.
+            The complete streaming setup. Link Twitch, Kick or Facebook, then
+            save Kick, Facebook or custom RTMP destinations below — the Image
+            &amp; Video Lab and Tha Spot read the same connections and keys.
           </p>
           <div class="surface-jumps">
             <a class="jump" href="/image-video-lab">IMAGE &amp; VIDEO LAB</a>
-            <a class="jump" href="/tha-spot">THA SPOT</a>
-            <a class="jump jump-accent" href="/tha-spot?panel=broadcast">
-              BROADCAST PUSH CONFIG
-            </a>
+            <a class="jump jump-accent" href="/tha-spot">THA SPOT</a>
           </div>
         </header>
 
         <section class="panel-shell" aria-label="Streaming accounts">
-          <app-streaming-accounts-panel [showSettingsLink]="false" />
+          <app-streaming-accounts-panel [showConfigLink]="false" />
         </section>
+
+        <app-rtmp-destinations-editor />
 
         <section class="settings-help">
           <h2>How the shared setup works</h2>
@@ -47,9 +47,9 @@ import { StreamingAccountsPanelComponent } from '../image-video-lab/streaming-ac
               that account's connections.
             </li>
             <li>
-              Kick, Facebook and custom RTMP keys live in Tha Spot's Broadcast
-              Push config. This page shows whether each destination is ready and
-              links straight to that editor.
+              Kick, Facebook and custom RTMP keys are saved in the editor above.
+              Keys are write-only: the saved URL and name stay visible, but an
+              update asks for the key again.
             </li>
             <li>
               GO LIVE still verifies every selected destination before it issues

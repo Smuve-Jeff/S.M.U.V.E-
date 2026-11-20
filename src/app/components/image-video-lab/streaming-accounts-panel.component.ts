@@ -4,6 +4,7 @@ import {
   computed,
   inject,
   input,
+  signal,
 } from '@angular/core';
 import { BroadcastIngestService, type IngestPlatform } from '../../services/broadcast-ingest.service';
 import {
@@ -42,14 +43,27 @@ interface AccountRow {
             Streaming Accounts
           </h4>
         </div>
-        <a class="accounts-link" [href]="configUrl" target="_blank" rel="noopener">
-          CONFIGURE RTMP
-        </a>
+        <div class="accounts-actions">
+          <button
+            type="button"
+            class="accounts-sync"
+            [disabled]="resyncing() || disconnecting() !== null"
+            (click)="resync()"
+            title="Re-read linked accounts and saved RTMP destinations"
+          >
+            {{ resyncing() ? 'SYNCING…' : 'RE-SYNC' }}
+          </button>
+          @if (showConfigLink()) {
+            <a class="accounts-link" [href]="configUrl">
+              CONFIGURE RTMP
+            </a>
+          }
+        </div>
       </div>
       <p class="accounts-note">
         The same connections Tha Spot's Broadcast Push reads. Link an account
-        here or there; save Kick, Facebook and custom RTMP keys in the shared
-        Broadcast Push config.
+        here or there; save Kick, Facebook and custom RTMP keys in Settings →
+        Streaming or Tha Spot's Broadcast Push config.
       </p>
       <ul class="accounts-list">
         @for (row of rows(); track row.id) {
@@ -62,7 +76,11 @@ interface AccountRow {
               <button
                 type="button"
                 class="accounts-button"
-                [disabled]="platforms.connecting() === row.id"
+                [disabled]="
+                  resyncing() ||
+                  platforms.connecting() === row.id ||
+                  disconnecting() === row.id
+                "
                 (click)="connect(row)"
               >
                 {{
@@ -73,6 +91,27 @@ interface AccountRow {
                       : 'CONNECT'
                 }}
               </button>
+              @if (row.connected) {
+                <button
+                  type="button"
+                  class="accounts-button accounts-danger"
+                  [disabled]="resyncing() || disconnecting() === row.id"
+                  (click)="disconnect(row)"
+                  [attr.title]="
+                    pendingDisconnect() === row.id
+                      ? 'Click again to unlink this provider from your account'
+                      : 'Unlink this provider from your account'
+                  "
+                >
+                  {{
+                    disconnecting() === row.id
+                      ? 'DISCONNECTING…'
+                      : pendingDisconnect() === row.id
+                        ? 'CONFIRM DISCONNECT'
+                        : 'DISCONNECT'
+                  }}
+                </button>
+              }
             }
             @if (row.rtmpReady !== null) {
               <span
@@ -87,11 +126,6 @@ interface AccountRow {
       </ul>
       @if (ingest.checkError(); as error) {
         <p class="accounts-warning" role="status">{{ error }}</p>
-      }
-      @if (showSettingsLink()) {
-        <a class="accounts-settings" [href]="settingsUrl">
-          ALL STREAMING SETTINGS →
-        </a>
       }
     </section>
   `,
@@ -130,21 +164,40 @@ interface AccountRow {
         letter-spacing: 0.08em;
         text-transform: uppercase;
       }
-      .accounts-link {
+      .accounts-actions {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: 0.35rem;
+      }
+      .accounts-link,
+      .accounts-sync {
         flex: none;
         padding: 0.45rem 0.65rem;
         border: 1px solid rgba(16, 185, 129, 0.45);
         border-radius: 0.5rem;
+        background: transparent;
         color: #6ee7b7;
         font-size: 0.58rem;
         font-weight: 900;
         letter-spacing: 0.12em;
         text-decoration: none;
+        cursor: pointer;
+      }
+      .accounts-sync {
+        border-color: rgba(148, 163, 184, 0.35);
+        color: #cbd5e1;
       }
       .accounts-link:hover,
-      .accounts-link:focus-visible {
+      .accounts-link:focus-visible,
+      .accounts-sync:hover:not(:disabled),
+      .accounts-sync:focus-visible:not(:disabled) {
         background: rgba(16, 185, 129, 0.12);
         outline: none;
+      }
+      .accounts-sync:disabled {
+        cursor: progress;
+        opacity: 0.6;
       }
       .accounts-note,
       .accounts-warning {
@@ -156,19 +209,7 @@ interface AccountRow {
       .accounts-warning {
         color: #fbbf24;
       }
-      .accounts-settings {
-        justify-self: start;
-        color: #64748b;
-        font-size: 0.55rem;
-        font-weight: 900;
-        letter-spacing: 0.12em;
-        text-decoration: none;
-      }
-      .accounts-settings:hover,
-      .accounts-settings:focus-visible {
-        color: #6ee7b7;
-        outline: none;
-      }
+
       .accounts-list {
         display: grid;
         gap: 0.35rem;
@@ -224,6 +265,14 @@ interface AccountRow {
         border-color: #10b981;
         outline: none;
       }
+      .accounts-danger {
+        border-color: rgba(248, 113, 113, 0.4);
+        color: #fca5a5;
+      }
+      .accounts-danger:hover:not(:disabled),
+      .accounts-danger:focus-visible:not(:disabled) {
+        border-color: #ef4444;
+      }
       .accounts-rtmp {
         color: #f59e0b;
         font-size: 0.55rem;
@@ -240,12 +289,15 @@ export class StreamingAccountsPanelComponent {
   readonly platforms = inject(StreamingPlatformsService);
   readonly ingest = inject(BroadcastIngestService);
   /** Off when this panel already sits on the Settings → Streaming page. */
-  readonly showSettingsLink = input(true);
+  readonly showConfigLink = input(true);
 
-  /** Where the full RTMP rows and keys live; the same editor Tha Spot opens. */
-  readonly configUrl = '/tha-spot?panel=broadcast';
-  /** Shared Settings page that wraps this panel for Lab and Tha Spot. */
-  readonly settingsUrl = '/settings/streaming';
+  /** The complete account + RTMP setup page. */
+  readonly configUrl = '/settings/streaming';
+
+  readonly resyncing = signal(false);
+  readonly disconnecting = signal<StreamingPlatformId | null>(null);
+  /** First click arms disconnect; the second confirms it. */
+  readonly pendingDisconnect = signal<StreamingPlatformId | null>(null);
 
   private readonly oauthRows: {
     id: StreamingPlatformId;
@@ -297,7 +349,41 @@ export class StreamingAccountsPanelComponent {
     return [...oauth, custom];
   });
 
-  connect(row: AccountRow): void {
-    void this.platforms.connect(row.id as StreamingPlatformId);
+  async connect(row: AccountRow): Promise<void> {
+    this.pendingDisconnect.set(null);
+    await this.platforms.connect(row.id as StreamingPlatformId);
+    // Linking can change the server-resolved push destination (Twitch), so
+    // refresh the RTMP readiness this same panel reports.
+    await this.ingest.load();
+  }
+
+  /** Re-read both halves of the shared state: accounts and destinations. */
+  async resync(): Promise<void> {
+    if (this.resyncing()) return;
+    this.resyncing.set(true);
+    this.pendingDisconnect.set(null);
+    try {
+      await Promise.all([this.platforms.sync(), this.ingest.load()]);
+    } finally {
+      this.resyncing.set(false);
+    }
+  }
+
+  async disconnect(row: AccountRow): Promise<void> {
+    if (!row.connected || this.disconnecting()) return;
+    const id = row.id as StreamingPlatformId;
+    if (this.pendingDisconnect() !== id) {
+      this.pendingDisconnect.set(id);
+      return;
+    }
+    this.pendingDisconnect.set(null);
+    this.disconnecting.set(id);
+    try {
+      await this.platforms.disconnect(id);
+      // The server may drop a destination that depended on this grant.
+      await this.ingest.load();
+    } finally {
+      this.disconnecting.set(null);
+    }
   }
 }
