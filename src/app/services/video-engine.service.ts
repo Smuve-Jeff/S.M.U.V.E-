@@ -1027,6 +1027,22 @@ export class VideoEngineService {
           const splitAnimation = cgiScene
             ? splitCgiAnimationAt(cgiScene.animation, splitLocal)
             : null;
+          // Authored tracks are rebased onto each half, but procedural spin,
+          // the idle float, orbit and progress-based camera moves read scene
+          // time. Handing the right half the elapsed time keeps the motion on
+          // one curve across the cut; the shared sequence span keeps a push-in
+          // or crane-up at the same progress instead of restarting it.
+          const cgiVisibleSpan = Math.max(0, activeEnd - activeStart);
+          const cgiSequenceSpan =
+            typeof cgiScene?.sequenceDuration === 'number' &&
+            Number.isFinite(cgiScene.sequenceDuration)
+              ? Math.max(0, cgiScene.sequenceDuration)
+              : cgiVisibleSpan;
+          const cgiTimeOffset =
+            typeof cgiScene?.timeOffset === 'number' &&
+            Number.isFinite(cgiScene.timeOffset)
+              ? Math.max(0, cgiScene.timeOffset)
+              : 0;
           const splitCgiScene = (side: 'left' | 'right') => {
             const cgi = cgiScene!;
             return {
@@ -1034,6 +1050,9 @@ export class VideoEngineService {
               // Objects are shared data, not animation; clone them so each half
               // owns its scene while the renderer can still rebuild safely.
               objects: cgi.objects.map((object) => ({ ...object })),
+              timeOffset:
+                side === 'right' ? cgiTimeOffset + splitLocal : cgiTimeOffset,
+              sequenceDuration: cgiSequenceSpan,
               ...(splitAnimation ? { animation: splitAnimation[side] } : {}),
             };
           };

@@ -20,6 +20,54 @@ describe('CgiRendererService', () => {
     service.dispose();
   });
 
+  it('contains a render failure and schedules a rebuild instead of throwing', () => {
+    const service = new CgiRendererService();
+    const internals = service as unknown as {
+      renderer: unknown;
+      scene: unknown;
+      camera: unknown;
+      objectRoot: unknown;
+      retryAt: number;
+    };
+    internals.renderer = {
+      domElement: document.createElement('canvas'),
+      shadowMap: {},
+      setSize: () => undefined,
+      setClearColor: () => undefined,
+      render: () => {
+        throw new Error('context lost');
+      },
+      dispose: () => undefined,
+      forceContextLoss: () => undefined,
+    };
+    internals.scene = {
+      environment: null,
+      environmentIntensity: 1,
+      clear: () => undefined,
+    };
+    internals.camera = {
+      fov: 42,
+      aspect: 1,
+      position: { set: () => undefined },
+      lookAt: () => undefined,
+      updateProjectionMatrix: () => undefined,
+    };
+    internals.objectRoot = { children: [], clear: () => undefined };
+    const scene = {
+      ...createDefaultCgiScene(),
+      objects: [],
+      reflections: false,
+    };
+
+    expect(service.render(scene, 640, 360, 0, 10)).toBeNull();
+    expect(internals.renderer).toBeNull();
+    expect(internals.retryAt).toBeGreaterThan(0);
+    // Inside the retry window the next frame is a no-op, not a second throw.
+    expect(service.render(scene, 640, 360, 0, 10)).toBeNull();
+
+    service.dispose();
+  });
+
   it('can be disposed more than once', () => {
     const service = new CgiRendererService();
 

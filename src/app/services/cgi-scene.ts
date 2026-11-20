@@ -67,6 +67,11 @@ export type CgiAnimationChannel =
  *    `t - clip.startTime - clip.effects.trimStart`, adds a key at 0 equal to the
  *    value at the cut, and leaves the left half's later keys hidden past its
  *    shorter duration.
+ *
+ * Procedural motion is not keyframed, so it cannot be rebased the same way:
+ * `timeOffset` and `sequenceDuration` carry scene time across a split instead
+ * (see `CgiSceneSettings`), which keeps spin, float, orbit and progress-based
+ * camera moves continuous at the cut.
  */
 export interface CgiKeyframe {
   id: string;
@@ -103,6 +108,23 @@ export interface CgiSceneSettings {
   background: CgiBackground;
   /** Global object rotation speed, in radians per second. */
   spin: number;
+  /**
+   * Seconds of scene time that ran before this clip half became visible.
+   *
+   * Authored tracks are clip-local and rebased by a split, but procedural
+   * motion (spin, idle float, orbit) and progress-based camera moves read
+   * continuous scene time. A split writes the elapsed time onto the right
+   * half's offset, so a torus keeps spinning and an orbit keeps orbiting
+   * instead of snapping back to the start of the motion at the cut.
+   */
+  timeOffset?: number;
+  /**
+   * Visible length of the whole sequence this half belongs to. Both halves of
+   * a split share it, so `timeOffset + clipLocalTime` maps onto one continuous
+   * 0..1 camera progress and a push-in resumes where the cut left it.
+   * Missing means the clip's own visible duration (the unsplit behaviour).
+   */
+  sequenceDuration?: number;
   /** Authored keyframes. Missing means the legacy, static scene. */
   animation?: CgiAnimationSettings;
 }
@@ -421,6 +443,16 @@ export function sanitizeCgiScene(value: unknown): CgiSceneSettings | null {
         .slice(0, MAX_CGI_OBJECTS)
     : defaults.objects;
 
+  // Split continuity: scene seconds already elapsed, and the visible span of
+  // the whole sequence this half belongs to.
+  const timeOffset = num(raw.timeOffset, 0, 0, MAX_CGI_KEYFRAME_TIME);
+  const sequenceDuration = num(
+    raw.sequenceDuration,
+    0,
+    0,
+    MAX_CGI_KEYFRAME_TIME,
+  );
+
   const animation = sanitizeCgiAnimation(
     (raw as { animation?: unknown }).animation,
     new Set(objects.map((object) => object.id)),
@@ -438,6 +470,8 @@ export function sanitizeCgiScene(value: unknown): CgiSceneSettings | null {
     reflections: raw.reflections !== false,
     background: raw.background === 'dark' ? 'dark' : 'transparent',
     spin: num(raw.spin, defaults.spin, -4, 4),
+    ...(timeOffset > 0 ? { timeOffset } : {}),
+    ...(sequenceDuration > 0 ? { sequenceDuration } : {}),
     ...(animation ? { animation } : {}),
   };
 }
@@ -573,9 +607,15 @@ function easingAtCgiTime(
 
 /**
  * Resolve the authored CGI values at a visible clip-local time. This is the
- * single source of truth preview, export and tests will share once the
- * renderer is wired to it. `clipLocalTime` must already exclude the clip's
- * trimStart, matching the value used by `paintFrame`.
+ * single source of truth preview, export and tests share. `clipLocalTime` must
+ * already exclude the clip's trimStart, matching the value used by
+ * `paintFrame`.
+ *
+ * Authored tracks evaluate on clip-local time (a split rebases their keys).
+ * Procedural motion and progress-based camera moves evaluate on continuous
+ * scene time instead: `timeOffset` carries the time that ran before this half
+ * became visible, so splitting a clip never restarts its spin, float, orbit or
+ * push-in.
  *
  * A channel with no track keeps the scene's existing static/procedural
  * behaviour, including the idle float and spin. A rotation.y track replaces
@@ -593,6 +633,17 @@ export function resolveCgiFrame(
   );
   const safeDuration =
     Number.isFinite(duration) && duration > 0 ? duration : 0;
+  const offset =
+    typeof scene.timeOffset === 'number' && Number.isFinite(scene.timeOffset)
+      ? Math.max(0, scene.timeOffset)
+      : 0;
+  const elapsed = time + offset;
+  const span =
+    typeof scene.sequenceDuration === 'number' &&
+    Number.isFinite(scene.sequenceDuration) &&
+    scene.sequenceDuration > 0
+      ? scene.sequenceDuration
+      : safeDuration;
   const tracks = new Map(
     (scene.animation?.tracks ?? []).map((track) => [
       `${track.targetObjectId ?? ''}|${track.channel}`,
@@ -624,7 +675,7 @@ export function resolveCgiFrame(
       !!trackFor(object.id, 'position.z');
     const baseY = hasPositionTrack
       ? object.position[1]
-      : object.position[1] + Math.sin(time * 0.8 + index) * 0.035;
+      : object.position[1] + Math.sin(elapsed * 0.8 + index) * 0.035;
 
     return {
       id: object.id,
@@ -638,7 +689,7 @@ export function resolveCgiFrame(
         valueFor(
           object.id,
           'rotation.y',
-          object.spin * scene.spin * time,
+          object.spin * scene.spin * elapsed,
         ),
         valueFor(object.id, 'rotation.z', 0),
       ],
@@ -659,7 +710,7 @@ export function resolveCgiFrame(
     'light.intensity',
     scene.lightIntensity,
   );
-  const progress = safeDuration > 0 ? time / safeDuration : 0;
+  const progress = span > 0 ? elapsed / span : 0;
 
   return {
     objects,
@@ -672,7 +723,7 @@ export function resolveCgiFrame(
         cameraDistance,
         cameraHeight,
       },
-      time,
+      elapsed,
       progress,
     ),
   };

@@ -927,6 +927,8 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
 
   private canvasCtx: CanvasRenderingContext2D | null = null;
   private animFrame: number | null = null;
+  /** Throttles paint-failure logging so a persistent fault cannot flood it. */
+  private lastPaintErrorAt = 0;
   /**
    * Detached master raster used while a take is recording. The preview stays
    * capped and keeps its operator HUD; this surface is painted clean and at the
@@ -3676,11 +3678,21 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
         }
         lastPaint = timestamp;
         lastSignature = current;
-        if (this.exportActive && this.exportCanvas && this.exportCtx) {
-          this.paintFrame(this.exportCanvas, this.exportCtx, true);
-          this.mirrorExportIntoPreview(canvas, ctx);
-        } else {
-          this.paintFrame(canvas, ctx, false);
+        try {
+          if (this.exportActive && this.exportCanvas && this.exportCtx) {
+            this.paintFrame(this.exportCanvas, this.exportCtx, true);
+            this.mirrorExportIntoPreview(canvas, ctx);
+          } else {
+            this.paintFrame(canvas, ctx, false);
+          }
+        } catch (error: any) {
+          // One bad frame (a lost GPU context, a half-decoded asset) must not
+          // end the loop: the next frame retries and the editor stays usable.
+          // The error is throttled so a persistent fault cannot flood the log.
+          if (timestamp - this.lastPaintErrorAt > 1000) {
+            this.lastPaintErrorAt = timestamp;
+            this.logger.error('Preview paint failed; retrying next frame', error);
+          }
         }
       }
       this.animFrame = requestAnimationFrame(render);

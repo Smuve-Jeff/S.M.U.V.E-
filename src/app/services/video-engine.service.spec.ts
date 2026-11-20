@@ -462,6 +462,98 @@ describe('VideoEngineService project snapshot', () => {
       expect(scene.animation.tracks[0].keys[2].value).toBe(5);
     });
 
+    it('carries CGI scene time so spin and camera survive a split', () => {
+      const engine = createEngine();
+      const scene = createDefaultCgiScene();
+      scene.spin = 1;
+      scene.cameraMove = 'push-in';
+      const id = engine.addClip(
+        't2',
+        clip({
+          name: 'CGI',
+          url: '',
+          type: 'overlay',
+          source: 'ai',
+          startTime: 2,
+          duration: 10,
+          effects: { ...clip().effects, cgiScene: scene },
+        }),
+      );
+
+      // Cut at 6s: 4s into the clip's active picture.
+      const rightIds = engine.splitClipsAt(6);
+      const left = engine.findClip(id)!;
+      const right = engine.findClip(rightIds[0])!;
+      const leftScene = left.effects.cgiScene!;
+      const rightScene = right.effects.cgiScene!;
+
+      expect(rightScene.timeOffset).toBe(4);
+      expect(leftScene.sequenceDuration).toBe(10);
+      expect(rightScene.sequenceDuration).toBe(10);
+
+      // The first frame after the cut is the last frame before it.
+      const cut = resolveCgiFrame(leftScene, 4, 4);
+      const resumed = resolveCgiFrame(rightScene, 0, 6);
+      expect(resumed.objects[0].rotation[1]).toBeCloseTo(
+        cut.objects[0].rotation[1],
+        6,
+      );
+      expect(resumed.cameraPose.distance).toBeCloseTo(
+        cut.cameraPose.distance,
+        6,
+      );
+
+      // The resumed half still reaches the whole clip's end of the push.
+      expect(
+        resolveCgiFrame(rightScene, 6, 6).cameraPose.distance,
+      ).toBeCloseTo(resolveCgiFrame(scene, 10, 10).cameraPose.distance, 6);
+    });
+
+    it('composes scene time across repeated splits', () => {
+      const engine = createEngine();
+      const scene = createDefaultCgiScene();
+      scene.spin = 1;
+      const id = engine.addClip(
+        't2',
+        clip({
+          name: 'CGI',
+          url: '',
+          type: 'overlay',
+          source: 'ai',
+          startTime: 0,
+          duration: 12,
+          effects: { ...clip().effects, cgiScene: scene },
+        }),
+      );
+
+      const middleId = engine.splitClipsAt(4)[0];
+      const lastId = engine.splitClipsAt(8)[0];
+      const first = engine.findClip(id)!;
+      const middle = engine.findClip(middleId)!;
+      const last = engine.findClip(lastId)!;
+
+      expect(first.effects.cgiScene!.timeOffset ?? 0).toBe(0);
+      expect(middle.effects.cgiScene!.timeOffset).toBe(4);
+      expect(last.effects.cgiScene!.timeOffset).toBe(8);
+      for (const part of [first, middle, last]) {
+        expect(part.effects.cgiScene!.sequenceDuration).toBe(12);
+      }
+
+      // Spin is a function of carried time, so each cut is seamless.
+      expect(
+        resolveCgiFrame(middle.effects.cgiScene!, 0, 4).objects[0].rotation[1],
+      ).toBeCloseTo(
+        resolveCgiFrame(first.effects.cgiScene!, 4, 4).objects[0].rotation[1],
+        6,
+      );
+      expect(
+        resolveCgiFrame(last.effects.cgiScene!, 0, 4).objects[0].rotation[1],
+      ).toBeCloseTo(
+        resolveCgiFrame(middle.effects.cgiScene!, 4, 4).objects[0].rotation[1],
+        6,
+      );
+    });
+
     it('upgrades a v1 snapshot instead of refusing it', () => {
       const engine = createEngine();
       engine.addClip('t1', clip({ url: 'data:image/jpeg;base64,AAAA' }));

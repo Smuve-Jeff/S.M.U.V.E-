@@ -3,6 +3,17 @@ import * as THREE from 'three';
 import type { CgiObject, CgiSceneSettings } from './cgi-scene';
 import { resolveCgiFrame } from './cgi-scene';
 
+/** How long a failed or lost GPU surface waits before a rebuild attempt. */
+const SURFACE_RETRY_MS = 1_000;
+/** A context the driver dropped is replaced almost immediately. */
+const CONTEXT_LOSS_RETRY_MS = 500;
+/** Rebuild delays double per consecutive failure, so a dead GPU is not hammered. */
+const SURFACE_RETRY_MAX_MS = 30_000;
+/** Model reads/parses are retried with backoff, then left to the placeholder. */
+const MAX_MODEL_LOAD_ATTEMPTS = 5;
+const MODEL_RETRY_BASE_MS = 2_000;
+const MODEL_RETRY_MAX_MS = 30_000;
+
 /**
  * Three.js renderer for one transparent CGI overlay.
  *
@@ -10,6 +21,10 @@ import { resolveCgiFrame } from './cgi-scene';
  * repaint would exhaust WebGL on a phone in seconds. The returned canvas is
  * drawn into the Lab's 2D programme canvas after the media layer and before the
  * mask/grade/FX passes, so the same 3D frame lands in the preview and export.
+ *
+ * The surface is disposable: a lost context or a failed draw releases it and a
+ * later frame builds a fresh one, so a driver reset degrades to the placeholder
+ * instead of disabling CGI or breaking the paint loop for the session.
  */
 @Injectable({ providedIn: 'root' })
 export class CgiRendererService implements OnDestroy {
@@ -29,12 +44,27 @@ export class CgiRendererService implements OnDestroy {
   private objectsDirty = false;
   private readonly modelCache = new Map<string, THREE.Group>();
   private readonly loadingModels = new Set<string>();
-  private failed = false;
+  /** Failed model reads, retried with backoff instead of vanishing. */
+  private readonly modelFailures = new Map<
+    string,
+    { attempts: number; nextAt: number }
+  >();
+  private readonly modelRetryTimers = new Set<ReturnType<typeof setTimeout>>();
+  /** True when this host has no WebGL at all; retrying cannot help. */
+  private webglUnavailable = false;
+  /** No rebuild is attempted before this timestamp (lost context, render error). */
+  private retryAt = 0;
+  /** Consecutive surface failures; successful creation resets the backoff. */
+  private surfaceFailures = 0;
 
   /**
    * Render one frame. Returns null when WebGL is unavailable in this host; the
    * caller then keeps the media/placeholder path rather than painting a blank
    * frame over the programme.
+   *
+   * Renderer errors are contained here. A lost context or a failed draw drops
+   * the surface and schedules a rebuild, so it can never escape into the
+   * editor's paint loop and freeze the preview.
    */
   render(
     settings: CgiSceneSettings,
@@ -45,7 +75,24 @@ export class CgiRendererService implements OnDestroy {
   ): HTMLCanvasElement | null {
     if (!settings.enabled || width < 2 || height < 2) return null;
     if (!this.ensureRenderer(width, height)) return null;
+    try {
+      return this.paint(settings, width, height, clipLocalTime, duration);
+    } catch {
+      // A GPU reset, a driver hiccup or a shader failure: keep the caller's
+      // placeholder path and let a later frame rebuild on a fresh surface.
+      this.handleSurfaceFailure(SURFACE_RETRY_MS);
+      return null;
+    }
+  }
 
+  /** Draw one frame on the current surface; throws are handled by `render`. */
+  private paint(
+    settings: CgiSceneSettings,
+    width: number,
+    height: number,
+    clipLocalTime: number,
+    duration: number,
+  ): HTMLCanvasElement | null {
     const renderer = this.renderer!;
     const scene = this.scene!;
     const camera = this.camera!;
@@ -124,13 +171,14 @@ export class CgiRendererService implements OnDestroy {
   }
 
   private ensureRenderer(width: number, height: number): boolean {
-    if (this.failed) return false;
     if (this.renderer) return true;
+    if (this.webglUnavailable) return false;
+    if (Date.now() < this.retryAt) return false;
     if (
       typeof document === 'undefined' ||
       typeof WebGLRenderingContext === 'undefined'
     ) {
-      this.failed = true;
+      this.webglUnavailable = true;
       return false;
     }
 
@@ -187,9 +235,17 @@ export class CgiRendererService implements OnDestroy {
       this.objectRoot = objectRoot;
       this.surfaceWidth = width;
       this.surfaceHeight = height;
+      renderer.domElement.addEventListener(
+        'webglcontextlost',
+        this.onContextLost,
+      );
+      this.surfaceFailures = 0;
+      this.retryAt = 0;
       return true;
     } catch {
-      this.failed = true;
+      // Context creation can fail transiently (too many live contexts, a
+      // driver reset). Back off instead of disabling CGI for the session.
+      this.scheduleSurfaceRetry(SURFACE_RETRY_MS);
       return false;
     }
   }
@@ -268,7 +324,7 @@ export class CgiRendererService implements OnDestroy {
         ? this.modelCache.get(object.modelDataUrl)
         : null;
       if (cached) this.addModelClone(cached, object);
-      else if (object.modelDataUrl) void this.loadModel(object.modelDataUrl);
+      else if (object.modelDataUrl) this.requestModel(object.modelDataUrl);
     });
   }
 
@@ -283,6 +339,10 @@ export class CgiRendererService implements OnDestroy {
       if (active.has(url)) continue;
       this.disposeObject(model);
       this.modelCache.delete(url);
+    }
+    // A removed broken model should not keep a retry deadline forever.
+    for (const url of this.modelFailures.keys()) {
+      if (!active.has(url)) this.modelFailures.delete(url);
     }
   }
 
@@ -426,15 +486,51 @@ export class CgiRendererService implements OnDestroy {
           wrapper.add(scene);
           wrapper.scale.setScalar(2 / maxDimension);
           this.modelCache.set(dataUrl, wrapper);
+          this.modelFailures.delete(dataUrl);
           this.objectsDirty = true;
         },
-        () => undefined,
+        () => this.noteModelFailure(dataUrl),
       );
     } catch {
-      // A malformed model leaves the other objects renderable.
+      this.noteModelFailure(dataUrl);
     } finally {
       this.loadingModels.delete(dataUrl);
     }
+  }
+
+  /** Ask for a model unless it is cached, in flight, or backing off. */
+  private requestModel(dataUrl: string): void {
+    if (this.modelCache.has(dataUrl) || this.loadingModels.has(dataUrl)) return;
+    const failure = this.modelFailures.get(dataUrl);
+    if (
+      failure &&
+      (failure.attempts >= MAX_MODEL_LOAD_ATTEMPTS ||
+        Date.now() < failure.nextAt)
+    ) {
+      return;
+    }
+    void this.loadModel(dataUrl);
+  }
+
+  /**
+   * A model that failed to read or parse must not vanish silently. Retry it
+   * with backoff so a transient failure heals while the rest of the scene keeps
+   * rendering; after the last attempt the object simply stays absent.
+   */
+  private noteModelFailure(dataUrl: string): void {
+    const attempts = (this.modelFailures.get(dataUrl)?.attempts ?? 0) + 1;
+    const delay = Math.min(
+      MODEL_RETRY_MAX_MS,
+      MODEL_RETRY_BASE_MS * 2 ** (attempts - 1),
+    );
+    this.modelFailures.set(dataUrl, { attempts, nextAt: Date.now() + delay });
+    if (attempts >= MAX_MODEL_LOAD_ATTEMPTS) return;
+    const timer = setTimeout(() => {
+      this.modelRetryTimers.delete(timer);
+      // Force one structural pass; `requestModel` re-checks the backoff.
+      this.objectsDirty = true;
+    }, delay);
+    this.modelRetryTimers.add(timer);
   }
 
   private disposeObject(root: THREE.Object3D): void {
@@ -458,7 +554,16 @@ export class CgiRendererService implements OnDestroy {
     materials?.forEach((material) => material.dispose());
   }
 
-  dispose(): void {
+  /**
+   * Drop the live GPU surface and everything built on it, keeping the cached
+   * models' CPU data: the next render creates a fresh renderer and re-uploads
+   * them. This is the recovery path for a lost context or a failed draw.
+   */
+  private releaseSurface(): void {
+    this.renderer?.domElement.removeEventListener(
+      'webglcontextlost',
+      this.onContextLost,
+    );
     if (this.objectRoot) {
       for (const child of [...this.objectRoot.children]) {
         if (child.userData['cgiPrimitive'] === true) this.disposeObject(child);
@@ -466,25 +571,65 @@ export class CgiRendererService implements OnDestroy {
       }
       this.objectRoot.clear();
     }
-    for (const model of this.modelCache.values()) this.disposeObject(model);
-    this.modelCache.clear();
+    this.ground?.geometry.dispose();
+    this.ground?.material.dispose();
     this.scene?.clear();
     this.environment?.dispose();
-    this.renderer?.dispose();
+    try {
+      this.renderer?.dispose();
+      // Browsers cap how many contexts may be live, so hand this one back.
+      this.renderer?.forceContextLoss();
+    } catch {
+      // The context was already gone.
+    }
     this.renderer = null;
     this.scene = null;
     this.camera = null;
     this.objectRoot = null;
     this.ground = null;
     this.keyLight = null;
-    this.loadingModels.clear();
     this.objectSignature = '';
     this.objectsDirty = false;
     this.surfaceWidth = 0;
     this.surfaceHeight = 0;
-    this.failed = false;
     this.environment = null;
     this.environmentForReflections = false;
+  }
+
+  private handleSurfaceFailure(baseDelayMs: number): void {
+    this.releaseSurface();
+    this.scheduleSurfaceRetry(baseDelayMs);
+  }
+
+  private scheduleSurfaceRetry(baseDelayMs: number): void {
+    this.surfaceFailures += 1;
+    const delay = Math.min(
+      SURFACE_RETRY_MAX_MS,
+      baseDelayMs * 2 ** (this.surfaceFailures - 1),
+    );
+    this.retryAt = Date.now() + delay;
+  }
+
+  private readonly onContextLost = (event: Event): void => {
+    // preventDefault keeps the canvas eligible for restoration, but the
+    // renderer is replaced anyway: reusing a context the driver threw away
+    // usually renders nothing.
+    event.preventDefault();
+    if (!this.renderer) return;
+    this.handleSurfaceFailure(CONTEXT_LOSS_RETRY_MS);
+  };
+
+  dispose(): void {
+    this.releaseSurface();
+    for (const model of this.modelCache.values()) this.disposeObject(model);
+    this.modelCache.clear();
+    this.modelFailures.clear();
+    this.loadingModels.clear();
+    for (const timer of this.modelRetryTimers) clearTimeout(timer);
+    this.modelRetryTimers.clear();
+    this.webglUnavailable = false;
+    this.retryAt = 0;
+    this.surfaceFailures = 0;
   }
 
   ngOnDestroy(): void {

@@ -1,4 +1,5 @@
 import {
+  MAX_CGI_KEYFRAME_TIME,
   MAX_CGI_KEYFRAMES_PER_TRACK,
   MAX_CGI_OBJECTS,
   cgiCameraPose,
@@ -488,5 +489,65 @@ describe('CGI animation data', () => {
       { time: 0, value: 2 },
     ]);
     expect(splitCgiAnimationAt(undefined, 5)).toBeNull();
+  });
+});
+
+describe('CGI split continuity data', () => {
+  it('continues spin, idle float and orbit from the carried scene time', () => {
+    const scene = createDefaultCgiScene();
+    scene.spin = 1;
+    scene.objects = [{ ...scene.objects[0], spin: 1 }];
+    scene.cameraMove = 'orbit-left';
+
+    const resumed = resolveCgiFrame({ ...scene, timeOffset: 4 }, 0, 6);
+    const unsplit = resolveCgiFrame(scene, 4, 6);
+
+    expect(resumed.objects[0].rotation[1]).toBeCloseTo(4, 6);
+    expect(resumed.objects[0].rotation[1]).toBeCloseTo(
+      unsplit.objects[0].rotation[1],
+      6,
+    );
+    expect(resumed.cameraPose.azimuth).toBeCloseTo(
+      unsplit.cameraPose.azimuth,
+      6,
+    );
+
+    // The idle float is part of the same continuous motion.
+    const plain = createDefaultCgiScene();
+    const floated = resolveCgiFrame({ ...plain, timeOffset: 4 }, 0, 6);
+    expect(floated.objects[0].position[1]).toBeCloseTo(
+      resolveCgiFrame(plain, 4, 6).objects[0].position[1],
+      6,
+    );
+  });
+
+  it('keeps a progress-based camera move on the original curve', () => {
+    const scene = createDefaultCgiScene();
+    scene.cameraMove = 'push-in';
+
+    const cut = resolveCgiFrame({ ...scene, timeOffset: 4, sequenceDuration: 10 }, 0, 6);
+    const whole = resolveCgiFrame(scene, 4, 10);
+    const resumedEnd = resolveCgiFrame(
+      { ...scene, timeOffset: 4, sequenceDuration: 10 },
+      6,
+      6,
+    );
+
+    expect(cut.cameraPose.distance).toBeCloseTo(whole.cameraPose.distance, 6);
+    expect(resumedEnd.cameraPose.distance).toBeCloseTo(
+      resolveCgiFrame(scene, 10, 10).cameraPose.distance,
+      6,
+    );
+  });
+
+  it('sanitises the carried offset and sequence span', () => {
+    const scene = sanitizeCgiScene({ timeOffset: 12, sequenceDuration: 400_000 });
+
+    expect(scene?.timeOffset).toBe(12);
+    expect(scene?.sequenceDuration).toBe(MAX_CGI_KEYFRAME_TIME);
+
+    const cleared = sanitizeCgiScene({ timeOffset: 0, sequenceDuration: 0 });
+    expect(cleared?.timeOffset).toBeUndefined();
+    expect(cleared?.sequenceDuration).toBeUndefined();
   });
 });
