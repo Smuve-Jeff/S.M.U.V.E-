@@ -20,6 +20,15 @@ import {
   type SavedCharacterModel,
 } from "./character-library.service";
 import { portraitCameraDistance } from "./portrait-framing";
+import {
+  DEFAULT_ORBIT_RADIUS,
+  MAX_ORBIT_RADIUS,
+  MIN_ORBIT_RADIUS,
+  orbitLimitsFor,
+  stageCameraDistance,
+  stageFogRange,
+  type StageExtents,
+} from "./stage-framing";
 
 type ThreeModule = typeof import("three");
 type Renderer = import("three").WebGLRenderer;
@@ -305,8 +314,22 @@ export class VisualStageComponent implements AfterViewInit, OnDestroy {
   private characterStatusTimer: ReturnType<typeof setTimeout> | null = null;
   private dragDepth = 0;
 
-  private readonly orbit = { azimuth: 0.34, polar: 1.33, radius: 7.2 };
-  private readonly smoothOrbit = { azimuth: 0.34, polar: 1.33, radius: 7.2 };
+  /** Bounds of the imported performer, used to reframe the stage as it resizes. */
+  private stageExtents: StageExtents | null = null;
+  private frameRadius = DEFAULT_ORBIT_RADIUS;
+  private minOrbitRadius = MIN_ORBIT_RADIUS;
+  private maxOrbitRadius = MAX_ORBIT_RADIUS;
+
+  private readonly orbit = {
+    azimuth: 0.34,
+    polar: 1.33,
+    radius: DEFAULT_ORBIT_RADIUS,
+  };
+  private readonly smoothOrbit = {
+    azimuth: 0.34,
+    polar: 1.33,
+    radius: DEFAULT_ORBIT_RADIUS,
+  };
   private readonly pointers = new Map<number, { x: number; y: number }>();
   private dragPointer: number | null = null;
   private dragDistance = 0;
@@ -367,10 +390,70 @@ export class VisualStageComponent implements AfterViewInit, OnDestroy {
   resetCamera(): void {
     this.orbit.azimuth = 0.34;
     this.orbit.polar = 1.33;
-    this.orbit.radius = 7.2;
+    this.orbit.radius = this.frameRadius;
     this.autoOrbit.set(!this.reducedMotion);
     this.pointers.clear();
     this.dragPointer = null;
+  }
+
+  /**
+   * Frame the stage around a performer, or restore the built-in view when given
+   * null. The built-in performer keeps the stage's default distance; an import
+   * that overflows the performer slot — a sofa is nearly three times wider than
+   * it is tall — pulls the camera back until the whole model fits.
+   */
+  private frameStage(extents: StageExtents | null): void {
+    this.stageExtents = extents;
+    const distance = this.framedRadius();
+    const limits = orbitLimitsFor(distance);
+    this.frameRadius = distance;
+    this.minOrbitRadius = limits.min;
+    this.maxOrbitRadius = limits.max;
+    this.orbit.radius = distance;
+    this.smoothOrbit.radius = distance;
+    this.applyStageDepth();
+  }
+
+  private framedRadius(): number {
+    const camera = this.camera;
+    if (!this.stageExtents || !camera) return DEFAULT_ORBIT_RADIUS;
+    const distance = stageCameraDistance(
+      this.stageExtents,
+      camera.fov,
+      camera.aspect,
+    );
+    // Never move closer than the stage's own view: a performer that already
+    // fits should look exactly as it always has.
+    return Math.max(DEFAULT_ORBIT_RADIUS, distance);
+  }
+
+  /** Keep the fog behind the performer when the camera has to pull back. */
+  private applyStageDepth(): void {
+    if (!this.fog) return;
+    const { near, far } = stageFogRange(this.frameRadius);
+    this.fog.near = near;
+    this.fog.far = far;
+  }
+
+  /**
+   * A narrower stage needs a longer view for a wide performer, so the framed
+   * distance follows the canvas — unless the artist has zoomed away from it.
+   */
+  private refitStageToViewport(): void {
+    if (!this.stageExtents || !this.camera) return;
+    const wasFramed = Math.abs(this.orbit.radius - this.frameRadius) < 0.01;
+    const distance = this.framedRadius();
+    const limits = orbitLimitsFor(distance);
+    this.frameRadius = distance;
+    this.minOrbitRadius = limits.min;
+    this.maxOrbitRadius = limits.max;
+    if (wasFramed) {
+      this.orbit.radius = distance;
+      this.smoothOrbit.radius = distance;
+    } else {
+      this.orbit.radius = this.clamp(this.orbit.radius, limits.min, limits.max);
+    }
+    this.applyStageDepth();
   }
 
   onCharacterFile(event: Event): void {
@@ -495,6 +578,7 @@ export class VisualStageComponent implements AfterViewInit, OnDestroy {
     this.importToken += 1;
     this.characterLoading.set(false);
     this.removeImportedModel();
+    this.frameStage(null);
     this.importedCharacter.set(false);
     this.characterName.set("");
     this.lastGesture.set(null);
@@ -555,7 +639,11 @@ export class VisualStageComponent implements AfterViewInit, OnDestroy {
       const nextDistance = this.pointerDistance();
       if (this.pinchDistance > 0) {
         const ratio = this.pinchDistance / Math.max(1, nextDistance);
-        this.orbit.radius = this.clamp(this.orbit.radius * ratio, 4.2, 11);
+        this.orbit.radius = this.clamp(
+          this.orbit.radius * ratio,
+          this.minOrbitRadius,
+          this.maxOrbitRadius,
+        );
       }
       this.pinchDistance = nextDistance;
       return;
@@ -590,8 +678,8 @@ export class VisualStageComponent implements AfterViewInit, OnDestroy {
     event.preventDefault();
     this.orbit.radius = this.clamp(
       this.orbit.radius + event.deltaY * 0.0025,
-      4.2,
-      11,
+      this.minOrbitRadius,
+      this.maxOrbitRadius,
     );
   }
 
@@ -618,11 +706,19 @@ export class VisualStageComponent implements AfterViewInit, OnDestroy {
       case "+":
       case "=":
         event.preventDefault();
-        this.orbit.radius = this.clamp(this.orbit.radius - 0.4, 4.2, 11);
+        this.orbit.radius = this.clamp(
+          this.orbit.radius - 0.4,
+          this.minOrbitRadius,
+          this.maxOrbitRadius,
+        );
         break;
       case "-":
         event.preventDefault();
-        this.orbit.radius = this.clamp(this.orbit.radius + 0.4, 4.2, 11);
+        this.orbit.radius = this.clamp(
+          this.orbit.radius + 0.4,
+          this.minOrbitRadius,
+          this.maxOrbitRadius,
+        );
         break;
       case " ":
       case "Enter":
@@ -699,7 +795,8 @@ export class VisualStageComponent implements AfterViewInit, OnDestroy {
     const scene = new THREE.Scene();
     const palette = PALETTES[this.palette()];
     const background = new THREE.Color(palette.background);
-    const fog = new THREE.Fog(palette.fog, 7, 22);
+    const fogRange = stageFogRange(DEFAULT_ORBIT_RADIUS);
+    const fog = new THREE.Fog(palette.fog, fogRange.near, fogRange.far);
     scene.background = background;
     scene.fog = fog;
     this.scene = scene;
@@ -1188,6 +1285,7 @@ export class VisualStageComponent implements AfterViewInit, OnDestroy {
       model.updateMatrixWorld(true);
       bounds.setFromObject(model);
       const centre = bounds.getCenter(new three.Vector3());
+      const framed = bounds.getSize(new three.Vector3());
       model.position.x -= centre.x;
       model.position.z -= centre.z;
       model.position.y -= bounds.min.y;
@@ -1201,6 +1299,7 @@ export class VisualStageComponent implements AfterViewInit, OnDestroy {
       avatar.add(wrapper);
       this.importedWrapper = wrapper;
       this.importedModel = model;
+      this.frameStage(framed);
 
       const clipCount = this.setupCharacterAnimations(gltf);
       if (this.joints) this.joints.hips.visible = false;
@@ -1217,6 +1316,7 @@ export class VisualStageComponent implements AfterViewInit, OnDestroy {
       return clipCount;
     } catch (error) {
       this.removeImportedModel();
+      this.frameStage(null);
       throw error;
     }
   }
@@ -2105,6 +2205,7 @@ export class VisualStageComponent implements AfterViewInit, OnDestroy {
     this.renderer.setSize(width, height, false);
     this.camera.aspect = width / height;
     this.camera.updateProjectionMatrix();
+    this.refitStageToViewport();
   }
 
   private averageBins(data: Uint8Array, start: number, end: number): number {
