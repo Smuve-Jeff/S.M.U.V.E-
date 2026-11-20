@@ -4409,6 +4409,30 @@ describe('ImageVideoLabComponent', () => {
       expect(component.aiFeedback()).toContain('REDONE');
     });
 
+    it('restores the audio bed on undo and removes it on redo', async () => {
+      const { component, videoEngine } = await createComponent();
+      TestBed.flushEffects();
+      const bed = {
+        name: 'bed.wav',
+        url: 'blob:bed',
+        duration: 30,
+        buffer: {} as AudioBuffer,
+      };
+
+      videoEngine.audioOverlay.set(bed);
+      TestBed.flushEffects();
+      await new Promise((resolve) => setTimeout(resolve, 360));
+
+      component.undoEdit();
+      expect(videoEngine.audioOverlay()).toBeNull();
+
+      component.redoEdit();
+      expect(videoEngine.audioOverlay()).toMatchObject({
+        name: 'bed.wav',
+        url: 'blob:bed',
+      });
+    });
+
     it('fits every shot to its whole-bar slot so auto-cut leaves no black gap', async () => {
       const { component, videoEngine } = await createComponent();
       videoEngine.bpm.set(120);

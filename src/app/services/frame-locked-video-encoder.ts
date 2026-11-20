@@ -43,6 +43,7 @@ interface EncoderCandidate {
   encoderCodec: string;
   muxerCodec: string;
   label: string;
+  hardwareAcceleration?: HardwareAcceleration;
 }
 
 /**
@@ -50,7 +51,23 @@ interface EncoderCandidate {
  * codecs, so the muxer never has to pretend an AVC chunk is WebM.
  */
 const ENCODER_CANDIDATES: readonly EncoderCandidate[] = [
+  // Hardware first: a frame-locked master is the slowest path in the editor,
+  // and a GPU encoder can be an order of magnitude faster than software VP9.
+  // Each codec is offered twice so a browser that cannot honour the hint still
+  // falls back to its software encoder instead of refusing the export.
+  {
+    encoderCodec: 'vp09.00.10.08',
+    muxerCodec: 'V_VP9',
+    label: 'VP9',
+    hardwareAcceleration: 'prefer-hardware',
+  },
   { encoderCodec: 'vp09.00.10.08', muxerCodec: 'V_VP9', label: 'VP9' },
+  {
+    encoderCodec: 'vp8',
+    muxerCodec: 'V_VP8',
+    label: 'VP8',
+    hardwareAcceleration: 'prefer-hardware',
+  },
   { encoderCodec: 'vp8', muxerCodec: 'V_VP8', label: 'VP8' },
 ];
 
@@ -125,6 +142,9 @@ export class FrameLockedVideoEncoder {
         height,
         bitrate,
         framerate: plan.fps,
+        ...(candidate.hardwareAcceleration
+          ? { hardwareAcceleration: candidate.hardwareAcceleration }
+          : {}),
         // Offline quality tuning made a software encoder spend seconds per
         // frame, so a short export could outlast the tab. Realtime mode keeps
         // the same frame-locked timeline while letting the encoder pipeline

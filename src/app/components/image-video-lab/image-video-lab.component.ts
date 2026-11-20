@@ -149,6 +149,7 @@ import {
   VoiceArchetype,
 } from '../../services/speech-synthesis.service';
 import { GO_LIVE_PLATFORMS, GoLivePlatform, LiveStreamService } from '../../services/live-stream.service';
+import { StreamingAccountsPanelComponent } from './streaming-accounts-panel.component';
 import { BroadcastIngestService } from '../../services/broadcast-ingest.service';
 import { LiveVideoService } from '../../services/live-video.service';
 import { SocialNetworkingService } from '../../services/social-networking.service';
@@ -348,6 +349,7 @@ interface PinchState {
     LiveRelayStripComponent,
     LiveChatComponent,
     CgiScenePanelComponent,
+    StreamingAccountsPanelComponent,
   ],
   templateUrl: './image-video-lab.component.html',
   styleUrls: ['./image-video-lab.component.css'],
