@@ -7,6 +7,7 @@ import { StudioGuideAutoCheckService } from "./studio-guide.auto-check.service";
 import { GUIDE_SURFACE_ATLAS, GUIDE_TRACKS } from "./studio-guide.data";
 import { StudioGuideService } from "./studio-guide.service";
 import { StudioGuideSyncService } from "./studio-guide-sync.service";
+import { SpeechSynthesisService } from "../../services/speech-synthesis.service";
 
 /**
  * Render-level contract for the Masterclass.
@@ -29,6 +30,12 @@ describe("StudioGuideComponent", () => {
     activeLesson: ReturnType<typeof signal<null>>;
   };
   let guideSync: { state: ReturnType<typeof signal<"local">> };
+  let speech: {
+    isSupported: ReturnType<typeof signal<boolean>>;
+    outputCapability: ReturnType<typeof signal<string>>;
+    speak: jest.Mock;
+    cancel: jest.Mock;
+  };
 
   beforeEach(async () => {
     window.localStorage.clear();
@@ -43,11 +50,18 @@ describe("StudioGuideComponent", () => {
       activeLesson: signal(null),
     };
     guideSync = { state: signal("local") };
+    speech = {
+      isSupported: signal(true),
+      outputCapability: signal("ready"),
+      speak: jest.fn(),
+      cancel: jest.fn(),
+    };
     await TestBed.configureTestingModule({
       imports: [StudioGuideComponent],
       providers: [
         { provide: StudioGuideAutoCheckService, useValue: autoCheck },
         { provide: StudioGuideSyncService, useValue: guideSync },
+        { provide: SpeechSynthesisService, useValue: speech },
         {
           provide: MusicAcademyService,
           useValue: {
@@ -77,6 +91,8 @@ describe("StudioGuideComponent", () => {
     expect(text).toContain("On this device");
 
     expect(text).toContain("The Masterclass");
+    expect(text).toContain("Five guided paths");
+    expect(text).toContain("CGI stage");
     expect(text).toContain("First Loop");
     expect(text).toContain("Full Song");
     expect(text).toContain("Studio Mastery");
@@ -235,6 +251,60 @@ describe("StudioGuideComponent", () => {
     expect(component.activeStepIndex()).toBe(lesson.steps.length - 2);
   });
 
+  it("narrates the full lesson through the complete S.M.U.V.E. voice spectrum", () => {
+    const lesson = component.selectedTrack().lessons[0];
+
+    component.narrateLesson(lesson);
+
+    expect(speech.speak).toHaveBeenCalledTimes(1);
+    const [script, options] = speech.speak.mock.calls[0] as [
+      string,
+      { forceArchetype?: string; shapeShift: boolean; onComplete: () => void },
+    ];
+    expect(script).toContain("Instructor transmission");
+    expect(script).toContain(component.instructorLine(lesson));
+    expect(script).toContain(lesson.title);
+    lesson.steps.forEach((step) => expect(script).toContain(step));
+    lesson.controls.forEach((control) => expect(script).toContain(control));
+    if (lesson.heard) expect(script).toContain(lesson.heard);
+    expect(script).toContain(lesson.proTip);
+    expect(script).toContain(component.instructorWhisper(lesson));
+    expect(options.shapeShift).toBe(true);
+    expect(options.forceArchetype).toBeUndefined();
+    expect(component.isNarrating(lesson)).toBe(true);
+
+    options.onComplete();
+    expect(component.isNarrating(lesson)).toBe(false);
+  });
+
+  it("stops the narrator when the same lesson is pressed again", () => {
+    const lesson = component.selectedTrack().lessons[0];
+
+    component.narrateLesson(lesson);
+    component.narrateLesson(lesson);
+
+    expect(speech.cancel).toHaveBeenCalled();
+    expect(component.isNarrating(lesson)).toBe(false);
+  });
+
+  it("stops narration when the tab or open lesson changes", () => {
+    const lesson = component.selectedTrack().lessons[0];
+
+    component.narrateLesson(lesson);
+    component.selectTab("atlas");
+    expect(speech.cancel).toHaveBeenCalledTimes(1);
+    expect(component.isNarrating(lesson)).toBe(false);
+
+    component.selectTab("learn");
+    speech.cancel.mockClear();
+    component.narrateLesson(lesson);
+    component.toggleLesson(lesson.id);
+
+    expect(speech.cancel).toHaveBeenCalledTimes(1);
+    expect(component.isNarrating(lesson)).toBe(false);
+    expect(component.openLessonId()).toBeNull();
+  });
+
   it("keeps the instructor transmission in character per path", () => {
     const wholeApp = GUIDE_TRACKS.find((track) => track.id === "whole-app")!;
     const lesson = wholeApp.lessons[0];
@@ -265,6 +335,19 @@ describe("StudioGuideComponent", () => {
     document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
 
     expect(close).toHaveBeenCalledTimes(1);
+  });
+
+  it("leaves Escape inside a search field to the field", () => {
+    const close = jest.spyOn(component.close, "emit");
+    const input = (fixture.nativeElement as HTMLElement).querySelector(
+      'input[type="search"]',
+    ) as HTMLInputElement;
+
+    input.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "Escape", bubbles: true }),
+    );
+
+    expect(close).not.toHaveBeenCalled();
   });
 
   it("renders as a page region with a Studio return control", () => {

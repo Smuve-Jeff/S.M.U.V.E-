@@ -38,6 +38,8 @@ interface SpeakOptions {
    * user profile's `settings.ai.aiProfanityEnabled` preference (true = allow).
    */
   allowVulgarLanguage?: boolean;
+  /** Fires when the last utterance ends or fails; cancelled speech does not fire. */
+  onComplete?: () => void;
 }
 
 /** Pitch bands used to force constant full-spectrum change between sentences. */
@@ -102,11 +104,15 @@ export class SpeechSynthesisService {
    * "active" — announcing a capability the device does not have.
    */
   isSupported = signal(
-    typeof window !== 'undefined' && !!window.speechSynthesis
+    typeof window !== 'undefined' &&
+      !!window.speechSynthesis &&
+      typeof SpeechSynthesisUtterance !== 'undefined'
   );
   /** Real voice-output capability — see `VoiceOutputCapability`. */
   outputCapability = signal<VoiceOutputCapability>(
-    typeof window !== 'undefined' && !!window.speechSynthesis
+    typeof window !== 'undefined' &&
+      !!window.speechSynthesis &&
+      typeof SpeechSynthesisUtterance !== 'undefined'
       ? 'loading'
       : 'unsupported'
   );
@@ -119,6 +125,8 @@ export class SpeechSynthesisService {
   private voiceWaiters: (() => void)[] = [];
   /** Bumped per `speak()` so a reply superseded while voices load never plays. */
   private speakGeneration = 0;
+  /** Bumped per queue so callbacks from cancelled utterances cannot clear a new run. */
+  private speechRun = 0;
 
   // The full catalog is the default performance. Every archetype is dealt from
   // one shuffled deck and every installed browser voice from another, so no
@@ -397,8 +405,14 @@ export class SpeechSynthesisService {
    * one archetype with forceArchetype.
    */
   speak(text: string, options?: SpeakOptions): void {
-    if (!text || typeof window === 'undefined' || !window.speechSynthesis)
+    if (
+      !text ||
+      typeof window === 'undefined' ||
+      !window.speechSynthesis ||
+      typeof SpeechSynthesisUtterance === 'undefined'
+    ) {
       return;
+    }
 
     // Speaking before the engine publishes its voices assigns no voice at all,
     // and some WebView engines render that as pure silence — audible on desktop
@@ -445,6 +459,7 @@ export class SpeechSynthesisService {
     if (sentences.length === 0) return;
 
     this.cancel();
+    const run = this.speechRun;
 
     // Build one utterance per sentence (queued by the platform in order),
     // each carrying its own voice meta for the live readout. The archetype is
@@ -471,83 +486,154 @@ export class SpeechSynthesisService {
       })
       .filter((u): u is { utterance: SpeechSynthesisUtterance; meta: VoiceReadout } => u !== null);
 
+    const finish = () => {
+      if (run !== this.speechRun) return;
+      this.isSpeaking.set(false);
+      this.liveVoice.set(null);
+      options?.onComplete?.();
+    };
+
     utterances.forEach(({ utterance, meta }, index) => {
       utterance.onstart = () => {
+        if (run !== this.speechRun) return;
         this.isSpeaking.set(true);
         this.liveVoice.set(meta);
       };
       if (index === utterances.length - 1) {
-        utterance.onend = () => {
-          this.isSpeaking.set(false);
-          this.liveVoice.set(null);
-        };
-        utterance.onerror = () => {
-          this.isSpeaking.set(false);
-          this.liveVoice.set(null);
-        };
+        utterance.onend = finish;
+        utterance.onerror = finish;
       }
       window.speechSynthesis.speak(utterance);
     });
   }
 
   /**
-   * Stable voice mode — the whole text is one utterance with a single
-   * archetype and no pitch-band sweeping (used when shape-shift is off).
+   * Stable voice mode — one archetype, one installed voice and no pitch-band
+   * sweeping (used when shape-shift is off).
+   *
+   * The script is chunked at sentence boundaries because Chromium truncates a
+   * single long utterance (around fifteen seconds) and leaves the rest of a
+   * narration unheard. Every chunk reuses the same profile and browser voice,
+   * so the result is one continuous narrator rather than a new speaker per
+   * sentence or a long line that stops halfway.
    */
   private speakStable(text: string, options?: SpeakOptions): void {
     this.cancel();
+    const run = this.speechRun;
     const processed = this.applyAuthoritativePronunciation(text).trim();
     if (!processed) return;
 
+    const chunks = this.chunkForSpeech(processed);
+    if (chunks.length === 0) return;
+
     this.currentArchetype = this.selectDynamicArchetype(options);
+    const archetype = this.currentArchetype;
     // The delivery texture belongs to the archetype, not to shape-shifting, so
     // a stable audition still sounds like the tone it is auditioning. The
     // rotating breath gesture is a per-sentence layer and is left out here.
-    const utterance = new SpeechSynthesisUtterance(
-      this.textureLine(this.currentArchetype, processed)
-    );
-    const [minPitch, maxPitch] = this.currentArchetype.pitchRange;
-    const [minRate, maxRate] = this.currentArchetype.rateRange;
-    utterance.pitch = Math.max(
+    const [minPitch, maxPitch] = archetype.pitchRange;
+    const [minRate, maxRate] = archetype.rateRange;
+    const pitch = Math.max(
       0.1,
       Math.min(2.0, minPitch + Math.random() * (maxPitch - minPitch))
     );
-    // Short phrases can be delivered with more urgency; longer sentences stay
+    // Short phrases can be delivered with more urgency; longer scripts stay
     // conversational so the browser voice sounds less robotic and breathless.
-    const cadenceBias = text.length < 42 ? 0.06 : text.length > 150 ? -0.05 : 0;
-    utterance.rate = Math.max(
+    const cadenceBias = processed.length < 42 ? 0.06 : processed.length > 150 ? -0.05 : 0;
+    const rate = Math.max(
       0.1,
       Math.min(2.0, minRate + Math.random() * (maxRate - minRate) + cadenceBias)
     );
-    utterance.volume =
-      this.currentArchetype.baseVolume * (0.85 + Math.random() * 0.15);
+    const volume = archetype.baseVolume * (0.85 + Math.random() * 0.15);
 
     const voice = this.pickNextBrowserVoice() ?? this.defaultVoice();
-    this.applyVoiceToUtterance(utterance, voice);
-
     const meta: VoiceReadout = {
-      archetype: this.currentArchetype.name,
+      archetype: archetype.name,
       band: 'stable',
       voiceName: voice?.name ?? 'System voice',
-      pitch: utterance.pitch,
-      rate: utterance.rate,
-      prosody: this.prosodyFor(text, utterance.rate),
-      // One voice for the whole line, but the tone's own delivery applies.
-      texture: this.textureFor(this.currentArchetype),
+      pitch,
+      rate,
+      prosody: this.prosodyFor(processed, rate),
+      // One voice for the whole script, but the tone's own delivery applies.
+      texture: this.textureFor(archetype),
     };
-    utterance.onstart = () => {
-      this.isSpeaking.set(true);
-      this.liveVoice.set(meta);
-    };
-    utterance.onend = () => {
+
+    const finish = () => {
+      if (run !== this.speechRun) return;
       this.isSpeaking.set(false);
       this.liveVoice.set(null);
+      options?.onComplete?.();
     };
-    utterance.onerror = () => {
-      this.isSpeaking.set(false);
-      this.liveVoice.set(null);
-    };
-    window.speechSynthesis.speak(utterance);
+
+    chunks.forEach((chunk, index) => {
+      // Texture belongs to the performance, not to every chunk: applying the
+      // creature growl or choir answer once per chunk would restart the act.
+      const line =
+        index === 0 ? this.textureLine(archetype, chunk) : chunk;
+      const utterance = new SpeechSynthesisUtterance(line);
+      utterance.pitch = pitch;
+      utterance.rate = rate;
+      utterance.volume = volume;
+      this.applyVoiceToUtterance(utterance, voice);
+
+      utterance.onstart = () => {
+        if (run !== this.speechRun) return;
+        this.isSpeaking.set(true);
+        this.liveVoice.set(meta);
+      };
+      if (index === chunks.length - 1) {
+        utterance.onend = finish;
+        utterance.onerror = finish;
+      }
+      window.speechSynthesis.speak(utterance);
+    });
+  }
+
+  /**
+   * Groups sentences into utterances short enough for the browser engine.
+   * A single overlong sentence is split on word boundaries, so no narration
+   * content is dropped just to satisfy the engine's limit.
+   */
+  private chunkForSpeech(text: string, maxLength = 220): string[] {
+    const chunks: string[] = [];
+    let current = "";
+
+    for (const sentence of this.splitSentences(text)) {
+      if (sentence.length > maxLength) {
+        if (current) {
+          chunks.push(current);
+          current = "";
+        }
+        chunks.push(...this.splitLongSpeechChunk(sentence, maxLength));
+        continue;
+      }
+      const candidate = current ? `${current} ${sentence}` : sentence;
+      if (candidate.length > maxLength && current) {
+        chunks.push(current);
+        current = sentence;
+      } else {
+        current = candidate;
+      }
+    }
+
+    if (current) chunks.push(current);
+    return chunks;
+  }
+
+  private splitLongSpeechChunk(text: string, maxLength: number): string[] {
+    const chunks: string[] = [];
+    let current = "";
+    for (const word of text.split(/\s+/)) {
+      const candidate = current ? `${current} ${word}` : word;
+      if (candidate.length > maxLength && current) {
+        chunks.push(current);
+        current = word;
+      } else {
+        current = candidate;
+      }
+    }
+    if (current) chunks.push(current);
+    return chunks;
   }
 
   /** Splits text on terminal punctuation + whitespace and newlines. */
@@ -930,6 +1016,8 @@ export class SpeechSynthesisService {
   }
 
   cancel(): void {
+    this.speechRun++;
+    this.speakGeneration++;
     if (typeof window !== 'undefined' && window.speechSynthesis) {
       window.speechSynthesis.cancel();
     }

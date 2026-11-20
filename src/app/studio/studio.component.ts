@@ -1694,6 +1694,11 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   closeStudioGuide(): void {
     if (!this.showStudioGuide()) return;
     this.showStudioGuide.set(false);
+    // Mark the guide closed before the next action runs. Angular destroys the
+    // guide component on the next change detection pass, so a starter load
+    // awaited in this same tick could otherwise land while the guide still
+    // believes it is open and suppress its celebration.
+    this.guideAutoCheck.noteGuideOpen(false);
     this.guideTabRequest.set(null);
     this.guideTrackRequest.set(null);
     this.guideLessonRequest.set(null);

@@ -35,6 +35,7 @@ import { StudioGuideAutoCheckService } from "./studio-guide.auto-check.service";
 import { StudioGuideService } from "./studio-guide.service";
 import { StudioGuideSyncService } from "./studio-guide-sync.service";
 import { MusicAcademyService } from "../../composer/music-academy.service";
+import { SpeechSynthesisService } from "../../services/speech-synthesis.service";
 
 export type { GuideTab } from "./studio-guide-deep-link";
 
@@ -74,6 +75,7 @@ export class StudioGuideComponent {
   readonly guide = inject(StudioGuideService);
   readonly autoCheck = inject(StudioGuideAutoCheckService);
   readonly sync = inject(StudioGuideSyncService);
+  readonly speech = inject(SpeechSynthesisService);
   private readonly destroyRef = inject(DestroyRef);
 
   /** Close the guide and return to the studio canvas. */
@@ -138,14 +140,14 @@ export class StudioGuideComponent {
   readonly lessonQuery = signal("");
   readonly activeStepIndex = signal(0);
   readonly narratingLessonId = signal<string | null>(null);
-  readonly narrationSupported =
-    typeof window !== "undefined" &&
-    "speechSynthesis" in window &&
-    typeof SpeechSynthesisUtterance !== "undefined";
+  readonly narrationSupported = computed(
+    () =>
+      this.speech.isSupported() &&
+      this.speech.outputCapability() !== "no-voices",
+  );
   readonly linkCopied = signal(false);
 
   private copyResetTimer: ReturnType<typeof setTimeout> | null = null;
-  private utterance: SpeechSynthesisUtterance | null = null;
 
   /**
    * S.M.U.V.E. Prime does not sound like a manual. Every path gets a distinct
@@ -267,13 +269,22 @@ export class StudioGuideComponent {
     });
   }
 
-  @HostListener("document:keydown.escape")
-  onEscape(): void {
+  @HostListener("document:keydown.escape", ["$event"])
+  onEscape(event?: KeyboardEvent): void {
+    const target = event?.target as HTMLElement | null;
+    // Escape in a search field belongs to the field, not to the whole page.
+    if (
+      target?.closest?.('input, textarea, select, [contenteditable="true"]')
+    ) {
+      return;
+    }
+    this.stopNarration();
     this.close.emit();
   }
 
   selectTab(tab: GuideTab): void {
     if (this.tab() === tab) return;
+    this.stopNarration();
     this.tab.set(tab);
     if (tab === "learn") {
       const open = this.selectedTrack().lessons.find(
@@ -304,6 +315,8 @@ export class StudioGuideComponent {
   }
 
   toggleLesson(id: string): void {
+    // A closed lesson must not keep speaking from behind the panel.
+    this.stopNarration();
     if (this.openLessonId() === id) {
       this.openLessonId.set(null);
       this.emitState();
@@ -458,55 +471,62 @@ export class StudioGuideComponent {
     return this.narratingLessonId() === lesson.id;
   }
 
-  /** Read the lesson in S.M.U.V.E.'s voice, with a plain browser fallback. */
+  /**
+   * Read the whole lesson through the complete S.M.U.V.E. voice spectrum, not
+   * the browser's default reader. Every sentence is performed by a different
+   * archetype and installed browser voice; the shared service keeps the
+   * in-character script intact and splits it at sentence boundaries.
+   */
   narrateLesson(lesson: GuideLesson): void {
     if (this.isNarrating(lesson)) {
       this.stopNarration();
       return;
     }
-    if (
-      typeof window === "undefined" ||
-      !("speechSynthesis" in window) ||
-      typeof SpeechSynthesisUtterance === "undefined"
-    ) {
-      return;
-    }
+    if (!this.narrationSupported()) return;
 
     this.stopNarration();
-    const script = [
+    const script = this.narrationScript(lesson);
+    this.narratingLessonId.set(lesson.id);
+    this.speech.speak(script, {
+      // Full-spectrum shape-shifting is the S.M.U.V.E. identity: one archetype
+      // and browser voice per sentence, drawn from the complete catalog. Do not
+      // pin an archetype here; that would flatten the instructor back into one
+      // reader.
+      shapeShift: true,
+      allowVulgarLanguage: true,
+      onComplete: () => {
+        if (this.narratingLessonId() === lesson.id) {
+          this.narratingLessonId.set(null);
+        }
+      },
+    });
+  }
+
+  /** The instructor's full entrance, lesson, moves, and closing whisper. */
+  private narrationScript(lesson: GuideLesson): string {
+    return [
       "S.M.U.V.E. Prime. Instructor transmission.",
+      this.instructorLine(lesson),
       `Lesson: ${lesson.title}.`,
       lesson.plain,
       "Your moves.",
       ...lesson.steps.map((step, index) => `Move ${index + 1}. ${step}`),
       `Remember this: ${lesson.proTip}`,
-    ].join(" ");
-    const utterance = new SpeechSynthesisUtterance(script);
-    utterance.pitch = 0.55;
-    utterance.rate = 0.88;
-    utterance.volume = 0.95;
-    utterance.onend = () => {
-      if (this.utterance === utterance) {
-        this.utterance = null;
-        this.narratingLessonId.set(null);
-      }
-    };
-    utterance.onerror = () => {
-      if (this.utterance === utterance) {
-        this.utterance = null;
-        this.narratingLessonId.set(null);
-      }
-    };
-    this.utterance = utterance;
-    this.narratingLessonId.set(lesson.id);
-    window.speechSynthesis.speak(utterance);
+      ...lesson.controls.map(
+        (control, index) => `Control ${index + 1}. ${control}`,
+      ),
+      lesson.heard ? `What it should sound like. ${lesson.heard}` : "",
+      lesson.pitfall ? `Do not. ${lesson.pitfall}` : "",
+      this.instructorWhisper(lesson),
+    ]
+      .filter(Boolean)
+      .join(" ");
   }
 
   stopNarration(): void {
-    if (typeof window !== "undefined" && "speechSynthesis" in window) {
-      window.speechSynthesis.cancel();
-    }
-    this.utterance = null;
+    // Only cancel speech this guide owns. Another S.M.U.V.E. surface may be
+    // speaking while the artist reads the Masterclass.
+    if (this.narratingLessonId()) this.speech.cancel();
     this.narratingLessonId.set(null);
   }
 
@@ -661,7 +681,10 @@ export class StudioGuideComponent {
       }
     }
 
-    if (tab && tab !== this.tab()) this.tab.set(tab);
+    if (tab && tab !== this.tab()) {
+      this.stopNarration();
+      this.tab.set(tab);
+    }
     if (tab === "atlas" || tab === "words") this.autoCheck.clear();
 
     if (lesson) {

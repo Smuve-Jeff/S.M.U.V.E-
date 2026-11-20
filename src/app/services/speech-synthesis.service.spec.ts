@@ -163,6 +163,54 @@ describe('SpeechSynthesisService', () => {
     expect(typeof mockUtterances[0].rate).toBe('number');
   });
 
+  it('keeps a stable narrator in one voice across a long script without dropping lines', () => {
+    mockSpeechSynthesis.getVoices.mockReturnValue([
+      { name: 'Narrator One', lang: 'en-US' },
+      { name: 'Narrator Two', lang: 'en-GB' },
+    ]);
+    randomSpy.mockReturnValue(0);
+    const complete = jest.fn();
+    const sentences = Array.from(
+      { length: 14 },
+      (_, index) => `Line ${index + 1} carries a complete instruction for the Masterclass.`
+    );
+
+    service.speak(sentences.join(' '), {
+      shapeShift: false,
+      forceArchetype: 'Ominous Protocol',
+      onComplete: complete,
+    });
+
+    expect(mockUtterances.length).toBeGreaterThan(1);
+    const spoken = (
+      (global.SpeechSynthesisUtterance as jest.Mock).mock.calls as string[][]
+    )
+      .map((call) => call[0])
+      .join(' ');
+    sentences.forEach((sentence) => expect(spoken).toContain(sentence));
+    expect(new Set(mockUtterances.map((utterance) => utterance.voice.name)).size).toBe(1);
+    expect(new Set(mockUtterances.map((utterance) => utterance.pitch)).size).toBe(1);
+    expect(complete).not.toHaveBeenCalled();
+
+    mockUtterances[mockUtterances.length - 1].onend();
+
+    expect(complete).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not complete a narration that was cancelled', () => {
+    randomSpy.mockReturnValue(0);
+    const complete = jest.fn();
+
+    service.speak('One long stable line for the Masterclass narrator.', {
+      shapeShift: false,
+      onComplete: complete,
+    });
+    service.cancel();
+    mockUtterances[0].onend();
+
+    expect(complete).not.toHaveBeenCalled();
+  });
+
   it('should expose a live voice readout while speaking', () => {
     randomSpy.mockReturnValue(0);
 
@@ -480,22 +528,23 @@ describe('SpeechSynthesisService', () => {
       randomSpy.mockReturnValue(0);
 
       service.speak('Fix the low end.', { forceArchetype: 'Creature' });
+      mockUtterances[0].onstart();
+      expect(service.liveVoice()?.texture).toBe('growl');
+
       service.speak('Fix the low end.', {
         forceArchetype: 'Childlike Glitch',
       });
+      mockUtterances[1].onstart();
+      expect(service.liveVoice()?.texture).toBe('stutter');
+
       service.speak('Fix the low end.', { forceArchetype: 'Choir (Layered)' });
+      mockUtterances[2].onstart();
+      expect(service.liveVoice()?.texture).toBe('choral');
 
       const [growl, stutter, choral] = spokenTexts();
       expect(growl).toMatch(/^Mmm\. /);
       expect(stutter).toMatch(/^Fi-Fix the low end\./);
       expect(choral).toMatch(/^Aaah\. .*one voice\./);
-
-      mockUtterances[0].onstart();
-      expect(service.liveVoice()?.texture).toBe('growl');
-      mockUtterances[1].onstart();
-      expect(service.liveVoice()?.texture).toBe('stutter');
-      mockUtterances[2].onstart();
-      expect(service.liveVoice()?.texture).toBe('choral');
     });
 
     it('keeps the archetype texture on the stable audition path', () => {

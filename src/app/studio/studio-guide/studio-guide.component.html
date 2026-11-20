@@ -18,10 +18,10 @@
           <p class="sg-eyebrow">S.M.U.V.E. · The Masterclass</p>
           <h1 id="sg-title">Learn the whole system, one move at a time.</h1>
           <p class="sg-lede">
-            Four guided paths: a first loop for absolute beginners, a complete
+            Five guided paths: a first loop for absolute beginners, a complete
             song from empty project to delivery, the pro surfaces for mastery,
-            and the entire application end to end. Every step opens the real
-            room it teaches.
+            a CGI stage for three-dimensional overlays, and the entire
+            application end to end. Every step opens the real room it teaches.
           </p>
           <p class="sg-instructor">
             <span class="material-symbols-outlined" aria-hidden="true">graphic_eq</span>
@@ -345,13 +345,19 @@
                             <span class="sg-live-dot" aria-hidden="true"></span>
                             S.M.U.V.E. // INSTRUCTOR
                           </span>
-                          @if (narrationSupported) {
+                          @if (narrationSupported()) {
                             <button
                               type="button"
                               class="sg-voice"
                               [class.is-speaking]="isNarrating(lesson)"
                               (click)="narrateLesson(lesson)"
                               [attr.aria-pressed]="isNarrating(lesson)"
+                              [attr.aria-label]="isNarrating(lesson)
+                                ? 'Stop the S.M.U.V.E. Prime narration'
+                                : 'Hear this lesson in the full S.M.U.V.E. Prime voice spectrum'"
+                              [attr.title]="isNarrating(lesson)
+                                ? 'Stop the S.M.U.V.E. Prime narration'
+                                : 'Hear the full lesson in S.M.U.V.E. Prime // full voice spectrum, changing every sentence'"
                             >
                               <span class="material-symbols-outlined" aria-hidden="true">
                                 {{ isNarrating(lesson) ? 'stop_circle' : 'graphic_eq' }}
