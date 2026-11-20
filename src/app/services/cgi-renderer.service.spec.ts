@@ -10,6 +10,19 @@ describe('CgiRendererService', () => {
     service.dispose();
   });
 
+  it('reports a missing WebGL as a failed stage instead of silence', () => {
+    const service = new CgiRendererService();
+    expect(service.status()).toBe('idle');
+
+    expect(service.render(createDefaultCgiScene(), 640, 360, 0, 10)).toBeNull();
+
+    expect(service.status()).toBe('failed');
+    expect(service.statusDetail()).toContain('WebGL');
+    service.dispose();
+    expect(service.status()).toBe('idle');
+    expect(service.statusDetail()).toBe('');
+  });
+
   it('skips a disabled scene and tiny targets without touching WebGL', () => {
     const service = new CgiRendererService();
     const scene = createDefaultCgiScene();
@@ -62,6 +75,9 @@ describe('CgiRendererService', () => {
     expect(service.render(scene, 640, 360, 0, 10)).toBeNull();
     expect(internals.renderer).toBeNull();
     expect(internals.retryAt).toBeGreaterThan(0);
+    // A failed draw is a visible surface failure, not a quiet empty frame.
+    expect(service.status()).toBe('failed');
+    expect(service.statusDetail()).toContain('drawing');
     // Inside the retry window the next frame is a no-op, not a second throw.
     expect(service.render(scene, 640, 360, 0, 10)).toBeNull();
 

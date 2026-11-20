@@ -3065,6 +3065,36 @@ describe('ImageVideoLabComponent', () => {
       });
     });
 
+    it('shows the 3D surface status only while starting or failed', async () => {
+      const { component, videoEngine } = await createComponent();
+      const clip = createVideoClip({
+        id: 'cgi-1',
+        trackId: 't2',
+        type: 'overlay',
+        source: 'ai',
+        effects: {
+          ...createVideoClip().effects,
+          cgiScene: createDefaultCgiScene(),
+        },
+      });
+      videoEngine.findClip.mockReturnValue(clip);
+      component.selectedClipId.set('cgi-1');
+      const renderer = (
+        component as unknown as {
+          cgiRenderer: { status: { set: (value: string) => void } };
+        }
+      ).cgiRenderer;
+
+      renderer.status.set('ready');
+      expect(component.cgiSurfaceStatus()).toBeNull();
+
+      renderer.status.set('starting');
+      expect(component.cgiSurfaceStatus()).toBe('starting');
+
+      renderer.status.set('failed');
+      expect(component.cgiSurfaceStatus()).toBe('failed');
+    });
+
     it('parks the playhead on a CGI key time in the selected clip', async () => {
       const { component, videoEngine } = await createComponent();
       const clip = createVideoClip({

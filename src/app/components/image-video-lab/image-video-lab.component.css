@@ -1621,9 +1621,35 @@ canvas {
   background: rgba(16, 185, 129, 0.12);
 }
 
+.monitor-badge.cgi-failed {
+  border-color: rgba(248, 113, 113, 0.45);
+  color: #fca5a5;
+  background: rgba(248, 113, 113, 0.12);
+}
+
 .monitor-badge-time {
   font-family: ui-monospace, SFMono-Regular, monospace;
   letter-spacing: 0.04em;
+}
+
+.cgi-surface-note {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0;
+  color: #bae6fd;
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.cgi-surface-note.failed {
+  color: #fca5a5;
+}
+
+.cgi-surface-note .material-symbols-outlined {
+  font-size: 0.9rem;
 }
 
 .monitor-frame {

@@ -1,4 +1,4 @@
-import { Injectable, OnDestroy, isDevMode } from '@angular/core';
+import { Injectable, OnDestroy, isDevMode, signal } from '@angular/core';
 import * as THREE from 'three';
 import type { CgiObject, CgiSceneSettings } from './cgi-scene';
 import { resolveCgiFrame } from './cgi-scene';
@@ -9,6 +9,8 @@ const SURFACE_RETRY_MS = 1_000;
 const CONTEXT_LOSS_RETRY_MS = 500;
 /** Rebuild delays double per consecutive failure, so a dead GPU is not hammered. */
 const SURFACE_RETRY_MAX_MS = 30_000;
+/** A surface stuck in 'starting' this long is reported as stalled, not silent. */
+const SURFACE_START_TIMEOUT_MS = 5_000;
 /** Model reads/parses are retried with backoff, then left to the placeholder. */
 const MAX_MODEL_LOAD_ATTEMPTS = 5;
 const MODEL_RETRY_BASE_MS = 2_000;
@@ -26,8 +28,21 @@ const MODEL_RETRY_MAX_MS = 30_000;
  * later frame builds a fresh one, so a driver reset degrades to the placeholder
  * instead of disabling CGI or breaking the paint loop for the session.
  */
+/** What the editor can say about the 3D surface instead of showing nothing. */
+export type CgiSurfaceStatus = 'idle' | 'starting' | 'ready' | 'failed';
+
 @Injectable({ providedIn: 'root' })
 export class CgiRendererService implements OnDestroy {
+  /**
+   * Surface state for the editor's status badge.
+   *
+   * A cold GPU, a driver reset and a host without WebGL all used to look the
+   * same from the UI: an empty monitor. These states make the wait and the
+   * failure visible, and `statusDetail` says what happened in one line.
+   */
+  readonly status = signal<CgiSurfaceStatus>('idle');
+  readonly statusDetail = signal('');
+  private startingAt = 0;
   private renderer: THREE.WebGLRenderer | null = null;
   private scene: THREE.Scene | null = null;
   private camera: THREE.PerspectiveCamera | null = null;
@@ -74,13 +89,19 @@ export class CgiRendererService implements OnDestroy {
     duration: number,
   ): HTMLCanvasElement | null {
     if (!settings.enabled || width < 2 || height < 2) return null;
+    if (!this.renderer) this.noteSurfaceRequest();
     if (!this.ensureRenderer(width, height)) return null;
     try {
-      return this.paint(settings, width, height, clipLocalTime, duration);
+      const canvas = this.paint(settings, width, height, clipLocalTime, duration);
+      this.markSurfaceReady();
+      return canvas;
     } catch {
       // A GPU reset, a driver hiccup or a shader failure: keep the caller's
       // placeholder path and let a later frame rebuild on a fresh surface.
-      this.handleSurfaceFailure(SURFACE_RETRY_MS);
+      this.handleSurfaceFailure(
+        SURFACE_RETRY_MS,
+        'The GPU failed while drawing the 3D stage.',
+      );
       return null;
     }
   }
@@ -170,6 +191,40 @@ export class CgiRendererService implements OnDestroy {
     return renderer.domElement;
   }
 
+  /**
+   * Record that a frame wants a surface, before the GPU is asked for one.
+   *
+   * A surface that never answers stays 'starting' only until the stall window
+   * passes; then it is reported as failed instead of leaving an empty monitor.
+   */
+  private noteSurfaceRequest(): void {
+    if (this.webglUnavailable || Date.now() < this.retryAt) return;
+    if (this.status() === 'starting') {
+      if (Date.now() - this.startingAt > SURFACE_START_TIMEOUT_MS) {
+        this.status.set('failed');
+        this.statusDetail.set(
+          'The GPU has not answered yet; retrying automatically.',
+        );
+      }
+      return;
+    }
+    if (this.status() === 'ready') return;
+    this.startingAt = Date.now();
+    this.status.set('starting');
+    this.statusDetail.set('Preparing the 3D stage on the GPU.');
+  }
+
+  private markSurfaceReady(): void {
+    if (this.status() === 'ready') return;
+    this.status.set('ready');
+    this.statusDetail.set('');
+  }
+
+  private failSurface(detail: string): void {
+    this.status.set('failed');
+    this.statusDetail.set(detail);
+  }
+
   private ensureRenderer(width: number, height: number): boolean {
     if (this.renderer) return true;
     if (this.webglUnavailable) return false;
@@ -179,6 +234,9 @@ export class CgiRendererService implements OnDestroy {
       typeof WebGLRenderingContext === 'undefined'
     ) {
       this.webglUnavailable = true;
+      this.failSurface(
+        'This browser has no WebGL, so the 3D stage cannot render.',
+      );
       return false;
     }
 
@@ -251,6 +309,7 @@ export class CgiRendererService implements OnDestroy {
     } catch {
       // Context creation can fail transiently (too many live contexts, a
       // driver reset). Back off instead of disabling CGI for the session.
+      this.failSurface('The GPU could not create the 3D stage.');
       this.scheduleSurfaceRetry(SURFACE_RETRY_MS);
       return false;
     }
@@ -607,7 +666,8 @@ export class CgiRendererService implements OnDestroy {
     this.environmentForReflections = false;
   }
 
-  private handleSurfaceFailure(baseDelayMs: number): void {
+  private handleSurfaceFailure(baseDelayMs: number, detail: string): void {
+    this.failSurface(detail);
     this.releaseSurface();
     this.scheduleSurfaceRetry(baseDelayMs);
   }
@@ -627,7 +687,10 @@ export class CgiRendererService implements OnDestroy {
     // usually renders nothing.
     event.preventDefault();
     if (!this.renderer) return;
-    this.handleSurfaceFailure(CONTEXT_LOSS_RETRY_MS);
+    this.handleSurfaceFailure(
+      CONTEXT_LOSS_RETRY_MS,
+      'The GPU dropped the 3D surface; rebuilding it.',
+    );
   };
 
   dispose(): void {
@@ -641,6 +704,9 @@ export class CgiRendererService implements OnDestroy {
     this.webglUnavailable = false;
     this.retryAt = 0;
     this.surfaceFailures = 0;
+    this.startingAt = 0;
+    this.status.set('idle');
+    this.statusDetail.set('');
   }
 
   ngOnDestroy(): void {

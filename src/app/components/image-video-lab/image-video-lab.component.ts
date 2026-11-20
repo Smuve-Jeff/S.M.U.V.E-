@@ -1172,6 +1172,17 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     return clip.startTime + Math.max(0, Number(clip.effects.trimStart) || 0);
   });
   /**
+   * Surface trouble for the selected CGI clip: null while it is healthy, so
+   * the badge and note only appear for a start in progress or a failure.
+   */
+  readonly cgiSurfaceStatus = computed(() => {
+    const scene = this.selectedCgiScene();
+    if (!scene?.enabled) return null;
+    const status = this.cgiRenderer.status();
+    return status === 'starting' || status === 'failed' ? status : null;
+  });
+  readonly cgiSurfaceDetail = this.cgiRenderer.statusDetail;
+  /**
    * Clip-local playhead for CGI keyframe authoring: the same time the renderer
    * resolves the scene at, so a key lands on the frame the operator sees.
    */

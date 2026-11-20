@@ -587,6 +587,16 @@
               >{{ videoEngine.currentTime() | number: '1.2-2' }}s /
               {{ videoEngine.duration() | number: '1.2-2' }}s</span
             >
+            @if (cgiSurfaceStatus(); as status) {
+              <span
+                class="monitor-badge"
+                [class.cgi-failed]="status === 'failed'"
+                [title]="cgiSurfaceDetail()"
+                >{{
+                  status === 'failed' ? 'CGI · GPU ISSUE' : 'CGI · STARTING'
+                }}</span
+              >
+            }
           </div>
         </div>
 
@@ -3041,6 +3051,18 @@
             (seekRequest)="seekToCgiKey($event)"
             (removeLayer)="removeSelectedCgiLayer()"
           />
+          @if (cgiSurfaceStatus(); as status) {
+            <p class="cgi-surface-note" [class.failed]="status === 'failed'">
+              <span class="material-symbols-outlined">{{
+                status === 'failed' ? 'error' : 'hourglass_top'
+              }}</span>
+              {{
+                status === 'failed'
+                  ? '3D STAGE FAILED — '
+                  : 'STARTING THE 3D STAGE — '
+              }}{{ cgiSurfaceDetail() }}
+            </p>
+          }
 
           <!-- Camera moves and speed, applied to the selected clip -->
           <div class="fx-rack" aria-labelledby="motion-title">
