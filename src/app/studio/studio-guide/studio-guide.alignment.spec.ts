@@ -1,4 +1,5 @@
 import {
+  ALL_GUIDE_LESSONS,
   GUIDE_SHORTCUTS,
   GUIDE_SURFACE_ATLAS,
 } from "./studio-guide.data";
@@ -6,6 +7,7 @@ import {
   STUDIO_SURFACE_GROUPS,
   STUDIO_SURFACES,
 } from "../studio-surfaces";
+import { WORKSPACE_REGISTRY } from "../../services/workspace-registry";
 import { CommandPaletteService } from "../../services/command-palette.service";
 import { StudioComponent } from "../studio.component";
 
@@ -152,6 +154,56 @@ describe("Masterclass alignment with the application", () => {
         handled: true,
       });
     }
+  });
+
+  it("names every whole-app room the way the registry names it", () => {
+    const labelsByRoute = new Map<string, Set<string>>();
+    for (const workspace of WORKSPACE_REGISTRY) {
+      const labels = labelsByRoute.get(workspace.routePath) ?? new Set();
+      labels.add(workspace.label);
+      labelsByRoute.set(workspace.routePath, labels);
+    }
+
+    const chapters = ALL_GUIDE_LESSONS.filter(
+      (lesson) => lesson.track === "whole-app" && lesson.workspace,
+    );
+    expect(chapters.length).toBeGreaterThanOrEqual(12);
+
+    for (const chapter of chapters) {
+      const workspace = chapter.workspace!;
+      const registryLabels = labelsByRoute.get(workspace.path);
+      // A chapter may not invent a room name or route the shell does not ship.
+      expect({ path: workspace.path, routed: !!registryLabels }).toEqual({
+        path: workspace.path,
+        routed: true,
+      });
+      expect({
+        path: workspace.path,
+        label: workspace.label,
+        known: registryLabels!.has(workspace.label),
+      }).toEqual({
+        path: workspace.path,
+        label: workspace.label,
+        known: true,
+      });
+      // The action must open the room it names, not a paraphrase of it.
+      expect(chapter.action).toBe(`Open ${workspace.label}`);
+      expect(chapter.title.trim().length).toBeGreaterThan(3);
+    }
+  });
+
+  it("only sends a chapter to a room the rail actually offers", () => {
+    // Several routes have both a visible entry and hidden aliases, so the test
+    // asks whether the room is reachable at all, not whether any entry hides it.
+    const visible = new Set(
+      WORKSPACE_REGISTRY.filter((workspace) => !workspace.hidden).map(
+        (workspace) => workspace.routePath,
+      ),
+    );
+    const unreachable = ALL_GUIDE_LESSONS.filter(
+      (lesson) => lesson.workspace && !visible.has(lesson.workspace.path),
+    ).map((lesson) => lesson.workspace!.path);
+    expect(unreachable).toEqual([]);
   });
 
   it("lists each shortcut once", () => {
