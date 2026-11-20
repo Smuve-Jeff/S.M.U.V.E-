@@ -94,6 +94,54 @@
   color: #06091a;
 }
 
+.perf-stage-toggle .perf-stage-toggle-label {
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+}
+
+/* The stage is immersive on purpose: the Performance shell is height-capped
+   on phones, so an in-flow stage would be clipped to a strip. A fixed overlay
+   gives the renderer the real viewport and keeps the pad grid untouched. */
+.performance-stage {
+  position: fixed;
+  inset: 0;
+  display: none;
+  width: 100vw;
+  height: 100dvh;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  border-radius: 0;
+  background: #04080f;
+  color: inherit;
+}
+
+.performance-stage[open] {
+  display: flex;
+}
+
+.performance-stage::backdrop {
+  background: #04080f;
+}
+
+.performance-stage app-visual-stage {
+  flex: 1 1 auto;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+}
+
+@media (max-width: 720px) {
+  .perf-stage-toggle .perf-stage-toggle-label {
+    display: none;
+  }
+}
+
 /* ---------- SUSTAIN PEDAL LED (CC64) ---------- */
 .perf-sustain-led {
   display: inline-flex;

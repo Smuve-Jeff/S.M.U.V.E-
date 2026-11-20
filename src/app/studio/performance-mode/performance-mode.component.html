@@ -58,6 +58,19 @@
         SUS{{ sustainHalfPedal() ? ' ½' : '' }}
       </span>
     </span>
+    <!-- 3D stage / pads switch -->
+    <button
+      type="button"
+      class="perf-midi-toggle perf-stage-toggle studio-icon-button"
+      [class.active]="stageOpen()"
+      [attr.aria-pressed]="stageOpen()"
+      (click)="toggleStage()"
+      [attr.aria-label]="stageOpen() ? 'Return to the pad grid' : 'Open the 3D performance stage'"
+      title="Switch between the 3D stage and the pad grid"
+    >
+      <span class="material-symbols-outlined">view_in_ar</span>
+      <span class="perf-stage-toggle-label">{{ stageOpen() ? 'PADS' : '3D STAGE' }}</span>
+    </button>
     <!-- MIDI Mapping Toggle -->
     <button
       type="button"
@@ -71,6 +84,16 @@
     </button>
   </div>
 
+  @if (stageOpen()) {
+    <dialog
+      #stageDialog
+      class="performance-stage"
+      aria-label="3D performance stage"
+      (close)="onStageClosed()"
+    >
+      <app-visual-stage [dismissible]="true" (dismiss)="toggleStage()"></app-visual-stage>
+    </dialog>
+  } @else {
   <!-- PAD GRID -->
   <div
     class="performance-grid studio-module-scroll performance-pad-grid"
@@ -183,9 +206,10 @@
       <p>No performance pads mapped. Load an instrument or clips to begin.</p>
     </div>
   </div>
+  }
 
   <!-- MIDI MAPPING PANEL (collapsible) -->
-  @if (showMidiMapping()) {
+  @if (showMidiMapping() && !stageOpen()) {
     <div class="perf-midi-panel studio-module-scroll performance-midi-console">
       <div class="perf-midi-header studio-context-toolbar performance-midi-header">
         <span class="perf-midi-title">MIDI NOTE MAP</span>

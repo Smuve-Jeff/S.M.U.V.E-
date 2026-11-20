@@ -1,0 +1,167 @@
+<!--
+  Visual Stage — a live 3D performer with analyser-driven light, spectrum,
+  waveform and particle systems. Drag to orbit, scroll or pinch to zoom, tap
+  the avatar or use the move row to trigger full-body gestures.
+-->
+<section
+  class="stage-shell"
+  [class.stage-ready]="ready()"
+  [class.stage-playing]="playing()"
+>
+  <canvas
+    #surface
+    class="stage-canvas"
+    tabindex="0"
+    role="application"
+    aria-label="Interactive 3D performance stage. Drag to orbit, scroll to zoom, and press Space to trigger a move."
+    (pointerdown)="onPointerDown($event)"
+    (pointermove)="onPointerMove($event)"
+    (pointerup)="onPointerUp($event)"
+    (pointercancel)="onPointerCancel($event)"
+    (wheel)="onWheel($event)"
+    (keydown)="onKeydown($event)"
+  ></canvas>
+
+  <div class="stage-vignette" aria-hidden="true"></div>
+  <div class="stage-scanlines" aria-hidden="true"></div>
+
+  @if (!ready()) {
+    <div class="stage-loading" role="status" aria-live="polite">
+      <span class="stage-loader" aria-hidden="true"></span>
+      @if (fallbackReason()) {
+        <strong>Stage graphics unavailable</strong>
+        <p>{{ fallbackReason() }}</p>
+        <p class="stage-fallback-hint">
+          The controls and move triggers remain available in browsers with WebGL
+          enabled.
+        </p>
+      } @else {
+        <strong>Building the stage</strong>
+        <p>Loading the performer, lights and analyser.</p>
+      }
+    </div>
+  }
+
+  <header class="stage-hud">
+    @if (dismissible) {
+      <button
+        type="button"
+        class="stage-dismiss"
+        (click)="dismiss.emit()"
+        aria-label="Close the 3D stage and return to the pad grid"
+      >
+        <span class="material-symbols-outlined" aria-hidden="true"
+          >arrow_back</span
+        >
+        PADS
+      </button>
+    }
+    <div class="stage-brand">
+      <span class="stage-brand-mark" aria-hidden="true"></span>
+      <span class="stage-brand-copy">
+        <strong>S.M.U.V.E.</strong>
+        <em>LIVE STAGE</em>
+      </span>
+    </div>
+    <div class="stage-live" [class.is-live]="playing()">
+      <span class="stage-dot" aria-hidden="true"></span>
+      {{ playing() ? "LIVE" : "STANDBY" }}
+    </div>
+    <span class="stage-bpm">{{ bpm() }} <em>BPM</em></span>
+    <span
+      class="stage-energy"
+      [attr.aria-label]="'Audio energy ' + energyPct() + '%'"
+    >
+      <span class="stage-energy-track" aria-hidden="true">
+        <span class="stage-energy-fill" [style.width.%]="energyPct()"></span>
+      </span>
+      <span class="stage-energy-value">{{ energyPct() }}%</span>
+    </span>
+    <span class="stage-gesture" aria-live="polite">{{ gestureLabel() }}</span>
+  </header>
+
+  <aside class="stage-controls" aria-label="Stage controls">
+    <button
+      type="button"
+      class="stage-control"
+      (click)="cycleMood()"
+      [attr.aria-label]="'Character mood: ' + moodLabel() + '. Change mood.'"
+    >
+      <span class="stage-control-key">MOOD</span>
+      <strong>{{ moodLabel() }}</strong>
+    </button>
+    <button
+      type="button"
+      class="stage-control"
+      (click)="cyclePalette()"
+      [attr.aria-label]="'Stage colour: ' + paletteLabel() + '. Change colour.'"
+    >
+      <span class="stage-control-key">COLOR</span>
+      <strong>{{ paletteLabel() }}</strong>
+    </button>
+    <button
+      type="button"
+      class="stage-control stage-toggle"
+      [class.is-on]="autoOrbit()"
+      [attr.aria-pressed]="autoOrbit()"
+      (click)="toggleAutoOrbit()"
+    >
+      <span class="material-symbols-outlined" aria-hidden="true">orbit</span>
+      ORBIT
+    </button>
+    <button
+      type="button"
+      class="stage-control stage-toggle"
+      [class.is-on]="particlesOn()"
+      [attr.aria-pressed]="particlesOn()"
+      (click)="toggleParticles()"
+    >
+      <span class="material-symbols-outlined" aria-hidden="true"
+        >auto_awesome</span
+      >
+      FX
+    </button>
+    <button
+      type="button"
+      class="stage-control stage-reset"
+      (click)="resetCamera()"
+      aria-label="Reset the camera to the front of the stage"
+    >
+      <span class="material-symbols-outlined" aria-hidden="true"
+        >center_focus_strong</span
+      >
+      RESET
+    </button>
+  </aside>
+
+  <div class="stage-moves" role="group" aria-label="Trigger a character move">
+    <span class="stage-moves-label">MAKE IT MOVE</span>
+    @for (move of moves; track move.id) {
+      <button
+        type="button"
+        class="stage-move"
+        (click)="triggerMove(move.id)"
+        [attr.aria-label]="'Trigger ' + move.label"
+      >
+        <span class="stage-move-glyph" aria-hidden="true">{{
+          move.glyph
+        }}</span>
+        {{ move.label }}
+      </button>
+    }
+  </div>
+
+  <p class="stage-hint">
+    <span class="stage-hint-key">DRAG</span> orbit
+    <span class="stage-hint-sep" aria-hidden="true">·</span>
+    <span class="stage-hint-key">SCROLL / PINCH</span> zoom
+    <span class="stage-hint-sep" aria-hidden="true">·</span>
+    <span class="stage-hint-key">TAP</span> the performer
+  </p>
+
+  <span
+    class="stage-beat"
+    aria-hidden="true"
+    [style.opacity]="beatPct() / 100"
+  ></span>
+</section>

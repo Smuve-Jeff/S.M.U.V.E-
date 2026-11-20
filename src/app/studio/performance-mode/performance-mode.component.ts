@@ -8,11 +8,14 @@ import {
   computed,
   OnInit,
   OnDestroy,
+  ViewChild,
+  ElementRef,
 } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { HapticService } from "../../services/haptic.service";
 import { HardwareService } from "../../services/hardware.service";
+import { VisualStageComponent } from "../visual-stage/visual-stage.component";
 
 export interface PerformancePad {
   id: number;
@@ -38,7 +41,7 @@ const VELOCITY_ZONES: {
 @Component({
   selector: "app-performance-mode",
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, VisualStageComponent],
   templateUrl: "./performance-mode.component.html",
   styleUrls: ["./performance-mode.component.css", "../shared/platform-ux.css"],
 })
@@ -55,6 +58,11 @@ export class PerformanceModeComponent implements OnInit, OnDestroy {
 
   @Input() pads: PerformancePad[] = [];
   @Output() padClicked = new EventEmitter<PerformancePad>();
+
+  /** Full-stage view replaces the pad grid without leaving Performance. */
+  readonly stageOpen = signal(false);
+  @ViewChild("stageDialog")
+  private stageDialogRef?: ElementRef<HTMLDialogElement>;
 
   // ── Velocity ──────────────────────────────────────────────
   activeVelocity = signal(0.85);
@@ -257,6 +265,46 @@ export class PerformanceModeComponent implements OnInit, OnDestroy {
     this.activeVelocity.set(value);
   }
 
+  toggleStage(): void {
+    const open = !this.stageOpen();
+    this.stageOpen.set(open);
+    if (open) {
+      // The dialog lives inside @if, so the view query resolves only after the
+      // next change-detection pass. Opening it before then is a no-op.
+      setTimeout(() => {
+        if (this.stageOpen()) this.syncStageDialog(true);
+      }, 0);
+    } else {
+      this.syncStageDialog(false);
+    }
+    this.haptic.medium();
+  }
+
+  onStageClosed(): void {
+    this.stageOpen.set(false);
+  }
+
+  /**
+   * A native modal dialog is the only reliable way to escape both the
+   * Performance shell's fixed height and its overflow clip. The stage must sit
+   * in the browser's top layer, above the studio transport and mobile dock.
+   */
+  private syncStageDialog(open: boolean): void {
+    const dialog = this.stageDialogRef?.nativeElement;
+    if (!dialog) return;
+    if (open) {
+      if (typeof dialog.showModal === "function" && !dialog.open) {
+        dialog.showModal();
+      } else {
+        dialog.setAttribute("open", "");
+      }
+    } else if (typeof dialog.close === "function" && dialog.open) {
+      dialog.close();
+    } else {
+      dialog.removeAttribute("open");
+    }
+  }
+
   midiNoteName(note: number): string {
     const names = [
       "C",
@@ -290,6 +338,8 @@ export class PerformanceModeComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     if (this.learnTimeout) clearTimeout(this.learnTimeout);
+    const dialog = this.stageDialogRef?.nativeElement;
+    if (dialog?.open && typeof dialog.close === "function") dialog.close();
     // This component is hosted persistently in the studio, so this is a safety net.
   }
 }
