@@ -55,6 +55,32 @@ describe("VisualStageComponent", () => {
     expect(component.gestureLabel()).toBe("Spinning");
   });
 
+  it("rejects non-GLB files with guidance before loading", async () => {
+    const file = new File([new Uint8Array([1, 2, 3])], "performer.gltf", {
+      type: "model/gltf+json",
+    });
+
+    await component.importCharacter(file);
+
+    expect(component.importedCharacter()).toBe(false);
+    expect(component.characterError()).toBe(true);
+    expect(component.characterStatus()).toContain(".glb");
+  });
+
+  it("rejects an empty GLB and restores the built-in performer state", async () => {
+    await component.importCharacter(
+      new File([], "empty.glb", { type: "model/gltf-binary" }),
+    );
+    expect(component.characterError()).toBe(true);
+    expect(component.characterStatus()).toContain("empty");
+
+    component.restoreBuiltIn();
+    expect(component.importedCharacter()).toBe(false);
+    expect(component.characterLoading()).toBe(false);
+    expect(component.characterName()).toBe("");
+    expect(component.characterStatus()).toBe("BUILT-IN PERFORMER");
+  });
+
   it("emits dismiss only in the dismissible full-screen presentation", () => {
     const dismiss = jest.spyOn(component.dismiss, "emit");
 

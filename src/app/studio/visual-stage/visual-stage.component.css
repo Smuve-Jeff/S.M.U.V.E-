@@ -358,6 +358,71 @@
   text-shadow: 0 0 10px rgba(101, 244, 255, 0.7);
 }
 
+.stage-model strong {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stage-control:disabled {
+  opacity: 0.5;
+  cursor: progress;
+}
+
+.stage-file-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.stage-toast {
+  position: absolute;
+  z-index: 6;
+  left: 50%;
+  bottom: 104px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  max-width: calc(100% - 28px);
+  margin: 0;
+  padding: 7px 10px;
+  border: 1px solid rgba(101, 244, 255, 0.28);
+  border-radius: 999px;
+  color: rgba(229, 254, 255, 0.86);
+  background: rgba(5, 14, 22, 0.86);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-align: center;
+  transform: translateX(-50%);
+  pointer-events: none;
+  backdrop-filter: blur(12px);
+}
+
+.stage-toast-dot {
+  flex: none;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #65f4ff;
+  box-shadow: 0 0 8px rgba(101, 244, 255, 0.8);
+}
+
+.stage-toast.is-error {
+  border-color: rgba(255, 79, 216, 0.48);
+  color: #ffc4f4;
+}
+
+.stage-toast.is-error .stage-toast-dot {
+  background: #ff4fd8;
+  box-shadow: 0 0 8px rgba(255, 79, 216, 0.8);
+}
+
 .stage-reset {
   justify-content: flex-start;
   gap: 7px;
@@ -603,6 +668,12 @@
     left: 9px;
     bottom: 12px;
     font-size: 6px;
+  }
+
+  .stage-toast {
+    bottom: 92px;
+    padding: 6px 8px;
+    font-size: 7px;
   }
 }
 

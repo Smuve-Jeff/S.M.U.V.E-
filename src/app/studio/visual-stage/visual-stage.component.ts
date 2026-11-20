@@ -39,6 +39,9 @@ type PointLight = import("three").PointLight;
 type Raycaster = import("three").Raycaster;
 type Vector2 = import("three").Vector2;
 type BufferAttribute = import("three").BufferAttribute;
+type AnimationAction = import("three").AnimationAction;
+type AnimationMixer = import("three").AnimationMixer;
+type Gltf = import("three/examples/jsm/loaders/GLTFLoader.js").GLTF;
 
 export type StageMood = "groove" | "hype" | "chill";
 export type StagePalette = "teal" | "violet" | "ember";
@@ -114,6 +117,19 @@ const GESTURE_LABELS: Record<StageMove, string> = {
   jump: "Jumping",
 };
 
+const MAX_CHARACTER_BYTES = 30 * 1024 * 1024;
+const CHARACTER_HEIGHT = 2.65;
+
+/** Clip names vary between exporters; match the intent, not one exact name. */
+const MOVE_CLIP_PATTERNS: Record<StageMove, RegExp> = {
+  wave: /wave|greet|hello|salute|bye/i,
+  point: /point|aim|direct|instruct/i,
+  spin: /spin|twirl|turn|dance/i,
+  jump: /jump|hop|leap/i,
+};
+
+const IDLE_CLIP_PATTERN = /idle|breath|loop|dance|groove|sway|standing/i;
+
 interface Gesture {
   type: StageMove;
   start: number;
@@ -176,8 +192,16 @@ export class VisualStageComponent implements AfterViewInit, OnDestroy {
   readonly energyPct = signal(0);
   readonly beatPct = signal(0);
   readonly lastGesture = signal<StageMove | null>(null);
+  readonly importedCharacter = signal(false);
+  readonly characterName = signal("");
+  readonly characterStatus = signal("");
+  readonly characterError = signal(false);
+  readonly characterLoading = signal(false);
   readonly moodLabel = computed(() => MOOD_LABELS[this.mood()]);
   readonly paletteLabel = computed(() => PALETTE_LABELS[this.palette()]);
+  readonly modelLabel = computed(() =>
+    this.importedCharacter() ? "CUSTOM" : "IMPORT GLB",
+  );
   readonly gestureLabel = computed(() => {
     const gesture = this.lastGesture();
     return gesture ? GESTURE_LABELS[gesture] : "Ready";
@@ -254,6 +278,15 @@ export class VisualStageComponent implements AfterViewInit, OnDestroy {
   private raycaster: Raycaster | null = null;
   private pointerNdc: Vector2 | null = null;
 
+  private importedWrapper: Group | null = null;
+  private importedModel: Object3D | null = null;
+  private mixer: AnimationMixer | null = null;
+  private idleAction: AnimationAction | null = null;
+  private gestureAction: AnimationAction | null = null;
+  private readonly moveActions = new Map<StageMove, AnimationAction>();
+  private importToken = 0;
+  private characterStatusTimer: ReturnType<typeof setTimeout> | null = null;
+
   private readonly orbit = { azimuth: 0.34, polar: 1.33, radius: 7.2 };
   private readonly smoothOrbit = { azimuth: 0.34, polar: 1.33, radius: 7.2 };
   private readonly pointers = new Map<number, { x: number; y: number }>();
@@ -274,6 +307,9 @@ export class VisualStageComponent implements AfterViewInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.destroyed = true;
+    this.importToken += 1;
+    if (this.characterStatusTimer) clearTimeout(this.characterStatusTimer);
+    this.removeImportedModel();
     if (this.frameId) cancelAnimationFrame(this.frameId);
     this.resizeObserver?.disconnect();
     this.intersectionObserver?.disconnect();
@@ -318,6 +354,86 @@ export class VisualStageComponent implements AfterViewInit, OnDestroy {
     this.dragPointer = null;
   }
 
+  onCharacterFile(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = "";
+    if (file) void this.importCharacter(file);
+  }
+
+  async importCharacter(file: File): Promise<void> {
+    const isGlb =
+      file.name.toLowerCase().endsWith(".glb") ||
+      file.type === "model/gltf-binary";
+    if (!isGlb) {
+      this.setCharacterStatus(
+        "Choose a .glb file. A .gltf file often needs external textures and buffers.",
+        true,
+      );
+      return;
+    }
+    if (file.size === 0) {
+      this.setCharacterStatus("That GLB is empty.", true);
+      return;
+    }
+    if (file.size > MAX_CHARACTER_BYTES) {
+      this.setCharacterStatus(
+        "That GLB is larger than 30 MB. Compress the model or remove unused textures.",
+        true,
+      );
+      return;
+    }
+    if (!this.ready() || !this.avatar) {
+      this.setCharacterStatus(
+        "The 3D stage is unavailable, so the character cannot be mounted.",
+        true,
+      );
+      return;
+    }
+
+    const token = ++this.importToken;
+    this.characterLoading.set(true);
+    this.setCharacterStatus("IMPORTING CHARACTER…", false, false);
+
+    try {
+      const buffer = await file.arrayBuffer();
+      if (token !== this.importToken || this.destroyed) return;
+      const { GLTFLoader } =
+        await import("three/examples/jsm/loaders/GLTFLoader.js");
+      if (token !== this.importToken || this.destroyed) return;
+      const gltf = await new Promise<Gltf>((resolve, reject) => {
+        new GLTFLoader().parse(buffer, "", resolve, reject);
+      });
+      if (token !== this.importToken || this.destroyed) {
+        this.disposeObject(gltf.scene);
+        return;
+      }
+      this.mountCharacter(gltf, file.name);
+    } catch (error) {
+      if (token !== this.importToken || this.destroyed) return;
+      const message = error instanceof Error ? error.message : "";
+      this.setCharacterStatus(
+        /draco|meshopt/i.test(message)
+          ? "This GLB uses compression. Export an uncompressed GLB, then try again."
+          : "Could not read that GLB. Try a rigged, uncompressed .glb file.",
+        true,
+      );
+    } finally {
+      if (token === this.importToken) this.characterLoading.set(false);
+    }
+  }
+
+  restoreBuiltIn(): void {
+    this.importToken += 1;
+    this.characterLoading.set(false);
+    this.removeImportedModel();
+    this.importedCharacter.set(false);
+    this.characterName.set("");
+    this.lastGesture.set(null);
+    this.gesture = null;
+    this.setCharacterStatus("BUILT-IN PERFORMER");
+  }
+
   triggerMove(move?: StageMove): void {
     const type =
       move ?? MOVES[Math.floor(Math.random() * MOVES.length)]?.id ?? "wave";
@@ -333,6 +449,7 @@ export class VisualStageComponent implements AfterViewInit, OnDestroy {
       duration: durations[type],
     };
     this.lastGesture.set(type);
+    this.playCharacterMove(type);
   }
 
   onPointerDown(event: PointerEvent): void {
@@ -954,6 +1071,267 @@ export class VisualStageComponent implements AfterViewInit, OnDestroy {
     };
   }
 
+  private mountCharacter(gltf: Gltf, fileName: string): void {
+    const three = this.three;
+    const avatar = this.avatar;
+    if (!three || !avatar) {
+      this.disposeObject(gltf.scene);
+      throw new Error("The stage has no character slot.");
+    }
+
+    this.removeImportedModel();
+
+    try {
+      const model = gltf.scene;
+      model.updateMatrixWorld(true);
+      const bounds = new three.Box3().setFromObject(model);
+      const size = bounds.getSize(new three.Vector3());
+      if (!Number.isFinite(size.y) || size.y < 0.001) {
+        throw new Error("The GLB has no visible geometry.");
+      }
+
+      // glTF exporters use centimetres, metres and everything between. Fit the
+      // character to the stage's performer slot rather than guessing a scale.
+      model.scale.multiplyScalar(CHARACTER_HEIGHT / size.y);
+      model.updateMatrixWorld(true);
+      bounds.setFromObject(model);
+      const centre = bounds.getCenter(new three.Vector3());
+      model.position.x -= centre.x;
+      model.position.z -= centre.z;
+      model.position.y -= bounds.min.y;
+      model.traverse((child) => {
+        child.frustumCulled = false;
+      });
+
+      const wrapper = new three.Group();
+      wrapper.name = "imported-performer";
+      wrapper.add(model);
+      avatar.add(wrapper);
+      this.importedWrapper = wrapper;
+      this.importedModel = model;
+
+      const clipCount = this.setupCharacterAnimations(gltf);
+      if (this.joints) this.joints.hips.visible = false;
+      this.importedCharacter.set(true);
+      const name = fileName.replace(/\.glb$/i, "");
+      this.characterName.set(name);
+      this.lastGesture.set(null);
+      this.gesture = null;
+      this.setCharacterStatus(
+        clipCount > 0
+          ? `${name} · ${clipCount} CLIPS`
+          : `${name} · STATIC MODEL`,
+      );
+    } catch (error) {
+      this.removeImportedModel();
+      throw error;
+    }
+  }
+
+  private setupCharacterAnimations(gltf: Gltf): number {
+    const three = this.three;
+    const clips = gltf.animations ?? [];
+    if (!three || clips.length === 0) return 0;
+
+    const mixer = new three.AnimationMixer(gltf.scene);
+    this.mixer = mixer;
+    const used = new Set<AnimationAction>();
+
+    const idleClip = clips.find((clip) => IDLE_CLIP_PATTERN.test(clip.name));
+    if (idleClip) {
+      this.idleAction = mixer.clipAction(idleClip);
+      this.idleAction.setLoop(three.LoopRepeat, Infinity).play();
+      used.add(this.idleAction);
+    }
+
+    for (const clip of clips) {
+      const action = mixer.clipAction(clip);
+      if (used.has(action)) continue;
+      const move = (
+        Object.entries(MOVE_CLIP_PATTERNS) as [StageMove, RegExp][]
+      ).find(([type, pattern]) => {
+        return !this.moveActions.has(type) && pattern.test(clip.name);
+      })?.[0];
+      if (move) {
+        this.moveActions.set(move, action);
+        used.add(action);
+      }
+    }
+
+    if (!this.idleAction) {
+      const ambient = clips
+        .map((clip) => mixer.clipAction(clip))
+        .find((action) => !used.has(action));
+      if (ambient) {
+        this.idleAction = ambient;
+        ambient.setLoop(three.LoopRepeat, Infinity).play();
+        used.add(ambient);
+      }
+    }
+
+    mixer.addEventListener("finished", (event) => {
+      const finished = (event as { action?: AnimationAction }).action;
+      if (!finished || finished !== this.gestureAction) return;
+      this.gestureAction = null;
+      this.gesture = null;
+      this.idleAction?.reset().fadeIn(0.25).play();
+    });
+
+    return used.size;
+  }
+
+  private playCharacterMove(type: StageMove): void {
+    const action = this.moveActions.get(type);
+    if (!action || !this.three) return;
+
+    if (this.gestureAction && this.gestureAction !== action) {
+      this.gestureAction.fadeOut(0.1);
+    }
+    if (this.idleAction && this.idleAction !== action) {
+      this.idleAction.fadeOut(0.15);
+    }
+    action.reset();
+    action.setLoop(this.three.LoopOnce, 1);
+    action.clampWhenFinished = true;
+    action.setEffectiveTimeScale(1);
+    action.setEffectiveWeight(1);
+    action.fadeIn(this.reducedMotion ? 0 : 0.12).play();
+    this.gestureAction = action;
+  }
+
+  private animateImported(delta: number): void {
+    const wrapper = this.importedWrapper;
+    if (!wrapper) return;
+
+    this.mixer?.update(delta);
+    wrapper.position.set(0, 0, 0);
+    wrapper.rotation.set(0, 0, 0);
+
+    const energy = this.visualEnergy;
+    const pulse = this.pulse;
+    const beat = this.beatClock;
+
+    if (this.gestureAction) {
+      wrapper.position.y = pulse * 0.012;
+      return;
+    }
+
+    if (!this.reducedMotion) {
+      wrapper.position.y =
+        Math.abs(Math.sin(beat * Math.PI)) * (0.01 + energy * 0.035);
+      wrapper.rotation.y =
+        Math.sin(beat * Math.PI * 0.5) * (0.018 + energy * 0.02);
+    }
+
+    if (!this.gesture) return;
+    const progress =
+      (this.elapsed - this.gesture.start) / this.gesture.duration;
+    if (progress >= 1) {
+      this.gesture = null;
+      return;
+    }
+    this.applyImportedGesture(progress);
+  }
+
+  private applyImportedGesture(progress: number): void {
+    const wrapper = this.importedWrapper;
+    const gesture = this.gesture;
+    if (!wrapper || !gesture) return;
+    const envelope = Math.sin(Math.min(1, progress) * Math.PI);
+
+    switch (gesture.type) {
+      case "wave":
+        wrapper.rotation.z =
+          Math.sin(progress * Math.PI * 12) * 0.07 * envelope;
+        wrapper.rotation.x = -0.04 * envelope;
+        break;
+      case "point":
+        wrapper.rotation.y = 0.42 * envelope;
+        wrapper.rotation.x = -0.08 * envelope;
+        break;
+      case "spin":
+        wrapper.rotation.y = progress * Math.PI * 2;
+        break;
+      case "jump":
+        wrapper.position.y += Math.sin(progress * Math.PI) * 0.42;
+        break;
+      default:
+        break;
+    }
+  }
+
+  private removeImportedModel(): void {
+    if (this.mixer) {
+      this.mixer.stopAllAction();
+      if (this.importedModel) this.mixer.uncacheRoot(this.importedModel);
+      this.mixer = null;
+    }
+    this.idleAction = null;
+    this.gestureAction = null;
+    this.moveActions.clear();
+
+    if (this.importedWrapper) {
+      this.avatar?.remove(this.importedWrapper);
+      this.disposeObject(this.importedWrapper);
+    }
+    this.importedWrapper = null;
+    this.importedModel = null;
+    if (this.joints) this.joints.hips.visible = true;
+  }
+
+  private disposeObject(root: Object3D): void {
+    root.traverse((child) => {
+      const renderable = child as unknown as {
+        geometry?: { dispose?: () => void };
+        material?: import("three").Material | import("three").Material[];
+      };
+      renderable.geometry?.dispose?.();
+      if (!renderable.material) return;
+      const materials = Array.isArray(renderable.material)
+        ? renderable.material
+        : [renderable.material];
+      for (const material of materials) {
+        if (!material) continue;
+        const textures = material as unknown as Record<
+          string,
+          import("three").Texture | null | undefined
+        >;
+        for (const key of [
+          "map",
+          "normalMap",
+          "roughnessMap",
+          "metalnessMap",
+          "emissiveMap",
+          "alphaMap",
+          "aoMap",
+          "envMap",
+        ]) {
+          textures[key]?.dispose();
+        }
+        material.dispose();
+      }
+    });
+  }
+
+  private setCharacterStatus(
+    message: string,
+    error = false,
+    autoHide = !error,
+  ): void {
+    if (this.characterStatusTimer) {
+      clearTimeout(this.characterStatusTimer);
+      this.characterStatusTimer = null;
+    }
+    this.characterError.set(error);
+    this.characterStatus.set(message);
+    if (!autoHide) return;
+    this.characterStatusTimer = setTimeout(() => {
+      this.characterStatus.set("");
+      this.characterError.set(false);
+      this.characterStatusTimer = null;
+    }, 4500);
+  }
+
   private buildSpectrum(THREE: ThreeModule): void {
     const scene = this.scene!;
     const palette = PALETTES[this.palette()];
@@ -1138,6 +1516,7 @@ export class VisualStageComponent implements AfterViewInit, OnDestroy {
     this.readAudio(delta);
     this.updateOrbit(delta);
     this.animateAvatar(delta);
+    this.animateImported(delta);
     this.updateSpectrum();
     this.updateWaveforms();
     this.updateParticles(delta);
@@ -1522,7 +1901,8 @@ export class VisualStageComponent implements AfterViewInit, OnDestroy {
       -((event.clientY - rect.top) / rect.height) * 2 + 1,
     );
     this.raycaster.setFromCamera(this.pointerNdc, this.camera);
-    const hit = this.raycaster.intersectObject(this.avatar, true);
+    const target = this.importedWrapper ?? this.avatar;
+    const hit = this.raycaster.intersectObject(target, true);
     if (hit.length > 0) {
       this.triggerMove();
     }
