@@ -148,6 +148,19 @@ describe("AudioImportService (stretch engine)", () => {
     expect(seconds).toBeGreaterThan(10);
   });
 
+  it("falls back to the size estimate when a WAV header is malformed", async () => {
+    // No RIFF/WAVE tags or byte rate: this must not be mistaken for a valid
+    // header, and the conservative stereo PCM assumption keeps the import.
+    const file = new File([new Uint8Array(384_000)], "broken.wav", {
+      type: "audio/wav",
+    });
+
+    const seconds = await (service as any).estimateDurationFromFile(file);
+
+    expect(seconds).toBeCloseTo(file.size / 192_000, 5);
+    expect(seconds).toBeCloseTo(2, 3);
+  });
+
   it("should time-stretch a buffer by 2x (slower)", () => {
     const buf = makeBuffer(service.audioEngine.ctx, 44100);
     const out = service.stretchBuffer(buf, 2);
