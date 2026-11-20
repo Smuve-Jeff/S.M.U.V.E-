@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { readFile } from 'node:fs/promises';
 import { seedAuthenticatedSession } from './helpers';
 
 /**
@@ -76,19 +77,31 @@ const readEngine = (page: Page) =>
  * generated PNG. That keeps the test on the shipped code path rather than on a
  * test-only back door.
  */
-const ingestStill = async (page: Page, name = 'engine-room.png') => {
-  const dataUrl = await page.evaluate(() => {
+const ingestStill = async (
+  page: Page,
+  name = 'engine-room.png',
+  transparent = false,
+) => {
+  const dataUrl = await page.evaluate((clear: boolean) => {
     const canvas = document.createElement('canvas');
     canvas.width = 320;
     canvas.height = 180;
     const ctx = canvas.getContext('2d')!;
-    const gradient = ctx.createLinearGradient(0, 0, 320, 180);
-    gradient.addColorStop(0, '#10b981');
-    gradient.addColorStop(1, '#0f172a');
-    ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, 320, 180);
+    if (clear) {
+      // Transparent media: only the marker is opaque, so the rest of the clip
+      // layer stays alpha=0 until the CGI pass composites on top of it.
+      ctx.clearRect(0, 0, 320, 180);
+      ctx.fillStyle = '#ff00ff';
+      ctx.fillRect(20, 100, 70, 60);
+    } else {
+      const gradient = ctx.createLinearGradient(0, 0, 320, 180);
+      gradient.addColorStop(0, '#10b981');
+      gradient.addColorStop(1, '#0f172a');
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, 320, 180);
+    }
     return canvas.toDataURL('image/png');
-  });
+  }, transparent);
 
   await page.evaluate(
     ({ dataUrl, name }) => {
@@ -99,7 +112,7 @@ const ingestStill = async (page: Page, name = 'engine-room.png') => {
       const transfer = new DataTransfer();
       transfer.items.add(file);
       const input = document.querySelector(
-        'input[type="file"]'
+        'input[aria-label="Upload a video or image from this device"]'
       ) as HTMLInputElement | null;
       if (!input) throw new Error('no file input on the lab');
       input.files = transfer.files;
@@ -108,6 +121,107 @@ const ingestStill = async (page: Page, name = 'engine-room.png') => {
     { dataUrl, name }
   );
 };
+
+/** Export one short WebM through the component's real download path. */
+const exportCgiWebm = async (page: Page): Promise<Buffer> => {
+  const downloading = page.waitForEvent('download', { timeout: 120_000 });
+  await page.evaluate(() => {
+    const host = document.querySelector('app-image-video-lab') as any;
+    const component = (window as any).ng?.getComponent?.(host);
+    void component.exportVideo();
+  });
+  const download = await downloading;
+  const failure = await download.failure();
+  if (failure) throw new Error(`CGI export download failed: ${failure}`);
+  const path = await download.path();
+  if (!path) throw new Error('CGI export did not produce a local file');
+  await expect
+    .poll(
+      () =>
+        page.evaluate(() => {
+          const host = document.querySelector('app-image-video-lab') as any;
+          return (window as any).ng?.getComponent?.(host)?.isExporting?.();
+        }),
+      { timeout: 120_000 },
+    )
+    .toBe(false);
+  return readFile(path);
+};
+
+/**
+ * Decode the same instant from two exported masters and compare their pixels.
+ * The control is a muted-halo export, so lighting and compression noise are
+ * shared and only the halo contribution remains.
+ */
+const compareExportFrames = (
+  page: Page,
+  enabled: Buffer,
+  muted: Buffer,
+) =>
+  page.evaluate(
+    async ({ halo, plain }: { halo: string; plain: string }) => {
+      const loadFrame = async (encoded: string) => {
+        const video = document.createElement('video');
+        video.muted = true;
+        video.src = `data:video/webm;base64,${encoded}`;
+        await new Promise<void>((resolve, reject) => {
+          video.onloadeddata = () => resolve();
+          video.onerror = () => reject(new Error('exported video did not decode'));
+        });
+        // Sample after the clip's fade-in edge so the media marker is at full
+        // strength; the halo and the object are deterministic at any slot.
+        video.currentTime = 0.8;
+        await new Promise<void>((resolve) => {
+          video.onseeked = () => resolve();
+        });
+        const canvas = document.createElement('canvas');
+        canvas.width = 640;
+        canvas.height = 360;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) throw new Error('no 2d context for the exported frame');
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        return {
+          width: video.videoWidth,
+          height: video.videoHeight,
+          pixels: ctx.getImageData(0, 0, canvas.width, canvas.height).data,
+        };
+      };
+
+      const withHalo = await loadFrame(halo);
+      const withoutHalo = await loadFrame(plain);
+      let changed = 0;
+      let brighter = 0;
+      let maxDelta = 0;
+      let magenta = 0;
+      for (let index = 0; index < withHalo.pixels.length; index += 4) {
+        const red = withHalo.pixels[index];
+        const green = withHalo.pixels[index + 1];
+        const blue = withHalo.pixels[index + 2];
+        const dr = red - withoutHalo.pixels[index];
+        const dg = green - withoutHalo.pixels[index + 1];
+        const db = blue - withoutHalo.pixels[index + 2];
+        const delta = Math.max(Math.abs(dr), Math.abs(dg), Math.abs(db));
+        if (delta > 8) changed += 1;
+        if (dr + dg + db > 18) brighter += 1;
+        if (red > 140 && blue > 140 && green < 100) magenta += 1;
+        maxDelta = Math.max(maxDelta, delta);
+      }
+      return {
+        width: withHalo.width,
+        height: withHalo.height,
+        changed,
+        brighter,
+        maxDelta,
+        magenta,
+        corner: [
+          withHalo.pixels[0],
+          withHalo.pixels[1],
+          withHalo.pixels[2],
+        ],
+      };
+    },
+    { halo: enabled.toString('base64'), plain: muted.toString('base64') },
+  );
 
 test.beforeEach(async ({ page }) => {
   await seedAuthenticatedSession(page);
@@ -727,6 +841,98 @@ test('keeps a full 12-object CGI scene within the frame budget', async ({
   // Headless Chromium rasterizes this in software; keep a wide guard for the
   // 12-object, 720p path without pretending it measures hardware GPUs.
   expect(timing?.averageMs).toBeLessThan(250);
+});
+
+test('exports the CGI halo over transparent media', async ({ page }) => {
+  test.setTimeout(180_000);
+  await page.goto('/image-video-lab');
+  await expect(page.locator('.project-console')).toBeVisible({
+    timeout: 60_000,
+  });
+  await page.getByRole('button', { name: 'ADD CGI LAYER' }).click();
+  await page
+    .getByRole('group', { name: 'CGI scene finishes' })
+    .getByRole('button', { name: 'Neon', exact: true })
+    .click();
+  await page.evaluate(() => {
+    const host = document.querySelector('app-image-video-lab') as any;
+    const component = (window as any).ng?.getComponent?.(host);
+    component.exportWindow.set(1);
+    component.exportFps.set(6);
+    component.exportCodec.set('webm');
+    component.exportScale.set('1080p');
+  });
+
+  // Delivery masters are intentionally opaque (`paintFrame` fills #020617),
+  // so the alpha contract that matters is the transparent CGI layer used during
+  // compositing: outside the sprite it must stay alpha=0 rather than becoming a
+  // black quad over the media underneath it.
+  const layerAlpha = await page.evaluate(() => {
+    const host = document.querySelector('app-image-video-lab') as any;
+    const component = (window as any).ng?.getComponent?.(host);
+    const canvas = component.cgiRenderer.render(
+      component.selectedCgiScene(),
+      480,
+      270,
+      0,
+      8,
+    ) as HTMLCanvasElement | null;
+    const gl = canvas?.getContext('webgl2') || canvas?.getContext('webgl');
+    if (!canvas || !gl) return null;
+    const pixels = new Uint8Array(canvas.width * canvas.height * 4);
+    gl.readPixels(
+      0,
+      0,
+      canvas.width,
+      canvas.height,
+      gl.RGBA,
+      gl.UNSIGNED_BYTE,
+      pixels,
+    );
+    let opaquePixels = 0;
+    for (let index = 3; index < pixels.length; index += 4) {
+      if (pixels[index] > 0) opaquePixels += 1;
+    }
+    return {
+      cornerAlpha: pixels[3],
+      opaquePixels,
+      totalPixels: canvas.width * canvas.height,
+    };
+  });
+  expect(layerAlpha).not.toBeNull();
+  expect(layerAlpha?.cornerAlpha).toBe(0);
+  expect(layerAlpha?.opaquePixels).toBeGreaterThan(100);
+
+  await ingestStill(page, 'transparent-alpha.png', true);
+  await expect
+    .poll(async () => (await readEngine(page))?.clipCount)
+    .toBe(2);
+  await page.waitForTimeout(400);
+
+  const withHalo = await exportCgiWebm(page);
+  await page
+    .getByRole('button', { name: 'Bloom halo for Chrome Torus' })
+    .click();
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const host = document.querySelector('app-image-video-lab') as any;
+        return (window as any).ng?.getComponent?.(host)?.selectedCgiScene?.()
+          ?.objects?.[0]?.bloom;
+      }),
+    )
+    .toBe(false);
+  const muted = await exportCgiWebm(page);
+
+  const stats = await compareExportFrames(page, withHalo, muted);
+  expect(stats.width).toBeGreaterThan(1000);
+  expect(stats.magenta).toBeGreaterThan(100);
+  expect(stats.corner[0] + stats.corner[1] + stats.corner[2]).toBeLessThan(80);
+  expect(stats.changed).toBeGreaterThan(500);
+  expect(stats.brighter).toBeGreaterThan(300);
+
+  expect(withHalo.length).toBeGreaterThan(1000);
+  expect(muted.length).toBeGreaterThan(1000);
 });
 
 test('keeps the CGI finish strip visually stable', async ({ page }) => {
