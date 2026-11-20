@@ -167,6 +167,12 @@ describe('CGI scene data', () => {
     expect(sanitizeCgiScene({ bloom: false })?.bloom).toBe(false);
     expect(sanitizeCgiScene({ bloom: true })?.bloom).toBeUndefined();
     expect(
+      sanitizeCgiScene({ bloomStrength: 4, bloomRadius: 0 }),
+    ).toMatchObject({ bloomStrength: 2, bloomRadius: 0.25 });
+    expect(
+      sanitizeCgiScene({ bloomStrength: 0.6, bloomRadius: 1.4 }),
+    ).toMatchObject({ bloomStrength: 0.6, bloomRadius: 1.4 });
+    expect(
       sanitizeCgiScene({
         objects: [
           {

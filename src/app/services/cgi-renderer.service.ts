@@ -226,12 +226,25 @@ export class CgiRendererService implements OnDestroy {
           settings.bloom === false
             ? 0
             : Math.max(0, resolved.emissive, modelFinish?.patch.emissive ?? 0);
-        glow.visible = glowAmount > 0.01;
+        const strength = Math.max(
+          0,
+          Math.min(2, settings.bloomStrength ?? 1),
+        );
+        const radius = Math.max(
+          0.25,
+          Math.min(2.5, settings.bloomRadius ?? 1),
+        );
+        glow.visible = glowAmount > 0.01 && strength > 0.001;
         if (glow.visible) {
           const glowMaterial = glow.material;
           glowMaterial.color.set(object.color);
-          glowMaterial.opacity = Math.min(0.85, 0.4 + glowAmount * 0.35);
-          glow.scale.setScalar(5.2 + Math.min(1.6, glowAmount * 0.5));
+          glowMaterial.opacity = Math.min(
+            0.95,
+            (0.4 + glowAmount * 0.35) * strength,
+          );
+          glow.scale.setScalar(
+            (5.2 + Math.min(1.6, glowAmount * 0.5)) * radius,
+          );
         }
       }
 

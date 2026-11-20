@@ -528,6 +528,46 @@ test('renders a neon bloom on the CGI program monitor', async ({ page }) => {
     'cgi-monitor-neon.png',
     { animations: 'disabled', maxDiffPixelRatio: 0.02 },
   );
+
+  for (const [label, value] of [
+    ['CGI bloom strength', '0.8'],
+    ['CGI bloom radius', '1.6'],
+  ]) {
+    await page
+      .getByRole('slider', { name: label })
+      .evaluate((input, next) => {
+        const range = input as HTMLInputElement;
+        range.value = next;
+        range.dispatchEvent(new Event('input', { bubbles: true }));
+      }, value);
+  }
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const host = document.querySelector('app-image-video-lab') as any;
+        const scene = (window as any).ng
+          ?.getComponent?.(host)
+          ?.selectedCgiScene?.();
+        return {
+          strength: scene?.bloomStrength,
+          radius: scene?.bloomRadius,
+        };
+      }),
+    )
+    .toEqual({ strength: 0.8, radius: 1.6 });
+
+  const tunedBloom = await page.evaluate(() => {
+    const host = document.querySelector('app-image-video-lab') as any;
+    const mesh = (window as any).ng?.getComponent?.(host)?.cgiRenderer
+      ?.objectRoot?.children?.[0];
+    const glow = mesh?.userData?.cgiGlow;
+    return {
+      opacity: glow?.material?.opacity ?? 0,
+      scale: glow?.scale?.x ?? 0,
+    };
+  });
+  expect(tunedBloom.opacity).toBeGreaterThan(0.4);
+  expect(tunedBloom.scale).toBeGreaterThan(7);
 });
 
 test('keeps the CGI finish strip visually stable', async ({ page }) => {

@@ -329,6 +329,17 @@ describe('CgiScenePanelComponent', () => {
     expect(emitted[1].objects[0].emissive).toBe(4);
   });
 
+  it('persists bloom strength and radius', () => {
+    const { component, emitted } = create(createDefaultCgiScene());
+
+    component.patch({ bloomStrength: 0.8, bloomRadius: 1.6 });
+
+    expect(emitted[0]).toMatchObject({
+      bloomStrength: 0.8,
+      bloomRadius: 1.6,
+    });
+  });
+
   it('clears the inherited scene finish', () => {
     const { component, emitted } = create(createDefaultCgiScene());
 

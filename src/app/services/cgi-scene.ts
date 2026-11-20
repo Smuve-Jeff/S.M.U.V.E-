@@ -114,6 +114,10 @@ export interface CgiSceneSettings {
   materialPreset?: CgiMaterialPresetId;
   /** Additive glow around emissive objects. Missing means enabled. */
   bloom?: boolean;
+  /** Bloom opacity multiplier, 0..2. Missing means 1. */
+  bloomStrength?: number;
+  /** Bloom halo size multiplier, 0.25..2.5. Missing means 1. */
+  bloomRadius?: number;
   cameraMove: CgiCameraMove;
   /** Camera distance from origin, in scene units. */
   cameraDistance: number;
@@ -767,6 +771,12 @@ export function sanitizeCgiScene(value: unknown): CgiSceneSettings | null {
       ? { materialPreset: raw.materialPreset }
       : {}),
     ...(raw.bloom === false ? { bloom: false } : {}),
+    ...(Number.isFinite(raw.bloomStrength)
+      ? { bloomStrength: num(raw.bloomStrength, 1, 0, 2) }
+      : {}),
+    ...(Number.isFinite(raw.bloomRadius)
+      ? { bloomRadius: num(raw.bloomRadius, 1, 0.25, 2.5) }
+      : {}),
     ...(timeOffset > 0 ? { timeOffset } : {}),
     ...(sequenceDuration > 0 ? { sequenceDuration } : {}),
     ...(animation ? { animation } : {}),
