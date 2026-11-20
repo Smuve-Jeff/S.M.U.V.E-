@@ -330,6 +330,9 @@ describe('CgiScenePanelComponent', () => {
 
     component.setObjectBloom('cgi-torus', false);
     expect(emitted[2].objects[0].bloom).toBe(false);
+
+    component.setObjectBloomStrength('cgi-torus', 9);
+    expect(emitted[3].objects[0].bloomStrength).toBe(2);
   });
 
   it('persists bloom strength and radius', () => {

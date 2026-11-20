@@ -54,6 +54,8 @@ export interface CgiObject {
   materialPreset?: CgiMaterialPresetId;
   /** Hide this object's bloom halo while keeping its emissive surface. */
   bloom?: boolean;
+  /** Per-object halo multiplier, 0..2. Missing means 1. */
+  bloomStrength?: number;
 }
 
 export type CgiAnimationChannel =
@@ -733,6 +735,9 @@ export function sanitizeCgiScene(value: unknown): CgiSceneSettings | null {
             roughness: num(candidate.roughness, 0.22, 0, 1),
             emissive: num(candidate.emissive, 0, 0, 4),
             ...(candidate.bloom === false ? { bloom: false } : {}),
+            ...(Number.isFinite(candidate.bloomStrength)
+              ? { bloomStrength: num(candidate.bloomStrength, 1, 0, 2) }
+              : {}),
             ...(candidate.kind === 'model' && isMaterialPreset(candidate.materialPreset)
               ? { materialPreset: candidate.materialPreset }
               : {}),

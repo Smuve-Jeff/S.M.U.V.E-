@@ -458,7 +458,7 @@ test('drives the CGI stage presets, camera controls and object inspector', async
     emissive: 0,
   });
 
-  await page.getByRole('checkbox', { name: 'BLOOM' }).click();
+  await page.getByRole('checkbox', { name: 'BLOOM', exact: true }).click();
   const bloomOff = await page.evaluate(() => {
     const host = document.querySelector('app-image-video-lab') as any;
     return (window as any).ng?.getComponent?.(host)?.selectedCgiScene?.()?.bloom;
@@ -577,10 +577,10 @@ test('renders a neon bloom on the CGI program monitor', async ({ page }) => {
     )
     .toBeGreaterThan(0.4);
 
-  await page.getByRole('button', { name: 'Edit Chrome Torus' }).click();
-  await page
-    .getByRole('checkbox', { name: 'Bloom halo for Chrome Torus' })
-    .uncheck();
+  const rowHalo = page.getByRole('button', {
+    name: 'Bloom halo for Chrome Torus',
+  });
+  await rowHalo.click();
   await expect
     .poll(() =>
       page.evaluate(() => {
@@ -590,7 +590,6 @@ test('renders a neon bloom on the CGI program monitor', async ({ page }) => {
       }),
     )
     .toBe(false);
-
   await expect
     .poll(() =>
       page.evaluate(() => {
@@ -601,7 +600,133 @@ test('renders a neon bloom on the CGI program monitor', async ({ page }) => {
       }),
     )
     .toBe(false);
-  await expect(page.locator('.cgi-object-muted')).toHaveText('NO HALO');
+  await expect(rowHalo).toHaveText('NO HALO');
+  await expect(rowHalo).toHaveAttribute('aria-pressed', 'false');
+
+  await rowHalo.click();
+  await expect(rowHalo).toHaveText('HALO');
+
+  await page.getByRole('button', { name: 'Edit Chrome Torus' }).click();
+  await page
+    .getByRole('slider', { name: 'CGI object bloom strength' })
+    .evaluate((input) => {
+      const range = input as HTMLInputElement;
+      range.value = '1.2';
+      range.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const host = document.querySelector('app-image-video-lab') as any;
+        return (window as any).ng?.getComponent?.(host)?.selectedCgiScene?.()
+          ?.objects?.[0]?.bloomStrength;
+      }),
+    )
+    .toBe(1.2);
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const host = document.querySelector('app-image-video-lab') as any;
+        const mesh = (window as any).ng?.getComponent?.(host)?.cgiRenderer
+          ?.objectRoot?.children?.[0];
+        return mesh?.userData?.cgiGlow?.material?.opacity ?? 0;
+      }),
+    )
+    .toBeGreaterThan(0.55);
+});
+
+test('keeps the CGI object list and inspector visually stable', async ({
+  page,
+}) => {
+  await page.goto('/image-video-lab');
+  await expect(page.locator('.project-console')).toBeVisible({
+    timeout: 60_000,
+  });
+  await page.addStyleTag({
+    content: 'app-smuve-advisor { display: none !important; }',
+  });
+  await page.getByRole('button', { name: 'ADD CGI LAYER' }).click();
+  await page.getByRole('button', { name: 'Edit Chrome Torus' }).click();
+  await page
+    .getByRole('slider', { name: 'CGI object bloom strength' })
+    .evaluate((input) => {
+      const range = input as HTMLInputElement;
+      range.value = '1.2';
+      range.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+  await page.mouse.move(0, 0);
+  await expect(page.locator('.cgi-object-editor')).toHaveScreenshot(
+    'cgi-object-inspector.png',
+    { animations: 'disabled', maxDiffPixelRatio: 0.01 },
+  );
+
+  await page
+    .getByRole('button', { name: 'Bloom halo for Chrome Torus' })
+    .click();
+  await page.mouse.move(0, 0);
+  await expect(page.locator('.cgi-objects')).toHaveScreenshot(
+    'cgi-object-list.png',
+    { animations: 'disabled', maxDiffPixelRatio: 0.01 },
+  );
+});
+
+test('keeps a full 12-object CGI scene within the frame budget', async ({
+  page,
+}) => {
+  await page.goto('/image-video-lab');
+  await expect(page.locator('.project-console')).toBeVisible({
+    timeout: 60_000,
+  });
+  await page.getByRole('button', { name: 'ADD CGI LAYER' }).click();
+  for (let index = 1; index < 12; index += 1) {
+    await page.getByRole('button', { name: 'ADD OBJECT' }).click();
+  }
+  await expect(page.getByRole('button', { name: 'Remove CGI object' })).toHaveCount(
+    12,
+  );
+  await page
+    .getByRole('group', { name: 'CGI scene finishes' })
+    .getByRole('button', { name: 'Neon', exact: true })
+    .click();
+
+  const timing = await page.evaluate(() => {
+    const host = document.querySelector('app-image-video-lab') as any;
+    const component = (window as any).ng?.getComponent?.(host);
+    const renderer = component?.cgiRenderer;
+    const scene = component?.selectedCgiScene?.();
+    if (!renderer || !scene) return null;
+    const gl = renderer.renderer?.getContext?.();
+    const syncGpu = () => {
+      if (!gl) return;
+      gl.finish();
+      const pixel = new Uint8Array(4);
+      gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixel);
+    };
+    for (let index = 0; index < 2; index += 1) {
+      renderer.render(scene, 1280, 720, index / 10, 10);
+      syncGpu();
+    }
+    const frames = 12;
+    const started = performance.now();
+    let drawn = 0;
+    for (let index = 0; index < frames; index += 1) {
+      if (renderer.render(scene, 1280, 720, index / 10, 10)) drawn += 1;
+      syncGpu();
+    }
+    return {
+      objects: scene.objects.length,
+      drawn,
+      averageMs: (performance.now() - started) / frames,
+      status: renderer.status(),
+    };
+  });
+  console.log('CGI 12-object frame timing', timing);
+  expect(timing?.objects).toBe(12);
+  expect(timing?.drawn).toBe(12);
+  expect(timing?.status).toBe('ready');
+  // Headless Chromium rasterizes this in software; keep a wide guard for the
+  // 12-object, 720p path without pretending it measures hardware GPUs.
+  expect(timing?.averageMs).toBeLessThan(250);
 });
 
 test('keeps the CGI finish strip visually stable', async ({ page }) => {

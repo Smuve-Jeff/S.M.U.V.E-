@@ -253,15 +253,29 @@
   letter-spacing: 0.1em;
 }
 
-.cgi-object-muted {
+.cgi-object-halo {
   padding: 0.08rem 0.24rem;
-  border: 1px solid rgba(251, 191, 36, 0.34);
+  border: 1px solid rgba(56, 189, 248, 0.24);
   border-radius: 999px;
-  background: rgba(251, 191, 36, 0.1);
-  color: #fbbf24;
+  background: rgba(56, 189, 248, 0.08);
+  color: #7dd3fc;
   font-size: 0.44rem;
+  font-weight: 900;
   letter-spacing: 0.08em;
   white-space: nowrap;
+  cursor: pointer;
+}
+
+.cgi-object-halo:hover {
+  border-color: rgba(125, 211, 252, 0.7);
+  background: rgba(56, 189, 248, 0.16);
+  color: #e0f2fe;
+}
+
+.cgi-object-halo.muted {
+  border-color: rgba(251, 191, 36, 0.34);
+  background: rgba(251, 191, 36, 0.1);
+  color: #fbbf24;
 }
 
 .cgi-object input[type='color'] {
@@ -285,6 +299,13 @@
 .cgi-object-remove:hover {
   background: rgba(248, 113, 113, 0.18);
   color: #fca5a5;
+}
+
+.cgi-halo-editor {
+  display: grid;
+  gap: 0.35rem;
+  padding-top: 0.15rem;
+  border-top: 1px solid rgba(148, 163, 184, 0.12);
 }
 
 .cgi-object-editor {

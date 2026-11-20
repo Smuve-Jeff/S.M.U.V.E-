@@ -226,10 +226,15 @@ export class CgiRendererService implements OnDestroy {
           settings.bloom === false
             ? 0
             : Math.max(0, resolved.emissive, modelFinish?.patch.emissive ?? 0);
-        const strength = Math.max(
+        const sceneStrength = Math.max(
           0,
           Math.min(2, settings.bloomStrength ?? 1),
         );
+        const objectStrength = Math.max(
+          0,
+          Math.min(2, object.bloomStrength ?? 1),
+        );
+        const strength = Math.min(2, sceneStrength * objectStrength);
         const radius = Math.max(
           0.25,
           Math.min(2.5, settings.bloomRadius ?? 1),

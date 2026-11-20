@@ -292,6 +292,14 @@ export class CgiScenePanelComponent {
     this.patchObject(id, { bloom: enabled });
   }
 
+  setObjectBloomStrength(id: string, value: number | string): void {
+    const object = this.scene()?.objects.find((entry) => entry.id === id);
+    if (!object) return;
+    this.patchObject(id, {
+      bloomStrength: this.clamp(value, 0, 2, object.bloomStrength ?? 1),
+    });
+  }
+
   applyMaterialPreset(objectId: string, presetId: string): void {
     const scene = this.scene();
     if (!scene) return;

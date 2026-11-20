@@ -396,17 +396,24 @@
                 (ngModelChange)="setObjectColor(object.id, $event)"
                 [attr.aria-label]="'Colour for ' + object.name"
               />
-            } @else if (object.bloom !== false) {
+            } @else {
               <span class="cgi-object-kind">MODEL</span>
             }
-            @if (object.bloom === false) {
-              <span
-                class="cgi-object-kind cgi-object-muted"
-                title="Bloom halo is muted for this object"
-              >
-                NO HALO
-              </span>
-            }
+            <button
+              type="button"
+              class="cgi-object-halo"
+              [class.muted]="object.bloom === false"
+              [attr.aria-pressed]="object.bloom !== false"
+              [attr.aria-label]="'Bloom halo for ' + object.name"
+              [title]="
+                object.bloom === false
+                  ? 'Bloom halo is muted for this object'
+                  : 'Mute this object’s bloom halo'
+              "
+              (click)="setObjectBloom(object.id, object.bloom === false)"
+            >
+              {{ object.bloom === false ? 'NO HALO' : 'HALO' }}
+            </button>
             <button
               type="button"
               class="cgi-object-remove"
@@ -521,17 +528,6 @@
               />
             </label>
 
-            <div class="cgi-toggles">
-              <label>
-                <input
-                  type="checkbox"
-                  [attr.aria-label]="'Bloom halo for ' + object.name"
-                  [ngModel]="object.bloom !== false"
-                  (ngModelChange)="setObjectBloom(object.id, !!$event)"
-                />
-                BLOOM HALO
-              </label>
-            </div>
           } @else {
             <p class="cgi-copy">
               Imported models keep their own materials unless you choose an
@@ -565,7 +561,9 @@
                 </button>
               }
             </div>
+          }
 
+          <div class="cgi-halo-editor">
             <div class="cgi-toggles">
               <label>
                 <input
@@ -577,7 +575,24 @@
                 BLOOM HALO
               </label>
             </div>
-          }
+            @if (object.bloom !== false) {
+              <label class="cgi-field">
+                <span
+                  >Halo strength
+                  {{ ((object.bloomStrength ?? 1) * 100) | number: '1.0-0' }}%</span
+                >
+                <input
+                  type="range"
+                  min="0"
+                  max="2"
+                  step="0.05"
+                  aria-label="CGI object bloom strength"
+                  [ngModel]="object.bloomStrength ?? 1"
+                  (ngModelChange)="setObjectBloomStrength(object.id, $event)"
+                />
+              </label>
+            }
+          </div>
         </fieldset>
       } @else {
         <p class="cgi-copy">
