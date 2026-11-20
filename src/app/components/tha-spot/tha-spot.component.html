@@ -1364,8 +1364,8 @@
           Pick one or more destinations. SMUVE LIVE starts instantly; Twitch
           opens its connect window first; Kick, Facebook and the four custom
           RTMP slots (TikTok, Instagram, X, LinkedIn) use the stream URL and key
-          saved in Broadcast Push. Your viewer share link is copied as soon as
-          the stream is live.
+          saved in Settings → Streaming. Your viewer share link is copied as
+          soon as the stream is live.
         </p>
         <div class="platform-picker" role="group" aria-label="Live platforms">
           <button
@@ -3104,7 +3104,7 @@
         <!-- Go Live Dashboard -->
         <div class="stream-view" *ngIf="activeHubTab() === 'stream'">
           <div class="stream-controls" *ngIf="!socialService.isStreaming()">
-            <h4>PRE-STREAM CONFIG</h4>
+            <h4>PRE-FLIGHT</h4>
             <div class="stream-quality-row">
               <button
                 class="quality-btn"
@@ -3274,120 +3274,23 @@
               <span class="material-symbols-outlined">volume_off</span>
               {{ audioWarning }}
             </p>
-            <div class="stream-accounts">
+            <div class="stream-accounts stream-settings">
               <div class="stream-accounts-head">
-                <span class="quality-readout">STREAMING ACCOUNTS</span>
-                <span class="accounts-count">
-                  {{ platformsService.connectedCount() }} CONNECTED
-                </span>
-                <button
+                <span class="quality-readout">STREAMING SETUP</span>
+                <a
                   class="quality-btn"
-                  (click)="syncStreaming()"
-                  [disabled]="platformsService.syncing()"
-                  title="Re-read the platform connections and RTMP destinations saved for this account"
+                  href="/settings/streaming"
+                  style="text-decoration: none"
+                  title="Accounts and RTMP destinations are configured in Settings → Streaming"
+                  (click)="openStreamingSettings($event)"
+                  >OPEN SETTINGS</a
                 >
-                  SYNC
-                </button>
               </div>
-              <ng-container *ngFor="let platform of platformsService.platforms">
-              <div class="account-row">
-                <span class="account-name">{{ platform.label }}</span>
-                <span class="account-meta">
-                  <span class="account-state" [class.on]="platformStateOn(platform)">
-                    {{ platformStateLabel(platform) }}
-                  </span>
-                  <span class="account-broadcast">
-                    {{ platformRouteLabel(platform) }}
-                  </span>
-                </span>
-                <span class="account-actions">
-                  <button
-                    class="quality-btn"
-                    *ngIf="platform.connectable"
-                    (click)="platformsService.connect(platform.id)"
-                    [disabled]="platformsService.connecting() === platform.id"
-                    [title]="
-                      'Open the ' +
-                      platform.label +
-                      ' sign-in page and link this account'
-                    "
-                  >
-                    {{
-                      platformsService.isConnected(platform.id)
-                        ? 'RECONNECT'
-                        : 'CONNECT'
-                    }}
-                  </button>
-                  <button
-                    class="quality-btn"
-                    *ngIf="platform.destination"
-                    (click)="setUpStreamDestination(platform)"
-                    [title]="
-                      platform.destination === 'manual'
-                        ? 'Edit the RTMP URL and key that push to this platform'
-                        : 'Point a custom RTMP slot at this platform'
-                    "
-                  >
-                    {{ platform.destination === "manual" ? "EDIT" : "SET UP" }}
-                  </button>
-                  <button
-                    class="quality-btn"
-                    *ngIf="platformsService.isConnected(platform.id)"
-                    (click)="platformsService.disconnect(platform.id)"
-                  >
-                    DISCONNECT
-                  </button>
-                </span>
-              </div>
-              <div
-                class="account-row facebook-page-row"
-                *ngIf="
-                  platform.id === 'facebook' &&
-                  platformsService.facebookPagePickerVisible()
-                "
-              >
-                <span class="account-name">FACEBOOK PAGE</span>
-                <span class="account-meta">
-                  <select
-                    class="account-input"
-                    *ngIf="platformsService.facebookPages().length > 1"
-                    [disabled]="platformsService.selectingFacebookPage()"
-                    (change)="changeFacebookPage($event)"
-                    title="Which Page receives the Live Video"
-                  >
-                    <option
-                      *ngFor="let page of platformsService.facebookPages()"
-                      [value]="page.id"
-                      [selected]="page.selected"
-                    >
-                      {{ page.name }}
-                      {{ page.selected ? "(CURRENT)" : "" }}
-                    </option>
-                  </select>
-                  <span
-                    class="account-state"
-                    *ngIf="platformsService.loadingFacebookPages()"
-                  >
-                    LOADING PAGES…
-                  </span>
-                  <span
-                    class="account-note warn"
-                    *ngIf="platformsService.facebookPagesError() as pageError"
-                  >
-                    {{ pageError }}
-                  </span>
-                  <button
-                    class="quality-btn"
-                    *ngIf="platformsService.facebookPagesError()"
-                    (click)="platformsService.loadFacebookPages()"
-                    [disabled]="platformsService.loadingFacebookPages()"
-                    title="Try reading the Pages for this Facebook account again"
-                  >
-                    RETRY
-                  </button>
-                </span>
-              </div>
-              </ng-container>
+              <p class="account-note">
+                Accounts, RTMP URLs and stream keys are configured only in
+                Settings → Streaming. This page keeps preview, Go Live and
+                recordings.
+              </p>
             </div>
             <div class="stream-push">
               <div class="stream-accounts-head">
@@ -3405,9 +3308,9 @@
                   class="quality-btn"
                   href="/settings/streaming"
                   style="text-decoration: none"
-                  title="Link Twitch, Kick or Facebook in the shared streaming settings"
+                  title="Accounts and RTMP destinations are configured in Settings → Streaming"
                   (click)="openStreamingSettings($event)"
-                  >ACCOUNTS</a
+                  >SETTINGS</a
                 >
                 <button
                   class="quality-btn"
@@ -3517,163 +3420,6 @@
                 {{ reason }}
               </p>
               </ng-container>
-              <div class="account-row manual-destination">
-                <span class="account-name">KICK URL + KEY</span>
-                <span
-                  class="account-verification"
-                  *ngIf="ingest.ready('kick')"
-                  [class.verified]="ingest.verified('kick')"
-                  [class.unverified]="ingest.verification('kick') === 'unverified'"
-                >
-                  {{ ingest.verificationLabel('kick') }}
-                </span>
-                <div class="manual-fields">
-                  <input
-                    class="account-input"
-                    id="kick-destination-url"
-                    placeholder="rtmps://.../app"
-                    [value]="kickRtmpUrl()"
-                    (input)="kickRtmpUrl.set($any($event.target).value)"
-                  />
-                  <input
-                    class="account-input"
-                    type="password"
-                    placeholder="STREAM KEY"
-                    [value]="kickStreamKey()"
-                    (input)="kickStreamKey.set($any($event.target).value)"
-                  />
-                </div>
-                <div class="manual-actions">
-                  <button
-                    class="quality-btn"
-                    (click)="saveManualDestination('kick')"
-                    [title]="
-                      ingest.ready('kick')
-                        ? 'Paste a new URL and key to replace the saved Kick destination'
-                        : 'Save the Kick RTMP URL and key so the relay can push'
-                    "
-                  >
-                    {{ ingest.ready('kick') ? "REPLACE" : "SAVE" }}
-                  </button>
-                  <button
-                    class="quality-btn"
-                    *ngIf="ingest.ready('kick')"
-                    (click)="clearManualDestination('kick')"
-                    title="Forget the saved Kick destination and its stream key"
-                  >
-                    CLEAR
-                  </button>
-                </div>
-              </div>
-              <div class="account-row manual-destination">
-                <span class="account-name">FACEBOOK URL + KEY</span>
-                <span
-                  class="account-verification"
-                  *ngIf="ingest.ready('facebook')"
-                  [class.verified]="ingest.verified('facebook')"
-                  [class.unverified]="ingest.verification('facebook') === 'unverified'"
-                >
-                  {{ ingest.verificationLabel('facebook') }}
-                </span>
-                <div class="manual-fields">
-                  <input
-                    class="account-input"
-                    id="facebook-destination-url"
-                    placeholder="rtmps://.../app"
-                    [value]="facebookRtmpUrl()"
-                    (input)="facebookRtmpUrl.set($any($event.target).value)"
-                  />
-                  <input
-                    class="account-input"
-                    type="password"
-                    placeholder="STREAM KEY"
-                    [value]="facebookStreamKey()"
-                    (input)="facebookStreamKey.set($any($event.target).value)"
-                  />
-                </div>
-                <div class="manual-actions">
-                  <button
-                    class="quality-btn"
-                    (click)="saveManualDestination('facebook')"
-                    [title]="
-                      ingest.ready('facebook')
-                        ? 'Paste a new URL and key to replace the saved Facebook destination'
-                        : 'Save the Facebook RTMP URL and key so the relay can push'
-                    "
-                  >
-                    {{ ingest.ready('facebook') ? "REPLACE" : "SAVE" }}
-                  </button>
-                  <button
-                    class="quality-btn"
-                    *ngIf="ingest.ready('facebook')"
-                    (click)="clearManualDestination('facebook')"
-                    title="Forget the saved Facebook destination and its stream key"
-                  >
-                    CLEAR
-                  </button>
-                </div>
-              </div>
-              <div
-                class="account-row manual-destination"
-                *ngFor="let slot of customSlots"
-              >
-                <span class="account-name">{{ ingest.platformLabel(slot) }}</span>
-                <span
-                  class="account-verification"
-                  *ngIf="ingest.ready(slot)"
-                  [class.verified]="ingest.verified(slot)"
-                  [class.unverified]="ingest.verification(slot) === 'unverified'"
-                >
-                  {{ ingest.verificationLabel(slot) }}
-                </span>
-                <div class="manual-fields">
-                  <input
-                    class="account-input custom-label"
-                    placeholder="LABEL (TIKTOK / INSTAGRAM / X / LINKEDIN)"
-                    [value]="customLabelValue(slot)"
-                    (input)="
-                      setCustomDraft(slot, 'label', $any($event.target).value)
-                    "
-                  />
-                  <input
-                    class="account-input"
-                    [id]="slot + '-destination-url'"
-                    placeholder="rtmps://.../app"
-                    [value]="customDraft(slot, 'rtmpUrl')"
-                    (input)="
-                      setCustomDraft(slot, 'rtmpUrl', $any($event.target).value)
-                    "
-                  />
-                  <input
-                    class="account-input"
-                    type="password"
-                    placeholder="STREAM KEY"
-                    [value]="customDraft(slot, 'streamKey')"
-                    (input)="
-                      setCustomDraft(
-                        slot,
-                        'streamKey',
-                        $any($event.target).value
-                      )
-                    "
-                  />
-                </div>
-                <div class="manual-actions">
-                  <button
-                    class="quality-btn"
-                    (click)="saveCustomDestination(slot)"
-                  >
-                    {{ ingest.ready(slot) ? "REPLACE" : "SAVE" }}
-                  </button>
-                  <button
-                    class="quality-btn recording-delete"
-                    *ngIf="ingest.ready(slot)"
-                    (click)="clearCustomDestination(slot)"
-                  >
-                    CLEAR
-                  </button>
-                </div>
-              </div>
               <p class="account-note" *ngIf="ingest.error()">
                 {{ ingest.error() }}
               </p>

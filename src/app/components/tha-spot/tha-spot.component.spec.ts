@@ -62,19 +62,6 @@ const THA_SPOT_LIVE_SOURCE_TEMPLATE = (() => {
   return full.slice(start + marker.length, end);
 })();
 
-/** The real four custom RTMP rows, including their CLEAR wiring. */
-const THA_SPOT_CUSTOM_ROWS_TEMPLATE = (() => {
-  const full = readFileSync(join(__dirname, "tha-spot.component.html"), "utf8");
-  const marker = full.indexOf('*ngFor="let slot of customSlots"');
-  const start = full.lastIndexOf("<div", marker);
-  const note = full.indexOf('<p class="account-note"', marker);
-  const end = full.lastIndexOf("</div>", note);
-  if (marker < 0 || start < 0 || note < 0 || end < 0) {
-    throw new Error("Tha Spot custom RTMP rows are missing from the template");
-  }
-  return full.slice(start, end + "</div>".length);
-})();
-
 describe("ThaSpotComponent", () => {
   let component: ThaSpotComponent;
   let fixture: ComponentFixture<ThaSpotComponent>;
@@ -337,8 +324,7 @@ describe("ThaSpotComponent", () => {
         set: {
           imports: [CommonModule],
           template: `<div class="preview-dom">${THA_SPOT_PREVIEW_TEMPLATE}</div>
-            <div class="live-source-dom">${THA_SPOT_LIVE_SOURCE_TEMPLATE}</div>
-            <div class="custom-rows-dom">${THA_SPOT_CUSTOM_ROWS_TEMPLATE}</div>`,
+            <div class="live-source-dom">${THA_SPOT_LIVE_SOURCE_TEMPLATE}</div>`,
         },
       })
       .compileComponents();
@@ -359,50 +345,17 @@ describe("ThaSpotComponent", () => {
     expect(component).toBeTruthy();
   });
 
-  describe("streaming platform routes", () => {
-    const platform = (id: string) =>
-      component.platformsService.platforms.find((entry) => entry.id === id)!;
-
-    it("names the real path to each platform instead of a blanket label", () => {
-      expect(component.platformRouteLabel(platform("twitch"))).toBe(
-        "OAUTH + PUSH",
-      );
-      expect(component.platformRouteLabel(platform("youtube"))).toBe(
-        "OAUTH — LINK ONLY",
-      );
-      expect(component.platformRouteLabel(platform("kick"))).toBe(
-        "OAUTH + RTMP",
-      );
-      expect(component.platformRouteLabel(platform("facebook"))).toBe(
-        "OAUTH + RTMP",
-      );
-      expect(component.platformRouteLabel(platform("tiktok"))).toBe(
-        "CUSTOM RTMP",
-      );
-    });
-
-    it("sends a platform without OAuth to a custom RTMP slot", () => {
-      component.setUpStreamDestination(platform("tiktok"));
-
-      expect(component.customDraft("custom", "label")).toBe("TIKTOK");
-    });
-
-    it("counts a saved RTMP destination as a usable platform", () => {
-      component.ingest.destinations.set({
-        kick: {
-          platform: "kick",
-          ready: true,
-          detail: "KICK — rtmp.kick.com",
-          verification: "unverified",
-        },
-      });
-
-      expect(component.platformStateLabel(platform("kick"))).toBe(
-        "RTMP NOT VERIFIED",
-      );
-      expect(component.platformStateOn(platform("kick"))).toBe(true);
-      expect(component.platformStateOn(platform("facebook"))).toBe(false);
-    });
+  it("keeps account and RTMP configuration in Settings", () => {
+    const template = readFileSync(
+      join(__dirname, "tha-spot.component.html"),
+      "utf8",
+    );
+    expect(template).toContain('href="/settings/streaming"');
+    expect(template).toContain("PRE-FLIGHT");
+    expect(template).not.toContain("PRE-STREAM CONFIG");
+    expect(template).not.toContain("STREAMING ACCOUNTS");
+    expect(template).not.toContain("KICK URL + KEY");
+    expect(template).not.toContain("FACEBOOK URL + KEY");
   });
 
   describe("live source controls", () => {
@@ -519,69 +472,6 @@ describe("ThaSpotComponent", () => {
     });
   });
 
-  describe("custom RTMP rows", () => {
-    const rows = () =>
-      Array.from(
-        fixture.nativeElement.querySelectorAll(
-          ".custom-rows-dom .manual-destination",
-        ),
-      ) as HTMLElement[];
-
-    const clearButton = (row: HTMLElement) =>
-      row.querySelector<HTMLButtonElement>(".recording-delete");
-
-    it("shows CLEAR only for saved slots and resets the cleared slot", async () => {
-      const ingest = component.ingest;
-      ingest.destinations.set({
-        custom2: { platform: "custom2", ready: true, label: "Instagram" },
-        custom4: { platform: "custom4", ready: true, label: "LinkedIn" },
-      });
-      component.setCustomDraft("custom2", "label", "Instagram");
-      component.setCustomDraft(
-        "custom2",
-        "rtmpUrl",
-        "rtmps://instagram.example.com/live",
-      );
-      component.setCustomDraft("custom2", "streamKey", "INSTAGRAM_KEY");
-      component.setCustomDraft("custom4", "label", "LinkedIn");
-      component.setCustomDraft(
-        "custom4",
-        "rtmpUrl",
-        "rtmps://linkedin.example.com/live",
-      );
-      component.setCustomDraft("custom4", "streamKey", "LINKEDIN_KEY");
-      const clearDestination = jest
-        .spyOn(ingest, "clearDestination")
-        .mockResolvedValue(true);
-      fixture.detectChanges();
-
-      const [custom1Row, custom2Row, custom3Row, custom4Row] = rows();
-      expect(rows()).toHaveLength(4);
-      expect(custom2Row.querySelector(".account-name")?.textContent).toContain(
-        "Instagram",
-      );
-      expect(clearButton(custom1Row)).toBeNull();
-      expect(clearButton(custom2Row)?.textContent).toContain("CLEAR");
-      expect(clearButton(custom3Row)).toBeNull();
-      expect(clearButton(custom4Row)?.textContent).toContain("CLEAR");
-
-      clearButton(custom2Row)!.click();
-      await fixture.whenStable();
-      fixture.detectChanges();
-
-      expect(clearDestination).toHaveBeenCalledWith("custom2");
-      expect(component.customDraft("custom2", "label")).toBe("");
-      expect(component.customDraft("custom2", "rtmpUrl")).toBe("");
-      expect(component.customDraft("custom2", "streamKey")).toBe("");
-      expect(component.customDraft("custom4", "label")).toBe("LinkedIn");
-      expect(component.customDraft("custom4", "rtmpUrl")).toBe(
-        "rtmps://linkedin.example.com/live",
-      );
-      expect(component.customDraft("custom4", "streamKey")).toBe("LINKEDIN_KEY");
-      expect(clearButton(custom4Row)).not.toBeNull();
-    });
-  });
-
   it("counts only incoming pending requests for the NET badge", () => {
     socialServiceMock.friendsDirectory.set([
       { userId: "incoming-1", status: "pending", direction: "incoming" },
@@ -592,7 +482,7 @@ describe("ThaSpotComponent", () => {
     expect(component.incomingFriendRequestCount()).toBe(1);
   });
 
-  it("opens the LIVE tab and Broadcast Push from a guide deep link", () => {
+  it("opens the LIVE tab from a guide deep link", () => {
     routeQueryParamMap.next(convertToParamMap({ panel: "broadcast" }));
 
     expect(component.showRivalHub()).toBe(true);

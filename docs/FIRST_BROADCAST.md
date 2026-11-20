@@ -202,19 +202,21 @@ with their own key instead of one derived from `JWT_SECRET`.
 
 ## 7. Connect the channel in the app
 
-1. Open **Tha Spot** → **STREAMING ACCOUNTS**.
+1. Open **Settings** → **Streaming** (the only place accounts and RTMP keys are
+   configured).
 2. Press **CONNECT** next to TWITCH, approve on Twitch, and wait for the row to
    show the channel name instead of `NOT CONNECTED`.
-3. Scroll to **BROADCAST PUSH** and press **CHECK**.
+3. Open **Tha Spot** → **LIVE** → **BROADCAST PUSH** and press **CHECK**.
 
 Checks:
 
 - The header reads `RELAY READY`. `NO RELAY CONFIGURED` means `MEDIA_RELAY_URL`
   is missing on the API, and every push will answer 503.
-- The TWITCH row reads `TWITCH — <your channel>` and **PUSH** is enabled. An
-  empty row with `NOT READY` means the account is not linked.
+- Tha Spot's TWITCH row reads `TWITCH — <your channel>` and **PUSH** is
+  enabled. An empty row with `NOT READY` means the account is not linked.
 - A 401/403 sentence about reconnecting Twitch means the stored token was
-  revoked or the app's client id changed — press **RECONNECT**.
+  revoked or the app's client id changed — press **RECONNECT** in
+  Settings → Streaming.
 
 ## 8. Self-test — prove the media path without a provider
 
@@ -332,9 +334,11 @@ Kick has no public key API, so the host pastes it once:
 1. In Kick's creator dashboard copy the ingest URL
    (`rtmps://<channel-id>.global-contribute.live-video.net:443/app`) and the
    stream key.
-2. Paste both into **KICK URL + KEY** and press **SAVE**. The key is sealed at
-   rest and never echoed back; the row then reads `KICK — <ingest host>`.
-3. Press **PUSH** on the KICK row and confirm the channel goes live.
+2. Open **Settings** → **Streaming**, paste both into the **KICK** destination
+   and press **SAVE**. The key is sealed at rest and never echoed back; the row
+   then reads `KICK — <ingest host>`.
+3. Open **Tha Spot** → **LIVE**, press **PUSH** on the KICK row and confirm the
+   channel goes live.
 
 Validation is deliberate: the URL must start `rtmp://` or `rtmps://` and the key
 must be 8–200 characters of letters, digits, `_` or `-`. A rejection here is a

@@ -4543,43 +4543,6 @@
   flex-shrink: 0;
   white-space: nowrap;
 }
-/* Accounts read on two lines: name above, link state and route below, so a
-   narrow sidebar never breaks "NOT CONNECTED" across lines. */
-.stream-accounts .account-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 0.15rem 0.45rem;
-}
-.stream-accounts .account-row .account-name {
-  grid-column: 1;
-  grid-row: 1;
-  min-width: 0;
-}
-.account-meta {
-  grid-column: 1;
-  grid-row: 2;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.15rem 0.4rem;
-  min-width: 0;
-}
-.account-actions {
-  grid-column: 2;
-  grid-row: 1 / span 2;
-  display: flex;
-  gap: 0.25rem;
-}
-.facebook-page-row .account-meta {
-  width: 100%;
-}
-.facebook-page-row .account-input {
-  width: 100%;
-}
-.facebook-page-row .account-note {
-  flex-basis: 100%;
-  color: #ffb4a2;
-}
 .account-state.on {
   color: #3ddc97;
 }
@@ -4596,59 +4559,9 @@
 .account-verification.unverified {
   color: #ffd166;
 }
-.stream-accounts .account-verification {
-  grid-column: 1;
-  grid-row: 2;
-}
-.manual-destination .account-verification {
-  grid-column: 1 / -1;
-  grid-row: 3;
-}
-.account-broadcast {
-  color: #ffd166;
-  font-size: 0.55rem;
-  flex-shrink: 0;
-  white-space: nowrap;
-}
 .account-row .quality-btn {
   padding: 0.2rem 0.45rem;
   font-size: 0.55rem;
-}
-.account-row.manual-destination {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 0.3rem 0.4rem;
-}
-.manual-destination .account-name {
-  grid-column: 1;
-  grid-row: 1;
-  min-width: 0;
-}
-.manual-destination .manual-fields {
-  display: grid;
-  grid-column: 1 / -1;
-  grid-row: 2;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.3rem;
-  min-width: 0;
-}
-.manual-destination .manual-fields .account-input {
-  width: 100%;
-}
-/* The custom label gets its own line; URL + key share the next one. */
-.manual-destination .manual-fields .custom-label {
-  grid-column: 1 / -1;
-}
-.manual-destination .manual-actions {
-  display: flex;
-  grid-column: 2;
-  grid-row: 1;
-  gap: 0.25rem;
-}
-@media (max-width: 768px) {
-  .manual-destination .manual-fields {
-    grid-template-columns: minmax(0, 1fr);
-  }
 }
 .stream-push {
   display: flex;
@@ -4719,21 +4632,6 @@
   margin-top: 0.5rem;
   padding-top: 0.5rem;
   border-top: 1px solid rgba(var(--neon-cyan-rgb), 0.18);
-}
-.account-input {
-  flex: 1 1 40%;
-  min-width: 0;
-  padding: 0.25rem 0.4rem;
-  border: 1px solid rgba(var(--neon-cyan-rgb), 0.22);
-  border-radius: 6px;
-  background: rgba(0, 0, 0, 0.35);
-  color: #e8fbff;
-  font-family: inherit;
-  font-size: 0.55rem;
-  letter-spacing: 0.04em;
-}
-.account-input::placeholder {
-  color: rgba(232, 251, 255, 0.4);
 }
 .account-note {
   margin: 0;

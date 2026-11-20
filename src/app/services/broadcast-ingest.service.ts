@@ -214,14 +214,16 @@ export class BroadcastIngestService {
 
   /** The host action that makes this one destination ready. */
   private destinationFix(platform: IngestPlatform): string {
-    if (platform === 'twitch') return 'CONNECT TWITCH IN STREAMING ACCOUNTS';
+    if (platform === 'twitch') {
+      return 'CONNECT TWITCH IN SETTINGS → STREAMING';
+    }
     if (platform === 'kick') {
-      return 'CONNECT KICK OR SAVE ITS RTMP URL + KEY';
+      return 'CONNECT KICK OR SAVE ITS RTMP URL + KEY IN SETTINGS → STREAMING';
     }
     if (platform === 'facebook') {
-      return 'LINK A FACEBOOK PAGE OR SAVE ITS RTMP URL + KEY';
+      return 'LINK A FACEBOOK PAGE OR SAVE ITS RTMP URL + KEY IN SETTINGS → STREAMING';
     }
-    return "SAVE THIS CUSTOM DESTINATION'S RTMP URL + KEY";
+    return "SAVE THIS CUSTOM DESTINATION'S RTMP URL + KEY IN SETTINGS → STREAMING";
   }
 
   /** One compact line: blocked with every reason, pushing, or ready. */

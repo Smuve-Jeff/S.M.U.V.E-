@@ -78,12 +78,11 @@ describe("Studio Masterclass content", () => {
     expect(spot).toBeDefined();
     const steps = spot!.steps.join(" ");
 
-    expect(steps).toContain("BROADCAST PUSH");
+    expect(steps).toContain("SETTINGS");
     expect(steps).toContain("CUSTOM");
     expect(steps).toContain("RTMPS");
     expect(steps).toContain("SAVE");
     expect(steps).toContain("GO LIVE");
-    expect(steps).toContain("CLEAR");
     expect(spot!.workspace?.queryParams).toEqual({ panel: "broadcast" });
   });
 
@@ -100,7 +99,8 @@ describe("Studio Masterclass content", () => {
     ].join(" ");
 
     for (const control of [
-      "PRE-STREAM CONFIG",
+      "PRE-FLIGHT",
+      "OPEN SETTINGS",
       "START PREVIEW",
       "GAME ONLY",
       "MIC",

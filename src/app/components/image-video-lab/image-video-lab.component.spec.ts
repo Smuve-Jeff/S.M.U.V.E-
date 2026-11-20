@@ -6468,6 +6468,16 @@ describe('ImageVideoLabComponent', () => {
    * surface could set `imagePrompt`, and the viewer link could be copied by the
    * component but had no control (and no live status) in the console.
    */
+  it('keeps streaming account and RTMP setup out of the Lab', () => {
+    const template = readFileSync(
+      join(__dirname, 'image-video-lab.component.html'),
+      'utf8',
+    );
+    expect(template).toContain('routerLink="/settings/streaming"');
+    expect(template).not.toContain('<app-streaming-accounts-panel');
+    expect(template).toContain('Settings → Streaming');
+  });
+
   describe('neural assets and broadcast kit', () => {
     const aiMock = () =>
       TestBed.inject(AiService) as unknown as { generateImage: jest.Mock };

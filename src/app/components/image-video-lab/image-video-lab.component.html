@@ -2048,7 +2048,16 @@
                 }
               </div>
             </div>
-            <app-streaming-accounts-panel />
+            <div class="broadcast-steps broadcast-setup">
+              <div class="director-console-heading">
+                <div>
+                  <span class="upgrade-eyebrow">Streaming Setup</span>
+                  <h4 class="director-console-title">Settings Only</h4>
+                </div>
+                <a class="director-button broadcast-setup-link" routerLink="/settings/streaming">OPEN SETTINGS</a>
+              </div>
+              <p class="broadcast-preview-note">Accounts, RTMP URLs and stream keys are configured in Settings → Streaming. This kit keeps preview and go-live controls.</p>
+            </div>
             <div class="broadcast-preview-panel">
               <div class="director-console-heading">
                 <div>
@@ -2107,7 +2116,7 @@
               <ol class="broadcast-step-list">
                 <li><span>01</span> Pick the platform and set the lower third.</li>
                 <li><span>02</span> Set CAMERA or SCREEN and start PREVIEW; check the frame and audio.</li>
-                <li><span>03</span> Link Twitch, Kick or Facebook under Streaming Accounts — the same list Tha Spot's Broadcast Push uses — and save any RTMP key in that shared config.</li>
+                <li><span>03</span> Configure Twitch, Kick, Facebook and any RTMP keys in Settings → Streaming; this kit only links there.</li>
                 <li><span>04</span> Press GO LIVE, then copy the viewer link once the broadcast is live.</li>
               </ol>
               <p class="broadcast-next-step" role="status" aria-live="polite">{{ broadcastNextStep() }}</p>

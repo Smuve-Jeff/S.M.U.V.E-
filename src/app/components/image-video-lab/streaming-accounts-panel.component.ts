@@ -68,9 +68,9 @@ interface AccountRow {
         </div>
       </div>
       <p class="accounts-note">
-        The same connections Tha Spot's Broadcast Push reads. Link an account
-        here or there; save Kick, Facebook and custom RTMP keys in Settings →
-        Streaming or Tha Spot's Broadcast Push config.
+        Link accounts and save every RTMP URL and key here. Tha Spot and the
+        Lab only link to this Settings → Streaming setup; they no longer keep
+        their own copy of the configuration.
       </p>
       <ul class="accounts-list">
         @for (row of rows(); track row.id) {

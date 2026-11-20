@@ -36,15 +36,8 @@ import { SocialNetworkingService, OnlineUser } from "../../services/social-netwo
 import { ChallengeInboxService } from "../../services/challenge-inbox.service";
 import { PeerNetworkingService } from "../../services/peer-networking.service";
 import { SnackbarService } from "../../services/snackbar.service";
-import {
-  StreamingPlatformsService,
-  type StreamingPlatform,
-} from "../../services/streaming-platforms.service";
-import {
-  BroadcastIngestService,
-  CUSTOM_INGEST_PLATFORMS,
-  type CustomIngestPlatform,
-} from "../../services/broadcast-ingest.service";
+import { StreamingPlatformsService } from "../../services/streaming-platforms.service";
+import { BroadcastIngestService } from "../../services/broadcast-ingest.service";
 import { MatchmakingService } from "../../hub/matchmaking.service";
 import { ActivatedRoute, Router } from "@angular/router";
 import { DailyMissionsService } from "../../services/daily-missions.service";
@@ -1476,22 +1469,6 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   public liveVideo = inject(LiveVideoService);
   public platformsService = inject(StreamingPlatformsService);
   public ingest = inject(BroadcastIngestService);
-  readonly kickRtmpUrl = signal('');
-  readonly kickStreamKey = signal('');
-  readonly facebookRtmpUrl = signal('');
-  readonly facebookStreamKey = signal('');
-  readonly customSlots = CUSTOM_INGEST_PLATFORMS;
-  readonly customDrafts = signal<
-    Record<
-      CustomIngestPlatform,
-      { label: string; rtmpUrl: string; streamKey: string }
-    >
-  >({
-    custom: { label: '', rtmpUrl: '', streamKey: '' },
-    custom2: { label: '', rtmpUrl: '', streamKey: '' },
-    custom3: { label: '', rtmpUrl: '', streamKey: '' },
-    custom4: { label: '', rtmpUrl: '', streamKey: '' },
-  });
   /**
    * Viewer mix split: the host publishes camera and game (screen) video
    * slots plus voice and system-sound audio slots, so the player divides
@@ -4335,7 +4312,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     this.revealBroadcastPush();
   }
 
-  /** Bring the saved custom RTMP rows into view for a guide deep link. */
+  /** Bring the Broadcast Push controls into view for a guide deep link. */
   private revealBroadcastPush(attempt = 0): void {
     setTimeout(() => {
       const scroller = this.scrollContainer?.nativeElement;
@@ -4369,185 +4346,6 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     }
     event.preventDefault();
     void this.router.navigate(['/settings/streaming']);
-  }
-
-  /**
-   * Keep a manual RTMP destination on the server so the stream key never has
-   * to be typed again, and drop it from this component's state once saved.
-   */
-  async saveManualDestination(platform: 'kick' | 'facebook'): Promise<void> {
-    const url =
-      platform === 'kick' ? this.kickRtmpUrl() : this.facebookRtmpUrl();
-    const key =
-      platform === 'kick' ? this.kickStreamKey() : this.facebookStreamKey();
-    const saved = await this.ingest.saveDestination(
-      platform,
-      url.trim(),
-      key.trim(),
-      platform.toUpperCase(),
-    );
-    if (!saved) return;
-    if (platform === 'kick') this.kickStreamKey.set('');
-    else this.facebookStreamKey.set('');
-  }
-
-  customDraft(
-    slot: CustomIngestPlatform,
-    field: 'label' | 'rtmpUrl' | 'streamKey',
-  ): string {
-    return this.customDrafts()[slot][field];
-  }
-
-  /** Show the saved label until the host starts typing a replacement. */
-  customLabelValue(slot: CustomIngestPlatform): string {
-    return this.customDraft(slot, 'label') || this.ingest.platformLabel(slot);
-  }
-
-  setCustomDraft(
-    slot: CustomIngestPlatform,
-    field: 'label' | 'rtmpUrl' | 'streamKey',
-    value: string,
-  ): void {
-    this.customDrafts.update((current) => ({
-      ...current,
-      [slot]: { ...current[slot], [field]: value },
-    }));
-  }
-
-  async saveCustomDestination(slot: CustomIngestPlatform): Promise<void> {
-    const saved = await this.ingest.saveDestination(
-      slot,
-      this.customDraft(slot, 'rtmpUrl').trim(),
-      this.customDraft(slot, 'streamKey').trim(),
-      this.customLabelValue(slot).trim(),
-    );
-    if (saved) this.setCustomDraft(slot, 'streamKey', '');
-  }
-
-  async clearCustomDestination(slot: CustomIngestPlatform): Promise<void> {
-    if (!(await this.ingest.clearDestination(slot))) return;
-    this.customDrafts.update((current) => ({
-      ...current,
-      [slot]: { label: '', rtmpUrl: '', streamKey: '' },
-    }));
-  }
-
-  async clearManualDestination(platform: 'kick' | 'facebook'): Promise<void> {
-    if (!(await this.ingest.clearDestination(platform))) return;
-    if (platform === 'kick') {
-      this.kickRtmpUrl.set('');
-      this.kickStreamKey.set('');
-    } else {
-      this.facebookRtmpUrl.set('');
-      this.facebookStreamKey.set('');
-    }
-  }
-
-  /** How this platform is actually reached, so no row promises the wrong path. */
-  platformRouteLabel(platform: StreamingPlatform): string {
-    if (platform.connectable) {
-      if (!platform.broadcast) return 'OAUTH — LINK ONLY';
-      return platform.destination === 'manual' ? 'OAUTH + RTMP' : 'OAUTH + PUSH';
-    }
-    return 'CUSTOM RTMP';
-  }
-
-  /** A platform is usable when linked, or when its RTMP destination is saved. */
-  platformStateOn(platform: StreamingPlatform): boolean {
-    if (this.platformsService.isConnected(platform.id)) return true;
-    return (
-      (platform.id === 'kick' || platform.id === 'facebook') &&
-      this.ingest.ready(platform.id)
-    );
-  }
-
-  platformStateLabel(platform: StreamingPlatform): string {
-    // A saved manual destination is the push path even when OAuth is linked,
-    // so its verification state must win over the account display name.
-    if (
-      (platform.id === 'kick' || platform.id === 'facebook') &&
-      this.ingest.ready(platform.id)
-    ) {
-      return this.ingest.verified(platform.id)
-        ? 'RTMP VERIFIED'
-        : 'RTMP NOT VERIFIED';
-    }
-    if (this.platformsService.isConnected(platform.id)) {
-      return this.platformsService.displayName(platform.id) || 'CONNECTED';
-    }
-    return platform.connectable ? 'NOT CONNECTED' : 'NOT LINKED';
-  }
-
-  /**
-   * Take the host to the fields that actually carry this platform: Kick and
-   * Facebook have their own RTMP rows, everything else uses a custom slot.
-   */
-  setUpStreamDestination(platform: StreamingPlatform): void {
-    if (platform.id === 'kick' || platform.id === 'facebook') {
-      this.focusDestination(`${platform.id}-destination-url`);
-      return;
-    }
-    const existing = this.customSlots.find(
-      (slot) =>
-        this.customLabelValue(slot).toUpperCase() ===
-        platform.label.toUpperCase(),
-    );
-    const slot =
-      existing ??
-      this.customSlots.find(
-        (candidate) =>
-          !this.ingest.ready(candidate) &&
-          !this.customDraft(candidate, 'label').trim(),
-      ) ??
-      this.customSlots.find((candidate) => !this.ingest.ready(candidate)) ??
-      'custom';
-    if (!existing) this.setCustomDraft(slot, 'label', platform.label);
-    this.focusDestination(`${slot}-destination-url`);
-  }
-
-  /**
-   * One SYNC for both halves of the panel: the OAuth accounts and the manual
-   * destinations, so a host never has to press SYNC and CHECK to trust it.
-   */
-  async syncStreaming(): Promise<void> {
-    const [accountsOk] = await Promise.all([
-      this.platformsService.sync({ silent: true }),
-      this.ingest.load(),
-    ]);
-    if (!accountsOk) return; // the service already reported the failure
-    if (this.ingest.checkError()) {
-      this.snackbarService.warning('ACCOUNTS SYNCED — DESTINATION CHECK FAILED');
-      return;
-    }
-    const accounts = this.platformsService.connectedCount();
-    const destinations = this.ingest.platforms.filter((target) =>
-      this.ingest.ready(target.id),
-    ).length;
-    this.snackbarService.info(
-      `SYNCED — ${accounts} ACCOUNT${accounts === 1 ? '' : 'S'}, ` +
-        `${destinations} DESTINATION${destinations === 1 ? '' : 'S'} READY`,
-    );
-  }
-
-  /** Keep the Page picker honest: a refused change snaps back to the live one. */
-  async changeFacebookPage(event: Event): Promise<void> {
-    const select = event.target as HTMLSelectElement | null;
-    if (!select) return;
-    const saved = await this.platformsService.selectFacebookPage(select.value);
-    if (!saved) {
-      select.value = this.platformsService.facebookSelectedPageId();
-    }
-  }
-
-  private focusDestination(id: string): void {
-    setTimeout(() => {
-      const field = document.getElementById(id) as HTMLInputElement | null;
-      if (!field) return;
-      if (typeof field.scrollIntoView === 'function') {
-        field.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }
-      field.focus({ preventScroll: true });
-    }, 60);
   }
 
   /** The label the host gave the custom RTMP target, not a generic "CUSTOM". */

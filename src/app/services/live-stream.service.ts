@@ -425,7 +425,7 @@ export class LiveStreamService {
         this.pendingGolive.set(null);
         this.ingest.closePrimedAudioContext();
         this.notify.show(
-          `SAVE YOUR ${missing.toUpperCase()} STREAM URL AND KEY IN BROADCAST PUSH FIRST`,
+          `SAVE YOUR ${missing.toUpperCase()} STREAM URL AND KEY IN SETTINGS → STREAMING FIRST`,
           'warning',
         );
         return null;

@@ -458,7 +458,7 @@ describe('BroadcastIngestService push status', () => {
     service.destinations.set({});
 
     expect(service.pushDisabledReason('twitch')).toBe(
-      'PUSH BLOCKED — NO DESTINATION READY · CONNECT TWITCH IN STREAMING ACCOUNTS',
+      'PUSH BLOCKED — NO DESTINATION READY · CONNECT TWITCH IN SETTINGS → STREAMING',
     );
     expect(service.pushDisabledReason('kick')).toContain(
       'CONNECT KICK OR SAVE ITS RTMP URL + KEY',
@@ -488,10 +488,10 @@ describe('BroadcastIngestService push status', () => {
     service.destinations.set({});
 
     expect(service.pushDisabledHint('twitch')).toBe(
-      'CONNECT TWITCH IN STREAMING ACCOUNTS',
+      'CONNECT TWITCH IN SETTINGS → STREAMING',
     );
     expect(service.pushDisabledHint('facebook')).toBe(
-      'LINK A FACEBOOK PAGE OR SAVE ITS RTMP URL + KEY',
+      'LINK A FACEBOOK PAGE OR SAVE ITS RTMP URL + KEY IN SETTINGS → STREAMING',
     );
 
     service.destinations.set({
@@ -509,7 +509,7 @@ describe('BroadcastIngestService push status', () => {
     service.pushing.set('twitch');
     expect(service.pushDisabledHint('twitch')).toBe('');
     expect(service.pushDisabledHint('kick')).toBe(
-      'CONNECT KICK OR SAVE ITS RTMP URL + KEY',
+      'CONNECT KICK OR SAVE ITS RTMP URL + KEY IN SETTINGS → STREAMING',
     );
   });
 });
