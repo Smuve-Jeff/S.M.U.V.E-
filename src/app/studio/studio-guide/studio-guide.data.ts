@@ -137,7 +137,7 @@ const firstLoopLessons: GuideLesson[] = [
     controls: [
       "Transport: Play / Stop / Record",
       "BPM field with − / + nudges",
-      "Metronome (M) and master volume",
+      "Metronome and master volume",
       "Project status strip: New session / Unsaved / Saved locally",
     ],
     target: "quick-session",
@@ -857,6 +857,35 @@ const masteryLessons: GuideLesson[] = [
     heard: "Pads and keys with dynamics — loud hits, soft ghost notes, and a human groove.",
   },
   {
+    id: "master-stage",
+    track: "mastery",
+    title: "Put a performer on the live stage",
+    kicker: "PERFORMANCE",
+    minutes: 8,
+    goal: "Put a 3D performer on the live stage, make it move with the music, and keep it in the library.",
+    plain:
+      "The live stage is a room with a camera, lights and a performer. You do not animate it frame by frame: you choose who stands there and how the room reacts, then the music does the moving.",
+    steps: [
+      "Open Performance from the left rail, then press 3D STAGE beside the pad grid.",
+      "Drop a .glb on DROP A PERFORMER, or open LIBRARY and put a saved performer on the stage.",
+      "Cycle MOOD and COLOR to set how the room reacts; the stage follows the master output, so play the song.",
+      "Drag to orbit and scroll or pinch to zoom; press Space or a MAKE IT MOVE trigger to cue a move.",
+      "Press PADS to return to the grid with the stage one tap away.",
+    ],
+    controls: [
+      "3D STAGE / PADS switch",
+      "DROP A PERFORMER drop zone",
+      "LIBRARY and SAVED PERFORMERS",
+      "MOOD and COLOR palettes",
+      "MAKE IT MOVE triggers and camera reset",
+    ],
+    target: "performance",
+    action: "Open Performance",
+    proTip:
+      "An import is saved to the library automatically, so the expensive part is already done. Reset the camera and check the wide pose before the show, not during it.",
+    heard: "A performer on a lit stage, moving on the beat while the pads keep playing.",
+  },
+  {
     id: "master-sample",
     track: "mastery",
     title: "Chop and map samples",
@@ -1038,14 +1067,14 @@ const masteryLessons: GuideLesson[] = [
     plain:
       "Speed comes from repetition, not from knowing every feature. Learn five shortcuts and you will work twice as fast.",
     steps: [
-      "Learn Space (play/stop), R (record), M (metronome), Ctrl+Z (undo), Ctrl+S (save).",
+      "Learn Space (play/pause), Ctrl+K (command palette), Ctrl+Z (undo) and Ctrl+S (save).",
       "Use Ctrl+E to export and Ctrl+I to open the AI Mix Assistant.",
       "Use Shift+F to turn Stage FX on or off when you need a calmer screen.",
-      "Open the command palette / search overlay and jump to a surface by name.",
+      "Press ? for the shortcut card, or Alt+L to open the Masterclass lesson for whatever screen you are on.",
       "Build one repeatable start-up routine: open project, set tempo, load kit, arm track.",
     ],
     controls: [
-      "Global shortcuts: Space, R, M, Ctrl+Z, Ctrl+Shift+Z, Ctrl+S, Ctrl+E, Ctrl+I, Shift+F",
+      "Global shortcuts: Space, Ctrl+K, ?, Ctrl+Z, Ctrl+Shift+Z, Ctrl+S, Ctrl+E, Ctrl+I, Shift+F, Alt+P, Alt+T, Alt+L, Esc",
       "Command palette / search overlay",
       "Rail and mobile drawer",
       "Studio Guide and Music Map",
@@ -1294,7 +1323,7 @@ const cgiLessons: GuideLesson[] = [
       "Direct the camera: Locked Off, Orbit Left, Orbit Right, Push In or Crane Up. Play across the cut so the move agrees with the footage camera instead of fighting it.",
       "Animate: in Keyframes pick a Target and Channel, read the Value at the playhead, set the value and Easing, then press + KEY. Add a second key later in the shot. If you split the CGI clip afterwards, the spin, orbit and camera keep running instead of restarting.",
       "Time it: drag the CGI clip's start to where the object should appear and CUT it where it should leave. Delete the unused half and play across the edit.",
-      "Deliver: set Start, Raster, Rate and Codec, then press EXPORT VIDEO. Frame-locked export renders the clean composite including CGI at the chosen cadence, so a heavy stage costs render time rather than dropped frames.",
+      "Deliver: set Start, Raster, Rate and Codec, then press EXPORT VIDEO. Frame-locked export renders the clean composite including CGI at the chosen cadence, so a heavy stage costs render time rather than dropped frames. If the shot is an overlay for another edit, tick ALPHA WEBM first so the layer exports with its transparency intact.",
       "Save the project, or press REMOVE CGI LAYER when the effect is no longer needed.",
     ],
     controls: [
@@ -1302,7 +1331,7 @@ const cgiLessons: GuideLesson[] = [
       "Primitive menu, ADD OBJECT and the model file input",
       "Key light, Object spin, SHADOWS, REFLECTIONS and DARK PLATE",
       "Camera move menu and the Keyframes section",
-      "Timeline playhead, CUT, Raster, Rate, Codec and EXPORT VIDEO",
+      "Timeline playhead, CUT, Raster, Rate, Codec, ALPHA WEBM and EXPORT VIDEO",
     ],
     workspace: cgiWorkspace,
     action: "Start the walkthrough",
@@ -1317,17 +1346,19 @@ const cgiLessons: GuideLesson[] = [
     title: "Render the stage into the master",
     kicker: "DELIVERY",
     minutes: 10,
-    goal: "Export the composite at the chosen raster and frame rate, with the CGI baked in.",
+    goal: "Export the composite at the chosen raster and frame rate, flat or as a transparent WebM, with the CGI baked in.",
     plain:
-      "The monitor is not the master. Export renders the clean frame, including CGI, at the size and rate you choose.",
+      "The monitor is not the master. Export renders the clean frame, including CGI, at the size and rate you choose. Flat gives you a finished shot; a transparent WebM gives you the layer alone, ready to sit on someone else's footage.",
     steps: [
       "Set Start and the capture window so the export covers the whole effect.",
       "Choose Raster, Rate and Codec. The export summary shows the delivery before you commit.",
+      "Tick ALPHA WEBM when the shot is an overlay rather than a finished master. Codec locks to WebM while alpha is armed, and the summary ends in ALPHA.",
       "Press EXPORT VIDEO. Frame-locked export steps and stamps each frame; slow CGI costs time, not cadence.",
     ],
     controls: [
       "Start and capture-window controls",
       "Raster, Rate and Codec menus",
+      "ALPHA WEBM toggle, its availability notice and the export summary",
       "EXPORT VIDEO and export progress",
     ],
     workspace: cgiWorkspace,
@@ -1441,10 +1472,11 @@ export const GUIDE_TRACKS: GuideTrack[] = [
     label: "Studio Mastery",
     tagline: "The pro surfaces and the habits that make them useful.",
     forWho: "Producers who know the basics and want command",
-    minutes: 185,
+    minutes: 195,
     icon: "workspace_premium",
     accent: "#c084fc",
-    outcome: "Live performance, sampling, DJ, notation, AI and effect-chain fluency.",
+    outcome:
+      "Live performance and the 3D stage, sampling, DJ, notation, AI and effect-chain fluency.",
     lessons: masteryLessons,
   },
   {
@@ -1867,21 +1899,25 @@ export const GUIDE_SURFACE_ATLAS: GuideSurfaceEntry[] = [
   {
     id: "performance",
     group: "Mix & Polish",
-    what: "A live pad and keyboard surface for triggering scenes and playing parts.",
+    what: "The live surface: a velocity pad grid, a playable keyboard, and a 3D stage with a performer that moves to the music.",
     features: [
       "4×4/8×8 pad grids with velocity from touch position",
       "Long-press pad reassignment and MIDI Learn",
-      "Keyboard view with pitch bend and mod wheel",
-      "Smart chords, arpeggiator and scene launch",
-      "Live engine routing and visualiser",
+      "Keyboard view with pitch bend, mod wheel, smart chords and arpeggiator",
+      "3D STAGE switch beside the pads, with a PADS way back",
+      "Drop-in performer import (.glb) that is saved to the library automatically",
+      "LIBRARY of saved performers, with put-on-stage and remove",
+      "MOOD and COLOR palettes, audio-reactive movement and MAKE IT MOVE triggers",
+      "Orbit, zoom, camera reset, and a clean fallback when WebGL is unavailable",
     ],
     gestures: [
       "Hit pads at different positions for velocity; long-press to reassign",
-      "Use smart chords to play a full chord from one key",
-      "Launch scenes while playing for a live arrangement",
+      "Press 3D STAGE, then drop a .glb on the stage or pick a saved performer from LIBRARY",
+      "Drag to orbit and scroll or pinch to zoom; press Space or a MAKE IT MOVE trigger to cue a move",
+      "Press PADS (or close the stage) to return to the grid without losing the set",
     ],
     proTip:
-      "Set up the pads before the show, not during it. Label them so you can find the next hit without looking.",
+      "Decide the performer, mood and colour before the show. Set up on stage is a decision you cannot undo in front of an audience.",
   },
   {
     id: "sound-browser",
@@ -2012,14 +2048,20 @@ export const GUIDE_GLOSSARY: GuideGlossaryEntry[] = [
 
 export const GUIDE_SHORTCUTS: GuideShortcut[] = [
   { keys: "Space", action: "Play / pause the transport" },
-  { keys: "R", action: "Start or stop recording" },
-  { keys: "M", action: "Metronome on / off" },
+  {
+    keys: "Ctrl / Cmd + K",
+    action: "Open the command palette and jump to any room",
+  },
+  { keys: "?", action: "Open the shortcut card inside the command palette" },
   { keys: "Ctrl / Cmd + Z", action: "Undo the last edit" },
   { keys: "Ctrl / Cmd + Shift + Z", action: "Redo" },
   { keys: "Ctrl / Cmd + S", action: "Save the project" },
   { keys: "Ctrl / Cmd + E", action: "Export the project bundle" },
   { keys: "Ctrl / Cmd + I", action: "Open the AI Mix Assistant" },
   { keys: "Shift + F", action: "Stage FX on / off (calm mode)" },
+  { keys: "Alt + P", action: "Open Performance" },
+  { keys: "Alt + T", action: "Change the theme" },
+  { keys: "Alt + L", action: "Teach this screen in the Masterclass" },
   { keys: "Esc", action: "Close the topmost panel or overlay" },
 ];
 

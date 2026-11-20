@@ -690,6 +690,13 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   private pendingOverlayHistoryPops = 0;
   /** Set while navigateHome() unwinds its synthetic overlay entries. */
   private leavingStudioForHome = false;
+  /**
+   * Set while a guide hand-off navigates out of the Studio (full Masterclass
+   * page, another workspace, an Academy program). The trap must not pop its
+   * synthetic entry then: the asynchronous popstate would cancel the route
+   * change that is leaving the Studio.
+   */
+  private leavingStudioForRoute = false;
   /** Fallback so a dropped history traversal cannot strand the user in Studio. */
   private homeExitTimer: ReturnType<typeof setTimeout> | null = null;
   /** Timestamp of the first back press that armed the "press again" exit. */
@@ -1728,9 +1735,10 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   /** Hand the current lesson to the standalone Masterclass workspace. */
   openStandaloneGuide(state: GuideStateChange): void {
     this.dismissGuideForNavigation();
-    void this.router.navigate(["/masterclass"], {
-      queryParams: guideDeepLinkParams(state.tab, state.track, state.lessonId),
-    });
+    this.navigateOutOfStudio(
+      ["/masterclass"],
+      guideDeepLinkParams(state.tab, state.track, state.lessonId),
+    );
   }
 
   /** A whole-application lesson leaves the Studio for its real workspace. */
@@ -1738,25 +1746,54 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     this.dismissGuideForNavigation();
     const [route, query = ""] = path.split("?");
     if (query) {
-      void this.router.navigate([route], {
-        queryParams: Object.fromEntries(new URLSearchParams(query)),
-      });
+      this.navigateOutOfStudio(
+        [route],
+        Object.fromEntries(new URLSearchParams(query)),
+      );
       return;
     }
-    void this.router.navigate([route]);
+    this.navigateOutOfStudio([route]);
   }
 
   /** An Academy program pick leaves the Studio for that Academy program. */
   onGuideOpenAcademyProgram(programId: string): void {
     this.dismissGuideForNavigation();
-    void this.router.navigate(['/academy'], {
-      queryParams: { program: programId },
-    });
+    this.navigateOutOfStudio(["/academy"], { program: programId });
+  }
+
+  /**
+   * Leave the Studio for another route with the overlay trap disarmed.
+   *
+   * Closing the guide normally pops the synthetic history entry that kept the
+   * system back gesture inside the overlay. That pop is asynchronous, so it
+   * lands on top of the route change and cancels it — the hand-off would
+   * silently strand the artist on a closed guide at the /studio URL. The
+   * destination replaces the Studio, so the trap hands history back instead.
+   */
+  private navigateOutOfStudio(
+    commands: readonly string[],
+    queryParams?: Record<string, string | null>,
+  ): void {
+    this.leavingStudioForRoute = true;
+    this.backTrapDepth = 0;
+    const navigation = queryParams
+      ? this.router.navigate(commands, { queryParams })
+      : this.router.navigate(commands);
+    void Promise.resolve(navigation).then(
+      (navigated) => {
+        // A refused navigation leaves the Studio on screen; the trap resumes.
+        if (!navigated) this.leavingStudioForRoute = false;
+      },
+      () => {
+        this.leavingStudioForRoute = false;
+      },
+    );
   }
 
   /**
    * Hide the overlay without writing a competing /studio URL. The navigation
-   * that follows is the destination; the guide's query has no meaning there.
+   * that follows is the destination; the guide's query has no meaning there,
+   * so callers must hand off through navigateOutOfStudio().
    */
   private dismissGuideForNavigation(): void {
     this.showStudioGuide.set(false);
@@ -2372,6 +2409,11 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     // `window.history` deliberately qualified: the class field `this.history`
     // is the project undo/redo service, and the similar names invite mistakes.
     if (typeof window === "undefined" || !window.history) return;
+    // A hand-off is leaving the Studio; popping here would cancel it.
+    if (this.leavingStudioForRoute) {
+      this.backTrapDepth = 0;
+      return;
+    }
     const native = window.history;
     if (openCount > this.backTrapDepth) {
       const add = openCount - this.backTrapDepth;
