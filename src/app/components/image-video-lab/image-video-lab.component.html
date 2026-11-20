@@ -3061,6 +3061,15 @@
                   ? '3D STAGE FAILED — '
                   : 'STARTING THE 3D STAGE — '
               }}{{ cgiSurfaceDetail() }}
+              @if (status === 'failed') {
+                <button
+                  type="button"
+                  class="cgi-surface-retry"
+                  (click)="retryCgiSurface()"
+                >
+                  RETRY
+                </button>
+              }
             </p>
           }
 

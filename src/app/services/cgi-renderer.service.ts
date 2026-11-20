@@ -693,6 +693,25 @@ export class CgiRendererService implements OnDestroy {
     );
   };
 
+  /**
+   * Rebuild the stage now instead of waiting out the backoff: the editor's
+   * RETRY. A browser with no WebGL cannot recover, so that failure stands.
+   */
+  retrySurface(): void {
+    if (this.webglUnavailable) {
+      this.failSurface(
+        'This browser has no WebGL, so the 3D stage cannot render.',
+      );
+      return;
+    }
+    this.releaseSurface();
+    this.retryAt = 0;
+    this.surfaceFailures = 0;
+    this.startingAt = 0;
+    this.status.set('idle');
+    this.statusDetail.set('');
+  }
+
   dispose(): void {
     this.releaseSurface();
     for (const model of this.modelCache.values()) this.disposeObject(model);

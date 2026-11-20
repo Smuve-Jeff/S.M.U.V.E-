@@ -84,6 +84,39 @@ describe('CgiRendererService', () => {
     service.dispose();
   });
 
+  it('rebuilds immediately when the host retries a failed surface', () => {
+    const service = new CgiRendererService();
+    const internals = service as unknown as {
+      retryAt: number;
+      surfaceFailures: number;
+    };
+    service.status.set('failed');
+    service.statusDetail.set('The GPU could not create the 3D stage.');
+    internals.retryAt = Date.now() + 30_000;
+    internals.surfaceFailures = 3;
+
+    service.retrySurface();
+
+    expect(service.status()).toBe('idle');
+    expect(service.statusDetail()).toBe('');
+    expect(internals.retryAt).toBe(0);
+    expect(internals.surfaceFailures).toBe(0);
+
+    service.dispose();
+  });
+
+  it('keeps a no-WebGL failure after a retry', () => {
+    const service = new CgiRendererService();
+    expect(service.render(createDefaultCgiScene(), 640, 360, 0, 10)).toBeNull();
+
+    service.retrySurface();
+
+    expect(service.status()).toBe('failed');
+    expect(service.statusDetail()).toContain('WebGL');
+
+    service.dispose();
+  });
+
   it('can be disposed more than once', () => {
     const service = new CgiRendererService();
 

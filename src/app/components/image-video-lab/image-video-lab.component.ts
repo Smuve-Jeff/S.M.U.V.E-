@@ -1182,6 +1182,10 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     return status === 'starting' || status === 'failed' ? status : null;
   });
   readonly cgiSurfaceDetail = this.cgiRenderer.statusDetail;
+  /** Rebuild the 3D stage now rather than waiting for the renderer's backoff. */
+  retryCgiSurface(): void {
+    this.cgiRenderer.retrySurface();
+  }
   /**
    * Clip-local playhead for CGI keyframe authoring: the same time the renderer
    * resolves the scene at, so a key lands on the frame the operator sees.
@@ -1326,6 +1330,26 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     // Pinch state teardown rides DestroyRef so it stays beside the pinch code
     // above without touching the (long) ngOnDestroy block.
     inject(DestroyRef).onDestroy(() => this.disposePinch());
+
+    // A failed 3D stage is only useful news if its note is in front of the
+    // host: unfold the FX matrix and bring the note into view, so RETRY is
+    // reachable instead of folded away with the rest of the controls.
+    let revealedSurfaceFailure = false;
+    effect(() => {
+      if (this.cgiSurfaceStatus() !== 'failed') {
+        revealedSurfaceFailure = false;
+        return;
+      }
+      if (revealedSurfaceFailure) return;
+      revealedSurfaceFailure = true;
+      if (this.isSectionCollapsed('fx')) this.toggleSection('fx');
+      // Instant rather than smooth: the failing frame can repaint the editor
+      // while a smooth scroll is still running, which leaves the note behind.
+      setTimeout(() => {
+        const note = document.querySelector('.cgi-surface-note');
+        note?.scrollIntoView?.({ block: 'center' });
+      }, 220);
+    });
 
     effect(() => {
       const isPlaying = this.videoEngine.isPlaying();

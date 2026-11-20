@@ -3095,6 +3095,68 @@ describe('ImageVideoLabComponent', () => {
       expect(component.cgiSurfaceStatus()).toBe('failed');
     });
 
+    it('lets the host retry a failed 3D surface', async () => {
+      const { component, videoEngine } = await createComponent();
+      const clip = createVideoClip({
+        id: 'cgi-1',
+        trackId: 't2',
+        type: 'overlay',
+        source: 'ai',
+        effects: {
+          ...createVideoClip().effects,
+          cgiScene: createDefaultCgiScene(),
+        },
+      });
+      videoEngine.findClip.mockReturnValue(clip);
+      component.selectedClipId.set('cgi-1');
+      const renderer = (
+        component as unknown as {
+          cgiRenderer: {
+            status: { set: (value: string) => void; (): string };
+            statusDetail: { set: (value: string) => void };
+          };
+        }
+      ).cgiRenderer;
+
+      renderer.status.set('failed');
+      renderer.statusDetail.set('The GPU could not create the 3D stage.');
+      expect(component.cgiSurfaceStatus()).toBe('failed');
+
+      component.retryCgiSurface();
+
+      expect(renderer.status()).toBe('idle');
+      expect(renderer.statusDetail()).toBe('');
+      expect(component.cgiSurfaceStatus()).toBeNull();
+    });
+
+    it('unfolds the FX matrix so a failed surface note is reachable', async () => {
+      const { component, videoEngine } = await createComponent();
+      const clip = createVideoClip({
+        id: 'cgi-1',
+        trackId: 't2',
+        type: 'overlay',
+        source: 'ai',
+        effects: {
+          ...createVideoClip().effects,
+          cgiScene: createDefaultCgiScene(),
+        },
+      });
+      videoEngine.findClip.mockReturnValue(clip);
+      component.selectedClipId.set('cgi-1');
+      component.isStackedLayout.set(true);
+      expect(component.isSectionCollapsed('fx')).toBe(true);
+      const renderer = (
+        component as unknown as {
+          cgiRenderer: { status: { set: (value: string) => void } };
+        }
+      ).cgiRenderer;
+
+      renderer.status.set('failed');
+      TestBed.flushEffects();
+
+      expect(component.isSectionCollapsed('fx')).toBe(false);
+    });
+
     it('parks the playhead on a CGI key time in the selected clip', async () => {
       const { component, videoEngine } = await createComponent();
       const clip = createVideoClip({
