@@ -158,8 +158,11 @@ app.use("/api", (_req, res) => {
 });
 
 const server = app.listen(PORT, "127.0.0.1", () => {
+  const address = server.address();
+  const listeningPort =
+    address && typeof address === "object" ? address.port : PORT;
   console.log(
-    `live-sync-api: local API ready at http://127.0.0.1:${PORT}/api for ${EMAIL}`,
+    `live-sync-api: local API ready at http://127.0.0.1:${listeningPort}/api for ${EMAIL}`,
   );
 });
 
