@@ -1686,6 +1686,36 @@ canvas {
   background: rgba(248, 113, 113, 0.26);
 }
 
+.monitor-cgi-retry {
+  padding: 0.2rem 0.5rem;
+  border: 1px solid rgba(252, 165, 165, 0.5);
+  border-radius: 999px;
+  background: rgba(248, 113, 113, 0.16);
+  color: #fecaca;
+  font-size: 0.5rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.monitor-cgi-retry:hover {
+  background: rgba(248, 113, 113, 0.28);
+}
+
+.cgi-badge-button {
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.monitor-cgi-reason {
+  flex-basis: 100%;
+  margin: 0.1rem 0 0;
+  color: #fecaca;
+  font-size: 0.55rem;
+  letter-spacing: 0.04em;
+}
+
 .monitor-frame {
   flex: 0 0 auto;
   display: flex;

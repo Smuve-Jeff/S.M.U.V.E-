@@ -58,6 +58,17 @@ describe('ImageVideoLabComponent section disclosures', () => {
       );
       expect(template).toContain('(click)="retryCgiSurface()"');
       expect(styles).toContain('.cgi-header-retry');
+
+      // Wide layouts never fold FX, so the monitor itself carries the retry.
+      expect(template).toContain('class="monitor-cgi-retry"');
+      expect(styles).toContain('.monitor-cgi-retry');
+
+      // A touch screen cannot hover the title, so tapping the badge opens the
+      // same reason in a live line.
+      expect(template).toContain('id="cgi-surface-reason"');
+      expect(template).toContain('aria-controls="cgi-surface-reason"');
+      expect(template).toContain('(click)="toggleCgiReason()"');
+      expect(styles).toContain('.monitor-cgi-reason');
     });
 
     it('folds every stacked-layout group behind its own disclosure', () => {

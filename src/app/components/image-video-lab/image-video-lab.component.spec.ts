@@ -3162,6 +3162,125 @@ describe('ImageVideoLabComponent', () => {
       expect(component.isSectionCollapsed('fx')).toBe(true);
     });
 
+    it('opens the failure reason from the monitor badge without hover', async () => {
+      const { component, videoEngine } = await createComponent();
+      const clip = createVideoClip({
+        id: 'cgi-1',
+        trackId: 't2',
+        type: 'overlay',
+        source: 'ai',
+        effects: {
+          ...createVideoClip().effects,
+          cgiScene: createDefaultCgiScene(),
+        },
+      });
+      videoEngine.findClip.mockReturnValue(clip);
+      component.selectedClipId.set('cgi-1');
+      const renderer = (
+        component as unknown as {
+          cgiRenderer: {
+            status: { set: (value: string) => void };
+            statusDetail: { set: (value: string) => void };
+          };
+        }
+      ).cgiRenderer;
+
+      renderer.status.set('failed');
+      renderer.statusDetail.set('The GPU dropped the 3D surface; rebuilding it.');
+
+      component.toggleCgiReason();
+      expect(component.cgiReasonOpen()).toBe(true);
+      component.toggleCgiReason();
+      expect(component.cgiReasonOpen()).toBe(false);
+
+      // Retrying closes the line; a healthy stage ignores the tap entirely.
+      component.toggleCgiReason();
+      component.retryCgiSurface();
+      expect(component.cgiReasonOpen()).toBe(false);
+      renderer.status.set('ready');
+      component.toggleCgiReason();
+      expect(component.cgiReasonOpen()).toBe(false);
+    });
+
+    it('closes the failure reason on an outside tap or when the monitor leaves view', async () => {
+      const { component, videoEngine } = await createComponent();
+      const clip = createVideoClip({
+        id: 'cgi-1',
+        trackId: 't2',
+        type: 'overlay',
+        source: 'ai',
+        effects: {
+          ...createVideoClip().effects,
+          cgiScene: createDefaultCgiScene(),
+        },
+      });
+      videoEngine.findClip.mockReturnValue(clip);
+      component.selectedClipId.set('cgi-1');
+      const renderer = (
+        component as unknown as {
+          cgiRenderer: { status: { set: (value: string) => void } };
+        }
+      ).cgiRenderer;
+      renderer.status.set('failed');
+      component.toggleCgiReason();
+      expect(component.cgiReasonOpen()).toBe(true);
+
+      // A tap inside the monitor readouts keeps the reason open.
+      const inside = document.createElement('div');
+      inside.className = 'monitor-badges';
+      document.body.append(inside);
+      inside.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true }));
+      expect(component.cgiReasonOpen()).toBe(true);
+
+      // Anywhere else on the page dismisses it.
+      document.body.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true }));
+      expect(component.cgiReasonOpen()).toBe(false);
+
+      // Scrolling the reason out of the viewport dismisses it as well.
+      component.toggleCgiReason();
+      expect(component.cgiReasonOpen()).toBe(true);
+      const line = document.createElement('p');
+      line.id = 'cgi-surface-reason';
+      line.getBoundingClientRect = () =>
+        ({
+          top: 900,
+          bottom: 930,
+          left: 0,
+          right: 0,
+          width: 0,
+          height: 30,
+          x: 0,
+          y: 900,
+          toJSON: () => ({}),
+        }) as DOMRect;
+      document.body.append(line);
+      const originalHeight = window.innerHeight;
+      Object.defineProperty(window, 'innerHeight', {
+        configurable: true,
+        value: 500,
+      });
+      document.dispatchEvent(new Event('scroll'));
+      expect(component.cgiReasonOpen()).toBe(false);
+
+      Object.defineProperty(window, 'innerHeight', {
+        configurable: true,
+        value: originalHeight,
+      });
+      line.remove();
+      inside.remove();
+
+      // Escape closes it for keyboard users, even from a focused field.
+      component.toggleCgiReason();
+      expect(component.cgiReasonOpen()).toBe(true);
+      const field = document.createElement('input');
+      document.body.append(field);
+      field.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }),
+      );
+      expect(component.cgiReasonOpen()).toBe(false);
+      field.remove();
+    });
+
     it('leaves the FX matrix folded when the host folds it during a failure', async () => {
       const { component, videoEngine, fixture } = await createComponent();
       const clip = createVideoClip({

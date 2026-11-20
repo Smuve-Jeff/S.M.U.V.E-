@@ -588,14 +588,40 @@
               {{ videoEngine.duration() | number: '1.2-2' }}s</span
             >
             @if (cgiSurfaceStatus(); as status) {
-              <span
+              <button
+                type="button"
                 class="monitor-badge"
                 [class.cgi-failed]="status === 'failed'"
+                [class.cgi-badge-button]="status === 'failed'"
                 [title]="cgiSurfaceDetail()"
+                [attr.aria-expanded]="
+                  status === 'failed' ? cgiReasonOpen() : null
+                "
+                aria-controls="cgi-surface-reason"
+                (click)="toggleCgiReason()"
                 >{{
                   status === 'failed' ? 'CGI · GPU ISSUE' : 'CGI · STARTING'
-                }}</span
+                }}</button
               >
+              @if (status === 'failed') {
+                <button
+                  type="button"
+                  class="monitor-cgi-retry"
+                  (click)="retryCgiSurface()"
+                  title="The 3D stage failed; rebuild it now"
+                >
+                  RETRY
+                </button>
+                @if (cgiReasonOpen()) {
+                  <p
+                    id="cgi-surface-reason"
+                    class="monitor-cgi-reason"
+                    role="status"
+                  >
+                    {{ cgiSurfaceDetail() }}
+                  </p>
+                }
+              }
             }
           </div>
         </div>

@@ -1182,8 +1182,20 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     return status === 'starting' || status === 'failed' ? status : null;
   });
   readonly cgiSurfaceDetail = this.cgiRenderer.statusDetail;
+  /**
+   * Whether the monitor badge is showing its reason. A touch screen has no
+   * hover, so the badge itself has to open the line that the title only hints at.
+   */
+  readonly cgiReasonOpen = signal(false);
+
+  toggleCgiReason(): void {
+    if (this.cgiSurfaceStatus() !== 'failed') return;
+    this.cgiReasonOpen.update((open) => !open);
+  }
+
   /** Rebuild the 3D stage now rather than waiting for the renderer's backoff. */
   retryCgiSurface(): void {
+    this.cgiReasonOpen.set(false);
     this.cgiRenderer.retrySurface();
   }
   /**
@@ -1331,6 +1343,24 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     // above without touching the (long) ngOnDestroy block.
     inject(DestroyRef).onDestroy(() => this.disposePinch());
 
+    // A reason left open while the monitor scrolls away is stale by the time
+    // the host returns, so close it once its line leaves the viewport.
+    if (typeof document !== 'undefined') {
+      const closeWhenMonitorLeaves = () => {
+        if (!this.cgiReasonOpen()) return;
+        const line = document.querySelector('#cgi-surface-reason');
+        if (!line) return;
+        const rect = line.getBoundingClientRect();
+        if (rect.bottom < 0 || rect.top > window.innerHeight) {
+          this.cgiReasonOpen.set(false);
+        }
+      };
+      document.addEventListener('scroll', closeWhenMonitorLeaves, true);
+      inject(DestroyRef).onDestroy(() =>
+        document.removeEventListener('scroll', closeWhenMonitorLeaves, true),
+      );
+    }
+
     // A failed 3D stage is only useful news if its note is in front of the
     // host: unfold the FX matrix and bring the note into view, so RETRY is
     // reachable instead of folded away with the rest of the controls. The
@@ -1340,6 +1370,7 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     effect(() => {
       if (this.cgiSurfaceStatus() !== 'failed') {
         revealedSurfaceFailure = false;
+        this.cgiReasonOpen.set(false);
         if (!openedFxForFailure) return;
         openedFxForFailure = false;
         if (this.isStackedLayout() && !this.isSectionCollapsed('fx')) {
@@ -3088,11 +3119,29 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
   }
 
   /**
+   * A tap anywhere outside the monitor readouts dismisses the failure reason.
+   * Taps on the badge itself (or the RETRY beside it) stay inside the row.
+   */
+  @HostListener('document:pointerdown', ['$event'])
+  closeCgiReasonOnOutsideTap(event: PointerEvent): void {
+    if (!this.cgiReasonOpen()) return;
+    const target = event.target;
+    if (target instanceof Element && target.closest('.monitor-badges')) return;
+    this.cgiReasonOpen.set(false);
+  }
+
+  /**
    * Editor keyboard map. Deliberately ignored while a field has focus so typing
    * a shot description never toggles the transport.
    */
   @HostListener('window:keydown', ['$event'])
   onWindowKeydown(event: KeyboardEvent): void {
+    // Escape dismisses the failure reason even when a field has focus; it is
+    // the keyboard equivalent of tapping outside the monitor readouts.
+    if (event.key === 'Escape' && this.cgiReasonOpen()) {
+      this.cgiReasonOpen.set(false);
+      return;
+    }
     if (this.isTypingTarget(event.target)) return;
     if (event.metaKey || event.ctrlKey || event.altKey) return;
 
