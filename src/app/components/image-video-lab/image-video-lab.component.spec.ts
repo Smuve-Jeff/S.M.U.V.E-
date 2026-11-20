@@ -3065,6 +3065,27 @@ describe('ImageVideoLabComponent', () => {
       });
     });
 
+    it('parks the playhead on a CGI key time in the selected clip', async () => {
+      const { component, videoEngine } = await createComponent();
+      const clip = createVideoClip({
+        id: 'cgi-1',
+        trackId: 't2',
+        type: 'overlay',
+        source: 'ai',
+        startTime: 10,
+        effects: {
+          ...createVideoClip().effects,
+          cgiScene: createDefaultCgiScene(),
+        },
+      });
+      videoEngine.findClip.mockReturnValue(clip);
+      component.selectedClipId.set('cgi-1');
+
+      component.seekToCgiKey(2.5);
+
+      expect(videoEngine.seek).toHaveBeenCalledWith(12.5);
+    });
+
     it('removes the CGI clip instead of leaving an empty placeholder', async () => {
       const { component, videoEngine } = await createComponent();
       const clip = createVideoClip({

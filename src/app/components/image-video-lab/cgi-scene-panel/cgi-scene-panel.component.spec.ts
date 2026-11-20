@@ -19,7 +19,11 @@ describe('CgiScenePanelComponent', () => {
     fixture.componentInstance.sceneChange.subscribe((value) =>
       emitted.push(value),
     );
-    return { component: fixture.componentInstance, emitted, fixture };
+    const seeks: number[] = [];
+    fixture.componentInstance.seekRequest.subscribe((value) =>
+      seeks.push(value),
+    );
+    return { component: fixture.componentInstance, emitted, seeks, fixture };
   };
 
   afterEach(() => TestBed.resetTestingModule());
@@ -133,6 +137,23 @@ describe('CgiScenePanelComponent', () => {
     expect(component.animEasing()).toBe('step');
     expect(component.keyframeValue()).toBe(4);
     expect(component.selectedKey()?.id).toBe(key.id);
+  });
+
+  it('parks the playhead on a key when its chip is selected', () => {
+    const scene = setCgiKeyframe(
+      createDefaultCgiScene(),
+      null,
+      'camera.distance',
+      3,
+      4,
+      'step',
+    );
+    const key = scene.animation!.tracks[0].keys[0];
+    const { component, seeks } = create(scene);
+
+    component.selectKey('camera.distance', key.id);
+
+    expect(seeks).toEqual([3]);
   });
 
   it('updates a selected key in place instead of deleting and re-adding it', () => {

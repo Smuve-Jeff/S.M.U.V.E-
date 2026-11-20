@@ -49,6 +49,8 @@ export class CgiScenePanelComponent {
   readonly sceneChange = output<CgiSceneSettings>();
   readonly addLayer = output<void>();
   readonly removeLayer = output<void>();
+  /** Ask the Lab to park the playhead on a key, in clip-local seconds. */
+  readonly seekRequest = output<number>();
 
   readonly cameraMoves = CGI_CAMERA_MOVES;
   readonly primitives = CGI_PRIMITIVES;
@@ -263,6 +265,8 @@ export class CgiScenePanelComponent {
     this.selectedKeyRef.set({ channel, id: keyId });
     this.valueDraft.set(key.value);
     this.animEasing.set(key.easing);
+    // Show the frame being edited, not just the values behind it.
+    this.seekRequest.emit(key.time);
   }
 
   /** Re-write the loaded key at its own time with the current values. */

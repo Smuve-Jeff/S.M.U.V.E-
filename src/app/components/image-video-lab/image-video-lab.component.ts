@@ -1165,17 +1165,27 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
   selectedCgiScene = computed<CgiSceneSettings | null>(
     () => this.selectedClip()?.effects.cgiScene ?? null,
   );
+  /** Timeline time where the authored CGI clip's own zero sits. */
+  private readonly cgiClipOffset = computed(() => {
+    const clip = this.selectedClip();
+    if (!clip?.effects.cgiScene) return null;
+    return clip.startTime + Math.max(0, Number(clip.effects.trimStart) || 0);
+  });
   /**
    * Clip-local playhead for CGI keyframe authoring: the same time the renderer
    * resolves the scene at, so a key lands on the frame the operator sees.
    */
   cgiPlayhead = computed(() => {
-    const clip = this.selectedClip();
-    if (!clip?.effects.cgiScene) return 0;
-    const start =
-      clip.startTime + Math.max(0, Number(clip.effects.trimStart) || 0);
-    return Math.max(0, this.videoEngine.currentTime() - start);
+    const offset = this.cgiClipOffset();
+    return offset === null
+      ? 0
+      : Math.max(0, this.videoEngine.currentTime() - offset);
   });
+  /** Park the playhead on a key so the monitor shows the frame it edits. */
+  seekToCgiKey(localTime: number): void {
+    const offset = this.cgiClipOffset();
+    if (offset !== null) this.videoEngine.seek(offset + localTime);
+  }
   /**
    * Shot length in bars.
    *

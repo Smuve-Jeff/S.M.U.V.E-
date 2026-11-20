@@ -3038,6 +3038,7 @@
             [playhead]="cgiPlayhead()"
             (addLayer)="addCgiLayer()"
             (sceneChange)="updateSelectedCgiScene($event)"
+            (seekRequest)="seekToCgiKey($event)"
             (removeLayer)="removeSelectedCgiLayer()"
           />
 
