@@ -751,10 +751,15 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
   makerPickerLabel = computed(() => (this.isMusicVideoMode() ? 'Bar picker' : 'Section picker'));
   makerUnit = computed(() => (this.isMusicVideoMode() ? 'PARTS' : 'SECTIONS'));
 
+  /** Engine bar length with a sane tempo fallback while the grid is empty. */
+  private barSecondsOrFallback(): number {
+    const bar = this.videoEngine.barSeconds();
+    return Number.isFinite(bar) && bar > 0 ? bar : 2;
+  }
+
   /** Whole bars that fit inside one recorder pass at the current tempo. */
   musicBarsPerSection = computed(() => {
-    const bar = this.videoEngine.barSeconds();
-    const safeBar = Number.isFinite(bar) && bar > 0 ? bar : 2;
+    const safeBar = this.barSecondsOrFallback();
     const requested = this.musicBarsPerPart();
     return Math.max(
       1,
@@ -764,7 +769,7 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
       )
     );
   });
-  makerSectionSeconds = computed(() => (this.isMusicVideoMode() ? this.musicBarsPerSection() * this.videoEngine.barSeconds() : MASTER_CAPTURE_WINDOW_SECONDS));
+  makerSectionSeconds = computed(() => (this.isMusicVideoMode() ? this.musicBarsPerSection() * this.barSecondsOrFallback() : MASTER_CAPTURE_WINDOW_SECONDS));
   makerSectionSummary = computed(() => (this.isMusicVideoMode() ? `${this.musicBarsPerSection()} BARS AT ${this.videoEngine.bpm().toFixed(1)} BPM` : `UP TO ${MASTER_CAPTURE_WINDOW_SECONDS}s`));
 
   /** Sections available from the current export start, on the mode's grid. */
@@ -800,6 +805,12 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
 
   renderedSectionCount = computed(
     () => this.exportSections().filter((section) => section.status === 'rendered').length
+  );
+  /** Planned parts only: unchecked ranges are recorded as skipped, not queued. */
+  plannedSectionCount = computed(
+    () =>
+      this.exportSections().filter((section) => section.status !== 'skipped')
+        .length
   );
 
   /** One-line statement of what the next download will be. */
@@ -1187,6 +1198,8 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
    * hover, so the badge itself has to open the line that the title only hints at.
    */
   readonly cgiReasonOpen = signal(false);
+  /** Polite live-region text for the 3D stage's transitions. */
+  cgiSurfaceAnnouncement = signal('');
 
   toggleCgiReason(): void {
     if (this.cgiSurfaceStatus() !== 'failed') return;
@@ -1367,10 +1380,15 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     // fold the host chose is remembered and restored once the stage is healthy.
     let revealedSurfaceFailure = false;
     let openedFxForFailure = false;
+    let announcedSurfaceFailure = false;
     effect(() => {
       if (this.cgiSurfaceStatus() !== 'failed') {
         revealedSurfaceFailure = false;
         this.cgiReasonOpen.set(false);
+        if (announcedSurfaceFailure) {
+          announcedSurfaceFailure = false;
+          this.cgiSurfaceAnnouncement.set('The 3D stage is rendering again.');
+        }
         if (!openedFxForFailure) return;
         openedFxForFailure = false;
         if (this.isStackedLayout() && !this.isSectionCollapsed('fx')) {
@@ -1380,6 +1398,12 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
       }
       if (revealedSurfaceFailure) return;
       revealedSurfaceFailure = true;
+      announcedSurfaceFailure = true;
+      this.cgiSurfaceAnnouncement.set(
+        `The 3D stage failed. ${
+          this.cgiSurfaceDetail() || 'The GPU did not answer.'
+        } Retry is available in the monitor controls.`,
+      );
       openedFxForFailure = this.isSectionCollapsed('fx');
       if (openedFxForFailure) this.toggleSection('fx');
       // Instant rather than smooth: the failing frame can repaint the editor
@@ -3404,6 +3428,7 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
    * and never restarts the device.
    */
   setMonitorSource(source: 'program' | 'camera'): void {
+    this.cgiReasonOpen.set(false);
     this.monitorSource.set(source);
     if (source === 'camera') this.syncCameraElement();
   }
@@ -3954,20 +3979,75 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
       ? this.videoEngine.captionAt(time)
       : null;
     if (!cue) return;
-    const fontSize = Math.max(16, Math.round(canvas.height * 0.038));
+    const insets = this.frameInsets(canvas);
+    const maxWidth = canvas.width * 0.86;
+    let fontSize = Math.max(16, Math.round(canvas.height * 0.038));
     ctx.save();
-    ctx.font = `700 ${fontSize}px "Public Sans", sans-serif`;
     ctx.textAlign = 'center';
-    ctx.textBaseline = 'bottom';
-    const boxWidth = Math.min(canvas.width * 0.86, ctx.measureText(cue.text).width + fontSize * 1.6);
-    const boxHeight = fontSize * 1.7;
+    // Long cues used to paint one line inside a box capped at 86% of the frame,
+    // so the words ran straight past the scrim — worst on a vertical cutdown.
+    // Wrap first, shrink only if three lines still overflow, then size the box
+    // to what is actually drawn.
+    let lines: string[] = [];
+    let boxWidth = maxWidth;
+    for (let attempt = 0; attempt < 6; attempt += 1) {
+      ctx.font = `700 ${fontSize}px "Public Sans", sans-serif`;
+      // Wrapping always satisfies the width, so the cap that matters is the
+      // line count: shrink until the whole cue fits on three lines rather than
+      // painting a truncated sentence.
+      const wrapped = this.wrapText(ctx, cue.text, maxWidth - fontSize * 1.6);
+      lines = wrapped.slice(0, 3);
+      boxWidth = Math.min(
+        maxWidth,
+        Math.max(...lines.map((line) => ctx.measureText(line).width)) +
+          fontSize * 1.6,
+      );
+      if (wrapped.length <= 3) break;
+      fontSize = Math.max(12, Math.round(fontSize * 0.85));
+      ctx.font = `700 ${fontSize}px "Public Sans", sans-serif`;
+    }
+    const lineHeight = fontSize * 1.2;
+    const pad = fontSize * 0.25;
+    const boxHeight = lines.length * lineHeight + pad * 2;
     const boxX = (canvas.width - boxWidth) / 2;
-    const boxY = canvas.height - boxHeight - canvas.height * 0.06;
+    // Vertical frames reserve the lower band for platform chrome, so the cue
+    // rides above it instead of hiding behind a TikTok/Reels action rail. A
+    // live lower third owns the bottom-left corner, so captions stack above it
+    // instead of printing through the strap.
+    const strapInset = this.videoEngine.lowerThird().enabled ? 0.12 : 0;
+    const boxY =
+      canvas.height -
+      boxHeight -
+      canvas.height * (insets.captionBottom + strapInset);
     ctx.fillStyle = 'rgba(2, 6, 23, 0.78)';
     ctx.fillRect(boxX, boxY, boxWidth, boxHeight);
     ctx.fillStyle = '#f8fafc';
-    ctx.fillText(cue.text, canvas.width / 2, boxY + boxHeight - fontSize * 0.45);
+    ctx.textBaseline = 'middle';
+    lines.forEach((line, index) => {
+      ctx.fillText(
+        line,
+        canvas.width / 2,
+        boxY + pad + lineHeight * (index + 0.5),
+      );
+    });
     ctx.restore();
+  }
+
+  /**
+   * Graphic margins for the current frame shape. A 9:16 social cutdown loses
+   * its bottom band to the platform's own controls, so captions, straps and the
+   * safe-zone guide lift above it; 16:9 keeps the broadcast titling margins.
+   */
+  private frameInsets(canvas: { width: number; height: number }): {
+    side: number;
+    top: number;
+    bottom: number;
+    captionBottom: number;
+  } {
+    const vertical = canvas.height > canvas.width;
+    return vertical
+      ? { side: 0.08, top: 0.14, bottom: 0.18, captionBottom: 0.18 }
+      : { side: 0.12, top: 0.1, bottom: 0.1, captionBottom: 0.06 };
   }
 
   /** Update the stabilization estimate from the just-painted layer. */
@@ -5998,6 +6078,8 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
       height: cutdown.height,
     });
     this.videoEngine.duration.set(Math.max(1, cutdown.seconds));
+    // A shorter cutdown invalidates ranges planned against the old length.
+    if (this.showFilmMaker()) this.selectAllExportRanges();
     if (this.videoEngine.currentTime() > this.videoEngine.duration()) {
       this.videoEngine.seek(this.videoEngine.duration());
     }
@@ -6109,13 +6191,14 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     this.drawScopes(ctx, canvas);
 
     if (this.videoEngine.safeZoneEnabled()) {
+      const insets = this.frameInsets(canvas);
       ctx.strokeStyle = 'rgba(255, 255, 255, 0.14)';
       ctx.setLineDash([6, 6]);
       ctx.strokeRect(
-        canvas.width * 0.12,
-        canvas.height * 0.1,
-        canvas.width * 0.76,
-        canvas.height * 0.8
+        canvas.width * insets.side,
+        canvas.height * insets.top,
+        canvas.width * (1 - insets.side * 2),
+        canvas.height * (1 - insets.top - insets.bottom)
       );
       ctx.setLineDash([]);
     }
@@ -6132,8 +6215,11 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     canvas: HTMLCanvasElement
   ): void {
     const scale = canvas.width > 0 ? canvas.width / PREVIEW_MAX_EDGE : 1;
+    // The strap sizes itself as a percentage of the real frame, so it stays
+    // legible in a 1080p phone master and a 4K delivery alike. Only the
+    // countdown keeps the fixed design space.
+    this.drawLowerThird(ctx, canvas);
     if (Math.abs(scale - 1) < 0.01) {
-      this.drawLowerThird(ctx, canvas);
       this.drawCountdown(ctx, canvas);
       return;
     }
@@ -6143,7 +6229,6 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     };
     ctx.save();
     ctx.scale(scale, scale);
-    this.drawLowerThird(ctx, design);
     this.drawCountdown(ctx, design);
     ctx.restore();
   }
@@ -6156,31 +6241,42 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     const { enabled, title, subtitle } = this.videoEngine.lowerThird();
     if (!enabled || !title.trim()) return;
 
-    const padding = 24;
-    const width = Math.min(canvas.width * 0.66, 520);
-    const height = subtitle.trim() ? 74 : 52;
-    const y = canvas.height - height - padding;
+    // Type was fixed at 16/12px inside a 1920-wide design space, so a 1080p
+    // master shrank the strap to a 9px caption no viewer could read. Size the
+    // plate from the real frame instead, the way the caption and title card do.
+    const titleSize = Math.max(18, Math.round(canvas.width * 0.026));
+    const subtitleSize = Math.max(12, Math.round(canvas.width * 0.016));
+    const padding = Math.round(canvas.width * 0.02);
+    const width = Math.min(canvas.width * 0.66, Math.round(canvas.width * 0.42));
+    const height = subtitle.trim()
+      ? Math.round(titleSize * 2.1)
+      : Math.round(titleSize * 1.6);
+    // In a vertical frame the strap also clears the platform action rail.
+    const insets = this.frameInsets(canvas);
+    const chromeLift =
+      canvas.height > canvas.width ? canvas.height * insets.bottom : 0;
+    const y = canvas.height - height - padding - chromeLift;
 
     ctx.save();
     ctx.fillStyle = 'rgba(2, 6, 23, 0.78)';
     ctx.fillRect(padding, y, width, height);
     ctx.fillStyle = '#10b981';
-    ctx.fillRect(padding, y, 4, height);
+    ctx.fillRect(padding, y, Math.max(4, Math.round(titleSize * 0.12)), height);
     ctx.textAlign = 'left';
-    ctx.font = 'bold 16px "Public Sans"';
+    ctx.font = `bold ${titleSize}px "Public Sans"`;
     ctx.fillStyle = '#f8fafc';
     ctx.fillText(
-      this.ellipsize(ctx, title.toUpperCase(), width - 28),
-      padding + 16,
-      y + 26
+      this.ellipsize(ctx, title.toUpperCase(), width - titleSize * 1.6),
+      padding + titleSize * 0.7,
+      y + titleSize * 1.05
     );
     if (subtitle.trim()) {
-      ctx.font = '12px "Public Sans"';
+      ctx.font = `${subtitleSize}px "Public Sans"`;
       ctx.fillStyle = 'rgba(248, 250, 252, 0.66)';
       ctx.fillText(
-        this.ellipsize(ctx, subtitle, width - 28),
-        padding + 16,
-        y + 50
+        this.ellipsize(ctx, subtitle, width - titleSize * 1.6),
+        padding + titleSize * 0.7,
+        y + titleSize * 1.82
       );
     }
     ctx.restore();
@@ -6218,9 +6314,23 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
       0,
       this.videoEngine.duration() - MIN_ACTIVE_CLIP_DURATION
     );
-    this.exportStart.set(
-      Math.min(Math.max(0, Number.isFinite(parsed) ? parsed : 0), latest)
+    const numeric = Math.min(
+      Math.max(0, Number.isFinite(parsed) ? parsed : 0),
+      latest
     );
+    // A music video is cut on bars, so the shown start must be the bar line
+    // the first part really begins on instead of a value the planner floors.
+    const start = this.isMusicVideoMode()
+      ? Math.min(
+          latest,
+          Math.round(
+            Math.floor(numeric / this.barSecondsOrFallback() + 1e-9) *
+              this.barSecondsOrFallback() *
+              1000,
+          ) / 1000,
+        )
+      : numeric;
+    this.exportStart.set(start);
     // A changed start means the checked indices point at different sections.
     if (this.showFilmMaker()) this.selectAllExportRanges();
   }
@@ -6238,6 +6348,7 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
 
   /** Open the Film Maker workspace with every current section selected. */
   openFilmMaker(): void {
+    this.cgiReasonOpen.set(false);
     this.showFilmMaker.set(true);
     this.selectAllExportRanges();
   }
@@ -6313,26 +6424,39 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
       return;
     }
 
-    const records: FilmSectionRecord[] = ranges.map((range) => ({
-      ...range,
-      fileName: null,
-      status: 'pending',
-    }));
+    const selected = new Set(ranges.map((range) => range.index));
+    // Every offered range is recorded: a part the operator unchecked is
+    // marked skipped so the manifest still reconstructs the whole timeline.
+    const records: FilmSectionRecord[] = this.availableExportRanges().map(
+      (range) => ({
+        ...range,
+        fileName: null,
+        status: selected.has(range.index) ? ('pending' as const) : ('skipped' as const),
+      }),
+    );
+    const queued = records.filter((record) => record.status === 'pending');
     this.exportSections.set(records);
 
     this.isQueueing.set(true);
     this.exportQueueCancelled = false;
-    this.queueTotal.set(records.length);
+    this.queueTotal.set(queued.length);
     this.queueCompleted.set(0);
+    const skippedCount = records.length - queued.length;
     this.aiFeedback.set(
-      `EXPORT QUEUE ARMED: ${records.length} ${this.makerUnit()} OF ${this.makerSectionSummary()}. EACH PART DOWNLOADS WHEN IT FINISHES.`
+      `EXPORT QUEUE ARMED: ${queued.length} ${this.makerUnit()} OF ${this.makerSectionSummary()}.${
+        skippedCount
+          ? ` ${skippedCount} UNCHECKED ${
+              skippedCount === 1 ? 'PART IS' : 'PARTS ARE'
+            } MARKED SKIPPED IN THE MANIFEST.`
+          : ''
+      } EACH PART DOWNLOADS WHEN IT FINISHES.`
     );
 
     const stamp = this.exportStamp();
     const originalStart = this.exportStart();
     let completed = 0;
     try {
-      for (const record of records) {
+      for (const record of queued) {
         if (this.exportQueueCancelled) break;
         this.exportStart.set(record.start);
         const fileNameHint = `smuve_${this.videoEngine.productionMode()}_${this.activePreset().id}_${stamp}_part-${String(
@@ -6347,7 +6471,7 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
           this.updateSectionRecord(record.index, { status: 'failed' });
           this.aiFeedback.update(
             (message) =>
-              `${message} EXPORT QUEUE STOPPED AT SECTION ${record.index + 1} OF ${records.length}.`
+              `${message} EXPORT QUEUE STOPPED AT SECTION ${record.index + 1} OF ${queued.length}.`
           );
           break;
         }
@@ -6357,22 +6481,22 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
         });
         completed += 1;
         this.queueCompleted.set(completed);
-        if (completed < records.length) {
+        if (completed < queued.length) {
           this.aiFeedback.set(
-            `SECTION ${completed}/${records.length} COMPLETE. NEXT SECTION STARTS AT ${this.formatClock(record.end)}.`
+            `SECTION ${completed}/${queued.length} COMPLETE. NEXT SECTION STARTS AT ${this.formatClock(record.end)}.`
           );
         }
       }
 
-      if (completed < records.length) {
+      if (completed < queued.length) {
         this.markPendingSectionsSkipped();
       }
 
       if (this.exportQueueCancelled) {
         this.aiFeedback.set(
-          `EXPORT QUEUE STOPPED AFTER ${completed} OF ${records.length} SECTIONS.`
+          `EXPORT QUEUE STOPPED AFTER ${completed} OF ${queued.length} SECTIONS.`
         );
-      } else if (completed === records.length) {
+      } else if (completed === queued.length) {
         this.aiFeedback.set(
           `EXPORT QUEUE COMPLETE: ${completed} SECTIONS DOWNLOADED. DOWNLOAD THE MANIFEST BEFORE STITCHING.`
         );
@@ -8181,6 +8305,7 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
 
   /** Leave the player and drive the console to the control being taught. */
   showLesson(lesson: LabLesson): void {
+    this.cgiReasonOpen.set(false);
     this.closeLearn();
     if (lesson.target === 'camera') this.monitorSource.set('camera');
     // On a stacked layout these panels start folded. Unfold before scrolling,
@@ -8351,7 +8476,11 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
   }
 
   selectProductionMode(mode: ProductionMode) {
+    this.cgiReasonOpen.set(false);
     this.videoEngine.setProductionMode(mode);
+    // Entering a music video with a mid-bar start must show the bar line the
+    // first part really begins on, not the value the planner floors to.
+    if (mode === 'music') this.setExportStart(this.exportStart());
     if (this.showFilmMaker()) this.selectAllExportRanges();
     this.aiFeedback.set(
       `${mode.toUpperCase()} PRODUCTION MODE ACTIVE. ${this.videoEngine.deliveryPreset().description}`
@@ -8377,6 +8506,12 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
 
   selectDeliveryPreset(presetId: string) {
     this.videoEngine.applyDeliveryPreset(presetId);
+    // Choosing a master while a social cutdown is armed re-bases the release
+    // target; otherwise RELEASE would silently jump back to the preset that was
+    // active before the cutdown, discarding the one the operator just picked.
+    if (this.cutdownAspect() && this.originalDeliveryPresetId !== null) {
+      this.originalDeliveryPresetId = presetId;
+    }
     if (this.showFilmMaker()) this.selectAllExportRanges();
     this.aiFeedback.set(
       `${this.activePreset().name.toUpperCase()} loaded for ${this.activePreset().target.toUpperCase()}.`

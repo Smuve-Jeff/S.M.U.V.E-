@@ -3269,6 +3269,13 @@ describe('ImageVideoLabComponent', () => {
       line.remove();
       inside.remove();
 
+      // Switching the monitor away is a context change, so it dismisses too.
+      component.toggleCgiReason();
+      expect(component.cgiReasonOpen()).toBe(true);
+      component.setMonitorSource('camera');
+      expect(component.cgiReasonOpen()).toBe(false);
+      component.setMonitorSource('program');
+
       // Escape closes it for keyboard users, even from a focused field.
       component.toggleCgiReason();
       expect(component.cgiReasonOpen()).toBe(true);
@@ -3317,6 +3324,42 @@ describe('ImageVideoLabComponent', () => {
       // The header badge's action still reaches the renderer.
       component.retryCgiSurface();
       expect(renderer.status()).toBe('idle');
+    });
+
+    it('announces the 3D stage failure and recovery to screen readers', async () => {
+      const { component, videoEngine } = await createComponent();
+      const clip = createVideoClip({
+        id: 'cgi-1',
+        trackId: 't2',
+        type: 'overlay',
+        source: 'ai',
+        effects: {
+          ...createVideoClip().effects,
+          cgiScene: createDefaultCgiScene(),
+        },
+      });
+      videoEngine.findClip.mockReturnValue(clip);
+      component.selectedClipId.set('cgi-1');
+      const renderer = (
+        component as unknown as {
+          cgiRenderer: {
+            status: { set: (value: string) => void };
+            statusDetail: { set: (value: string) => void };
+          };
+        }
+      ).cgiRenderer;
+
+      renderer.status.set('failed');
+      renderer.statusDetail.set('The GPU dropped the 3D surface; rebuilding it.');
+      TestBed.flushEffects();
+      expect(component.cgiSurfaceAnnouncement()).toContain('3D stage failed');
+      expect(component.cgiSurfaceAnnouncement()).toContain('GPU dropped');
+
+      renderer.status.set('ready');
+      TestBed.flushEffects();
+      expect(component.cgiSurfaceAnnouncement()).toBe(
+        'The 3D stage is rendering again.'
+      );
     });
 
     it('parks the playhead on a CGI key time in the selected clip', async () => {
@@ -3749,6 +3792,109 @@ describe('ImageVideoLabComponent', () => {
       expect(ctxStub.scale).toHaveBeenCalled();
     });
 
+    it('wraps a long caption inside a vertical frame and lifts it off the chrome', async () => {
+      const { component, videoEngine } = await createComponent();
+      videoEngine.captionAt.mockReturnValue({
+        id: 'c1',
+        start: 0,
+        end: 5,
+        text: 'A long vertical caption that has to wrap so every word stays inside the safe frame',
+      });
+      const drawn: { text: string; y: number }[] = [];
+      const ctx = {
+        font: '',
+        textAlign: '',
+        textBaseline: '',
+        fillStyle: '',
+        save: jest.fn(),
+        restore: jest.fn(),
+        fillRect: jest.fn(),
+        fillText: jest.fn((text: string, _x: number, y: number) => {
+          drawn.push({ text, y });
+          return undefined;
+        }),
+        measureText: jest.fn((text: string) => ({ width: text.length * 12 })),
+      };
+      const canvas = { width: 540, height: 960 } as HTMLCanvasElement;
+
+      (
+        component as unknown as {
+          drawCaptionCue: (
+            context: unknown,
+            surface: HTMLCanvasElement,
+            time: number
+          ) => void;
+        }
+      ).drawCaptionCue(ctx, canvas, 1);
+
+      // One line would run past the scrim, so it wraps instead of overflowing.
+      expect(drawn.length).toBeGreaterThan(1);
+      expect(drawn.map((line) => line.text).join(' ')).toContain('safe frame');
+      // Every line sits above the 18% band the platform's controls cover.
+      expect(drawn.every((line) => line.y < 960 * 0.82 + 1)).toBe(true);
+      expect(drawn.every((line) => line.y > 0)).toBe(true);
+    });
+
+    it('scales the lower third type with the frame instead of a fixed 16px', async () => {
+      const { component, videoEngine } = await createComponent();
+      videoEngine.lowerThird.set({
+        enabled: true,
+        title: 'S.M.U.V.E Live',
+        subtitle: 'Vlog studio check',
+      });
+      const fonts: string[] = [];
+      let currentFont = '';
+      const ctx = {
+        get font() {
+          return currentFont;
+        },
+        set font(value: string) {
+          currentFont = value;
+        },
+        fillStyle: '',
+        textAlign: '',
+        save: jest.fn(),
+        restore: jest.fn(),
+        fillRect: jest.fn(),
+        fillText: jest.fn(() => fonts.push(currentFont)),
+        measureText: jest.fn((text: string) => ({ width: text.length * 10 })),
+      };
+
+      (
+        component as unknown as {
+          drawLowerThird: (context: unknown, surface: { width: number; height: number }) => void;
+        }
+      ).drawLowerThird(ctx, { width: 1920, height: 1080 });
+
+      // 1920 design width -> ~35px title, ~23px subtitle, not 16/12.
+      expect(fonts[0]).toContain('50px');
+      expect(fonts[1]).toContain('31px');
+    });
+
+    it('reserves the platform chrome band in the vertical safe-zone guide', async () => {
+      const { component } = await createComponent();
+      const insets = (
+        component as unknown as {
+          frameInsets: (canvas: { width: number; height: number }) => {
+            side: number;
+            top: number;
+            bottom: number;
+          };
+        }
+      ).frameInsets;
+
+      expect(insets.call(component, { width: 540, height: 960 })).toMatchObject({
+        side: 0.08,
+        top: 0.14,
+        bottom: 0.18,
+      });
+      expect(insets.call(component, { width: 1920, height: 1080 })).toMatchObject({
+        side: 0.12,
+        top: 0.1,
+        bottom: 0.1,
+      });
+    });
+
     it('burns the active caption cue into the feed', async () => {
       const { videoEngine, renderFrame } = await createComponent();
       videoEngine.captionAt.mockReturnValue({ id: 'c1', start: 0, end: 5, text: 'Hello captions' });
@@ -4023,6 +4169,41 @@ describe('ImageVideoLabComponent', () => {
       expect(videoEngine.duration()).toBe(cutdown.seconds);
       expect(component.cutdownAspect()?.ratio).toBe(cutdown.aspectRatio);
       expect(component.aiFeedback()).toContain('SOCIAL CUTDOWN ARMED');
+    });
+
+    it('releases onto the master chosen while a cutdown was armed', async () => {
+      const { component, videoEngine } = await createComponent();
+      component.applySocialCutdown(component.socialCutdowns[0]);
+
+      component.selectDeliveryPreset('vlog-mobile-story');
+      component.clearSocialCutdown();
+
+      expect(videoEngine.applyDeliveryPreset).toHaveBeenLastCalledWith(
+        'vlog-mobile-story'
+      );
+    });
+
+    it('re-plans Film Maker ranges when a cutdown shortens the timeline', async () => {
+      const { component, videoEngine } = await createComponent();
+      videoEngine.duration.set(600);
+      component.openFilmMaker();
+      expect(component.availableExportRanges().length).toBeGreaterThan(1);
+      expect(component.selectedRangeCount()).toBe(
+        component.availableExportRanges().length
+      );
+
+      const cutdown = component.socialCutdowns[0];
+      component.applySocialCutdown(cutdown);
+
+      expect(component.availableExportRanges().length).toBeGreaterThan(0);
+      expect(
+        component
+          .availableExportRanges()
+          .every((range) => range.end <= cutdown.seconds)
+      ).toBe(true);
+      expect(component.selectedRangeCount()).toBe(
+        component.availableExportRanges().length
+      );
     });
 
     it('releases a cutdown back onto the delivery preset', async () => {
@@ -5207,7 +5388,8 @@ describe('ImageVideoLabComponent', () => {
     });
 
     it('opens Film Maker with all sections selected and queues only checks', async () => {
-      const { component, videoEngine } = await createComponent();
+      const { component, videoEngine, exportService } =
+        await createComponent();
       videoEngine.duration.set(250);
       const run = jest
         .spyOn(component as any, 'runExportRange')
@@ -5223,7 +5405,54 @@ describe('ImageVideoLabComponent', () => {
 
       expect(run).toHaveBeenNthCalledWith(1, 0, 120, expect.any(String));
       expect(run).toHaveBeenNthCalledWith(2, 240, 10, expect.any(String));
-      expect(component.exportSections().length).toBe(2);
+      // The unchecked section is still recorded, so the manifest accounts for
+      // the whole timeline instead of silently omitting the gap.
+      expect(component.exportSections().map((section) => section.status)).toEqual([
+        'rendered',
+        'skipped',
+        'rendered',
+      ]);
+      expect(component.plannedSectionCount()).toBe(2);
+
+      // The manifest keeps the unchecked section explicit instead of leaving
+      // a silent gap between PART 1 and PART 3.
+      component.downloadExportManifest();
+      const blob = exportService.downloadBlob.mock.calls[0][0] as Blob;
+      const manifest = JSON.parse(
+        new TextDecoder().decode(new Uint8Array(await blob.arrayBuffer()))
+      );
+      expect(manifest.sections.map((s: { status: string }) => s.status)).toEqual([
+        'rendered',
+        'skipped',
+        'rendered',
+      ]);
+      expect(manifest.sections[1]).toMatchObject({ start: 120, end: 240 });
+    });
+
+    it('snaps a music-video start down to the bar it begins in', async () => {
+      const { component, videoEngine } = await createComponent();
+      videoEngine.duration.set(40);
+
+      // Switching into music mode snaps an already-chosen mid-bar start too.
+      component.setExportStart(5.5);
+      expect(component.exportStart()).toBe(5.5);
+      component.selectProductionMode('music');
+      expect(component.exportStart()).toBe(4);
+
+      component.setExportStart(5.5);
+
+      // 120 BPM is a 2s bar: 5.5s belongs to the bar that starts at 4s.
+      expect(component.exportStart()).toBe(4);
+      expect(component.availableExportRanges()[0].start).toBe(4);
+
+      component.setExportStart(0);
+      expect(component.exportStart()).toBe(0);
+
+      // A fracture bar length still shows a readable start, not 15 decimals.
+      videoEngine.bpm.set(124);
+      videoEngine.barSeconds.set((60 / 124) * 4);
+      component.setExportStart(5.5);
+      expect(component.exportStart()).toBe(3.871);
     });
 
     it('cuts music videos on bars and stamps the beat grid into the manifest', async () => {

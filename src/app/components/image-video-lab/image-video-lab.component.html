@@ -252,16 +252,23 @@
           </div>
           <div class="film-maker-range">
             <label class="film-maker-field">
-              <span>START (SECONDS)</span>
+              <span
+                >START
+                ({{ isMusicVideoMode() ? 'BAR-ALIGNED' : 'SECONDS' }})</span
+              >
               <input
                 type="number"
                 min="0"
-                step="1"
+                [attr.step]="isMusicVideoMode() ? 0.001 : 1"
                 [max]="videoEngine.duration()"
                 [disabled]="isExporting() || isQueueing()"
                 [ngModel]="exportStart()"
                 (ngModelChange)="setExportStart($event)"
-                aria-label="Film Maker export start in seconds"
+                [attr.aria-label]="
+                  isMusicVideoMode()
+                    ? 'Music Video Maker export start in seconds, rounded down to a bar'
+                    : 'Film Maker export start in seconds'
+                "
               />
             </label>
             @if (isMusicVideoMode()) {
@@ -286,7 +293,8 @@
           @if (isMusicVideoMode()) {
             <p class="film-maker-help">
               Each part is {{ musicBarsPerSection() }} bars at
-              {{ videoEngine.bpm().toFixed(1) }} BPM and starts on a bar line.
+              {{ videoEngine.bpm().toFixed(1) }} BPM and starts on a bar line;
+              the start rounds down to that line.
               @if (musicBarsPerSection() !== musicBarsPerPart()) {
                 {{ musicBarsPerPart() }} requested; the 120s capture cap fits
                 {{ musicBarsPerSection() }}.
@@ -306,7 +314,13 @@
               NONE
             </button>
           </div>
-          <div class="film-maker-list" role="group" aria-label="Export sections">
+          <div
+            class="film-maker-list"
+            role="group"
+            [attr.aria-label]="
+              isMusicVideoMode() ? 'Music video parts' : 'Film sections'
+            "
+          >
             @for (range of availableExportRanges(); track range.index) {
               <label
                 class="film-maker-row"
@@ -326,8 +340,8 @@
               </label>
             } @empty {
               <p class="film-maker-help">
-                No sections available. Set an export start before the end of the
-                timeline.
+                No {{ isMusicVideoMode() ? 'parts' : 'sections' }} available. Set
+                an export start before the end of the timeline.
               </p>
             }
           </div>
@@ -347,8 +361,8 @@
           </button>
           <div class="film-maker-meta">
             <span
-              >{{ renderedSectionCount() }} / {{ exportSections().length }}
-              RENDERED</span
+              >{{ renderedSectionCount() }} /
+              {{ plannedSectionCount() }} RENDERED</span
             >
             <button
               type="button"
@@ -624,6 +638,9 @@
               }
             }
           </div>
+          <p class="sr-only" role="status" aria-live="polite" aria-atomic="true">
+            {{ cgiSurfaceAnnouncement() }}
+          </p>
         </div>
 
         <div class="monitor-frame">
