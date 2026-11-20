@@ -1173,6 +1173,33 @@ canvas {
   gap: 0.15rem;
 }
 
+.export-alpha-toggle {
+  display: flex;
+  align-items: center;
+  align-self: end;
+  gap: 0.4rem;
+  height: 2.75rem;
+  padding: 0 0.6rem;
+  border: 1px solid rgba(56, 189, 248, 0.22);
+  border-radius: 0.75rem;
+  background: rgba(56, 189, 248, 0.06);
+  color: rgba(125, 211, 252, 0.9);
+  font-size: 0.55rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.export-alpha-toggle input {
+  accent-color: #38bdf8;
+}
+
+.export-alpha-toggle:has(input:disabled) {
+  opacity: 0.5;
+  cursor: default;
+}
+
 /*
  * What the next download will actually be. The master raster is no longer the
  * preview's 1080p cap, so the operator gets the numbers before the take starts

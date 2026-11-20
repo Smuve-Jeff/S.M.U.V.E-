@@ -193,14 +193,21 @@ const compareExportFrames = (
       let brighter = 0;
       let maxDelta = 0;
       let magenta = 0;
+      let transparent = 0;
+      let opaque = 0;
+      let alphaChanged = 0;
       for (let index = 0; index < withHalo.pixels.length; index += 4) {
         const red = withHalo.pixels[index];
         const green = withHalo.pixels[index + 1];
         const blue = withHalo.pixels[index + 2];
+        if (withHalo.pixels[index + 3] === 0) transparent += 1;
+        else opaque += 1;
         const dr = red - withoutHalo.pixels[index];
         const dg = green - withoutHalo.pixels[index + 1];
         const db = blue - withoutHalo.pixels[index + 2];
         const delta = Math.max(Math.abs(dr), Math.abs(dg), Math.abs(db));
+        const da = withHalo.pixels[index + 3] - withoutHalo.pixels[index + 3];
+        if (Math.abs(da) > 8) alphaChanged += 1;
         if (delta > 8) changed += 1;
         if (dr + dg + db > 18) brighter += 1;
         if (red > 140 && blue > 140 && green < 100) magenta += 1;
@@ -213,6 +220,9 @@ const compareExportFrames = (
         brighter,
         maxDelta,
         magenta,
+        transparent,
+        opaque,
+        alphaChanged,
         corner: [
           withHalo.pixels[0],
           withHalo.pixels[1],
@@ -933,6 +943,55 @@ test('exports the CGI halo over transparent media', async ({ page }) => {
 
   expect(withHalo.length).toBeGreaterThan(1000);
   expect(muted.length).toBeGreaterThan(1000);
+});
+
+test('exports a transparent WebM with alpha', async ({ page }) => {
+  test.setTimeout(180_000);
+  await page.goto('/image-video-lab');
+  await expect(page.locator('.project-console')).toBeVisible({
+    timeout: 60_000,
+  });
+  await page.getByRole('button', { name: 'ADD CGI LAYER' }).click();
+  await page
+    .getByRole('group', { name: 'CGI scene finishes' })
+    .getByRole('button', { name: 'Neon', exact: true })
+    .click();
+  await page
+    .getByRole('checkbox', { name: 'Preserve alpha in the exported WebM' })
+    .check();
+  const codec = page.getByRole('combobox', { name: 'Export codec' });
+  await expect(codec).toHaveValue('webm');
+  await expect(codec).toBeDisabled();
+  await page.evaluate(() => {
+    const host = document.querySelector('app-image-video-lab') as any;
+    const component = (window as any).ng?.getComponent?.(host);
+    component.exportWindow.set(1);
+    component.exportFps.set(6);
+    component.exportScale.set('1080p');
+  });
+
+  const withHalo = await exportCgiWebm(page);
+  await page
+    .getByRole('button', { name: 'Bloom halo for Chrome Torus' })
+    .click();
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const host = document.querySelector('app-image-video-lab') as any;
+        return (window as any).ng?.getComponent?.(host)?.selectedCgiScene?.()
+          ?.objects?.[0]?.bloom;
+      }),
+    )
+    .toBe(false);
+  const muted = await exportCgiWebm(page);
+
+  const stats = await compareExportFrames(page, withHalo, muted);
+  expect(stats.width).toBeGreaterThan(1000);
+  expect(stats.transparent).toBeGreaterThan(50_000);
+  expect(stats.opaque).toBeGreaterThan(100);
+  expect(stats.alphaChanged).toBeGreaterThan(500);
+  expect(stats.changed).toBeGreaterThan(500);
+  expect(stats.brighter).toBeGreaterThan(300);
 });
 
 test('keeps the CGI finish strip visually stable', async ({ page }) => {

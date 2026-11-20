@@ -654,6 +654,12 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
    * outside the browser when a long tutorial cannot wait.
    */
   exportCodec = signal<'mp4' | 'webm'>('mp4');
+  /**
+   * Preserve the master's alpha channel instead of compositing it over the
+   * programme's dark backdrop. Transparent delivery is WebM-only; MP4 has no
+   * usable alpha path here.
+   */
+  transparentExport = signal(false);
   readonly exportCodecs = [
     { id: 'mp4' as const, label: 'MP4' },
     { id: 'webm' as const, label: 'WebM' },
@@ -830,7 +836,17 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
   /** One-line statement of what the next download will be. */
   exportSummary = computed(() => {
     const { width, height } = this.exportDimensions();
-    return width + 'x' + height + ' - ' + this.exportFps() + 'fps - ' + Math.round(this.exportBitrate() / 1_000_000) + ' Mbps';
+    return (
+      width +
+      'x' +
+      height +
+      ' - ' +
+      this.exportFps() +
+      'fps - ' +
+      Math.round(this.exportBitrate() / 1_000_000) +
+      ' Mbps' +
+      (this.transparentExport() ? ' - ALPHA' : '')
+    );
   });
   /** Which surface the program monitor is showing. */
   monitorSource = signal<'program' | 'camera'>('program');
@@ -4076,7 +4092,12 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
         lastSignature = current;
         try {
           if (this.exportActive && this.exportCanvas && this.exportCtx) {
-            this.paintFrame(this.exportCanvas, this.exportCtx, true);
+            this.paintFrame(
+              this.exportCanvas,
+              this.exportCtx,
+              true,
+              this.transparentExport(),
+            );
             this.mirrorExportIntoPreview(canvas, ctx);
           } else {
             this.paintFrame(canvas, ctx, false);
@@ -4106,6 +4127,10 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     ctx.save();
     ctx.globalAlpha = 1;
     ctx.filter = 'none';
+    // The master may be transparent. The operator still needs a stable dark
+    // backdrop, not trails of the previous frame showing through the alpha.
+    ctx.fillStyle = '#020617';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.drawImage(this.exportCanvas, 0, 0, canvas.width, canvas.height);
     ctx.restore();
   }
@@ -4129,11 +4154,18 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
   private paintFrame(
     canvas: HTMLCanvasElement,
     ctx: CanvasRenderingContext2D,
-    clean: boolean
+    clean: boolean,
+    preserveAlpha = false
   ): void {
     this.tuneContext(ctx);
-    ctx.fillStyle = '#020617';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    if (preserveAlpha) {
+      // Transparent delivery keeps the surface's alpha channel; compositing a
+      // dark fill here would make every transparent-exported master opaque.
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    } else {
+      ctx.fillStyle = '#020617';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
 
     const time = this.videoEngine.currentTime();
     const activeClips = this.videoEngine.getActiveClips(time);
@@ -4194,7 +4226,7 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
         );
         ctx.restore();
       });
-    } else if (!liveCamera) {
+    } else if (!liveCamera && !preserveAlpha) {
       ctx.font = '12px "Public Sans"';
       ctx.fillStyle = '#1e293b';
       ctx.textAlign = 'center';
@@ -6593,6 +6625,12 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     if (this.showFilmMaker()) this.selectAllExportRanges();
   }
 
+  /** Transparent masters are WebM-only, so arm that codec with the mode. */
+  setTransparentExport(value: boolean): void {
+    this.transparentExport.set(!!value);
+    if (value) this.exportCodec.set('webm');
+  }
+
   /** Use the playhead - beat-snapped when the grid is armed - as the start. */
   usePlayheadAsExportStart(): void {
     const start = this.videoEngine.snapTime(this.videoEngine.currentTime());
@@ -6911,6 +6949,21 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
   }
 
   /**
+   * Chrome's WebCodecs path rejects alpha; MediaRecorder's canvas capture is
+   * the only browser path that keeps a VP8/VP9 alpha plane. Refuse the take
+   * instead of silently downloading an opaque MP4 when WebM is unavailable.
+   */
+  private canCaptureAlphaWebm(): boolean {
+    if (typeof MediaRecorder === 'undefined') return false;
+    if (typeof MediaRecorder.isTypeSupported !== 'function') return false;
+    return [
+      'video/webm;codecs=vp9',
+      'video/webm;codecs=vp8',
+      'video/webm',
+    ].some((type) => MediaRecorder.isTypeSupported(type));
+  }
+
+  /**
    * Capture a real video master straight off the preview canvas. The renderer
    * runs in real time (`canvas.captureStream`), so the window is an explicit,
    * user-selected number of seconds instead of an invisible constant.
@@ -6972,7 +7025,14 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     const { width, height } = this.exportDimensions();
     const fps = this.exportFps();
     const framePlan = createFrameLockPlan(seconds, fps);
-    const wantsMp4 = this.exportCodec() === 'mp4';
+    const transparent = this.transparentExport();
+    const wantsMp4 = !transparent && this.exportCodec() === 'mp4';
+    if (transparent && !this.canCaptureAlphaWebm()) {
+      this.aiFeedback.set(
+        'TRANSPARENT EXPORT NEEDS WEBM CAPTURE. THIS BROWSER CANNOT WRITE AN ALPHA WEBM.'
+      );
+      return false;
+    }
 
     const master = this.ensureExportCanvas(width, height);
     if (!master) {
@@ -6988,9 +7048,10 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
 
     await this.prepareCgiModelsForExport();
 
-    // WebCodecs gives us the thing MediaRecorder cannot: a file whose frames
-    // are the exact frames we painted, not whatever survived a render loop.
-    if (isFrameLockedEncodeSupported()) {
+    // Chrome's WebCodecs encoder rejects alpha outright, but its MediaRecorder
+    // canvas path keeps VP8/VP9 alpha. Transparent takes therefore use the
+    // real-time capture path; opaque takes keep the frame-locked encoder.
+    if (!transparent && isFrameLockedEncodeSupported()) {
       return this.runFrameLockedRange(
         start,
         seconds,
@@ -7007,9 +7068,13 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     this.isExporting.set(true);
     this.exportProgress.set(0);
     this.aiFeedback.set(
-      `INITIALIZING ${seconds}s ${this.exportCodec().toUpperCase()} EXPORT FROM ${this.formatClock(
-        start
-      )} AT ${width}x${height} ${fps}FPS. THIS BROWSER HAS NO WEBCODECS FRAME LOCK; USING REAL-TIME CAPTURE.`
+      transparent
+        ? `CAPTURING ${seconds}s TRANSPARENT WEBM FROM ${this.formatClock(
+            start
+          )} AT ${width}x${height} ${fps}FPS. REAL-TIME ALPHA CAPTURE IS REQUIRED BY THE BROWSER.`
+        : `INITIALIZING ${seconds}s ${this.exportCodec().toUpperCase()} EXPORT FROM ${this.formatClock(
+            start
+          )} AT ${width}x${height} ${fps}FPS. THIS BROWSER HAS NO WEBCODECS FRAME LOCK; USING REAL-TIME CAPTURE.`
     );
 
     const wasPlaying = this.videoEngine.isPlaying();
@@ -7021,7 +7086,7 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     };
     // Paint once before the recorder opens, so the take does not begin on the
     // blank canvas a freshly allocated surface starts out as.
-    this.paintFrame(master.canvas, master.ctx, true);
+    this.paintFrame(master.canvas, master.ctx, true, transparent);
 
     try {
       session = await this.exportService.startVideoExport(master.canvas, {

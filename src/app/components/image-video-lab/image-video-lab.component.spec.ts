@@ -5614,6 +5614,20 @@ describe('ImageVideoLabComponent', () => {
       expect(manifest.sections[1]).toMatchObject({ start: 120, end: 240 });
     });
 
+    it('arms WebM and labels the master when alpha export is enabled', async () => {
+      const { component } = await createComponent();
+      component.exportCodec.set('mp4');
+
+      component.setTransparentExport(true);
+      expect(component.transparentExport()).toBe(true);
+      expect(component.exportCodec()).toBe('webm');
+      expect(component.exportSummary()).toContain('ALPHA');
+
+      component.setTransparentExport(false);
+      expect(component.transparentExport()).toBe(false);
+      expect(component.exportCodec()).toBe('webm');
+    });
+
     it('snaps a music-video start down to the bar it begins in', async () => {
       const { component, videoEngine } = await createComponent();
       videoEngine.duration.set(40);

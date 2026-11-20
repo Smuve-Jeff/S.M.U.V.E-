@@ -138,7 +138,7 @@
         <select
           class="export-window-select"
           aria-label="Export codec"
-          [disabled]="isExporting() || isQueueing()"
+          [disabled]="isExporting() || isQueueing() || transparentExport()"
           [ngModel]="exportCodec()"
           (ngModelChange)="exportCodec.set($event)"
         >
@@ -146,6 +146,19 @@
             <option [value]="codec.id">{{ codec.label }}</option>
           }
         </select>
+      </label>
+      <label
+        class="export-alpha-toggle"
+        title="Keep transparency in a WebM master instead of flattening it onto the dark programme backdrop."
+      >
+        <input
+          type="checkbox"
+          aria-label="Preserve alpha in the exported WebM"
+          [disabled]="isExporting() || isQueueing()"
+          [ngModel]="transparentExport()"
+          (ngModelChange)="setTransparentExport(!!$event)"
+        />
+        ALPHA WEBM
       </label>
       <span class="export-summary">{{ exportSummary() }}</span>
       <span class="export-summary">{{ exportRangeLabel() }}</span>
