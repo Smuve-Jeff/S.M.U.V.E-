@@ -75,6 +75,18 @@ describe('masterclass workspace wiring', () => {
   });
 });
 
+describe('image video lab unsaved-work guard', () => {
+  const protectedRoutes = routes.flatMap((route) => route.children ?? []);
+  const route = protectedRoutes.find(
+    (entry) => entry.path === 'image-video-lab'
+  );
+
+  it('asks the Lab before a route change discards unsaved work', () => {
+    expect(route).toBeDefined();
+    expect(route?.canDeactivate).toHaveLength(1);
+  });
+});
+
 describe('streaming settings wiring', () => {
   const protectedRoutes = routes.flatMap((route) => route.children ?? []);
   const route = protectedRoutes.find(

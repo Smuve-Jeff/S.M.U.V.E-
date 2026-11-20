@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { StreamingAccountsPanelComponent } from '../image-video-lab/streaming-accounts-panel.component';
 import { RtmpDestinationsEditorComponent } from './rtmp-destinations-editor.component';
 
@@ -13,12 +14,16 @@ import { RtmpDestinationsEditorComponent } from './rtmp-destinations-editor.comp
   selector: 'app-streaming-settings',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [StreamingAccountsPanelComponent, RtmpDestinationsEditorComponent],
+  imports: [
+    RouterLink,
+    StreamingAccountsPanelComponent,
+    RtmpDestinationsEditorComponent,
+  ],
   template: `
     <div class="streaming-settings-page">
       <div class="settings-shell">
         <header class="settings-head">
-          <a class="back-link" href="/settings">← EXECUTIVE SETTINGS</a>
+          <a class="back-link" routerLink="/settings">← EXECUTIVE SETTINGS</a>
           <span class="eyebrow">Settings / Streaming</span>
           <h1>Streaming Setup</h1>
           <p class="lede">
@@ -27,8 +32,8 @@ import { RtmpDestinationsEditorComponent } from './rtmp-destinations-editor.comp
             &amp; Video Lab and Tha Spot read the same connections and keys.
           </p>
           <div class="surface-jumps">
-            <a class="jump" href="/image-video-lab">IMAGE &amp; VIDEO LAB</a>
-            <a class="jump jump-accent" href="/tha-spot">THA SPOT</a>
+            <a class="jump" routerLink="/image-video-lab">IMAGE &amp; VIDEO LAB</a>
+            <a class="jump jump-accent" routerLink="/tha-spot">THA SPOT</a>
           </div>
         </header>
 
@@ -60,9 +65,9 @@ import { RtmpDestinationsEditorComponent } from './rtmp-destinations-editor.comp
         </section>
 
         <footer class="settings-foot">
-          <a href="/settings">BACK TO SETTINGS</a>
-          <a href="/image-video-lab">OPEN IMAGE &amp; VIDEO LAB</a>
-          <a href="/tha-spot">OPEN THA SPOT</a>
+          <a routerLink="/settings">BACK TO SETTINGS</a>
+          <a routerLink="/image-video-lab">OPEN IMAGE &amp; VIDEO LAB</a>
+          <a routerLink="/tha-spot">OPEN THA SPOT</a>
         </footer>
       </div>
     </div>

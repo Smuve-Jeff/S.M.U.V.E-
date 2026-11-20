@@ -1,5 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
+import { provideRouter } from '@angular/router';
 import { SettingsComponent } from './settings.component';
 import { UserProfileService } from '../../services/user-profile.service';
 import { UIService } from '../../services/ui.service';
@@ -123,6 +124,7 @@ describe('SettingsComponent', () => {
     await TestBed.configureTestingModule({
       imports: [SettingsComponent],
       providers: [
+        provideRouter([]),
         { provide: UserProfileService, useValue: profileServiceMock },
         {
           provide: UIService,

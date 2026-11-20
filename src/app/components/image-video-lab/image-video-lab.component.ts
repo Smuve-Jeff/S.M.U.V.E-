@@ -2596,6 +2596,44 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
   }
 
   /**
+   * Route-level guard: a client-side leave must not silently discard a
+   * timeline. The browser's `beforeunload` never fires for an Angular route
+   * change, so Settings links need this confirmation instead.
+   */
+  async canLeaveLab(): Promise<boolean> {
+    if (!this.hasUnsavedProjectWork()) return true;
+    const activeId = this.cinemaProjects.activeProjectId();
+    const currentName =
+      activeId === null
+        ? 'THIS EDIT'
+        : (this.cinemaProjects.activeProject()?.name ?? 'THE CURRENT PROJECT');
+    const choice = await this.projectDialog.confirmWithAlternate({
+      title: 'Unsaved project changes',
+      message:
+        activeId === null
+          ? 'This timeline has work that is not saved. Save it before leaving the Lab?'
+          : `“${currentName}” has edits that are not saved. Save them before leaving the Lab?`,
+      confirmLabel: 'Save & leave',
+      alternateLabel: 'Discard & leave',
+      cancelLabel: 'Keep editing',
+    });
+    if (choice === 'cancel') {
+      this.aiFeedback.set('LEAVE CANCELLED — SAVE THIS EDIT FIRST.');
+      return false;
+    }
+    if (choice === 'confirm') {
+      if (!(await this.saveProject())) return false;
+      if (this.hasUnsavedProjectWork()) {
+        this.aiFeedback.set(
+          'SAVE FINISHED, BUT NEW EDITS ARRIVED — LEAVE CANCELLED.',
+        );
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /**
    * Open a saved project from its card after the unsaved-work guard. This is
    * the ordinary open path; `openProject()` is the raw replacement used only
    * after a guard has already approved it.

@@ -1,5 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
+import { provideRouter } from '@angular/router';
 import { BroadcastIngestService } from '../../services/broadcast-ingest.service';
 import { StreamingPlatformsService } from '../../services/streaming-platforms.service';
 import { StreamingSettingsComponent } from './streaming-settings.component';
@@ -18,6 +19,7 @@ describe('StreamingSettingsComponent', () => {
     await TestBed.configureTestingModule({
       imports: [StreamingSettingsComponent],
       providers: [
+        provideRouter([]),
         {
           provide: StreamingPlatformsService,
           useValue: {
@@ -44,6 +46,9 @@ describe('StreamingSettingsComponent', () => {
             load: jest.fn(async () => undefined),
             saveDestination: jest.fn(async () => true),
             clearDestination: jest.fn(async () => true),
+            testingDestination: signal(null),
+            destinationTest: () => ({ status: 'idle', detail: '', at: null }),
+            testDestination: jest.fn(async () => true),
           },
         },
       ],

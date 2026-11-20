@@ -92,9 +92,18 @@ router.post("/ingest", authenticate, pushLimiter, async (req, res) => {
   const platforms = Array.isArray(req.body?.platforms)
     ? req.body.platforms.filter((value: unknown) => typeof value === "string")
     : [];
+  // Destination tests use the real ingest path but are not shows; keep them
+  // out of the host's recordings history.
+  const ephemeral = req.body?.ephemeral === true;
   res
     .status(201)
-    .json(await startIngestSession(actorOf(req), platforms as string[]));
+    .json(
+      ephemeral
+        ? await startIngestSession(actorOf(req), platforms as string[], {
+            ephemeral: true,
+          })
+        : await startIngestSession(actorOf(req), platforms as string[]),
+    );
 });
 
 // POST /api/broadcast/ingest/:platform — compatibility for one-destination

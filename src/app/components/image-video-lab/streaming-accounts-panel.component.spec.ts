@@ -1,5 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
+import { provideRouter } from '@angular/router';
 import { BroadcastIngestService } from '../../services/broadcast-ingest.service';
 import { StreamingPlatformsService } from '../../services/streaming-platforms.service';
 import { StreamingAccountsPanelComponent } from './streaming-accounts-panel.component';
@@ -57,6 +58,7 @@ describe('StreamingAccountsPanelComponent', () => {
     await TestBed.configureTestingModule({
       imports: [StreamingAccountsPanelComponent],
       providers: [
+        provideRouter([]),
         { provide: StreamingPlatformsService, useValue: platforms },
         { provide: BroadcastIngestService, useValue: ingest },
       ],

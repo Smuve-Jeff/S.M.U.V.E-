@@ -60,7 +60,8 @@ const emptyDrafts = (): Record<ManualDestination, DestinationDraft> => ({
         </div>
         <p class="rtmp-note">
           Stream keys are never read back. Enter the current key when you save a
-          URL or name change.
+          URL or name change. TEST publishes six seconds of test pattern to the
+          saved destination, so its viewers may briefly see it.
         </p>
       </div>
 
@@ -128,7 +129,11 @@ const emptyDrafts = (): Record<ManualDestination, DestinationDraft> => ({
               <button
                 type="button"
                 class="rtmp-save"
-                [disabled]="saving() !== null || !canSave(slot.id)"
+                [disabled]="
+                  saving() !== null ||
+                  ingest.testingDestination() !== null ||
+                  !canSave(slot.id)
+                "
                 (click)="save(slot.id)"
               >
                 {{
@@ -142,8 +147,33 @@ const emptyDrafts = (): Record<ManualDestination, DestinationDraft> => ({
               @if (ready(slot.id)) {
                 <button
                   type="button"
+                  class="rtmp-test"
+                  [disabled]="!canTest(slot.id)"
+                  (click)="test(slot.id)"
+                  [title]="
+                    pendingEdit(slot.id)
+                      ? 'Save the stream key or URL change before testing'
+                      : 'Publish six seconds of test pattern to this saved destination'
+                  "
+                >
+                  {{
+                    testing(slot.id)
+                      ? 'TESTING…'
+                      : pendingEdit(slot.id)
+                        ? 'SAVE FIRST'
+                        : testState(slot.id).status === 'pass'
+                          ? 'TEST AGAIN'
+                          : 'TEST'
+                  }}
+                </button>
+                <button
+                  type="button"
                   class="rtmp-clear"
-                  [disabled]="clearing() !== null || saving() !== null"
+                  [disabled]="
+                    clearing() !== null ||
+                    saving() !== null ||
+                    ingest.testingDestination() !== null
+                  "
                   (click)="clear(slot.id)"
                 >
                   {{
@@ -156,6 +186,22 @@ const emptyDrafts = (): Record<ManualDestination, DestinationDraft> => ({
                 </button>
               }
             </div>
+
+            @if (pendingEdit(slot.id)) {
+              <p class="rtmp-test-pending" role="status">
+                SAVE CHANGES BEFORE TESTING THE NEW KEY OR URL.
+              </p>
+            } @else if (testState(slot.id); as test) {
+              @if (test.status === 'pass' || test.status === 'fail') {
+                <p
+                  class="rtmp-test-result"
+                  [class.rtmp-test-fail]="test.status === 'fail'"
+                  role="status"
+                >
+                  {{ test.detail }}
+                </p>
+              }
+            }
           </article>
         }
       </div>
@@ -288,6 +334,7 @@ const emptyDrafts = (): Record<ManualDestination, DestinationDraft> => ({
         margin-top: 0.1rem;
       }
       .rtmp-save,
+      .rtmp-test,
       .rtmp-clear {
         padding: 0.38rem 0.6rem;
         border-radius: 0.4rem;
@@ -301,17 +348,24 @@ const emptyDrafts = (): Record<ManualDestination, DestinationDraft> => ({
         border: 1px solid rgba(16, 185, 129, 0.5);
         color: #6ee7b7;
       }
+      .rtmp-test {
+        border: 1px solid rgba(56, 189, 248, 0.45);
+        color: #7dd3fc;
+      }
       .rtmp-clear {
         border: 1px solid rgba(248, 113, 113, 0.35);
         color: #fca5a5;
       }
       .rtmp-save:disabled,
+      .rtmp-test:disabled,
       .rtmp-clear:disabled {
         cursor: not-allowed;
         opacity: 0.45;
       }
       .rtmp-save:hover:not(:disabled),
-      .rtmp-save:focus-visible:not(:disabled) {
+      .rtmp-save:focus-visible:not(:disabled),
+      .rtmp-test:hover:not(:disabled),
+      .rtmp-test:focus-visible:not(:disabled) {
         background: rgba(16, 185, 129, 0.12);
         outline: none;
       }
@@ -319,6 +373,19 @@ const emptyDrafts = (): Record<ManualDestination, DestinationDraft> => ({
       .rtmp-clear:focus-visible:not(:disabled) {
         background: rgba(239, 68, 68, 0.1);
         outline: none;
+      }
+      .rtmp-test-result,
+      .rtmp-test-pending {
+        margin: 0;
+        color: #34d399;
+        font-size: 0.58rem;
+        line-height: 1.4;
+      }
+      .rtmp-test-pending {
+        color: #fbbf24;
+      }
+      .rtmp-test-fail {
+        color: #fca5a5;
       }
     `,
   ],
@@ -333,6 +400,15 @@ export class RtmpDestinationsEditorComponent {
   readonly saving = signal<ManualDestination | null>(null);
   readonly clearing = signal<ManualDestination | null>(null);
   readonly pendingClear = signal<ManualDestination | null>(null);
+  /** URLs last accepted by the server, used to spot unsaved replacements. */
+  private readonly savedUrls = signal<Record<ManualDestination, string>>({
+    kick: '',
+    facebook: '',
+    custom: '',
+    custom2: '',
+    custom3: '',
+    custom4: '',
+  });
 
   field(
     slot: ManualDestination,
@@ -363,6 +439,42 @@ export class RtmpDestinationsEditorComponent {
     return this.ingest.ready(slot);
   }
 
+  testing(slot: ManualDestination): boolean {
+    return this.ingest.testingDestination() === slot;
+  }
+
+  testState(slot: ManualDestination) {
+    return this.ingest.destinationTest(slot);
+  }
+
+  /**
+   * A typed key or changed URL has not reached the server yet. Testing now
+   * would check the previous key and report a pass for the wrong values.
+   */
+  pendingEdit(slot: ManualDestination): boolean {
+    const draft = this.drafts()[slot];
+    return (
+      draft.streamKey.trim() !== '' ||
+      (draft.rtmpUrl.trim() !== '' &&
+        draft.rtmpUrl.trim() !== this.savedUrls()[slot])
+    );
+  }
+
+  canTest(slot: ManualDestination): boolean {
+    return (
+      this.ready(slot) &&
+      this.saving() === null &&
+      this.clearing() === null &&
+      this.ingest.testingDestination() === null &&
+      !this.pendingEdit(slot)
+    );
+  }
+
+  async test(slot: ManualDestination): Promise<void> {
+    if (!this.canTest(slot)) return;
+    await this.ingest.testDestination(slot);
+  }
+
   detail(slot: ManualDestination): string {
     const destination = this.ingest.destinations()[slot];
     return destination?.detail?.trim() || 'DESTINATION READY';
@@ -380,7 +492,7 @@ export class RtmpDestinationsEditorComponent {
   }
 
   async save(slot: ManualDestination): Promise<void> {
-    if (this.saving()) return;
+    if (this.saving() || this.ingest.testingDestination()) return;
     const draft = this.drafts()[slot];
     const rtmpUrl = draft.rtmpUrl.trim();
     const streamKey = draft.streamKey.trim();
@@ -406,14 +518,20 @@ export class RtmpDestinationsEditorComponent {
         streamKey,
         label,
       );
-      if (saved) this.setField(slot, 'streamKey', '');
+      if (saved) {
+        this.savedUrls.update((current) => ({
+          ...current,
+          [slot]: rtmpUrl,
+        }));
+        this.setField(slot, 'streamKey', '');
+      }
     } finally {
       this.saving.set(null);
     }
   }
 
   async clear(slot: ManualDestination): Promise<void> {
-    if (this.clearing()) return;
+    if (this.clearing() || this.ingest.testingDestination()) return;
     if (this.pendingClear() !== slot) {
       this.pendingClear.set(slot);
       return;
@@ -426,6 +544,7 @@ export class RtmpDestinationsEditorComponent {
         ...current,
         [slot]: { label: '', rtmpUrl: '', streamKey: '' },
       }));
+      this.savedUrls.update((current) => ({ ...current, [slot]: '' }));
       this.setError(slot, '');
     } finally {
       this.clearing.set(null);

@@ -104,6 +104,13 @@ interface IngestSessionDto {
   whipUrl?: string;
 }
 
+/** Per-destination preflight result, shown on the saved RTMP card. */
+export interface DestinationTestState {
+  status: 'idle' | 'running' | 'pass' | 'fail';
+  detail: string;
+  at: number | null;
+}
+
 /**
  * Push the host's capture to a connected channel.
  *
@@ -256,6 +263,15 @@ export class BroadcastIngestService {
     detail: '',
   });
 
+  /** The destination whose short connection test is running, if any. */
+  readonly testingDestination = signal<IngestPlatform | null>(null);
+  /** Per-destination connection tests: "will this saved key accept media?" */
+  readonly destinationTests = signal<
+    Partial<Record<IngestPlatform, DestinationTestState>>
+  >({});
+  /** Changes whenever a destination config is replaced underneath a test. */
+  private destinationTestRevision = 0;
+
   /**
    * Recordings the relay still holds for this host. Every push is recorded on
    * the relay and pruned by its retention window, so this list shrinks on its
@@ -333,6 +349,8 @@ export class BroadcastIngestService {
       const userId = this.profile.profile()?.id ?? '';
       if (!userId) {
         this.destinations.set({});
+        this.destinationTests.set({});
+        this.destinationTestRevision += 1;
         return;
       }
       void this.load();
@@ -402,6 +420,8 @@ export class BroadcastIngestService {
       const platforms = response?.platforms;
       if (!Array.isArray(platforms)) {
         this.destinations.set({});
+        this.destinationTests.set({});
+        this.destinationTestRevision += 1;
         this.relayConfigured.set(null);
         this.checkError.set(
           'RELAY CHECK FAILED — THE SERVER DID NOT RETURN A DESTINATIONS LIST',
@@ -416,6 +436,9 @@ export class BroadcastIngestService {
         }
       }
       this.destinations.set(next);
+      // A re-sync may have replaced a key; earlier passes no longer apply.
+      this.destinationTests.set({});
+      this.destinationTestRevision += 1;
       // Only a server that says the relay is configured earns the ready label.
       this.relayConfigured.set(response.relayConfigured === true);
     } catch {
@@ -448,6 +471,13 @@ export class BroadcastIngestService {
         ...current,
         [platform]: status,
       }));
+      // A previous pass belonged to the old URL/key; it must not outlive it.
+      this.destinationTests.update((current) => {
+        const next = { ...current };
+        delete next[platform];
+        return next;
+      });
+      this.destinationTestRevision += 1;
       this.snackbar.success(
         `${status?.label || label || platform.toUpperCase()} DESTINATION SAVED`,
       );
@@ -473,6 +503,12 @@ export class BroadcastIngestService {
         delete next[platform];
         return next;
       });
+      this.destinationTests.update((current) => {
+        const next = { ...current };
+        delete next[platform];
+        return next;
+      });
+      this.destinationTestRevision += 1;
       this.snackbar.success(
         `${this.platformLabel(platform)} DESTINATION CLEARED`,
       );
@@ -489,6 +525,10 @@ export class BroadcastIngestService {
     ];
     if (platforms.length === 0) {
       this.snackbar.warning('CHOOSE AT LEAST ONE BROADCAST DESTINATION');
+      return false;
+    }
+    if (this.testingDestination()) {
+      this.snackbar.warning('A DESTINATION TEST IS STILL RUNNING');
       return false;
     }
     const initialStream = this.social.localStream();
@@ -676,6 +716,10 @@ export class BroadcastIngestService {
    */
   async runSelfTest(): Promise<void> {
     if (this.selfTest().status === 'running') return;
+    if (this.testingDestination()) {
+      this.snackbar.warning('A DESTINATION TEST IS STILL RUNNING');
+      return;
+    }
     // The SELF-TEST click primes the mixer before the relay is asked for a
     // session, so a test pattern with audio is not published after the
     // browser has dropped the click's transient activation.
@@ -768,6 +812,151 @@ export class BroadcastIngestService {
         }
       }
     }
+  }
+
+  /** The last test result for one destination, or an idle placeholder. */
+  destinationTest(platform: IngestPlatform): DestinationTestState {
+    return (
+      this.destinationTests()[platform] ?? {
+        status: 'idle',
+        detail: '',
+        at: null,
+      }
+    );
+  }
+
+  /**
+   * Verify one saved destination with a short, real publisher connection.
+   *
+   * The relay resolves the provider's RTMP target and the browser pushes six
+   * seconds of the same test pattern the relay self-test uses. Success requires
+   * egress bytes toward the provider, so a saved key that the provider rejects
+   * fails here instead of during the show. The target channel may briefly show
+   * the pattern; it is a real publish, not a synthetic URL check.
+   */
+  async testDestination(platform: IngestPlatform): Promise<boolean> {
+    if (this.testingDestination()) return false;
+    if (this.pushing() || this.selfTest().status === 'running') {
+      this.snackbar.warning('ANOTHER BROADCAST TEST IS STILL RUNNING');
+      return false;
+    }
+    if (!this.ready(platform)) {
+      this.snackbar.warning('SAVE THIS DESTINATION BEFORE TESTING');
+      return false;
+    }
+
+    this.primeAudioContext();
+    const pattern = createTestPattern();
+    if (!pattern) {
+      this.closePrimedAudioContext();
+      this.setDestinationTest(platform, 'fail', 'THIS BROWSER CANNOT GENERATE A TEST PATTERN');
+      this.snackbar.error('DESTINATION TEST FAILED');
+      return false;
+    }
+
+    const label = this.platformLabel(platform);
+    const revision = this.destinationTestRevision;
+    this.testingDestination.set(platform);
+    this.setDestinationTest(platform, 'running', 'CONNECTING TO THE DESTINATION…');
+    let relayId: string | null = null;
+    try {
+      const session = await firstValueFrom(
+        this.http.post<IngestSessionDto>(
+          this.endpoint('/ingest'),
+          { platforms: [platform], ephemeral: true },
+          { headers: this.headers() },
+        ),
+      );
+      if (!session?.relayId || !session.whipUrl) {
+        throw new Error('THE RELAY RETURNED NO TEST SESSION');
+      }
+      relayId = session.relayId;
+      if (!(await this.whip.start(session.whipUrl, pattern.stream))) {
+        throw new Error(this.whip.error() ?? 'PUBLISH FAILED');
+      }
+
+      // Give ICE, ffmpeg and the provider handshake time, then ask the relay
+      // what it actually sent towards the destination.
+      await new Promise((resolve) => setTimeout(resolve, 6_000));
+      const status = await firstValueFrom(
+        this.http.get<{
+          running?: boolean;
+          bytesOut?: number;
+          bitrateKbps?: number;
+          stalled?: boolean;
+          recoveryGaveUp?: boolean;
+          error?: string | null;
+        }>(this.endpoint(`/ingest/${encodeURIComponent(relayId)}`), {
+          headers: this.headers(),
+        }),
+      );
+      const bytesOut = Number(status?.bytesOut ?? 0);
+      const bitrate = Number(status?.bitrateKbps ?? 0);
+      if (status?.error) throw new Error(String(status.error));
+      if (status?.recoveryGaveUp) {
+        throw new Error('THE RELAY COULD NOT KEEP THE DESTINATION CONNECTED');
+      }
+      if (status?.running === true && bytesOut > 0 && !status?.stalled) {
+        if (revision !== this.destinationTestRevision) {
+          this.snackbar.warning('DESTINATION CHANGED DURING THE TEST — TEST AGAIN');
+          return false;
+        }
+        this.setDestinationTest(
+          platform,
+          'pass',
+          `PROVIDER ACCEPTED MEDIA — ${Math.max(1, Math.round(bytesOut / 1024))} KB OUT${bitrate > 0 ? ` · ${Math.round(bitrate)} KBPS` : ''}`,
+        );
+        this.snackbar.success(`${label} TEST PASSED`);
+        return true;
+      }
+      if (status?.running === false) {
+        throw new Error('THE DESTINATION CLOSED THE CONNECTION — CHECK THE STREAM KEY');
+      }
+      throw new Error('THE PROVIDER RECEIVED NO MEDIA — CHECK THE URL AND STREAM KEY');
+    } catch (error) {
+      if (revision !== this.destinationTestRevision) {
+        this.snackbar.warning('DESTINATION CHANGED DURING THE TEST — TEST AGAIN');
+        return false;
+      }
+      const detail = this.describe(error);
+      this.setDestinationTest(platform, 'fail', detail);
+      this.snackbar.error(detail);
+      return false;
+    } finally {
+      try {
+        await this.whip.stop();
+      } catch {
+        // A publisher that already failed cannot block releasing the session.
+      }
+      try {
+        pattern.stop();
+      } catch {
+        // A stopped pattern is already the desired end state.
+      }
+      if (relayId) {
+        try {
+          await firstValueFrom(
+            this.http.delete(this.endpoint(`/ingest/${encodeURIComponent(relayId)}`), {
+              headers: this.headers(),
+            }),
+          );
+        } catch {
+          // The relay's idle timeout closes a test session we could not.
+        }
+      }
+      this.testingDestination.set(null);
+    }
+  }
+
+  private setDestinationTest(
+    platform: IngestPlatform,
+    status: DestinationTestState['status'],
+    detail: string,
+  ): void {
+    this.destinationTests.update((current) => ({
+      ...current,
+      [platform]: { status, detail, at: Date.now() },
+    }));
   }
 
   private async releaseRelay(): Promise<void> {

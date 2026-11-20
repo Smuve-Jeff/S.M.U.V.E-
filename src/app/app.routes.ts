@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { authChildGuard } from './services/auth.guard';
+import { imageVideoLabCanDeactivate } from './components/image-video-lab/image-video-lab-can-deactivate.guard';
 
 const protectedRoutes: Routes = [
   {
@@ -246,6 +247,7 @@ const protectedRoutes: Routes = [
   },
   {
     path: 'image-video-lab',
+    canDeactivate: [imageVideoLabCanDeactivate],
     loadComponent: () =>
       import('./components/image-video-lab/image-video-lab.component').then(
         (m) => m.ImageVideoLabComponent

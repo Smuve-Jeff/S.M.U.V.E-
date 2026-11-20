@@ -32,6 +32,7 @@ jest.mock("@/config/env", () => ({
 }));
 
 import { AppDataSource } from "@/database/data-source";
+import { rememberBroadcastSession } from "@/services/broadcast-recordings.service";
 import {
   clearManualDestination,
   destinationOverview,
@@ -346,6 +347,20 @@ describe("broadcast ingest multi-destination sessions", () => {
         streamKey: "FACEBOOK_KEY_123",
       },
     ]);
+  });
+
+  it("opens an ephemeral session without remembering it as a recording", async () => {
+    globalThis.fetch = jest.fn(async () => ({
+      ok: true,
+      json: async () => ({
+        id: "relay-test",
+        whipUrl: "https://relay.test/relay-test/whip",
+      }),
+    })) as unknown as typeof fetch;
+
+    await startIngestSession(7, ["kick"], { ephemeral: true });
+
+    expect(rememberBroadcastSession).not.toHaveBeenCalled();
   });
 
   it("creates a Live Video on the linked Page and ends it on stop", async () => {

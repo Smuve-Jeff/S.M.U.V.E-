@@ -4353,6 +4353,24 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     }, attempt === 0 ? 180 : 100);
   }
 
+  /** Keep the Tha Spot session and its capture when opening shared settings. */
+  openStreamingSettings(event: Event): void {
+    // A modified click is an explicit request for a new tab/window; only the
+    // ordinary click should become an in-app route change.
+    if (
+      event instanceof MouseEvent &&
+      (event.button !== 0 ||
+        event.metaKey ||
+        event.ctrlKey ||
+        event.shiftKey ||
+        event.altKey)
+    ) {
+      return;
+    }
+    event.preventDefault();
+    void this.router.navigate(['/settings/streaming']);
+  }
+
   /**
    * Keep a manual RTMP destination on the server so the stream key never has
    * to be typed again, and drop it from this component's state once saved.

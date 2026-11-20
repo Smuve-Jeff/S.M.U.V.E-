@@ -16,6 +16,13 @@ describe('RtmpDestinationsEditorComponent', () => {
     platformLabel: (id: string) => string;
     saveDestination: jest.Mock;
     clearDestination: jest.Mock;
+    testDestination: jest.Mock;
+    testingDestination: ReturnType<typeof signal<string | null>>;
+    destinationTest: () => {
+      status: 'idle' | 'running' | 'pass' | 'fail';
+      detail: string;
+      at: number | null;
+    };
   };
 
   beforeEach(async () => {
@@ -35,6 +42,9 @@ describe('RtmpDestinationsEditorComponent', () => {
         ingest.platforms.find((platform) => platform.id === id)?.label ?? id,
       saveDestination: jest.fn(async () => true),
       clearDestination: jest.fn(async () => true),
+      testDestination: jest.fn(async () => true),
+      testingDestination: signal<string | null>(null),
+      destinationTest: () => ({ status: 'idle', detail: '', at: null }),
     };
 
     await TestBed.configureTestingModule({
@@ -72,6 +82,7 @@ describe('RtmpDestinationsEditorComponent', () => {
       'KICK'
     );
     expect(component.field('kick', 'streamKey')).toBe('');
+    expect(component.pendingEdit('kick')).toBe(false);
   });
 
   it('saves a named custom destination', async () => {
@@ -103,6 +114,47 @@ describe('RtmpDestinationsEditorComponent', () => {
     await component.save('facebook');
     expect(ingest.saveDestination).not.toHaveBeenCalled();
     expect(component.error('facebook')).toContain('STREAM KEY');
+  });
+
+  it('tests a saved destination through the shared ingest service', async () => {
+    destinations.set({ kick: { ready: true, detail: 'KICK — ready' } });
+    fixture.detectChanges();
+
+    await component.test('kick');
+
+    expect(ingest.testDestination).toHaveBeenCalledWith('kick');
+  });
+
+  it('will not test a new key that has not been saved yet', async () => {
+    destinations.set({ kick: { ready: true, detail: 'KICK — ready' } });
+    component.setField('kick', 'streamKey', 'NEW_UNSAVED_KEY');
+    fixture.detectChanges();
+
+    expect(component.pendingEdit('kick')).toBe(true);
+    expect(component.canTest('kick')).toBe(false);
+    expect(
+      fixture.nativeElement.querySelector('.rtmp-test').textContent
+    ).toContain('SAVE FIRST');
+
+    await component.test('kick');
+    expect(ingest.testDestination).not.toHaveBeenCalled();
+  });
+
+  it('blocks saving and clearing while a destination test is running', async () => {
+    destinations.set({ kick: { ready: true, detail: 'KICK — ready' } });
+    component.setField('kick', 'rtmpUrl', 'rtmps://rtmp.kick.com/live');
+    component.setField('kick', 'streamKey', 'KICK_KEY_123');
+    ingest.testingDestination.set('kick');
+    fixture.detectChanges();
+
+    await component.save('kick');
+    await component.clear('kick');
+
+    expect(ingest.saveDestination).not.toHaveBeenCalled();
+    expect(ingest.clearDestination).not.toHaveBeenCalled();
+    expect(
+      fixture.nativeElement.querySelector('.rtmp-save').disabled
+    ).toBe(true);
   });
 
   it('requires a second click before clearing a saved destination', async () => {

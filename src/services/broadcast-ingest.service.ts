@@ -462,6 +462,7 @@ export async function clearManualDestination(
 export async function startIngestSession(
   userId: number | string,
   platform: string | string[],
+  options: { ephemeral?: boolean } = {},
 ): Promise<IngestSession> {
   const requested = Array.isArray(platform) ? platform : [platform];
   const keys = [...new Set(requested.map((value) => asPlatform(value)))];
@@ -508,12 +509,15 @@ export async function startIngestSession(
     });
   }
   // The relay records this session under `id`; the row is what later proves a
-  // recording belongs to this host.
-  await rememberBroadcastSession({
-    userId: owner,
-    relayId: session.id,
-    platform: keys[0],
-  });
+  // recording belongs to that host. A destination test is a real publish but
+  // not a show, so it must not appear in the recordings list.
+  if (!options.ephemeral) {
+    await rememberBroadcastSession({
+      userId: owner,
+      relayId: session.id,
+      platform: keys[0],
+    });
+  }
   return {
     platform: keys[0],
     platforms: keys,

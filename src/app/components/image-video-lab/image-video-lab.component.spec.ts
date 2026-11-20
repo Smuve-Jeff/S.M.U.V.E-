@@ -4612,6 +4612,41 @@ describe('ImageVideoLabComponent', () => {
       expect(component.aiFeedback()).toContain('OPEN CANCELLED');
     });
 
+    it('keeps the Lab on cancel when a route change would discard edits', async () => {
+      const { component, projectDialog, cinemaProjects } =
+        await openDirtyProject();
+      projectDialog.confirmWithAlternate.mockResolvedValueOnce('cancel');
+
+      await expect(component.canLeaveLab()).resolves.toBe(false);
+
+      const request = projectDialog.confirmWithAlternate.mock.calls[0][0];
+      expect(request.message).toContain('before leaving the Lab');
+      expect(request.confirmLabel).toBe('Save & leave');
+      expect(request.alternateLabel).toBe('Discard & leave');
+      expect(cinemaProjects.save).not.toHaveBeenCalled();
+      expect(component.aiFeedback()).toContain('LEAVE CANCELLED');
+    });
+
+    it('allows a deliberate discard before leaving the Lab', async () => {
+      const { component, projectDialog, cinemaProjects } =
+        await openDirtyProject();
+      projectDialog.confirmWithAlternate.mockResolvedValueOnce('alternate');
+
+      await expect(component.canLeaveLab()).resolves.toBe(true);
+
+      expect(cinemaProjects.save).not.toHaveBeenCalled();
+    });
+
+    it('saves before a route change when the host chooses to', async () => {
+      const { component, projectDialog, cinemaProjects } =
+        await openDirtyProject();
+      projectDialog.confirmWithAlternate.mockResolvedValueOnce('confirm');
+
+      await expect(component.canLeaveLab()).resolves.toBe(true);
+
+      expect(cinemaProjects.save).toHaveBeenCalledTimes(1);
+    });
+
     it('saves the current project before opening the chosen one', async () => {
       const {
         component,

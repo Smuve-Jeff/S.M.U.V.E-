@@ -270,6 +270,146 @@ describe('BroadcastIngestService manual destinations', () => {
   });
 });
 
+describe('BroadcastIngestService destination test', () => {
+  const flush = async () => {
+    for (let i = 0; i < 8; i++) await Promise.resolve();
+  };
+
+  it('passes when the provider accepts egress media and cleans up', async () => {
+    jest.useFakeTimers();
+    try {
+      const service = TestBed.inject(BroadcastIngestService);
+      // Let the signed-out profile effect settle before seeding the destination.
+      TestBed.tick();
+      await flush();
+      service.destinations.set({
+        custom: { platform: 'custom', ready: true, label: 'TikTok' },
+      });
+      httpPost.mockReturnValueOnce(
+        of({ relayId: 'test-1', whipUrl: 'https://relay.test/whip' }),
+      );
+      httpGet.mockReturnValueOnce(
+        of({
+          running: true,
+          bytesOut: 2048,
+          bitrateKbps: 700,
+          stalled: false,
+          error: null,
+        }),
+      );
+      httpDelete.mockReturnValue(of(undefined));
+
+      const pending = service.testDestination('custom');
+      await flush();
+      jest.advanceTimersByTime(6_000);
+      await flush();
+
+      await expect(pending).resolves.toBe(true);
+      expect(httpPost).toHaveBeenCalledWith(
+        expect.stringContaining('/ingest'),
+        { platforms: ['custom'], ephemeral: true },
+        expect.anything(),
+      );
+      expect(service.destinationTest('custom').status).toBe('pass');
+      expect(service.testingDestination()).toBeNull();
+      expect(whipStop).toHaveBeenCalled();
+      expect(testPattern.stop).toHaveBeenCalled();
+      expect(httpDelete).toHaveBeenCalledWith(
+        expect.stringContaining('/ingest/test-1'),
+        expect.anything(),
+      );
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('fails when the provider receives no media', async () => {
+    jest.useFakeTimers();
+    try {
+      const service = TestBed.inject(BroadcastIngestService);
+      TestBed.tick();
+      await flush();
+      service.destinations.set({
+        kick: { platform: 'kick', ready: true, label: 'KICK' },
+      });
+      httpPost.mockReturnValueOnce(
+        of({ relayId: 'test-2', whipUrl: 'https://relay.test/whip' }),
+      );
+      httpGet.mockReturnValueOnce(
+        of({
+          running: true,
+          bytesOut: 0,
+          bitrateKbps: 0,
+          stalled: false,
+          error: null,
+        }),
+      );
+      httpDelete.mockReturnValue(of(undefined));
+
+      const pending = service.testDestination('kick');
+      await flush();
+      jest.advanceTimersByTime(6_000);
+      await flush();
+
+      await expect(pending).resolves.toBe(false);
+      expect(service.destinationTest('kick')).toMatchObject({
+        status: 'fail',
+        detail: expect.stringContaining('NO MEDIA'),
+      });
+      expect(service.testingDestination()).toBeNull();
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('fails when the destination closes the published connection', async () => {
+    jest.useFakeTimers();
+    try {
+      const service = TestBed.inject(BroadcastIngestService);
+      TestBed.tick();
+      await flush();
+      service.destinations.set({
+        facebook: { platform: 'facebook', ready: true, label: 'FACEBOOK' },
+      });
+      httpPost.mockReturnValueOnce(
+        of({ relayId: 'test-3', whipUrl: 'https://relay.test/whip' }),
+      );
+      httpGet.mockReturnValueOnce(
+        of({
+          running: false,
+          bytesOut: 4096,
+          bitrateKbps: 0,
+          stalled: false,
+          error: null,
+        }),
+      );
+      httpDelete.mockReturnValue(of(undefined));
+
+      const pending = service.testDestination('facebook');
+      await flush();
+      jest.advanceTimersByTime(6_000);
+      await flush();
+
+      await expect(pending).resolves.toBe(false);
+      expect(service.destinationTest('facebook')).toMatchObject({
+        status: 'fail',
+        detail: expect.stringContaining('CLOSED THE CONNECTION'),
+      });
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('refuses to test a destination that is not saved', async () => {
+    const service = TestBed.inject(BroadcastIngestService);
+
+    await expect(service.testDestination('custom2')).resolves.toBe(false);
+
+    expect(httpPost).not.toHaveBeenCalled();
+    expect(whipStart).not.toHaveBeenCalled();
+  });
+});
+
 describe('BroadcastIngestService push status', () => {
   it('lists every reason a push is blocked on one line', () => {
     const service = TestBed.inject(BroadcastIngestService);

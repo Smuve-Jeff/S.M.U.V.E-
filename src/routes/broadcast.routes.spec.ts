@@ -38,9 +38,11 @@ jest.mock("@/services/broadcast-recordings.service", () => ({
 }));
 
 import broadcastRoutes from "./broadcast.routes";
+import { startIngestSession } from "@/services/broadcast-ingest.service";
 import { recordingArchive } from "@/services/broadcast-recordings.service";
 
 const archiveMock = recordingArchive as jest.Mock;
+const startIngestMock = startIngestSession as jest.Mock;
 
 const app = express();
 app.use(express.json());
@@ -73,6 +75,26 @@ describe("broadcast recordings archive route", () => {
     `${baseUrl}/api/broadcast/recordings/aaaa/archive?name=${encodeURIComponent(
       name,
     )}&u=7&exp=1&sig=x`;
+
+  it("keeps a destination test out of the recordings history", async () => {
+    startIngestMock.mockResolvedValue({
+      platform: "kick",
+      platforms: ["kick"],
+      relayId: "relay-test",
+      whipUrl: "https://relay.test/relay-test/whip",
+    });
+
+    const response = await fetch(`${baseUrl}/api/broadcast/ingest`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ platforms: ["kick"], ephemeral: true }),
+    });
+
+    expect(response.status).toBe(201);
+    expect(startIngestMock).toHaveBeenCalledWith(7, ["kick"], {
+      ephemeral: true,
+    });
+  });
 
   it("answers with the relay error, not an empty zip, when the first segment cannot be opened", async () => {
     const failure = Object.assign(

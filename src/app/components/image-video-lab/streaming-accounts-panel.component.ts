@@ -6,6 +6,7 @@ import {
   input,
   signal,
 } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { BroadcastIngestService, type IngestPlatform } from '../../services/broadcast-ingest.service';
 import {
   StreamingPlatformsService,
@@ -33,6 +34,7 @@ interface AccountRow {
 @Component({
   selector: 'app-streaming-accounts-panel',
   standalone: true,
+  imports: [RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="accounts" aria-labelledby="lab-streaming-accounts-title">
@@ -54,7 +56,7 @@ interface AccountRow {
             {{ resyncing() ? 'SYNCING…' : 'RE-SYNC' }}
           </button>
           @if (showConfigLink()) {
-            <a class="accounts-link" [href]="configUrl">
+            <a class="accounts-link" [routerLink]="configUrl">
               CONFIGURE RTMP
             </a>
           }
