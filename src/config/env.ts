@@ -40,7 +40,7 @@ export const APP_ORIGIN = (
   .trim()
   .replace(/\/+$/, "");
 
-// ── Streaming account OAuth (Twitch / YouTube) ─────────────────────────────
+// ── Streaming account OAuth (Twitch / YouTube / Kick / Facebook) ───────────
 // The public origin providers redirect back to. Must match the callback URL
 // registered in each provider's app console exactly.
 export const API_PUBLIC_URL = (
@@ -55,6 +55,12 @@ export const YOUTUBE_CLIENT_ID =
   process.env.YOUTUBE_CLIENT_ID || process.env.GOOGLE_CLIENT_ID || "";
 export const YOUTUBE_CLIENT_SECRET =
   process.env.YOUTUBE_CLIENT_SECRET || process.env.GOOGLE_CLIENT_SECRET || "";
+export const KICK_CLIENT_ID = process.env.KICK_CLIENT_ID || "";
+export const KICK_CLIENT_SECRET = process.env.KICK_CLIENT_SECRET || "";
+export const FACEBOOK_CLIENT_ID =
+  process.env.FACEBOOK_CLIENT_ID || process.env.META_CLIENT_ID || "";
+export const FACEBOOK_CLIENT_SECRET =
+  process.env.FACEBOOK_CLIENT_SECRET || process.env.META_CLIENT_SECRET || "";
 /** 32-byte key (hex or base64) for sealing stored OAuth tokens. Optional: when
  *  blank the key is derived from JWT_SECRET under a distinct label. */
 export const OAUTH_TOKEN_KEY = process.env.OAUTH_TOKEN_KEY || "";

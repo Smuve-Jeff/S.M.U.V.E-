@@ -36,7 +36,9 @@ import {
   clearManualDestination,
   destinationOverview,
   saveManualDestination,
+  splitFacebookIngestUrl,
   startIngestSession,
+  stopIngestSession,
 } from "./broadcast-ingest.service";
 
 const mockRepo = {
@@ -47,6 +49,25 @@ const mockRepo = {
   update: jest.fn(),
   delete: jest.fn(),
 };
+
+describe("Facebook live ingest URL", () => {
+  it("splits the ingest URL into the base and the stream key", () => {
+    expect(
+      splitFacebookIngestUrl(
+        "rtmps://live-api-s.facebook.com:443/rtmp/FB-1234567890-abcdef",
+      ),
+    ).toEqual({
+      rtmpUrl: "rtmps://live-api-s.facebook.com:443/rtmp",
+      streamKey: "FB-1234567890-abcdef",
+    });
+  });
+
+  it("refuses anything that is not a complete RTMP ingest URL", () => {
+    expect(splitFacebookIngestUrl("https://graph.facebook.com/v27.0/x")).toBeNull();
+    expect(splitFacebookIngestUrl("rtmps://live-api-s.facebook.com:443/rtmp")).toBeNull();
+    expect(splitFacebookIngestUrl("rtmps://host/rtmp/")).toBeNull();
+  });
+});
 
 describe("broadcast ingest manual destinations", () => {
   beforeEach(() => {
@@ -130,6 +151,7 @@ describe("broadcast ingest manual destinations", () => {
     mockRepo.findOne
       .mockResolvedValueOnce(null)
       .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(null)
       .mockResolvedValueOnce({
         rtmpUrl: "rtmps://live-api-s.facebook.com:443/rtmp/",
       });
@@ -208,6 +230,7 @@ describe("broadcast ingest manual destinations", () => {
       .mockResolvedValueOnce(null)
       .mockResolvedValueOnce(null)
       .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(null)
       .mockResolvedValueOnce({
         label: "TikTok",
         rtmpUrl: "rtmps://tiktok.example.com/live",
@@ -240,6 +263,7 @@ describe("broadcast ingest manual destinations", () => {
 
   it("reports a saved custom destination with its host label", async () => {
     mockRepo.findOne
+      .mockResolvedValueOnce(null)
       .mockResolvedValueOnce(null)
       .mockResolvedValueOnce(null)
       .mockResolvedValueOnce(null)
@@ -322,6 +346,68 @@ describe("broadcast ingest multi-destination sessions", () => {
         streamKey: "FACEBOOK_KEY_123",
       },
     ]);
+  });
+
+  it("creates a Live Video on the linked Page and ends it on stop", async () => {
+    mockRepo.findOne.mockImplementation(async ({ where }: any) =>
+      where.platform === "facebook"
+        ? {
+            id: 2,
+            userId: 7,
+            platform: "facebook",
+            displayName: "S.M.U.V.E PAGE",
+            pageId: "page-123",
+            pageToken: "sealed:PAGE_TOKEN_123",
+          }
+        : null,
+    );
+    const fetchMock = jest.fn(async (input: unknown) => {
+      const target = String(input);
+      if (target.includes("/page-123/live_videos")) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            id: "video-9",
+            secure_stream_url:
+              "rtmps://live-api-s.facebook.com:443/rtmp/FB-1234567890-abc",
+          }),
+        };
+      }
+      if (target.includes("/video-9")) {
+        return { ok: true, status: 200, json: async () => ({}) };
+      }
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          id: "relay-fb",
+          whipUrl: "https://relay.test/relay-fb/whip",
+        }),
+      };
+    });
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+
+    const session = await startIngestSession(7, ["facebook"]);
+
+    const relayCall = fetchMock.mock.calls.find(
+      ([input]) => String(input) === "https://relay.test/sessions",
+    )!;
+    const body = JSON.parse(
+      (relayCall[1] as RequestInit).body as string,
+    );
+    expect(body.destinations).toEqual([
+      {
+        rtmpUrl: "rtmps://live-api-s.facebook.com:443/rtmp",
+        streamKey: "FB-1234567890-abc",
+      },
+    ]);
+
+    await stopIngestSession(session.relayId);
+
+    expect(
+      fetchMock.mock.calls.some(([input]) => String(input).includes("/video-9")),
+    ).toBe(true);
   });
 
   it("resolves a custom destination by its stored label", async () => {

@@ -188,6 +188,12 @@ describe("ThaSpotComponent", () => {
       screenShareUnavailableReason: signal(null),
       screenAudioWarning: signal(null),
       screenAudioAvailable: signal(false),
+      gameAudioOnlyAvailable: jest.fn(
+        () =>
+          (socialServiceMock.videoSource() === "screen" ||
+            socialServiceMock.videoSource() === "camera-pip") &&
+          socialServiceMock.screenAudioAvailable(),
+      ),
       micEnabled: signal(true),
       toggleMicrophone: jest.fn(() =>
         socialServiceMock.micEnabled.set(!socialServiceMock.micEnabled()),
@@ -353,6 +359,45 @@ describe("ThaSpotComponent", () => {
     expect(component).toBeTruthy();
   });
 
+  describe("streaming platform routes", () => {
+    const platform = (id: string) =>
+      component.platformsService.platforms.find((entry) => entry.id === id)!;
+
+    it("names the real path to each platform instead of a blanket label", () => {
+      expect(component.platformRouteLabel(platform("twitch"))).toBe(
+        "OAUTH + PUSH",
+      );
+      expect(component.platformRouteLabel(platform("youtube"))).toBe(
+        "OAUTH — LINK ONLY",
+      );
+      expect(component.platformRouteLabel(platform("kick"))).toBe(
+        "OAUTH + RTMP",
+      );
+      expect(component.platformRouteLabel(platform("facebook"))).toBe(
+        "OAUTH + RTMP",
+      );
+      expect(component.platformRouteLabel(platform("tiktok"))).toBe(
+        "CUSTOM RTMP",
+      );
+    });
+
+    it("sends a platform without OAuth to a custom RTMP slot", () => {
+      component.setUpStreamDestination(platform("tiktok"));
+
+      expect(component.customDraft("custom", "label")).toBe("TIKTOK");
+    });
+
+    it("counts a saved RTMP destination as a usable platform", () => {
+      component.ingest.destinations.set({
+        kick: { platform: "kick", ready: true, detail: "KICK — rtmp.kick.com" },
+      });
+
+      expect(component.platformStateLabel(platform("kick"))).toBe("RTMP SET");
+      expect(component.platformStateOn(platform("kick"))).toBe(true);
+      expect(component.platformStateOn(platform("facebook"))).toBe(false);
+    });
+  });
+
   describe("live source controls", () => {
     const sourceButtons = () =>
       Array.from(
@@ -448,8 +493,20 @@ describe("ThaSpotComponent", () => {
       );
       expect(socialServiceMock.screenAudioOnly()).toBe(false);
 
-      // The composite shares the screen but never carries game-only audio.
+      // The camera composite carries game sound too, so game-only works there.
       socialServiceMock.videoSource.set("camera-pip");
+      fixture.detectChanges();
+      expect(gameOnly().disabled).toBe(false);
+      gameOnly().click();
+      fixture.detectChanges();
+      expect(socialServiceMock.setScreenAudioOnly).toHaveBeenLastCalledWith(
+        true,
+      );
+      expect(socialServiceMock.screenAudioOnly()).toBe(true);
+
+      // Without captured game sound it stays off, whatever the source.
+      socialServiceMock.screenAudioOnly.set(false);
+      socialServiceMock.screenAudioAvailable.set(false);
       fixture.detectChanges();
       expect(gameOnly().disabled).toBe(true);
     });

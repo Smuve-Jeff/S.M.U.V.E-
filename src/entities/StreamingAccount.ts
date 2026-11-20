@@ -6,7 +6,7 @@ import {
 } from "typeorm";
 
 /** Providers with a real OAuth implementation on the server. */
-export type StreamingProvider = "twitch" | "youtube";
+export type StreamingProvider = "twitch" | "youtube" | "kick" | "facebook";
 
 /**
  * One linked streaming account per (user, provider).
@@ -46,6 +46,17 @@ export class StreamingAccount {
   /** Sealed refresh token, when the provider issued one. */
   @Column({ type: "text", nullable: true })
   refreshToken: string | null;
+
+  /**
+   * Facebook only: the Page that will receive the live video. Null until the
+   * host links an account that manages a Page.
+   */
+  @Column({ type: "varchar", length: 64, nullable: true })
+  pageId: string | null;
+
+  /** Sealed Page access token used to create and end Live Videos. */
+  @Column({ type: "text", nullable: true })
+  pageToken: string | null;
 
   @Column({ type: "varchar", length: 512, default: "" })
   scopes: string;

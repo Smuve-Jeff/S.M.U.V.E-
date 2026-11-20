@@ -79,7 +79,16 @@ interface IngestDestination {
   platform: IngestPlatform;
   rtmpUrl: string;
   streamKey: string;
+  /** Facebook only: the Live Video object that must be ended on stop. */
+  videoId?: string;
+  pageToken?: string;
 }
+
+/** Graph API version for Facebook live ingest; keep in step with the login flow. */
+const META_GRAPH_VERSION = "v27.0";
+
+/** Live Videos opened by a push, so STOP can end them instead of leaving them up. */
+const facebookLives = new Map<string, { videoId: string; pageToken: string }>();
 
 const accountRepository = () =>
   AppDataSource.getRepository<StreamingAccount>("StreamingAccount");
@@ -177,20 +186,161 @@ async function manualDestination(
   };
 }
 
+/**
+ * Facebook with a linked Page: create a Live Video on that Page and push to its
+ * ingest URL. Falls back to the host's pasted RTMP row when no Page is linked.
+ */
+async function facebookDestination(userId: number): Promise<IngestDestination> {
+  const account = await accountRepository().findOne({
+    where: { userId, platform: "facebook" },
+  });
+  if (!account?.pageId || !account.pageToken) {
+    return manualDestination(userId, "facebook");
+  }
+  try {
+    return await createFacebookLive(
+      account.pageId,
+      openSecret(account.pageToken),
+    );
+  } catch (error) {
+    // A Page grant without publish_video, or a Page token revoked on Meta's
+    // side: a pasted RTMP destination still works, so use it instead of
+    // failing a broadcast the host has a working path for.
+    const manual = await destinationRepository().findOne({
+      where: { userId, platform: "facebook" },
+    });
+    if (!manual) throw error;
+    return {
+      platform: "facebook",
+      rtmpUrl: manual.rtmpUrl,
+      streamKey: openSecret(manual.streamKey),
+    };
+  }
+}
+
+async function createFacebookLive(
+  pageId: string,
+  pageToken: string,
+): Promise<IngestDestination> {
+  const response = await fetch(
+    `https://graph.facebook.com/${META_GRAPH_VERSION}/${encodeURIComponent(pageId)}/live_videos`,
+    {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: new URLSearchParams({
+        status: "LIVE_NOW",
+        title: "S.M.U.V.E LIVE",
+        access_token: pageToken,
+      }).toString(),
+    },
+  );
+  const payload = (await response.json().catch(() => ({}))) as {
+    id?: unknown;
+    secure_stream_url?: unknown;
+  };
+  if (!response.ok || typeof payload.secure_stream_url !== "string") {
+    throw new AppError(
+      502,
+      response.status === 401 || response.status === 403
+        ? "Facebook refused the Page link — reconnect Facebook and try again."
+        : "Facebook did not return a stream URL for this broadcast.",
+    );
+  }
+  const ingest = splitFacebookIngestUrl(payload.secure_stream_url);
+  if (!ingest) {
+    throw new AppError(502, "Facebook returned a stream URL the relay cannot use.");
+  }
+  return {
+    platform: "facebook",
+    rtmpUrl: ingest.rtmpUrl,
+    streamKey: ingest.streamKey,
+    videoId: typeof payload.id === "string" ? payload.id : undefined,
+    pageToken,
+  };
+}
+
+/** Split Facebook's `rtmps://host/rtmp/KEY` back into the relay's two fields. */
+export function splitFacebookIngestUrl(
+  value: string,
+): { rtmpUrl: string; streamKey: string } | null {
+  const url = String(value || "").trim();
+  if (!/^rtmps?:\/\//i.test(url)) return null;
+  const cut = url.lastIndexOf("/");
+  if (cut <= "rtmps://".length) return null;
+  const rtmpUrl = url.slice(0, cut);
+  const streamKey = url.slice(cut + 1).split("?")[0];
+  if (!/^[A-Za-z0-9_.-]{8,200}$/.test(streamKey)) return null;
+  return { rtmpUrl, streamKey };
+}
+
+async function endFacebookLive(
+  videoId: string,
+  pageToken: string,
+): Promise<void> {
+  try {
+    const response = await fetch(
+      `https://graph.facebook.com/${META_GRAPH_VERSION}/${encodeURIComponent(videoId)}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          end_live_video: "true",
+          access_token: pageToken,
+        }).toString(),
+      },
+    );
+    if (!response.ok) {
+      console.error(`[broadcast] Facebook would not end live video ${videoId}.`);
+    }
+  } catch (error) {
+    console.error(
+      `[broadcast] could not end Facebook live video ${videoId}: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+    );
+  }
+}
+
+/** A Live Video opened for a session that never started must not stay live. */
+async function releaseFacebookLives(
+  destinations: IngestDestination[],
+): Promise<void> {
+  await Promise.all(
+    destinations
+      .filter((destination) => destination.videoId && destination.pageToken)
+      .map((destination) =>
+        endFacebookLive(destination.videoId!, destination.pageToken!),
+      ),
+  );
+}
+
 export async function destinationOverview(
   userId: number | string,
 ): Promise<DestinationOverview> {
   const owner = Number(userId);
-  const [twitchAccount, kickRow, facebookRow, customRows] = await Promise.all([
-    accountRepository().findOne({ where: { userId: owner, platform: "twitch" } }),
-    destinationRepository().findOne({ where: { userId: owner, platform: "kick" } }),
-    destinationRepository().findOne({ where: { userId: owner, platform: "facebook" } }),
-    Promise.all(
-      CUSTOM_INGEST_PLATFORMS.map((platform) =>
-        destinationRepository().findOne({ where: { userId: owner, platform } }),
+  const [twitchAccount, facebookAccount, kickRow, facebookRow, customRows] =
+    await Promise.all([
+      accountRepository().findOne({
+        where: { userId: owner, platform: "twitch" },
+      }),
+      accountRepository().findOne({
+        where: { userId: owner, platform: "facebook" },
+      }),
+      destinationRepository().findOne({
+        where: { userId: owner, platform: "kick" },
+      }),
+      destinationRepository().findOne({
+        where: { userId: owner, platform: "facebook" },
+      }),
+      Promise.all(
+        CUSTOM_INGEST_PLATFORMS.map((platform) =>
+          destinationRepository().findOne({ where: { userId: owner, platform } }),
+        ),
       ),
-    ),
-  ]);
+    ]);
 
   const status = (
     platform: IngestPlatform,
@@ -205,9 +355,11 @@ export async function destinationOverview(
         ? status("twitch", `TWITCH — ${twitchAccount.displayName}`)
         : status("twitch", ""),
       kickRow ? status("kick", `KICK — ${ingestHost(kickRow.rtmpUrl)}`) : status("kick", ""),
-      facebookRow
-        ? status("facebook", `FACEBOOK — ${ingestHost(facebookRow.rtmpUrl)}`)
-        : status("facebook", ""),
+      facebookAccount?.pageId
+        ? status("facebook", `FACEBOOK — ${facebookAccount.displayName}`)
+        : facebookRow
+          ? status("facebook", `FACEBOOK — ${ingestHost(facebookRow.rtmpUrl)}`)
+          : status("facebook", ""),
       ...CUSTOM_INGEST_PLATFORMS.map((platform, index) => {
         const row = customRows[index];
         const label = row?.label?.trim() || defaultCustomLabel(platform);
@@ -332,10 +484,49 @@ export async function startIngestSession(
       platform: key,
       ...(key === "twitch"
         ? await twitchDestination(owner)
-        : await manualDestination(owner, key)),
+        : key === "facebook"
+          ? await facebookDestination(owner)
+          : await manualDestination(owner, key)),
     })),
   );
 
+  let session: { id: string; whipUrl: string };
+  try {
+    session = await openRelaySession(relay, destinations);
+  } catch (error) {
+    // A Live Video opened but never pushed would sit on the Page; end it.
+    await releaseFacebookLives(destinations);
+    throw error;
+  }
+  const live = destinations.find(
+    (destination) => destination.videoId && destination.pageToken,
+  );
+  if (live?.videoId && live.pageToken) {
+    facebookLives.set(session.id, {
+      videoId: live.videoId,
+      pageToken: live.pageToken,
+    });
+  }
+  // The relay records this session under `id`; the row is what later proves a
+  // recording belongs to this host.
+  await rememberBroadcastSession({
+    userId: owner,
+    relayId: session.id,
+    platform: keys[0],
+  });
+  return {
+    platform: keys[0],
+    platforms: keys,
+    relayId: session.id,
+    whipUrl: session.whipUrl,
+  };
+}
+
+/** Open one relay session that pushes to every resolved destination. */
+async function openRelaySession(
+  relay: { base: string; token: string },
+  destinations: IngestDestination[],
+): Promise<{ id: string; whipUrl: string }> {
   const response = await callRelay(relay, "/sessions", {
     method: "POST",
     headers: { "Content-Type": "application/json", Accept: "application/json" },
@@ -361,19 +552,7 @@ export async function startIngestSession(
   if (!id || !/^https?:\/\//i.test(whipUrl)) {
     throw new AppError(502, "The broadcast relay returned an unusable session.");
   }
-  // The relay records this session under `id`; the row is what later proves a
-  // recording belongs to this host.
-  await rememberBroadcastSession({
-    userId: owner,
-    relayId: id,
-    platform: keys[0],
-  });
-  return {
-    platform: keys[0],
-    platforms: keys,
-    relayId: id,
-    whipUrl,
-  };
+  return { id, whipUrl };
 }
 
 export interface SelfTestSession {
@@ -619,6 +798,11 @@ export async function stopIngestSession(relayId: string): Promise<void> {
   const id = String(relayId || "");
   if (/^[A-Za-z0-9_-]{1,128}$/.test(id)) {
     await markBroadcastSessionEnded(id);
+  }
+  const live = facebookLives.get(id);
+  if (live) {
+    facebookLives.delete(id);
+    await endFacebookLive(live.videoId, live.pageToken);
   }
   if (!relay || !/^[A-Za-z0-9_-]{1,128}$/.test(id)) return;
   try {

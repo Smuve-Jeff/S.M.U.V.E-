@@ -1,6 +1,10 @@
 import {
   API_PUBLIC_URL,
   NODE_ENV,
+  FACEBOOK_CLIENT_ID,
+  FACEBOOK_CLIENT_SECRET,
+  KICK_CLIENT_ID,
+  KICK_CLIENT_SECRET,
   MEDIA_RELAY_PROBE_TIMEOUT_MS,
   MEDIA_RELAY_TOKEN,
   MEDIA_RELAY_URL,
@@ -109,6 +113,16 @@ export async function assertStreamingOAuthSetup(): Promise<void> {
         platform: "youtube",
         clientId: YOUTUBE_CLIENT_ID,
         clientSecret: YOUTUBE_CLIENT_SECRET,
+      },
+      {
+        platform: "kick",
+        clientId: KICK_CLIENT_ID,
+        clientSecret: KICK_CLIENT_SECRET,
+      },
+      {
+        platform: "facebook",
+        clientId: FACEBOOK_CLIENT_ID,
+        clientSecret: FACEBOOK_CLIENT_SECRET,
       },
     ],
     table: table.state,

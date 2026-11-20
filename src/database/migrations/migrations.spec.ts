@@ -14,6 +14,7 @@ import { CreateBroadcastSessions1786243200014 } from "./1786243200014-CreateBroa
 import { CreateLiveStreamViewerJoins1786243200015 } from "./1786243200015-CreateLiveStreamViewerJoins";
 import { CreateLiveStreamDestinations1786243200016 } from "./1786243200016-CreateLiveStreamDestinations";
 import { AddStreamingDestinationLabel1786243200017 } from "./1786243200017-AddStreamingDestinationLabel";
+import { AddStreamingAccountPageColumns1786243200018 } from "./1786243200018-AddStreamingAccountPageColumns";
 
 /**
  * Metadata per migration drives dialect assertions:
@@ -44,6 +45,7 @@ const migrations: MigrationEntry[] = [
   { migration: new CreateLiveStreamViewerJoins1786243200015(), hasSerialColumn: true, hasJson: false },
   { migration: new CreateLiveStreamDestinations1786243200016(), hasSerialColumn: true, hasJson: false },
   { migration: new AddStreamingDestinationLabel1786243200017(), hasSerialColumn: false, hasJson: false },
+  { migration: new AddStreamingAccountPageColumns1786243200018(), hasSerialColumn: false, hasJson: false },
 ];
 
 const migrationNames = [
@@ -62,6 +64,7 @@ const migrationNames = [
   "CreateLiveStreamViewerJoins1786243200015",
   "CreateLiveStreamDestinations1786243200016",
   "AddStreamingDestinationLabel1786243200017",
+  "AddStreamingAccountPageColumns1786243200018",
 ];
 
 /** Stand-in QueryRunner that records every statement it is asked to run. */
@@ -227,6 +230,26 @@ describe("database migrations (dialect-aware)", () => {
     expect(my12).toContain("id int AUTO_INCREMENT PRIMARY KEY");
     expect(my12).toContain(
       "CREATE UNIQUE INDEX IF NOT EXISTS uq_streaming_accounts_user_platform ON streaming_accounts (userId, platform)",
+    );
+
+    // 0018 — Facebook live ingest keeps the chosen Page and its own token.
+    const pg18 = normalizeSql(
+      await runUp(new AddStreamingAccountPageColumns1786243200018(), "postgres"),
+    );
+    expect(pg18).toContain(
+      'ALTER TABLE "streaming_accounts" ADD COLUMN IF NOT EXISTS "pageId" character varying(64)',
+    );
+    expect(pg18).toContain(
+      'ALTER TABLE "streaming_accounts" ADD COLUMN IF NOT EXISTS "pageToken" text',
+    );
+    const my18 = normalizeSql(
+      await runUp(new AddStreamingAccountPageColumns1786243200018(), "mysql"),
+    );
+    expect(my18).toContain(
+      "ALTER TABLE streaming_accounts ADD COLUMN IF NOT EXISTS pageId varchar(64) NULL",
+    );
+    expect(my18).toContain(
+      "ALTER TABLE streaming_accounts ADD COLUMN IF NOT EXISTS pageToken text NULL",
     );
 
     // 0013 — streaming_destinations is the manual RTMP destination Kick needs.

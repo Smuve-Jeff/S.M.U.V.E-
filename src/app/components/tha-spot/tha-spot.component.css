@@ -4540,6 +4540,45 @@
 .account-state {
   color: #7a8699;
   font-size: 0.55rem;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+/* Accounts read on two lines: name above, link state and route below, so a
+   narrow sidebar never breaks "NOT CONNECTED" across lines. */
+.stream-accounts .account-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.15rem 0.45rem;
+}
+.stream-accounts .account-row .account-name {
+  grid-column: 1;
+  grid-row: 1;
+  min-width: 0;
+}
+.account-meta {
+  grid-column: 1;
+  grid-row: 2;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.15rem 0.4rem;
+  min-width: 0;
+}
+.account-actions {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  display: flex;
+  gap: 0.25rem;
+}
+.facebook-page-row .account-meta {
+  width: 100%;
+}
+.facebook-page-row .account-input {
+  width: 100%;
+}
+.facebook-page-row .account-note {
+  flex-basis: 100%;
+  color: #ffb4a2;
 }
 .account-state.on {
   color: #3ddc97;
@@ -4547,6 +4586,8 @@
 .account-broadcast {
   color: #ffd166;
   font-size: 0.55rem;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 .account-row .quality-btn {
   padding: 0.2rem 0.45rem;
@@ -4687,6 +4728,20 @@
 }
 .account-note.quality {
   color: #7fd8ff;
+}
+.push-blocked-reason {
+  margin: 0 0 0.15rem 0.6rem;
+  font-size: 0.52rem;
+}
+.push-summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 0.45rem;
+}
+.push-summary .quality-btn {
+  padding: 0.24rem 0.55rem;
+  font-size: 0.52rem;
 }
 .stream-audio-warning {
   display: flex;

@@ -304,6 +304,14 @@ export class SocialNetworkingService {
   );
   /** The live screen capture carries game/system sound, not just the mic. */
   readonly screenAudioAvailable = signal(false);
+  /** A source whose capture can carry game sound: the screen or its composite. */
+  readonly screenSourceActive = computed(
+    () => this.videoSource() === 'screen' || this.videoSource() === 'camera-pip',
+  );
+  /** GAME ONLY is offered only while captured game sound can replace the mic. */
+  readonly gameAudioOnlyAvailable = computed(
+    () => this.screenSourceActive() && this.screenAudioAvailable(),
+  );
   /**
    * How the host gets game sound to viewers when the share came back silent.
    * GAME ONLY is blocked while this is set: muting the mic would leave the
@@ -539,6 +547,15 @@ export class SocialNetworkingService {
         // previous user's unsent messages using the new user's credentials.
         this.pendingMessages = [];
       }
+    });
+
+    // Game-only is a promise about the audience mix: once the capture stops
+    // carrying game sound it must switch itself off instead of showing an
+    // active chip while the mic is still the only audio.
+    effect(() => {
+      if (this.screenAudioAvailable() || !this.screenAudioOnly()) return;
+      this.screenAudioOnly.set(false);
+      this.applyMicState();
     });
   }
 
@@ -1353,7 +1370,7 @@ export class SocialNetworkingService {
     const name = (err as { name?: string } | null)?.name;
     return name === 'NotAllowedError'
       ? 'CAMERA_OR_MIC_DENIED — CHECK BROWSER PERMISSIONS'
-      : 'MEDIA_CAPTURE_UNAVAILABLE — USING SIMULATION ONLY';
+      : 'MEDIA_CAPTURE_UNAVAILABLE — CHECK CAMERA AND MIC PERMISSIONS';
   }
 
   /**
@@ -1697,7 +1714,9 @@ export class SocialNetworkingService {
     }
     const current = this.localStream();
     if (!current) {
-      this.streamError.set('MEDIA_CAPTURE_UNAVAILABLE — USING SIMULATION ONLY');
+      this.streamError.set(
+        'MEDIA_CAPTURE_UNAVAILABLE — CHECK CAMERA AND MIC PERMISSIONS',
+      );
       return;
     }
     const preset = STREAM_QUALITY_PRESETS[this.streamQuality()];
@@ -1848,7 +1867,7 @@ export class SocialNetworkingService {
     // GAME ONLY is only safe when real game sound replaces the mic.
     const gameSoundCarriesTheMix =
       this.screenAudioOnly() &&
-      this.videoSource() === 'screen' &&
+      this.screenSourceActive() &&
       this.screenAudioAvailable();
     const voiceOn = this.micEnabled() && !gameSoundCarriesTheMix;
     this.micAudioOf(stream).forEach((t) => {
@@ -1859,9 +1878,7 @@ export class SocialNetworkingService {
   /** Viewers hear game sound only — the host's mic leaves their mix. */
   setScreenAudioOnly(on: boolean): void {
     // With no captured game audio this would mute the only sound available.
-    if (on && this.videoSource() === 'screen' && !this.screenAudioAvailable()) {
-      return;
-    }
+    if (on && !this.gameAudioOnlyAvailable()) return;
     this.screenAudioOnly.set(on);
     this.applyMicState();
   }

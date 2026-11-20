@@ -36,7 +36,10 @@ import { SocialNetworkingService, OnlineUser } from "../../services/social-netwo
 import { ChallengeInboxService } from "../../services/challenge-inbox.service";
 import { PeerNetworkingService } from "../../services/peer-networking.service";
 import { SnackbarService } from "../../services/snackbar.service";
-import { StreamingPlatformsService } from "../../services/streaming-platforms.service";
+import {
+  StreamingPlatformsService,
+  type StreamingPlatform,
+} from "../../services/streaming-platforms.service";
 import {
   BroadcastIngestService,
   CUSTOM_INGEST_PLATFORMS,
@@ -4411,6 +4414,120 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     }));
   }
 
+  async clearManualDestination(platform: 'kick' | 'facebook'): Promise<void> {
+    if (!(await this.ingest.clearDestination(platform))) return;
+    if (platform === 'kick') {
+      this.kickRtmpUrl.set('');
+      this.kickStreamKey.set('');
+    } else {
+      this.facebookRtmpUrl.set('');
+      this.facebookStreamKey.set('');
+    }
+  }
+
+  /** How this platform is actually reached, so no row promises the wrong path. */
+  platformRouteLabel(platform: StreamingPlatform): string {
+    if (platform.connectable) {
+      if (!platform.broadcast) return 'OAUTH — LINK ONLY';
+      return platform.destination === 'manual' ? 'OAUTH + RTMP' : 'OAUTH + PUSH';
+    }
+    return 'CUSTOM RTMP';
+  }
+
+  /** A platform is usable when linked, or when its RTMP destination is saved. */
+  platformStateOn(platform: StreamingPlatform): boolean {
+    if (this.platformsService.isConnected(platform.id)) return true;
+    return (
+      (platform.id === 'kick' || platform.id === 'facebook') &&
+      this.ingest.ready(platform.id)
+    );
+  }
+
+  platformStateLabel(platform: StreamingPlatform): string {
+    if (this.platformsService.isConnected(platform.id)) {
+      return this.platformsService.displayName(platform.id) || 'CONNECTED';
+    }
+    if (
+      (platform.id === 'kick' || platform.id === 'facebook') &&
+      this.ingest.ready(platform.id)
+    ) {
+      return 'RTMP SET';
+    }
+    return platform.connectable ? 'NOT CONNECTED' : 'NOT LINKED';
+  }
+
+  /**
+   * Take the host to the fields that actually carry this platform: Kick and
+   * Facebook have their own RTMP rows, everything else uses a custom slot.
+   */
+  setUpStreamDestination(platform: StreamingPlatform): void {
+    if (platform.id === 'kick' || platform.id === 'facebook') {
+      this.focusDestination(`${platform.id}-destination-url`);
+      return;
+    }
+    const existing = this.customSlots.find(
+      (slot) =>
+        this.customLabelValue(slot).toUpperCase() ===
+        platform.label.toUpperCase(),
+    );
+    const slot =
+      existing ??
+      this.customSlots.find(
+        (candidate) =>
+          !this.ingest.ready(candidate) &&
+          !this.customDraft(candidate, 'label').trim(),
+      ) ??
+      this.customSlots.find((candidate) => !this.ingest.ready(candidate)) ??
+      'custom';
+    if (!existing) this.setCustomDraft(slot, 'label', platform.label);
+    this.focusDestination(`${slot}-destination-url`);
+  }
+
+  /**
+   * One SYNC for both halves of the panel: the OAuth accounts and the manual
+   * destinations, so a host never has to press SYNC and CHECK to trust it.
+   */
+  async syncStreaming(): Promise<void> {
+    const [accountsOk] = await Promise.all([
+      this.platformsService.sync({ silent: true }),
+      this.ingest.load(),
+    ]);
+    if (!accountsOk) return; // the service already reported the failure
+    if (this.ingest.checkError()) {
+      this.snackbarService.warning('ACCOUNTS SYNCED — DESTINATION CHECK FAILED');
+      return;
+    }
+    const accounts = this.platformsService.connectedCount();
+    const destinations = this.ingest.platforms.filter((target) =>
+      this.ingest.ready(target.id),
+    ).length;
+    this.snackbarService.info(
+      `SYNCED — ${accounts} ACCOUNT${accounts === 1 ? '' : 'S'}, ` +
+        `${destinations} DESTINATION${destinations === 1 ? '' : 'S'} READY`,
+    );
+  }
+
+  /** Keep the Page picker honest: a refused change snaps back to the live one. */
+  async changeFacebookPage(event: Event): Promise<void> {
+    const select = event.target as HTMLSelectElement | null;
+    if (!select) return;
+    const saved = await this.platformsService.selectFacebookPage(select.value);
+    if (!saved) {
+      select.value = this.platformsService.facebookSelectedPageId();
+    }
+  }
+
+  private focusDestination(id: string): void {
+    setTimeout(() => {
+      const field = document.getElementById(id) as HTMLInputElement | null;
+      if (!field) return;
+      if (typeof field.scrollIntoView === 'function') {
+        field.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+      field.focus({ preventScroll: true });
+    }, 60);
+  }
+
   /** The label the host gave the custom RTMP target, not a generic "CUSTOM". */
   goLiveLabel(platform: GoLivePlatform): string {
     return platform === 'smuve' ? 'SMUVE' : this.ingest.platformLabel(platform);
@@ -4515,6 +4632,8 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
         void this.socialService.setVideoSource('camera');
         return;
       }
+      // Choosing the camera drops a game-only mix a screen share left behind.
+      this.socialService.setScreenAudioOnly(false);
       this.socialService.videoSource.set('camera');
       return;
     }

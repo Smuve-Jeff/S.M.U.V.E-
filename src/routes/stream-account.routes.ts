@@ -7,7 +7,9 @@ import {
   completeStreamingAuthorization,
   createAuthorizeUrl,
   disconnectStreamingAccount,
+  listFacebookPages,
   listStreamingAccounts,
+  selectFacebookPage,
   syncStreamingAccounts,
 } from "@/services/streaming-oauth.service";
 
@@ -97,6 +99,17 @@ router.get("/", authenticate, async (req, res) => {
 // POST /api/stream-accounts/sync — renew near-expiry grants, return fresh state.
 router.post("/sync", authenticate, async (req, res) => {
   res.json(await syncStreamingAccounts(req.user!.userId));
+});
+
+// GET /api/stream-accounts/facebook/pages — Pages this grant can publish to.
+router.get("/facebook/pages", authenticate, async (req, res) => {
+  res.json({ pages: await listFacebookPages(req.user!.userId) });
+});
+
+// PUT /api/stream-accounts/facebook/page — choose the broadcast Page.
+router.put("/facebook/page", authenticate, async (req, res) => {
+  const pageId = typeof req.body?.pageId === "string" ? req.body.pageId : "";
+  res.json({ pages: await selectFacebookPage(req.user!.userId, pageId) });
 });
 
 // POST /api/stream-accounts/:platform/authorize — mint the popup URL.

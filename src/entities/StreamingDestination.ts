@@ -21,9 +21,10 @@ export type IngestPlatform =
  * A manual RTMP destination for a provider whose API cannot hand us the key.
  *
  * Twitch keys are read live from Helix, so Twitch never needs a row here. Kick
- * and Facebook only publish their stream URL and key in the creator dashboard,
- * so the host pastes them once and the key is sealed (see
- * `@/lib/secret-box`) like every other credential this app stores.
+ * has its URL and key read with `streamkey:read` after OAuth and saved here; a
+ * host can also paste either platform's values from the creator dashboard. The
+ * key is sealed (see `@/lib/secret-box`) like every other credential this app
+ * stores. Facebook's row is the fallback when no Page is linked for live video.
  */
 @Entity("streaming_destinations")
 @Index("uq_streaming_destinations_user_platform", ["userId", "platform"], {

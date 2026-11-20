@@ -165,6 +165,38 @@ it links the account but does **not** receive an RTMP push; only Twitch and Kick
 are ingest targets. Callback:
 `<API_PUBLIC_URL>/api/stream-accounts/youtube/callback`.
 
+Kick and Facebook can be linked over OAuth as well (`kick`, `facebook`). Kick
+uses OAuth 2.1 with PKCE (`user:read channel:read streamkey:read`, app created
+under Kick → Settings → Developer); Facebook uses the Graph login dialog
+(`public_profile pages_show_list pages_read_engagement publish_video`, Meta app
+with the Facebook Login product).
+
+Both also fill their broadcast destination automatically once connected:
+
+- **Kick** — the connector reads the channel's ingest URL and key with
+  `streamkey:read` and writes them into the KICK row, so PUSH works without
+  copying anything from the dashboard. A key the host already pasted is never
+  overwritten.
+- **Facebook** — the connector links a Page the account manages and each PUSH
+  creates a Live Video on it, pushing to its stream URL; STOP ends the Live
+  Video. When the account manages several Pages, a **FACEBOOK PAGE** picker
+  below the account rows chooses the destination (`GET
+  /api/stream-accounts/facebook/pages` lists them, `PUT
+  /api/stream-accounts/facebook/page` selects one; the server re-reads the Page
+  token rather than trusting the request). Without a Page (or before Meta
+  grants `publish_video` through App Review) the FACEBOOK RTMP row is used
+  instead.
+
+Register:
+
+| Provider | Callback URL | Credentials |
+| --- | --- | --- |
+| Kick | `<API_PUBLIC_URL>/api/stream-accounts/kick/callback` | `KICK_CLIENT_ID` / `KICK_CLIENT_SECRET` |
+| Facebook | `<API_PUBLIC_URL>/api/stream-accounts/facebook/callback` | `FACEBOOK_CLIENT_ID` / `FACEBOOK_CLIENT_SECRET` |
+
+A provider with no credentials simply answers 503 and its CONNECT button says
+so; the RTMP rows keep working either way.
+
 Optional: set `OAUTH_TOKEN_KEY` (32-byte hex/base64) so stored tokens are sealed
 with their own key instead of one derived from `JWT_SECRET`.
 

@@ -27,21 +27,71 @@ export interface StreamingPlatform {
   broadcast: boolean;
   /** The server has a real OAuth implementation for this provider. */
   connectable: boolean;
+  /**
+   * Where the push values live once the account is linked: Twitch and YouTube
+   * resolve theirs server-side, Kick and Facebook use their own RTMP row, and
+   * every other platform borrows a custom RTMP slot.
+   */
+  destination: "manual" | "custom" | null;
 }
 
 export const STREAMING_PLATFORMS: readonly StreamingPlatform[] = [
-  { id: 'twitch', label: 'TWITCH', broadcast: true, connectable: true },
+  {
+    id: 'twitch',
+    label: 'TWITCH',
+    broadcast: true,
+    connectable: true,
+    destination: null,
+  },
   // YouTube can still be linked (read-only account data), but it has no
   // ingest path in this product, so it is not a Go Live destination.
-  { id: 'youtube', label: 'YOUTUBE', broadcast: false, connectable: true },
-  // Kick and Facebook broadcast with the RTMP URL + key saved in Broadcast
-  // Push, not OAuth.
-  { id: 'kick', label: 'KICK', broadcast: true, connectable: false },
-  { id: 'facebook', label: 'FACEBOOK', broadcast: true, connectable: false },
-  { id: 'tiktok', label: 'TIKTOK', broadcast: false, connectable: false },
-  { id: 'instagram', label: 'INSTAGRAM', broadcast: false, connectable: false },
-  { id: 'discord', label: 'DISCORD', broadcast: false, connectable: false },
-  { id: 'x', label: 'X', broadcast: false, connectable: false },
+  {
+    id: 'youtube',
+    label: 'YOUTUBE',
+    broadcast: false,
+    connectable: true,
+    destination: null,
+  },
+  // Kick and Facebook link over OAuth for the channel identity, but both still
+  // broadcast from their own RTMP URL + key in Broadcast Push: Kick has no
+  // public API for publishing a stream key, and Facebook Live needs a Page
+  // token plus app review for publish_video.
+  {
+    id: 'kick',
+    label: 'KICK',
+    broadcast: true,
+    connectable: true,
+    destination: 'manual',
+  },
+  {
+    id: 'facebook',
+    label: 'FACEBOOK',
+    broadcast: true,
+    connectable: true,
+    destination: 'manual',
+  },
+  {
+    id: 'tiktok',
+    label: 'TIKTOK',
+    broadcast: false,
+    connectable: false,
+    destination: 'custom',
+  },
+  {
+    id: 'instagram',
+    label: 'INSTAGRAM',
+    broadcast: false,
+    connectable: false,
+    destination: 'custom',
+  },
+  {
+    id: 'discord',
+    label: 'DISCORD',
+    broadcast: false,
+    connectable: false,
+    destination: 'custom',
+  },
+  { id: 'x', label: 'X', broadcast: false, connectable: false, destination: 'custom' },
 ];
 
 interface PlatformConnection {
@@ -60,6 +110,16 @@ interface PlatformConnectionDto {
 
 interface ConnectionsResponse {
   connections?: PlatformConnectionDto[];
+}
+
+export interface FacebookPage {
+  id: string;
+  name: string;
+  selected: boolean;
+}
+
+interface FacebookPagesResponse {
+  pages?: { id?: unknown; name?: unknown; selected?: unknown }[];
 }
 
 interface AuthorizeResponse {
@@ -96,6 +156,23 @@ export class StreamingPlatformsService {
   readonly syncing = signal(false);
   /** The platform whose connect popup is open, if any. */
   readonly connecting = signal<StreamingPlatformId | null>(null);
+  /** Pages the linked Facebook account can publish to. */
+  readonly facebookPages = signal<FacebookPage[]>([]);
+  readonly loadingFacebookPages = signal(false);
+  readonly selectingFacebookPage = signal(false);
+  /** Why the last Page read failed, or null when it succeeded. */
+  readonly facebookPagesError = signal<string | null>(null);
+  readonly facebookSelectedPageId = computed(
+    () => this.facebookPages().find((page) => page.selected)?.id ?? '',
+  );
+  /** The Page row earns its space while loading, failing, or offering a choice. */
+  readonly facebookPagePickerVisible = computed(
+    () =>
+      this.isConnected('facebook') &&
+      (this.facebookPages().length > 1 ||
+        this.loadingFacebookPages() ||
+        !!this.facebookPagesError()),
+  );
 
   readonly connectedCount = computed(
     () =>
@@ -171,8 +248,12 @@ export class StreamingPlatformsService {
     }
   }
 
-  /** Re-confirm every linked account with the provider and reload the list. */
-  async sync(): Promise<void> {
+  /**
+   * Re-confirm every linked account with the provider and reload the list.
+   * Returns false when the read failed, so a caller refreshing several panels
+   * can report one honest result instead of two competing toasts.
+   */
+  async sync(options: { silent?: boolean } = {}): Promise<boolean> {
     this.syncing.set(true);
     try {
       const result = await firstValueFrom(
@@ -186,18 +267,92 @@ export class StreamingPlatformsService {
         this.snackbar.warning(
           `${dropped.join(', ')} NEEDS TO BE RECONNECTED`,
         );
-        return;
+        return true;
       }
-      const count = this.connectedCount();
-      this.snackbar.info(
-        count === 0
-          ? 'NO STREAMING PLATFORMS CONNECTED YET'
-          : `SYNCED — ${count} PLATFORM${count === 1 ? '' : 'S'} CONNECTED`,
-      );
+      if (!options.silent) {
+        const count = this.connectedCount();
+        this.snackbar.info(
+          count === 0
+            ? 'NO STREAMING PLATFORMS CONNECTED YET'
+            : `SYNCED — ${count} PLATFORM${count === 1 ? '' : 'S'} CONNECTED`,
+        );
+      }
+      return true;
     } catch (error) {
       this.snackbar.error(this.describe(error, 'SYNC'));
+      return false;
     } finally {
       this.syncing.set(false);
+    }
+  }
+
+  /** Read the Pages behind the Facebook grant; silent when it fails. */
+  async loadFacebookPages(): Promise<void> {
+    if (!this.isConnected('facebook')) {
+      this.facebookPages.set([]);
+      this.facebookPagesError.set(null);
+      return;
+    }
+    this.loadingFacebookPages.set(true);
+    this.facebookPagesError.set(null);
+    try {
+      const response = await firstValueFrom(
+        this.http.get<FacebookPagesResponse>(this.endpoint('/facebook/pages'), {
+          headers: this.headers(),
+        }),
+      );
+      this.facebookPages.set(this.readFacebookPages(response?.pages));
+    } catch (error) {
+      // The linked Page still receives the broadcast; the picker keeps its last
+      // list and says why it could not refresh instead of hiding the failure.
+      this.facebookPagesError.set(
+        this.describe(error, 'FACEBOOK PAGES'),
+      );
+    } finally {
+      this.loadingFacebookPages.set(false);
+    }
+  }
+
+  /**
+   * Point the Live Video at another Page the grant manages. Returns false when
+   * the server refused, so the picker can put itself back on the live choice.
+   */
+  async selectFacebookPage(pageId: string): Promise<boolean> {
+    const wanted = String(pageId || '').trim();
+    if (!wanted || this.selectingFacebookPage()) return false;
+    this.selectingFacebookPage.set(true);
+    try {
+      const response = await firstValueFrom(
+        this.http.put<FacebookPagesResponse>(
+          this.endpoint('/facebook/page'),
+          { pageId: wanted },
+          { headers: this.headers() },
+        ),
+      );
+      const pages = this.readFacebookPages(response?.pages);
+      this.facebookPages.set(pages);
+      this.facebookPagesError.set(null);
+      const page = pages.find((entry) => entry.selected);
+      if (page) {
+        // Mirror the server's new display name without a second round trip.
+        this.connections.update((current) =>
+          current.facebook
+            ? {
+                ...current,
+                facebook: { ...current.facebook, displayName: page.name },
+              }
+            : current,
+        );
+      }
+      this.snackbar.success(
+        `FACEBOOK PAGE — ${page?.name ?? wanted}`.toUpperCase(),
+      );
+      return true;
+    } catch (error) {
+      this.snackbar.error(this.describe(error, 'FACEBOOK PAGE'));
+      return false;
+    } finally {
+      this.selectingFacebookPage.set(false);
     }
   }
 
@@ -250,6 +405,25 @@ export class StreamingPlatformsService {
     }
     this.connections.set(next);
     this.syncedAt.set(Date.now());
+    if (next.facebook) void this.loadFacebookPages();
+    else {
+      this.facebookPages.set([]);
+      this.facebookPagesError.set(null);
+    }
+  }
+
+  private readFacebookPages(
+    rows: FacebookPagesResponse['pages'],
+  ): FacebookPage[] {
+    return (rows ?? [])
+      .filter(
+        (row) => typeof row?.id === 'string' && typeof row?.name === 'string',
+      )
+      .map((row) => ({
+        id: row.id as string,
+        name: row.name as string,
+        selected: row.selected === true,
+      }));
   }
 
   /** The server's own message is more useful than a status code. */

@@ -1,5 +1,12 @@
 import { HttpClient } from '@angular/common/http';
-import { DestroyRef, Injectable, effect, inject, signal } from '@angular/core';
+import {
+  DestroyRef,
+  Injectable,
+  computed,
+  effect,
+  inject,
+  signal,
+} from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { APP_SECURITY_CONFIG } from '../app.security';
 import { SocialNetworkingService } from './social-networking.service';
@@ -128,13 +135,90 @@ export class BroadcastIngestService {
   readonly destinations = signal<
     Partial<Record<IngestPlatform, DestinationStatusDto>>
   >({});
-  readonly relayConfigured = signal(true);
+  /**
+   * Whether the server says the relay is configured: null until a check has
+   * answered. It used to start at true, so a fallback HTML response or an
+   * offline check still showed "RELAY READY".
+   */
+  readonly relayConfigured = signal<boolean | null>(null);
+  /** Why the last destinations check failed, shown beside BROADCAST PUSH. */
+  readonly checkError = signal<string | null>(null);
   readonly loading = signal(false);
   /** The platform whose push is starting, if any. */
   readonly pushing = signal<IngestPlatform | null>(null);
   /** Relay id of the current push, or null when no WHIP session is open. */
   readonly activeRelayId = signal<string | null>(null);
   readonly state = this.whip.state;
+
+  /**
+   * Everything that stops a PUSH right now, in the order a host can act on it.
+   * The panel shows this as one line instead of making the host piece together
+   * the relay badge, the check note and the per-row buttons.
+   */
+  readonly pushBlockers = computed<string[]>(() => {
+    if (this.pushing()) return [];
+    const blockers: string[] = [];
+    const relay = this.relayConfigured();
+    if (relay === null) blockers.push('RELAY NOT CHECKED');
+    else if (!relay) blockers.push('RELAY NOT CONFIGURED');
+    if (this.checkError()) blockers.push('CHECK FAILED');
+    if (!this.platforms.some((target) => this.ready(target.id))) {
+      blockers.push('NO DESTINATION READY');
+    }
+    return blockers;
+  });
+
+  /**
+   * Why this row's PUSH is unavailable, using the summary's own reasons. An
+   * empty string means the button is live.
+   */
+  pushDisabledReason(platform: IngestPlatform): string {
+    const reasons: string[] = [];
+    const pushing = this.pushing();
+    if (pushing) {
+      reasons.push(`PUSH IN PROGRESS — ${this.platformLabel(pushing)}`);
+    }
+    if (!this.ready(platform)) {
+      reasons.push('NO DESTINATION READY');
+      reasons.push(this.destinationFix(platform));
+    }
+    if (this.relayConfigured() === false) {
+      reasons.push('RELAY NOT CONFIGURED');
+    }
+    return reasons.length ? `PUSH BLOCKED — ${reasons.join(' · ')}` : '';
+  }
+
+  /**
+   * The inline version for one row: just this destination's own blocker. The
+   * full list (including shared relay reasons) stays in the button tooltip.
+   */
+  pushDisabledHint(platform: IngestPlatform): string {
+    if (!this.ready(platform)) return this.destinationFix(platform);
+    if (this.relayConfigured() === false) return 'RELAY NOT CONFIGURED';
+    return '';
+  }
+
+  /** The host action that makes this one destination ready. */
+  private destinationFix(platform: IngestPlatform): string {
+    if (platform === 'twitch') return 'CONNECT TWITCH IN STREAMING ACCOUNTS';
+    if (platform === 'kick') {
+      return 'CONNECT KICK OR SAVE ITS RTMP URL + KEY';
+    }
+    if (platform === 'facebook') {
+      return 'LINK A FACEBOOK PAGE OR SAVE ITS RTMP URL + KEY';
+    }
+    return "SAVE THIS CUSTOM DESTINATION'S RTMP URL + KEY";
+  }
+
+  /** One compact line: blocked with every reason, pushing, or ready. */
+  readonly pushStatus = computed<string>(() => {
+    const pushing = this.pushing();
+    if (pushing) return `PUSH IN PROGRESS — ${this.platformLabel(pushing)}`;
+    const blockers = this.pushBlockers();
+    if (blockers.length) return `PUSH BLOCKED — ${blockers.join(' · ')}`;
+    const count = this.platforms.filter((target) => this.ready(target.id)).length;
+    return `PUSH READY — ${count} DESTINATION${count === 1 ? '' : 'S'}`;
+  });
   readonly error = this.whip.error;
 
   /**
@@ -305,23 +389,41 @@ export class BroadcastIngestService {
 
   async load(): Promise<void> {
     this.loading.set(true);
+    this.checkError.set(null);
     try {
       const response = await firstValueFrom(
         this.http.get<DestinationsResponse>(this.endpoint('/destinations'), {
           headers: this.headers(),
         }),
       );
+      // An SPA fallback or a proxy login page answers 200 with HTML, which
+      // parses to no platforms. Calling that "relay ready" promised a relay
+      // that was never reachable, so an unrecognised body proves nothing.
+      const platforms = response?.platforms;
+      if (!Array.isArray(platforms)) {
+        this.destinations.set({});
+        this.relayConfigured.set(null);
+        this.checkError.set(
+          'RELAY CHECK FAILED — THE SERVER DID NOT RETURN A DESTINATIONS LIST',
+        );
+        return;
+      }
       const next: Partial<Record<IngestPlatform, DestinationStatusDto>> = {};
-      for (const row of response?.platforms ?? []) {
+      for (const row of platforms) {
         const id = String(row.platform ?? '').toLowerCase() as IngestPlatform;
         if (this.platforms.some((platform) => platform.id === id)) {
           next[id] = row;
         }
       }
       this.destinations.set(next);
-      this.relayConfigured.set(response?.relayConfigured !== false);
+      // Only a server that says the relay is configured earns the ready label.
+      this.relayConfigured.set(response.relayConfigured === true);
     } catch {
-      // Signed out or offline: the panel keeps its last known state.
+      // Signed out or offline: keep the last known relay state, but say the
+      // check failed instead of leaving a stale "ready" on screen silently.
+      this.checkError.set(
+        'RELAY CHECK FAILED — CHECK YOUR CONNECTION AND SIGN-IN',
+      );
     } finally {
       this.loading.set(false);
     }
@@ -357,7 +459,9 @@ export class BroadcastIngestService {
   }
 
   /** Forget a saved manual destination; the key is deleted server-side. */
-  async clearDestination(platform: CustomIngestPlatform): Promise<boolean> {
+  async clearDestination(
+    platform: 'kick' | 'facebook' | CustomIngestPlatform,
+  ): Promise<boolean> {
     try {
       await firstValueFrom(
         this.http.delete(this.endpoint(`/destinations/${platform}`), {

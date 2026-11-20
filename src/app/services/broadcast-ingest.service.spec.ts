@@ -252,6 +252,151 @@ describe('BroadcastIngestService custom RTMP destination', () => {
   });
 });
 
+describe('BroadcastIngestService manual destinations', () => {
+  it('clears a saved Kick destination, key included', async () => {
+    const service = TestBed.inject(BroadcastIngestService);
+    service.destinations.set({
+      kick: { platform: 'kick', ready: true, detail: 'KICK — rtmp.kick.com' },
+    });
+    httpDelete.mockReturnValue(of(undefined));
+
+    await expect(service.clearDestination('kick')).resolves.toBe(true);
+
+    expect(httpDelete).toHaveBeenCalledWith(
+      expect.stringContaining('/broadcast/destinations/kick'),
+      expect.anything(),
+    );
+    expect(service.destinations().kick).toBeUndefined();
+  });
+});
+
+describe('BroadcastIngestService push status', () => {
+  it('lists every reason a push is blocked on one line', () => {
+    const service = TestBed.inject(BroadcastIngestService);
+    service.relayConfigured.set(null);
+    service.checkError.set(null);
+    service.destinations.set({});
+
+    expect(service.pushStatus()).toBe(
+      'PUSH BLOCKED — RELAY NOT CHECKED · NO DESTINATION READY',
+    );
+
+    service.destinations.set({
+      twitch: { platform: 'twitch', ready: true, detail: 'TWITCH — host' },
+    });
+    service.relayConfigured.set(true);
+
+    expect(service.pushBlockers()).toEqual([]);
+    expect(service.pushStatus()).toBe('PUSH READY — 1 DESTINATION');
+
+    service.checkError.set(
+      'RELAY CHECK FAILED — CHECK YOUR CONNECTION AND SIGN-IN',
+    );
+
+    expect(service.pushStatus()).toContain('CHECK FAILED');
+  });
+
+  it('explains each disabled PUSH with the same blocker reasons', () => {
+    const service = TestBed.inject(BroadcastIngestService);
+    service.relayConfigured.set(true);
+    service.checkError.set(null);
+    service.destinations.set({});
+
+    expect(service.pushDisabledReason('twitch')).toBe(
+      'PUSH BLOCKED — NO DESTINATION READY · CONNECT TWITCH IN STREAMING ACCOUNTS',
+    );
+    expect(service.pushDisabledReason('kick')).toContain(
+      'CONNECT KICK OR SAVE ITS RTMP URL + KEY',
+    );
+    expect(service.pushDisabledReason('facebook')).toContain(
+      'LINK A FACEBOOK PAGE OR SAVE ITS RTMP URL + KEY',
+    );
+    expect(service.pushDisabledReason('custom')).toContain(
+      "SAVE THIS CUSTOM DESTINATION'S RTMP URL + KEY",
+    );
+
+    service.destinations.set({
+      twitch: { platform: 'twitch', ready: true, detail: 'TWITCH — host' },
+    });
+    expect(service.pushDisabledReason('twitch')).toBe('');
+
+    service.relayConfigured.set(false);
+    expect(service.pushDisabledReason('twitch')).toBe(
+      'PUSH BLOCKED — RELAY NOT CONFIGURED',
+    );
+  });
+
+  it('keeps the inline hint row-specific while the tooltip stays complete', () => {
+    const service = TestBed.inject(BroadcastIngestService);
+    service.checkError.set(null);
+    service.relayConfigured.set(true);
+    service.destinations.set({});
+
+    expect(service.pushDisabledHint('twitch')).toBe(
+      'CONNECT TWITCH IN STREAMING ACCOUNTS',
+    );
+    expect(service.pushDisabledHint('facebook')).toBe(
+      'LINK A FACEBOOK PAGE OR SAVE ITS RTMP URL + KEY',
+    );
+
+    service.destinations.set({
+      twitch: { platform: 'twitch', ready: true, detail: 'TWITCH — host' },
+    });
+    expect(service.pushDisabledHint('twitch')).toBe('');
+
+    service.relayConfigured.set(false);
+    expect(service.pushDisabledHint('twitch')).toBe('RELAY NOT CONFIGURED');
+    expect(service.pushDisabledReason('twitch')).toBe(
+      'PUSH BLOCKED — RELAY NOT CONFIGURED',
+    );
+
+    service.relayConfigured.set(true);
+    service.pushing.set('twitch');
+    expect(service.pushDisabledHint('twitch')).toBe('');
+    expect(service.pushDisabledHint('kick')).toBe(
+      'CONNECT KICK OR SAVE ITS RTMP URL + KEY',
+    );
+  });
+});
+
+describe('BroadcastIngestService relay check', () => {
+  it('does not call a non-destinations response a ready relay', async () => {
+    httpGet.mockReturnValue(of({}));
+    const service = TestBed.inject(BroadcastIngestService);
+
+    await service.load();
+
+    expect(service.relayConfigured()).toBeNull();
+    expect(service.checkError()).toContain('DESTINATIONS LIST');
+  });
+
+  it('reads relay readiness only from what the server reports', async () => {
+    httpGet.mockReturnValue(
+      of({
+        platforms: [{ platform: 'twitch', ready: true }],
+        relayConfigured: true,
+      }),
+    );
+    const service = TestBed.inject(BroadcastIngestService);
+
+    await service.load();
+
+    expect(service.relayConfigured()).toBe(true);
+    expect(service.ready('twitch')).toBe(true);
+    expect(service.checkError()).toBeNull();
+  });
+
+  it('reports a failed check without inventing a ready relay', async () => {
+    httpGet.mockReturnValue(throwError(() => new Error('offline')));
+    const service = TestBed.inject(BroadcastIngestService);
+
+    await service.load();
+
+    expect(service.relayConfigured()).toBeNull();
+    expect(service.checkError()).toContain('CHECK YOUR CONNECTION');
+  });
+});
+
 describe('BroadcastIngestService audio priming', () => {
   it('primes before the PUSH session request', async () => {
     httpPost.mockReturnValueOnce(of({ whipUrl: 'https://relay.test/whip' }));

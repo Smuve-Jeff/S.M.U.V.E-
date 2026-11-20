@@ -1426,4 +1426,26 @@ describe('SocialNetworkingService screen audio only', () => {
 
     expect(service.screenAudioOnly()).toBe(false);
   });
+
+  it('offers game-only audio for the camera composite when it carries game sound', () => {
+    service.videoSource.set('camera-pip');
+    service.screenAudioAvailable.set(true);
+
+    expect(service.gameAudioOnlyAvailable()).toBe(true);
+
+    service.setScreenAudioOnly(true);
+
+    expect(service.screenAudioOnly()).toBe(true);
+  });
+
+  it('refuses game-only audio when the share carries no game sound', () => {
+    service.videoSource.set('camera-pip');
+    service.screenAudioAvailable.set(false);
+
+    expect(service.gameAudioOnlyAvailable()).toBe(false);
+
+    service.setScreenAudioOnly(true);
+
+    expect(service.screenAudioOnly()).toBe(false);
+  });
 });

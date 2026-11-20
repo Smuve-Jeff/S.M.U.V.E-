@@ -1,6 +1,10 @@
 import { decodeOAuthTokenKey } from "@/lib/secret-box";
 
-export type StreamingOAuthProvider = "twitch" | "youtube";
+export type StreamingOAuthProvider =
+  | "twitch"
+  | "youtube"
+  | "kick"
+  | "facebook";
 
 /** The table the OAuth flow writes grants into. */
 export const STREAMING_ACCOUNTS_TABLE = "streaming_accounts";
@@ -18,6 +22,16 @@ export const PROVIDER_VARS: Record<
     label: "YouTube",
     idVar: "YOUTUBE_CLIENT_ID",
     secretVar: "YOUTUBE_CLIENT_SECRET",
+  },
+  kick: {
+    label: "Kick",
+    idVar: "KICK_CLIENT_ID",
+    secretVar: "KICK_CLIENT_SECRET",
+  },
+  facebook: {
+    label: "Facebook",
+    idVar: "FACEBOOK_CLIENT_ID",
+    secretVar: "FACEBOOK_CLIENT_SECRET",
   },
 };
 
@@ -100,12 +114,12 @@ export function inspectStreamingOAuthSetup(
       ["localhost", "127.0.0.1", "::1", "[::1]"].includes(origin.hostname)
     ) {
       problems.push(
-        `API_PUBLIC_URL is ${input.apiPublicUrl}, which Twitch and Google cannot redirect to in production.`,
+        `API_PUBLIC_URL is ${input.apiPublicUrl}, which the streaming providers cannot redirect to in production.`,
       );
     }
   } else {
     warnings.push(
-      "No Twitch or YouTube OAuth credentials are set: Connect answers 503 and the accounts panel stays read-only.",
+      "No streaming OAuth credentials are set: Connect answers 503 and the accounts panel stays read-only.",
     );
   }
 

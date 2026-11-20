@@ -44,6 +44,40 @@ describe("streaming OAuth deploy check", () => {
     expect(report.warnings.join(" ")).toContain("mg:run");
   });
 
+  it("accepts Kick and Facebook once their app credentials exist", () => {
+    const report = withInput({
+      credentials: [
+        ...base.credentials,
+        { platform: "kick", clientId: "kick-id", clientSecret: "kick-secret" },
+        {
+          platform: "facebook",
+          clientId: "meta-id",
+          clientSecret: "meta-secret",
+        },
+      ],
+    });
+
+    expect(report.problems).toEqual([]);
+    expect(report.configured).toEqual([
+      "twitch",
+      "youtube",
+      "kick",
+      "facebook",
+    ]);
+  });
+
+  it("fails a half-configured Kick app and names its secret", () => {
+    const report = withInput({
+      credentials: [
+        ...base.credentials,
+        { platform: "kick", clientId: "kick-id", clientSecret: "" },
+      ],
+    });
+
+    expect(report.problems).toHaveLength(1);
+    expect(report.problems[0]).toContain("KICK_CLIENT_SECRET");
+  });
+
   it("fails a half-configured provider and names the missing variable", () => {
     const report = withInput({
       credentials: [
