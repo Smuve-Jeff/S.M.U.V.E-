@@ -288,6 +288,15 @@ describe('BroadcastIngestService destination test', () => {
       httpPost.mockReturnValueOnce(
         of({ relayId: 'test-1', whipUrl: 'https://relay.test/whip' }),
       );
+      httpPost.mockReturnValueOnce(
+        of({
+          platform: 'custom',
+          ready: true,
+          label: 'TikTok',
+          verification: 'verified',
+          verifiedAt: new Date().toISOString(),
+        }),
+      );
       httpGet.mockReturnValueOnce(
         of({
           running: true,
@@ -310,6 +319,12 @@ describe('BroadcastIngestService destination test', () => {
         { platforms: ['custom'], ephemeral: true },
         expect.anything(),
       );
+      expect(httpPost).toHaveBeenCalledWith(
+        expect.stringContaining('/destinations/custom/verify'),
+        { relayId: 'test-1' },
+        expect.anything(),
+      );
+      expect(service.verified('custom')).toBe(true);
       expect(service.destinationTest('custom').status).toBe('pass');
       expect(service.testingDestination()).toBeNull();
       expect(whipStop).toHaveBeenCalled();

@@ -15,6 +15,7 @@ import { CreateLiveStreamViewerJoins1786243200015 } from "./1786243200015-Create
 import { CreateLiveStreamDestinations1786243200016 } from "./1786243200016-CreateLiveStreamDestinations";
 import { AddStreamingDestinationLabel1786243200017 } from "./1786243200017-AddStreamingDestinationLabel";
 import { AddStreamingAccountPageColumns1786243200018 } from "./1786243200018-AddStreamingAccountPageColumns";
+import { AddStreamingDestinationVerification1786243200019 } from "./1786243200019-AddStreamingDestinationVerification";
 
 /**
  * Metadata per migration drives dialect assertions:
@@ -46,6 +47,7 @@ const migrations: MigrationEntry[] = [
   { migration: new CreateLiveStreamDestinations1786243200016(), hasSerialColumn: true, hasJson: false },
   { migration: new AddStreamingDestinationLabel1786243200017(), hasSerialColumn: false, hasJson: false },
   { migration: new AddStreamingAccountPageColumns1786243200018(), hasSerialColumn: false, hasJson: false },
+  { migration: new AddStreamingDestinationVerification1786243200019(), hasSerialColumn: false, hasJson: false },
 ];
 
 const migrationNames = [
@@ -65,6 +67,7 @@ const migrationNames = [
   "CreateLiveStreamDestinations1786243200016",
   "AddStreamingDestinationLabel1786243200017",
   "AddStreamingAccountPageColumns1786243200018",
+  "AddStreamingDestinationVerification1786243200019",
 ];
 
 /** Stand-in QueryRunner that records every statement it is asked to run. */
@@ -250,6 +253,27 @@ describe("database migrations (dialect-aware)", () => {
     );
     expect(my18).toContain(
       "ALTER TABLE streaming_accounts ADD COLUMN IF NOT EXISTS pageToken text NULL",
+    );
+
+    // 0019 — durable destination verification: nullable columns keep older
+    // rows honestly unverified, and both dialects must be re-runnable.
+    const pg19 = normalizeSql(
+      await runUp(new AddStreamingDestinationVerification1786243200019(), "postgres"),
+    );
+    expect(pg19).toContain(
+      'ALTER TABLE "streaming_destinations" ADD COLUMN IF NOT EXISTS "verifiedAt" TIMESTAMP',
+    );
+    expect(pg19).toContain(
+      'ADD COLUMN IF NOT EXISTS "verifiedFingerprint" character varying(64)',
+    );
+    const my19 = normalizeSql(
+      await runUp(new AddStreamingDestinationVerification1786243200019(), "mysql"),
+    );
+    expect(my19).toContain(
+      "ALTER TABLE streaming_destinations ADD COLUMN IF NOT EXISTS verifiedAt TIMESTAMP NULL",
+    );
+    expect(my19).toContain(
+      "ALTER TABLE streaming_destinations ADD COLUMN IF NOT EXISTS verifiedFingerprint varchar(64) NULL",
     );
 
     // 0013 — streaming_destinations is the manual RTMP destination Kick needs.

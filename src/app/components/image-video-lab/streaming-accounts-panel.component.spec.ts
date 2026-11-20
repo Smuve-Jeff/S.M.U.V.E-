@@ -9,7 +9,17 @@ describe('StreamingAccountsPanelComponent', () => {
   let fixture: ComponentFixture<StreamingAccountsPanelComponent>;
   let component: StreamingAccountsPanelComponent;
   let connections: ReturnType<typeof signal<Record<string, { displayName?: string }>>>;
-  let destinations: ReturnType<typeof signal<Record<string, { ready?: boolean }>>>;
+  let destinations: ReturnType<
+    typeof signal<
+      Record<
+        string,
+        {
+          ready?: boolean;
+          verification?: 'verified' | 'unverified' | 'not-applicable';
+        }
+      >
+    >
+  >;
   let platforms: {
     connections: typeof connections;
     connecting: ReturnType<typeof signal<string | null>>;
@@ -22,6 +32,7 @@ describe('StreamingAccountsPanelComponent', () => {
     destinations: typeof destinations;
     checkError: ReturnType<typeof signal<string | null>>;
     ready: (id: string) => boolean;
+    verified: (id: string) => boolean;
     platformLabel: (id: string) => string;
     load: jest.Mock;
   };
@@ -51,6 +62,7 @@ describe('StreamingAccountsPanelComponent', () => {
       destinations,
       checkError: signal<string | null>(null),
       ready: (id: string) => !!destinations()[id]?.ready,
+      verified: (id: string) => destinations()[id]?.verification === 'verified',
       platformLabel: (id: string) => labels[id] ?? id,
       load: jest.fn(async () => undefined),
     };
@@ -80,12 +92,16 @@ describe('StreamingAccountsPanelComponent', () => {
 
   it('shows a linked name and a ready destination', () => {
     connections.set({ twitch: { displayName: 'SmuveJeff' } });
-    destinations.set({ kick: { ready: true }, custom: { ready: true } });
+    destinations.set({
+      kick: { ready: true, verification: 'verified' },
+      custom: { ready: true, verification: 'unverified' },
+    });
     fixture.detectChanges();
 
     const text = fixture.nativeElement.textContent as string;
     expect(text).toContain('LINKED · SmuveJeff');
-    expect(text).toContain('RTMP READY');
+    expect(text).toContain('RTMP VERIFIED');
+    expect(text).toContain('RTMP UNVERIFIED');
     expect(text).toContain('SET · TikTok Live');
   });
 

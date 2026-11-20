@@ -4462,14 +4462,18 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   platformStateLabel(platform: StreamingPlatform): string {
-    if (this.platformsService.isConnected(platform.id)) {
-      return this.platformsService.displayName(platform.id) || 'CONNECTED';
-    }
+    // A saved manual destination is the push path even when OAuth is linked,
+    // so its verification state must win over the account display name.
     if (
       (platform.id === 'kick' || platform.id === 'facebook') &&
       this.ingest.ready(platform.id)
     ) {
-      return 'RTMP SET';
+      return this.ingest.verified(platform.id)
+        ? 'RTMP VERIFIED'
+        : 'RTMP NOT VERIFIED';
+    }
+    if (this.platformsService.isConnected(platform.id)) {
+      return this.platformsService.displayName(platform.id) || 'CONNECTED';
     }
     return platform.connectable ? 'NOT CONNECTED' : 'NOT LINKED';
   }

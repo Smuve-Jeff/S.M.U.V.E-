@@ -7,12 +7,25 @@ describe('RtmpDestinationsEditorComponent', () => {
   let fixture: ComponentFixture<RtmpDestinationsEditorComponent>;
   let component: RtmpDestinationsEditorComponent;
   let destinations: ReturnType<
-    typeof signal<Record<string, { ready?: boolean; detail?: string }>>
+    typeof signal<
+      Record<
+        string,
+        {
+          ready?: boolean;
+          detail?: string;
+          verification?: 'verified' | 'unverified' | 'not-applicable';
+          verifiedAt?: string | null;
+        }
+      >
+    >
   >;
   let ingest: {
     platforms: Array<{ id: string; label: string }>;
     destinations: typeof destinations;
     ready: (id: string) => boolean;
+    verified: (id: string) => boolean;
+    verification: (id: string) => 'verified' | 'unverified' | 'not-applicable';
+    verifiedAt: (id: string) => string | null;
     platformLabel: (id: string) => string;
     saveDestination: jest.Mock;
     clearDestination: jest.Mock;
@@ -38,6 +51,10 @@ describe('RtmpDestinationsEditorComponent', () => {
       ],
       destinations,
       ready: (id: string) => !!destinations()[id]?.ready,
+      verified: (id: string) => destinations()[id]?.verification === 'verified',
+      verification: (id: string) =>
+        destinations()[id]?.verification ?? 'not-applicable',
+      verifiedAt: (id: string) => destinations()[id]?.verifiedAt ?? null,
       platformLabel: (id: string) =>
         ingest.platforms.find((platform) => platform.id === id)?.label ?? id,
       saveDestination: jest.fn(async () => true),
@@ -114,6 +131,30 @@ describe('RtmpDestinationsEditorComponent', () => {
     await component.save('facebook');
     expect(ingest.saveDestination).not.toHaveBeenCalled();
     expect(component.error('facebook')).toContain('STREAM KEY');
+  });
+
+  it('shows a saved destination as unverified until a test passes', () => {
+    destinations.set({ kick: { ready: true, detail: 'KICK — ready' } });
+    fixture.detectChanges();
+
+    const text = fixture.nativeElement.textContent as string;
+    expect(text).toContain('UNVERIFIED');
+    expect(text).toContain('NOT VERIFIED — RUN TEST');
+  });
+
+  it('shows the current pass and its age once the server certifies it', () => {
+    destinations.set({
+      kick: {
+        ready: true,
+        detail: 'KICK — ready',
+        verification: 'verified',
+        verifiedAt: new Date().toISOString(),
+      },
+    });
+    fixture.detectChanges();
+
+    const text = fixture.nativeElement.textContent as string;
+    expect(text).toContain('VERIFIED JUST NOW');
   });
 
   it('tests a saved destination through the shared ingest service', async () => {

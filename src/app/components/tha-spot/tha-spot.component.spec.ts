@@ -389,10 +389,17 @@ describe("ThaSpotComponent", () => {
 
     it("counts a saved RTMP destination as a usable platform", () => {
       component.ingest.destinations.set({
-        kick: { platform: "kick", ready: true, detail: "KICK — rtmp.kick.com" },
+        kick: {
+          platform: "kick",
+          ready: true,
+          detail: "KICK — rtmp.kick.com",
+          verification: "unverified",
+        },
       });
 
-      expect(component.platformStateLabel(platform("kick"))).toBe("RTMP SET");
+      expect(component.platformStateLabel(platform("kick"))).toBe(
+        "RTMP NOT VERIFIED",
+      );
       expect(component.platformStateOn(platform("kick"))).toBe(true);
       expect(component.platformStateOn(platform("facebook"))).toBe(false);
     });

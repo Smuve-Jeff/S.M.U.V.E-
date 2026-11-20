@@ -3478,6 +3478,14 @@
                       (ingest.ready(target.id) ? 'READY' : 'NOT READY')
                   }}
                 </span>
+                <span
+                  class="account-verification"
+                  *ngIf="ingest.ready(target.id)"
+                  [class.verified]="ingest.verified(target.id)"
+                  [class.unverified]="ingest.verification(target.id) === 'unverified'"
+                >
+                  {{ ingest.verificationLabel(target.id) }}
+                </span>
                 <button
                   class="quality-btn"
                   *ngIf="ingest.state() !== 'live'"
@@ -3511,6 +3519,14 @@
               </ng-container>
               <div class="account-row manual-destination">
                 <span class="account-name">KICK URL + KEY</span>
+                <span
+                  class="account-verification"
+                  *ngIf="ingest.ready('kick')"
+                  [class.verified]="ingest.verified('kick')"
+                  [class.unverified]="ingest.verification('kick') === 'unverified'"
+                >
+                  {{ ingest.verificationLabel('kick') }}
+                </span>
                 <div class="manual-fields">
                   <input
                     class="account-input"
@@ -3551,6 +3567,14 @@
               </div>
               <div class="account-row manual-destination">
                 <span class="account-name">FACEBOOK URL + KEY</span>
+                <span
+                  class="account-verification"
+                  *ngIf="ingest.ready('facebook')"
+                  [class.verified]="ingest.verified('facebook')"
+                  [class.unverified]="ingest.verification('facebook') === 'unverified'"
+                >
+                  {{ ingest.verificationLabel('facebook') }}
+                </span>
                 <div class="manual-fields">
                   <input
                     class="account-input"
@@ -3594,6 +3618,14 @@
                 *ngFor="let slot of customSlots"
               >
                 <span class="account-name">{{ ingest.platformLabel(slot) }}</span>
+                <span
+                  class="account-verification"
+                  *ngIf="ingest.ready(slot)"
+                  [class.verified]="ingest.verified(slot)"
+                  [class.unverified]="ingest.verification(slot) === 'unverified'"
+                >
+                  {{ ingest.verificationLabel(slot) }}
+                </span>
                 <div class="manual-fields">
                   <input
                     class="account-input custom-label"

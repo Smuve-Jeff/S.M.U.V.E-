@@ -42,11 +42,18 @@ export const CUSTOM_INGEST_PLATFORMS = [
 ] as const;
 export type CustomIngestPlatform = (typeof CUSTOM_INGEST_PLATFORMS)[number];
 
+export type DestinationVerification =
+  | 'verified'
+  | 'unverified'
+  | 'not-applicable';
+
 interface DestinationStatusDto {
   platform?: string;
   ready?: boolean;
   detail?: string;
   label?: string;
+  verification?: DestinationVerification;
+  verifiedAt?: string | null;
 }
 
 interface DestinationsResponse {
@@ -393,6 +400,32 @@ export class BroadcastIngestService {
 
   detail(platform: IngestPlatform): string {
     return this.destinations()[platform]?.detail ?? '';
+  }
+
+  /** Whether this exact saved URL + key passed a real destination test. */
+  verification(platform: IngestPlatform): DestinationVerification {
+    return this.destinations()[platform]?.verification ?? 'not-applicable';
+  }
+
+  verified(platform: IngestPlatform): boolean {
+    return this.verification(platform) === 'verified';
+  }
+
+  verifiedAt(platform: IngestPlatform): string | null {
+    return this.destinations()[platform]?.verifiedAt ?? null;
+  }
+
+  /** A short, honest readiness word for the account and destination rows. */
+  verificationLabel(platform: IngestPlatform): string {
+    if (!this.ready(platform)) return '';
+    switch (this.verification(platform)) {
+      case 'verified':
+        return 'VERIFIED';
+      case 'unverified':
+        return 'NOT VERIFIED';
+      default:
+        return 'LINKED';
+    }
   }
 
   /** The saved host-facing name, so a custom target reads "TikTok", not "CUSTOM". */
@@ -871,6 +904,9 @@ export class BroadcastIngestService {
         throw new Error('THE RELAY RETURNED NO TEST SESSION');
       }
       relayId = session.relayId;
+      // The server cleared the durable pass when it opened this test session;
+      // mirror that immediately so no surface shows a stale green badge.
+      this.markDestinationUnverified(platform);
       if (!(await this.whip.start(session.whipUrl, pattern.stream))) {
         throw new Error(this.whip.error() ?? 'PUBLISH FAILED');
       }
@@ -901,6 +937,17 @@ export class BroadcastIngestService {
           this.snackbar.warning('DESTINATION CHANGED DURING THE TEST — TEST AGAIN');
           return false;
         }
+        const verified = await firstValueFrom(
+          this.http.post<DestinationStatusDto>(
+            this.endpoint(`/destinations/${platform}/verify`),
+            { relayId },
+            { headers: this.headers() },
+          ),
+        );
+        if (verified?.verification !== 'verified') {
+          throw new Error('THE SERVER DID NOT CERTIFY THIS DESTINATION TEST');
+        }
+        this.mergeDestination(verified);
         this.setDestinationTest(
           platform,
           'pass',
@@ -946,6 +993,22 @@ export class BroadcastIngestService {
       }
       this.testingDestination.set(null);
     }
+  }
+
+  /** Drop the durable pass locally while the replacement test is running. */
+  private markDestinationUnverified(platform: IngestPlatform): void {
+    const row = this.destinations()[platform];
+    if (!row || row.verification === 'not-applicable') return;
+    this.destinations.update((current) => ({
+      ...current,
+      [platform]: { ...row, verification: 'unverified', verifiedAt: null },
+    }));
+  }
+
+  private mergeDestination(status: DestinationStatusDto | null | undefined): void {
+    const id = String(status?.platform ?? '').toLowerCase() as IngestPlatform;
+    if (!id || !this.platforms.some((platform) => platform.id === id)) return;
+    this.destinations.update((current) => ({ ...current, [id]: status! }));
   }
 
   private setDestinationTest(

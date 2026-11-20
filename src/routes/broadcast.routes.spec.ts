@@ -23,6 +23,7 @@ jest.mock("@/services/broadcast-ingest.service", () => ({
   startIngestSession: jest.fn(),
   startSelfTest: jest.fn(),
   stopIngestSession: jest.fn(),
+  verifyDestinationTest: jest.fn(),
 }));
 
 jest.mock("@/services/broadcast-recordings.service", () => ({
@@ -38,11 +39,15 @@ jest.mock("@/services/broadcast-recordings.service", () => ({
 }));
 
 import broadcastRoutes from "./broadcast.routes";
-import { startIngestSession } from "@/services/broadcast-ingest.service";
+import {
+  startIngestSession,
+  verifyDestinationTest,
+} from "@/services/broadcast-ingest.service";
 import { recordingArchive } from "@/services/broadcast-recordings.service";
 
 const archiveMock = recordingArchive as jest.Mock;
 const startIngestMock = startIngestSession as jest.Mock;
+const verifyDestinationMock = verifyDestinationTest as jest.Mock;
 
 const app = express();
 app.use(express.json());
@@ -93,6 +98,32 @@ describe("broadcast recordings archive route", () => {
     expect(response.status).toBe(201);
     expect(startIngestMock).toHaveBeenCalledWith(7, ["kick"], {
       ephemeral: true,
+    });
+  });
+
+  it("certifies a destination test through the authenticated verify route", async () => {
+    verifyDestinationMock.mockResolvedValue({
+      platform: "kick",
+      ready: true,
+      detail: "KICK — kick.example",
+      label: "KICK",
+      verification: "verified",
+      verifiedAt: "2026-01-01T00:00:00.000Z",
+    });
+
+    const response = await fetch(
+      `${baseUrl}/api/broadcast/destinations/kick/verify`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ relayId: "relay-test" }),
+      },
+    );
+
+    expect(response.status).toBe(200);
+    expect(verifyDestinationMock).toHaveBeenCalledWith(7, "kick", "relay-test");
+    await expect(response.json()).resolves.toMatchObject({
+      verification: "verified",
     });
   });
 

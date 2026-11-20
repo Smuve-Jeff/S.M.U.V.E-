@@ -52,6 +52,14 @@ export class StreamingDestination {
   @Column({ type: "text" })
   streamKey: string;
 
+  /** When a real destination test last passed for this exact URL + key. */
+  @Column({ type: "timestamp", nullable: true })
+  verifiedAt: Date | null;
+
+  /** HMAC of URL + key at the passing test; null until one passes. */
+  @Column({ type: "varchar", length: 64, nullable: true })
+  verifiedFingerprint: string | null;
+
   @CreateDateColumn()
   createdAt: Date;
 

@@ -1,4 +1,6 @@
+import { createHmac } from "node:crypto";
 import {
+  JWT_SECRET,
   MEDIA_RELAY_TOKEN,
   MEDIA_RELAY_URL,
   TWITCH_CLIENT_ID,
@@ -49,6 +51,11 @@ const isCustomIngestPlatform = (
 const defaultCustomLabel = (platform: CustomIngestPlatform): string =>
   `CUSTOM ${CUSTOM_INGEST_PLATFORMS.indexOf(platform) + 1}`;
 
+export type DestinationVerification =
+  | "verified"
+  | "unverified"
+  | "not-applicable";
+
 export interface DestinationStatus {
   platform: IngestPlatform;
   ready: boolean;
@@ -56,6 +63,10 @@ export interface DestinationStatus {
   detail: string;
   /** Host-facing name, especially for the generic custom destination. */
   label: string;
+  /** Whether the current saved URL + key passed a real destination test. */
+  verification: DestinationVerification;
+  /** When that pass happened; null unless `verification` is verified. */
+  verifiedAt: string | null;
 }
 
 export interface DestinationOverview {
@@ -79,9 +90,33 @@ interface IngestDestination {
   platform: IngestPlatform;
   rtmpUrl: string;
   streamKey: string;
+  /** Account-backed destinations have no stored URL/key to verify. */
+  source: "manual" | "account";
   /** Facebook only: the Live Video object that must be ended on stop. */
   videoId?: string;
   pageToken?: string;
+}
+
+/** One ephemeral destination test the server is willing to certify. */
+interface PendingDestinationTest {
+  userId: number;
+  platform: ManualIngestPlatform;
+  fingerprint: string;
+  expiresAt: number;
+}
+
+const pendingDestinationTests = new Map<string, PendingDestinationTest>();
+
+/**
+ * Tie a pass to the exact URL + key without storing either one again. HMAC
+ * with the server secret makes the value useless as an offline key oracle.
+ */
+function destinationFingerprint(rtmpUrl: string, streamKey: string): string {
+  return createHmac("sha256", JWT_SECRET)
+    .update(rtmpUrl)
+    .update("\0")
+    .update(streamKey)
+    .digest("hex");
 }
 
 /** Graph API version for Facebook live ingest; keep in step with the login flow. */
@@ -163,7 +198,12 @@ async function twitchDestination(userId: number): Promise<IngestDestination> {
   if (!streamKey) {
     throw new AppError(502, "Twitch did not return your stream key.");
   }
-  return { platform: "twitch", rtmpUrl: TWITCH_RTMP_URL, streamKey };
+  return {
+    platform: "twitch",
+    rtmpUrl: TWITCH_RTMP_URL,
+    streamKey,
+    source: "account",
+  };
 }
 
 async function manualDestination(
@@ -183,6 +223,7 @@ async function manualDestination(
     platform,
     rtmpUrl: row.rtmpUrl,
     streamKey: openSecret(row.streamKey),
+    source: "manual",
   };
 }
 
@@ -214,6 +255,7 @@ async function facebookDestination(userId: number): Promise<IngestDestination> {
       platform: "facebook",
       rtmpUrl: manual.rtmpUrl,
       streamKey: openSecret(manual.streamKey),
+      source: "manual",
     };
   }
 }
@@ -257,6 +299,7 @@ async function createFacebookLive(
     platform: "facebook",
     rtmpUrl: ingest.rtmpUrl,
     streamKey: ingest.streamKey,
+    source: "account",
     videoId: typeof payload.id === "string" ? payload.id : undefined,
     pageToken,
   };
@@ -317,6 +360,67 @@ async function releaseFacebookLives(
   );
 }
 
+function verifiedAtForRow(row: StreamingDestination): string | null {
+  if (!row.verifiedAt || !row.verifiedFingerprint) return null;
+  const current = destinationFingerprint(
+    row.rtmpUrl,
+    openSecret(row.streamKey),
+  );
+  return current === row.verifiedFingerprint
+    ? new Date(row.verifiedAt).toISOString()
+    : null;
+}
+
+function manualDestinationStatus(
+  platform: ManualIngestPlatform,
+  row: StreamingDestination,
+): DestinationStatus {
+  const label =
+    row.label?.trim() ||
+    (isCustomIngestPlatform(platform)
+      ? defaultCustomLabel(platform)
+      : platform.toUpperCase());
+  const verifiedAt = verifiedAtForRow(row);
+  return {
+    platform,
+    ready: true,
+    detail: `${label.toUpperCase()} — ${ingestHost(row.rtmpUrl)}`,
+    label,
+    verification: verifiedAt ? "verified" : "unverified",
+    verifiedAt,
+  };
+}
+
+function accountDestinationStatus(
+  platform: IngestPlatform,
+  detail: string,
+): DestinationStatus {
+  return {
+    platform,
+    ready: true,
+    detail,
+    label: platform.toUpperCase(),
+    // Twitch and Page-backed Facebook keys are not stored as a URL + key pair,
+    // so there is nothing durable to fingerprint here.
+    verification: "not-applicable",
+    verifiedAt: null,
+  };
+}
+
+function emptyDestinationStatus(
+  platform: IngestPlatform,
+  label = platform.toUpperCase(),
+): DestinationStatus {
+  return {
+    platform,
+    ready: false,
+    detail: "",
+    label,
+    verification: "not-applicable",
+    verifiedAt: null,
+  };
+}
+
 export async function destinationOverview(
   userId: number | string,
 ): Promise<DestinationOverview> {
@@ -342,34 +446,31 @@ export async function destinationOverview(
       ),
     ]);
 
-  const status = (
-    platform: IngestPlatform,
-    detail: string,
-    label = platform.toUpperCase(),
-  ): DestinationStatus => ({ platform, ready: !!detail, detail, label });
-
   return {
     relayConfigured: !!relayConfiguration(),
     platforms: [
       twitchAccount
-        ? status("twitch", `TWITCH — ${twitchAccount.displayName}`)
-        : status("twitch", ""),
-      kickRow ? status("kick", `KICK — ${ingestHost(kickRow.rtmpUrl)}`) : status("kick", ""),
+        ? accountDestinationStatus(
+            "twitch",
+            `TWITCH — ${twitchAccount.displayName}`,
+          )
+        : emptyDestinationStatus("twitch"),
+      kickRow
+        ? manualDestinationStatus("kick", kickRow)
+        : emptyDestinationStatus("kick"),
       facebookAccount?.pageId
-        ? status("facebook", `FACEBOOK — ${facebookAccount.displayName}`)
+        ? accountDestinationStatus(
+            "facebook",
+            `FACEBOOK — ${facebookAccount.displayName}`,
+          )
         : facebookRow
-          ? status("facebook", `FACEBOOK — ${ingestHost(facebookRow.rtmpUrl)}`)
-          : status("facebook", ""),
+          ? manualDestinationStatus("facebook", facebookRow)
+          : emptyDestinationStatus("facebook"),
       ...CUSTOM_INGEST_PLATFORMS.map((platform, index) => {
         const row = customRows[index];
-        const label = row?.label?.trim() || defaultCustomLabel(platform);
         return row
-          ? status(
-              platform,
-              `${label.toUpperCase()} — ${ingestHost(row.rtmpUrl)}`,
-              label,
-            )
-          : status(platform, "", label);
+          ? manualDestinationStatus(platform, row)
+          : emptyDestinationStatus(platform, defaultCustomLabel(platform));
       }),
     ],
   };
@@ -426,12 +527,27 @@ export async function saveManualDestination(
   const owner = Number(userId);
   const rows = destinationRepository();
   const existing = await rows.findOne({ where: { userId: owner, platform: key } });
+  const fingerprint = destinationFingerprint(rtmpUrl, streamKey);
+  // Re-saving the exact same pair does not invalidate a real pass. Any change
+  // to either field does, because a pass for the old pair says nothing here.
+  const unchanged =
+    !!existing &&
+    existing.rtmpUrl === rtmpUrl &&
+    !!existing.streamKey &&
+    openSecret(existing.streamKey) === streamKey;
+  const preserveVerification =
+    unchanged &&
+    !!existing?.verifiedAt &&
+    existing.verifiedFingerprint === fingerprint;
+  const verifiedAt = preserveVerification ? existing.verifiedAt : null;
   const values = {
     userId: owner,
     platform: key,
     label,
     rtmpUrl,
     streamKey: sealSecret(streamKey),
+    verifiedAt,
+    verifiedFingerprint: preserveVerification ? fingerprint : null,
   };
   if (existing) await rows.update({ id: existing.id }, values);
   else await rows.save(rows.create(values));
@@ -441,7 +557,78 @@ export async function saveManualDestination(
     ready: true,
     detail: `${label} — ${ingestHost(rtmpUrl)}`,
     label,
+    verification: verifiedAt ? "verified" : "unverified",
+    verifiedAt: verifiedAt ? new Date(verifiedAt).toISOString() : null,
   };
+}
+
+/**
+ * Certify a destination test after checking the relay and the exact stored
+ * configuration itself. A client cannot make a row verified by claiming a pass.
+ */
+export async function verifyDestinationTest(
+  userId: number | string,
+  platform: string,
+  relayId: string,
+): Promise<DestinationStatus> {
+  const owner = Number(userId);
+  const key = asManualPlatform(platform);
+  const id = String(relayId || "");
+  const pending = pendingDestinationTests.get(id);
+  if (
+    !pending ||
+    pending.userId !== owner ||
+    pending.platform !== key ||
+    pending.expiresAt <= Date.now()
+  ) {
+    pendingDestinationTests.delete(id);
+    throw new AppError(
+      409,
+      "That destination test is no longer active — run the test again.",
+    );
+  }
+
+  const snapshot = await readRelaySession(id, "destination test");
+  if (
+    !snapshot.running ||
+    snapshot.bytesOut <= 0 ||
+    snapshot.stalled ||
+    snapshot.recoveryGaveUp ||
+    snapshot.error
+  ) {
+    throw new AppError(
+      409,
+      "The relay has not confirmed media reaching this destination yet.",
+    );
+  }
+
+  const rows = destinationRepository();
+  const row = await rows.findOne({ where: { userId: owner, platform: key } });
+  if (!row) {
+    throw new AppError(409, "Save this destination before verifying it.");
+  }
+  const fingerprint = destinationFingerprint(
+    row.rtmpUrl,
+    openSecret(row.streamKey),
+  );
+  if (fingerprint !== pending.fingerprint) {
+    throw new AppError(
+      409,
+      "The destination changed during the test — run the test again.",
+    );
+  }
+
+  const verifiedAt = new Date();
+  await rows.update(
+    { id: row.id },
+    { verifiedAt, verifiedFingerprint: fingerprint },
+  );
+  pendingDestinationTests.delete(id);
+  return manualDestinationStatus(key, {
+    ...row,
+    verifiedAt,
+    verifiedFingerprint: fingerprint,
+  });
 }
 
 export async function clearManualDestination(
@@ -491,6 +678,23 @@ export async function startIngestSession(
     })),
   );
 
+  const testDestination =
+    options.ephemeral && keys.length === 1 && destinations[0].source === "manual"
+      ? destinations[0]
+      : null;
+  const testFingerprint = testDestination
+    ? destinationFingerprint(testDestination.rtmpUrl, testDestination.streamKey)
+    : null;
+  // A new test supersedes the old pass immediately. If the test fails or is
+  // interrupted, the destination stays unverified rather than falling back to
+  // a pass that may no longer be true.
+  if (testDestination) {
+    await destinationRepository().update(
+      { userId: owner, platform: testDestination.platform },
+      { verifiedAt: null, verifiedFingerprint: null },
+    );
+  }
+
   let session: { id: string; whipUrl: string };
   try {
     session = await openRelaySession(relay, destinations);
@@ -516,6 +720,13 @@ export async function startIngestSession(
       userId: owner,
       relayId: session.id,
       platform: keys[0],
+    });
+  } else if (testDestination && testFingerprint) {
+    pendingDestinationTests.set(session.id, {
+      userId: owner,
+      platform: testDestination.platform as ManualIngestPlatform,
+      fingerprint: testFingerprint,
+      expiresAt: Date.now() + 120_000,
     });
   }
   return {
@@ -803,6 +1014,7 @@ export async function stopIngestSession(relayId: string): Promise<void> {
   if (/^[A-Za-z0-9_-]{1,128}$/.test(id)) {
     await markBroadcastSessionEnded(id);
   }
+  pendingDestinationTests.delete(id);
   const live = facebookLives.get(id);
   if (live) {
     facebookLives.delete(id);

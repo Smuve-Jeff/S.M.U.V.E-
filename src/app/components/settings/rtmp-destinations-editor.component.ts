@@ -72,14 +72,30 @@ const emptyDrafts = (): Record<ManualDestination, DestinationDraft> => ({
               <h3>{{ slot.label }}</h3>
               <span
                 class="rtmp-state"
-                [class.rtmp-state-ready]="ready(slot.id)"
+                [class.rtmp-state-ready]="ready(slot.id) && verified(slot.id)"
+                [class.rtmp-state-unverified]="ready(slot.id) && !verified(slot.id)"
               >
-                {{ ready(slot.id) ? 'SAVED' : 'NOT SET' }}
+                {{
+                  ready(slot.id)
+                    ? verified(slot.id)
+                      ? 'VERIFIED'
+                      : 'UNVERIFIED'
+                    : 'NOT SET'
+                }}
               </span>
             </div>
             <p class="rtmp-detail">
               {{ ready(slot.id) ? detail(slot.id) : 'No RTMP destination saved.' }}
             </p>
+            @if (ready(slot.id)) {
+              <p
+                class="rtmp-verification"
+                [class.rtmp-verification-pass]="verified(slot.id)"
+                role="status"
+              >
+                {{ verificationLabel(slot.id) }}
+              </p>
+            }
 
             @if (slot.custom) {
               <label class="rtmp-field">
@@ -296,6 +312,16 @@ const emptyDrafts = (): Record<ManualDestination, DestinationDraft> => ({
         line-height: 1.4;
         overflow-wrap: anywhere;
       }
+      .rtmp-verification {
+        margin: 0;
+        color: #fbbf24;
+        font-size: 0.56rem;
+        font-weight: 900;
+        letter-spacing: 0.08em;
+      }
+      .rtmp-verification-pass {
+        color: #34d399;
+      }
       .rtmp-field {
         display: grid;
         gap: 0.2rem;
@@ -437,6 +463,30 @@ export class RtmpDestinationsEditorComponent {
 
   ready(slot: ManualDestination): boolean {
     return this.ingest.ready(slot);
+  }
+
+  verified(slot: ManualDestination): boolean {
+    return this.ingest.verified(slot);
+  }
+
+  /** Never call a saved-but-untested key verified. */
+  verificationLabel(slot: ManualDestination): string {
+    if (this.verified(slot)) {
+      const age = this.verifiedAge(this.ingest.verifiedAt(slot));
+      return age ? `VERIFIED ${age}` : 'VERIFIED';
+    }
+    return 'NOT VERIFIED — RUN TEST';
+  }
+
+  private verifiedAge(at: string | null): string {
+    const ms = at ? Date.parse(at) : Number.NaN;
+    if (!Number.isFinite(ms)) return '';
+    const minutes = Math.max(0, Math.floor((Date.now() - ms) / 60_000));
+    if (minutes < 1) return 'JUST NOW';
+    if (minutes < 60) return `${minutes}M AGO`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}H AGO`;
+    return `${Math.floor(hours / 24)}D AGO`;
   }
 
   testing(slot: ManualDestination): boolean {

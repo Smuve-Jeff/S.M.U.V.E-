@@ -13,6 +13,7 @@ import {
   selfTestStatus,
   startIngestSession,
   startSelfTest,
+  verifyDestinationTest,
   stopIngestSession,
 } from "@/services/broadcast-ingest.service";
 import {
@@ -76,6 +77,18 @@ router.put("/destinations/:platform", authenticate, async (req, res) => {
       actorOf(req),
       String(req.params.platform || ""),
       req.body ?? {},
+    ),
+  );
+});
+
+// POST /api/broadcast/destinations/:platform/verify — certify the current
+// saved URL + key from a live test session the relay itself confirms.
+router.post("/destinations/:platform/verify", authenticate, async (req, res) => {
+  res.json(
+    await verifyDestinationTest(
+      actorOf(req),
+      String(req.params.platform || ""),
+      String(req.body?.relayId || ""),
     ),
   );
 });

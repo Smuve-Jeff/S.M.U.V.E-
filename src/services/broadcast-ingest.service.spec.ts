@@ -1,3 +1,5 @@
+import { createHmac } from "node:crypto";
+
 // Entity decorators are not needed for these service-level validation tests.
 jest.mock("@/entities/StreamingAccount", () => ({
   StreamingAccount: class StreamingAccount {},
@@ -25,6 +27,7 @@ jest.mock("@/database/data-source", () => ({
 }));
 
 jest.mock("@/config/env", () => ({
+  JWT_SECRET: "test-secret",
   MEDIA_RELAY_URL: "https://relay.test",
   MEDIA_RELAY_TOKEN: "relay-token",
   TWITCH_CLIENT_ID: "",
@@ -40,6 +43,7 @@ import {
   splitFacebookIngestUrl,
   startIngestSession,
   stopIngestSession,
+  verifyDestinationTest,
 } from "./broadcast-ingest.service";
 
 const mockRepo = {
@@ -92,12 +96,16 @@ describe("broadcast ingest manual destinations", () => {
         platform: "facebook",
         rtmpUrl: "rtmps://live-api-s.facebook.com:443/rtmp/",
         streamKey: "sealed:FACEBOOK_KEY_123",
+        verifiedAt: null,
+        verifiedFingerprint: null,
       }),
     );
     expect(result).toMatchObject({
       platform: "facebook",
       ready: true,
       detail: expect.stringContaining("FACEBOOK"),
+      verification: "unverified",
+      verifiedAt: null,
     });
   });
 
@@ -347,6 +355,120 @@ describe("broadcast ingest multi-destination sessions", () => {
         streamKey: "FACEBOOK_KEY_123",
       },
     ]);
+  });
+
+  it("reports a pass only while the stored URL and key still match it", async () => {
+    const rtmpUrl = "rtmps://kick.example:443/app";
+    const streamKey = "KICK_KEY_123";
+    const fingerprint = createHmac("sha256", "test-secret")
+      .update(rtmpUrl)
+      .update("\0")
+      .update(streamKey)
+      .digest("hex");
+    const row = {
+      id: 12,
+      userId: 7,
+      platform: "kick",
+      label: "KICK",
+      rtmpUrl,
+      streamKey: `sealed:${streamKey}`,
+      verifiedAt: new Date(),
+      verifiedFingerprint: fingerprint,
+    };
+    mockRepo.findOne.mockImplementation(async ({ where }: any) =>
+      where.platform === "kick" ? row : null,
+    );
+
+    const overview = await destinationOverview(7);
+    expect(overview.platforms.find((entry) => entry.platform === "kick"))
+      .toMatchObject({ verification: "verified" });
+
+    row.rtmpUrl = "rtmps://someone-else.example/app";
+    const changed = await destinationOverview(7);
+    expect(changed.platforms.find((entry) => entry.platform === "kick"))
+      .toMatchObject({ verification: "unverified", verifiedAt: null });
+  });
+
+  it("clears an old pass when the URL or key changes", async () => {
+    mockRepo.findOne.mockResolvedValue({
+      id: 12,
+      userId: 7,
+      platform: "kick",
+      label: "KICK",
+      rtmpUrl: "rtmps://old.example/app",
+      streamKey: "sealed:OLD_KEY_123",
+      verifiedAt: new Date("2026-01-01T00:00:00.000Z"),
+      verifiedFingerprint: "old-fingerprint",
+    });
+
+    await saveManualDestination(7, "kick", {
+      rtmpUrl: "rtmps://new.example/app",
+      streamKey: "NEW_KEY_456",
+    });
+
+    expect(mockRepo.update).toHaveBeenCalledWith(
+      { id: 12 },
+      expect.objectContaining({
+        verifiedAt: null,
+        verifiedFingerprint: null,
+      }),
+    );
+  });
+
+  it("certifies a passing manual destination against its exact current key", async () => {
+    const relayId = "relay-verify-1";
+    mockRepo.findOne.mockResolvedValue({
+      id: 12,
+      userId: 7,
+      platform: "kick",
+      label: "KICK",
+      rtmpUrl: "rtmps://kick.example:443/app",
+      streamKey: "sealed:KICK_KEY_123",
+      verifiedAt: null,
+      verifiedFingerprint: null,
+    });
+    globalThis.fetch = jest.fn(async (input: unknown) => {
+      const url = String(input);
+      if (url.endsWith("/sessions")) {
+        return {
+          ok: true,
+          json: async () => ({
+            id: relayId,
+            whipUrl: `https://relay.test/${relayId}/whip`,
+          }),
+        };
+      }
+      if (url.endsWith(`/sessions/${relayId}`)) {
+        return {
+          ok: true,
+          json: async () => ({
+            running: true,
+            bytesOut: 4096,
+            stalled: false,
+            error: null,
+          }),
+        };
+      }
+      return { ok: true, json: async () => ({}) };
+    }) as unknown as typeof fetch;
+
+    const session = await startIngestSession(7, ["kick"], {
+      ephemeral: true,
+    });
+    const status = await verifyDestinationTest(7, "kick", session.relayId);
+
+    expect(status).toMatchObject({
+      platform: "kick",
+      verification: "verified",
+    });
+    expect(status.verifiedAt).not.toBeNull();
+    expect(mockRepo.update).toHaveBeenCalledWith(
+      { id: 12 },
+      expect.objectContaining({
+        verifiedAt: expect.any(Date),
+        verifiedFingerprint: expect.stringMatching(/^[a-f0-9]{64}$/),
+      }),
+    );
   });
 
   it("opens an ephemeral session without remembering it as a recording", async () => {

@@ -7,7 +7,11 @@ import {
   signal,
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { BroadcastIngestService, type IngestPlatform } from '../../services/broadcast-ingest.service';
+import {
+  BroadcastIngestService,
+  type DestinationVerification,
+  type IngestPlatform,
+} from '../../services/broadcast-ingest.service';
 import {
   StreamingPlatformsService,
   type StreamingPlatformId,
@@ -20,6 +24,7 @@ interface AccountRow {
   connected: boolean;
   connectable: boolean;
   rtmpReady: boolean | null;
+  rtmpVerification: DestinationVerification | null;
 }
 
 /**
@@ -118,9 +123,14 @@ interface AccountRow {
             @if (row.rtmpReady !== null) {
               <span
                 class="accounts-rtmp"
-                [class.accounts-rtmp-ready]="row.rtmpReady"
+                [class.accounts-rtmp-ready]="
+                  row.rtmpReady && row.rtmpVerification === 'verified'
+                "
+                [class.accounts-rtmp-unverified]="
+                  row.rtmpReady && row.rtmpVerification === 'unverified'
+                "
               >
-                {{ row.rtmpReady ? 'RTMP READY' : 'RTMP UNSET' }}
+                {{ rtmpLabel(row) }}
               </span>
             }
           </li>
@@ -284,6 +294,9 @@ interface AccountRow {
       .accounts-rtmp-ready {
         color: #34d399;
       }
+      .accounts-rtmp-unverified {
+        color: #fbbf24;
+      }
     `,
   ],
 })
@@ -324,6 +337,7 @@ export class StreamingAccountsPanelComponent {
         connected: !!connection,
         connectable: true,
         rtmpReady: !!destinations[entry.rtmp]?.ready,
+        rtmpVerification: destinations[entry.rtmp]?.verification ?? null,
       };
     });
     // The four custom slots are one shared pool, not four equal rows: summarise
@@ -347,9 +361,22 @@ export class StreamingAccountsPanelComponent {
       connected: readySlots.length > 0,
       connectable: false,
       rtmpReady: readySlots.length > 0,
+      rtmpVerification:
+        readySlots.length === 0
+          ? null
+          : readySlots.every((platform) => this.ingest.verified(platform.id))
+            ? 'verified'
+            : 'unverified',
     };
     return [...oauth, custom];
   });
+
+  rtmpLabel(row: AccountRow): string {
+    if (!row.rtmpReady) return 'RTMP UNSET';
+    if (row.rtmpVerification === 'verified') return 'RTMP VERIFIED';
+    if (row.rtmpVerification === 'unverified') return 'RTMP UNVERIFIED';
+    return 'RTMP LINKED';
+  }
 
   async connect(row: AccountRow): Promise<void> {
     this.pendingDisconnect.set(null);

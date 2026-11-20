@@ -4583,6 +4583,27 @@
 .account-state.on {
   color: #3ddc97;
 }
+.account-verification {
+  color: #7a8699;
+  font-size: 0.52rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+}
+.account-verification.verified {
+  color: #3ddc97;
+}
+.account-verification.unverified {
+  color: #ffd166;
+}
+.stream-accounts .account-verification {
+  grid-column: 1;
+  grid-row: 2;
+}
+.manual-destination .account-verification {
+  grid-column: 1 / -1;
+  grid-row: 3;
+}
 .account-broadcast {
   color: #ffd166;
   font-size: 0.55rem;
