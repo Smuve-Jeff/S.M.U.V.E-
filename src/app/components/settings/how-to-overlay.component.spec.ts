@@ -3,23 +3,40 @@ import { Router } from '@angular/router';
 import { HowToOverlayComponent } from './how-to-overlay.component';
 import {
   COMPLETE_GUIDE_LESSONS,
+  COMPLETE_GUIDE_NARRATION,
   COMPLETE_GUIDE_PROGRESS_KEY,
   COMPLETE_GUIDE_RESUME_KEY,
 } from './complete-app-guide.lessons';
 import { GLOBAL_KEYBOARD_SHORTCUTS } from '../../services/global-keyboard-shortcuts';
 import { NotificationService } from '../../services/notification.service';
+import { SpeechSynthesisService } from '../../services/speech-synthesis.service';
 
 describe('HowToOverlayComponent', () => {
   let fixture: ComponentFixture<HowToOverlayComponent>;
   let component: HowToOverlayComponent;
   let navigateByUrl: jest.Mock;
+  let speech: {
+    isSupported: () => boolean;
+    outputCapability: () => string;
+    speak: jest.Mock;
+    cancel: jest.Mock;
+  };
 
   beforeEach(async () => {
     localStorage.clear();
     navigateByUrl = jest.fn().mockResolvedValue(true);
+    speech = {
+      isSupported: () => true,
+      outputCapability: () => 'ready',
+      speak: jest.fn(),
+      cancel: jest.fn(),
+    };
     await TestBed.configureTestingModule({
       imports: [HowToOverlayComponent],
-      providers: [{ provide: Router, useValue: { navigateByUrl } }],
+      providers: [
+        { provide: Router, useValue: { navigateByUrl } },
+        { provide: SpeechSynthesisService, useValue: speech },
+      ],
     }).compileComponents();
 
     fixture = TestBed.createComponent(HowToOverlayComponent);
@@ -60,6 +77,83 @@ describe('HowToOverlayComponent', () => {
     for (let index = 1; index < starts.length; index += 1) {
       expect(starts[index]).toBeGreaterThan(starts[index - 1]);
     }
+  });
+
+  it('gives every chapter a complete S.M.U.V.E narration', () => {
+    const ids = COMPLETE_GUIDE_LESSONS.map((lesson) => lesson.id).sort();
+    expect(Object.keys(COMPLETE_GUIDE_NARRATION).sort()).toEqual(ids);
+
+    for (const lesson of COMPLETE_GUIDE_LESSONS) {
+      const narration = COMPLETE_GUIDE_NARRATION[lesson.id];
+      expect(narration).toBeDefined();
+      // One spoken line per feature, so the highlight can follow the voice.
+      expect(narration.features.length).toBe(lesson.features.length);
+      expect(narration.intro.trim().length).toBeGreaterThan(40);
+      expect(narration.closing.trim().length).toBeGreaterThan(40);
+      for (const line of narration.features) {
+        expect(line.trim().length).toBeGreaterThan(20);
+      }
+    }
+  });
+
+  it('narrates the chapter in order and highlights the speaking line', () => {
+    component.toggleNarration();
+    fixture.detectChanges();
+
+    const lesson = COMPLETE_GUIDE_LESSONS[0];
+    const narration = COMPLETE_GUIDE_NARRATION[lesson.id];
+
+    expect(component.narrating()).toBe(true);
+    expect(component.narrationIndex()).toBe(-1);
+    expect(speech.speak).toHaveBeenCalledTimes(1);
+    expect(speech.speak.mock.calls[0][0]).toBe(narration.intro);
+
+    // Finish the introduction: the first feature takes over and is highlighted.
+    speech.speak.mock.calls[0][1].onComplete();
+    fixture.detectChanges();
+
+    expect(speech.speak).toHaveBeenCalledTimes(2);
+    expect(speech.speak.mock.calls[1][0]).toBe(narration.features[0]);
+    expect(component.narrationIndex()).toBe(0);
+    const speaking = fixture.nativeElement.querySelectorAll(
+      '.guide-features span.is-speaking'
+    );
+    expect(speaking.length).toBe(1);
+    expect(speaking[0].textContent).toContain(lesson.features[0]);
+
+    // Walk the rest of the script; the guide returns to rest at the end.
+    // Complete the features and then the closing line.
+    for (let index = 1; index <= narration.features.length + 1; index += 1) {
+      speech.speak.mock.calls[index][1].onComplete();
+    }
+    expect(component.narrating()).toBe(false);
+    expect(component.narrationIndex()).toBeNull();
+    expect(speech.speak).toHaveBeenCalledTimes(narration.features.length + 2);
+  });
+
+  it('stops narrating when the chapter changes or the guide closes', () => {
+    component.toggleNarration();
+    expect(component.narrating()).toBe(true);
+
+    component.selectLesson(COMPLETE_GUIDE_LESSONS[1]);
+
+    expect(speech.cancel).toHaveBeenCalled();
+    expect(component.narrating()).toBe(false);
+    expect(component.narrationIndex()).toBeNull();
+  });
+
+  it('does not narrate on a device with no speech voices', () => {
+    fixture.destroy();
+    speech.outputCapability = () => 'no-voices';
+    fixture = TestBed.createComponent(HowToOverlayComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+
+    component.toggleNarration();
+
+    expect(component.narrationSupported()).toBe(false);
+    expect(speech.speak).not.toHaveBeenCalled();
+    expect(component.narrating()).toBe(false);
   });
 
   it('ignores retired progress entries instead of inflating the count', () => {

@@ -11,6 +11,7 @@ import {
   QueryList,
   ViewChild,
   ViewChildren,
+  computed,
   inject,
   signal,
 } from '@angular/core';
@@ -27,7 +28,9 @@ import {
   COMPLETE_GUIDE_RESUME_KEY,
   COMPLETE_GUIDE_SRC,
   CompleteGuideLesson,
+  chapterNarration,
 } from './complete-app-guide.lessons';
+import { SpeechSynthesisService } from '../../services/speech-synthesis.service';
 
 /**
  * The complete application guide.
@@ -49,6 +52,7 @@ export class HowToOverlayComponent implements AfterViewInit, OnDestroy {
   private readonly document = inject(DOCUMENT);
   private readonly cdr = inject(ChangeDetectorRef);
   private readonly notify = inject(NotificationService);
+  private readonly speech = inject(SpeechSynthesisService);
 
   @Output() close = new EventEmitter<void>();
   @Input() focusKeyboardReference = false;
@@ -83,6 +87,24 @@ export class HowToOverlayComponent implements AfterViewInit, OnDestroy {
   readonly completed = signal<ReadonlySet<string>>(this.loadCompleted());
   readonly videoUnavailable = signal(false);
   readonly resetConfirming = signal(false);
+  /** True while S.M.U.V.E is reading the selected chapter aloud. */
+  readonly narrating = signal(false);
+  /**
+   * Which line is speaking: -1 for the introduction, 0..n-1 for a feature
+   * (highlighted in the panel), and `features.length` for the closing habit.
+   */
+  readonly narrationIndex = signal<number | null>(null);
+  /**
+   * The narration is the chapter's voice track, so it needs an engine. When the
+   * device has no voices the button is simply absent; the text guide remains.
+   */
+  readonly narrationSupported = computed(
+    () =>
+      this.speech.isSupported() &&
+      this.speech.outputCapability() !== 'no-voices'
+  );
+  /** Bumped by every start/stop so a stale completion cannot continue a script. */
+  private narrationToken = 0;
   private readonly knownLessonIds = new Set(
     this.lessons.map((lesson) => lesson.id)
   );
@@ -95,6 +117,7 @@ export class HowToOverlayComponent implements AfterViewInit, OnDestroy {
   private seekToken = 0;
 
   selectLesson(lesson: CompleteGuideLesson, autoplay = false): void {
+    this.stopNarration();
     this.resetConfirming.set(false);
     this.resumedChapter.set(null);
     this.selectedLesson.set(lesson);
@@ -108,8 +131,80 @@ export class HowToOverlayComponent implements AfterViewInit, OnDestroy {
   }
 
   playChapter(): void {
+    this.stopNarration();
     this.markCurrentLessonExplored();
     this.seekToLesson(this.selectedLesson().tutorialAt, true);
+  }
+
+  /** Play/pause control for the chapter's S.M.U.V.E narration. */
+  toggleNarration(): void {
+    if (this.narrating()) {
+      this.stopNarration();
+      return;
+    }
+    this.startNarration();
+  }
+
+  /**
+   * Read the chapter in the full S.M.U.V.E. voice spectrum: the introduction,
+   * then one line per feature in order, then the habit. Every line is spoken by
+   * a different archetype, so the instructor sounds like the system and not like
+   * a browser reader. The feature being spoken is highlighted as it plays, which
+   * is what makes this a walkthrough rather than a transcript.
+   */
+  private startNarration(): void {
+    if (!this.narrationSupported()) return;
+    const lesson = this.selectedLesson();
+    const narration = chapterNarration(lesson.id);
+    if (!narration) return;
+
+    this.stopNarration();
+    // One voice at a time: the bundled video owns the audio otherwise.
+    this.pauseVideo();
+    this.markCurrentLessonExplored();
+
+    const token = ++this.narrationToken;
+    const script = [
+      narration.intro,
+      ...narration.features,
+      narration.closing,
+    ];
+    this.narrating.set(true);
+
+    let line = 0;
+    const speakLine = (): void => {
+      if (token !== this.narrationToken) return;
+      if (line >= script.length) {
+        this.narrating.set(false);
+        this.narrationIndex.set(null);
+        return;
+      }
+      const index = line;
+      line += 1;
+      // -1 is the introduction; features start at zero.
+      this.narrationIndex.set(index - 1);
+      this.speech.speak(script[index], {
+        shapeShift: true,
+        allowVulgarLanguage: true,
+        onComplete: speakLine,
+      });
+    };
+
+    speakLine();
+  }
+
+  /** Stop the chapter narration without touching any other S.M.U.V.E surface. */
+  stopNarration(): void {
+    this.narrationToken += 1;
+    if (this.narrating()) this.speech.cancel();
+    this.narrating.set(false);
+    this.narrationIndex.set(null);
+  }
+
+  /** The video's own play event: the picture takes the audio back. */
+  onVideoPlay(): void {
+    this.stopNarration();
+    this.markCurrentLessonExplored();
   }
 
   markCurrentLessonExplored(): void {
@@ -258,6 +353,7 @@ export class HowToOverlayComponent implements AfterViewInit, OnDestroy {
   }
 
   closeGuide(): void {
+    this.stopNarration();
     this.pauseVideo();
     this.close.emit();
     if (this.opener && this.opener.isConnected) {
@@ -289,6 +385,7 @@ export class HowToOverlayComponent implements AfterViewInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.stopNarration();
     this.pauseVideo();
     if (this.previousBodyOverflow !== null) {
       this.document.body.style.overflow = this.previousBodyOverflow;

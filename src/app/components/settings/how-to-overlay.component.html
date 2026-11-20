@@ -149,7 +149,7 @@
             playsinline
             preload="metadata"
             (loadedmetadata)="onVideoLoaded()"
-            (play)="markCurrentLessonExplored()"
+            (play)="onVideoPlay()"
             (timeupdate)="onTimeUpdate()"
             (error)="onVideoError()"
           ></video>
@@ -164,6 +164,25 @@
               >
               Play chapter
             </button>
+            @if (narrationSupported()) {
+              <button
+                type="button"
+                class="guide-control guide-narrate"
+                [class.is-speaking]="narrating()"
+                [attr.aria-pressed]="narrating()"
+                [attr.aria-label]="
+                  narrating()
+                    ? 'Stop the S.M.U.V.E narration for this chapter'
+                    : 'Narrate this chapter in the S.M.U.V.E voice'
+                "
+                (click)="toggleNarration()"
+              >
+                <span class="material-symbols-outlined" aria-hidden="true">{{
+                  narrating() ? 'stop_circle' : 'record_voice_over'
+                }}</span>
+                {{ narrating() ? 'Stop narration' : 'Narrate chapter' }}
+              </button>
+            }
             <button
               type="button"
               class="guide-control"
@@ -184,9 +203,23 @@
               Chapter {{ selectedLesson().number }} / {{ lessons.length }}
             </span>
           </div>
+          <p
+            class="guide-narration-status"
+            *ngIf="narrating()"
+            role="status"
+            aria-live="polite"
+          >
+            <span class="material-symbols-outlined" aria-hidden="true"
+              >graphic_eq</span
+            >
+            S.M.U.V.E is narrating chapter {{ selectedLesson().number }} —
+            {{ selectedLesson().title }}. The highlighted line is the one
+            speaking.
+          </p>
           <p class="guide-video-note" *ngIf="videoUnavailable()" role="status">
-            The walkthrough video could not load. Every chapter still works
-            from the text and the Open workspace button below.
+            The walkthrough video could not load. Press Narrate chapter to hear
+            the same walkthrough from S.M.U.V.E, or use the steps and the Open
+            workspace button below.
           </p>
         </div>
 
@@ -199,9 +232,11 @@
           <p class="guide-summary">{{ selectedLesson().summary }}</p>
 
           <div class="guide-features" aria-label="What this chapter covers">
-            <span *ngFor="let feature of selectedLesson().features">{{
-              feature
-            }}</span>
+            <span
+              *ngFor="let feature of selectedLesson().features; index as i"
+              [class.is-speaking]="narrationIndex() === i"
+              >{{ feature }}</span
+            >
           </div>
 
           <div class="guide-detail-grid">
@@ -235,6 +270,16 @@
             >
               Play from chapter start
             </button>
+            @if (narrationSupported()) {
+              <button
+                type="button"
+                class="guide-control"
+                [attr.aria-pressed]="narrating()"
+                (click)="toggleNarration()"
+              >
+                {{ narrating() ? 'Stop narration' : 'Hear it in S.M.U.V.E' }}
+              </button>
+            }
           </div>
         </article>
       </main>

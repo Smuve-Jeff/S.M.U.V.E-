@@ -106,12 +106,14 @@ const CHAPTERS = [
       "Sampler and Sound Pads",
       "Performance grid and scene launch",
       "Dual-deck DJ and hot cues",
+      "3D live stage with drop-in performers",
     ],
     lines: [
       "The rhythm and performance tools cover programming, live launching and DJ work.",
       "Drum Machine and Piano Roll write the part, while the Sampler and Sound Pads turn the performance into a playable instrument.",
       "Performance mode launches scenes and clips; the DJ deck handles two tracks, hot cues, looping and the crossfade.",
-      "Rehearse the actual launch order before you record it. A set that only works in arrangement view is not a live set yet.",
+      "Performance also opens a 3D live stage. Drop a glb performer or pick one from the library, set the mood and colour, and the stage moves with the master output while the pads keep playing.",
+      "Rehearse the launch order, the transitions and the stage before you record it. A set that only works in arrangement view is not a live set yet.",
     ],
   },
   {
