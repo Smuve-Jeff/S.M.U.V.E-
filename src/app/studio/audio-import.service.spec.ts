@@ -161,6 +161,18 @@ describe("AudioImportService (stretch engine)", () => {
     expect(seconds).toBeCloseTo(2, 3);
   });
 
+  it("falls back when a WAV header is truncated below 44 bytes", async () => {
+    // Reading the byte rate at offset 28 throws for this fixture; the catch
+    // must keep the import instead of failing the whole file.
+    const file = new File([new Uint8Array(8)], "truncated.wav", {
+      type: "audio/wav",
+    });
+
+    const seconds = await (service as any).estimateDurationFromFile(file);
+
+    expect(seconds).toBe(1);
+  });
+
   it("should time-stretch a buffer by 2x (slower)", () => {
     const buf = makeBuffer(service.audioEngine.ctx, 44100);
     const out = service.stretchBuffer(buf, 2);
