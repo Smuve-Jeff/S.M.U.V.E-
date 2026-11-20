@@ -160,7 +160,7 @@ const CHAPTERS = [
     number: "07",
     screen: "07-spot.png",
     kicker: "Community",
-    title: "Tha Spot: play and broadcast",
+    title: "Tha Spot: play, compete, broadcast",
     subtitle: "Discovery, lobbies, squads and live",
     features: [
       "Catalogue, search and filters",
@@ -255,7 +255,7 @@ const CHAPTERS = [
     number: "12",
     screen: "12-system.png",
     kicker: "System",
-    title: "Profile, cloud and settings",
+    title: "Profile, cloud, timeline and settings",
     subtitle: "Identity, history and security",
     features: [
       "Profile and Journey",
