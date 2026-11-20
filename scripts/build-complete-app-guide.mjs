@@ -31,11 +31,59 @@ const FFMPEG =
   "/tmp/smuve-media/node_modules/ffmpeg-static/ffmpeg";
 const TTS_PATH = process.env.TTS_PATH || "/tmp/tts";
 const SLIDE_PY = path.resolve("scripts/complete-app-guide-slide.py");
-const VOICE = process.env.GUIDE_VOICE || "en-US-JennyNeural";
+// The guide is read by S.M.U.V.E. itself, and the app's narrator shape-shifts
+// sentence by sentence rather than reading in one flat voice. The video draws
+// from the same mixed pool, seeded so a re-render keeps the same cast.
+const VOICES = (
+  process.env.GUIDE_VOICE_POOL ||
+  [
+    "en-US-AndrewMultilingualNeural",
+    "en-US-GuyNeural",
+    "en-US-BrianNeural",
+    "en-GB-RyanNeural",
+    "en-AU-WilliamNeural",
+    "en-CA-LiamNeural",
+    "en-IE-ConnorNeural",
+    "en-US-JennyNeural",
+    "en-US-AriaNeural",
+    "en-US-EmmaNeural",
+    "en-US-AvaNeural",
+    "en-GB-SoniaNeural",
+    "en-AU-NatashaNeural",
+    "en-CA-ClaraNeural",
+    "en-IE-EmilyNeural",
+  ].join(",")
+)
+  .split(",")
+  .map((voice) => voice.trim())
+  .filter(Boolean);
+const VOICE_SEED = Number(process.env.GUIDE_VOICE_SEED || 20261120);
+const VOICE_RATE = process.env.GUIDE_VOICE_RATE || "-4%";
+// Pitch drift keeps the persona restless without changing the voice itself.
+const VOICE_PITCHES = ["-8Hz", "-4Hz", "+0Hz", "+4Hz", "+6Hz"];
 const RATE = 44_100;
 const LEAD = 0.24;
 const GAP = 0.24;
 const TAIL = 0.65;
+
+// The render needs ffmpeg and edge-tts; say which one is missing and how to get
+// it instead of dying on the first chapter with a bare spawn error.
+if (!existsSync(FFMPEG)) {
+  throw new Error(
+    `ffmpeg not found at ${FFMPEG}. Set FFMPEG_PATH, or install it with:\n` +
+      "  npm install --prefix /tmp/smuve-media ffmpeg-static"
+  );
+}
+const ttsProbe = spawnSync("python3", ["-m", "edge_tts", "--version"], {
+  encoding: "utf8",
+  env: { ...process.env, PYTHONPATH: TTS_PATH },
+});
+if (ttsProbe.status !== 0) {
+  throw new Error(
+    `edge-tts is not importable (PYTHONPATH=${TTS_PATH}). Install it with:\n` +
+      `  python3 -m pip install --target ${TTS_PATH} edge-tts`
+  );
+}
 
 const NARRATION = JSON.parse(
   readFileSync(
@@ -281,31 +329,76 @@ function run(command, args, options = {}) {
   return result;
 }
 
-function synthesize(text, destination) {
-  const result = spawnSync(
-    "python3",
-    [
-      "-m",
-      "edge_tts",
-      "--voice",
-      VOICE,
-      "--rate=-4%",
-      "--text",
-      text,
-      "--write-media",
-      destination,
-    ],
-    {
-      encoding: "utf8",
-      env: { ...process.env, PYTHONPATH: TTS_PATH },
-      maxBuffer: 16 * 1024 * 1024,
+function hashStem(value) {
+  let hash = 2166136261;
+  for (const character of value) {
+    hash = Math.imul(hash ^ character.charCodeAt(0), 16777619);
+  }
+  return hash >>> 0;
+}
+
+function mulberry32(seed) {
+  let state = seed >>> 0;
+  return () => {
+    state = (state + 0x6d2b79f5) | 0;
+    let value = Math.imul(state ^ (state >>> 15), 1 | state);
+    value = (value + Math.imul(value ^ (value >>> 7), 61 | value)) ^ value;
+    return ((value ^ (value >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/**
+ * The voice for one sentence: seeded by its stem so a re-render keeps the same
+ * cast, drawn from the whole pool, and never the same voice twice in a row.
+ */
+function voiceFor(stem, previousVoice) {
+  const random = mulberry32(hashStem(`${VOICE_SEED}:${stem}`));
+  const pool = VOICES.filter((voice) => voice !== previousVoice);
+  return {
+    voice: pool[Math.floor(random() * pool.length)] ?? VOICES[0],
+    pitch: VOICE_PITCHES[Math.floor(random() * VOICE_PITCHES.length)],
+  };
+}
+
+function wait(seconds) {
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, seconds * 1000);
+}
+
+/** One line in one voice, retried: the service occasionally returns no audio. */
+function synthesize(text, destination, voice, pitch) {
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    const result = spawnSync(
+      "python3",
+      [
+        "-m",
+        "edge_tts",
+        "--voice",
+        voice,
+        `--rate=${VOICE_RATE}`,
+        `--pitch=${pitch}`,
+        "--text",
+        text,
+        "--write-media",
+        destination,
+      ],
+      {
+        encoding: "utf8",
+        env: { ...process.env, PYTHONPATH: TTS_PATH },
+        maxBuffer: 16 * 1024 * 1024,
+      }
+    );
+    if (
+      result.status === 0 &&
+      existsSync(destination) &&
+      statSync(destination).size > 2000
+    ) {
+      return true;
     }
-  );
-  return (
-    result.status === 0 &&
-    existsSync(destination) &&
-    statSync(destination).size > 2000
-  );
+    const reason = (result.stderr || "").trim().split("\n").pop() || "no audio";
+    console.warn(`tts retry ${attempt}/3 · ${voice} ${pitch} · ${reason}`);
+    if (attempt < 3) wait(attempt * 2);
+  }
+  return false;
 }
 
 function resolveScreen(file) {
@@ -328,20 +421,27 @@ try {
 }
 
 const sentenceFiles = [];
+let previousVoice;
 for (const chapter of CHAPTERS) {
   for (let index = 0; index < chapter.lines.length; index += 1) {
     const key = `${chapter.number}-${index + 1}`;
     const text = chapter.lines[index];
+    const { voice, pitch } = voiceFor(key, previousVoice);
+    previousVoice = voice;
     const mp3 = path.join(VOICE_DIR, `${key}.mp3`);
     const pcm = path.join(VOICE_DIR, `${key}.pcm`);
-    if (plan[key]?.text !== text) {
+    if (
+      plan[key]?.text !== text ||
+      plan[key]?.voice !== voice ||
+      plan[key]?.pitch !== pitch
+    ) {
       rmSync(mp3, { force: true });
       rmSync(pcm, { force: true });
-      plan[key] = { text, voice: VOICE };
+      plan[key] = { text, voice, pitch };
     }
     if (!existsSync(mp3) || statSync(mp3).size <= 2000) {
-      console.log(`voice · ${key}`);
-      if (!synthesize(text, mp3)) {
+      console.log(`voice · ${key} · ${voice} ${pitch}`);
+      if (!synthesize(text, mp3, voice, pitch)) {
         throw new Error(`TTS failed for ${key}`);
       }
     }

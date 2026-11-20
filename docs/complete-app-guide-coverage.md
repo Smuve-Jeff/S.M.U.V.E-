@@ -67,3 +67,38 @@ Priority order for the next pass:
 The next pass should start with Tha Spot because its video already exists and only
 the guided lesson layer is missing. The other gaps are best produced in the same
 order as the release workflow, so each video can hand off to the next.
+
+## Rebuilding the video
+
+The master is generated, not hand-edited. From a clean clone:
+
+1. `npm ci` — application dependencies (Playwright is already a devDependency).
+2. `npx playwright install --with-deps chromium` — the capture browser. The
+   `--with-deps` flag installs the system libraries headless Chromium needs and
+   wants sudo; on a host without root, provide the same libs locally and set
+   `LD_LIBRARY_PATH`.
+3. `npm run dev` (or `npm run preview` for a production build) — leaves the app
+   on `http://127.0.0.1:4200` for the capture script to photograph.
+4. `npm run guide:capture` — writes the 13 chapter screens to
+   `artifacts/complete-app-guide/screens/` plus a `captures.json` receipt. Set
+   `BASE_URL` when the app is served elsewhere. It exits non-zero unless all 13
+   surfaces were captured, so a partial run cannot become a video.
+5. `python3 -m pip install --target /tmp/tts edge-tts` and
+   `npm install --prefix /tmp/smuve-media ffmpeg-static` — voice synthesis and
+   encoding. `TTS_PATH` and `FFMPEG_PATH` override those locations.
+6. `npm run guide:render` — synthesises any changed line, composes the chapter
+   cards, encodes the 13 clips, and writes
+   `artifacts/complete-app-guide/complete-app-guide.mp4` plus `chapters.json`,
+   then copies the master over `src/assets/learn/complete-app-guide.mp4`.
+
+The narrator is S.M.U.V.E. itself, and it shape-shifts sentence by sentence: `scripts/build-complete-app-guide.mjs` draws a voice from a 15-voice pool for every line, seeded by the line so a re-render keeps the same cast, and never repeats the previous voice. `GUIDE_VOICE_POOL`, `GUIDE_VOICE_SEED`, and `GUIDE_VOICE_RATE` override the pool, the seed, and the speaking rate; `voice-plan.json` records which voice and pitch spoke each line.
+
+`npm run guide:rebuild` runs steps 4 and 6 back to back. Voice is cached per
+sentence in `artifacts/complete-app-guide/build/voice/`, so a re-render only
+synthesises lines whose text changed.
+
+After a render, copy the `chapters[].start` values from
+`artifacts/complete-app-guide/chapters.json` into `tutorialAt` in
+`src/app/components/settings/complete-app-guide.lessons.ts`; that is where the
+guide seeks when a chapter is watched from Settings, and it is the one number
+the render cannot derive on its own.

@@ -84,7 +84,7 @@ draw.rounded_rectangle([40, 24, 420, 58], radius=16, fill=(3, 7, 18, 220))
 draw.ellipse([56, 37, 66, 47], fill=TEAL)
 draw.text(
     (76, 31),
-    "S.M.U.V.E 2.0 // COMPLETE GUIDE",
+    "S.M.U.V.E. 2.0 // EXECUTIVE GUIDE",
     font=font(15, True),
     fill=TEAL,
 )
@@ -134,7 +134,7 @@ for feature in features[:4]:
 
 draw.text(
     (50, 676),
-    "REAL WORKSPACE  ·  NO MOCKUPS",
+    "NARRATED BY S.M.U.V.E. 2.0  ·  REAL WORKSPACE",
     font=font(11, True),
     fill=DIM,
 )
@@ -161,7 +161,7 @@ draw.ellipse(
 )
 draw.text(
     (PANEL[0] + 40, PANEL[3] - 33),
-    "LIVE WORKSPACE",
+    "S.M.U.V.E. LIVE FEED",
     font=font(10, True),
     fill=AMBER,
 )

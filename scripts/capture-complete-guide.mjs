@@ -74,14 +74,46 @@ const SHOTS = [
   { name: "13-workflow", route: "/projects", settle: 3200 },
 ];
 
-const browser = await chromium.launch({
-  headless: true,
-  args: [
-    "--no-sandbox",
-    "--disable-dev-shm-usage",
-    "--autoplay-policy=no-user-gesture-required",
-  ],
-});
+// Fail early and clearly when nothing is serving the app, instead of reporting
+// thirteen connection errors that look like a broken capture.
+try {
+  const probe = await fetch(BASE, { signal: AbortSignal.timeout(5000) });
+  if (!probe.ok) throw new Error(`HTTP ${probe.status}`);
+} catch (error) {
+  console.error(
+    `No app answering at ${BASE} (${error.message}).\n` +
+      "Start one first, then rerun this script:\n" +
+      "  npm run dev            # dev server on :4200\n" +
+      "  npm run preview        # production build on :4200\n" +
+      `  BASE_URL=http://127.0.0.1:4200 node scripts/capture-complete-guide.mjs`
+  );
+  process.exit(1);
+}
+
+let browser;
+try {
+  browser = await chromium.launch({
+    headless: true,
+    args: [
+      "--no-sandbox",
+      "--disable-dev-shm-usage",
+      "--autoplay-policy=no-user-gesture-required",
+    ],
+  });
+} catch (error) {
+  const message = String(error?.message ?? error);
+  const missingLibs = message.includes("shared libraries");
+  console.error(
+    `Could not launch Chromium.\n${message.split("\n").slice(0, 3).join("\n")}` +
+      (missingLibs
+        ? "\n\nSystem libraries are missing. Install them with:\n" +
+          "  npx playwright install --with-deps chromium   # needs sudo\n" +
+          "  (or point LD_LIBRARY_PATH at a local copy of libnss3, libnspr4,\n" +
+          "  libatk*, libatspi2.0-0, libasound2, libxkbcommon and libX*)"
+        : "")
+  );
+  process.exit(1);
+}
 const context = await browser.newContext({
   viewport: { width: 1280, height: 720 },
   deviceScaleFactor: 1,
@@ -153,9 +185,19 @@ writeFileSync(
   JSON.stringify({ base: BASE, shots: receipts, failures }, null, 2)
 );
 await browser.close();
-if (receipts.length === 0) {
-  console.error("No surfaces captured.");
-  process.exit(1);
-}
 console.log(`\ncaptured ${receipts.length}/${SHOTS.length} surfaces`);
 if (failures.length) console.log(`warnings:\n${failures.join("\n")}`);
+
+// A partial run must not look like a successful one: the render would fall back
+// to stale or unrelated screenshots and quietly ship the wrong chapter cards.
+if (receipts.length !== SHOTS.length) {
+  const captured = new Set(receipts.map((shot) => shot.name));
+  const missing = SHOTS.filter((shot) => !captured.has(shot.name)).map(
+    (shot) => shot.name
+  );
+  console.error(
+    `Incomplete capture: ${SHOTS.length - receipts.length} surface(s) missing ` +
+      `(${missing.join(", ")}).`
+  );
+  process.exit(1);
+}
