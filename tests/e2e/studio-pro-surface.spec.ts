@@ -176,7 +176,9 @@ test("the Contextual Inspector edits the selected track without leaving the arra
   );
 
   // The rack handoff selects the track and moves the shell to the FX view.
-  await inspector.locator(".insp-link-btn").click();
+  await inspector
+    .getByRole("button", { name: "Open the effects rack for this track" })
+    .click();
   await expect(page.locator("[data-studio-workspace]")).toHaveAttribute(
     "data-studio-workspace",
     "effects-rack",

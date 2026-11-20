@@ -193,9 +193,16 @@ test("the transport strip fits the phone and pins its More chip", async ({ page 
       };
       return {
         vw: innerWidth,
+        row: { left: rowBox.left, right: rowBox.right },
         shellRight: shell.getBoundingClientRect().right,
         moreRight: more.getBoundingClientRect().right,
         moreHeight: more.getBoundingClientRect().height,
+        controls: [".ctb-play", ".ctb-stop", ".ctb-rec", ".ctb-bpm", ".ctb-toggles"].map(
+          (selector) => {
+            const r = document.querySelector(selector)!.getBoundingClientRect();
+            return { selector, left: r.left, right: r.right };
+          },
+        ),
         primaryVisible: [".ctb-play", ".ctb-stop", ".ctb-rec", ".ctb-bpm"].every(
           (selector) => inside(document.querySelector(selector)!),
         ),
@@ -210,8 +217,14 @@ test("the transport strip fits the phone and pins its More chip", async ({ page 
     expect(strip.moreRight).toBeLessThanOrEqual(strip.vw + 1);
     expect(strip.moreHeight).toBeGreaterThanOrEqual(44);
     // Play/stop/record, tempo and the loop toggle are live controls.
-    expect(strip.primaryVisible).toBe(true);
-    expect(strip.loopVisible).toBe(true);
+    expect(
+      strip.primaryVisible,
+      `primary controls outside the row at ${viewport.width}px: ${JSON.stringify(strip)}`,
+    ).toBe(true);
+    expect(
+      strip.loopVisible,
+      `loop outside the row at ${viewport.width}px: ${JSON.stringify(strip)}`,
+    ).toBe(true);
     // The bar/beat readout is the only thing allowed past the edge.
     expect(strip.scrollable).toBeGreaterThan(0);
   }

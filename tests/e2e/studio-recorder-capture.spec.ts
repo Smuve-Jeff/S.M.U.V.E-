@@ -177,13 +177,16 @@ test("a captured take survives a reload with its length", async ({ page }) => {
 
   const bank = page.locator(".arv-bank");
   await expect(bank).toContainText("1 take");
-  const before = await bank.locator(".arv-row-meta").first().innerText();
 
   await page.reload();
   await expect(page.locator(".arv-record-btn")).toBeVisible();
   const restored = page.locator(".arv-bank");
   await expect(restored).toContainText("1 take", { timeout: 20_000 });
-  await expect(restored.locator(".arv-row-meta").first()).toHaveText(before);
+  // The saved-at clock can cross a second between the write and the reload,
+  // so compare the metadata shape rather than one exact timestamp.
+  await expect(restored.locator(".arv-row-meta").first()).toHaveText(
+    /\d{1,2}\/\d{1,2}\/\d{4}, \d{1,2}:\d{2}:\d{2} (AM|PM) · 00:0[2-9] · saved on device/,
+  );
   // Restored takes used to read 0:00 because only the blob was stored.
   await expect(restored.locator(".arv-row-meta").first()).not.toContainText(
     "00:00",

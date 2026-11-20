@@ -234,6 +234,7 @@
 
 .sg-tabs {
   display: flex;
+  flex: 0 0 auto;
   gap: 6px;
   padding: 12px var(--sg-gutter);
   overflow-x: auto;

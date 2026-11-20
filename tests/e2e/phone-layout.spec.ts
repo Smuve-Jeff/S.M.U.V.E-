@@ -120,6 +120,13 @@ const FIXED_PHONE_ROUTES = [
     ready: 'h1',
     surfaces: ['h1'],
   },
+  {
+    path: '/masterclass',
+    ready: '.sg-shell',
+    surfaces: ['.sg-header', '.sg-tabs'],
+    // The section tabs are a deliberate horizontal scroller on phones.
+    allowInternalOverflow: true,
+  },
 ] as const;
 
 async function mockAppApi(page: Page) {
@@ -194,7 +201,7 @@ async function offscreenRouteContent(page: Page): Promise<OffscreenItem[]> {
   });
 }
 
-for (const width of [320, 360] as const) {
+for (const width of [320, 360, 390] as const) {
   test.describe(`main phone layout at ${width}px`, () => {
     test.use({ viewport: { width, height: 720 } });
 
@@ -250,6 +257,51 @@ for (const width of [320, 360] as const) {
     });
   });
 }
+
+test.describe('Masterclass phone layout at 390px', () => {
+  test.use({ viewport: { width: 390, height: 844 } });
+
+  test.beforeEach(async ({ page }) => {
+    await seedAuthenticatedSession(page);
+    await mockAppApi(page);
+  });
+
+  test('all three tabs keep the strip and lesson body inside the phone', async ({
+    page,
+  }) => {
+    test.setTimeout(90_000);
+    await page.goto('/masterclass');
+    await expect(page.locator('.sg-shell')).toBeVisible({ timeout: 30_000 });
+
+    const tabs = page.locator('.sg-tab');
+    await expect(tabs).toHaveCount(3);
+
+    for (let index = 0; index < 3; index += 1) {
+      await tabs.nth(index).click();
+      await page.waitForTimeout(250);
+
+      expect(
+        await horizontalOverflow(page),
+        `Masterclass tab ${index} has sideways overflow`
+      ).toBeLessThanOrEqual(1);
+      expect(
+        await offscreenRouteContent(page),
+        `Masterclass tab ${index} has offscreen content`
+      ).toEqual([]);
+
+      const strip = await page.locator('.sg-tabs').boundingBox();
+      const tab = await tabs.nth(index).boundingBox();
+      expect(strip, `Masterclass tab ${index} strip is not rendered`).not.toBeNull();
+      expect(tab, `Masterclass tab ${index} is not rendered`).not.toBeNull();
+      expect(
+        strip!.height,
+        `Masterclass tab ${index} is vertically clipped`
+      ).toBeGreaterThanOrEqual(tab!.height);
+
+      await expect(page.locator('.sg-scroll')).toBeVisible();
+    }
+  });
+});
 
 test.describe('Settings tabs at 320px', () => {
   test.use({ viewport: { width: 320, height: 720 } });

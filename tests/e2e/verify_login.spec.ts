@@ -2,14 +2,37 @@ import { test, expect, type Locator, type Page } from '@playwright/test';
 import { seedAuthenticatedSession } from './helpers';
 
 async function expectReachable(control: Locator) {
-  // Center controls rather than align an edge to a fractional CSS pixel.
-  await control.evaluate((element) => element.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'instant' }));
-  await expect(control).toBeInViewport({ ratio: 1 });
-  await expect.poll(() => control.evaluate((element) => {
-    const rect = element.getBoundingClientRect();
-    const hit = document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2);
-    return rect.height >= 44 && rect.width >= 44 && !!hit && element.contains(hit);
-  })).toBe(true);
+  // Retry the centre-and-hit check: a route transition can move the scroll
+  // container after the first scrollIntoView, which left a valid control at
+  // viewport ratio 0 under a loaded full-suite run.
+  await expect
+    .poll(async () => {
+      await control.evaluate((element) =>
+        element.scrollIntoView({
+          block: 'center',
+          inline: 'nearest',
+          behavior: 'instant',
+        }),
+      );
+      return control.evaluate((element) => {
+        const rect = element.getBoundingClientRect();
+        const hit = document.elementFromPoint(
+          rect.x + rect.width / 2,
+          rect.y + rect.height / 2,
+        );
+        return (
+          rect.left >= 0 &&
+          rect.top >= 0 &&
+          rect.right <= innerWidth + 1 &&
+          rect.bottom <= innerHeight + 1 &&
+          rect.height >= 44 &&
+          rect.width >= 44 &&
+          !!hit &&
+          element.contains(hit)
+        );
+      });
+    })
+    .toBe(true);
 }
 
 async function sweep(page: Page, root: Locator) {
@@ -73,7 +96,9 @@ for (const viewport of [
     await expect(page.locator('#password')).toHaveAttribute('type', 'text');
     await page.getByRole('button', { name: 'Hide password', exact: true }).click();
     await page.getByRole('button', { name: 'Authorize Access', exact: true }).click();
-    await expect(page.getByRole('status')).toContainText('AUTHORIZATION DENIED');
+    await expect(
+      page.getByRole('status').filter({ hasText: 'AUTHORIZATION DENIED' }),
+    ).toContainText('AUTHORIZATION DENIED');
     await sweep(page, page.locator('app-login'));
 
     await page.getByRole('button', { name: 'New Artist Designation', exact: true }).click();
@@ -82,7 +107,9 @@ for (const viewport of [
     await expect(page.getByText('Cipher Strength', { exact: true })).toBeVisible();
     await sweep(page, page.locator('app-login'));
     await page.getByRole('button', { name: 'Initialize Genesis', exact: true }).click();
-    await expect(page.getByRole('status')).toContainText('PASSWORD TOO SHORT');
+    await expect(
+      page.getByRole('status').filter({ hasText: 'PASSWORD TOO SHORT' }),
+    ).toContainText('PASSWORD TOO SHORT');
     await sweep(page, page.locator('app-login'));
 
     // Challenge layouts are independent of real mail delivery and legacy 2FA.
@@ -111,7 +138,9 @@ for (const viewport of [
     await page.locator('#confirmPassword').fill('x');
     await sweep(page, page.locator('app-reset-password'));
     await page.getByRole('button', { name: 'Rotate Cipher', exact: true }).click();
-    await expect(page.getByRole('status')).toContainText('PASSWORD TOO SHORT');
+    await expect(
+      page.getByRole('status').filter({ hasText: 'PASSWORD TOO SHORT' }),
+    ).toContainText('PASSWORD TOO SHORT');
     await page.screenshot({ path: testInfo.outputPath('recovery.png') });
     await page.getByRole('button', { name: 'Return to Authorization', exact: true }).click();
     await expect(page).toHaveURL(/\/login$/);
@@ -155,7 +184,9 @@ test('signup verifies through the UI and opens onboarding', async ({ page }) => 
   await page.getByRole('button', { name: 'Initialize Genesis', exact: true }).click();
   await expect(page.locator('#verificationCode')).toBeVisible();
   await page.getByRole('button', { name: 'Resend Transmission', exact: true }).click();
-  await expect(page.getByRole('status')).toContainText('Transmission sent.');
+  await expect(
+    page.getByRole('status').filter({ hasText: 'Transmission sent.' }),
+  ).toContainText('Transmission sent.');
   await page.locator('#verificationCode').fill('123456');
   await page.getByRole('button', { name: 'Establish Link', exact: true }).click();
   await expect(page).toHaveURL(/\/hub\?onboarding=1$/);
@@ -180,7 +211,9 @@ test('recovery requests a link and can return to login', async ({ page }) => {
   await page.getByRole('button', { name: 'Forgot Access Cipher?', exact: true }).click();
   await page.locator('#recoveryEmail').fill('artist@smuve.test');
   await page.getByRole('button', { name: 'Transmit Recovery Link', exact: true }).click();
-  await expect(page.getByRole('status')).toContainText('Transmission sent.');
+  await expect(
+    page.getByRole('status').filter({ hasText: 'Transmission sent.' }),
+  ).toContainText('Transmission sent.');
   await page.getByRole('button', { name: 'Return to Authorization', exact: true }).click();
   await expect(page).toHaveURL(/\/login$/);
 });

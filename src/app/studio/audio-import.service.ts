@@ -212,7 +212,7 @@ export class AudioImportService {
       for (const file of files) {
         try {
           // Estimate duration to decide whether to use SampleStreamer.
-          const estimatedSec = this.estimateDurationFromFile(file);
+          const estimatedSec = await this.estimateDurationFromFile(file);
           let buffer: AudioBuffer | null = null;
           let duration = 0;
           let ss: SampleStreamer | null = null;
@@ -339,15 +339,34 @@ export class AudioImportService {
   }
 
   /**
-   * Rough estimate of a file's duration in seconds from its size and sample rate.
-   * Used to decide whether to route through SampleStreamer or full decode.
+   * Duration estimate used to choose the bounded streaming path. A WAV carries
+   * its real byte rate in the fmt chunk, so read that instead of assuming
+   * stereo PCM: a 12s mono WAV is only 1.15 MB and a size-based stereo guess
+   * routed it through a full decode, never creating a SampleStreamer.
    */
-  private estimateDurationFromFile(file: File): number {
+  private async estimateDurationFromFile(file: File): Promise<number> {
     const extension = file.name.split('.').pop()?.toLowerCase();
+    if (extension === 'wav') {
+      try {
+        const header = new DataView(await file.slice(0, 44).arrayBuffer());
+        const tag = (at: number) =>
+          String.fromCharCode(
+            header.getUint8(at),
+            header.getUint8(at + 1),
+            header.getUint8(at + 2),
+            header.getUint8(at + 3),
+          );
+        const byteRate = header.getUint32(28, true);
+        if (tag(0) === 'RIFF' && tag(8) === 'WAVE' && byteRate > 0) {
+          return Math.max(1, (file.size - 44) / byteRate);
+        }
+      } catch {
+        // Fall through to the conservative size estimate.
+      }
+    }
     const compressedBitrate = /^(mp3|ogg|m4a|aac)$/.test(extension ?? '') ? 192_000 : null;
-    // Use a typical stereo PCM16 WAV rate (48 kHz × 16-bit × 2 channels).
-    // This estimate only chooses the streaming path; WAV metadata determines
-    // the actual sample rate, channels and duration once attached.
+    // Unknown WAVs keep the typical stereo PCM16 assumption; compressed files
+    // use their nominal bitrate and everything else a stereo 24-bit rate.
     const bytesPerSecond = compressedBitrate ? compressedBitrate / 8 :
       extension === 'wav' ? 192_000 : 384_000;
     return Math.max(1, file.size / bytesPerSecond);

@@ -84,6 +84,7 @@ test("signed-in artist finishes a First Loop lesson from a shared link and opens
   //    re-opens the overlay immediately after it closes.
   await guide
     .getByRole("button", { name: "Open Quick Session", exact: true })
+    .first()
     .click();
   await expect(guide).toHaveCount(0);
   await expect(page.locator(".qs-shell")).toBeVisible();

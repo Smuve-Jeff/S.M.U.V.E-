@@ -1,15 +1,48 @@
 import { WORKSPACE_REGISTRY } from "../../services/workspace-registry";
 import {
+  ALL_GUIDE_LESSONS,
+  GUIDE_TRACKS,
+} from "./studio-guide.data";
+import {
   guideLessonById,
   isGuideTrackId,
 } from "./studio-guide-deep-link";
 import { isStudioSurfaceId } from "../studio-surfaces";
+import {
+  MASTERCLASS_CHAPTER_TARGETS,
+  MASTERCLASS_SURFACE_TARGETS,
+} from "./masterclass-route-targets";
 import {
   masterclassRouteTarget,
   masterclassTargetForStudioSurface,
 } from "./masterclass-route-guide";
 
 describe("Masterclass route resolver", () => {
+  it("keeps the lightweight target map in sync with the curriculum", () => {
+    for (const target of [
+      ...Object.values(MASTERCLASS_CHAPTER_TARGETS),
+      ...Object.values(MASTERCLASS_SURFACE_TARGETS),
+    ]) {
+      const lesson = ALL_GUIDE_LESSONS.find(
+        (candidate) => candidate.id === target.lessonId,
+      );
+      expect(lesson).toBeDefined();
+      expect(lesson!.title).toBe(target.lessonTitle);
+      expect(lesson!.track).toBe(target.track);
+      expect(GUIDE_TRACKS.find((track) => track.id === lesson!.track)?.label).toBe(
+        target.trackLabel,
+      );
+    }
+
+    for (const [surface, target] of Object.entries(
+      MASTERCLASS_SURFACE_TARGETS,
+    )) {
+      expect(
+        ALL_GUIDE_LESSONS.find((lesson) => lesson.target === surface)?.id,
+      ).toBe(target.lessonId);
+    }
+  });
+
   it("resolves a Studio surface deep link to that surface's lesson", () => {
     const target = masterclassRouteTarget("/studio?view=mixer");
 

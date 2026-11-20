@@ -43,6 +43,10 @@ test.describe('Smart Creation Sheet — Recently Used row', () => {
   test('is visible in the Studio and re-arms a groove from its chip', async ({ page }) => {
     test.setTimeout(90_000);
     await seedAuthenticatedSession(page);
+    await page.addInitScript(() => {
+      // Skip the one-time Music Map; this spec is about the creation sheet.
+      localStorage.setItem('smuve_music_map_seen', '1');
+    });
 
     const usedAt = Date.now();
     await seedRecall(page, {
@@ -82,14 +86,18 @@ test.describe('Smart Creation Sheet — Recently Used row', () => {
 
     // Functional: the pack chip loads the groove, and the Studio closes the
     // sheet through the (closeSheet) binding it wires onto the component.
+    // The replacement gate autosaves the seeded starter first; mark the fixture
+    // clean so this recall test does not wait on an IndexedDB write.
+    await page.evaluate(() => {
+      const studio = (window as any).ng.getComponent(
+        document.querySelector('app-studio'),
+      );
+      studio.projectWorkspace.isDirty.set(false);
+    });
     await chips.nth(2).click();
 
-    // The Studio renders its own snackbar alongside the shell's, so filter by
-    // the message rather than matching both empty elements.
-    await expect(
-      page.locator('.snackbar-message', { hasText: 'Lagos Sunset' })
-    ).toContainText('Loaded', { timeout: 15_000 });
-
+    // Studio quiet mode records routine success in the Activity log instead of
+    // painting a toast, so the visible proof is the view handoff and unmount.
     // Arrangement is the view the sheet asks for, so its (navigateToView)
     // binding reached the Studio…
     await expect(page).toHaveURL(/view=arrangement/, { timeout: 15_000 });
@@ -100,6 +108,9 @@ test.describe('Smart Creation Sheet — Recently Used row', () => {
   test('stays hidden until something has actually been used', async ({ page }) => {
     test.setTimeout(90_000);
     await seedAuthenticatedSession(page);
+    await page.addInitScript(() => {
+      localStorage.setItem('smuve_music_map_seen', '1');
+    });
 
     await page.goto('/studio-classic');
     await expect(page.locator('.comp-shell')).toBeVisible({ timeout: 30_000 });

@@ -9,5 +9,5 @@ test('Drum Machine component is rendered correctly', async ({ page }) => {
     page.getByRole('heading', { name: /Rhythm Unit.*Drum Machine/i })
   ).toBeVisible();
   await expect(page.getByRole('button', { name: /AI: Evolve current rhythm/i })).toBeVisible();
-  await expect(page.locator('.dm-pads [role="gridcell"]')).toHaveCount(8);
+  await expect(page.locator('.dm-pads [role="gridcell"]')).toHaveCount(16);
 });

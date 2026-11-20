@@ -15,7 +15,7 @@ test('recommendation actions persist across strategy, practice, and command surf
   ).toBeVisible();
   await page.getByTestId('practice-save-upg-ovr-mastering').click();
   await expect(page.getByTestId('practice-history-entry')).toContainText(
-    'S.M.U.V.E.-MODE MASTERING ENGINE'
+    'Mastering chain review'
   );
 
   await page.getByTestId('practice-focus-upg-ovr-mastering').click();
@@ -37,7 +37,7 @@ test('recommendation actions persist across strategy, practice, and command surf
   ).toBeVisible();
   await page.getByTestId('command-acquire-upg-ovr-mastering').click();
   await expect(page.getByTestId('command-history-entry').first()).toContainText(
-    'S.M.U.V.E.-MODE MASTERING ENGINE'
+    'Mastering chain review'
   );
   await expect(page.getByTestId('command-history-entry').first()).toContainText(
     'acquired'

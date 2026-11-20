@@ -88,7 +88,7 @@ test('home navigation keeps authentication protection on signed-out deep links',
   const context = await page.context().browser()!.newContext();
   try {
     const signedOut = await context.newPage();
-    await signedOut.goto('http://127.0.0.1:4200/hub');
+    await signedOut.goto(new URL('/hub', page.url()).toString());
     await expect(signedOut).toHaveURL(/\/login\?returnUrl=%2Fhub$/);
     await expect(signedOut.locator('app-login')).toBeVisible();
   } finally {

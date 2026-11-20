@@ -41,6 +41,9 @@ function longWavFixture(): Buffer {
 test.describe('clip-streamer admission (synthetic long import)', () => {
   test.beforeEach(async ({ page }) => {
     await seedAuthenticatedSession(page);
+    await page.addInitScript(() => {
+      localStorage.setItem('smuve_music_map_seen', '1');
+    });
     await page.route('**/api/**', (route) =>
       route.fulfill({ status: 200, contentType: 'application/json', body: '{}' }),
     );
@@ -81,8 +84,10 @@ test.describe('clip-streamer admission (synthetic long import)', () => {
             const studio = (window as any).ng.getComponent(
               document.querySelector('app-studio'),
             );
-            const lastTrack = studio.musicManager.tracks().at(-1);
-            return Boolean(lastTrack?.clips?.[0]?.clipStreamer);
+            const imported = studio.musicManager
+              .tracks()
+              .find((track: any) => track.name === 'qa-long-loop');
+            return Boolean(imported?.clips?.[0]?.clipStreamer);
           }),
         { timeout: 15_000 },
       )
@@ -97,9 +102,11 @@ test.describe('clip-streamer admission (synthetic long import)', () => {
     } | null>(() => {
       const studio = (window as any).ng.getComponent(document.querySelector('app-studio'));
       const tracks = studio.musicManager.tracks();
-      const lastTrack = tracks[tracks.length - 1];
-      if (!lastTrack) return null;
-      const clip = lastTrack.clips?.[0] ?? null;
+      const imported = tracks.find(
+        (track: any) => track.name === 'qa-long-loop',
+      );
+      if (!imported) return null;
+      const clip = imported.clips?.[0] ?? null;
       if (!clip) return null;
       return {
         clipStreamer: Boolean(clip.clipStreamer),

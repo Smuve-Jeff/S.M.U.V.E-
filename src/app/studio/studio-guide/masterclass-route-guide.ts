@@ -1,17 +1,10 @@
 import {
-  ALL_GUIDE_LESSONS,
-  guideTrack,
-  type GuideLesson,
-  type GuideTrackId,
-} from "./studio-guide.data";
+  MASTERCLASS_CHAPTER_TARGETS,
+  MASTERCLASS_SURFACE_TARGETS,
+  type MasterclassRouteTarget,
+} from "./masterclass-route-targets";
 
-/** The stable data a shell needs to open a specific Masterclass lesson. */
-export interface MasterclassRouteTarget {
-  lessonId: string;
-  track: GuideTrackId;
-  lessonTitle: string;
-  trackLabel: string;
-}
+export type { MasterclassRouteTarget } from "./masterclass-route-targets";
 
 /** Routes that should not advertise the Masterclass action. */
 const HIDDEN_ROUTES = new Set([
@@ -65,7 +58,7 @@ const ROUTE_CHAPTERS: Record<string, string> = {
   "business-pipeline": "app-business",
   cloud: "app-system",
   journey: "app-system",
-  "onboarding": "app-system",
+  onboarding: "app-system",
   "dev-hub": "app-shell",
   artist: "app-career",
 };
@@ -84,20 +77,6 @@ const SURFACE_ROUTES: Record<string, string> = {
   "vocal-suite": "vocal-suite",
 };
 
-function toTarget(lesson: GuideLesson): MasterclassRouteTarget {
-  return {
-    lessonId: lesson.id,
-    track: lesson.track,
-    lessonTitle: lesson.title,
-    trackLabel: guideTrack(lesson.track).label,
-  };
-}
-
-function lessonById(id: string | undefined): GuideLesson | null {
-  if (!id) return null;
-  return ALL_GUIDE_LESSONS.find((lesson) => lesson.id === id) ?? null;
-}
-
 /**
  * The best lesson for a Studio surface. The curriculum has more surfaces than
  * lessons, so a documented surface without a dedicated lesson falls back to
@@ -106,15 +85,10 @@ function lessonById(id: string | undefined): GuideLesson | null {
 export function masterclassTargetForStudioSurface(
   surface: string | null | undefined,
 ): MasterclassRouteTarget | null {
-  if (surface) {
-    const lesson = ALL_GUIDE_LESSONS.find(
-      (candidate) => candidate.target === surface,
-    );
-    if (lesson) return toTarget(lesson);
+  if (surface && MASTERCLASS_SURFACE_TARGETS[surface]) {
+    return MASTERCLASS_SURFACE_TARGETS[surface];
   }
-  return lessonById("app-studio")
-    ? toTarget(lessonById("app-studio")!)
-    : null;
+  return MASTERCLASS_CHAPTER_TARGETS["app-studio"] ?? null;
 }
 
 /**
@@ -138,10 +112,8 @@ export function masterclassRouteTarget(
   const surface = SURFACE_ROUTES[root];
   if (surface) return masterclassTargetForStudioSurface(surface);
 
-  const chapter = lessonById(ROUTE_CHAPTERS[root]);
-  if (chapter) return toTarget(chapter);
+  const chapter = MASTERCLASS_CHAPTER_TARGETS[ROUTE_CHAPTERS[root]];
+  if (chapter) return chapter;
 
-  return lessonById("app-shell")
-    ? toTarget(lessonById("app-shell")!)
-    : toTarget(ALL_GUIDE_LESSONS[0]);
+  return MASTERCLASS_CHAPTER_TARGETS["app-shell"] ?? null;
 }

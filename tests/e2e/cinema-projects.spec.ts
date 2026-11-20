@@ -194,8 +194,12 @@ test('saves a project, survives a reload and reopens its edit', async ({
   await expect(afterReload.locator('.project-name')).toHaveText(
     'Probe Feature'
   );
-  // The timeline starts empty; only the project list is restored.
-  await expect(page.locator('.timeline-marker')).toHaveCount(0);
+  // The last project is resumed automatically, so its marker comes back with
+  // it — the reload is proving the stored edit, not rendering a draft.
+  await expect(page.locator('.timeline-marker')).toHaveCount(1, {
+    timeout: 15_000,
+  });
+  await expect(page.locator('.timeline-marker')).toContainText('Act One');
 
   await page.locator('.project-open').first().click();
 

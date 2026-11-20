@@ -15,7 +15,11 @@
       *ngIf="!isAuthRoute() && showAdvisorFab() && !uiService.isChatbotOpen()"
     ></app-smuve-advisor>
   }
-  <app-smuve-tv-persistent-player *ngIf="!isAuthRoute()"></app-smuve-tv-persistent-player>
+  <!-- The TV player is a floating dock, not boot chrome. Deferring it keeps
+       the TV service graph out of the initial bundle. -->
+  @defer (on idle) {
+    <app-smuve-tv-persistent-player *ngIf="!isAuthRoute()"></app-smuve-tv-persistent-player>
+  }
   <app-command-palette *ngIf="!isAuthRoute()"></app-command-palette>
   <app-interaction-dialog></app-interaction-dialog>
 

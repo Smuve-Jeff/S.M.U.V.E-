@@ -2204,3 +2204,16 @@ select.ctb-timesig option {
     text-transform: uppercase;
   }
 }
+
+/* 360px phones: the BPM unit label is repeated by the control's aria-label.
+   Dropping it keeps the tempo value itself as the last fully visible primary
+   control instead of letting the readout push past the row edge. */
+@media (max-width: 380px) {
+  .ctb-primary-row .ctb-bpm {
+    min-width: 44px;
+    padding-inline: 8px;
+  }
+  .ctb-primary-row .ctb-bpm-unit {
+    display: none;
+  }
+}
