@@ -125,7 +125,11 @@ export class FrameLockedVideoEncoder {
         height,
         bitrate,
         framerate: plan.fps,
-        latencyMode: 'quality',
+        // Offline quality tuning made a software encoder spend seconds per
+        // frame, so a short export could outlast the tab. Realtime mode keeps
+        // the same frame-locked timeline while letting the encoder pipeline
+        // work; the bitrate still bounds the master's quality.
+        latencyMode: 'realtime',
         alpha: alpha ? 'keep' : 'discard',
       };
 

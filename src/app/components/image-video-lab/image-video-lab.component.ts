@@ -23,11 +23,13 @@ import {
 } from '../../services/watermark-policy';
 import { UserContextService } from '../../services/user-context.service';
 import {
+  AudioOverlay,
   BeatTick,
   CLIP_EFFECTS,
   CLIP_FILTERS,
   CLIP_MOTIONS,
   CLIP_TRANSITIONS,
+  CinemaSnapshot,
   ClipEffect,
   ClipEffectId,
   ClipFilter,
@@ -50,6 +52,12 @@ import {
   VoiceoverLine,
 } from '../../services/video-engine.service';
 import { ExportService } from '../../services/export.service';
+
+/** One undo step: the edit itself plus the bed bytes the snapshot omits. */
+interface EditHistoryEntry {
+  snapshot: CinemaSnapshot;
+  audioBed: AudioOverlay | null;
+}
 import { FfmpegVideoExportService } from '../../services/ffmpeg-video-export.service';
 import {
   createFrameLockPlan,
@@ -604,6 +612,10 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
   private originalTimelineDuration: number | null = null;
   /** Seconds of real-time timeline captured per video export. */
   exportWindow = signal(DEFAULT_EXPORT_WINDOW);
+  /** Set while an export should abandon its remaining frames. */
+  readonly exportCancelRequested = signal(false);
+  /** Stops the real-time recorder; the frame-locked loop checks the flag. */
+  private exportAbort: (() => void) | null = null;
   /** Timeline offset the next master starts from; ranges serve long pieces. */
   exportStart = signal(0);
   exportProgress = signal(0);
@@ -1466,6 +1478,28 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
         'CUE FIRED. TRANSPORT ROLLING — BROADCAST IS LIVE, HOLD THE FRAME.'
       );
     });
+
+    // Track the edit itself, not the transport: scrubbing or playing must never
+    // become an undo step. Changes are grouped over a short window so typing a
+    // lower third is one step rather than one per keystroke.
+    effect(() => {
+      const signature = this.projectContentSignature();
+      if (this.lastHistorySignature === null) {
+        this.lastHistorySignature = signature;
+        this.lastHistoryEntry = this.captureHistoryEntry();
+        return;
+      }
+      if (this.applyingHistory) {
+        this.lastHistorySignature = signature;
+        return;
+      }
+      if (signature === this.lastHistorySignature) return;
+      // The edit is undoable the instant it lands; the commit timer only
+      // decides where one grouped step ends.
+      this.canUndo.set(true);
+      this.canRedo.set(false);
+      this.scheduleHistoryCommit();
+    });
   }
 
   ngAfterViewInit() {
@@ -1989,6 +2023,136 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     );
   }
 
+  /** One undo step: restore the snapshot captured before the last edit. */
+  undoEdit(): void {
+    if (this.isExporting() || this.isQueueing()) {
+      this.aiFeedback.set(
+        'PAUSE OR CANCEL THE EXPORT BEFORE UNDOING — THE CAPTURE IS READING THIS TIMELINE.'
+      );
+      return;
+    }
+    this.flushHistoryCommit();
+    const previous = this.undoHistory.pop();
+    if (!previous) {
+      this.aiFeedback.set('NOTHING TO UNDO.');
+      return;
+    }
+    this.redoHistory.push(this.captureHistoryEntry());
+    this.applyHistoryEntry(previous);
+    this.aiFeedback.set('UNDONE — THE TIMELINE IS BACK TO ITS PREVIOUS EDIT.');
+  }
+
+  /** Re-apply the edit that the last UNDO removed. */
+  redoEdit(): void {
+    if (this.isExporting() || this.isQueueing()) {
+      this.aiFeedback.set(
+        'PAUSE OR CANCEL THE EXPORT BEFORE REDOING — THE CAPTURE IS READING THIS TIMELINE.'
+      );
+      return;
+    }
+    this.flushHistoryCommit();
+    const next = this.redoHistory.pop();
+    if (!next) {
+      this.aiFeedback.set('NOTHING TO REDO.');
+      return;
+    }
+    this.undoHistory.push(this.captureHistoryEntry());
+    this.applyHistoryEntry(next);
+    this.aiFeedback.set('REDONE — THE TIMELINE EDIT IS BACK.');
+  }
+
+  private scheduleHistoryCommit(): void {
+    if (this.historyCommitTimer !== null) clearTimeout(this.historyCommitTimer);
+    this.historyCommitTimer = setTimeout(() => {
+      this.historyCommitTimer = null;
+      this.commitHistoryEntry();
+    }, 300);
+  }
+
+  /** Turn a pending change into one history step and clear the redo branch. */
+  private commitHistoryEntry(): void {
+    const signature = this.projectContentSignature();
+    const previous = this.lastHistoryEntry;
+    if (!previous || signature === this.lastHistorySignature) {
+      this.lastHistorySignature = signature;
+      return;
+    }
+    this.lastHistoryEntry = this.captureHistoryEntry();
+    this.lastHistorySignature = signature;
+    this.undoHistory.push(previous);
+    if (this.undoHistory.length > 40) this.undoHistory.shift();
+    this.redoHistory = [];
+    this.syncHistoryFlags();
+  }
+
+  private flushHistoryCommit(): void {
+    if (this.historyCommitTimer === null) return;
+    clearTimeout(this.historyCommitTimer);
+    this.historyCommitTimer = null;
+    this.commitHistoryEntry();
+  }
+
+  /**
+   * Snapshot shaped for undo rather than for storage.
+   *
+   * The saved-project snapshot deliberately blanks session media URLs because
+   * they never survive a reload; an undo happens inside the same session, so
+   * its snapshot has to keep them or restoring a step would wipe every take on
+   * the timeline. The bed is captured whole for the same reason: `restore`
+   * carries only its mix, not its decoded buffer.
+   */
+  private captureHistoryEntry(): EditHistoryEntry {
+    const snapshot = this.videoEngine.snapshot();
+    const liveUrls = new Map<string, string>();
+    this.videoEngine.tracks().forEach((track) => {
+      track.clips.forEach((clip) => liveUrls.set(clip.id, clip.url));
+    });
+    snapshot.tracks = snapshot.tracks.map((track) => ({
+      ...track,
+      clips: track.clips.map((clip) => ({
+        ...clip,
+        url: liveUrls.get(clip.id) ?? clip.url,
+      })),
+    }));
+    return {
+      snapshot,
+      audioBed: this.videoEngine.audioOverlay(),
+    };
+  }
+
+  private applyHistoryEntry(entry: EditHistoryEntry): void {
+    this.applyingHistory = true;
+    this.videoEngine.restore(entry.snapshot);
+    this.videoEngine.audioOverlay.set(
+      entry.audioBed ? { ...entry.audioBed } : null,
+    );
+    this.selectedClipId.set(null);
+    this.lastHistoryEntry = entry;
+    this.lastHistorySignature = this.projectContentSignature();
+    this.syncHistoryFlags();
+    queueMicrotask(() => {
+      this.applyingHistory = false;
+    });
+  }
+
+  private syncHistoryFlags(): void {
+    this.canUndo.set(this.undoHistory.length > 0);
+    this.canRedo.set(this.redoHistory.length > 0);
+  }
+
+  /** Start a fresh undo timeline, for a newly opened document. */
+  private resetEditHistory(): void {
+    if (this.historyCommitTimer !== null) {
+      clearTimeout(this.historyCommitTimer);
+      this.historyCommitTimer = null;
+    }
+    this.undoHistory = [];
+    this.redoHistory = [];
+    this.lastHistoryEntry = this.captureHistoryEntry();
+    this.lastHistorySignature = this.projectContentSignature();
+    this.syncHistoryFlags();
+  }
+
   duplicateSelectedClip(): void {
     const id = this.selectedClipId();
     if (!id) {
@@ -2138,14 +2302,30 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
       barsPerShot: 2,
     });
     let moved = 0;
-    cut.forEach((entry) => {
-      if (this.videoEngine.moveClip(entry.id, { startTime: entry.startTime })) {
-        moved += 1;
+    let fitted = 0;
+    cut.forEach((entry, index) => {
+      if (!this.videoEngine.moveClip(entry.id, { startTime: entry.startTime })) {
+        return;
       }
+      moved += 1;
+      // Each shot owns a whole-bar slot. Leaving the media at its old length
+      // opened a black gap before the next cut; extend it to fill the slot so
+      // the montage stays on the beat without dead air.
+      const next = cut[index + 1];
+      const clip = clips.find((candidate) => candidate.id === entry.id);
+      if (!next || !clip) return;
+      const slot = next.startTime - entry.startTime;
+      if (slot <= 0 || Math.abs(clip.duration - slot) < 1e-6) return;
+      this.videoEngine.updateClip(entry.id, { duration: slot });
+      fitted += 1;
     });
     this.aiFeedback.set(
       moved > 0
-        ? `BEAT CUT DEPLOYED: ${moved} CLIPS LOCKED TO ${this.videoEngine.bpm().toFixed(1)} BPM, TWO BARS PER SHOT.`
+        ? `BEAT CUT DEPLOYED: ${moved} CLIPS LOCKED TO ${this.videoEngine.bpm().toFixed(1)} BPM, TWO BARS PER SHOT${
+            fitted > 0
+              ? `, ${fitted} FITTED TO ${fitted === 1 ? 'ITS' : 'THEIR'} WHOLE-BAR SLOT`
+              : ''
+          }.`
         : 'BEAT CUT BLOCKED — THE VISUALS LANE IS LOCKED.'
     );
   }
@@ -2218,6 +2398,18 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
    * not mistaken for a clean project.
    */
   private savedProjectSignature = signal<string | null>(null);
+
+  // ── Edit history (undo / redo) ───────────────────────────────────────
+  /** Snapshots of the edit before each change, oldest first. */
+  private undoHistory: EditHistoryEntry[] = [];
+  private redoHistory: EditHistoryEntry[] = [];
+  /** Whether UNDO / REDO has work to do, for the toolbar's disabled state. */
+  readonly canUndo = signal(false);
+  readonly canRedo = signal(false);
+  private lastHistoryEntry: EditHistoryEntry | null = null;
+  private lastHistorySignature: string | null = null;
+  private historyCommitTimer: ReturnType<typeof setTimeout> | null = null;
+  private applyingHistory = false;
 
   /**
    * Whether replacing the open project would drop edits that are not stored.
@@ -2481,6 +2673,9 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
       // choice; re-plan the Maker instead of leaving stale selected indices.
       if (this.showFilmMaker()) this.selectAllExportRanges();
       this.rememberSavedProject();
+      // A newly opened project is a new document: its undo stack must not step
+      // back into the footage of the project that was just closed.
+      this.resetEditHistory();
     }
     this.aiFeedback.set(outcome.message.toUpperCase());
   }
@@ -3146,6 +3341,17 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
    * A tap anywhere outside the monitor readouts dismisses the failure reason.
    * Taps on the badge itself (or the RETRY beside it) stay inside the row.
    */
+  /**
+   * Closing the tab with an unsaved edit is the one destructive action the
+   * editor cannot undo, so ask the browser to hold the unload first.
+   */
+  @HostListener('window:beforeunload', ['$event'])
+  warnBeforeUnload(event: BeforeUnloadEvent): void {
+    if (!this.hasUnsavedProjectWork()) return;
+    event.preventDefault();
+    event.returnValue = '';
+  }
+
   @HostListener('document:pointerdown', ['$event'])
   closeCgiReasonOnOutsideTap(event: PointerEvent): void {
     if (!this.cgiReasonOpen()) return;
@@ -3167,6 +3373,18 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
       return;
     }
     if (this.isTypingTarget(event.target)) return;
+    const modifier = event.metaKey || event.ctrlKey;
+    if (modifier && !event.altKey && event.key.toLowerCase() === 'z') {
+      event.preventDefault();
+      if (event.shiftKey) this.redoEdit();
+      else this.undoEdit();
+      return;
+    }
+    if (modifier && !event.altKey && event.key.toLowerCase() === 'y') {
+      event.preventDefault();
+      this.redoEdit();
+      return;
+    }
     if (event.metaKey || event.ctrlKey || event.altKey) return;
 
     switch (event.key) {
@@ -6417,6 +6635,7 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     ranges: readonly MasterExportRange[] = this.availableExportRanges()
   ): Promise<void> {
     if (this.isExporting() || this.isQueueing()) return;
+    this.exportCancelRequested.set(false);
     if (!ranges.length) {
       this.aiFeedback.set(
         'NOTHING TO QUEUE: SET AN EXPORT START BEFORE THE END OF THE TIMELINE.'
@@ -6658,6 +6877,7 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
    */
   async exportVideo(): Promise<void> {
     if (this.isExporting() || this.isQueueing()) return;
+    this.exportCancelRequested.set(false);
     const plan = this.exportPlan();
     if (plan.seconds <= 0) {
       this.aiFeedback.set(
@@ -6666,6 +6886,17 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
       return;
     }
     await this.runExportRange(plan.start, plan.seconds);
+  }
+
+  /**
+   * Abort the running export instead of making the operator sit through a slow
+   * frame-locked pass or wait for a two-minute part to finish on its own.
+   */
+  cancelExport(): void {
+    if (!this.isExporting()) return;
+    this.exportCancelRequested.set(true);
+    this.exportAbort?.();
+    this.aiFeedback.set('CANCELLING EXPORT — RELEASING THE RECORDER.');
   }
 
   /** Record one contiguous range and resolve true only when it downloads. */
@@ -6747,6 +6978,10 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
       // a mirror of it instead of the diagnostic view.
       this.exportActive = true;
       this.exportService.setClipAudioLevel(1);
+      this.exportAbort = () => {
+        session.recorder.stop();
+        this.videoEngine.pause();
+      };
     } catch (error: any) {
       this.releaseExportCanvas();
       this.isExporting.set(false);
@@ -6773,6 +7008,13 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     try {
       const blob = await session.result;
       clearTimeout(stopTimer);
+      this.exportAbort = null;
+
+      if (this.exportCancelRequested()) {
+        this.exportProgress.set(0);
+        this.aiFeedback.set('EXPORT CANCELLED — NOTHING WAS DOWNLOADED.');
+        return false;
+      }
 
       if (blob.size === 0) {
         this.exportProgress.set(0);
@@ -6856,6 +7098,8 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
       return false;
     } finally {
       this.releaseExportCanvas();
+      this.exportAbort = null;
+      this.exportCancelRequested.set(false);
       this.isExporting.set(false);
     }
   }
@@ -6907,7 +7151,13 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
       audioSession = await this.exportService.startAudioExport();
       if (audioSession) {
         this.videoEngine.play();
-        await this.waitMs(seconds * 1000 + EXPORT_TAIL_GUARD_MS);
+        // Wait in slices so CANCEL does not have to sit through a two-minute
+        // audio pass before the export lets go.
+        const audioWaitMs = seconds * 1000 + EXPORT_TAIL_GUARD_MS;
+        for (let waited = 0; waited < audioWaitMs; waited += 100) {
+          if (this.exportCancelRequested()) break;
+          await this.waitMs(Math.min(100, audioWaitMs - waited));
+        }
         audioSession.stop();
         this.videoEngine.pause();
         audioBlob = await audioSession.result;
@@ -6938,6 +7188,7 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
         frameIndex < framePlan.totalFrames;
         frameIndex++
       ) {
+        if (this.exportCancelRequested()) break;
         await this.prepareFrameForExport(
           start + frameTimeSeconds(framePlan, frameIndex)
         );
@@ -6953,6 +7204,14 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
         // Yield between frames so the progress readout and the tab's own
         // events are not starved by a long 4K loop.
         if ((frameIndex & 1) === 0) await this.waitMs(0);
+      }
+
+      if (this.exportCancelRequested()) {
+        encoder.close();
+        encoder = null;
+        this.exportProgress.set(0);
+        this.aiFeedback.set('EXPORT CANCELLED — NOTHING WAS DOWNLOADED.');
+        return false;
       }
 
       const encoded = await encoder.finish();
@@ -7050,6 +7309,8 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
       this.videoEngine.seek(start);
       if (wasPlaying) this.videoEngine.play();
       this.releaseExportCanvas();
+      this.exportAbort = null;
+      this.exportCancelRequested.set(false);
       this.isExporting.set(false);
     }
   }
@@ -8478,6 +8739,11 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
   selectProductionMode(mode: ProductionMode) {
     this.cgiReasonOpen.set(false);
     this.videoEngine.setProductionMode(mode);
+    // A mode switch applies that mode's preset. If a social cutdown is armed,
+    // that new preset is what RELEASE should return to afterwards.
+    if (this.cutdownAspect() && this.originalDeliveryPresetId !== null) {
+      this.originalDeliveryPresetId = this.activePreset().id;
+    }
     // Entering a music video with a mid-bar start must show the bar line the
     // first part really begins on, not the value the planner floors to.
     if (mode === 'music') this.setExportStart(this.exportStart());

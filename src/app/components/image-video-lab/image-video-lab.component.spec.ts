@@ -388,6 +388,8 @@ describe('ImageVideoLabComponent', () => {
           videoEngine.duration.set(900);
         }
       }),
+      // Undo/redo restore through the same snapshot path a project uses.
+      restore: jest.fn(),
       // The component fingerprints this with the Director plan to decide
       // whether replacing the open project would lose unsaved edits.
       snapshot: jest.fn(() => ({
@@ -4365,6 +4367,86 @@ describe('ImageVideoLabComponent', () => {
     });
   });
 
+  describe('edit history and beat fitting', () => {
+    it('undoes and redoes a timeline edit', async () => {
+      const { component, videoEngine } = await createComponent();
+      TestBed.flushEffects();
+      expect(component.canUndo()).toBe(false);
+
+      videoEngine.markers.set([
+        { id: 'm1', time: 2, label: 'One', kind: 'scene' },
+      ]);
+      TestBed.flushEffects();
+      await new Promise((resolve) => setTimeout(resolve, 360));
+      expect(component.canUndo()).toBe(true);
+
+      component.undoEdit();
+      expect(videoEngine.restore).toHaveBeenCalledTimes(1);
+      expect(component.canUndo()).toBe(false);
+      expect(component.canRedo()).toBe(true);
+
+      component.redoEdit();
+      expect(videoEngine.restore).toHaveBeenCalledTimes(2);
+      expect(component.canUndo()).toBe(true);
+    });
+
+    it('binds Ctrl+Z and Ctrl+Shift+Z to the history', async () => {
+      const { component, videoEngine } = await createComponent();
+      TestBed.flushEffects();
+      videoEngine.markers.set([
+        { id: 'm1', time: 2, label: 'One', kind: 'scene' },
+      ]);
+      TestBed.flushEffects();
+      await new Promise((resolve) => setTimeout(resolve, 360));
+
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', ctrlKey: true }));
+      expect(videoEngine.restore).toHaveBeenCalledTimes(1);
+
+      window.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, shiftKey: true })
+      );
+      expect(videoEngine.restore).toHaveBeenCalledTimes(2);
+      expect(component.aiFeedback()).toContain('REDONE');
+    });
+
+    it('fits every shot to its whole-bar slot so auto-cut leaves no black gap', async () => {
+      const { component, videoEngine } = await createComponent();
+      videoEngine.bpm.set(120);
+      videoEngine.tracks.set([
+        {
+          id: 't1',
+          name: 'Visuals',
+          type: 'visual',
+          muted: false,
+          locked: false,
+          clips: [
+            { id: 'c1', name: 'A', type: 'video', url: 'a', startTime: 0, duration: 5, offset: 0 },
+            { id: 'c2', name: 'B', type: 'video', url: 'b', startTime: 5, duration: 4, offset: 0 },
+          ],
+        },
+      ] as never);
+      videoEngine.moveClip.mockReturnValue(true);
+
+      component.autoCutToBeat();
+
+      // 120 BPM is a 2s bar: the 5s shot owns three bars (6s), so it is
+      // extended to the next cut instead of leaving 1s of black.
+      expect(videoEngine.updateClip).toHaveBeenCalledWith('c1', { duration: 6 });
+      expect(component.aiFeedback()).toContain('FITTED');
+    });
+
+    it('releases a cutdown onto the preset of a mode chosen while armed', async () => {
+      const { component, videoEngine } = await createComponent();
+      component.applySocialCutdown(component.socialCutdowns[0]);
+
+      component.selectProductionMode('vlog');
+      const modePreset = component.activePreset().id;
+      component.clearSocialCutdown();
+
+      expect(videoEngine.applyDeliveryPreset).toHaveBeenLastCalledWith(modePreset);
+    });
+  });
+
   describe('selected clip readout', () => {
     const selectClip = (
       videoEngine: { findClip: jest.Mock },
@@ -5279,6 +5361,50 @@ describe('ImageVideoLabComponent', () => {
   });
 
   describe('video export', () => {
+    it('refuses to undo or redo while the timeline is being captured', async () => {
+      const { component, videoEngine } = await createComponent();
+      component.isExporting.set(true);
+
+      component.undoEdit();
+      expect(videoEngine.restore).not.toHaveBeenCalled();
+      expect(component.aiFeedback()).toContain('PAUSE OR CANCEL THE EXPORT');
+
+      component.isExporting.set(false);
+      component.isQueueing.set(true);
+      component.redoEdit();
+      expect(videoEngine.restore).not.toHaveBeenCalled();
+      expect(component.aiFeedback()).toContain('PAUSE OR CANCEL THE EXPORT');
+    });
+
+    it('asks the browser to hold an unload when the edit is unsaved', async () => {
+      const { component, videoEngine } = await createComponent();
+      const event = {
+        preventDefault: jest.fn(),
+        returnValue: '',
+      } as unknown as BeforeUnloadEvent;
+
+      component.warnBeforeUnload(event);
+      expect(event.preventDefault).not.toHaveBeenCalled();
+
+      videoEngine.markers.set([
+        { id: 'm1', time: 2, label: 'One', kind: 'scene' },
+      ]);
+      TestBed.flushEffects();
+      component.warnBeforeUnload(event);
+      expect(event.preventDefault).toHaveBeenCalledTimes(1);
+    });
+
+    it('cancels a running export instead of forcing it to finish', async () => {
+      const { component } = await createComponent();
+      component.isExporting.set(true);
+
+      component.cancelExport();
+
+      expect(component.exportCancelRequested()).toBe(true);
+      expect(component.aiFeedback()).toContain('CANCELLING EXPORT');
+      component.isExporting.set(false);
+    });
+
     /** Wire the export mock to a recorder the test can drive by hand. */
     const installRecorder = (exportService: {
       startVideoExport: jest.Mock;

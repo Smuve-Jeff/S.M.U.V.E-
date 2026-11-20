@@ -170,6 +170,15 @@
       >
         {{ isExporting() ? 'RENDERING ' + exportProgress() + '%' : 'EXPORT VIDEO' }}
       </button>
+      @if (isExporting()) {
+        <button
+          type="button"
+          class="export-queue export-queue-stop"
+          (click)="cancelExport()"
+        >
+          CANCEL
+        </button>
+      }
       <button
         type="button"
         (click)="openFilmMaker()"
@@ -1155,6 +1164,24 @@
               />
               <span>Beat snap</span>
             </label>
+            <button
+              type="button"
+              class="timeline-tool"
+              [disabled]="!canUndo()"
+              (click)="undoEdit()"
+              aria-label="Undo the last timeline edit"
+            >
+              UNDO
+            </button>
+            <button
+              type="button"
+              class="timeline-tool"
+              [disabled]="!canRedo()"
+              (click)="redoEdit()"
+              aria-label="Redo the last undone timeline edit"
+            >
+              REDO
+            </button>
             <button type="button" class="timeline-tool" (click)="splitAtPlayhead()">CUT</button>
             <button type="button" class="timeline-tool" (click)="duplicateSelectedClip()">DUPLICATE</button>
             <button type="button" class="timeline-tool timeline-tool-danger" (click)="deleteSelectedClip()">DELETE</button>
