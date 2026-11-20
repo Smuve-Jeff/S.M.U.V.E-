@@ -11,6 +11,9 @@
     "isolatedModules": true,
     "moduleDetection": "force",
     "allowJs": true,
+    // Chapter narration is shared with the video build script, so it lives in
+    // one JSON module both runtimes read (see complete-app-guide.narration.json).
+    "resolveJsonModule": true,
     "jsx": "react-jsx",
     "baseUrl": ".",
     "paths": {

@@ -39,6 +39,7 @@ const TAIL = 0.65;
 
 const CHAPTERS = [
   {
+    id: "shell",
     number: "01",
     screen: "01-shell.png",
     kicker: "Orientation",
@@ -50,14 +51,9 @@ const CHAPTERS = [
       "Pinned and recent rooms",
       "Sync, appearance and assistant",
     ],
-    lines: [
-      "This is S.M.U.V.E. 2.0, and this guide covers the complete application, not one isolated tool.",
-      "The shell is the map. The sidebar groups every workspace into Core, Strategy, Creative, Community, Utility and Artist families.",
-      "Pin the rooms you repeat, use recent workspaces to return, and press Control K when you already know the name.",
-      "The top bar carries sync health, appearance, performance mode, the inbox and the assistant. Check it before you start a long session.",
-    ],
   },
   {
+    id: "hub",
     number: "02",
     screen: "02-hub.png",
     kicker: "Command",
@@ -69,14 +65,9 @@ const CHAPTERS = [
       "Recommended next moves",
       "Routes into every core room",
     ],
-    lines: [
-      "Label Hub is the executive cockpit. It turns the whole system into the day in front of you.",
-      "The command center surfaces release status, project state, career signals and the next moves worth considering.",
-      "Use the related workspace rail to move from a signal into the room that can act on it.",
-      "The Hub is where you decide what deserves the session. It is not where you do every job.",
-    ],
   },
   {
+    id: "studio",
     number: "03",
     screen: "03-studio.png",
     kicker: "Production",
@@ -88,14 +79,9 @@ const CHAPTERS = [
       "Mixer, effects and automation",
       "Mastering, DJ and export",
     ],
-    lines: [
-      "Studio is one production shell with a dedicated surface for every stage of the record.",
-      "Start in Quick Session or open the Masterclass, then build the arrangement in the timeline, channel rack and piano roll.",
-      "Balance in the mixer, shape the tone in the effects rack, and use automation when the move has to change over time.",
-      "Finish in the mastering suite and export a named master. The surface changes, but the project stays the same.",
-    ],
   },
   {
+    id: "rhythm",
     number: "04",
     screen: "04-performance.png",
     kicker: "Performance",
@@ -108,15 +94,9 @@ const CHAPTERS = [
       "Dual-deck DJ and hot cues",
       "3D live stage with drop-in performers",
     ],
-    lines: [
-      "The rhythm and performance tools cover programming, live launching and DJ work.",
-      "Drum Machine and Piano Roll write the part, while the Sampler and Sound Pads turn the performance into a playable instrument.",
-      "Performance mode launches scenes and clips; the DJ deck handles two tracks, hot cues, looping and the crossfade.",
-      "Performance also opens a 3D live stage. Drop a glb performer or pick one from the library, set the mood and colour, and the stage moves with the master output while the pads keep playing.",
-      "Rehearse the launch order, the transitions and the stage before you record it. A set that only works in arrangement view is not a live set yet.",
-    ],
   },
   {
+    id: "create",
     number: "05",
     screen: "05-composer.png",
     kicker: "Creation",
@@ -129,15 +109,9 @@ const CHAPTERS = [
       "Music Academy programs",
       "Academy career paths: acting, directing, business, legal, marketing",
     ],
-    lines: [
-      "The creation side of the app starts before the Studio: Composition Core, AI Produce, Cowrite, Lyric Editor, Practice and the Music Academy.",
-      "The Academy now covers instruments and vocals plus acting, directing, music business and legal, and marketing and promotion.",
-      "Composition Core works inside a genre and can generate a full song, a beat or a single musical step.",
-      "AI Produce takes a brief further, while Cowrite and Lyric Editor keep the human topline and the words in the room.",
-      "Practice and Academy turn a weak spot into a routine. Use them between records, not only when a deadline is already late.",
-    ],
   },
   {
+    id: "lab",
     number: "06",
     screen: "06-lab.png",
     kicker: "Visuals",
@@ -149,14 +123,9 @@ const CHAPTERS = [
       "Titles, audio and FX keyframes",
       "Projects and master export",
     ],
-    lines: [
-      "The Image and Video Lab carries a release from cover art to a finished cut.",
-      "Choose film, music video, social or broadcast before you ingest, because the mode sets the frame and delivery preset.",
-      "Cut on the timeline, then add titles, the audio bed, the look and camera capture. Effects and keyframes are stored with the clip.",
-      "Save a named project and export a master you have played back. Do not discover a raster or codec problem at delivery.",
-    ],
   },
   {
+    id: "spot",
     number: "07",
     screen: "07-spot.png",
     kicker: "Community",
@@ -168,14 +137,9 @@ const CHAPTERS = [
       "Challenges and split-screen",
       "TV, radio and Go Live",
     ],
-    lines: [
-      "Tha Spot is the community arcade. It combines discovery, social play and broadcasting.",
-      "Filter the catalogue, search the library, then read the launch mode before opening a cabinet.",
-      "Rooms and lobbies carry the session; squads, challenges, split-screen and spectator reactions carry the competition.",
-      "When you are not playing, use S.M.U.V.E TV and Jeff Radio, or start a Go Live link and invite viewers into the cabinet.",
-    ],
   },
   {
+    id: "career",
     number: "08",
     screen: "08-career.png",
     kicker: "Strategy",
@@ -187,14 +151,9 @@ const CHAPTERS = [
       "Adaptive Profile and coaching",
       "Case File verdicts and loops",
     ],
-    lines: [
-      "The strategy family turns profile evidence into a decision: Career Board, Intel Lab, Analytics, Artist Development and the coaching surfaces.",
-      "Career Board tracks opportunities and momentum. Intel Lab frames the market question, and Analytics checks the signal.",
-      "Adaptive Profile and Artist Coach read the committed identity; the Case File keeps the verdict and the open loops.",
-      "Keep measured data separate from a recommendation. A projection is not a receipt.",
-    ],
   },
   {
+    id: "business",
     number: "09",
     screen: "09-release.png",
     kicker: "Business",
@@ -206,14 +165,9 @@ const CHAPTERS = [
       "Contracts and legal documents",
       "Knowledge Base and rights",
     ],
-    lines: [
-      "The business side starts with Projects and Release Pipeline, then moves into Business Suite and the Artist Toolkit.",
-      "Projects hold the work and the delivery state. The pipeline makes each stage visible before launch.",
-      "The Toolkit covers splits, royalty estimates and the rights checklist; Business Suite holds the legal and operational flows.",
-      "Document ownership before delivery. Waiting until release week gives away the leverage you already earned.",
-    ],
   },
   {
+    id: "intelligence",
     number: "10",
     screen: "10-command.png",
     kicker: "Intelligence",
@@ -225,14 +179,9 @@ const CHAPTERS = [
       "Neural Foundry tools",
       "Voice Lab and Full Control",
     ],
-    lines: [
-      "The AI layer is the assistant, the Command Center and the Neural Foundry, all reading the same profile and case file.",
-      "Use the assistant for a specific decision, and use the command lanes to reach production, marketing or business without losing the thread.",
-      "Voice Lab controls how it speaks. Full Control lets it act; Mimic borrows your register; the memory counter keeps the thread honest.",
-      "Turn Full Control on for the task, read the receipt, then turn it off. Authority should be temporary and deliberate.",
-    ],
   },
   {
+    id: "network",
     number: "11",
     screen: "11-community.png",
     kicker: "Network",
@@ -244,14 +193,9 @@ const CHAPTERS = [
       "Storefront and Products",
       "Public artist pages",
     ],
-    lines: [
-      "The community and commerce surfaces connect collaboration, competition and selling.",
-      "Remix Arena and Cowrite carry shared sessions. The Challenge Inbox keeps invitations and callouts from disappearing.",
-      "Storefront and Products publish what you sell; the public artist page is the version a fan actually sees.",
-      "Check permissions before you share a project, and check the store listing before you call it live.",
-    ],
   },
   {
+    id: "system",
     number: "12",
     screen: "12-system.png",
     kicker: "System",
@@ -263,14 +207,9 @@ const CHAPTERS = [
       "Sync Center and PWA",
       "Theme, performance and 2FA",
     ],
-    lines: [
-      "Profile, Journey, Cloud Vault, Session Timeline and Settings are the system layer under every workspace.",
-      "Commit the profile so the assistant and the coaching surfaces read one identity, then use Journey and the adaptive views to see the arc.",
-      "Cloud Vault and Session Timeline hold backups and history; Sync Center tells you whether the current work actually landed.",
-      "Settings controls theme, HUD, performance mode and security. Test the recovery path before you need it.",
-    ],
   },
   {
+    id: "workflow",
     number: "13",
     screen: "13-workflow.png",
     kicker: "Workflow",
@@ -282,14 +221,27 @@ const CHAPTERS = [
       "Release, splits and launch",
       "Analytics and next move",
     ],
-    lines: [
-      "A complete release is one chain, not thirteen separate tools.",
-      "Start with the profile and a named project. Write and produce the record, then finish the master and the visual.",
-      "Move through the release pipeline, agree the splits, and prepare the assets each launch stage needs.",
-      "Launch, measure the signal, record the verdict in the Case File, and let the next move come from evidence.",
-    ],
   },
 ];
+
+const NARRATION = JSON.parse(
+  readFileSync(
+    path.join(ROOT, "src/app/components/settings/complete-app-guide.narration.json"),
+    "utf8"
+  )
+);
+
+// One script for both surfaces: the MP4 speaks exactly what the in-app
+// narrator reads, so no spoken line is ever written twice.
+for (const chapter of CHAPTERS) {
+  const narration = NARRATION[chapter.id];
+  if (!narration) {
+    throw new Error(
+      `No shared narration for chapter ${chapter.number} (${chapter.id})`
+    );
+  }
+  chapter.lines = [narration.intro, ...narration.features, narration.closing];
+}
 
 const FALLBACKS = {
   "01-shell.png": "artifacts/chat-tutorial/screens/01-open.png",

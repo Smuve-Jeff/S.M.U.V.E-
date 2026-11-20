@@ -4,7 +4,7 @@
  * This is the map of the shipped workspaces, not a feature wish list. Each
  * chapter points at a real route, and `tutorialAt` is the chapter start in the
  * bundled MP4. The companion build script creates the video from the same
- * chapter order.
+ * chapter order and the same spoken script.
  */
 export interface CompleteGuideLesson {
   id: string;
@@ -354,6 +354,8 @@ export const COMPLETE_GUIDE_LESSONS: readonly CompleteGuideLesson[] = [
   },
 ];
 
+import * as COMPLETE_GUIDE_NARRATION_JSON from "./complete-app-guide.narration.json";
+
 /**
  * S.M.U.V.E.'s spoken chapter script.
  *
@@ -362,6 +364,10 @@ export const COMPLETE_GUIDE_LESSONS: readonly CompleteGuideLesson[] = [
  * (highlighted as it is spoken) and a closing habit. The overlay reads it in
  * the voice spectrum, which means every chapter is teachable in real time even
  * when the video is missing, blocked or on a slow connection.
+ *
+ * The text itself lives in `complete-app-guide.narration.json` because the MP4
+ * build reads the same file: a line edited there is what both the video and the
+ * in-app narrator say, so the two can never hold different scripts.
  */
 export interface ChapterNarration {
   /** Opening transmission: what this chapter gives the artist. */
@@ -374,168 +380,9 @@ export interface ChapterNarration {
 
 export const COMPLETE_GUIDE_NARRATION: Readonly<
   Record<string, ChapterNarration>
-> = {
-  shell: {
-    intro:
-      "S.M.U.V.E. Complete application guide. Chapter one, the shell. One interface, every room in the system, and one map that does not change shape under you.",
-    features: [
-      "The sidebar sorts every room into six families: Core, Strategy, Creative, Community, Utility and Artist. Choose the family first, then the room that matches the job in front of you.",
-      "Control K opens the command palette from anywhere, and the Next Best Moves strip tells you what the system would do next. Use both when you already know the outcome you want, not just the name of a tool.",
-      "Pin the rooms you repeat and they stay at the top. Recent workspaces sit one line below, so yesterday's session is one click away instead of a search.",
-      "The top bar carries sync health, appearance, performance mode, the inbox and the assistant. Read sync health before a long session; a device that is behind does not save what you think it saved.",
-    ],
-    closing:
-      "Do not treat each card as a separate app. Every room reads the same profile, projects, release state and case file. That is the entire point of the shell.",
-  },
-  hub: {
-    intro:
-      "Chapter two, Label Hub. This is the cockpit, not the studio: it tells you which room deserves your session before you open one.",
-    features: [
-      "The command center reports release and project status first, because a record that is stuck at delivery is a different problem from one that is stuck at the mix.",
-      "Career, strategy and audience signals sit beside the records, so a release decision is made with the market in view instead of in isolation.",
-      "Recommended next moves name the work the system believes is most valuable now, and related workspaces keep the obvious follow-up one click away.",
-      "One-tap routes carry you into Studio, Career, Projects and Analytics without losing the card you were reading. Open the deep tool only after the Hub tells you which one matters.",
-    ],
-    closing:
-      "Reading the Hub is not progress. Use it to choose one objective, then leave it and do the work in the room it names.",
-  },
-  studio: {
-    intro:
-      "Chapter three, Studio. One production shell, a dedicated surface for every stage, and a curriculum that explains them while you work.",
-    features: [
-      "The Beginner Wizard starts a session with you, and the Studio Masterclass teaches the whole system in the same window. Both are real surfaces, not videos pretending to be one.",
-      "Quick Session, Arrangement, Session View and Channel Rack carry a record from a loop to a structure. Quick Session is the cockpit; the others are the detail.",
-      "Piano Roll, Score, Mixer, Effects Rack and automation are the note, notation, balance and tone stages. Finish one stage before opening the next.",
-      "DJ, Performance, Mastering and Export deliver the record. Name the export, play it back away from the session, then call it finished.",
-    ],
-    closing:
-      "Do not mix while you are still writing. Every stage changes the one after it, and a mix built on a moving arrangement is a guess.",
-  },
-  rhythm: {
-    intro:
-      "Chapter four, rhythm, performance and decks. Program it, play it, launch it, and now put a performer on a lit stage while you do.",
-    features: [
-      "Drum Machine, Piano Roll and Sampler do the programming: steps, notes and slices that stay editable forever.",
-      "The Performance grid launches scenes and clips without stopping the transport. Rehearse the order you will actually launch in.",
-      "The dual-deck DJ booth gives you hot cues, loops and crossfades, so a transition is planned instead of hoped for.",
-      "Sound Pads, the synthesizer, the tuner and Vocal Suite cover touch performance and capture. Tune before the take, not after it.",
-      "The 3D live stage sits beside the pads in Performance. Drop a glb performer or pick one from the library, choose a mood and colour, and the stage moves with the master output while you keep playing.",
-    ],
-    closing:
-      "A live set built only in Arrangement view is not a live set. Rehearse the launch order, the transitions and the stage before anyone is watching.",
-  },
-  create: {
-    intro:
-      "Chapter five, write, produce and learn. The idea comes before the session, and the craft is a discipline you can practise.",
-    features: [
-      "Composition Core and AI Produce turn a brief into musical steps you can edit. Genre is a constraint, not a cage: pick one and move.",
-      "AI Produce lands its result in the same song document as your own notes, so generated bars are raw material, not a finished record.",
-      "The Songwriting Studio holds Writer's Pad pages and co-write rooms. Write the topline and the lyric before you produce the arrangement around them.",
-      "Practice drills and Academy programs turn a weakness into a routine. A program is a sequence; a drill is the repeat that makes it stick.",
-      "Academy career paths cover acting, directing, music business and legal, marketing and promotion. The craft is part of the release, not a hobby beside it.",
-    ],
-    closing:
-      "Do not produce a song you have not written. A great arrangement around an empty idea is expensive decoration.",
-  },
-  lab: {
-    intro:
-      "Chapter six, Image and Video Lab. This is the visual room: cover art, a music video, a social cut or a broadcast package, built from the same timeline logic as the record.",
-    features: [
-      "Film, music video, social and broadcast modes set the canvas and the delivery expectations before you ingest anything. Choose the destination first.",
-      "The timeline, markers and frame-accurate nudging give you the same precision on picture that the arrangement gives you on sound.",
-      "Title cards, the audio bed, FX keyframes and camera capture are the look and the sound of the cut. Picture first, then titles, then the polish.",
-      "The Image Editor, the Video Editor, named projects and a playable master export close the loop. If the master does not play outside the Lab, it is not delivered.",
-    ],
-    closing:
-      "Never export a master you have not played back from the beginning. A still frame looks finished; a cut can still be wrong.",
-  },
-  spot: {
-    intro:
-      "Chapter seven, Tha Spot. Discovery, lobbies, squads and live broadcast: the community arcade, with a pre-flight console that keeps a bad show off the air.",
-    features: [
-      "Catalogue filters, search and recommendations find the cabinet that fits the session. Read the launch options before you open one.",
-      "Rooms, lobbies, squads and rival challenges are how players find each other. Join with a role, not just a click.",
-      "Split-screen, spectator reactions and post-run ratings make the match worth watching, not only worth playing.",
-      "S.M.U.V.E TV, Jeff Radio and the Go Live viewer links are the surfaces for everyone who is not holding a controller.",
-      "The pre-flight console sets quality, capture source, local preview, mic and game audio. It is a rehearsal room, not a stage.",
-      "Broadcast Push sends to the destinations you configured in Settings, Streaming. That Settings page is the only account and RTMP surface in the app.",
-    ],
-    closing:
-      "Going live is the one action you cannot undo. Preview locally, prove the relay, then press the button.",
-  },
-  career: {
-    intro:
-      "Chapter eight, career, strategy and evidence. Decisions you can defend beat instincts you cannot explain.",
-    features: [
-      "The Career Board shows opportunities, momentum and growth priorities. Read the board before you choose a campaign.",
-      "Intel Lab frames the question and reads the market; strategic audits and release signals tell you whether the timing is real.",
-      "Audience and performance analytics check the signal against what actually happened after the release.",
-      "The adaptive profile, Artist Coach and Case File turn each decision into evidence the next session can use.",
-    ],
-    closing:
-      "A strategy with no recorded outcome is a mood. Write the verdict into the Case File or you will repeat the experiment.",
-  },
-  business: {
-    intro:
-      "Chapter nine, release, business and rights. This is where a finished record becomes a delivered asset with ownership that survives contact with the industry.",
-    features: [
-      "Project and release stage tracking keeps the delivery chain honest: a record cannot skip a stage just because the mix sounds good.",
-      "Split sheets, royalty estimates and rights checklists exist to be filled before the release, not argued about after the first payment.",
-      "Contracts, legal documents and business pipelines hold the paperwork in the same workspace as the record it describes.",
-      "The Knowledge Base keeps the decisions you will need again, so the second release is faster than the first.",
-    ],
-    closing:
-      "Never deliver a master with an unsigned split. Ownership is cheaper to agree before money exists.",
-  },
-  intelligence: {
-    intro:
-      "Chapter ten, the AI command layer. The assistant, the Command Center and the Neural Foundry share one profile and one case file, and they act on real workspaces.",
-    features: [
-      "The assistant drawer carries production, marketing and business lanes. Brief it with genre, stage, budget and a real next move.",
-      "The Command Center holds strategic decrees and the upgrade queue: the decisions that change the plan, not the ones that change the colour.",
-      "The Neural Foundry exposes workspace tools you can run, so an answer can become an edit instead of a paragraph.",
-      "Voice Lab, Mimic, Full Control and transcript memory decide how S.M.U.V.E speaks and how far it can act. Full Control is a task setting, never a default.",
-    ],
-    closing:
-      "Turn on Full Control for one job, read the receipt, then turn it off. An assistant with standing authority is a risk with a friendly voice.",
-  },
-  network: {
-    intro:
-      "Chapter eleven, community and commerce. Collaboration, competition and selling without leaving the workspace.",
-    features: [
-      "Remix Arena and live coding sessions are for building in public with other artists. Read the ownership terms before you open a session.",
-      "Co-write rooms and shared lyric work keep attribution visible while the song is being written, which is exactly when it is easy to lose.",
-      "The Challenge Inbox, notifications and callouts are time-boxed. Answer them while they are live or let them expire deliberately.",
-      "The Storefront, products, Networking and public artist pages are the commercial face of the profile. Check them as a fan sees them, not as the owner.",
-    ],
-    closing:
-      "Sharing a project link is not publishing it. Collaboration is not distribution, and a private draft is not a store listing.",
-  },
-  system: {
-    intro:
-      "Chapter twelve, profile, cloud, timeline and settings. Identity, history, backups and security for the whole application.",
-    features: [
-      "Profile, Journey and the adaptive identity are what every other room reads. Commit the profile once instead of re-describing yourself in each tool.",
-      "Cloud Vault and Session Timeline hold history and backups. A backup you have never restored is a hope, not a backup.",
-      "Sync Center, auto-save and PWA install keep the browser and the installed app in agreement. Check the result of a save, not the intention.",
-      "Theme, HUD, performance mode, two-factor authentication and recovery codes are the machine's ergonomics and its lock. Test the recovery path before you need it.",
-    ],
-    closing:
-      "Browser storage is not a backup. Save the project and export the master; clearing local data does not restore unsaved work.",
-  },
-  workflow: {
-    intro:
-      "Chapter thirteen, one record end to end. This is the chain every release follows, and the handoffs are where records are lost.",
-    features: [
-      "Profile and a named project come first. An untitled session is a sketch that will not survive the week.",
-      "Composition, Studio and visual production turn the idea into a record and a picture of it.",
-      "The release pipeline, splits and launch assets prepare the delivery while the record is still open, so nothing is invented on release day.",
-      "Analytics, the Case File verdict and the next move close the loop. Measure what shipped, write the verdict, then choose the next objective.",
-    ],
-    closing:
-      "A great mix with no release plan is a file. A release with no record is a guess. Follow the chain and finish in order.",
-  },
-};
+> = COMPLETE_GUIDE_NARRATION_JSON as unknown as Readonly<
+  Record<string, ChapterNarration>
+>;
 
 /** The spoken script for a chapter, when one has been written. */
 export function chapterNarration(

@@ -1,5 +1,9 @@
 import { readFileSync } from 'node:fs';
-import { COMPLETE_GUIDE_LESSONS } from './complete-app-guide.lessons';
+import {
+  COMPLETE_GUIDE_LESSONS,
+  COMPLETE_GUIDE_NARRATION,
+} from './complete-app-guide.lessons';
+import * as SHARED_NARRATION from './complete-app-guide.narration.json';
 
 /**
  * The guide and the video are two halves of one product.
@@ -22,21 +26,33 @@ interface ScreenChapter {
   lines: string[];
 }
 
-/** Read the build script's CHAPTERS literal without importing the script. */
+/**
+ * Run the build script's chapter wiring without importing the script.
+ *
+ * The slice covers the CHAPTERS literal and the loop that fills each
+ * chapter's spoken lines from the shared narration file, so the test executes
+ * the same derivation the MP4 build does rather than re-deriving it here.
+ */
 function readScreenChapters(): ScreenChapter[] {
   const scriptPath = `${process.cwd()}/scripts/build-complete-app-guide.mjs`;
   const source = readFileSync(scriptPath, 'utf8');
-  const marker = 'const CHAPTERS = [';
-  const start = source.indexOf(marker);
+  const start = source.indexOf('const CHAPTERS = [');
   expect(start).toBeGreaterThan(-1);
 
-  const end = source.indexOf('\n];', start);
-  expect(end).toBeGreaterThan(start);
+  const derivation = source.indexOf('chapter.lines = [narration.intro');
+  expect(derivation).toBeGreaterThan(start);
+  const end = source.indexOf('\n}', derivation) + 2;
 
-  const literal = source.slice(start + 'const CHAPTERS = '.length, end + 2);
-  // The literal is repo source made of plain strings and arrays, so building
-  // the value is safe and keeps the test independent of the script's imports.
-  const chapters = new Function(`return ${literal};`)() as ScreenChapter[];
+  const wiring = source.slice(start, end);
+  // The slice is repo source made of plain strings, arrays and one fs read, so
+  // building the value is safe and keeps the test independent of the script's
+  // ffmpeg/TTS imports.
+  const chapters = new Function(
+    'readFileSync',
+    'path',
+    'ROOT',
+    `${wiring}\nreturn CHAPTERS;`
+  )(readFileSync, { join: (...parts: string[]) => parts.join('/') }, process.cwd()) as ScreenChapter[];
   expect(Array.isArray(chapters)).toBe(true);
   return chapters;
 }
@@ -81,6 +97,55 @@ describe('Complete Guide video chapters', () => {
       for (const line of chapter.lines) {
         expect(line.trim().length).toBeGreaterThan(20);
       }
+    }
+  });
+
+  it('reads its chapter scripts from the one shared narration module', () => {
+    // The guide's typed export and the video build both come from this JSON,
+    // so neither can hold a second copy of the spoken lines.
+    expect(COMPLETE_GUIDE_NARRATION).toEqual({ ...SHARED_NARRATION });
+
+    const scriptSource = readFileSync(
+      `${process.cwd()}/scripts/build-complete-app-guide.mjs`,
+      'utf8'
+    );
+    expect(scriptSource).toContain('complete-app-guide.narration.json');
+    // A hand-written `lines: [...]` array would be a second, drifting copy.
+    expect(scriptSource).not.toMatch(/\blines:\s*\[/);
+  });
+
+  it('speaks the same script the guide narrates, line for line', () => {
+    for (const lesson of COMPLETE_GUIDE_LESSONS) {
+      const chapter = chapters.find((entry) => entry.number === lesson.number);
+      const narration = COMPLETE_GUIDE_NARRATION[lesson.id];
+      expect(narration).toBeDefined();
+      expect(chapter).toBeDefined();
+
+      // The MP4 and the in-app narrator teach the same chapter, so they must
+      // not carry two drifting scripts: intro, one beat per feature, closing.
+      expect({
+        number: lesson.number,
+        lines: chapter?.lines,
+      }).toEqual({
+        number: lesson.number,
+        lines: [narration.intro, ...narration.features, narration.closing],
+      });
+    }
+  });
+
+  it('narrates every feature the guide highlights, and no orphan chapter', () => {
+    const narratedIds = Object.keys(COMPLETE_GUIDE_NARRATION).sort();
+    expect(narratedIds).toEqual(
+      COMPLETE_GUIDE_LESSONS.map((lesson) => lesson.id).sort()
+    );
+
+    for (const lesson of COMPLETE_GUIDE_LESSONS) {
+      const chapter = chapters.find((entry) => entry.number === lesson.number);
+      const narration = COMPLETE_GUIDE_NARRATION[lesson.id];
+      // A feature added to the guide needs its spoken beat, and the reverse.
+      // (The on-screen card chips are a shorter summary than the voice track,
+      // so only the spoken structure is required to match.)
+      expect(chapter?.lines.length).toBe(narration.features.length + 2);
     }
   });
 
