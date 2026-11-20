@@ -1,7 +1,11 @@
 import { Injectable, OnDestroy, isDevMode, signal } from '@angular/core';
 import * as THREE from 'three';
-import type { CgiObject, CgiSceneSettings } from './cgi-scene';
-import { resolveCgiFrame } from './cgi-scene';
+import type {
+  CgiMaterialPreset,
+  CgiObject,
+  CgiSceneSettings,
+} from './cgi-scene';
+import { CGI_MATERIAL_PRESETS, resolveCgiFrame } from './cgi-scene';
 
 /** How long a failed or lost GPU surface waits before a rebuild attempt. */
 const SURFACE_RETRY_MS = 1_000;
@@ -51,6 +55,7 @@ export class CgiRendererService implements OnDestroy {
   private keyLight: THREE.DirectionalLight | null = null;
   private environment: THREE.Texture | null = null;
   private environmentForReflections = false;
+  private glowTexture: THREE.CanvasTexture | null = null;
   private surfaceWidth = 0;
   private surfaceHeight = 0;
   /** Structural object list; transforms and colours update every frame. */
@@ -197,6 +202,7 @@ export class CgiRendererService implements OnDestroy {
       if (baseScale) child.scale.copy(baseScale).multiplyScalar(resolved.scale);
       else child.scale.setScalar(resolved.scale);
 
+      let modelFinish: CgiMaterialPreset | undefined;
       if (child.userData['cgiPrimitive'] === true) {
         const material = (child as THREE.Mesh).material;
         if (material instanceof THREE.MeshStandardMaterial) {
@@ -205,8 +211,37 @@ export class CgiRendererService implements OnDestroy {
           material.metalness = object.metalness ?? 0.72;
           material.roughness = object.roughness ?? 0.22;
         }
+      } else if (object.materialPreset) {
+        modelFinish = CGI_MATERIAL_PRESETS.find(
+          (preset) => preset.id === object.materialPreset,
+        );
+        this.applyModelFinish(child, modelFinish);
+      } else {
+        this.applyModelFinish(child, undefined);
       }
-      this.applyMaterialLook(child, resolved.opacity, resolved.emissive);
+
+      const glow = child.userData['cgiGlow'] as THREE.Sprite | undefined;
+      if (glow) {
+        const glowAmount =
+          settings.bloom === false
+            ? 0
+            : Math.max(0, resolved.emissive, modelFinish?.patch.emissive ?? 0);
+        glow.visible = glowAmount > 0.01;
+        if (glow.visible) {
+          const glowMaterial = glow.material;
+          glowMaterial.color.set(object.color);
+          glowMaterial.opacity = Math.min(0.85, 0.4 + glowAmount * 0.35);
+          glow.scale.setScalar(5.2 + Math.min(1.6, glowAmount * 0.5));
+        }
+      }
+
+      this.applyMaterialLook(
+        child,
+        resolved.opacity,
+        object.kind === 'model'
+          ? Math.max(resolved.emissive, modelFinish?.patch.emissive ?? 0)
+          : resolved.emissive,
+      );
     });
 
     renderer.render(scene, camera);
@@ -466,8 +501,94 @@ export class CgiRendererService implements OnDestroy {
     mesh.userData['cgiPrimitive'] = true;
     mesh.userData['cgiObjectId'] = object.id;
     mesh.userData['cgiBaseScale'] = mesh.scale.clone();
+    const glow = this.createGlow(object);
+    if (glow) {
+      mesh.add(glow);
+      mesh.userData['cgiGlow'] = glow;
+    }
     this.cacheMaterials(mesh);
     return mesh;
+  }
+
+  /**
+   * A small additive sprite gives emissive objects a bloom halo without a
+   * post-processing pass. It keeps the transparent canvas transparent, which a
+   * full-screen bloom target would not.
+   */
+  private createGlow(object: CgiObject): THREE.Sprite | null {
+    const texture = this.ensureGlowTexture();
+    if (!texture) return null;
+    const material = new THREE.SpriteMaterial({
+      map: texture,
+      color: new THREE.Color(object.color),
+      transparent: true,
+      opacity: 0,
+      depthWrite: false,
+      depthTest: false,
+      blending: THREE.AdditiveBlending,
+      toneMapped: false,
+    });
+    const glow = new THREE.Sprite(material);
+    glow.visible = false;
+    glow.renderOrder = 2;
+    glow.scale.setScalar(3.1);
+    glow.userData['cgiGlow'] = true;
+    return glow;
+  }
+
+  private ensureGlowTexture(): THREE.CanvasTexture | null {
+    if (this.glowTexture) return this.glowTexture;
+    if (typeof document === 'undefined' || typeof WebGLRenderingContext === 'undefined') {
+      return null;
+    }
+    try {
+      const canvas = document.createElement('canvas');
+      canvas.width = 128;
+      canvas.height = 128;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return null;
+      const gradient = ctx.createRadialGradient(64, 64, 0, 64, 64, 64);
+      // Keep the centre clear: the halo should surround the surface, not wash
+      // the object itself out to white.
+      gradient.addColorStop(0, 'rgba(255,255,255,0)');
+      gradient.addColorStop(0.32, 'rgba(255,255,255,0.08)');
+      gradient.addColorStop(0.5, 'rgba(255,255,255,0.6)');
+      gradient.addColorStop(0.72, 'rgba(255,255,255,0.12)');
+      gradient.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, 128, 128);
+      const texture = new THREE.CanvasTexture(canvas);
+      texture.colorSpace = THREE.SRGBColorSpace;
+      this.glowTexture = texture;
+      return texture;
+    } catch {
+      return null;
+    }
+  }
+
+  /** Apply or restore a model's PBR scalars; its textures and colours stay. */
+  private applyModelFinish(
+    root: THREE.Object3D,
+    finish: CgiMaterialPreset | undefined,
+  ): void {
+    const materials =
+      (root.userData['cgiMaterials'] as THREE.Material[] | undefined) ?? [];
+    for (const material of materials) {
+      if (!(material instanceof THREE.MeshStandardMaterial)) continue;
+      const data = material.userData;
+      if (!Number.isFinite(data['cgiBaseMetalness'])) {
+        data['cgiBaseMetalness'] = material.metalness;
+      }
+      if (!Number.isFinite(data['cgiBaseRoughness'])) {
+        data['cgiBaseRoughness'] = material.roughness;
+      }
+      material.metalness = finish
+        ? (finish.patch.metalness ?? material.metalness)
+        : (data['cgiBaseMetalness'] as number);
+      material.roughness = finish
+        ? (finish.patch.roughness ?? material.roughness)
+        : (data['cgiBaseRoughness'] as number);
+    }
   }
 
   private addModelClone(source: THREE.Group, object: CgiObject): void {
@@ -480,6 +601,11 @@ export class CgiRendererService implements OnDestroy {
     // Preserve the auto-fit scale; the resolver supplies the authored scale.
     clone.userData['cgiBaseScale'] = clone.scale.clone();
     this.cacheMaterials(clone);
+    const glow = this.createGlow(object);
+    if (glow) {
+      clone.add(glow);
+      clone.userData['cgiGlow'] = glow;
+    }
     this.objectRoot?.add(clone);
   }
 
@@ -660,6 +786,10 @@ export class CgiRendererService implements OnDestroy {
 
   private disposeObject(root: THREE.Object3D): void {
     root.traverse((child) => {
+      if (child instanceof THREE.Sprite) {
+        child.material.dispose();
+        return;
+      }
       if (!(child instanceof THREE.Mesh)) return;
       child.geometry?.dispose();
       const material = child.material;
@@ -677,6 +807,8 @@ export class CgiRendererService implements OnDestroy {
       | THREE.Material[]
       | undefined;
     materials?.forEach((material) => material.dispose());
+    const glow = root.userData['cgiGlow'] as THREE.Sprite | undefined;
+    glow?.material.dispose();
   }
 
   /**
@@ -724,6 +856,8 @@ export class CgiRendererService implements OnDestroy {
     this.surfaceHeight = 0;
     this.environment = null;
     this.environmentForReflections = false;
+    this.glowTexture?.dispose();
+    this.glowTexture = null;
   }
 
   private handleSurfaceFailure(baseDelayMs: number, detail: string): void {

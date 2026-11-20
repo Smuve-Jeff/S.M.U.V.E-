@@ -288,10 +288,10 @@ describe('CgiScenePanelComponent', () => {
     expect(emitted[3].objects[0].roughness).toBe(0.65);
   });
 
-  it('applies one finish to every built-in primitive', () => {
+  it('applies one finish to every primitive and inherits it on add', () => {
     const scene = createDefaultCgiScene();
     scene.objects.push(createCgiPrimitive('cube', 1));
-    const { component, emitted } = create(scene);
+    const { component, emitted, fixture } = create(scene);
 
     component.applySceneMaterialPreset('matte');
 
@@ -303,6 +303,16 @@ describe('CgiScenePanelComponent', () => {
         emissive: 0,
       });
     }
+
+    fixture.componentRef.setInput('scene', emitted[0]);
+    fixture.detectChanges();
+    component.addPrimitive();
+
+    expect(emitted[1].objects[2]).toMatchObject({
+      metalness: 0.08,
+      roughness: 0.82,
+      emissive: 0,
+    });
   });
 
   it('applies a finish preset and clamps the glow control', () => {
@@ -312,11 +322,42 @@ describe('CgiScenePanelComponent', () => {
     expect(emitted[0].objects[0]).toMatchObject({
       metalness: 0.14,
       roughness: 0.16,
-      emissive: 1.6,
+      emissive: 0.55,
     });
 
     component.setObjectEmissive('cgi-torus', 99);
     expect(emitted[1].objects[0].emissive).toBe(4);
+  });
+
+  it('clears the inherited scene finish', () => {
+    const { component, emitted } = create(createDefaultCgiScene());
+
+    component.applySceneMaterialPreset('neon');
+    component.clearSceneMaterialPreset();
+
+    expect(emitted[0].materialPreset).toBe('neon');
+    expect(emitted[1].materialPreset).toBeUndefined();
+  });
+
+  it('opts one imported model into a finish and back to its own materials', () => {
+    const scene = createDefaultCgiScene();
+    scene.objects.push({
+      id: 'hero',
+      name: 'Hero',
+      kind: 'model',
+      color: '#ffffff',
+      position: [0, 0, 0],
+      scale: 1,
+      spin: 0,
+      modelDataUrl: 'data:model/gltf-binary;base64,AAAA',
+    });
+    const { component, emitted } = create(scene);
+
+    component.applyMaterialPreset('hero', 'chrome');
+    expect(emitted[0].objects[1].materialPreset).toBe('chrome');
+
+    component.clearObjectMaterialPreset('hero');
+    expect(emitted[1].objects[1].materialPreset).toBeUndefined();
   });
 
   it('applies a look preset while keeping the authored objects', () => {

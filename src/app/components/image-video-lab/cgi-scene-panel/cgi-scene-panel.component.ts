@@ -16,6 +16,7 @@ import {
   applyCgiMaterialPreset,
   applyCgiMaterialPresetToAll,
   applyCgiScenePreset,
+  clearCgiMaterialPreset,
   cgiChannelValueAt,
   createCgiPrimitive,
   removeCgiKeyframe,
@@ -151,8 +152,12 @@ export class CgiScenePanelComponent {
     const scene = this.scene();
     if (!scene || this.refuseWhenFull()) return;
     this.sceneError.set(null);
+    const inherited = CGI_MATERIAL_PRESETS.find(
+      (preset) => preset.id === scene.materialPreset,
+    )?.patch;
     const object = {
       ...createCgiPrimitive(this.primitive, scene.objects.length),
+      ...(inherited ?? {}),
       position: this.slot(scene.objects),
     };
     this.selectedObjectId.set(object.id);
@@ -293,6 +298,18 @@ export class CgiScenePanelComponent {
     const scene = this.scene();
     if (!scene) return;
     this.sceneChange.emit(applyCgiMaterialPresetToAll(scene, presetId));
+  }
+
+  clearSceneMaterialPreset(): void {
+    const scene = this.scene();
+    if (!scene) return;
+    this.sceneChange.emit(clearCgiMaterialPreset(scene));
+  }
+
+  clearObjectMaterialPreset(id: string): void {
+    const scene = this.scene();
+    if (!scene) return;
+    this.sceneChange.emit(clearCgiMaterialPreset(scene, id));
   }
 
   /**

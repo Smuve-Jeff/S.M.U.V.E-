@@ -433,13 +433,20 @@ test('drives the CGI stage presets, camera controls and object inspector', async
   expect(finish).toMatchObject({
     metalness: 0.14,
     roughness: 0.16,
-    emissive: 1.6,
+    emissive: 0.55,
   });
 
-  await page
-    .getByRole('group', { name: 'CGI scene finishes' })
-    .getByRole('button', { name: 'Matte', exact: true })
-    .click();
+  const sceneFinishes = page.getByRole('group', { name: 'CGI scene finishes' });
+  const matteFinish = sceneFinishes.getByRole('button', {
+    name: 'Matte',
+    exact: true,
+  });
+  await matteFinish.click();
+  await expect(matteFinish).toHaveAttribute('aria-pressed', 'true');
+  await expect(
+    sceneFinishes.getByRole('button', { name: 'Clear', exact: true }),
+  ).toHaveAttribute('aria-pressed', 'false');
+
   const sceneFinish = await page.evaluate(() => {
     const host = document.querySelector('app-image-video-lab') as any;
     return (window as any).ng?.getComponent?.(host)?.selectedCgiScene?.()
@@ -451,12 +458,101 @@ test('drives the CGI stage presets, camera controls and object inspector', async
     emissive: 0,
   });
 
+  await page.getByRole('checkbox', { name: 'BLOOM' }).click();
+  const bloomOff = await page.evaluate(() => {
+    const host = document.querySelector('app-image-video-lab') as any;
+    return (window as any).ng?.getComponent?.(host)?.selectedCgiScene?.()?.bloom;
+  });
+  expect(bloomOff).toBe(false);
+
   const selectedObject = await page.evaluate(() => {
     const panel = document.querySelector('app-cgi-scene-panel');
     const component = (window as any).ng?.getComponent?.(panel);
     return component?.selectedObjectId?.();
   });
   expect(selectedObject).toBe('cgi-torus');
+
+  await page.getByRole('button', { name: 'ADD OBJECT' }).click();
+  const inheritedFinish = await page.evaluate(() => {
+    const host = document.querySelector('app-image-video-lab') as any;
+    return (window as any).ng?.getComponent?.(host)?.selectedCgiScene?.()
+      ?.objects?.[1];
+  });
+  expect(inheritedFinish).toMatchObject({
+    metalness: 0.08,
+    roughness: 0.82,
+    emissive: 0,
+  });
+});
+
+test('renders a neon bloom on the CGI program monitor', async ({ page }) => {
+  await page.goto('/image-video-lab');
+  await expect(page.locator('.project-console')).toBeVisible({
+    timeout: 60_000,
+  });
+  await ingestStill(page, 'cgi-bloom.png');
+  await page.evaluate(() => {
+    const host = document.querySelector('app-image-video-lab') as any;
+    const component = (window as any).ng?.getComponent?.(host);
+    component?.videoEngine?.currentTime?.set?.(0);
+  });
+  await page.getByRole('button', { name: 'ADD CGI LAYER' }).click();
+  await page
+    .getByRole('group', { name: 'CGI scene finishes' })
+    .getByRole('button', { name: 'Neon', exact: true })
+    .click();
+
+  await expect
+    .poll(() => readMonitorSignal(page), { timeout: 20_000 })
+    .toBeGreaterThan(0.01);
+  // Give the GPU one repaint after the finish change before capturing pixels.
+  await page.waitForTimeout(500);
+
+  const bloom = await page.evaluate(() => {
+    const host = document.querySelector('app-image-video-lab') as any;
+    const component = (window as any).ng?.getComponent?.(host);
+    const renderer = component?.cgiRenderer;
+    const mesh = renderer?.objectRoot?.children?.[0];
+    const glow = mesh?.userData?.cgiGlow;
+    return {
+      visible: glow?.visible ?? false,
+      opacity: glow?.material?.opacity ?? 0,
+      scale: glow?.scale?.x ?? 0,
+    };
+  });
+  expect(bloom.visible).toBe(true);
+  expect(bloom.opacity).toBeGreaterThan(0.3);
+  expect(bloom.scale).toBeGreaterThan(4);
+
+  await expect(page.locator('.monitor-canvas')).toHaveScreenshot(
+    'cgi-monitor-neon.png',
+    { animations: 'disabled', maxDiffPixelRatio: 0.02 },
+  );
+});
+
+test('keeps the CGI finish strip visually stable', async ({ page }) => {
+  await page.goto('/image-video-lab');
+  await expect(page.locator('.project-console')).toBeVisible({
+    timeout: 60_000,
+  });
+  await page.getByRole('button', { name: 'ADD CGI LAYER' }).click();
+
+  const strip = page.locator('.cgi-finish-all');
+  await expect(strip).toBeVisible();
+  await page.mouse.move(0, 0);
+  await expect(strip).toHaveScreenshot('cgi-finish-all-default.png', {
+    animations: 'disabled',
+    maxDiffPixelRatio: 0.01,
+  });
+
+  await strip
+    .getByRole('button', { name: 'Neon', exact: true })
+    .click();
+  await page.mouse.move(0, 0);
+  await expect(strip).toHaveScreenshot('cgi-finish-all-neon.png', {
+    animations: 'disabled',
+    maxDiffPixelRatio: 0.01,
+  });
 });
 
 test('divides the visuals lane into scene cards from the act structure', async ({

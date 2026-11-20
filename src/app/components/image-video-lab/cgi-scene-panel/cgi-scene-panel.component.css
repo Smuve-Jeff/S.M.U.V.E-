@@ -176,6 +176,13 @@
   color: #e0f2fe;
 }
 
+.cgi-preset.is-active {
+  border-color: rgba(125, 211, 252, 0.9);
+  background: rgba(56, 189, 248, 0.28);
+  color: #f0f9ff;
+  box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.18) inset;
+}
+
 .cgi-camera {
   gap: 0.55rem;
 }

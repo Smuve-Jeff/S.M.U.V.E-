@@ -50,6 +50,8 @@ export interface CgiObject {
   roughness?: number;
   /** Base glow for built-in primitives, 0..4. Keyframes override it. */
   emissive?: number;
+  /** Opt-in finish for an imported model; primitives store resolved values. */
+  materialPreset?: CgiMaterialPresetId;
 }
 
 export type CgiAnimationChannel =
@@ -108,6 +110,10 @@ export interface CgiAnimationSettings {
 export interface CgiSceneSettings {
   enabled: boolean;
   objects: CgiObject[];
+  /** Last finish applied scene-wide; newly added primitives inherit it. */
+  materialPreset?: CgiMaterialPresetId;
+  /** Additive glow around emissive objects. Missing means enabled. */
+  bloom?: boolean;
   cameraMove: CgiCameraMove;
   /** Camera distance from origin, in scene units. */
   cameraDistance: number;
@@ -287,7 +293,7 @@ export const CGI_MATERIAL_PRESETS: readonly CgiMaterialPreset[] = [
     id: 'neon',
     label: 'Neon',
     description: 'Smooth surface with a coloured glow that survives export.',
-    patch: { metalness: 0.14, roughness: 0.16, emissive: 1.6 },
+    patch: { metalness: 0.14, roughness: 0.16, emissive: 0.55 },
   },
 ];
 
@@ -425,6 +431,9 @@ const isModelDataUrl = (value: unknown): value is string =>
 
 const isCameraMove = (value: unknown): value is CgiCameraMove =>
   CGI_CAMERA_MOVES.some((move) => move.id === value);
+
+const isMaterialPreset = (value: unknown): value is CgiMaterialPresetId =>
+  CGI_MATERIAL_PRESETS.some((preset) => preset.id === value);
 
 const isAnimationChannel = (value: unknown): value is CgiAnimationChannel =>
   typeof value === 'string' && CHANNEL_BY_ID.has(value as CgiAnimationChannel);
@@ -616,15 +625,41 @@ export function applyCgiMaterialPreset(
 ): CgiSceneSettings {
   const preset = CGI_MATERIAL_PRESETS.find((entry) => entry.id === presetId);
   const object = scene.objects.find((entry) => entry.id === objectId);
-  if (!preset || !object || object.kind === 'model') return scene;
+  if (!preset || !object) return scene;
   return (
     sanitizeCgiScene({
       ...scene,
-      objects: scene.objects.map((entry) =>
-        entry.id === objectId ? { ...entry, ...preset.patch } : entry,
-      ),
+      objects: scene.objects.map((entry) => {
+        if (entry.id !== objectId) return entry;
+        return entry.kind === 'model'
+          ? { ...entry, materialPreset: preset.id }
+          : { ...entry, ...preset.patch };
+      }),
     }) ?? scene
   );
+}
+
+export function clearCgiMaterialPreset(
+  scene: CgiSceneSettings,
+  objectId?: string,
+): CgiSceneSettings {
+  if (!objectId) {
+    if (!scene.materialPreset) return scene;
+    const next = { ...scene };
+    delete next.materialPreset;
+    return next;
+  }
+  const object = scene.objects.find((entry) => entry.id === objectId);
+  if (!object?.materialPreset) return scene;
+  return {
+    ...scene,
+    objects: scene.objects.map((entry) => {
+      if (entry.id !== objectId) return entry;
+      const next = { ...entry };
+      delete next.materialPreset;
+      return next;
+    }),
+  };
 }
 
 /**
@@ -636,15 +671,17 @@ export function applyCgiMaterialPresetToAll(
   presetId: string,
 ): CgiSceneSettings {
   const preset = CGI_MATERIAL_PRESETS.find((entry) => entry.id === presetId);
-  if (!preset || !scene.objects.some((entry) => entry.kind !== 'model')) {
-    return scene;
-  }
+  if (!preset) return scene;
   return (
     sanitizeCgiScene({
       ...scene,
-      objects: scene.objects.map((entry) =>
-        entry.kind === 'model' ? entry : { ...entry, ...preset.patch },
-      ),
+      materialPreset: preset.id,
+      objects: scene.objects.map((entry) => {
+        if (entry.kind !== 'model') return { ...entry, ...preset.patch };
+        return entry.materialPreset
+          ? { ...entry, materialPreset: preset.id }
+          : entry;
+      }),
     }) ?? scene
   );
 }
@@ -689,6 +726,9 @@ export function sanitizeCgiScene(value: unknown): CgiSceneSettings | null {
             metalness: num(candidate.metalness, 0.72, 0, 1),
             roughness: num(candidate.roughness, 0.22, 0, 1),
             emissive: num(candidate.emissive, 0, 0, 4),
+            ...(candidate.kind === 'model' && isMaterialPreset(candidate.materialPreset)
+              ? { materialPreset: candidate.materialPreset }
+              : {}),
             ...(modelDataUrl ? { modelDataUrl } : {}),
           };
         })
@@ -723,6 +763,10 @@ export function sanitizeCgiScene(value: unknown): CgiSceneSettings | null {
     reflections: raw.reflections !== false,
     background: raw.background === 'dark' ? 'dark' : 'transparent',
     spin: num(raw.spin, defaults.spin, -4, 4),
+    ...(isMaterialPreset(raw.materialPreset)
+      ? { materialPreset: raw.materialPreset }
+      : {}),
+    ...(raw.bloom === false ? { bloom: false } : {}),
     ...(timeOffset > 0 ? { timeOffset } : {}),
     ...(sequenceDuration > 0 ? { sequenceDuration } : {}),
     ...(animation ? { animation } : {}),

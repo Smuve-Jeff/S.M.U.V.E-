@@ -8,6 +8,7 @@ import {
   applyCgiMaterialPreset,
   applyCgiMaterialPresetToAll,
   cgiCameraPose,
+  clearCgiMaterialPreset,
   cgiChannelValueAt,
   createCgiPrimitive,
   createDefaultCgiScene,
@@ -110,10 +111,10 @@ describe('CGI scene data', () => {
     expect(next.objects[0]).toMatchObject({
       metalness: 0.14,
       roughness: 0.16,
-      emissive: 1.6,
+      emissive: 0.55,
     });
-    expect(resolveCgiFrame(next, 0).objects[0].emissive).toBe(1.6);
-    expect(cgiChannelValueAt(next, 'cgi-torus', 'emissive', 0)).toBe(1.6);
+    expect(resolveCgiFrame(next, 0).objects[0].emissive).toBe(0.55);
+    expect(cgiChannelValueAt(next, 'cgi-torus', 'emissive', 0)).toBe(0.55);
     expect(CGI_MATERIAL_PRESETS).toHaveLength(4);
     expect(applyCgiMaterialPreset(next, 'missing', 'chrome')).toBe(next);
     expect(applyCgiMaterialPreset(next, 'cgi-torus', 'missing')).toBe(next);
@@ -152,10 +153,34 @@ describe('CGI scene data', () => {
       kind: 'model',
       metalness: 0.72,
     });
+    expect(next.materialPreset).toBe('matte');
     expect(applyCgiMaterialPresetToAll(withModel, 'missing')).toBe(withModel);
   });
 
-  it('does not overwrite an imported model with a primitive finish', () => {
+  it('restores only known finishes and the bloom switch', () => {
+    expect(
+      sanitizeCgiScene({ materialPreset: 'neon' })?.materialPreset,
+    ).toBe('neon');
+    expect(
+      sanitizeCgiScene({ materialPreset: 'glitter' })?.materialPreset,
+    ).toBeUndefined();
+    expect(sanitizeCgiScene({ bloom: false })?.bloom).toBe(false);
+    expect(sanitizeCgiScene({ bloom: true })?.bloom).toBeUndefined();
+    expect(
+      sanitizeCgiScene({
+        objects: [
+          {
+            id: 'hero',
+            kind: 'model',
+            modelDataUrl: 'data:model/gltf-binary;base64,AAAA',
+            materialPreset: 'neon',
+          },
+        ],
+      })?.objects[0].materialPreset,
+    ).toBe('neon');
+  });
+
+  it('opts a model into a finish without changing its stored PBR values', () => {
     const scene = sanitizeCgiScene({
       objects: [
         {
@@ -166,7 +191,28 @@ describe('CGI scene data', () => {
       ],
     })!;
 
-    expect(applyCgiMaterialPreset(scene, 'hero', 'chrome')).toBe(scene);
+    const next = applyCgiMaterialPreset(scene, 'hero', 'chrome');
+
+    expect(next.objects[0]).toMatchObject({
+      kind: 'model',
+      materialPreset: 'chrome',
+      metalness: 0.72,
+    });
+    expect(clearCgiMaterialPreset(next, 'hero').objects[0].materialPreset).toBeUndefined();
+  });
+
+  it('clears the scene-wide finish used for new primitives', () => {
+    const scene = applyCgiMaterialPresetToAll(
+      createDefaultCgiScene(),
+      'chrome',
+    );
+
+    const cleared = clearCgiMaterialPreset(scene);
+
+    expect(scene.materialPreset).toBe('chrome');
+    expect(cleared.materialPreset).toBeUndefined();
+    expect(cleared.objects).toEqual(scene.objects);
+    expect(clearCgiMaterialPreset(cleared)).toBe(cleared);
   });
 
   it('applies a stage look without disturbing objects, colours or keys', () => {

@@ -78,12 +78,24 @@
             <button
               type="button"
               class="cgi-preset"
+              [class.is-active]="stage.materialPreset === preset.id"
+              [attr.aria-pressed]="stage.materialPreset === preset.id"
               [title]="preset.description"
               (click)="applySceneMaterialPreset(preset.id)"
             >
               {{ preset.label }}
             </button>
           }
+          <button
+            type="button"
+            class="cgi-preset"
+            [class.is-active]="!stage.materialPreset"
+            [attr.aria-pressed]="!stage.materialPreset"
+            title="Clear the inherited finish for new primitives."
+            (click)="clearSceneMaterialPreset()"
+          >
+            Clear
+          </button>
         </div>
       </div>
 
@@ -191,6 +203,14 @@
             (ngModelChange)="patch({ background: $event ? 'dark' : 'transparent' })"
           />
           DARK PLATE
+        </label>
+        <label>
+          <input
+            type="checkbox"
+            [ngModel]="stage.bloom !== false"
+            (ngModelChange)="patch({ bloom: !!$event })"
+          />
+          BLOOM
         </label>
       </div>
 
@@ -459,9 +479,37 @@
             </label>
           } @else {
             <p class="cgi-copy">
-              Imported models keep their own materials; position, scale and spin
-              still apply.
+              Imported models keep their own materials unless you choose an
+              override. PBR maps stay intact.
             </p>
+            <div
+              class="cgi-presets"
+              role="group"
+              aria-label="CGI model finishes"
+            >
+              <button
+                type="button"
+                class="cgi-preset"
+                [class.is-active]="!object.materialPreset"
+                [attr.aria-pressed]="!object.materialPreset"
+                title="Keep the model's own metalness, roughness and glow."
+                (click)="clearObjectMaterialPreset(object.id)"
+              >
+                Own
+              </button>
+              @for (preset of materialPresets; track preset.id) {
+                <button
+                  type="button"
+                  class="cgi-preset"
+                  [class.is-active]="object.materialPreset === preset.id"
+                  [attr.aria-pressed]="object.materialPreset === preset.id"
+                  [title]="preset.description"
+                  (click)="applyMaterialPreset(object.id, preset.id)"
+                >
+                  {{ preset.label }}
+                </button>
+              }
+            </div>
           }
         </fieldset>
       } @else {
