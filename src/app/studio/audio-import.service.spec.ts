@@ -33,6 +33,39 @@ describe("AudioImportService (stretch engine)", () => {
     return buf;
   }
 
+  /** A valid PCM16 WAV whose header declares the supplied format. */
+  function makeWavFile(
+    name: string,
+    seconds: number,
+    sampleRate: number,
+    channels: number,
+  ): File {
+    const bytesPerSample = 2 * channels;
+    const dataBytes = Math.round(seconds * sampleRate) * bytesPerSample;
+    const bytes = new ArrayBuffer(44 + dataBytes);
+    const view = new DataView(bytes);
+    const tag = (at: number, value: string) =>
+      [...value].forEach((char, index) =>
+        view.setUint8(at + index, char.charCodeAt(0)),
+      );
+
+    tag(0, "RIFF");
+    view.setUint32(4, bytes.byteLength - 8, true);
+    tag(8, "WAVE");
+    tag(12, "fmt ");
+    view.setUint32(16, 16, true);
+    view.setUint16(20, 1, true);
+    view.setUint16(22, channels, true);
+    view.setUint32(24, sampleRate, true);
+    view.setUint32(28, sampleRate * bytesPerSample, true);
+    view.setUint16(32, bytesPerSample, true);
+    view.setUint16(34, 16, true);
+    tag(36, "data");
+    view.setUint32(40, dataBytes, true);
+
+    return new File([bytes], name, { type: "audio/wav" });
+  }
+
   beforeEach(() => {
     jest.clearAllMocks();
     (globalThis.URL as any).createObjectURL ??= jest.fn(() => "blob:mock");
@@ -95,6 +128,24 @@ describe("AudioImportService (stretch engine)", () => {
 
   it("should create", () => {
     expect(service).toBeTruthy();
+  });
+
+  it("reads a long mono WAV's duration from its header", async () => {
+    const file = makeWavFile("mono-12s.wav", 12, 8_000, 1);
+
+    const seconds = await (service as any).estimateDurationFromFile(file);
+
+    expect(seconds).toBeCloseTo(12, 3);
+    expect(seconds).toBeGreaterThan(10);
+  });
+
+  it("reads a long stereo WAV's duration from its header", async () => {
+    const file = makeWavFile("stereo-12s.wav", 12, 8_000, 2);
+
+    const seconds = await (service as any).estimateDurationFromFile(file);
+
+    expect(seconds).toBeCloseTo(12, 3);
+    expect(seconds).toBeGreaterThan(10);
   });
 
   it("should time-stretch a buffer by 2x (slower)", () => {
