@@ -19,6 +19,7 @@ import {
   CharacterLibraryService,
   type SavedCharacterModel,
 } from "./character-library.service";
+import { portraitCameraDistance } from "./portrait-framing";
 
 type ThreeModule = typeof import("three");
 type Renderer = import("three").WebGLRenderer;
@@ -1423,12 +1424,8 @@ export class VisualStageComponent implements AfterViewInit, OnDestroy {
     if (!Number.isFinite(size.y) || size.y <= 0) return null;
 
     const camera = new three.PerspectiveCamera(32, 1, 0.05, 60);
-    const distance = Math.max(size.y, size.x) * 1.6 + 0.4;
-    camera.position.set(
-      centre.x,
-      centre.y + size.y * 0.05,
-      centre.z + distance,
-    );
+    const distance = portraitCameraDistance(size, camera.fov);
+    camera.position.set(centre.x, centre.y, centre.z + distance);
     camera.lookAt(centre);
 
     const hidden: Object3D[] = [];
