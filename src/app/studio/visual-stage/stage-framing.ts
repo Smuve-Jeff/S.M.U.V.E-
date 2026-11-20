@@ -75,6 +75,27 @@ export function stageFloorScale(extents: StageExtents | null): number {
   return Math.min(MAX_FLOOR_SCALE, Math.max(1, needed));
 }
 
+/** Outer radius of the spectrum's light-bar ring at its designed size. */
+export const BAR_RING_RADIUS = 2.02;
+/** The bars sit just outside the performer's furthest corner. */
+const BAR_RING_CLEARANCE = 1.06;
+
+/**
+ * Scale for the spectrum's light-bar rings. They follow the floor outwards, and
+ * always clear the performer's footprint so a wide model cannot stand on top of
+ * them, but they stay inside the floor disc the stage grew.
+ */
+export function stageBarRingScale(
+  extents: StageExtents | null,
+  floorScale = 1,
+): number {
+  const floor = Number.isFinite(floorScale) && floorScale > 0 ? floorScale : 1;
+  if (!extents) return floor;
+  const reach = Math.hypot(Math.max(0, extents.x), Math.max(0, extents.z)) / 2;
+  if (!Number.isFinite(reach) || reach <= 0) return floor;
+  return Math.max(floor, (reach * BAR_RING_CLEARANCE) / BAR_RING_RADIUS);
+}
+
 export interface OrbitLimits {
   min: number;
   max: number;

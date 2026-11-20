@@ -21,11 +21,13 @@ import {
 } from "./character-library.service";
 import { portraitCameraDistance } from "./portrait-framing";
 import {
+  BAR_RING_RADIUS,
   BASE_FLOOR_RADIUS,
   DEFAULT_ORBIT_RADIUS,
   MAX_ORBIT_RADIUS,
   MIN_ORBIT_RADIUS,
   orbitLimitsFor,
+  stageBarRingScale,
   stageCameraDistance,
   stageFloorScale,
   stageFogRange,
@@ -170,6 +172,8 @@ interface AvatarJoints {
 
 const BAR_COUNT = 64;
 const INNER_BAR_COUNT = 40;
+/** Radius of the inner light-bar ring at its designed size. */
+const INNER_BAR_RING_RADIUS = 1.5;
 const WAVE_POINTS = 96;
 
 /**
@@ -321,6 +325,7 @@ export class VisualStageComponent implements AfterViewInit, OnDestroy {
   private stageExtents: StageExtents | null = null;
   private frameRadius = DEFAULT_ORBIT_RADIUS;
   private floorScale = 1;
+  private barRingScale = 1;
   private minOrbitRadius = MIN_ORBIT_RADIUS;
   private maxOrbitRadius = MAX_ORBIT_RADIUS;
 
@@ -436,6 +441,7 @@ export class VisualStageComponent implements AfterViewInit, OnDestroy {
   private applyStageFloor(): void {
     this.floorScale = stageFloorScale(this.stageExtents);
     this.floorMesh?.scale.set(this.floorScale, this.floorScale, 1);
+    this.barRingScale = stageBarRingScale(this.stageExtents, this.floorScale);
   }
 
   /** Keep the fog behind the performer when the camera has to pull back. */
@@ -2024,6 +2030,8 @@ export class VisualStageComponent implements AfterViewInit, OnDestroy {
   private updateSpectrum(): void {
     if (!this.bars || !this.innerBars || !this.three) return;
     const dummy = this.getDummy();
+    const ring = BAR_RING_RADIUS * this.barRingScale;
+    const innerRing = INNER_BAR_RING_RADIUS * this.barRingScale;
 
     for (let i = 0; i < BAR_COUNT; i += 1) {
       const angle = (i / BAR_COUNT) * Math.PI * 2 - Math.PI / 2;
@@ -2034,9 +2042,9 @@ export class VisualStageComponent implements AfterViewInit, OnDestroy {
       const value = Math.max(this.barValues[i], idle);
       const height = 0.06 + Math.pow(value, 1.35) * 1.5;
       dummy.position.set(
-        Math.cos(angle) * 2.02,
+        Math.cos(angle) * ring,
         height / 2,
-        Math.sin(angle) * 2.02,
+        Math.sin(angle) * ring,
       );
       dummy.rotation.set(0, -angle, 0);
       dummy.scale.set(1, height, 1);
@@ -2054,9 +2062,9 @@ export class VisualStageComponent implements AfterViewInit, OnDestroy {
       const value = Math.max(this.innerBarValues[i], idle);
       const height = 0.05 + Math.pow(value, 1.4) * 0.82;
       dummy.position.set(
-        Math.cos(angle) * 1.5,
+        Math.cos(angle) * innerRing,
         0.22 + height / 2,
-        Math.sin(angle) * 1.5,
+        Math.sin(angle) * innerRing,
       );
       dummy.rotation.set(0, -angle, 0);
       dummy.scale.set(1, height, 1);

@@ -1,9 +1,11 @@
 import {
+  BAR_RING_RADIUS,
   BASE_FLOOR_RADIUS,
   DEFAULT_ORBIT_RADIUS,
   MAX_ORBIT_RADIUS,
   MIN_ORBIT_RADIUS,
   orbitLimitsFor,
+  stageBarRingScale,
   stageCameraDistance,
   stageFloorScale,
   stageFogRange,
@@ -100,6 +102,34 @@ describe("stageFloorScale", () => {
 
   it("stops growing once the disc outgrows the frame", () => {
     expect(stageFloorScale({ x: 60, y: 2.65, z: 10 })).toBe(5);
+  });
+});
+
+describe("stageBarRingScale", () => {
+  it("leaves the bars alone for the built-in performer", () => {
+    expect(stageBarRingScale(null)).toBe(1);
+    expect(stageBarRingScale(humanoid, 1)).toBe(1);
+  });
+
+  it("moves the bars clear of a wide performer", () => {
+    const scale = stageBarRingScale(sofa, stageFloorScale(sofa));
+
+    expect(BAR_RING_RADIUS * scale).toBeGreaterThan(
+      Math.hypot(sofa.x, sofa.z) / 2,
+    );
+  });
+
+  it("keeps the bars inside the floor disc", () => {
+    const scale = stageBarRingScale(sofa, stageFloorScale(sofa));
+
+    expect(BAR_RING_RADIUS * scale).toBeLessThan(
+      BASE_FLOOR_RADIUS * stageFloorScale(sofa),
+    );
+  });
+
+  it("never shrinks below the floor's own scale", () => {
+    expect(stageBarRingScale(null, 2.5)).toBe(2.5);
+    expect(stageBarRingScale(humanoid, 1.4)).toBe(1.4);
   });
 });
 
