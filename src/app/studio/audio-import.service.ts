@@ -343,12 +343,20 @@ export class AudioImportService {
    * its real byte rate in the fmt chunk, so read that instead of assuming
    * stereo PCM: a 12s mono WAV is only 1.15 MB and a size-based stereo guess
    * routed it through a full decode, never creating a SampleStreamer.
+   *
+   * Chunks are walked rather than read at fixed offsets: metadata such as a
+   * LIST or JUNK chunk may legally sit before `fmt `, and the old fixed offset
+   * then read a byte rate out of unrelated bytes.
    */
   private async estimateDurationFromFile(file: File): Promise<number> {
     const extension = file.name.split('.').pop()?.toLowerCase();
     if (extension === 'wav') {
       try {
-        const header = new DataView(await file.slice(0, 44).arrayBuffer());
+        // WAV metadata sits at the front; 64 KiB covers even chunk-heavy
+        // headers without pulling a multi-megabyte audio body into memory.
+        const header = new DataView(
+          await file.slice(0, Math.min(file.size, 65_536)).arrayBuffer(),
+        );
         const tag = (at: number) =>
           String.fromCharCode(
             header.getUint8(at),
@@ -356,9 +364,35 @@ export class AudioImportService {
             header.getUint8(at + 2),
             header.getUint8(at + 3),
           );
-        const byteRate = header.getUint32(28, true);
-        if (tag(0) === 'RIFF' && tag(8) === 'WAVE' && byteRate > 0) {
-          return Math.max(1, (file.size - 44) / byteRate);
+        if (
+          header.byteLength >= 12 &&
+          tag(0) === 'RIFF' &&
+          tag(8) === 'WAVE'
+        ) {
+          let byteRate = 0;
+          let dataBytes: number | null = null;
+          let offset = 12;
+          while (offset + 8 <= header.byteLength) {
+            const id = tag(offset);
+            const size = header.getUint32(offset + 4, true);
+            const body = offset + 8;
+            if (id === 'fmt ' && size >= 12 && body + 12 <= header.byteLength) {
+              byteRate = header.getUint32(body + 8, true);
+            } else if (id === 'data') {
+              dataBytes = size;
+              // `fmt ` must precede `data`; if it did not, the fallback below
+              // still estimates from the file size instead of trusting zero.
+              if (byteRate > 0) break;
+            }
+            // RIFF chunks are word-aligned; an odd body has one pad byte.
+            const next = body + size + (size % 2);
+            if (next <= offset) break;
+            offset = next;
+          }
+          if (byteRate > 0) {
+            const payload = dataBytes ?? Math.max(0, file.size - 44);
+            return Math.max(1, payload / byteRate);
+          }
         }
       } catch {
         // Fall through to the conservative size estimate.

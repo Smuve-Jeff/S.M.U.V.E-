@@ -33,16 +33,22 @@ describe("AudioImportService (stretch engine)", () => {
     return buf;
   }
 
-  /** A valid PCM16 WAV whose header declares the supplied format. */
+  /**
+   * A valid PCM16 WAV whose header declares the supplied format. Optional
+   * `extraChunks` bytes are inserted between WAVE and the fmt chunk.
+   */
   function makeWavFile(
     name: string,
     seconds: number,
     sampleRate: number,
     channels: number,
+    extraChunks = new Uint8Array(0),
   ): File {
     const bytesPerSample = 2 * channels;
     const dataBytes = Math.round(seconds * sampleRate) * bytesPerSample;
-    const bytes = new ArrayBuffer(44 + dataBytes);
+    const fmtOffset = 12 + extraChunks.byteLength;
+    const dataOffset = fmtOffset + 24;
+    const bytes = new ArrayBuffer(dataOffset + 8 + dataBytes);
     const view = new DataView(bytes);
     const tag = (at: number, value: string) =>
       [...value].forEach((char, index) =>
@@ -52,16 +58,17 @@ describe("AudioImportService (stretch engine)", () => {
     tag(0, "RIFF");
     view.setUint32(4, bytes.byteLength - 8, true);
     tag(8, "WAVE");
-    tag(12, "fmt ");
-    view.setUint32(16, 16, true);
-    view.setUint16(20, 1, true);
-    view.setUint16(22, channels, true);
-    view.setUint32(24, sampleRate, true);
-    view.setUint32(28, sampleRate * bytesPerSample, true);
-    view.setUint16(32, bytesPerSample, true);
-    view.setUint16(34, 16, true);
-    tag(36, "data");
-    view.setUint32(40, dataBytes, true);
+    new Uint8Array(bytes).set(extraChunks, 12);
+    tag(fmtOffset, "fmt ");
+    view.setUint32(fmtOffset + 4, 16, true);
+    view.setUint16(fmtOffset + 8, 1, true);
+    view.setUint16(fmtOffset + 10, channels, true);
+    view.setUint32(fmtOffset + 12, sampleRate, true);
+    view.setUint32(fmtOffset + 16, sampleRate * bytesPerSample, true);
+    view.setUint16(fmtOffset + 20, bytesPerSample, true);
+    view.setUint16(fmtOffset + 22, 16, true);
+    tag(dataOffset, "data");
+    view.setUint32(dataOffset + 4, dataBytes, true);
 
     return new File([bytes], name, { type: "audio/wav" });
   }
@@ -159,6 +166,22 @@ describe("AudioImportService (stretch engine)", () => {
 
     expect(seconds).toBeCloseTo(file.size / 192_000, 5);
     expect(seconds).toBeCloseTo(2, 3);
+  });
+
+  it("finds the fmt chunk after a leading JUNK chunk", async () => {
+    // An odd 7-byte JUNK body plus its word-alignment pad pushes fmt from 12
+    // to 28, so a fixed-offset read lands five bytes into the JUNK payload.
+    const junk = new Uint8Array(16);
+    [..."JUNK"].forEach((char, index) =>
+      junk[index] = char.charCodeAt(0),
+    );
+    new DataView(junk.buffer).setUint32(4, 7, true);
+    const file = makeWavFile("junk-before-fmt.wav", 12, 8_000, 1, junk);
+
+    const seconds = await (service as any).estimateDurationFromFile(file);
+
+    expect(seconds).toBeCloseTo(12, 3);
+    expect(seconds).toBeGreaterThan(10);
   });
 
   it("falls back when a WAV header is truncated below 44 bytes", async () => {
