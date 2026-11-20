@@ -24,6 +24,7 @@
     "test:relay:e2e:browser": "node --test --test-force-exit relay/test/e2e-browser-audio-recording.test.mjs",
     "test:relay:e2e:setup": "node scripts/relay-e2e.mjs",
     "test:e2e:samples": "playwright test tests/e2e/factory-samples.spec.ts",
+    "test:e2e:live-sync": "node scripts/run-masterclass-live-sync.mjs",
     "audit:links": "node scripts/audit-links.mjs",
     "audit:tha-spot-artwork": "node scripts/audit-tha-spot-artwork.cjs",
     "check:tv-feeds": "node scripts/check-smuve-tv-feeds.mjs",

@@ -9,6 +9,9 @@ import { test, expect, type Page } from "@playwright/test";
  *   PLAYWRIGHT_BASE_URL=https://your-preview.example \
  *   npx playwright test tests/e2e/studio-guide-live-sync.spec.ts
  *
+ * For a credential-free local run against an in-memory API and a generated
+ * dedicated artist, use `npm run test:e2e:live-sync`.
+ *
  * The test resets the First Loop path on that account, finishes one lesson,
  * then signs in again in a clean browser context. Because the second context
  * has its own empty storage, the completed lesson can only arrive through the
@@ -24,6 +27,12 @@ test.skip(
 );
 
 async function signIn(page: Page, email: string, password: string) {
+  // A brand-new artist has not seen the one-time Music Map yet. It opens over
+  // the Studio and would intercept this walkthrough; this test is about the
+  // profile round trip, not the map's first-run behavior.
+  await page.addInitScript(() => {
+    localStorage.setItem("smuve_music_map_seen", "1");
+  });
   await page.goto("/login");
   await page.locator("#email").fill(email);
   await page.locator("#password").fill(password);
@@ -73,7 +82,7 @@ test("real login restores Masterclass progress in a second browser context", asy
     // Re-open without a reload so the live sync service can finish its write.
     await firstPage
       .getByRole("button", {
-        name: "Open the Studio Masterclass tutorial",
+        name: "Want the full tour? Open the Studio Masterclass",
         exact: true,
       })
       .click();
