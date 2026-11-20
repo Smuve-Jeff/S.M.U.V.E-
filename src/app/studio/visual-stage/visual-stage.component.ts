@@ -21,11 +21,13 @@ import {
 } from "./character-library.service";
 import { portraitCameraDistance } from "./portrait-framing";
 import {
+  BASE_FLOOR_RADIUS,
   DEFAULT_ORBIT_RADIUS,
   MAX_ORBIT_RADIUS,
   MIN_ORBIT_RADIUS,
   orbitLimitsFor,
   stageCameraDistance,
+  stageFloorScale,
   stageFogRange,
   type StageExtents,
 } from "./stage-framing";
@@ -253,6 +255,7 @@ export class VisualStageComponent implements AfterViewInit, OnDestroy {
   private backgroundColor: Color | null = null;
   private fog: Fog | null = null;
   private floorMaterial: Material | null = null;
+  private floorMesh: Mesh | null = null;
   private keyLight: SpotLight | null = null;
   private rimLight: PointLight | null = null;
   private fillLight: PointLight | null = null;
@@ -317,6 +320,7 @@ export class VisualStageComponent implements AfterViewInit, OnDestroy {
   /** Bounds of the imported performer, used to reframe the stage as it resizes. */
   private stageExtents: StageExtents | null = null;
   private frameRadius = DEFAULT_ORBIT_RADIUS;
+  private floorScale = 1;
   private minOrbitRadius = MIN_ORBIT_RADIUS;
   private maxOrbitRadius = MAX_ORBIT_RADIUS;
 
@@ -404,6 +408,7 @@ export class VisualStageComponent implements AfterViewInit, OnDestroy {
    */
   private frameStage(extents: StageExtents | null): void {
     this.stageExtents = extents;
+    this.applyStageFloor();
     const distance = this.framedRadius();
     const limits = orbitLimitsFor(distance);
     this.frameRadius = distance;
@@ -425,6 +430,12 @@ export class VisualStageComponent implements AfterViewInit, OnDestroy {
     // Never move closer than the stage's own view: a performer that already
     // fits should look exactly as it always has.
     return Math.max(DEFAULT_ORBIT_RADIUS, distance);
+  }
+
+  /** Grow the floor and its light rings under a performer too wide for the stage. */
+  private applyStageFloor(): void {
+    this.floorScale = stageFloorScale(this.stageExtents);
+    this.floorMesh?.scale.set(this.floorScale, this.floorScale, 1);
   }
 
   /** Keep the fog behind the performer when the camera has to pull back. */
@@ -860,13 +871,14 @@ export class VisualStageComponent implements AfterViewInit, OnDestroy {
       emissiveIntensity: 0.06,
     });
     const floor = new THREE.Mesh(
-      new THREE.CircleGeometry(4.8, 72),
+      new THREE.CircleGeometry(BASE_FLOOR_RADIUS, 72),
       floorMaterial,
     );
     floor.rotation.x = -Math.PI / 2;
     floor.position.y = -0.015;
     scene.add(floor);
     this.floorMaterial = floorMaterial;
+    this.floorMesh = floor;
 
     const grid = new THREE.GridHelper(18, 36, palette.primary, 0x12303a);
     grid.position.y = 0.002;
@@ -2138,7 +2150,8 @@ export class VisualStageComponent implements AfterViewInit, OnDestroy {
     for (let i = 0; i < this.ringMeshes.length; i += 1) {
       const ring = this.ringMeshes[i];
       const material = this.ringMaterials[i];
-      ring.scale.setScalar(1 + pulse * (0.02 + i * 0.018));
+      const scale = this.floorScale * (1 + pulse * (0.02 + i * 0.018));
+      ring.scale.set(scale, scale, 1);
       if (material) {
         material.opacity = 0.22 + energy * 0.2 + pulse * (0.14 + i * 0.03);
       }

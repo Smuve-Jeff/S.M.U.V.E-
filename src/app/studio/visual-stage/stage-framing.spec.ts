@@ -1,9 +1,11 @@
 import {
+  BASE_FLOOR_RADIUS,
   DEFAULT_ORBIT_RADIUS,
   MAX_ORBIT_RADIUS,
   MIN_ORBIT_RADIUS,
   orbitLimitsFor,
   stageCameraDistance,
+  stageFloorScale,
   stageFogRange,
 } from "./stage-framing";
 
@@ -78,6 +80,26 @@ describe("orbitLimitsFor", () => {
     expect(limits.max).toBeGreaterThan(frame);
     expect(limits.min).toBeGreaterThan(MIN_ORBIT_RADIUS);
     expect(limits.min).toBeLessThan(frame);
+  });
+});
+
+describe("stageFloorScale", () => {
+  it("keeps the designed floor for the built-in performer", () => {
+    expect(stageFloorScale(null)).toBe(1);
+    expect(stageFloorScale(humanoid)).toBe(1);
+  });
+
+  it("grows the floor past a wide performer's furthest corner", () => {
+    const wide = { x: 7.36, y: 2.65, z: 3.44 };
+    const reach = Math.hypot(wide.x, wide.z) / 2;
+    const scale = stageFloorScale(wide);
+
+    expect(scale).toBeGreaterThan(1);
+    expect(BASE_FLOOR_RADIUS * scale).toBeGreaterThan(reach);
+  });
+
+  it("stops growing once the disc outgrows the frame", () => {
+    expect(stageFloorScale({ x: 60, y: 2.65, z: 10 })).toBe(5);
   });
 });
 

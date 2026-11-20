@@ -7,6 +7,8 @@ export interface StageExtents {
 
 /** Orbit radius the stage uses for the built-in performer. */
 export const DEFAULT_ORBIT_RADIUS = 7.2;
+/** Radius of the stage floor's disc at its designed size. */
+export const BASE_FLOOR_RADIUS = 4.8;
 export const MIN_ORBIT_RADIUS = 4.2;
 export const MAX_ORBIT_RADIUS = 11;
 
@@ -53,6 +55,24 @@ export function stageCameraDistance(
   const horizontal = (footprint * margin) / 2 / halfTan / safeAspect;
   const distance = Math.max(vertical, horizontal) + Math.max(0, extents.z) / 2;
   return Math.min(MAX_FRAMED_DISTANCE, Math.max(MIN_FRAMED_DISTANCE, distance));
+}
+
+/** How far the floor reaches past a performer's furthest corner. */
+const FLOOR_MARGIN = 1.3;
+/** Beyond this the disc outgrows what the camera can frame, so it stops growing. */
+const MAX_FLOOR_SCALE = 5;
+
+/**
+ * Uniform scale for the stage floor and its light rings. A performer wider than
+ * the built-in slot would otherwise hang past the edge of the disc and bury the
+ * rings under its body, so the stage grows just enough to sit under it.
+ */
+export function stageFloorScale(extents: StageExtents | null): number {
+  if (!extents) return 1;
+  const reach = Math.hypot(Math.max(0, extents.x), Math.max(0, extents.z)) / 2;
+  if (!Number.isFinite(reach) || reach <= 0) return 1;
+  const needed = (reach * FLOOR_MARGIN) / BASE_FLOOR_RADIUS;
+  return Math.min(MAX_FLOOR_SCALE, Math.max(1, needed));
 }
 
 export interface OrbitLimits {
