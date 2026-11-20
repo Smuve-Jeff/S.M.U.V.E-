@@ -1,0 +1,108 @@
+name: Masterclass Live Sync
+
+# The credential-free live-sync path is split in two: the API harness tests
+# prove auth and profile ownership at the HTTP boundary, then the browser suite
+# proves a completed lesson survives a clean second browser context. Neither
+# step needs a real artist, a mail provider, or production credentials.
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - "scripts/live-sync-api.mjs"
+      - "scripts/live-sync-api.test.mjs"
+      - "scripts/run-masterclass-live-sync.mjs"
+      - "tests/e2e/studio-guide-live-sync.spec.ts"
+      - "src/app/studio/studio-guide/**"
+      - "src/app/studio/studio.component.ts"
+      - "src/app/studio/studio.component.html"
+      - "src/app/app.security.ts"
+      - "src/index.html"
+      - "src/app/interceptors/auth.interceptor.ts"
+      - "src/app/services/api-auth.service.ts"
+      - "src/app/services/auth.service.ts"
+      - "src/app/services/database.service.ts"
+      - "src/app/services/token.service.ts"
+      - "src/app/services/user-profile.service.ts"
+      - "playwright.config.ts"
+      - "package.json"
+      - "package-lock.json"
+      - ".nvmrc"
+      - ".github/workflows/masterclass-live-sync.yml"
+  push:
+    branches: [main]
+    paths:
+      - "scripts/live-sync-api.mjs"
+      - "scripts/live-sync-api.test.mjs"
+      - "scripts/run-masterclass-live-sync.mjs"
+      - "tests/e2e/studio-guide-live-sync.spec.ts"
+      - "src/app/studio/studio-guide/**"
+      - "src/app/studio/studio.component.ts"
+      - "src/app/studio/studio.component.html"
+      - "src/app/app.security.ts"
+      - "src/index.html"
+      - "src/app/interceptors/auth.interceptor.ts"
+      - "src/app/services/api-auth.service.ts"
+      - "src/app/services/auth.service.ts"
+      - "src/app/services/database.service.ts"
+      - "src/app/services/token.service.ts"
+      - "src/app/services/user-profile.service.ts"
+      - "playwright.config.ts"
+      - "package.json"
+      - "package-lock.json"
+      - ".nvmrc"
+      - ".github/workflows/masterclass-live-sync.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: masterclass-live-sync-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  live-sync:
+    name: Local API and second-context Masterclass restore
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Use project Node version
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Install Chromium with browser dependencies
+        run: npx playwright install --with-deps chromium
+
+      - name: Test live-sync API auth and profile ownership
+        run: npm run test:live-sync-api
+        env:
+          CI: true
+
+      - name: Run credential-free Masterclass live sync
+        shell: bash
+        run: |
+          set -o pipefail
+          npm run test:e2e:live-sync 2>&1 | tee live-sync.log
+        env:
+          CI: true
+
+      # A failed browser run needs the page snapshot and Playwright error
+      # context. The runner log carries the API/app startup and teardown.
+      - name: Upload live-sync diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: masterclass-live-sync-diagnostics
+          path: |
+            live-sync.log
+            test-results
+          if-no-files-found: warn
+          retention-days: 7
