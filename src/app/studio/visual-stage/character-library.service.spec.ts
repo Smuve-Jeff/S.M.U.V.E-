@@ -77,11 +77,12 @@ describe("CharacterLibraryService", () => {
     expect(service.models().map((entry) => entry.name)).toEqual(["Nova"]);
   });
 
-  it("replaces an existing entry instead of duplicating the same file", async () => {
-    const existing = savedModel("abc", 1, "Nova");
+  it("replaces an existing entry in place instead of duplicating the same file", async () => {
+    const first = savedModel("abc", 2, "Nova");
+    const second = savedModel("def", 1, "Echo");
     storage.getItem.mockResolvedValue({
       id: LIBRARY_INDEX_KEY,
-      models: [existing],
+      models: [first, second],
     });
 
     const model = await service.save(glbFile(), 2);
@@ -91,10 +92,32 @@ describe("CharacterLibraryService", () => {
     const index = storage.saveItem.mock.calls[1][1] as {
       models: SavedCharacterModel[];
     };
-    expect(index.models).toHaveLength(1);
+    expect(index.models).toHaveLength(2);
     expect(index.models[0]).toEqual(
       expect.objectContaining({ id: "abc", fileName: "Nova.glb", clips: 2 }),
     );
+    // Loading a performer must not reshuffle the list under the pointer.
+    expect(index.models[1].id).toBe("def");
+  });
+
+  it("keeps a portrait with the saved entry and reuses it when replaced", async () => {
+    const thumbnail = "data:image/webp;base64,AAAA";
+
+    const model = await service.save(glbFile(), 3, thumbnail);
+
+    const index = storage.saveItem.mock.calls[1][1] as {
+      models: SavedCharacterModel[];
+    };
+    expect(index.models[0].thumbnail).toBe(thumbnail);
+    expect(model?.thumbnail).toBe(thumbnail);
+
+    storage.getItem.mockResolvedValue({
+      id: LIBRARY_INDEX_KEY,
+      models: [model],
+    });
+    const replaced = await service.save(glbFile(), 3);
+
+    expect(replaced?.thumbnail).toBe(thumbnail);
   });
 
   it("reads a saved performer back as a GLB file", async () => {

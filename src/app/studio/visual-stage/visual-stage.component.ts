@@ -123,6 +123,8 @@ const GESTURE_LABELS: Record<StageMove, string> = {
 
 const MAX_CHARACTER_BYTES = 30 * 1024 * 1024;
 const CHARACTER_HEIGHT = 2.65;
+/** Square side of the portrait rendered for each saved performer. */
+const THUMBNAIL_SIZE = 160;
 
 /** Clip names vary between exporters; match the intent, not one exact name. */
 const MOVE_CLIP_PATTERNS: Record<StageMove, RegExp> = {
@@ -471,8 +473,9 @@ export class VisualStageComponent implements AfterViewInit, OnDestroy {
       }
       const clipCount = this.mountCharacter(gltf, file.name);
       // Saved after mounting so the library never lists a model the stage
-      // refused to render.
-      void this.library.save(file, clipCount);
+      // refused to render, and so the entry can carry its own portrait.
+      const thumbnail = this.captureCharacterThumbnail();
+      void this.library.save(file, clipCount, thumbnail ?? undefined);
     } catch (error) {
       if (token !== this.importToken || this.destroyed) return;
       const message = error instanceof Error ? error.message : "";
@@ -1400,6 +1403,85 @@ export class VisualStageComponent implements AfterViewInit, OnDestroy {
         material.dispose();
       }
     });
+  }
+
+  /**
+   * Render a square portrait of the imported performer without disturbing the
+   * live canvas: the stage is drawn into a small offscreen target with every
+   * prop hidden, then the pixels are read back into a 2D canvas.
+   */
+  private captureCharacterThumbnail(): string | null {
+    const three = this.three;
+    const renderer = this.renderer;
+    const scene = this.scene;
+    const wrapper = this.importedWrapper;
+    if (!three || !renderer || !scene || !wrapper) return null;
+
+    const bounds = new three.Box3().setFromObject(wrapper);
+    const size = bounds.getSize(new three.Vector3());
+    const centre = bounds.getCenter(new three.Vector3());
+    if (!Number.isFinite(size.y) || size.y <= 0) return null;
+
+    const camera = new three.PerspectiveCamera(32, 1, 0.05, 60);
+    const distance = Math.max(size.y, size.x) * 1.6 + 0.4;
+    camera.position.set(
+      centre.x,
+      centre.y + size.y * 0.05,
+      centre.z + distance,
+    );
+    camera.lookAt(centre);
+
+    const hidden: Object3D[] = [];
+    for (const child of scene.children) {
+      const light = (child as { isLight?: boolean }).isLight;
+      if (child === this.avatar || light || !child.visible) continue;
+      child.visible = false;
+      hidden.push(child);
+    }
+
+    const target = new three.WebGLRenderTarget(THUMBNAIL_SIZE, THUMBNAIL_SIZE);
+    target.texture.colorSpace = three.SRGBColorSpace;
+    const pixels = new Uint8Array(THUMBNAIL_SIZE * THUMBNAIL_SIZE * 4);
+    let url: string | null = null;
+    try {
+      renderer.setRenderTarget(target);
+      renderer.render(scene, camera);
+      renderer.readRenderTargetPixels(
+        target,
+        0,
+        0,
+        THUMBNAIL_SIZE,
+        THUMBNAIL_SIZE,
+        pixels,
+      );
+      url = this.thumbnailFromPixels(pixels);
+    } catch {
+      url = null;
+    } finally {
+      renderer.setRenderTarget(null);
+      for (const child of hidden) child.visible = true;
+      target.dispose();
+    }
+    return url;
+  }
+
+  private thumbnailFromPixels(pixels: Uint8Array): string | null {
+    if (typeof document === "undefined") return null;
+    const canvas = document.createElement("canvas");
+    canvas.width = THUMBNAIL_SIZE;
+    canvas.height = THUMBNAIL_SIZE;
+    const context = canvas.getContext("2d");
+    if (!context) return null;
+    const image = context.createImageData(THUMBNAIL_SIZE, THUMBNAIL_SIZE);
+    const rowBytes = THUMBNAIL_SIZE * 4;
+    // WebGL reads bottom-up; a 2D canvas expects top-down rows.
+    for (let y = 0; y < THUMBNAIL_SIZE; y += 1) {
+      const source = (THUMBNAIL_SIZE - 1 - y) * rowBytes;
+      image.data.set(pixels.subarray(source, source + rowBytes), y * rowBytes);
+    }
+    context.putImageData(image, 0, 0);
+    const url = canvas.toDataURL("image/webp", 0.85);
+    return url.startsWith("data:image/") ? url : null;
   }
 
   private setCharacterStatus(

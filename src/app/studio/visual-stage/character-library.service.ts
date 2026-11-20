@@ -16,6 +16,8 @@ export interface SavedCharacterModel {
   fileName: string;
   size: number;
   clips: number;
+  /** Small data-URL portrait rendered when the model was mounted. */
+  thumbnail?: string;
   addedAt: number;
 }
 
@@ -75,7 +77,11 @@ export class CharacterLibraryService {
    * Persist an imported performer. Re-importing the same file replaces the
    * existing entry instead of filling the library with duplicates.
    */
-  async save(file: File, clips: number): Promise<SavedCharacterModel | null> {
+  async save(
+    file: File,
+    clips: number,
+    thumbnail?: string,
+  ): Promise<SavedCharacterModel | null> {
     if (!file.name || file.size === 0) return null;
     try {
       if ((await this.storage.persistenceStatus()) !== "ready") {
@@ -95,13 +101,15 @@ export class CharacterLibraryService {
         fileName: file.name,
         size: file.size,
         clips,
-        addedAt: Date.now(),
+        thumbnail: thumbnail ?? duplicate?.thumbnail,
+        addedAt: duplicate?.addedAt ?? Date.now(),
       };
 
-      const combined = [
-        model,
-        ...existing.filter((entry) => entry.id !== model.id),
-      ];
+      // Replacing keeps the entry where it is, so loading a performer does not
+      // reshuffle the list under the artist's pointer.
+      const combined = duplicate
+        ? existing.map((entry) => (entry.id === duplicate.id ? model : entry))
+        : [model, ...existing];
       const kept = combined.slice(0, MAX_SAVED_CHARACTERS);
       const dropped = combined.slice(MAX_SAVED_CHARACTERS);
 

@@ -242,11 +242,26 @@
                 (click)="useSavedCharacter(model)"
                 [attr.aria-label]="'Put ' + model.name + ' on stage'"
               >
-                <strong>{{ model.name }}</strong>
-                <em>
-                  {{ model.clips > 0 ? model.clips + " CLIPS" : "STATIC" }}
-                  · {{ formatSize(model.size) }}
-                </em>
+                @if (model.thumbnail) {
+                  <img
+                    class="stage-library-thumb"
+                    [src]="model.thumbnail"
+                    alt=""
+                  />
+                } @else {
+                  <span
+                    class="stage-library-thumb is-empty material-symbols-outlined"
+                    aria-hidden="true"
+                    >view_in_ar</span
+                  >
+                }
+                <span class="stage-library-copy">
+                  <strong>{{ model.name }}</strong>
+                  <em>
+                    {{ model.clips > 0 ? model.clips + " CLIPS" : "STATIC" }}
+                    · {{ formatSize(model.size) }}
+                  </em>
+                </span>
               </button>
               <button
                 type="button"

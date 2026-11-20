@@ -167,6 +167,28 @@ describe("VisualStageComponent", () => {
     expect(component.libraryOpen()).toBe(false);
   });
 
+  it("shows the saved portrait in the library list", () => {
+    library.models.set([
+      {
+        id: "abc",
+        name: "Nova",
+        fileName: "Nova.glb",
+        size: 2048,
+        clips: 3,
+        addedAt: 1,
+        thumbnail: "data:image/webp;base64,AAAA",
+      },
+    ]);
+
+    component.toggleLibrary();
+    fixture.detectChanges();
+
+    const image = fixture.nativeElement.querySelector(
+      ".stage-library-thumb",
+    ) as HTMLImageElement | null;
+    expect(image?.getAttribute("src")).toBe("data:image/webp;base64,AAAA");
+  });
+
   it("removes one saved performer and reports it", async () => {
     await component.removeSavedCharacter({
       id: "abc",

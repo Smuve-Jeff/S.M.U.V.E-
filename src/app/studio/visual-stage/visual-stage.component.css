@@ -525,11 +525,12 @@
 }
 
 .stage-library-load {
-  display: grid;
+  display: flex;
   flex: 1;
-  gap: 2px;
+  align-items: center;
+  gap: 7px;
   min-width: 0;
-  padding: 6px 7px;
+  padding: 5px 7px;
   border: 0;
   border-radius: inherit;
   background: none;
@@ -538,7 +539,31 @@
   cursor: pointer;
 }
 
-.stage-library-load strong {
+.stage-library-thumb {
+  flex: none;
+  width: 36px;
+  height: 36px;
+  border: 1px solid rgba(159, 252, 255, 0.14);
+  border-radius: 5px;
+  background: rgba(101, 244, 255, 0.06);
+  object-fit: cover;
+}
+
+.stage-library-thumb.is-empty {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(191, 255, 255, 0.32);
+  font-size: 17px;
+}
+
+.stage-library-copy {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.stage-library-copy strong {
   overflow: hidden;
   font-size: 9px;
   font-weight: 900;
@@ -547,7 +572,7 @@
   white-space: nowrap;
 }
 
-.stage-library-load em {
+.stage-library-copy em {
   color: rgba(191, 255, 255, 0.42);
   font-size: 7px;
   font-style: normal;
