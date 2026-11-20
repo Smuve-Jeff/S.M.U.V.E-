@@ -1511,7 +1511,10 @@ export class SocialNetworkingService {
       audio: true,
     });
     const video = display.getVideoTracks()[0];
-    const systemAudio = display.getAudioTracks();
+    // Keep this as the base track type: Mediabunny's WebCodecs typings make
+    // getAudioTracks() a narrower MediaStreamAudioTrack[], and `getTracks()`
+    // must still be able to check membership against the mixed list below.
+    const systemAudio: MediaStreamTrack[] = display.getAudioTracks();
     display.getTracks().forEach((t) => {
       if (t !== video && !systemAudio.includes(t)) t.stop();
     });

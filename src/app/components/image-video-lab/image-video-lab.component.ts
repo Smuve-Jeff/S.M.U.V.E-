@@ -72,6 +72,14 @@ import {
   type FrameLockedVideoEncoder,
 } from '../../services/frame-locked-video-encoder';
 import {
+  createAlphaVideoEncoder,
+  type AlphaVideoEncoder,
+} from '../../services/alpha-video-encoder';
+import {
+  detectAlphaExportSupport,
+  type AlphaExportSupport,
+} from '../../services/alpha-export-support';
+import {
   extractWebmOpus,
   type WebmOpusAudio,
 } from '../../services/webm-opus';
@@ -312,6 +320,8 @@ const INGEST_IMAGE_SUFFIXES = [
  * resolution repaint.
  */
 const PREVIEW_MAX_EDGE = 1920;
+export const TRANSPARENT_EXPORT_STORAGE_KEY =
+  'smuve.cinema.export.alpha.v1';
 
 interface PlayheadDragState {
   pointerId: number;
@@ -660,6 +670,8 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
    * usable alpha path here.
    */
   transparentExport = signal(false);
+  /** Which transparent WebM path this host can use. */
+  alphaExportSupport = signal<AlphaExportSupport>('checking');
   readonly exportCodecs = [
     { id: 'mp4' as const, label: 'MP4' },
     { id: 'webm' as const, label: 'WebM' },
@@ -831,6 +843,17 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     () =>
       this.exportSections().filter((section) => section.status !== 'skipped')
         .length
+  );
+
+  /** Safari drops WebM alpha; name the limitation before a take is armed. */
+  alphaExportNotice = computed(() =>
+    this.alphaExportSupport() === 'unsupported'
+      ? 'ALPHA WEBM IS UNAVAILABLE HERE. SAFARI DROPS WEBM ALPHA; USE CHROME OR FIREFOX.'
+      : '',
+  );
+  /** The toggle is only refused when no transparent path exists at all. */
+  alphaExportDisabled = computed(
+    () => this.alphaExportSupport() === 'unsupported',
   );
 
   /** One-line statement of what the next download will be. */
@@ -1342,6 +1365,8 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     // replaced, then reopen the last project through the normal project path.
     this.resumingProject.set(this.cinemaProjects.hasResumableProject());
     void this.resumeLastProject();
+    this.restoreTransparentExportPreference();
+    void this.detectAlphaExportSupport();
     // A reload during a broadcast must bring the ON AIR strip, viewer link and
     // END control back instead of orphaning the server row.
     void this.liveStream.restoreActiveStream();
@@ -6627,8 +6652,32 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
 
   /** Transparent masters are WebM-only, so arm that codec with the mode. */
   setTransparentExport(value: boolean): void {
-    this.transparentExport.set(!!value);
-    if (value) this.exportCodec.set('webm');
+    const enabled = !!value;
+    this.transparentExport.set(enabled);
+    if (enabled) this.exportCodec.set('webm');
+    this.persistTransparentExportPreference(enabled);
+  }
+
+  /** Reopen the last transparent-export choice with the project state. */
+  private restoreTransparentExportPreference(): void {
+    try {
+      if (localStorage.getItem(TRANSPARENT_EXPORT_STORAGE_KEY) !== '1') return;
+      this.transparentExport.set(true);
+      this.exportCodec.set('webm');
+    } catch {
+      // Private-mode storage can reject reads; the default stays opaque.
+    }
+  }
+
+  private persistTransparentExportPreference(enabled: boolean): void {
+    try {
+      localStorage.setItem(
+        TRANSPARENT_EXPORT_STORAGE_KEY,
+        enabled ? '1' : '0',
+      );
+    } catch {
+      // The session still exports even when storage is unavailable.
+    }
   }
 
   /** Use the playhead - beat-snapped when the grid is armed - as the start. */
@@ -6949,18 +6998,23 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
   }
 
   /**
-   * Chrome's WebCodecs path rejects alpha; MediaRecorder's canvas capture is
-   * the only browser path that keeps a VP8/VP9 alpha plane. Refuse the take
-   * instead of silently downloading an opaque MP4 when WebM is unavailable.
+   * Re-probe the host against the current raster. A 4K request can fail where
+   * a 1080p one is encodable, so the answer is cached with the export settings
+   * instead of being assumed once at startup.
    */
-  private canCaptureAlphaWebm(): boolean {
-    if (typeof MediaRecorder === 'undefined') return false;
-    if (typeof MediaRecorder.isTypeSupported !== 'function') return false;
-    return [
-      'video/webm;codecs=vp9',
-      'video/webm;codecs=vp8',
-      'video/webm',
-    ].some((type) => MediaRecorder.isTypeSupported(type));
+  private async detectAlphaExportSupport(): Promise<AlphaExportSupport> {
+    const { width, height } = this.exportDimensions();
+    const support = await detectAlphaExportSupport(
+      width,
+      height,
+      this.exportFps(),
+    );
+    this.alphaExportSupport.set(support);
+    if (support === 'unsupported' && this.transparentExport()) {
+      this.transparentExport.set(false);
+      this.persistTransparentExportPreference(false);
+    }
+    return support;
   }
 
   /**
@@ -7027,9 +7081,13 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     const framePlan = createFrameLockPlan(seconds, fps);
     const transparent = this.transparentExport();
     const wantsMp4 = !transparent && this.exportCodec() === 'mp4';
-    if (transparent && !this.canCaptureAlphaWebm()) {
+    let alphaSupport = this.alphaExportSupport();
+    if (transparent && alphaSupport === 'checking') {
+      alphaSupport = await this.detectAlphaExportSupport();
+    }
+    if (transparent && alphaSupport === 'unsupported') {
       this.aiFeedback.set(
-        'TRANSPARENT EXPORT NEEDS WEBM CAPTURE. THIS BROWSER CANNOT WRITE AN ALPHA WEBM.'
+        'THIS BROWSER CANNOT WRITE AN ALPHA WEBM. SAFARI DROPS WEBM ALPHA; USE CHROME OR FIREFOX.'
       );
       return false;
     }
@@ -7048,9 +7106,22 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
 
     await this.prepareCgiModelsForExport();
 
-    // Chrome's WebCodecs encoder rejects alpha outright, but its MediaRecorder
-    // canvas path keeps VP8/VP9 alpha. Transparent takes therefore use the
-    // real-time capture path; opaque takes keep the frame-locked encoder.
+    // A frame-locked transparent take uses Mediabunny's VP9 alpha writer. On
+    // hosts without it, MediaRecorder still preserves alpha in real time, so
+    // the older capture path remains the fallback. Opaque takes keep the
+    // original WebCodecs encoder.
+    if (transparent && alphaSupport === 'frame-locked') {
+      return this.runAlphaFrameLockedRange(
+        start,
+        seconds,
+        fileNameHint,
+        master,
+        width,
+        height,
+        fps,
+        framePlan,
+      );
+    }
     if (!transparent && isFrameLockedEncodeSupported()) {
       return this.runFrameLockedRange(
         start,
@@ -7423,6 +7494,155 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
         error?.message
           ? `FRAME-LOCKED EXPORT FAILED: ${String(error.message).toUpperCase()}`
           : 'FRAME-LOCKED EXPORT FAILED. TRY A SHORTER RANGE OR A LOWER RESOLUTION.'
+      );
+      return false;
+    } finally {
+      encoder?.close();
+      if (audioSession) {
+        try {
+          audioSession.stop();
+        } catch {
+          /* already stopped */
+        }
+      }
+      this.exportService.setClipAudioLevel(0);
+      this.videoEngine.pause();
+      this.videoEngine.seek(start);
+      if (wasPlaying) this.videoEngine.play();
+      this.releaseExportCanvas();
+      this.exportAbort = null;
+      this.exportCancelRequested.set(false);
+      this.isExporting.set(false);
+    }
+  }
+
+  /**
+   * Paint every slot once and hand it to the transparent muxer at its exact
+   * timestamp. Audio is still captured in real time first because the Studio
+   * master is a Web Audio graph; it is decoded and muxed into the same WebM,
+   * so a transparent delivery is not silent.
+   */
+  private async runAlphaFrameLockedRange(
+    start: number,
+    seconds: number,
+    fileNameHint: string | undefined,
+    master: { canvas: HTMLCanvasElement; ctx: CanvasRenderingContext2D },
+    width: number,
+    height: number,
+    fps: number,
+    framePlan: FrameLockPlan,
+  ): Promise<boolean> {
+    this.isExporting.set(true);
+    this.exportProgress.set(0);
+    this.aiFeedback.set(
+      `FRAME-LOCKING ${framePlan.totalFrames} TRANSPARENT FRAMES AT ${width}x${height} ${fps}FPS FROM ${this.formatClock(
+        start
+      )}. EACH SLOT IS RENDERED BEFORE IT IS ENCODED.`
+    );
+
+    const wasPlaying = this.videoEngine.isPlaying();
+    let encoder: AlphaVideoEncoder | null = null;
+    let audioSession: {
+      stop: () => void;
+      result: Promise<Blob>;
+    } | null = null;
+    let audioBlob: Blob | null = null;
+    let renderedFrames = 0;
+
+    try {
+      this.videoEngine.pause();
+      this.videoEngine.seek(start);
+
+      // Real-time audio pass, trimmed by the frame plan when the muxer writes
+      // the file. The recording remains the only non-deterministic step.
+      this.exportService.setClipAudioLevel(1);
+      audioSession = await this.exportService.startAudioExport();
+      if (audioSession) {
+        this.videoEngine.play();
+        const audioWaitMs = seconds * 1000 + EXPORT_TAIL_GUARD_MS;
+        for (let waited = 0; waited < audioWaitMs; waited += 100) {
+          if (this.exportCancelRequested()) break;
+          await this.waitMs(Math.min(100, audioWaitMs - waited));
+        }
+        audioSession.stop();
+        this.videoEngine.pause();
+        audioBlob = await audioSession.result;
+        if (!audioBlob || audioBlob.size === 0) audioBlob = null;
+      }
+      this.exportService.setClipAudioLevel(0);
+      const audioBuffer = audioBlob
+        ? await this.exportService.decodeAudioBlob(audioBlob)
+        : null;
+
+      this.aiFeedback.set(
+        `AUDIO CAPTURED - RENDERING ${framePlan.totalFrames} ALPHA SLOTS. THE TAB MAY TAKE AS LONG AS THE CGI NEEDS.`
+      );
+      encoder = await createAlphaVideoEncoder({
+        canvas: master.canvas,
+        width,
+        height,
+        fps,
+        durationSeconds: seconds,
+        bitrate: this.exportBitrate(),
+        audio: audioBuffer,
+      });
+
+      this.videoEngine.pause();
+      this.videoEngine.seek(start);
+      for (
+        let frameIndex = 0;
+        frameIndex < framePlan.totalFrames;
+        frameIndex++
+      ) {
+        if (this.exportCancelRequested()) break;
+        await this.prepareFrameForExport(
+          start + frameTimeSeconds(framePlan, frameIndex)
+        );
+        this.paintFrame(master.canvas, master.ctx, true, true);
+        await encoder.encode(frameIndex);
+        renderedFrames = frameIndex + 1;
+        this.exportProgress.set(
+          Math.min(
+            90,
+            Math.round((renderedFrames / framePlan.totalFrames) * 90)
+          )
+        );
+        if ((frameIndex & 1) === 0) await this.waitMs(0);
+      }
+
+      if (this.exportCancelRequested()) {
+        encoder.close();
+        encoder = null;
+        this.exportProgress.set(0);
+        this.aiFeedback.set('EXPORT CANCELLED — NOTHING WAS DOWNLOADED.');
+        return false;
+      }
+
+      const encoded = await encoder.finish();
+      encoder = null;
+      this.exportProgress.set(100);
+      const fileName = fileNameHint
+        ? `${fileNameHint}.webm`
+        : `smuve_${this.videoEngine.productionMode()}_${this.activePreset().id}_${Date.now()}_alpha.webm`;
+      this.lastExportFileName.set(fileName);
+      this.exportService.downloadBlob(encoded.blob, fileName);
+
+      const audioNote = encoded.audioMuxed
+        ? ' AUDIO MUXED.'
+        : audioBlob
+          ? ' AUDIO COULD NOT BE MUXED; THIS FILE IS SILENT.'
+          : ' NO AUDIO TRACK WAS AVAILABLE.';
+      this.aiFeedback.set(
+        `FRAME-LOCKED ALPHA EXPORT COMPLETE - ${renderedFrames}/${framePlan.totalFrames} EXACT FRAMES AT ${width}x${height} ${fps}FPS WEBM/${encoded.codec}.${audioNote}`
+      );
+      return true;
+    } catch (error: any) {
+      this.exportProgress.set(0);
+      this.logger.error('Frame-locked alpha export failed', error);
+      this.aiFeedback.set(
+        error?.message
+          ? `ALPHA EXPORT FAILED: ${String(error.message).toUpperCase()}`
+          : 'ALPHA EXPORT FAILED. TRY A SHORTER RANGE OR A LOWER RESOLUTION.'
       );
       return false;
     } finally {

@@ -122,6 +122,48 @@ const ingestStill = async (
   );
 };
 
+/** Put a short, decodable tone under the cut so alpha exports can keep audio. */
+const ingestAudioTone = async (page: Page) => {
+  await page.evaluate(() => {
+    const sampleRate = 48_000;
+    const seconds = 2;
+    const samples = sampleRate * seconds;
+    const bytes = new Uint8Array(44 + samples * 2);
+    const view = new DataView(bytes.buffer);
+    const text = (offset: number, value: string) => {
+      for (let index = 0; index < value.length; index += 1) {
+        bytes[offset + index] = value.charCodeAt(index);
+      }
+    };
+    text(0, 'RIFF');
+    view.setUint32(4, 36 + samples * 2, true);
+    text(8, 'WAVE');
+    text(12, 'fmt ');
+    view.setUint32(16, 16, true);
+    view.setUint16(20, 1, true);
+    view.setUint16(22, 1, true);
+    view.setUint32(24, sampleRate, true);
+    view.setUint32(28, sampleRate * 2, true);
+    view.setUint16(32, 2, true);
+    view.setUint16(34, 16, true);
+    text(36, 'data');
+    view.setUint32(40, samples * 2, true);
+    for (let index = 0; index < samples; index += 1) {
+      const value = Math.sin((2 * Math.PI * 440 * index) / sampleRate) * 0.25;
+      view.setInt16(44 + index * 2, Math.round(value * 32767), true);
+    }
+    const file = new File([bytes], 'alpha-tone.wav', { type: 'audio/wav' });
+    const transfer = new DataTransfer();
+    transfer.items.add(file);
+    const input = document.querySelector(
+      'input[aria-label="Add a music or voice bed from this device"]',
+    ) as HTMLInputElement | null;
+    if (!input) throw new Error('no audio overlay input on the lab');
+    input.files = transfer.files;
+    input.dispatchEvent(new Event('change', { bubbles: true }));
+  });
+};
+
 /** Export one short WebM through the component's real download path. */
 const exportCgiWebm = async (page: Page): Promise<Buffer> => {
   const downloading = page.waitForEvent('download', { timeout: 120_000 });
@@ -183,6 +225,7 @@ const compareExportFrames = (
         return {
           width: video.videoWidth,
           height: video.videoHeight,
+          duration: video.duration,
           pixels: ctx.getImageData(0, 0, canvas.width, canvas.height).data,
         };
       };
@@ -216,6 +259,7 @@ const compareExportFrames = (
       return {
         width: withHalo.width,
         height: withHalo.height,
+        duration: withHalo.duration,
         changed,
         brighter,
         maxDelta,
@@ -945,8 +989,10 @@ test('exports the CGI halo over transparent media', async ({ page }) => {
   expect(muted.length).toBeGreaterThan(1000);
 });
 
-test('exports a transparent WebM with alpha', async ({ page }) => {
-  test.setTimeout(180_000);
+test('exports transparent media and CGI with alpha and audio', async ({
+  page,
+}) => {
+  test.setTimeout(240_000);
   await page.goto('/image-video-lab');
   await expect(page.locator('.project-console')).toBeVisible({
     timeout: 60_000,
@@ -956,6 +1002,21 @@ test('exports a transparent WebM with alpha', async ({ page }) => {
     .getByRole('group', { name: 'CGI scene finishes' })
     .getByRole('button', { name: 'Neon', exact: true })
     .click();
+  await ingestStill(page, 'transparent-alpha.png', true);
+  await expect
+    .poll(async () => (await readEngine(page))?.clipCount)
+    .toBe(2);
+  await ingestAudioTone(page);
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const host = document.querySelector('app-image-video-lab') as any;
+        const component = (window as any).ng?.getComponent?.(host);
+        component?.setAudioOverlayLevel?.(100);
+        return component?.videoEngine?.audioOverlay?.()?.name;
+      }),
+    )
+    .toBe('alpha-tone.wav');
   await page
     .getByRole('checkbox', { name: 'Preserve alpha in the exported WebM' })
     .check();
@@ -987,11 +1048,19 @@ test('exports a transparent WebM with alpha', async ({ page }) => {
 
   const stats = await compareExportFrames(page, withHalo, muted);
   expect(stats.width).toBeGreaterThan(1000);
+  // The recorder's tail guard must be trimmed; a 1s take cannot become a
+  // longer master just because its audio buffer ran a little past the window.
+  expect(stats.duration).toBeLessThan(1.4);
   expect(stats.transparent).toBeGreaterThan(50_000);
   expect(stats.opaque).toBeGreaterThan(100);
+  expect(stats.magenta).toBeGreaterThan(100);
   expect(stats.alphaChanged).toBeGreaterThan(500);
   expect(stats.changed).toBeGreaterThan(500);
   expect(stats.brighter).toBeGreaterThan(300);
+  // The transparent master must carry the bed, not just the colour/alpha
+  // streams. The Opus CodecID is the container-level proof that audio survived.
+  expect(withHalo.includes(Buffer.from('A_OPUS'))).toBe(true);
+  expect(muted.includes(Buffer.from('A_OPUS'))).toBe(true);
 });
 
 test('keeps the CGI finish strip visually stable', async ({ page }) => {

@@ -2236,6 +2236,22 @@ export class ExportService {
   }
 
   /**
+   * Decode a recorded audio WebM into an AudioBuffer for the transparent
+   * muxer. The opaque path copies Opus packets directly; Mediabunny's
+   * AudioBufferSource needs decoded samples instead.
+   */
+  async decodeAudioBlob(blob: Blob): Promise<AudioBuffer | null> {
+    const ctx = this.engine.ctx;
+    if (!ctx || typeof ctx.decodeAudioData !== 'function') return null;
+    try {
+      return await ctx.decodeAudioData(await blob.arrayBuffer());
+    } catch (err) {
+      this.logger.warn('Frame-locked alpha export could not decode audio', err);
+      return null;
+    }
+  }
+
+  /**
    * Tap a timeline clip's own soundtrack for the master.
    *
    * A clip element is muted and never touches the audio graph, so a take with

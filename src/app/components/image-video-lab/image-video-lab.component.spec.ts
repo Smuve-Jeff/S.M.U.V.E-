@@ -6,7 +6,10 @@ import { AI_VFX_PRESETS } from '../../services/ai-vfx';
 import { DirectorCoachService } from '../../services/director-coach.service';
 import { computed, signal } from '@angular/core';
 
-import { ImageVideoLabComponent } from './image-video-lab.component';
+import {
+  ImageVideoLabComponent,
+  TRANSPARENT_EXPORT_STORAGE_KEY,
+} from './image-video-lab.component';
 import { LoggingService } from '../../services/logging.service';
 import { AiService } from '../../services/ai.service';
 import { UserContextService } from '../../services/user-context.service';
@@ -5614,7 +5617,8 @@ describe('ImageVideoLabComponent', () => {
       expect(manifest.sections[1]).toMatchObject({ start: 120, end: 240 });
     });
 
-    it('arms WebM and labels the master when alpha export is enabled', async () => {
+    it('arms WebM, labels the master, and remembers alpha export', async () => {
+      localStorage.removeItem(TRANSPARENT_EXPORT_STORAGE_KEY);
       const { component } = await createComponent();
       component.exportCodec.set('mp4');
 
@@ -5622,10 +5626,19 @@ describe('ImageVideoLabComponent', () => {
       expect(component.transparentExport()).toBe(true);
       expect(component.exportCodec()).toBe('webm');
       expect(component.exportSummary()).toContain('ALPHA');
+      expect(localStorage.getItem(TRANSPARENT_EXPORT_STORAGE_KEY)).toBe('1');
 
       component.setTransparentExport(false);
       expect(component.transparentExport()).toBe(false);
       expect(component.exportCodec()).toBe('webm');
+      expect(localStorage.getItem(TRANSPARENT_EXPORT_STORAGE_KEY)).toBe('0');
+
+      component.alphaExportSupport.set('unsupported');
+      expect(component.alphaExportDisabled()).toBe(true);
+      expect(component.alphaExportNotice()).toContain(
+        'SAFARI DROPS WEBM ALPHA',
+      );
+      localStorage.removeItem(TRANSPARENT_EXPORT_STORAGE_KEY);
     });
 
     it('snaps a music-video start down to the bar it begins in', async () => {

@@ -149,17 +149,23 @@
       </label>
       <label
         class="export-alpha-toggle"
-        title="Keep transparency in a WebM master instead of flattening it onto the dark programme backdrop."
+        [title]="
+          alphaExportNotice() ||
+          'Keep transparency in a WebM master instead of flattening it onto the dark programme backdrop.'
+        "
       >
         <input
           type="checkbox"
           aria-label="Preserve alpha in the exported WebM"
-          [disabled]="isExporting() || isQueueing()"
+          [disabled]="isExporting() || isQueueing() || alphaExportDisabled()"
           [ngModel]="transparentExport()"
           (ngModelChange)="setTransparentExport(!!$event)"
         />
         ALPHA WEBM
       </label>
+      @if (alphaExportNotice(); as alphaNote) {
+        <span class="export-alpha-note" role="status">{{ alphaNote }}</span>
+      }
       <span class="export-summary">{{ exportSummary() }}</span>
       <span class="export-summary">{{ exportRangeLabel() }}</span>
       <span class="export-summary">{{ watermarkStatus() }}</span>

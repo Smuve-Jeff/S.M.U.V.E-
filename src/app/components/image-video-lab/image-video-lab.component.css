@@ -1200,6 +1200,16 @@ canvas {
   cursor: default;
 }
 
+.export-alpha-note {
+  max-width: 16rem;
+  color: rgba(251, 191, 36, 0.9);
+  font-size: 0.52rem;
+  font-weight: 800;
+  line-height: 1.25;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
 /*
  * What the next download will actually be. The master raster is no longer the
  * preview's 1080p cap, so the operator gets the numbers before the take starts
