@@ -3155,6 +3155,49 @@ describe('ImageVideoLabComponent', () => {
       TestBed.flushEffects();
 
       expect(component.isSectionCollapsed('fx')).toBe(false);
+
+      // The reveal is temporary: recovery puts the host's fold back.
+      renderer.status.set('ready');
+      TestBed.flushEffects();
+      expect(component.isSectionCollapsed('fx')).toBe(true);
+    });
+
+    it('leaves the FX matrix folded when the host folds it during a failure', async () => {
+      const { component, videoEngine, fixture } = await createComponent();
+      const clip = createVideoClip({
+        id: 'cgi-1',
+        trackId: 't2',
+        type: 'overlay',
+        source: 'ai',
+        effects: {
+          ...createVideoClip().effects,
+          cgiScene: createDefaultCgiScene(),
+        },
+      });
+      videoEngine.findClip.mockReturnValue(clip);
+      component.selectedClipId.set('cgi-1');
+      component.isStackedLayout.set(true);
+      const renderer = (
+        component as unknown as {
+          cgiRenderer: {
+            status: { set: (value: string) => void; (): string };
+          };
+        }
+      ).cgiRenderer;
+
+      renderer.status.set('failed');
+      TestBed.flushEffects();
+      expect(component.isSectionCollapsed('fx')).toBe(false);
+
+      // A host who folds it again keeps it folded, even while still failed.
+      component.toggleSection('fx');
+      fixture.detectChanges();
+      TestBed.flushEffects();
+      expect(component.isSectionCollapsed('fx')).toBe(true);
+
+      // The header badge's action still reaches the renderer.
+      component.retryCgiSurface();
+      expect(renderer.status()).toBe('idle');
     });
 
     it('parks the playhead on a CGI key time in the selected clip', async () => {

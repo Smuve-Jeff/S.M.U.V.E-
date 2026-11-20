@@ -1669,6 +1669,23 @@ canvas {
   background: rgba(248, 113, 113, 0.22);
 }
 
+.cgi-header-retry {
+  padding: 0.2rem 0.5rem;
+  border: 1px solid rgba(252, 165, 165, 0.5);
+  border-radius: 999px;
+  background: rgba(248, 113, 113, 0.14);
+  color: #fecaca;
+  font-size: 0.5rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.cgi-header-retry:hover {
+  background: rgba(248, 113, 113, 0.26);
+}
+
 .monitor-frame {
   flex: 0 0 auto;
   display: flex;

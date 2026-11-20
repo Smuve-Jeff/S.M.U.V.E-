@@ -2903,21 +2903,33 @@
             >
               FX Matrix
             </h3>
-            @if (isStackedLayout()) {
-              <button
-                type="button"
-                class="section-toggle"
-                [attr.aria-expanded]="!isSectionCollapsed('fx')"
-                [attr.aria-label]="
-                  isSectionCollapsed('fx')
-                    ? 'Expand the FX matrix'
-                    : 'Collapse the FX matrix'
-                "
-                (click)="toggleSection('fx')"
-              >
-                <span class="material-symbols-outlined">expand_more</span>
-              </button>
-            }
+            <div class="section-head-actions">
+              @if (cgiSurfaceStatus() === 'failed' && isSectionCollapsed('fx')) {
+                <button
+                  type="button"
+                  class="cgi-header-retry"
+                  (click)="retryCgiSurface()"
+                  title="The 3D stage failed; retry it without opening the FX matrix"
+                >
+                  GPU ISSUE · RETRY
+                </button>
+              }
+              @if (isStackedLayout()) {
+                <button
+                  type="button"
+                  class="section-toggle"
+                  [attr.aria-expanded]="!isSectionCollapsed('fx')"
+                  [attr.aria-label]="
+                    isSectionCollapsed('fx')
+                      ? 'Expand the FX matrix'
+                      : 'Collapse the FX matrix'
+                  "
+                  (click)="toggleSection('fx')"
+                >
+                  <span class="material-symbols-outlined">expand_more</span>
+                </button>
+              }
+            </div>
           </div>
           <div class="grid grid-cols-1 gap-2">
             <label

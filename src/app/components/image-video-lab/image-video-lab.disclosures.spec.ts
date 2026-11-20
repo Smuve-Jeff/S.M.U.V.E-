@@ -49,6 +49,17 @@ describe('ImageVideoLabComponent section disclosures', () => {
       .map((rule) => rule[2]);
 
   describe('markup contract', () => {
+    it('keeps a RETRY on the folded FX header while the 3D stage has failed', () => {
+      // The failure note lives inside the FX matrix; folding it mid-failure
+      // must not take the retry with it.
+      expect(template).toContain('class="cgi-header-retry"');
+      expect(template).toMatch(
+        /cgiSurfaceStatus\(\) === 'failed' && isSectionCollapsed\('fx'\)/
+      );
+      expect(template).toContain('(click)="retryCgiSurface()"');
+      expect(styles).toContain('.cgi-header-retry');
+    });
+
     it('folds every stacked-layout group behind its own disclosure', () => {
       for (const id of SECTION_IDS) {
         expect(template).toContain(

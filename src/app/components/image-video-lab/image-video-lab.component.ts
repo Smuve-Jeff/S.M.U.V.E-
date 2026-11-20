@@ -1333,16 +1333,24 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
 
     // A failed 3D stage is only useful news if its note is in front of the
     // host: unfold the FX matrix and bring the note into view, so RETRY is
-    // reachable instead of folded away with the rest of the controls.
+    // reachable instead of folded away with the rest of the controls. The
+    // fold the host chose is remembered and restored once the stage is healthy.
     let revealedSurfaceFailure = false;
+    let openedFxForFailure = false;
     effect(() => {
       if (this.cgiSurfaceStatus() !== 'failed') {
         revealedSurfaceFailure = false;
+        if (!openedFxForFailure) return;
+        openedFxForFailure = false;
+        if (this.isStackedLayout() && !this.isSectionCollapsed('fx')) {
+          this.toggleSection('fx');
+        }
         return;
       }
       if (revealedSurfaceFailure) return;
       revealedSurfaceFailure = true;
-      if (this.isSectionCollapsed('fx')) this.toggleSection('fx');
+      openedFxForFailure = this.isSectionCollapsed('fx');
+      if (openedFxForFailure) this.toggleSection('fx');
       // Instant rather than smooth: the failing frame can repaint the editor
       // while a smooth scroll is still running, which leaves the note behind.
       setTimeout(() => {
