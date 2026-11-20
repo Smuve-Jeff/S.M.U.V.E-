@@ -2,6 +2,10 @@ import { Component, computed, input, output, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import {
+  KEYFRAME_EASINGS,
+  type KeyframeEasing,
+} from '../../../services/clip-keyframes';
+import {
   CGI_ANIMATION_CHANNELS,
   CGI_CAMERA_MOVES,
   CGI_PRIMITIVES,
@@ -10,6 +14,7 @@ import {
   cgiChannelValueAt,
   createCgiPrimitive,
   removeCgiKeyframe,
+  sanitizeCgiScene,
   setCgiKeyframe,
   type CgiAnimationChannel,
   type CgiCameraMove,
@@ -46,6 +51,7 @@ export class CgiScenePanelComponent {
 
   readonly cameraMoves = CGI_CAMERA_MOVES;
   readonly primitives = CGI_PRIMITIVES;
+  readonly keyframeEasings = KEYFRAME_EASINGS;
   readonly maxObjects = MAX_CGI_OBJECTS;
   readonly sceneError = signal<string | null>(null);
   primitive: Exclude<CgiPrimitive, 'model'> = 'cube';
@@ -53,6 +59,8 @@ export class CgiScenePanelComponent {
   /** '' authors the scene (camera/light); otherwise an object id. */
   readonly animTarget = signal('');
   readonly animChannel = signal<CgiAnimationChannel>('camera.distance');
+  /** Curve leaving the next key; the smooth stage default. */
+  readonly animEasing = signal<KeyframeEasing>('ease-in-out');
   /** A value typed for the next key, or null to follow the playhead value. */
   private readonly valueDraft = signal<number | null>(null);
 
@@ -119,10 +127,16 @@ export class CgiScenePanelComponent {
     const scene = this.scene();
     if (!scene) return;
     this.sceneError.set(null);
-    this.sceneChange.emit({
+    // The sanitizer drops tracks whose object no longer exists, so deleting an
+    // object cannot leave orphan animation behind in the project.
+    const next = sanitizeCgiScene({
       ...scene,
       objects: scene.objects.filter((object) => object.id !== id),
     });
+    if (next) this.sceneChange.emit(next);
+    // Drop the editor back to the scene so the channel menu cannot keep an
+    // object-only channel with no object behind it.
+    if (this.animTarget() === id) this.setAnimTarget('');
   }
 
   onModelFile(event: Event): void {
@@ -148,7 +162,9 @@ export class CgiScenePanelComponent {
       }
       this.sceneError.set(null);
       const object: CgiObject = {
-        id: `cgi-model-${Date.now().toString(36)}`,
+        id: `cgi-model-${Date.now().toString(36)}-${Math.random()
+          .toString(36)
+          .slice(2, 6)}`,
         name: file.name,
         kind: 'model',
         color: '#94a3b8',
@@ -193,6 +209,16 @@ export class CgiScenePanelComponent {
     this.valueDraft.set(Number.isFinite(numeric) ? numeric : 0);
   }
 
+  setAnimEasing(value: string): void {
+    this.animEasing.set(value as KeyframeEasing);
+  }
+
+  easingLabel(easing: KeyframeEasing): string {
+    return (
+      KEYFRAME_EASINGS.find((entry) => entry.id === easing)?.label ?? easing
+    );
+  }
+
   channelLabel(channel: CgiAnimationChannel): string {
     return (
       CGI_ANIMATION_CHANNELS.find((entry) => entry.id === channel)?.label ??
@@ -210,6 +236,7 @@ export class CgiScenePanelComponent {
         this.channelSpec().id,
         this.playhead(),
         this.keyframeValue(),
+        this.animEasing(),
       ),
     );
   }

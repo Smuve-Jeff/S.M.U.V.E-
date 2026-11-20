@@ -24,6 +24,15 @@ describe('CgiScenePanelComponent', () => {
 
   afterEach(() => TestBed.resetTestingModule());
 
+  /** A stage already holding the maximum number of objects. */
+  const fullScene = () => {
+    const scene = createDefaultCgiScene();
+    scene.objects = Array.from({ length: MAX_CGI_OBJECTS }, (_, index) =>
+      createCgiPrimitive('cube', index),
+    );
+    return scene;
+  };
+
   it('puts a new object in the first free slot beside the default torus', () => {
     const { component, emitted } = create(createDefaultCgiScene());
 
@@ -57,17 +66,63 @@ describe('CgiScenePanelComponent', () => {
   });
 
   it('refuses a 13th object instead of letting a reload truncate it', () => {
-    const scene = createDefaultCgiScene();
-    scene.objects = Array.from({ length: MAX_CGI_OBJECTS }, (_, index) =>
-      createCgiPrimitive('cube', index),
-    );
-    const { component, emitted } = create(scene);
+    const { component, emitted } = create(fullScene());
 
     expect(component.atObjectLimit()).toBe(true);
     component.addPrimitive();
 
     expect(emitted).toHaveLength(0);
     expect(component.sceneError()).toContain('cap');
+  });
+
+  it('refuses a model import at the object cap', () => {
+    const { component, emitted } = create(fullScene());
+    const file = new File(['glb'], 'hero.glb', {
+      type: 'model/gltf-binary',
+    });
+    const event = {
+      target: { files: [file], value: '' },
+    } as unknown as Event;
+
+    component.onModelFile(event);
+
+    expect(emitted).toHaveLength(0);
+    expect(component.sceneError()).toContain('cap');
+  });
+
+  it('drops an object\'s keyframe tracks when it is removed', () => {
+    const scene = setCgiKeyframe(
+      createDefaultCgiScene(),
+      'cgi-torus',
+      'position.x',
+      0,
+      2,
+    );
+    const { component, emitted } = create(scene);
+
+    component.removeObject('cgi-torus');
+
+    expect(emitted[0].objects).toHaveLength(0);
+    expect(emitted[0].animation?.tracks ?? []).toHaveLength(0);
+  });
+
+  it('returns the keyframe editor to the scene when its target is removed', () => {
+    const { component } = create(createDefaultCgiScene());
+    component.setAnimTarget('cgi-torus');
+
+    component.removeObject('cgi-torus');
+
+    expect(component.animTarget()).toBe('');
+    expect(component.channelSpec().scope).toBe('scene');
+  });
+
+  it('writes the selected easing onto a new key', () => {
+    const { component, emitted } = create(createDefaultCgiScene(), 1);
+
+    component.setAnimEasing('step');
+    component.addKeyframe();
+
+    expect(emitted[0].animation?.tracks[0].keys[0].easing).toBe('step');
   });
 
   it('writes a key at the playhead on the scene channel', () => {

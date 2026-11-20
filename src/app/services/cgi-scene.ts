@@ -603,10 +603,17 @@ function staticCgiChannelValue(
   scene: CgiSceneSettings,
   targetObjectId: string | null,
   channel: CgiAnimationChannel,
+  clipLocalTime: number,
 ): number {
   const object = targetObjectId
     ? scene.objects.find((entry) => entry.id === targetObjectId)
     : undefined;
+  const offset =
+    typeof scene.timeOffset === 'number' && Number.isFinite(scene.timeOffset)
+      ? Math.max(0, scene.timeOffset)
+      : 0;
+  const elapsed =
+    Math.max(0, Number.isFinite(clipLocalTime) ? clipLocalTime : 0) + offset;
   switch (channel) {
     case 'position.x':
       return object?.position[0] ?? 0;
@@ -614,8 +621,11 @@ function staticCgiChannelValue(
       return object?.position[1] ?? 0;
     case 'position.z':
       return object?.position[2] ?? 0;
-    case 'rotation.x':
+    // The first rotation key must hold the angle already on screen, not snap
+    // the object back to zero, so this mirrors the renderer's procedural spin.
     case 'rotation.y':
+      return object ? object.spin * scene.spin * elapsed : 0;
+    case 'rotation.x':
     case 'rotation.z':
       return 0;
     case 'scale':
@@ -654,7 +664,8 @@ export function cgiChannelValueAt(
     : undefined;
   return clampChannelValue(
     channel,
-    authored ?? staticCgiChannelValue(scene, targetObjectId, channel),
+    authored ??
+      staticCgiChannelValue(scene, targetObjectId, channel, time),
   );
 }
 
@@ -663,6 +674,9 @@ export function cgiChannelValueAt(
  * scene. A key already at that time is replaced rather than stacked, and the
  * sanitizer enforces target, scope, per-track cap and value bounds, so the
  * panel cannot emit a scene that a project reload would later truncate.
+ *
+ * `easing` is the curve leaving this key; ease-in-out is the smooth default the
+ * stage has always used.
  */
 export function setCgiKeyframe(
   scene: CgiSceneSettings,
@@ -670,6 +684,7 @@ export function setCgiKeyframe(
   channel: CgiAnimationChannel,
   time: number,
   value: number,
+  easing: KeyframeEasing = 'ease-in-out',
 ): CgiSceneSettings {
   const tracks = (scene.animation?.tracks ?? []).map((track) => ({
     targetObjectId: track.targetObjectId,
@@ -683,7 +698,7 @@ export function setCgiKeyframe(
       .slice(2, 7)}`,
     time: at,
     value: Number.isFinite(value) ? value : 0,
-    easing: 'ease-in-out',
+    easing: isKeyframeEasing(easing) ? easing : 'ease-in-out',
   };
   const track = tracks.find(
     (entry) =>

@@ -13,6 +13,7 @@ import {
   splitCgiAnimationAt,
   type CgiAnimationTrack,
 } from './cgi-scene';
+import type { KeyframeEasing } from './clip-keyframes';
 
 describe('CGI scene data', () => {
   it('creates a renderable default scene', () => {
@@ -561,8 +562,38 @@ describe('CGI keyframe authoring data', () => {
 
     expect(cgiChannelValueAt(scene, null, 'camera.distance', 0)).toBe(6);
     expect(cgiChannelValueAt(scene, 'cgi-torus', 'scale', 0)).toBe(1);
-    // Rotation falls back to the procedural spin, not a static angle.
+    // Rotation falls back to the procedural spin angle, so a first key holds
+    // the angle already on screen instead of snapping it to zero.
     expect(cgiChannelValueAt(scene, 'cgi-torus', 'rotation.y', 0)).toBe(0);
+    expect(
+      cgiChannelValueAt(scene, 'cgi-torus', 'rotation.y', 2),
+    ).toBeCloseTo(0.7, 6);
+    expect(
+      cgiChannelValueAt({ ...scene, timeOffset: 2 }, 'cgi-torus', 'rotation.y', 0),
+    ).toBeCloseTo(0.7, 6);
+  });
+
+  it('stores the chosen easing and falls back to the smooth default', () => {
+    const scene = createDefaultCgiScene();
+    const stepped = setCgiKeyframe(
+      scene,
+      null,
+      'camera.distance',
+      1,
+      5,
+      'step',
+    );
+    expect(stepped.animation!.tracks[0].keys[0].easing).toBe('step');
+
+    const unknown = setCgiKeyframe(
+      scene,
+      null,
+      'camera.distance',
+      1,
+      5,
+      'bounce' as unknown as KeyframeEasing,
+    );
+    expect(unknown.animation!.tracks[0].keys[0].easing).toBe('ease-in-out');
   });
 
   it('adds a key at the playhead and replaces a key at the same time', () => {

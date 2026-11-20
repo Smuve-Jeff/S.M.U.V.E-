@@ -745,6 +745,57 @@ const wholeAppLessons: GuideLesson[] = COMPLETE_GUIDE_LESSONS.map((lesson) => ({
   pitfall: lesson.mistake,
 }));
 
+/**
+ * Masterclass-only chapter for the pre-stream console.
+ *
+ * The Settings chapter stays a route tour. This lesson teaches the setup order
+ * that decides what viewers actually receive before GO LIVE, using the controls
+ * that shipped with the pre-stream config update.
+ */
+const preStreamLesson: GuideLesson = {
+  id: "app-prestream",
+  track: "whole-app",
+  title: "Run the pre-stream console",
+  kicker: "BROADCAST",
+  minutes: 10,
+  goal: "Set quality, source, audio and destinations before anything goes on air.",
+  plain:
+    "The pre-stream console is a rehearsal room. It captures locally, shows exactly what viewers would receive and keeps the settings GO LIVE inherits, so a muted mic or a silent screen share is caught at the desk instead of in the chat.",
+  steps: [
+    "Open Tha Spot, choose LIVE, and find PRE-STREAM CONFIG above the accounts list. Nothing here is on air yet.",
+    "Choose the quality: SMOOTH 480p when upload is tight, HD 720p as the everyday default, FULL 1080p only when the connection can carry it.",
+    "Pick the SOURCE: CAMERA, SCREEN, or CAM + SCREEN, then use the PIP button to move the camera inset. SCREEN explains why it is unavailable when the browser cannot share.",
+    "Press START PREVIEW and check framing; the readout says LOCAL ONLY - NOT ON AIR. Stop with STOP PREVIEW once the frame is right.",
+    "Set AUDIO: MIC / MIC MUTED decides whether viewers hear your voice, GAME ONLY sends screen sound without the mic when that sound exists, and a warning appears when the mix would reach viewers silent.",
+    "Check STREAMING ACCOUNTS with CONNECT or RECONNECT, and prove the BROADCAST PUSH path with CHECK and SELF-TEST before PUSH. A relay with recording off warns that the show will not be kept.",
+    "Press GO LIVE once source, sound and destinations agree. The capture settings you rehearsed are the ones the broadcast uses.",
+  ],
+  controls: [
+    "PRE-STREAM CONFIG quality buttons: SMOOTH 480p, HD 720p, FULL 1080p",
+    "SOURCE: CAMERA, SCREEN, CAM + SCREEN and the PIP corner button",
+    "START PREVIEW, STOP PREVIEW and LOCAL ONLY - NOT ON AIR",
+    "AUDIO: GAME ONLY, MIC and MIC MUTED",
+    "STREAMING ACCOUNTS and BROADCAST PUSH: CHECK, SELF-TEST, PUSH",
+    "GO LIVE",
+  ],
+  workspace: {
+    path: "/tha-spot",
+    label: "Tha Spot",
+    description:
+      "The live room with the pre-stream console, streaming accounts and broadcast push.",
+    icon: "sensors",
+  },
+  action: "Open Tha Spot",
+  proTip:
+    "Rehearse every show in preview, even the weekly one. Going live is the only step that cannot be undone.",
+  pitfall:
+    "Starting the broadcast straight from a cold room skips the local check, which is how a muted mic or a black screen share reaches viewers.",
+};
+
+// Masterclass-only: the Settings chapter order and its tutorial video stay put,
+// and this practical chapter closes the whole-app path.
+wholeAppLessons.push(preStreamLesson);
+
 const masteryLessons: GuideLesson[] = [
   {
     id: "master-session",
@@ -1200,6 +1251,66 @@ const cgiLessons: GuideLesson[] = [
       "A CGI clip that runs under a scene change can put the object in a shot where it does not belong. Cut both ends.",
   },
   {
+    id: "cgi-keyframes",
+    track: "cgi",
+    title: "Animate objects with keyframes",
+    kicker: "ANIMATION",
+    minutes: 9,
+    goal: "Author timed moves, fades and camera changes on the stage instead of one fixed look.",
+    plain:
+      "A keyframe stores a value at one moment. Two keys make a change: the stage fills in everything between them, and the easing curve decides whether that change starts fast, lands soft or holds.",
+    steps: [
+      "Park the timeline playhead where the change should start, then open the Keyframes section of the CGI / 3D Stage panel.",
+      "Pick a Target - Scene for camera and light, or one object - and a Channel such as Position X, Scale, Opacity or Camera Distance.",
+      "Read the Value field: it shows what the renderer is doing at the playhead. Type the new value, choose an Easing (Ease In/Out is the smooth default), then press + KEY.",
+      "Move the playhead and add a second key with a different value. Play across the shot to check the interpolation, then click a key chip to delete it or CLEAR to drop the whole channel.",
+    ],
+    controls: [
+      "Keyframes section: Target and Channel menus",
+      "Value field, Easing menu and + KEY button",
+      "Key chips, CLEAR and the timeline playhead",
+    ],
+    workspace: cgiWorkspace,
+    action: "Animate in the Lab",
+    proTip:
+      "Key the fewest channels that tell the story. A camera distance key plus an opacity fade usually beats keying position on every object.",
+    pitfall:
+      "A rotation key replaces the procedural spin for that object. The Value field already shows the angle on screen, so key that instead of retyping zero.",
+  },
+  {
+    id: "cgi-walkthrough",
+    track: "cgi",
+    title: "The complete CGI walkthrough",
+    kicker: "CAPSTONE",
+    minutes: 14,
+    goal: "Take one shot from an empty stage to an exported master using every CGI control in order.",
+    plain:
+      "The stage is built in a fixed order: layer, objects, look, camera, animation, timing, then delivery. Following that order means every decision is made where it is cheapest to change.",
+    steps: [
+      "Open Image & Video Lab, park the playhead where the effect begins and press ADD CGI LAYER. The stage clip lands on the overlay lane and the panel switches to its controls.",
+      "Build the cast: choose a primitive and press ADD OBJECT, or import a .glb or self-contained .gltf. New objects take the next free slot, and the stage stops at 12 objects - ADD OBJECT and the model import disable at the cap - so remove one before adding another.",
+      "Set the look: each object's colour swatch, the Key light slider, SHADOWS, REFLECTIONS, DARK PLATE and Object spin. Watch the monitor as you go; shadows and reflections are the first things to turn off when a long shot gets heavy.",
+      "Direct the camera: Locked Off, Orbit Left, Orbit Right, Push In or Crane Up. Play across the cut so the move agrees with the footage camera instead of fighting it.",
+      "Animate: in Keyframes pick a Target and Channel, read the Value at the playhead, set the value and Easing, then press + KEY. Add a second key later in the shot. If you split the CGI clip afterwards, the spin, orbit and camera keep running instead of restarting.",
+      "Time it: drag the CGI clip's start to where the object should appear and CUT it where it should leave. Delete the unused half and play across the edit.",
+      "Deliver: set Start, Raster, Rate and Codec, then press EXPORT VIDEO. Frame-locked export renders the clean composite including CGI at the chosen cadence, so a heavy stage costs render time rather than dropped frames.",
+      "Save the project, or press REMOVE CGI LAYER when the effect is no longer needed.",
+    ],
+    controls: [
+      "ADD CGI LAYER and the CGI / 3D Stage panel",
+      "Primitive menu, ADD OBJECT and the model file input",
+      "Key light, Object spin, SHADOWS, REFLECTIONS and DARK PLATE",
+      "Camera move menu and the Keyframes section",
+      "Timeline playhead, CUT, Raster, Rate, Codec and EXPORT VIDEO",
+    ],
+    workspace: cgiWorkspace,
+    action: "Start the walkthrough",
+    proTip:
+      "Build and check one step at a time in the monitor. The stage is cheap to change before the export and expensive to fix after it.",
+    pitfall:
+      "Exporting before timing the clip spends a render on frames nobody sees. Place and cut first, then render.",
+  },
+  {
     id: "cgi-export",
     track: "cgi",
     title: "Render the stage into the master",
@@ -1235,7 +1346,7 @@ const cgiLessons: GuideLesson[] = [
     plain:
       "A 3D scene has a budget. Every model and reflection costs render time, and a scene nobody can reopen is not reusable.",
     steps: [
-      "Remove unused objects with their × buttons and keep the object list short.",
+      "Remove unused objects with their × buttons and keep the object list short. The stage holds 12 objects; at the cap, ADD OBJECT and the model import disable until a slot is free.",
       "Turn REFLECTIONS and SHADOWS off for objects that do not need them on long timelines.",
       "Check project save after importing a model. Remove the CGI layer when the effect is no longer needed.",
     ],
@@ -1344,7 +1455,7 @@ export const GUIDE_TRACKS: GuideTrack[] = [
     icon: "view_in_ar",
     accent: "#38bdf8",
     outcome:
-      "A lit 3D stage placed on the timeline and delivered at the chosen raster and rate.",
+      "A lit, keyframed 3D stage placed on the timeline and delivered at the chosen raster and rate.",
     lessons: cgiLessons,
   },
   {

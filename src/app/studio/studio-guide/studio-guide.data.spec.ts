@@ -87,6 +87,31 @@ describe("Studio Masterclass content", () => {
     expect(spot!.workspace?.queryParams).toEqual({ panel: "broadcast" });
   });
 
+  it("teaches the pre-stream console before GO LIVE", () => {
+    const lesson = ALL_GUIDE_LESSONS.find(
+      (entry) => entry.id === "app-prestream",
+    );
+    expect(lesson).toBeDefined();
+    const copy = [
+      lesson!.goal,
+      lesson!.plain,
+      ...lesson!.steps,
+      ...lesson!.controls,
+    ].join(" ");
+
+    for (const control of [
+      "PRE-STREAM CONFIG",
+      "START PREVIEW",
+      "GAME ONLY",
+      "MIC",
+      "SELF-TEST",
+      "GO LIVE",
+    ]) {
+      expect(copy).toContain(control);
+    }
+    expect(lesson!.workspace?.path).toBe("/tha-spot");
+  });
+
   it("keeps every lesson actionable and correctly targeted", () => {
     const lessonIds = ALL_GUIDE_LESSONS.map((lesson) => lesson.id);
     expect(new Set(lessonIds).size).toBe(lessonIds.length);

@@ -147,7 +147,7 @@
             <select
               class="cgi-select"
               aria-label="Keyframe channel"
-              [ngModel]="animChannel()"
+              [ngModel]="channelSpec().id"
               (ngModelChange)="setAnimChannel($event)"
             >
               @for (channel of targetChannels(); track channel.id) {
@@ -171,10 +171,24 @@
               (ngModelChange)="setKeyframeValue($event)"
             />
           </label>
-          <button type="button" class="cgi-button" (click)="addKeyframe()">
-            + KEY @ {{ playhead() | number: '1.2-2' }}s
-          </button>
+          <label class="cgi-field">
+            <span>Easing</span>
+            <select
+              class="cgi-select"
+              aria-label="Keyframe easing"
+              [ngModel]="animEasing()"
+              (ngModelChange)="setAnimEasing($event)"
+            >
+              @for (easing of keyframeEasings; track easing.id) {
+                <option [value]="easing.id">{{ easing.label }}</option>
+              }
+            </select>
+          </label>
         </div>
+
+        <button type="button" class="cgi-button" (click)="addKeyframe()">
+          + KEY @ {{ playhead() | number: '1.2-2' }}s
+        </button>
 
         @if (tracksForTarget().length) {
           <div class="cgi-keys" aria-label="Authored CGI keyframes">
@@ -201,7 +215,8 @@
                       (click)="removeKey(track.channel, key.id)"
                     >
                       {{ key.time | number: '1.2-2' }}s ·
-                      {{ key.value | number: '1.0-2' }}
+                      {{ key.value | number: '1.0-2' }} ·
+                      {{ easingLabel(key.easing) }}
                     </button>
                   }
                 </div>
