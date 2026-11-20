@@ -36,7 +36,7 @@ export type StorageDurability =
 })
 export class LocalStorageService {
   private dbName = 'SMUVE_OFFLINE_DB';
-  private dbVersion = 9;
+  private dbVersion = 10;
   private db: IDBDatabase | null = null;
   /** Why persistence is unavailable, when it is. Null while everything works. */
   private unavailableReason: Exclude<PersistenceState, 'ready'> | null = null;
@@ -111,6 +111,13 @@ export class LocalStorageService {
       // Added in v9 — earlier DBs get it on upgrade.
       if (!db.objectStoreNames.contains('project_media')) {
         db.createObjectStore('project_media', { keyPath: 'id' });
+      }
+      // Imported GLB performers for the Visual Stage. The model binaries live
+      // here rather than in localStorage because one rigged character is far
+      // past the 5 MB string quota. Added in v10 — earlier DBs get it on
+      // upgrade.
+      if (!db.objectStoreNames.contains('character_models')) {
+        db.createObjectStore('character_models', { keyPath: 'id' });
       }
       if (!db.objectStoreNames.contains('performance_takes')) {
         // PerformanceRecordingService persists takes here (audio blobs are

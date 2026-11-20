@@ -7,6 +7,11 @@
   class="stage-shell"
   [class.stage-ready]="ready()"
   [class.stage-playing]="playing()"
+  [class.is-dragging]="dragActive()"
+  (dragenter)="onDragEnter($event)"
+  (dragover)="onDragOver($event)"
+  (dragleave)="onDragLeave($event)"
+  (drop)="onDrop($event)"
 >
   <canvas
     #surface
@@ -24,6 +29,14 @@
 
   <div class="stage-vignette" aria-hidden="true"></div>
   <div class="stage-scanlines" aria-hidden="true"></div>
+
+  @if (dragActive()) {
+    <div class="stage-drop" aria-hidden="true">
+      <span class="material-symbols-outlined">upload_file</span>
+      <strong>DROP A PERFORMER</strong>
+      <em>One uncompressed .glb, up to 30 MB</em>
+    </div>
+  }
 
   @if (!ready()) {
     <div class="stage-loading" role="status" aria-live="polite">
@@ -149,6 +162,22 @@
       accept=".glb,model/gltf-binary"
       (change)="onCharacterFile($event)"
     />
+    <button
+      type="button"
+      class="stage-control stage-toggle stage-library-toggle"
+      [class.is-on]="libraryOpen()"
+      [attr.aria-expanded]="libraryOpen()"
+      (click)="toggleLibrary()"
+      aria-label="Saved performers library"
+    >
+      <span class="material-symbols-outlined" aria-hidden="true"
+        >inventory_2</span
+      >
+      <strong>LIBRARY</strong>
+      @if (savedCount() > 0) {
+        <em class="stage-library-count">{{ savedCount() }}</em>
+      }
+    </button>
     @if (importedCharacter()) {
       <button
         type="button"
@@ -174,6 +203,67 @@
       RESET
     </button>
   </aside>
+
+  @if (libraryOpen()) {
+    <aside class="stage-library" aria-label="Saved performers">
+      <header class="stage-library-head">
+        <strong>SAVED PERFORMERS</strong>
+        <button
+          type="button"
+          class="stage-library-close"
+          (click)="toggleLibrary()"
+          aria-label="Close the saved performer library"
+        >
+          <span class="material-symbols-outlined" aria-hidden="true"
+            >close</span
+          >
+        </button>
+      </header>
+      @if (!libraryAvailable()) {
+        <p class="stage-library-empty">
+          This browser is not storing performers right now, so the library
+          cannot be kept between sessions.
+        </p>
+      } @else if (savedModels().length === 0) {
+        <p class="stage-library-empty">
+          Drop a GLB on the stage or use Import GLB. Imported performers are
+          saved here for the next set.
+        </p>
+      } @else {
+        <ul class="stage-library-list">
+          @for (model of savedModels(); track model.id) {
+            <li
+              class="stage-library-item"
+              [class.is-active]="model.name === characterName()"
+            >
+              <button
+                type="button"
+                class="stage-library-load"
+                (click)="useSavedCharacter(model)"
+                [attr.aria-label]="'Put ' + model.name + ' on stage'"
+              >
+                <strong>{{ model.name }}</strong>
+                <em>
+                  {{ model.clips > 0 ? model.clips + " CLIPS" : "STATIC" }}
+                  · {{ formatSize(model.size) }}
+                </em>
+              </button>
+              <button
+                type="button"
+                class="stage-library-remove"
+                (click)="removeSavedCharacter(model)"
+                [attr.aria-label]="'Remove ' + model.name + ' from the library'"
+              >
+                <span class="material-symbols-outlined" aria-hidden="true"
+                  >delete</span
+                >
+              </button>
+            </li>
+          }
+        </ul>
+      }
+    </aside>
+  }
 
   @if (characterStatus()) {
     <p
@@ -210,6 +300,8 @@
     <span class="stage-hint-key">SCROLL / PINCH</span> zoom
     <span class="stage-hint-sep" aria-hidden="true">·</span>
     <span class="stage-hint-key">TAP</span> the performer
+    <span class="stage-hint-sep" aria-hidden="true">·</span>
+    <span class="stage-hint-key">DROP</span> a GLB
   </p>
 
   <span

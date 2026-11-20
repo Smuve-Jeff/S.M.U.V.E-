@@ -85,6 +85,48 @@
   mix-blend-mode: screen;
 }
 
+.stage-shell.is-dragging {
+  cursor: copy;
+}
+
+.stage-drop {
+  position: absolute;
+  z-index: 7;
+  inset: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  border: 2px dashed rgba(101, 244, 255, 0.62);
+  border-radius: 14px;
+  color: #effcff;
+  background: rgba(5, 18, 26, 0.74);
+  box-shadow: inset 0 0 60px rgba(101, 244, 255, 0.12);
+  text-align: center;
+  pointer-events: none;
+  backdrop-filter: blur(4px);
+}
+
+.stage-drop .material-symbols-outlined {
+  font-size: 30px;
+  color: #65f4ff;
+  text-shadow: 0 0 18px rgba(101, 244, 255, 0.8);
+}
+
+.stage-drop strong {
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+}
+
+.stage-drop em {
+  color: rgba(191, 255, 255, 0.62);
+  font-size: 9px;
+  font-style: normal;
+  letter-spacing: 0.06em;
+}
+
 .stage-hud {
   position: absolute;
   z-index: 4;
@@ -379,6 +421,167 @@
   pointer-events: none;
 }
 
+.stage-library-toggle strong {
+  flex: 1;
+}
+
+.stage-library-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 15px;
+  height: 15px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: rgba(101, 244, 255, 0.16);
+  color: #9ffcff;
+  font-size: 7px;
+  font-style: normal;
+  font-weight: 900;
+  letter-spacing: 0;
+}
+
+.stage-library {
+  position: absolute;
+  z-index: 6;
+  top: 62px;
+  right: 140px;
+  display: flex;
+  flex-direction: column;
+  width: 224px;
+  max-height: calc(100% - 190px);
+  padding: 8px;
+  overflow: hidden;
+  border: 1px solid rgba(101, 244, 255, 0.24);
+  border-radius: 10px;
+  background: rgba(4, 12, 19, 0.9);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(16px);
+}
+
+.stage-library-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 0 0 7px 2px;
+}
+
+.stage-library-head strong {
+  color: rgba(191, 255, 255, 0.6);
+  font-size: 7px;
+  font-weight: 900;
+  letter-spacing: 0.18em;
+}
+
+.stage-library-close {
+  display: inline-flex;
+  padding: 2px;
+  border: 0;
+  background: none;
+  color: rgba(191, 255, 255, 0.55);
+  cursor: pointer;
+}
+
+.stage-library-close:hover,
+.stage-library-close:focus-visible {
+  color: #9ffcff;
+}
+
+.stage-library-close .material-symbols-outlined {
+  font-size: 14px;
+}
+
+.stage-library-empty {
+  margin: 0;
+  padding: 2px;
+  color: rgba(191, 255, 255, 0.46);
+  font-size: 9px;
+  line-height: 1.45;
+}
+
+.stage-library-list {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.stage-library-item {
+  display: flex;
+  align-items: stretch;
+  gap: 3px;
+  min-height: 0;
+  border: 1px solid rgba(159, 252, 255, 0.1);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.stage-library-item.is-active {
+  border-color: rgba(101, 244, 255, 0.5);
+  background: rgba(14, 124, 123, 0.2);
+}
+
+.stage-library-load {
+  display: grid;
+  flex: 1;
+  gap: 2px;
+  min-width: 0;
+  padding: 6px 7px;
+  border: 0;
+  border-radius: inherit;
+  background: none;
+  color: rgba(229, 254, 255, 0.8);
+  text-align: left;
+  cursor: pointer;
+}
+
+.stage-library-load strong {
+  overflow: hidden;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stage-library-load em {
+  color: rgba(191, 255, 255, 0.42);
+  font-size: 7px;
+  font-style: normal;
+  letter-spacing: 0.1em;
+}
+
+.stage-library-load:hover,
+.stage-library-load:focus-visible {
+  color: #effcff;
+}
+
+.stage-library-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  border: 0;
+  border-left: 1px solid rgba(159, 252, 255, 0.08);
+  border-radius: 0 7px 7px 0;
+  background: none;
+  color: rgba(191, 255, 255, 0.4);
+  cursor: pointer;
+}
+
+.stage-library-remove:hover,
+.stage-library-remove:focus-visible {
+  color: #ff4fd8;
+  background: rgba(255, 79, 216, 0.1);
+}
+
+.stage-library-remove .material-symbols-outlined {
+  font-size: 14px;
+}
+
 .stage-toast {
   position: absolute;
   z-index: 6;
@@ -595,6 +798,18 @@
   :host,
   .stage-shell {
     min-height: 340px;
+  }
+
+  .stage-drop {
+    inset: 6px;
+  }
+
+  .stage-library {
+    top: 48px;
+    left: 9px;
+    right: 9px;
+    width: auto;
+    max-height: 62%;
   }
 
   .stage-hud {

@@ -15,6 +15,10 @@ import {
   signal,
 } from "@angular/core";
 import { MusicManagerService } from "../../services/music-manager.service";
+import {
+  CharacterLibraryService,
+  type SavedCharacterModel,
+} from "./character-library.service";
 
 type ThreeModule = typeof import("three");
 type Renderer = import("three").WebGLRenderer;
@@ -173,6 +177,7 @@ const WAVE_POINTS = 96;
 export class VisualStageComponent implements AfterViewInit, OnDestroy {
   private readonly music = inject(MusicManagerService);
   private readonly zone = inject(NgZone);
+  private readonly library = inject(CharacterLibraryService);
 
   @ViewChild("surface", { static: true })
   private surfaceRef!: ElementRef<HTMLCanvasElement>;
@@ -197,6 +202,11 @@ export class VisualStageComponent implements AfterViewInit, OnDestroy {
   readonly characterStatus = signal("");
   readonly characterError = signal(false);
   readonly characterLoading = signal(false);
+  readonly savedModels = this.library.models;
+  readonly libraryAvailable = this.library.available;
+  readonly libraryOpen = signal(false);
+  readonly dragActive = signal(false);
+  readonly savedCount = computed(() => this.savedModels().length);
   readonly moodLabel = computed(() => MOOD_LABELS[this.mood()]);
   readonly paletteLabel = computed(() => PALETTE_LABELS[this.palette()]);
   readonly modelLabel = computed(() =>
@@ -210,6 +220,10 @@ export class VisualStageComponent implements AfterViewInit, OnDestroy {
 
   @HostListener("document:keydown.escape")
   onEscape(): void {
+    if (this.libraryOpen()) {
+      this.libraryOpen.set(false);
+      return;
+    }
     if (this.dismissible) this.dismiss.emit();
   }
 
@@ -286,6 +300,7 @@ export class VisualStageComponent implements AfterViewInit, OnDestroy {
   private readonly moveActions = new Map<StageMove, AnimationAction>();
   private importToken = 0;
   private characterStatusTimer: ReturnType<typeof setTimeout> | null = null;
+  private dragDepth = 0;
 
   private readonly orbit = { azimuth: 0.34, polar: 1.33, radius: 7.2 };
   private readonly smoothOrbit = { azimuth: 0.34, polar: 1.33, radius: 7.2 };
@@ -302,6 +317,7 @@ export class VisualStageComponent implements AfterViewInit, OnDestroy {
 
   ngAfterViewInit(): void {
     this.observeLayout();
+    void this.library.refresh();
     void this.initialize3d();
   }
 
@@ -361,26 +377,71 @@ export class VisualStageComponent implements AfterViewInit, OnDestroy {
     if (file) void this.importCharacter(file);
   }
 
+  onDragEnter(event: DragEvent): void {
+    if (!this.hasDraggedFiles(event)) return;
+    event.preventDefault();
+    this.dragDepth += 1;
+    this.dragActive.set(true);
+  }
+
+  onDragOver(event: DragEvent): void {
+    if (!this.hasDraggedFiles(event)) return;
+    event.preventDefault();
+    if (event.dataTransfer) event.dataTransfer.dropEffect = "copy";
+  }
+
+  onDragLeave(event: DragEvent): void {
+    if (!this.dragActive()) return;
+    if (this.hasDraggedFiles(event)) event.preventDefault();
+    this.dragDepth = Math.max(0, this.dragDepth - 1);
+    if (this.dragDepth === 0) this.dragActive.set(false);
+  }
+
+  onDrop(event: DragEvent): void {
+    if (!this.dragActive() && !this.hasDraggedFiles(event)) return;
+    event.preventDefault();
+    const file = event.dataTransfer?.files?.[0];
+    this.resetDrag();
+    if (file) void this.importCharacter(file);
+  }
+
+  toggleLibrary(): void {
+    this.libraryOpen.update((open) => !open);
+    if (this.libraryOpen()) void this.library.refresh();
+  }
+
+  async useSavedCharacter(model: SavedCharacterModel): Promise<void> {
+    if (this.characterLoading()) return;
+    const file = await this.library.load(model.id);
+    if (this.destroyed) return;
+    if (!file) {
+      this.setCharacterStatus(
+        "That saved performer could not be read from this browser.",
+        true,
+      );
+      return;
+    }
+    this.libraryOpen.set(false);
+    await this.importCharacter(file);
+  }
+
+  async removeSavedCharacter(model: SavedCharacterModel): Promise<void> {
+    await this.library.remove(model.id);
+    if (this.destroyed) return;
+    this.setCharacterStatus(`Removed ${model.name} from the library.`);
+  }
+
+  formatSize(bytes: number): string {
+    if (bytes >= 1024 * 1024) {
+      return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+    }
+    return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+  }
+
   async importCharacter(file: File): Promise<void> {
-    const isGlb =
-      file.name.toLowerCase().endsWith(".glb") ||
-      file.type === "model/gltf-binary";
-    if (!isGlb) {
-      this.setCharacterStatus(
-        "Choose a .glb file. A .gltf file often needs external textures and buffers.",
-        true,
-      );
-      return;
-    }
-    if (file.size === 0) {
-      this.setCharacterStatus("That GLB is empty.", true);
-      return;
-    }
-    if (file.size > MAX_CHARACTER_BYTES) {
-      this.setCharacterStatus(
-        "That GLB is larger than 30 MB. Compress the model or remove unused textures.",
-        true,
-      );
+    const problem = this.characterFileError(file);
+    if (problem) {
+      this.setCharacterStatus(problem, true);
       return;
     }
     if (!this.ready() || !this.avatar) {
@@ -408,7 +469,10 @@ export class VisualStageComponent implements AfterViewInit, OnDestroy {
         this.disposeObject(gltf.scene);
         return;
       }
-      this.mountCharacter(gltf, file.name);
+      const clipCount = this.mountCharacter(gltf, file.name);
+      // Saved after mounting so the library never lists a model the stage
+      // refused to render.
+      void this.library.save(file, clipCount);
     } catch (error) {
       if (token !== this.importToken || this.destroyed) return;
       const message = error instanceof Error ? error.message : "";
@@ -570,6 +634,30 @@ export class VisualStageComponent implements AfterViewInit, OnDestroy {
       default:
         break;
     }
+  }
+
+  private characterFileError(file: File): string | null {
+    const isGlb =
+      file.name.toLowerCase().endsWith(".glb") ||
+      file.type === "model/gltf-binary";
+    if (!isGlb) {
+      return "Choose a .glb file. A .gltf file often needs external textures and buffers.";
+    }
+    if (file.size === 0) return "That GLB is empty.";
+    if (file.size > MAX_CHARACTER_BYTES) {
+      return "That GLB is larger than 30 MB. Compress the model or remove unused textures.";
+    }
+    return null;
+  }
+
+  private hasDraggedFiles(event: DragEvent): boolean {
+    const types = event.dataTransfer?.types;
+    return !!types && Array.from(types).includes("Files");
+  }
+
+  private resetDrag(): void {
+    this.dragDepth = 0;
+    this.dragActive.set(false);
   }
 
   private async initialize3d(): Promise<void> {
@@ -1071,7 +1159,7 @@ export class VisualStageComponent implements AfterViewInit, OnDestroy {
     };
   }
 
-  private mountCharacter(gltf: Gltf, fileName: string): void {
+  private mountCharacter(gltf: Gltf, fileName: string): number {
     const three = this.three;
     const avatar = this.avatar;
     if (!three || !avatar) {
@@ -1122,6 +1210,7 @@ export class VisualStageComponent implements AfterViewInit, OnDestroy {
           ? `${name} · ${clipCount} CLIPS`
           : `${name} · STATIC MODEL`,
       );
+      return clipCount;
     } catch (error) {
       this.removeImportedModel();
       throw error;
