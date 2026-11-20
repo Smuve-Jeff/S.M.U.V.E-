@@ -37,6 +37,15 @@ const LEAD = 0.24;
 const GAP = 0.24;
 const TAIL = 0.65;
 
+const NARRATION = JSON.parse(
+  readFileSync(
+    path.join(ROOT, "src/app/components/settings/complete-app-guide.narration.json"),
+    "utf8"
+  )
+);
+
+// One script for both surfaces: the MP4 speaks exactly what the in-app narrator
+// reads, so no spoken line is ever written twice.
 const CHAPTERS = [
   {
     id: "shell",
@@ -222,26 +231,16 @@ const CHAPTERS = [
       "Analytics and next move",
     ],
   },
-];
-
-const NARRATION = JSON.parse(
-  readFileSync(
-    path.join(ROOT, "src/app/components/settings/complete-app-guide.narration.json"),
-    "utf8"
-  )
-);
-
-// One script for both surfaces: the MP4 speaks exactly what the in-app
-// narrator reads, so no spoken line is ever written twice.
-for (const chapter of CHAPTERS) {
+].map((chapter) => {
   const narration = NARRATION[chapter.id];
   if (!narration) {
-    throw new Error(
-      `No shared narration for chapter ${chapter.number} (${chapter.id})`
-    );
+    throw new Error(`No shared narration for chapter ${chapter.id}`);
   }
-  chapter.lines = [narration.intro, ...narration.features, narration.closing];
-}
+  return {
+    ...chapter,
+    lines: [narration.intro, ...narration.features, narration.closing],
+  };
+});
 
 const FALLBACKS = {
   "01-shell.png": "artifacts/chat-tutorial/screens/01-open.png",

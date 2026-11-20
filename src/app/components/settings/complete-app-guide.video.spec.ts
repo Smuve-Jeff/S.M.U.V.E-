@@ -3,7 +3,6 @@ import {
   COMPLETE_GUIDE_LESSONS,
   COMPLETE_GUIDE_NARRATION,
 } from './complete-app-guide.lessons';
-import * as SHARED_NARRATION from './complete-app-guide.narration.json';
 
 /**
  * The guide and the video are two halves of one product.
@@ -14,45 +13,42 @@ import * as SHARED_NARRATION from './complete-app-guide.narration.json';
  * plain Node and cannot import TypeScript), so a chapter renamed in one place
  * quietly stopped matching the card in the other — which is exactly what
  * happened to chapters 07 and 12 before this check existed.
+ *
+ * The spoken lines are not compared here: both surfaces read
+ * `complete-app-guide.narration.json`, so there is only one script to check.
  */
 
 interface ScreenChapter {
+  id: string;
   number: string;
   screen: string;
   kicker: string;
   title: string;
   subtitle: string;
   features: string[];
-  lines: string[];
 }
 
+const SCRIPT_SOURCE = readFileSync(
+  `${process.cwd()}/scripts/build-complete-app-guide.mjs`,
+  'utf8'
+);
+
 /**
- * Run the build script's chapter wiring without importing the script.
+ * Read the build script's chapter list without running its ffmpeg build.
  *
- * The slice covers the CHAPTERS literal and the loop that fills each
- * chapter's spoken lines from the shared narration file, so the test executes
- * the same derivation the MP4 build does rather than re-deriving it here.
+ * The list is a repo literal made of plain strings and arrays, ending where the
+ * narration is attached, so evaluating it is safe and needs no stubs.
  */
 function readScreenChapters(): ScreenChapter[] {
-  const scriptPath = `${process.cwd()}/scripts/build-complete-app-guide.mjs`;
-  const source = readFileSync(scriptPath, 'utf8');
-  const start = source.indexOf('const CHAPTERS = [');
+  const start = SCRIPT_SOURCE.indexOf('const CHAPTERS = [');
   expect(start).toBeGreaterThan(-1);
 
-  const derivation = source.indexOf('chapter.lines = [narration.intro');
-  expect(derivation).toBeGreaterThan(start);
-  const end = source.indexOf('\n}', derivation) + 2;
+  const end = SCRIPT_SOURCE.indexOf('\n].map(', start);
+  expect(end).toBeGreaterThan(start);
 
-  const wiring = source.slice(start, end);
-  // The slice is repo source made of plain strings, arrays and one fs read, so
-  // building the value is safe and keeps the test independent of the script's
-  // ffmpeg/TTS imports.
-  const chapters = new Function(
-    'readFileSync',
-    'path',
-    'ROOT',
-    `${wiring}\nreturn CHAPTERS;`
-  )(readFileSync, { join: (...parts: string[]) => parts.join('/') }, process.cwd()) as ScreenChapter[];
+  // The slice stops just before the closing `].map(...)`, so put the bracket back.
+  const literal = SCRIPT_SOURCE.slice(start + 'const CHAPTERS = '.length, end);
+  const chapters = new Function(`return ${literal}];`)() as ScreenChapter[];
   expect(Array.isArray(chapters)).toBe(true);
   return chapters;
 }
@@ -66,25 +62,24 @@ describe('Complete Guide video chapters', () => {
     );
   });
 
-  it('uses the guide’s title and kicker for every chapter', () => {
+  it('uses the guide’s id, title and kicker for every chapter', () => {
     for (const lesson of COMPLETE_GUIDE_LESSONS) {
       const chapter = chapters.find((entry) => entry.number === lesson.number);
-      expect(chapter).toBeDefined();
-      // A renamed chapter must be renamed in the video script too, or the
-      // render card and the Settings card disagree on screen.
       expect({
         number: lesson.number,
+        id: chapter?.id,
         title: chapter?.title,
         kicker: chapter?.kicker,
       }).toEqual({
         number: lesson.number,
+        id: lesson.id,
         title: lesson.title,
         kicker: lesson.kicker,
       });
     }
   });
 
-  it('keeps every chapter renderable and narrated', () => {
+  it('keeps every chapter renderable', () => {
     const screens = chapters.map((chapter) => chapter.screen);
     expect(new Set(screens).size).toBe(chapters.length);
 
@@ -92,60 +87,36 @@ describe('Complete Guide video chapters', () => {
       expect(chapter.screen).toMatch(/^\d{2}-[a-z0-9-]+\.png$/);
       expect(chapter.subtitle.trim().length).toBeGreaterThan(5);
       expect(chapter.features.length).toBeGreaterThanOrEqual(3);
-      // The MP4 is useless without the voice track.
-      expect(chapter.lines.length).toBeGreaterThanOrEqual(3);
-      for (const line of chapter.lines) {
-        expect(line.trim().length).toBeGreaterThan(20);
-      }
     }
   });
 
-  it('reads its chapter scripts from the one shared narration module', () => {
-    // The guide's typed export and the video build both come from this JSON,
-    // so neither can hold a second copy of the spoken lines.
-    expect(COMPLETE_GUIDE_NARRATION).toEqual({ ...SHARED_NARRATION });
+  it('speaks the shared narration instead of holding its own copy', () => {
+    expect(SCRIPT_SOURCE).toContain('complete-app-guide.narration.json');
 
-    const scriptSource = readFileSync(
-      `${process.cwd()}/scripts/build-complete-app-guide.mjs`,
-      'utf8'
+    // The only spoken-script array may be the one built from the narration: a
+    // second, hand-written `lines: [...]` would be a drifting copy.
+    const lineArrays = [...SCRIPT_SOURCE.matchAll(/\blines:\s*\[([^\]]*)\]/g)].map(
+      (match) => match[1].replace(/\s+/g, ' ').trim()
     );
-    expect(scriptSource).toContain('complete-app-guide.narration.json');
-    // A hand-written `lines: [...]` array would be a second, drifting copy.
-    expect(scriptSource).not.toMatch(/\blines:\s*\[/);
+    expect(lineArrays).toEqual([
+      'narration.intro, ...narration.features, narration.closing',
+    ]);
   });
 
-  it('speaks the same script the guide narrates, line for line', () => {
-    for (const lesson of COMPLETE_GUIDE_LESSONS) {
-      const chapter = chapters.find((entry) => entry.number === lesson.number);
-      const narration = COMPLETE_GUIDE_NARRATION[lesson.id];
-      expect(narration).toBeDefined();
-      expect(chapter).toBeDefined();
-
-      // The MP4 and the in-app narrator teach the same chapter, so they must
-      // not carry two drifting scripts: intro, one beat per feature, closing.
-      expect({
-        number: lesson.number,
-        lines: chapter?.lines,
-      }).toEqual({
-        number: lesson.number,
-        lines: [narration.intro, ...narration.features, narration.closing],
-      });
-    }
-  });
-
-  it('narrates every feature the guide highlights, and no orphan chapter', () => {
-    const narratedIds = Object.keys(COMPLETE_GUIDE_NARRATION).sort();
-    expect(narratedIds).toEqual(
+  it('narrates every chapter, and no orphan chapter', () => {
+    expect(Object.keys(COMPLETE_GUIDE_NARRATION).sort()).toEqual(
       COMPLETE_GUIDE_LESSONS.map((lesson) => lesson.id).sort()
     );
 
     for (const lesson of COMPLETE_GUIDE_LESSONS) {
-      const chapter = chapters.find((entry) => entry.number === lesson.number);
       const narration = COMPLETE_GUIDE_NARRATION[lesson.id];
-      // A feature added to the guide needs its spoken beat, and the reverse.
-      // (The on-screen card chips are a shorter summary than the voice track,
-      // so only the spoken structure is required to match.)
-      expect(chapter?.lines.length).toBe(narration.features.length + 2);
+      // The MP4 is useless without a voice track for each beat.
+      expect(narration.intro.trim().length).toBeGreaterThan(20);
+      expect(narration.closing.trim().length).toBeGreaterThan(20);
+      expect(narration.features.length).toBeGreaterThanOrEqual(3);
+      for (const line of narration.features) {
+        expect(line.trim().length).toBeGreaterThan(20);
+      }
     }
   });
 

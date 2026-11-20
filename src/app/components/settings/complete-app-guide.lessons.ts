@@ -76,7 +76,7 @@ export const COMPLETE_GUIDE_LESSONS: readonly CompleteGuideLesson[] = [
       "Starting in a deep tool without a current objective. The Hub exists to tell you which room is worth opening today.",
     route: "/hub",
     workspaceLabel: "Label Hub",
-    tutorialAt: 36.43,
+    tutorialAt: 74.95,
   },
   {
     id: "studio",
@@ -100,7 +100,7 @@ export const COMPLETE_GUIDE_LESSONS: readonly CompleteGuideLesson[] = [
       "Mixing before the arrangement is decided. Lock the song first, then balance it; a polished unfinished arrangement is still unfinished.",
     route: "/studio",
     workspaceLabel: "Studio",
-    tutorialAt: 63.96,
+    tutorialAt: 134.24,
   },
   {
     id: "rhythm",
@@ -126,7 +126,7 @@ export const COMPLETE_GUIDE_LESSONS: readonly CompleteGuideLesson[] = [
       "Building a live set only in Arrangement view. Rehearse the actual clip launch order and the transitions, not just the timeline.",
     route: "/performance",
     workspaceLabel: "Performance",
-    tutorialAt: 94.9,
+    tutorialAt: 199.49,
   },
   {
     id: "create",
@@ -151,7 +151,7 @@ export const COMPLETE_GUIDE_LESSONS: readonly CompleteGuideLesson[] = [
       "Asking AI for a finished record with no genre, reference or constraint. Direction is part of the composition, not a setting you can skip.",
     route: "/composer",
     workspaceLabel: "Composition Core",
-    tutorialAt: 126.25,
+    tutorialAt: 269.02,
   },
   {
     id: "lab",
@@ -175,7 +175,7 @@ export const COMPLETE_GUIDE_LESSONS: readonly CompleteGuideLesson[] = [
       "Cutting a vertical social piece in a 16:9 canvas and fixing it at export. Set the production mode first; the monitor and presets reflow around it.",
     route: "/image-video-lab",
     workspaceLabel: "Image & Video Lab",
-    tutorialAt: 161.55,
+    tutorialAt: 337.57,
   },
   {
     id: "spot",
@@ -206,7 +206,7 @@ export const COMPLETE_GUIDE_LESSONS: readonly CompleteGuideLesson[] = [
     route: "/tha-spot",
     queryParams: { panel: "broadcast" },
     workspaceLabel: "Tha Spot",
-    tutorialAt: 194.51,
+    tutorialAt: 401.39,
   },
   {
     id: "career",
@@ -230,7 +230,7 @@ export const COMPLETE_GUIDE_LESSONS: readonly CompleteGuideLesson[] = [
       "Treating a projection as a receipt. Separate measured data from a recommendation, and name which one you are acting on.",
     route: "/career",
     workspaceLabel: "Career Board",
-    tutorialAt: 226.05,
+    tutorialAt: 476.63,
   },
   {
     id: "business",
@@ -254,7 +254,7 @@ export const COMPLETE_GUIDE_LESSONS: readonly CompleteGuideLesson[] = [
       "Waiting until release week to document ownership. Put the terms in writing before delivery, when everyone still has leverage.",
     route: "/release-pipeline",
     workspaceLabel: "Release Pipeline",
-    tutorialAt: 259.91,
+    tutorialAt: 524.58,
   },
   {
     id: "intelligence",
@@ -278,7 +278,7 @@ export const COMPLETE_GUIDE_LESSONS: readonly CompleteGuideLesson[] = [
       "Leaving Full Control on and accepting every apply chip. Authority should be temporary, specific and deliberate.",
     route: "/command-center",
     workspaceLabel: "Command Center",
-    tutorialAt: 291.86,
+    tutorialAt: 575.66,
   },
   {
     id: "network",
@@ -302,7 +302,7 @@ export const COMPLETE_GUIDE_LESSONS: readonly CompleteGuideLesson[] = [
       "Sharing a project link without checking permissions. Collaboration is not publication, and a private draft is not a store listing.",
     route: "/remix-arena",
     workspaceLabel: "Remix Arena",
-    tutorialAt: 328.08,
+    tutorialAt: 636.67,
   },
   {
     id: "system",
@@ -326,7 +326,7 @@ export const COMPLETE_GUIDE_LESSONS: readonly CompleteGuideLesson[] = [
       "Treating browser storage as a backup. Save the project and export the master; clearing local storage does not restore unsaved work.",
     route: "/settings",
     workspaceLabel: "Settings",
-    tutorialAt: 357.38,
+    tutorialAt: 693.26,
   },
   {
     id: "workflow",
@@ -350,7 +350,7 @@ export const COMPLETE_GUIDE_LESSONS: readonly CompleteGuideLesson[] = [
       "Skipping the handoffs. A great mix with no release plan is a file, not a release, and a release with no record is a guess.",
     route: "/projects",
     workspaceLabel: "Projects",
-    tutorialAt: 390.43,
+    tutorialAt: 754.39,
   },
 ];
 
