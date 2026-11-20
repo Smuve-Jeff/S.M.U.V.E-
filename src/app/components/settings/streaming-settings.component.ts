@@ -97,9 +97,13 @@ import { RtmpDestinationsEditorComponent } from './rtmp-destinations-editor.comp
       }
       .settings-shell {
         display: grid;
+        grid-template-columns: minmax(0, 1fr);
         gap: 1.25rem;
         width: min(880px, 100%);
         margin: 0 auto;
+      }
+      .settings-shell > * {
+        min-width: 0;
       }
       .settings-head {
         display: grid;

@@ -641,6 +641,29 @@ describe('AppComponent', () => {
     expect(component.showAdvisorFab()).toBe(true);
   });
 
+  it('hides the advisor FAB on the phone Streaming settings form', async () => {
+    const originalWidth = window.innerWidth;
+
+    Object.defineProperty(window, 'innerWidth', {
+      configurable: true,
+      value: 390,
+    });
+    const { component } = await createComponent('/settings/streaming');
+    expect(component.showAdvisorFab()).toBe(false);
+
+    Object.defineProperty(window, 'innerWidth', {
+      configurable: true,
+      value: 1280,
+    });
+    component.onResize();
+    expect(component.showAdvisorFab()).toBe(true);
+
+    Object.defineProperty(window, 'innerWidth', {
+      configurable: true,
+      value: originalWidth,
+    });
+  });
+
   /**
    * The shell's root scroll surface.
    *

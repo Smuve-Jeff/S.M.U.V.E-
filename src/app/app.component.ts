@@ -838,7 +838,16 @@ export class AppComponent {
    * and keep it available everywhere else.
    */
   showAdvisorFab(): boolean {
-    return !this.isStudioShellRoute();
+    if (this.isStudioShellRoute()) return false;
+    // Streaming settings is a dense form on phones; the fixed advisor button
+    // covered the RTMP controls. The header still carries the advisor entry.
+    if (
+      this.activeRoutePath() === 'settings/streaming' &&
+      window.innerWidth <= 480
+    ) {
+      return false;
+    }
+    return true;
   }
 
   /** A direct/deep-linked workspace must never send Home outside the app. */

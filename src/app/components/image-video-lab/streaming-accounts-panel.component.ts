@@ -67,9 +67,8 @@ interface AccountRow {
         </div>
       </div>
       <p class="accounts-note">
-        Link accounts and save every RTMP URL and key here. Tha Spot and the
-        Lab only link to this Settings → Streaming setup; they no longer keep
-        their own copy of the configuration.
+        Link accounts and save every RTMP URL and key here. The Image &amp;
+        Video Lab and Tha Spot share these connections.
       </p>
       <ul class="accounts-list">
         @for (row of rows(); track row.id) {
@@ -119,7 +118,7 @@ interface AccountRow {
                 </button>
               }
             }
-            @if (row.rtmpReady !== null) {
+            @if (showRtmpStatus(row)) {
               <span
                 class="accounts-rtmp"
                 [class.accounts-rtmp-ready]="
@@ -170,6 +169,22 @@ interface AccountRow {
             <span class="accounts-warning">
               NO PAGES AVAILABLE — RECONNECT FACEBOOK WITH PAGE ACCESS
             </span>
+            <button
+              type="button"
+              class="accounts-button"
+              [disabled]="
+                platforms.connecting() !== null ||
+                platforms.loadingFacebookPages()
+              "
+              (click)="reconnectFacebook()"
+              aria-label="Reconnect Facebook with Page access"
+            >
+              {{
+                platforms.connecting() === 'facebook'
+                  ? 'CONNECTING…'
+                  : 'RECONNECT'
+              }}
+            </button>
           }
           @if (platforms.facebookPagesError(); as pageError) {
             <span class="accounts-warning" role="status">{{ pageError }}</span>
@@ -358,6 +373,7 @@ interface AccountRow {
       .accounts-page {
         display: flex;
         flex-wrap: wrap;
+        min-width: 0;
         align-items: center;
         gap: 0.45rem;
         padding: 0.45rem 0.55rem;
@@ -453,6 +469,11 @@ export class StreamingAccountsPanelComponent {
     return [...oauth, custom];
   });
 
+  /** Custom RTMP already says NO SLOTS SET; show its badge only once configured. */
+  showRtmpStatus(row: AccountRow): boolean {
+    return row.rtmpReady !== null && (row.connectable || row.rtmpReady);
+  }
+
   rtmpLabel(row: AccountRow): string {
     if (!row.rtmpReady) return 'RTMP UNSET';
     if (row.rtmpVerification === 'verified') return 'RTMP VERIFIED';
@@ -461,8 +482,17 @@ export class StreamingAccountsPanelComponent {
   }
 
   async connect(row: AccountRow): Promise<void> {
+    await this.connectPlatform(row.id as StreamingPlatformId);
+  }
+
+  /** The zero-Page row can restore the missing grant without leaving the row. */
+  async reconnectFacebook(): Promise<void> {
+    await this.connectPlatform('facebook');
+  }
+
+  private async connectPlatform(id: StreamingPlatformId): Promise<void> {
     this.pendingDisconnect.set(null);
-    await this.platforms.connect(row.id as StreamingPlatformId);
+    await this.platforms.connect(id);
     // Linking can change the server-resolved push destination (Twitch), so
     // refresh the RTMP readiness this same panel reports.
     await this.ingest.load();

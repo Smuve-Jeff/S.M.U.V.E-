@@ -114,6 +114,11 @@ describe('StreamingAccountsPanelComponent', () => {
     expect(text).toContain('RTMP UNSET');
     expect(text).toContain('CUSTOM RTMP');
     expect(text).toContain('NO SLOTS SET');
+    const customRow = Array.from(
+      fixture.nativeElement.querySelectorAll('.accounts-row'),
+    ).find((row) => row.textContent?.includes('CUSTOM RTMP'));
+    expect(customRow).toBeTruthy();
+    expect(customRow?.querySelector('.accounts-rtmp')).toBeNull();
   });
 
   it('shows a linked name and a ready destination', () => {
@@ -172,6 +177,22 @@ describe('StreamingAccountsPanelComponent', () => {
     expect(fixture.nativeElement.querySelector('.accounts-page select')).toBeNull();
     expect(fixture.nativeElement.querySelector('.accounts-page')?.textContent)
       .toContain('Only Page (CURRENT)');
+  });
+
+  it('reconnects Facebook from the zero-Page row', async () => {
+    connections.set({ facebook: { displayName: 'Host Page' } });
+    facebookPages.set([]);
+    fixture.detectChanges();
+
+    const button = fixture.nativeElement.querySelector(
+      '.accounts-page .accounts-button',
+    ) as HTMLButtonElement;
+    expect(button.textContent).toContain('RECONNECT');
+
+    await component.reconnectFacebook();
+
+    expect(platforms.connect).toHaveBeenCalledWith('facebook');
+    expect(ingest.load).toHaveBeenCalledTimes(1);
   });
 
   it('links YouTube without inventing an RTMP destination', async () => {
