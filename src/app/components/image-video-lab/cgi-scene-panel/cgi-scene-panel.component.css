@@ -253,6 +253,17 @@
   letter-spacing: 0.1em;
 }
 
+.cgi-object-muted {
+  padding: 0.08rem 0.24rem;
+  border: 1px solid rgba(251, 191, 36, 0.34);
+  border-radius: 999px;
+  background: rgba(251, 191, 36, 0.1);
+  color: #fbbf24;
+  font-size: 0.44rem;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+}
+
 .cgi-object input[type='color'] {
   width: 1.5rem;
   height: 1.3rem;

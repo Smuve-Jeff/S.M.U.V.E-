@@ -396,8 +396,16 @@
                 (ngModelChange)="setObjectColor(object.id, $event)"
                 [attr.aria-label]="'Colour for ' + object.name"
               />
-            } @else {
+            } @else if (object.bloom !== false) {
               <span class="cgi-object-kind">MODEL</span>
+            }
+            @if (object.bloom === false) {
+              <span
+                class="cgi-object-kind cgi-object-muted"
+                title="Bloom halo is muted for this object"
+              >
+                NO HALO
+              </span>
             }
             <button
               type="button"

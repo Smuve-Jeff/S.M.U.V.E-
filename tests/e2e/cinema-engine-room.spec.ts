@@ -601,6 +601,7 @@ test('renders a neon bloom on the CGI program monitor', async ({ page }) => {
       }),
     )
     .toBe(false);
+  await expect(page.locator('.cgi-object-muted')).toHaveText('NO HALO');
 });
 
 test('keeps the CGI finish strip visually stable', async ({ page }) => {
