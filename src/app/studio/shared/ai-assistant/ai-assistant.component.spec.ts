@@ -522,4 +522,86 @@ describe("AiAssistantComponent voice communication", () => {
     expect(reply).toContain("Kairo");
     expect(reply).toContain("Tempo is 120 BPM");
   });
+
+  it("speaks a quick-action confirmation instead of a status line", async () => {
+    const fixture = TestBed.createComponent(AiAssistantComponent);
+    const component = fixture.componentInstance;
+    const action = component.quickActions().find((a) => a.id === "structure")!;
+
+    await component.runAction(action);
+
+    expect(component.messages().at(-1)?.text).toContain("finish it");
+  });
+
+  it("reports a missing track as a failure, never as a success", async () => {
+    const fixture = TestBed.createComponent(AiAssistantComponent);
+    const component = fixture.componentInstance;
+    const action = component.quickActions().find((a) => a.id === "humanize")!;
+
+    await component.runAction(action);
+
+    expect(snack.error).toHaveBeenCalledWith(
+      expect.stringContaining("Select a track first"),
+    );
+    expect(snack.success).not.toHaveBeenCalled();
+    // The refusal lands in the transcript as a failure, not a result.
+    expect(component.messages().at(-1)?.text).toContain("Humanize failed");
+  });
+
+  it("gives a Director-backed confirmation a verdict, not a status message", async () => {
+    director.buildPlan.mockReturnValue({
+      surfaceId: "chord-editor",
+      title: "Chord Editor Director Plan",
+      mission: "",
+      successCriteria: [],
+      evidence: [],
+      steps: [
+        {
+          id: "chord-1",
+          surfaceId: "chord-editor",
+          label: "Turn the progression into parts",
+          detail: "",
+          executable: true,
+          run: jest.fn(),
+        },
+      ],
+    });
+    director.runStep.mockResolvedValue({
+      ok: true,
+      message: "Wrote pad, bass and top-line parts into three tracks.",
+    });
+    const fixture = TestBed.createComponent(AiAssistantComponent);
+    const component = fixture.componentInstance;
+    const action = component.quickActions().find((a) => a.id === "chords")!;
+
+    await component.runAction(action);
+
+    const text = component.messages().at(-1)?.text ?? "";
+    // The Director's measured evidence survives verbatim; the verdict is new.
+    expect(text).toContain("Wrote pad, bass and top-line parts into three tracks.");
+    expect(text).toContain("Voice them like you mean it.");
+  });
+
+  it("closes a finished action with the selected mode’s completion, not a pre-review", async () => {
+    profileService.profile.mockReturnValue({
+      ...initialProfile,
+      settings: {
+        ...initialProfile.settings,
+        ai: { ...initialProfile.settings.ai, commanderPersona: "Supportive" },
+      },
+    });
+    const fixture = TestBed.createComponent(AiAssistantComponent);
+    const component = fixture.componentInstance;
+    const action = component.quickActions().find((a) => a.id === "structure")!;
+
+    await component.runAction(action);
+
+    const text = component.messages().at(-1)?.text ?? "";
+    expect(text).toContain("Structure laid down");
+    expect(text).toMatch(/one clear step forward|Take a moment to hear/);
+    // `reactions` review work that has not happened yet — the old bug put one
+    // in front of a completed action.
+    expect(text).not.toContain("has real potential");
+    expect(text).not.toContain("reviewed:");
+  });
 });

@@ -100,12 +100,11 @@ describe('SpeechSynthesisService', () => {
 
   it('should use both male and female archetypes in a full catalog cycle', () => {
     randomSpy.mockReturnValue(0.35);
-
-    service.speak(
-      'One. Two! Three? Four. Five! Six? Seven. Eight! Nine. Ten. Eleven?'
-    );
-
     const catalog = service.archetypeCatalog();
+
+    // One sentence per tone, driven by the catalog itself instead of a
+    // hard-coded count that drifts whenever a tone is added.
+    service.speak(catalog.map((_, index) => `Line ${index + 1}.`).join(' '));
     const tones: string[] = [];
     mockUtterances.forEach((u) => {
       u.onstart();
@@ -117,7 +116,7 @@ describe('SpeechSynthesisService', () => {
 
     expect(genders.has('male')).toBe(true);
     expect(genders.has('female')).toBe(true);
-    expect(new Set(tones).size).toBe(11);
+    expect(new Set(tones).size).toBe(catalog.length);
   });
 
   it('should shift to a different voice on every sentence', () => {
@@ -269,11 +268,14 @@ describe('SpeechSynthesisService', () => {
       tones.push(service.liveVoice()!.archetype);
     });
 
-    // 11 distinct tones exist in the table; the deck must surface all of them
-    // inside two cycles of a 30-sentence message, and the first pass must be
-    // repeat-free — that is the "every tone before any repeat" guarantee.
-    expect(new Set(tones).size).toBe(11);
-    expect(tones.slice(0, 11).length).toBe(new Set(tones.slice(0, 11)).size);
+    // The deck must surface every distinct tone inside two cycles of a
+    // 30-sentence message, and the first pass must be repeat-free — that is
+    // the "every tone before any repeat" guarantee.
+    const total = service.archetypeCatalog().length;
+    expect(new Set(tones).size).toBe(total);
+    expect(tones.slice(0, total).length).toBe(
+      new Set(tones.slice(0, total)).size
+    );
     expect(tones).toEqual(
       expect.arrayContaining(['Deep Bass (Male)', 'Soprano Elite (Female)'])
     );
@@ -566,7 +568,7 @@ describe('SpeechSynthesisService', () => {
     it('lists every tone with the delivery texture it speaks in', () => {
       const catalog = service.archetypeCatalog();
 
-      expect(catalog).toHaveLength(11);
+      expect(catalog).toHaveLength(17);
       expect(catalog.find((t) => t.name === 'Creature')?.texture).toBe('growl');
       expect(catalog.find((t) => t.name === 'Childlike Glitch')?.texture).toBe(
         'stutter'
@@ -577,7 +579,7 @@ describe('SpeechSynthesisService', () => {
       expect(catalog.find((t) => t.name === 'Ominous Protocol')?.texture).toBe(
         'plain'
       );
-      expect(service.getArchetypeNames()).toHaveLength(11);
+      expect(service.getArchetypeNames()).toHaveLength(17);
       expect(service.availableVoiceNames()).toEqual([
         'Google English',
         'Microsoft David',

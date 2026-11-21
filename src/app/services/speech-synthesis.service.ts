@@ -13,6 +13,12 @@ export type VoiceArchetype =
   | 'Creature'
   | 'Choir (Layered)'
   | 'Androgynous Oracle'
+  | 'Bass Profundo (Male)'
+  | 'Gravel Baritone (Male)'
+  | 'Countertenor (Male)'
+  | 'Contralto Commander (Female)'
+  | 'Coloratura Soprano (Female)'
+  | 'Whisper Oracle'
   | 'Ominous Protocol';
 
 interface SmuveArchetype {
@@ -264,6 +270,70 @@ export class SpeechSynthesisService {
       pitchRange: [0.15, 0.4],
       rateRange: [0.5, 0.72],
       description: 'Phantom protocol. The voice from the bottom of the ocean.',
+    },
+    {
+      name: 'Bass Profundo (Male)',
+      gender: 'male',
+      basePitch: 0.18,
+      baseRate: 0.55,
+      baseVolume: 0.9,
+      pitchRange: [0.12, 0.32],
+      rateRange: [0.45, 0.68],
+      description: 'Below the floor. Felt in the chest before it is heard.',
+    },
+    {
+      name: 'Gravel Baritone (Male)',
+      gender: 'male',
+      basePitch: 0.5,
+      baseRate: 0.72,
+      baseVolume: 1.0,
+      pitchRange: [0.4, 0.64],
+      rateRange: [0.6, 0.88],
+      description:
+        'Rasping, road-worn authority. A voice that has closed a thousand bad sessions.',
+    },
+    {
+      name: 'Countertenor (Male)',
+      gender: 'male',
+      basePitch: 1.2,
+      baseRate: 0.9,
+      baseVolume: 0.9,
+      pitchRange: [1.05, 1.4],
+      rateRange: [0.78, 1.05],
+      description:
+        'A male register lifted into the alto band — unsettling and exact.',
+    },
+    {
+      name: 'Contralto Commander (Female)',
+      gender: 'female',
+      basePitch: 0.95,
+      baseRate: 0.68,
+      baseVolume: 0.98,
+      pitchRange: [0.8, 1.08],
+      rateRange: [0.58, 0.85],
+      description: 'The lowest female register, delivered like a verdict.',
+    },
+    {
+      name: 'Coloratura Soprano (Female)',
+      gender: 'female',
+      basePitch: 1.75,
+      baseRate: 1.05,
+      baseVolume: 0.88,
+      pitchRange: [1.55, 1.95],
+      rateRange: [0.9, 1.3],
+      description:
+        'Ornamental, fast, untouchable — precision at the top of the spectrum.',
+    },
+    {
+      name: 'Whisper Oracle',
+      gender: 'neutral',
+      basePitch: 1.0,
+      baseRate: 0.62,
+      baseVolume: 0.8,
+      pitchRange: [0.7, 1.5],
+      rateRange: [0.5, 0.8],
+      description:
+        'Quiet, close and certain. The threat you have to lean in to hear.',
     },
     // Ominous Protocol — the custom persona requested by the product owner.
     {
