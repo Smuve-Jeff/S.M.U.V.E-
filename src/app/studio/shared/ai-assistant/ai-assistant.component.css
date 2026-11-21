@@ -198,11 +198,17 @@
   -webkit-tap-highlight-color: transparent;
 }
 
-.ai-chip:hover,
+.ai-chip:not(:disabled):hover,
 .ai-chip:focus-visible {
   border-color: var(--teal-500);
   background: var(--teal-50);
   transform: translateX(2px);
+}
+
+/* One action at a time: the rest of the shelf stays visible but inert. */
+.ai-chip:disabled {
+  cursor: progress;
+  opacity: 0.55;
 }
 
 .ai-chip-icon {

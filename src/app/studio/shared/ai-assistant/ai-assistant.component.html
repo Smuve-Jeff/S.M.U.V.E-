@@ -82,10 +82,14 @@
     <button
       type="button"
       role="tab"
+      id="ai-tab-quick"
       class="ai-tab"
       [class.ai-tab-active]="tab() === 'quick'"
       [attr.aria-selected]="tab() === 'quick'"
+      aria-controls="ai-panel-quick"
+      [attr.tabindex]="tab() === 'quick' ? 0 : -1"
       (click)="setTab('quick')"
+      (keydown)="onTabKeyDown($event, 0)"
     >
       <span class="material-symbols-outlined">flash_on</span>
       Quick Actions
@@ -93,10 +97,14 @@
     <button
       type="button"
       role="tab"
+      id="ai-tab-chat"
       class="ai-tab"
       [class.ai-tab-active]="tab() === 'chat'"
       [attr.aria-selected]="tab() === 'chat'"
+      aria-controls="ai-panel-chat"
+      [attr.tabindex]="tab() === 'chat' ? 0 : -1"
       (click)="setTab('chat')"
+      (keydown)="onTabKeyDown($event, 1)"
     >
       <span class="material-symbols-outlined">forum</span>
       Chat
@@ -104,10 +112,14 @@
     <button
       type="button"
       role="tab"
+      id="ai-tab-director"
       class="ai-tab"
       [class.ai-tab-active]="tab() === 'director'"
       [attr.aria-selected]="tab() === 'director'"
+      aria-controls="ai-panel-director"
+      [attr.tabindex]="tab() === 'director' ? 0 : -1"
       (click)="setTab('director')"
+      (keydown)="onTabKeyDown($event, 2)"
     >
       <span class="material-symbols-outlined">movie</span>
       Director
@@ -115,7 +127,13 @@
   </nav>
 
   <!-- ============ QUICK ACTIONS ============ -->
-  <div class="ai-body" *ngIf="tab() === 'quick'" role="tabpanel">
+  <div
+    class="ai-body"
+    *ngIf="tab() === 'quick'"
+    id="ai-panel-quick"
+    role="tabpanel"
+    aria-labelledby="ai-tab-quick"
+  >
     <p class="ai-hint">
       Tap any action — the AI is aware of your selected track & current view.
     </p>
@@ -125,6 +143,8 @@
           type="button"
           class="ai-chip"
           (click)="runAction(a)"
+          [disabled]="!!quickActionBusy()"
+          [attr.aria-busy]="quickActionBusy() === a.id ? true : null"
           [attr.aria-label]="'Run ' + a.label + ': ' + a.description"
         >
           <span class="material-symbols-outlined ai-chip-icon">{{
@@ -143,7 +163,13 @@
   </div>
 
   <!-- ============ CHAT ============ -->
-  <div class="ai-body ai-chat" *ngIf="tab() === 'chat'" role="tabpanel">
+  <div
+    class="ai-body ai-chat"
+    *ngIf="tab() === 'chat'"
+    id="ai-panel-chat"
+    role="tabpanel"
+    aria-labelledby="ai-tab-chat"
+  >
     <div class="ai-chat-toolbar">
       <span class="ai-chat-memory">
         <span class="material-symbols-outlined">history</span>
@@ -158,9 +184,16 @@
         Clear
       </button>
     </div>
-    <div class="ai-chat-scroll no-scrollbar" #chatScroll>
+    <div
+      class="ai-chat-scroll no-scrollbar"
+      #chatScroll
+      role="log"
+      aria-live="polite"
+      aria-relevant="additions text"
+      aria-label="Conversation with S.M.U.V.E."
+    >
       <div
-        *ngFor="let m of messages()"
+        *ngFor="let m of messages(); let i = index"
         class="ai-msg"
         [class.ai-msg-user]="m.role === 'user'"
       >
@@ -171,7 +204,7 @@
           <p>{{ m.text }}</p>
           <div
             class="ai-msg-voice"
-            *ngIf="m.role === 'assistant' && m.ts !== messages()[0]?.ts"
+            *ngIf="m.role === 'assistant' && i > 0"
           >
             <button
               type="button"
@@ -221,6 +254,7 @@
     <div
       class="ai-suggest"
       *ngIf="suggestedFollowups().length > 0"
+      role="group"
       aria-label="Suggested follow-ups"
     >
       <button
@@ -266,7 +300,7 @@
       <button
         type="submit"
         class="ai-send"
-        [disabled]="!userInput().trim()"
+        [disabled]="!userInput().trim() || isThinking()"
         aria-label="Send message"
       >
         <span class="material-symbols-outlined">send</span>
@@ -283,7 +317,13 @@
   </div>
 
   <!-- ============ DIRECTOR ============ -->
-  <section class="ai-body ai-director" *ngIf="tab() === 'director'" role="tabpanel" aria-label="Studio Director">
+  <section
+    class="ai-body ai-director"
+    *ngIf="tab() === 'director'"
+    id="ai-panel-director"
+    role="tabpanel"
+    aria-labelledby="ai-tab-director"
+  >
     <p class="ai-hint">
       The Director builds an evidence-backed plan for the surface you are in. Executable steps call real Studio services; guided steps are honest handoffs to the surface control.
     </p>

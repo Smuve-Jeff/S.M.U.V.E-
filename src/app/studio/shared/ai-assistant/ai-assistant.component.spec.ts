@@ -32,6 +32,7 @@ describe("AiAssistantComponent voice communication", () => {
   let orchestration: any;
   let ai: any;
   let director: any;
+  let snack: any;
 
   beforeEach(async () => {
     recognition = {
@@ -109,7 +110,7 @@ describe("AiAssistantComponent voice communication", () => {
         },
         {
           provide: SnackbarService,
-          useValue: { success: jest.fn(), error: jest.fn() },
+          useValue: (snack = { success: jest.fn(), error: jest.fn() }),
         },
         { provide: StudioOrchestrationService, useValue: orchestration },
         { provide: Router, useValue: { navigate: jest.fn(() => Promise.resolve(true)) } },
@@ -387,5 +388,75 @@ describe("AiAssistantComponent voice communication", () => {
     expect(readProjectFileMock).toHaveBeenCalledWith(file);
     expect(director.importProjectBundle).toHaveBeenCalled();
     expect(component.directorStatus()).toContain("Imported");
+  });
+
+  it("reports a failed quick action instead of dressing it as a result", async () => {
+    const fixture = TestBed.createComponent(AiAssistantComponent);
+    const component = fixture.componentInstance;
+    const action = {
+      id: "boom",
+      label: "Boom",
+      description: "",
+      icon: "",
+      contexts: ["*"],
+      run: jest.fn().mockRejectedValue(new Error("engine offline")),
+    };
+
+    await component.runAction(action as any);
+
+    expect(snack.error).toHaveBeenCalledWith("Boom failed: engine offline");
+    expect(snack.success).not.toHaveBeenCalled();
+    expect(component.messages().at(-1)?.text).toBe(
+      "Boom failed: engine offline",
+    );
+    expect(component.quickActionBusy()).toBeNull();
+  });
+
+  it("runs a quick action once while a previous tap is still in flight", async () => {
+    const fixture = TestBed.createComponent(AiAssistantComponent);
+    const component = fixture.componentInstance;
+    let settle!: (value: string) => void;
+    const run = jest.fn(
+      () =>
+        new Promise<string>((resolve) => {
+          settle = resolve;
+        }),
+    );
+    const action = {
+      id: "slow",
+      label: "Slow",
+      description: "",
+      icon: "",
+      contexts: ["*"],
+      run,
+    };
+
+    const first = component.runAction(action as any);
+    expect(component.quickActionBusy()).toBe("slow");
+    await component.runAction(action as any);
+    expect(run).toHaveBeenCalledTimes(1);
+
+    settle("done");
+    await first;
+    expect(component.quickActionBusy()).toBeNull();
+
+    await component.runAction({
+      ...action,
+      run: jest.fn(() => "again"),
+    } as any);
+    expect(component.messages().at(-1)?.text).toBe("Slow — again");
+  });
+
+  it("runs a suggested chip that names a quick action instead of asking the AI", async () => {
+    const fixture = TestBed.createComponent(AiAssistantComponent);
+    const component = fixture.componentInstance;
+
+    await component.runSuggestedChip("Run Session Report");
+
+    expect(ai.getAIResponse).not.toHaveBeenCalled();
+    expect(snack.success).toHaveBeenCalledWith(
+      expect.stringContaining("Session Report:"),
+    );
+    expect(component.messages().at(-1)?.text).toContain("SESSION REPORT");
   });
 });

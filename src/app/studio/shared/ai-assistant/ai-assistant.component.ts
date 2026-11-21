@@ -138,6 +138,8 @@ export class AiAssistantComponent implements OnInit, AfterViewInit, OnDestroy {
 
   tab = signal<AssistantTab>("quick");
   userInput = signal("");
+  /** Currently running quick action, so a double tap cannot execute it twice. */
+  quickActionBusy = signal<string | null>(null);
   directorFocus = signal("");
   directorPlan = signal<StudioDirectorPlan | null>(null);
   directorPlanFor = signal<string>("");
@@ -149,16 +151,28 @@ export class AiAssistantComponent implements OnInit, AfterViewInit, OnDestroy {
     const plan = this.directorPlan();
     return STUDIO_SURFACES.find((surface) => surface.id === plan?.surfaceId)?.label ?? "Studio";
   });
-  directorRunExportReady = computed(
-    () => this.directorReport().length > 0 || !!this.director.lastDirectorRun?.(),
-  );
-  directorRecentRuns = computed<StudioDirectorRunResult[]>(() =>
-    this.director.listDirectorRuns?.() ?? [],
-  );
+  /**
+   * Director runs and checkpoints live on plain service fields, not signals, so
+   * a `computed` reading them keeps its first value forever — the same trap
+   * that froze the room lens on `window.location`. Every Director mutation
+   * bumps this revision and the lists read it, so the panel re-derives.
+   */
+  private directorRevision = signal(0);
+  directorRunExportReady = computed(() => {
+    this.directorRevision();
+    return (
+      this.directorReport().length > 0 || !!this.director.lastDirectorRun?.()
+    );
+  });
+  directorRecentRuns = computed<StudioDirectorRunResult[]>(() => {
+    this.directorRevision();
+    return this.director.listDirectorRuns?.() ?? [];
+  });
   /** Newest-first SessionHistory checkpoints for the open project. */
-  directorCheckpoints = computed<DirectorCheckpointSummary[]>(() =>
-    this.director.listCheckpoints(),
-  );
+  directorCheckpoints = computed<DirectorCheckpointSummary[]>(() => {
+    this.directorRevision();
+    return this.director.listCheckpoints();
+  });
 
   /** Live AI / local fallback status shown in the header. */
   aiMode = signal<"idle" | "online" | "local">("idle");
@@ -424,6 +438,16 @@ export class AiAssistantComponent implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
+  /** Append one assistant line, persist it, and keep the transcript in view. */
+  private postAssistant(text: string): void {
+    this.messages.update((m) => [
+      ...m,
+      { role: "assistant", text, ts: Date.now() },
+    ]);
+    this.persistMessages();
+    setTimeout(() => this.scrollDown(), 0);
+  }
+
   /** Keep assistant history isolated between signed-in artists. */
   private chatStorageKey(): string {
     const userId = this.userProfile.profile().id || "anonymous";
@@ -488,6 +512,39 @@ export class AiAssistantComponent implements OnInit, AfterViewInit, OnDestroy {
     return isStudioSurfaceId(view) ? view : "arrangement";
   }
 
+  /** Make the Director evidence lists re-derive after a mutation. */
+  private bumpDirectorRevision(): void {
+    this.directorRevision.update((revision) => revision + 1);
+  }
+
+  /** Roving-tabindex arrow/Home/End navigation for the tab list. */
+  onTabKeyDown(ev: KeyboardEvent, index: number): void {
+    const order: AssistantTab[] = ["quick", "chat", "director"];
+    const last = order.length - 1;
+    let next: number;
+    switch (ev.key) {
+      case "ArrowRight":
+        next = index === last ? 0 : index + 1;
+        break;
+      case "ArrowLeft":
+        next = index === 0 ? last : index - 1;
+        break;
+      case "Home":
+        next = 0;
+        break;
+      case "End":
+        next = last;
+        break;
+      default:
+        return;
+    }
+    ev.preventDefault();
+    this.setTab(order[next]);
+    const tabs = (ev.currentTarget as HTMLElement | null)?.parentElement
+      ?.querySelectorAll<HTMLButtonElement>('[role="tab"]');
+    tabs?.[next]?.focus();
+  }
+
   async refreshDirectorPlan(): Promise<void> {
     if (this.directorBusy()) return;
     const surfaceId = this.currentDirectorSurface();
@@ -523,6 +580,7 @@ export class AiAssistantComponent implements OnInit, AfterViewInit, OnDestroy {
     if (this.directorBusy()) return;
     try {
       const message = this.director.undoLastAction();
+      this.bumpDirectorRevision();
       this.directorReport.update((report) => [...report, `Done — Undo: ${message}`]);
       this.directorStatus.set(message);
       this.snack.success(message);
@@ -538,6 +596,7 @@ export class AiAssistantComponent implements OnInit, AfterViewInit, OnDestroy {
     if (this.directorBusy()) return;
     try {
       const message = this.director.redoLastAction();
+      this.bumpDirectorRevision();
       this.directorReport.update((report) => [...report, `Done — Redo: ${message}`]);
       this.directorStatus.set(message);
       this.snack.success(message);
@@ -551,11 +610,13 @@ export class AiAssistantComponent implements OnInit, AfterViewInit, OnDestroy {
 
   async restoreCheckpointDirectorAction(): Promise<void> {
     if (this.directorBusy()) return;
-    if (!window.confirm("Restore the latest checkpoint? Current work is preserved as an undoable edit.")) return;
+    if (!window.confirm("Restore the latest checkpoint? Current work is preserved as an undoable edit."))
+      return;
     this.directorBusy.set(true);
     this.directorStatus.set("Restoring checkpoint...");
     try {
       const message = await this.director.restoreCheckpoint();
+      this.bumpDirectorRevision();
       this.directorReport.update((report) => [...report, `Done — Restore checkpoint: ${message}`]);
       this.directorStatus.set(message);
       this.snack.success(message);
@@ -571,11 +632,13 @@ export class AiAssistantComponent implements OnInit, AfterViewInit, OnDestroy {
 
   async restoreCheckpointById(checkpointId: string, label: string): Promise<void> {
     if (this.directorBusy()) return;
-    if (!window.confirm(`Restore checkpoint "${label}"? Current work is preserved as an undoable edit.`)) return;
+    if (!window.confirm(`Restore checkpoint "${label}"? Current work is preserved as an undoable edit.`))
+      return;
     this.directorBusy.set(true);
     this.directorStatus.set(`Restoring checkpoint ${label}...`);
     try {
       const message = await this.director.restoreCheckpoint(checkpointId);
+      this.bumpDirectorRevision();
       this.directorReport.update((report) => [...report, `Done — Restore checkpoint: ${message}`]);
       this.directorStatus.set(message);
       this.snack.success(message);
@@ -637,6 +700,7 @@ export class AiAssistantComponent implements OnInit, AfterViewInit, OnDestroy {
     try {
       const bundle = await readProjectFile(file);
       const message = await this.director.importProjectBundle(bundle);
+      this.bumpDirectorRevision();
       this.directorReport.update((report) => [...report, `Done — Import project bundle: ${message}`]);
       this.directorStatus.set(message);
       this.snack.success(message);
@@ -657,6 +721,7 @@ export class AiAssistantComponent implements OnInit, AfterViewInit, OnDestroy {
     if (!window.confirm(`Delete "${track.name}"? Undo restores it.`)) return;
     try {
       const message = this.director.deleteSelectedTrack();
+      this.bumpDirectorRevision();
       this.directorReport.update((report) => [...report, `Done — Delete: ${message}`]);
       this.directorStatus.set(message);
       this.snack.success(message);
@@ -686,6 +751,7 @@ export class AiAssistantComponent implements OnInit, AfterViewInit, OnDestroy {
   clearDirectorRunHistory(): void {
     if (this.directorBusy()) return;
     this.director.clearDirectorRuns();
+    this.bumpDirectorRevision();
     const message = "Cleared Director run history.";
     this.directorReport.update((report) => [...report, `Done — ${message}`]);
     this.directorStatus.set(message);
@@ -696,8 +762,11 @@ export class AiAssistantComponent implements OnInit, AfterViewInit, OnDestroy {
   private async runDirectorStepFor(surfaceId: string, label: string): Promise<string> {
     const plan = this.director.buildPlan({ surfaceId });
     const step = plan.steps.find((candidate) => candidate.label === label);
-    if (!step) return `Director step ${label} is unavailable on ${surfaceId}.`;
+    if (!step) throw new Error(`Director step ${label} is unavailable on ${surfaceId}.`);
     const result = await this.director.runStep(step);
+    // A failed step used to report its error text through the success snackbar;
+    // throwing keeps the refusal visible instead of dressing it as a result.
+    if (!result.ok) throw new Error(result.message);
     return result.message;
   }
 
@@ -708,6 +777,7 @@ export class AiAssistantComponent implements OnInit, AfterViewInit, OnDestroy {
     this.directorStatus.set("Running the Director plan...");
     try {
       const result = await this.director.runPlan(plan);
+      this.bumpDirectorRevision();
       this.directorReport.set(result.report);
       this.directorStatus.set(
         result.failed === 0 ? "Plan complete." : `Plan finished with ${result.failed} check${result.failed === 1 ? "" : "s"}.`,
@@ -728,6 +798,7 @@ export class AiAssistantComponent implements OnInit, AfterViewInit, OnDestroy {
     this.directorStatus.set(`Running ${step.label}...`);
     try {
       const result = await this.director.runStep(step);
+      this.bumpDirectorRevision();
       this.directorReport.update((report) => [
         ...report,
         `${result.ok ? "Done" : "Check"} — ${step.label}: ${result.message}`,
@@ -735,6 +806,14 @@ export class AiAssistantComponent implements OnInit, AfterViewInit, OnDestroy {
       this.directorStatus.set(result.ok ? `${step.label} done.` : `${step.label} needs attention.`);
       if (result.ok) this.snack.success(`${step.label}: ${result.message}`);
       else this.snack.error(`${step.label} failed: ${result.message}`);
+    } catch (error) {
+      const message = `${step.label} failed: ${(error as Error).message}`;
+      this.directorReport.update((report) => [
+        ...report,
+        `Check — ${step.label}: ${(error as Error).message}`,
+      ]);
+      this.directorStatus.set(message);
+      this.snack.error(message);
     } finally {
       this.directorBusy.set(false);
     }
@@ -746,24 +825,25 @@ export class AiAssistantComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   async runAction(a: QuickAction) {
+    if (this.quickActionBusy()) return;
+    this.quickActionBusy.set(a.id);
     this.haptic.medium();
     try {
       const result = await a.run();
       this.snack.success(`${a.label}: ${result}`);
-      this.messages.update((m) => [
-        ...m,
-        { role: "assistant", text: `${a.label} — ${result}`, ts: Date.now() },
-      ]);
-      this.persistMessages();
-      setTimeout(() => this.scrollDown(), 0);
+      this.postAssistant(`${a.label} — ${result}`);
     } catch (e) {
-      this.snack.error(`${a.label} failed: ${(e as Error).message}`);
+      const message = `${a.label} failed: ${(e as Error).message}`;
+      this.snack.error(message);
+      this.postAssistant(message);
+    } finally {
+      this.quickActionBusy.set(null);
     }
   }
 
   async sendMessage() {
     const text = this.userInput().trim();
-    if (!text) return;
+    if (!text || this.isThinking()) return;
     this.haptic.light();
     this.messages.update((m) => [...m, { role: "user", text, ts: Date.now() }]);
     this.userInput.set("");
@@ -1071,6 +1151,25 @@ export class AiAssistantComponent implements OnInit, AfterViewInit, OnDestroy {
   /** Execute a one-tap AI action against the live session. */
   async runAssistantAction(a: AssistantAction): Promise<void> {
     this.haptic.medium();
+    let result: string | null;
+    try {
+      result = await this.applyAssistantAction(a);
+    } catch (error) {
+      const message = `${a.label} failed: ${(error as Error).message}`;
+      this.snack.error(message);
+      this.postAssistant(message);
+      return;
+    }
+    if (result) this.postAssistant(result);
+  }
+
+  /**
+   * Apply one action and return the line to post; null means the action already
+   * posted its own message. Failures throw so the caller reports them.
+   */
+  private async applyAssistantAction(
+    a: AssistantAction,
+  ): Promise<string | null> {
     let result: string;
     switch (a.id) {
       case "tempo-90":
@@ -1117,19 +1216,9 @@ export class AiAssistantComponent implements OnInit, AfterViewInit, OnDestroy {
         result = "Humanized. Your notes breathe now — unlike your confidence.";
         break;
       }
-      case "session-report": {
-        this.messages.update((m) => [
-          ...m,
-          {
-            role: "assistant",
-            text: this.buildSessionReport(),
-            ts: Date.now(),
-          },
-        ]);
-        this.persistMessages();
-        setTimeout(() => this.scrollDown(), 0);
-        return;
-      }
+      case "session-report":
+        this.postAssistant(this.buildSessionReport());
+        return null;
       case "tips": {
         const advice = this.ai.getSmartMixAdvice(this.musicManager.tracks());
         result = advice || "Mix is balanced. Shocking. Keep it that way.";
@@ -1172,18 +1261,26 @@ export class AiAssistantComponent implements OnInit, AfterViewInit, OnDestroy {
         result = await this.director.restoreCheckpoint();
         break;
       default:
-        return;
+        return null;
     }
-    this.messages.update((m) => [
-      ...m,
-      { role: "assistant", text: result, ts: Date.now() },
-    ]);
-    this.persistMessages();
-    setTimeout(() => this.scrollDown(), 0);
+    return result;
   }
 
-  /** Fire a suggested chip as if the user typed it. */
+  /**
+   * Fire a suggested chip. Chips that name a quick action run it, because
+   * "Session Report" next to a Session Report action that only ever produced
+   * chat prose was a promise the panel did not keep; everything else is asked
+   * as if the artist typed it.
+   */
   async runSuggestedChip(label: string) {
+    const wanted = label.trim().replace(/^run\s+/i, "").toLowerCase();
+    const action = this.quickActions().find(
+      (candidate) => candidate.label.toLowerCase() === wanted,
+    );
+    if (action) {
+      await this.runAction(action);
+      return;
+    }
     this.userInput.set(label);
     await this.sendMessage();
   }
