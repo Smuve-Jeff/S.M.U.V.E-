@@ -802,8 +802,30 @@ describe('ChatbotComponent', () => {
     aiServiceMock.getAIResponse = jest.fn().mockResolvedValue('Strategic link severed.');
     component.userInput = 'Explain sample clearance';
     await component.sendMessage();
-    expect(component.messages().at(-1)?.text).toContain('LOCAL KNOWLEDGE MODE');
+    // The outage is reported in Prime's voice, not as a system log line, but
+    // the honesty stays: nothing was looked up and nothing was executed.
+    expect(component.messages().at(-1)?.text).toContain(
+      'The link is severed. Local knowledge only'
+    );
     expect(component.messages().at(-1)?.text).toContain('copyright.gov');
+  });
+
+  it('keeps an artist-selected mode out of Prime’s voice in the offline path', () => {
+    userProfileServiceMock.profile.set({
+      ...initialProfile,
+      settings: {
+        ...initialProfile.settings,
+        ai: { ...initialProfile.settings.ai, commanderPersona: 'Supportive' },
+      },
+    });
+
+    const reply = (component as any).localFallback('royalties');
+
+    // The relationship opener is Prime's voice; the mentor keeps her own
+    // register but still gets the artist's own filed fact.
+    expect(reply).not.toContain('moments on the file');
+    expect(reply).toContain('Strategic link severed. We can keep going offline');
+    expect(reply).toContain('Debut tape');
   });
 
 

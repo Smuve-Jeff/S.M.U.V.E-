@@ -1389,8 +1389,7 @@ export class AiAssistantComponent implements OnInit, AfterViewInit, OnDestroy {
       // persona can be swapped, never muted), so studio replies shift entity
       // every sentence exactly like the chat. Pinning one stable voice here
       // made the studio panel the only surface that sounded human.
-      shapeShift:
-        this.userProfile.profile().settings?.ai?.aiVoiceShapeShiftEnabled ?? true,
+      shapeShift: true,
     });
     this.voiceNotice.set("");
   }

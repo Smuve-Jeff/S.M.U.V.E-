@@ -876,8 +876,9 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
 
       this.speechSynthesisService.speak(content, {
         conversationId,
-        shapeShift:
-          this.profile().settings?.ai?.aiVoiceShapeShiftEnabled ?? true,
+        // Core identity, not a preference: Settings already forces this on,
+        // and a legacy profile must not be able to silence the shift.
+        shapeShift: true,
         // Mimic mode reads the artist's own register from the committed profile
         // and holds the archetype per reply; shape-shifting still moves it
         // band-by-band within that register, so the S.M.U.V.E. voice survives.
@@ -1456,23 +1457,48 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
 
   private localFallback(question: string): string {
     const entry = this.knowledgeEngine.search(question)[0];
-    const notice = 'LOCAL KNOWLEDGE MODE — live AI unavailable. No current-source lookup or app action was performed.';
+    const persona = getPersonaOption(
+      this.profile().settings?.ai?.commanderPersona
+    );
+    const notice = this.offlineNotice(persona);
     const continuity = this.caseFile?.callbackLine(
       this.careerDirector?.currentSurface()
     );
     // The same relationship voice the Studio panel speaks with: the stage
     // opener rotates, and one filed fact rides along unless the case-file
     // callback already quoted this artist's own record — never two quotes of
-    // the same file in one answer.
+    // the same file in one answer. The opener is S.M.U.V.E. Prime's voice, so
+    // an artist-selected mode takes the fact and keeps its own register.
     const bond = this.relationship?.voice();
-    const bondLine = [bond?.opener, continuity ? null : bond?.note]
+    const bondLine = [
+      persona.isOminous ? bond?.opener : null,
+      continuity ? null : bond?.note,
+    ]
       .filter(Boolean)
       .join(' ');
     const file = [bondLine, continuity].filter(Boolean).join('\n\n');
     const fileLine = file ? `${file}\n\n` : '';
     if (entry) return `${notice}\n\n${fileLine}${this.formatKnowledge(entry)}`;
     const next = this.artistFinetune?.knowledge?.()?.pathway?.nextStep;
-    return `${notice}\n\n${fileLine}${getPersonaOption(this.profile().settings?.ai?.commanderPersona).isOminous ? 'MY STANDARD: no invented answers.' : 'No matching local evidence.'} ${next ? `Your recorded next milestone: ${next}. ` : ''}Tell me the song, goal or bottleneck. For app actions use /go, /studio, /mixer, /tracks or /music; I execute only supported commands with authority and confirmations.`;
+    return `${notice}\n\n${fileLine}${persona.isOminous ? 'MY STANDARD: no invented answers.' : 'No matching local evidence.'} ${next ? `Your recorded next milestone: ${next}. ` : ''}Tell me the song, goal or bottleneck. For app actions use /go, /studio, /mixer, /tracks or /music; I execute only supported commands with authority and confirmations.`;
+  }
+
+  /**
+   * The honest outage notice in the active persona's register.
+   *
+   * Prime does not file a system status like a log line, and an
+   * artist-selected mode must not be handed Prime's voice either. The factual
+   * part — nothing was looked up, nothing was touched — is never dropped;
+   * only the framing changes.
+   */
+  private offlineNotice(persona: ReturnType<typeof getPersonaOption>): string {
+    if (persona.isOminous) {
+      return 'The link is severed. Local knowledge only — I looked nothing up and touched nothing in this session.';
+    }
+    const severed = persona.offlineVoice?.linkSevered;
+    return severed
+      ? `${severed} No current-source lookup or app action was performed.`
+      : 'Local knowledge mode — live AI unavailable. No current-source lookup or app action was performed.';
   }
 
   private personaSafeText(text: string): string {
