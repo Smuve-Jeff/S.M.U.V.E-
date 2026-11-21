@@ -279,6 +279,42 @@ describe('ProfileEditorComponent', () => {
       expect(text()).toContain('Missing:');
     });
 
+    it('scores genre depth from the questionnaire evidence and follows the draft', async () => {
+      const { fixture, component, text } = await createComponent();
+      component.activeSection.set('genre-deep-dive');
+      fixture.detectChanges();
+
+      const before = component.genreDepth();
+      expect(before.score).toBeLessThan(100);
+      expect(text()).toContain('Genre Depth');
+      expect(text()).toContain('Still missing');
+
+      component.updateProfileField('genreSpecificData', { mood: 'late night' });
+      component.updateProfileField(
+        'musicalJourney.marketPosition',
+        'Emerging Artist'
+      );
+      fixture.detectChanges();
+
+      const after = component.genreDepth();
+      expect(after.score).toBeGreaterThan(before.score);
+      expect(after.missing).not.toContain('genre-specific data');
+      expect(after.missing).not.toContain('market position');
+    });
+
+    it('does not launch the questionnaire again from the genre pane', async () => {
+      const { fixture, component } = await createComponent();
+      component.activeSection.set('genre-deep-dive');
+      fixture.detectChanges();
+
+      // The single entry point is the onboarding banner. This pane may only
+      // report what that questionnaire produced, never resell the same flow.
+      const labels = Array.from(
+        (fixture.nativeElement as HTMLElement).querySelectorAll('main button')
+      ).map((button) => button.textContent?.trim() ?? '');
+      expect(labels.join(' ')).not.toMatch(/protocol|questionnaire/i);
+    });
+
     it('edits the production toolchain elements instead of leaving them unowned', async () => {
       const { fixture, component } = await createComponent();
 

@@ -69,9 +69,19 @@ describe('ArtistRegistryPathwayService', () => {
       );
       expect(pathway.track).toBe('emerging');
       expect(pathway.genre).toBe('Hip Hop & Rap');
-      expect(pathway.phases.length).toBe(6);
+      // Six registry phases plus the first-work lane nothing official exists yet
+      // requires — a beginner with no catalogue is not sent straight to portals.
+      expect(pathway.phases.length).toBe(7);
+      expect(pathway.phases[1]?.id).toBe('first-work');
       // Nothing is done, so the first move is the very first step.
       expect(pathway.nextMove).toMatch(/artist name/i);
+    });
+
+    it('drops the first-work lane once a release exists', () => {
+      const pathway = service.registryPathway(
+        profile({ artistName: 'North Star', catalog: [{ id: 'w1', title: 'Debut' }] })
+      );
+      expect(pathway.phases.map((phase) => phase.id)).not.toContain('first-work');
     });
 
     it('advances the next move as evidence arrives', () => {

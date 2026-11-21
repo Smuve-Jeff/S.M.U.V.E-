@@ -467,6 +467,43 @@ export class ArtistRegistryPathwayService {
       },
     ];
 
+    // A beginner with nothing recorded yet needs a lane before identifiers and
+    // portals mean anything. It sits after the name and before the registry, and
+    // disappears the moment a first work exists — established artists never see
+    // a list of steps they finished years ago.
+    if (
+      readout.track === 'emerging' &&
+      !readout.hasFingerprint &&
+      uplink.totals.works === 0
+    ) {
+      phases.splice(1, 0, {
+        id: 'first-work',
+        title: 'Earn the first thing worth registering',
+        summary: `No portal can help an unfinished song. In ${lens.family}, the first credibility is one finished, released track — the registry steps below only start counting after that.`,
+        steps: [
+          {
+            title: 'Finish three songs you would play for a stranger',
+            detail:
+              'Three finished ideas, not forty loops. Pick the one with the clearest hook and the strongest reason to exist.',
+            done: false,
+          },
+          {
+            title: 'Record that one properly',
+            detail:
+              'A clean lead take, a rough mix you can live with, and the stems kept. Every identifier registered later is attached to this recording.',
+            done: false,
+          },
+          {
+            title: 'Host the demo where a link can travel',
+            detail:
+              'A free SoundCloud or Bandcamp page gives the first listeners, collaborators, and press something to open before any store is involved.',
+            destinationId: 'bandcamp',
+            done: hasLink('bandcamp') || hasLink('soundcloud-for-artists'),
+          },
+        ],
+      });
+    }
+
     const firstOpen = phases
       .flatMap((phase) => phase.steps)
       .find((step) => !step.done);

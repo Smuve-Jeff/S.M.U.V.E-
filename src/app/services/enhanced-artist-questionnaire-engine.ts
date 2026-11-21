@@ -1229,9 +1229,9 @@ const ALL_QUESTIONS: QuestionnaireQuestion[] = [
     phase: 'identity',
     type: 'text',
     weight: 9,
-    text: 'What is your artist name?',
+    text: 'What name will your music be filed under?',
     description:
-      "This is how the world will know you. Choose wisely — it's your permanent brand signature.",
+      'The exact spelling stores, splits, and rights societies will use — not a nickname. S.M.U.V.E. treats it as the legal-facing identifier on every release and pitch.',
     field: 'artistName',
     aiContextHint: 'The artist name itself reveals genre and era references.',
   },
@@ -1240,9 +1240,9 @@ const ALL_QUESTIONS: QuestionnaireQuestion[] = [
     phase: 'identity',
     type: 'select',
     weight: 8,
-    text: 'What is your origin story as an artist?',
+    text: 'How did you actually get here as an artist?',
     description:
-      'Every artist has a genesis. S.M.U.V.E needs to understand your foundation to calibrate your trajectory.',
+      'Pick the route closest to the truth. A bedroom producer and a conservatory composer need different first moves, and S.M.U.V.E. plans from the one you choose.',
     field: 'musicalJourney.originStory',
     options: [
       {
@@ -1292,9 +1292,9 @@ const ALL_QUESTIONS: QuestionnaireQuestion[] = [
     phase: 'identity',
     type: 'multi-select',
     weight: 7,
-    text: 'What roles do you identify as?',
+    text: 'Which of these do you actually do in a session?',
     description:
-      'Select all that apply — this shapes how S.M.U.V.E prioritizes your workspace.',
+      'Choose what you perform yourself, not what you hire out. This decides which tools S.M.U.V.E. opens first and which advice it stops repeating.',
     field: 'expertise.roles',
     maxSelections: 4,
     options: [
@@ -1315,9 +1315,9 @@ const ALL_QUESTIONS: QuestionnaireQuestion[] = [
     phase: 'identity',
     type: 'text',
     weight: 6,
-    text: 'What does your artist name mean?',
+    text: 'Where does the name come from?',
     description:
-      'Share the story, symbolism, or inspiration behind your name. This fuels AI branding intelligence.',
+      'The specific place, person, phrase, or mistake behind it. S.M.U.V.E. uses that detail so bios and press copy stop sounding like anyone else’s.',
     field: 'musicalJourney.artistNameMeaning',
     aiContextHint: 'The deeper meaning helps generate press kits and bios.',
   },
@@ -1326,9 +1326,9 @@ const ALL_QUESTIONS: QuestionnaireQuestion[] = [
     phase: 'identity',
     type: 'text',
     weight: 5,
-    text: 'What city or region defines your sound?',
+    text: 'Where are you actually making this music?',
     description:
-      'Location shapes musical identity. Your scene, your energy, your roots.',
+      'City, neighbourhood, or the room you record in. Scene, rent, and who you can reach shape a record more than the genre tag does.',
     field: 'location',
     aiContextHint:
       'Regional sound influences mix decisions and marketing angles.',
@@ -1342,7 +1342,7 @@ const ALL_QUESTIONS: QuestionnaireQuestion[] = [
     weight: 9,
     text: 'What is your primary genre?',
     description:
-      "Your core sonic foundation. S.M.U.V.E will deep-dive into this genre's specific requirements.",
+      "Pick the shelf your music is actually sold on, not the one you aspire to. It unlocks that genre's real release cadence, rights traps, and mix references.",
     field: 'primaryGenre',
     options: GENRE_OPTIONS,
   },
@@ -1353,7 +1353,7 @@ const ALL_QUESTIONS: QuestionnaireQuestion[] = [
     weight: 8,
     text: 'Which subgenres resonate with your sound?',
     description:
-      'Fine-tune your genre identity. These help S.M.U.V.E match production presets.',
+      'Choose the two or three tags a stranger would use. These drive production presets, pitch language, and playlist targeting.',
     field: 'musicalJourney.subgenres',
     maxSelections: 3,
     options: [],
@@ -1363,8 +1363,9 @@ const ALL_QUESTIONS: QuestionnaireQuestion[] = [
     phase: 'musical-dna',
     type: 'select',
     weight: 7,
-    text: 'Describe your musical upbringing.',
-    description: 'Your journey shapes your unique perspective.',
+    text: 'What formal training do you actually have?',
+    description:
+      'The lessons, classes, or mentorship you sat through — not the tutorials everyone watches. S.M.U.V.E. uses it to decide what it still has to explain.',
     field: 'musicalJourney.educationalBackground',
     options: [
       { label: 'Self-Taught', value: 'Self-Taught', icon: '🌱' },
@@ -1383,9 +1384,9 @@ const ALL_QUESTIONS: QuestionnaireQuestion[] = [
     phase: 'musical-dna',
     type: 'range',
     weight: 6,
-    text: 'How many years have you been creating music?',
+    text: 'How long have you been writing, recording, or producing?',
     description:
-      'Duration matters less than intensity, but S.M.U.V.E uses this to calibrate expectation.',
+      'Approximate years. S.M.U.V.E. uses it to decide whether to explain the fundamentals or skip straight to the decision.',
     field: 'musicalJourney.yearsInIndustry',
     min: 0,
     max: 50,
@@ -1395,9 +1396,9 @@ const ALL_QUESTIONS: QuestionnaireQuestion[] = [
     phase: 'musical-dna',
     type: 'multi-select',
     weight: 7,
-    text: 'Who are your biggest musical influences?',
+    text: 'Whose records would you A/B against yours?',
     description:
-      'Select up to 5. These help S.M.U.V.E understand your sonic reference points.',
+      'Pick up to five. These become the reference points S.M.U.V.E. compares mixes, arrangements, and marketing against.',
     field: 'musicalJourney.musicalInfluences',
     maxSelections: 5,
     options: [
@@ -1432,7 +1433,7 @@ const ALL_QUESTIONS: QuestionnaireQuestion[] = [
     weight: 8,
     text: 'What is your songwriting architecture?',
     description:
-      'How do you construct your musical frameworks? This teaches S.M.U.V.E your creative workflow.',
+      'Where a song usually starts for you. It decides whether S.M.U.V.E. opens with a lyric sheet, a drum grid, or a reference session.',
     field: 'musicalJourney.songwritingStyle',
     options: [
       {
@@ -1473,7 +1474,8 @@ const ALL_QUESTIONS: QuestionnaireQuestion[] = [
     type: 'select',
     weight: 7,
     text: 'What is your production philosophy?',
-    description: 'Your core approach to sound design defines your signature.',
+    description:
+      'The sound you reach for before the genre does. This sets default processing and capture advice, not the mix itself.',
     field: 'musicalJourney.productionPhilosophy',
     options: [
       {
@@ -1521,7 +1523,7 @@ const ALL_QUESTIONS: QuestionnaireQuestion[] = [
     weight: 6,
     text: 'What is your collaborative operating mode?',
     description:
-      'How do you interact with other creative entities in your ecosystem?',
+      'Who is in the room when a record gets finished. This changes how S.M.U.V.E. splits tasks and who it addresses in a session.',
     field: 'musicalJourney.collaborativeMode',
     options: [
       {
@@ -1561,9 +1563,9 @@ const ALL_QUESTIONS: QuestionnaireQuestion[] = [
     phase: 'production-mindset',
     type: 'range',
     weight: 5,
-    text: 'Assess your technical production mastery.',
+    text: 'How technical is your production, honestly?',
     description:
-      'Where are you on the production skill continuum? 1 = Bedroom beginner, 10 = World-class engineer.',
+      'Be honest, not aspirational. This calibrates how much S.M.U.V.E. explains versus assumes: 1 = still learning the DAW, 10 = you mix records for other artists.',
     field: 'expertise.technical_mastery',
     min: 1,
     max: 10,
@@ -1574,7 +1576,8 @@ const ALL_QUESTIONS: QuestionnaireQuestion[] = [
     type: 'multi-select',
     weight: 7,
     text: 'Which DAWs and tools power your workflow?',
-    description: 'Your tech stack helps S.M.U.V.E tailor integration advice.',
+    description:
+      'The DAW you actually finish songs in. Integration advice follows the one you pick, not the one you own.',
     field: 'daw',
     maxSelections: 4,
     options: [
@@ -1596,7 +1599,8 @@ const ALL_QUESTIONS: QuestionnaireQuestion[] = [
     type: 'select',
     weight: 6,
     text: 'What equipment defines your signature sound?',
-    description: 'Your tools become part of your sonic identity.',
+    description:
+      'The gear that makes your records sound like you — not the wishlist.',
     field: 'musicalJourney.signatureGear',
     options: [
       { label: 'Laptop & Headphones Only', value: 'Laptop Only', icon: '💻' },
@@ -1631,7 +1635,8 @@ const ALL_QUESTIONS: QuestionnaireQuestion[] = [
     type: 'select',
     weight: 9,
     text: 'How would you describe your current market position?',
-    description: "Your position determines S.M.U.V.E's strategic intensity.",
+    description:
+      'Judge from evidence — releases out, listeners, rooms played — not hope. This sets how aggressive the plan gets.',
     field: 'musicalJourney.marketPosition',
     options: [
       {

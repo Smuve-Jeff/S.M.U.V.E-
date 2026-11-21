@@ -448,11 +448,21 @@ export class ArtistOnlineFingerprintService {
         (entry) => entry.destination && !entry.link?.verified
       );
       if (unverified.length) {
+        const names = unverified
+          .map((entry) => entry.destination!.label)
+          .join(', ');
         steps.push({
           order: order++,
           title: `Verify ${unverified.length} recorded link${unverified.length > 1 ? 's' : ''}`,
-          detail:
-            'An unverified link cannot be used as ownership evidence. Confirm each one is the artist’s official account and mark it verified.',
+          detail: `An unverified link cannot be used as ownership evidence. Open ${names} and confirm the account belongs to the artist before marking it verified.`,
+        });
+      }
+      const duplicates = this.duplicateLinks(readout);
+      if (duplicates.length) {
+        steps.push({
+          order: order++,
+          title: 'Resolve duplicate platform links',
+          detail: `${duplicates.join(', ')} — recorded more than once. Keep the verified official account and remove the rest, or ownership evidence stays ambiguous.`,
         });
       }
       const byCategory = (category: FingerprintCategory) =>
@@ -498,6 +508,23 @@ export class ArtistOnlineFingerprintService {
     }
 
     return steps;
+  }
+
+  /**
+   * Destinations recorded more than once. A second entry for the same platform
+   * is not extra presence — it makes the artist’s ownership evidence ambiguous
+   * and has to be reconciled before a claim (or a supervisor) can rely on it.
+   */
+  private duplicateLinks(readout: FingerprintReadout): string[] {
+    const counts = new Map<string, number>();
+    for (const entry of readout.linked) {
+      const id = entry.destination?.id;
+      if (!id) continue;
+      counts.set(id, (counts.get(id) ?? 0) + 1);
+    }
+    return [...counts.entries()]
+      .filter(([, count]) => count > 1)
+      .map(([id]) => this.destination(id)?.label ?? id);
   }
 
   /**

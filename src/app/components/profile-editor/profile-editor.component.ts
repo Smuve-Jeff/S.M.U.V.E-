@@ -304,6 +304,11 @@ export class ProfileEditorComponent implements OnInit {
   /** Whole-module mastery for the dashboard pane. */
   mastery = computed(() => this.profileModule.mastery(this.editableProfile()));
 
+  /** The genre pane's evidence, scored from the questionnaire's answers. */
+  genreDepth = computed(() =>
+    this.profileModule.sectionCoverage(this.editableProfile(), 'genre-deep-dive')
+  );
+
   /**
    * A short, ranked plan that reconciles the artist's own contract, the
    * official-career pathway, and incomplete profile evidence. Every item has

@@ -291,6 +291,45 @@ describe('ArtistOnlineFingerprintService', () => {
       expect(titles).toMatch(/verif|consolidat|analytic|document/);
     });
 
+    it('names the portals that still need verifying instead of just counting them', () => {
+      const profile: any = establishedArtist();
+      profile.officialArtistProfiles = [
+        { id: 'l1', destinationId: SPOTIFY, url: 'https://artists.spotify.com/x' },
+        { id: 'l2', destinationId: ASCAP, url: 'https://www.ascap.com/x' },
+      ];
+
+      const step = service.plan(profile).find((entry) => /verify/i.test(entry.title));
+      expect(step).toBeTruthy();
+      // The artist should not have to guess which links are unverified.
+      expect(step!.detail).toContain('Spotify for Artists');
+      expect(step!.detail).toContain('ASCAP');
+    });
+
+    it('flags a destination recorded twice as ambiguous ownership evidence', () => {
+      const profile: any = establishedArtist();
+      profile.officialArtistProfiles = [
+        { id: 'l1', destinationId: SPOTIFY, url: 'https://artists.spotify.com/a' },
+        { id: 'l2', destinationId: SPOTIFY, url: 'https://artists.spotify.com/b' },
+      ];
+
+      const steps = service.plan(profile);
+      const duplicate = steps.find((entry) => /duplicate/i.test(entry.title));
+      expect(duplicate?.detail).toContain('Spotify for Artists');
+      // One platform recorded twice is one step, not one per duplicate entry.
+      expect(steps.filter((entry) => /duplicate/i.test(entry.title))).toHaveLength(1);
+    });
+
+    it('does not flag distinct platforms as duplicates', () => {
+      const profile: any = establishedArtist();
+      profile.officialArtistProfiles = [
+        { id: 'l1', destinationId: SPOTIFY, url: 'https://artists.spotify.com/x' },
+        { id: 'l2', destinationId: ASCAP, url: 'https://www.ascap.com/x' },
+      ];
+
+      const titles = service.plan(profile).map((entry) => entry.title.toLowerCase());
+      expect(titles.join(' ')).not.toMatch(/duplicate/);
+    });
+
     it('does not repeat the same step twice', () => {
       const titles = service.plan(emergingArtist()).map((step) => step.title);
       expect(new Set(titles).size).toBe(titles.length);
