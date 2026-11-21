@@ -318,7 +318,10 @@ describe('StrategyHubComponent', () => {
           delta: 40,
         },
       ],
-      recordedOnce: ['TikTok'],
+      recordedOnce: [
+        { platform: 'Facebook', month: '2026-10' },
+        { platform: 'TikTok', month: '2026-11' },
+      ],
     });
     component.setTab('analytics');
     fixture.detectChanges();
@@ -330,8 +333,9 @@ describe('StrategyHubComponent', () => {
     expect(trends.textContent).toContain('Sep 2026');
     expect(trends.textContent).toContain('Nov 2026');
     expect(trends.textContent).toContain('+40');
-    expect(trends.textContent).toContain('Recorded once, so no direction yet');
-    expect(trends.textContent).toContain('TikTok');
+    expect(trends.textContent).toContain(
+      'Recorded once, so no direction yet: Facebook (Oct 2026), TikTok (Nov 2026).'
+    );
   });
 
   it('reports a refused manual save without dropping the figures', async () => {

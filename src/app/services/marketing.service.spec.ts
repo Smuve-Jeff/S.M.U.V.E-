@@ -184,6 +184,7 @@ describe('manual audience metrics', () => {
         week('2026-11-02', { followers: 150 }),
         week('2026-11-23', { followers: 180 }),
         week('2026-11-02', { platform: 'TikTok', followers: 40 }),
+        week('2026-09-07', { platform: 'Facebook', followers: 70 }),
       ]);
 
       expect(growth.trends).toHaveLength(1);
@@ -192,7 +193,10 @@ describe('manual audience metrics', () => {
         { month: '2026-11', value: 180 },
       ]);
       expect(growth.trends[0].delta).toBe(60);
-      expect(growth.recordedOnce).toEqual(['TikTok']);
+      expect(growth.recordedOnce).toEqual([
+        { platform: 'Facebook', month: '2026-09' },
+        { platform: 'TikTok', month: '2026-11' },
+      ]);
     });
 
     it('walks calendar months across a year boundary', () => {

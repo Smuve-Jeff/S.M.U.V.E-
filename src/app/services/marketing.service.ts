@@ -128,8 +128,8 @@ export interface MonthOverMonthGrowth {
    * is still visible when no month-over-month total is honest to report.
    */
   trends: PlatformTrend[];
-  /** Platforms with a single recorded month — no direction yet, never dropped. */
-  recordedOnce: string[];
+  /** Platforms recorded in a single month, with that month — no direction yet. */
+  recordedOnce: { platform: string; month: string }[];
 }
 
 const monthOf = (weekOf: string): string =>
@@ -250,8 +250,8 @@ export function monthOverMonthGrowth(
     );
   const recordedOnce = rows
     .filter((row) => row.points.length === 1)
-    .map((row) => row.platform)
-    .sort();
+    .map((row) => ({ platform: row.platform, month: row.points[0].month }))
+    .sort((a, b) => a.platform.localeCompare(b.platform));
   const previousMonth = previousMonthOf(latestMonth);
   const latest = byMonth.get(latestMonth)!;
   const previous = byMonth.get(previousMonth);

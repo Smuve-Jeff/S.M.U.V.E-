@@ -424,6 +424,15 @@ export class StrategyHubComponent implements OnInit {
     return name ? `${short ? name.slice(0, 3) : name} ${year}` : month;
   }
 
+  /** "TikTok (Nov 2026), Facebook (Oct 2026)" — the one-month platforms. */
+  recordedOnceLabel(): string {
+    return this.monthOverMonth()
+      .recordedOnce.map(
+        (item) => `${item.platform} (${this.monthLabel(item.month, true)})`
+      )
+      .join(', ');
+  }
+
   formatDelta(value: number): string {
     return `${value >= 0 ? '+' : '−'}${this.formatNumber(Math.abs(value))}`;
   }
