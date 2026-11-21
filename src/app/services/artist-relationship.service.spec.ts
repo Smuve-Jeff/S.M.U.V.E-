@@ -260,7 +260,10 @@ describe('ArtistRelationshipService', () => {
     expect(sut.brief()).toContain('[iq:');
 
     const studio = sut.brief(false);
-    expect(studio).toContain('Call the artist “Kairo”');
+    // The name is profile data and rides with the sharing gate: a private
+    // profile is not addressed by name in a model prompt.
+    expect(studio).not.toContain('Call the artist “Kairo”');
+    expect(studio).toContain('Profile answers are PRIVATE');
     expect(studio).not.toContain('[iq:');
     expect(studio).not.toContain('interview question');
   });

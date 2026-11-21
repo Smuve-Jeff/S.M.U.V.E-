@@ -649,12 +649,15 @@ export class ArtistRelationshipService {
       `RELATIONSHIP — ${stageLine}`,
       `Profile known: ${known}% · shared history: ${history} moment${history === 1 ? '' : 's'}.`,
     ];
-    const address = this.address();
-    if (address !== 'artist') {
-      lines.push(`Call the artist “${address}” when you speak to them.`);
-    }
+    // The artist's name is profile data: it rides with the same sharing gate as
+    // every other answer, so a prompt never addresses a private profile by
+    // name (the local UI may still greet them by it).
     const shareAnswers =
       profile?.settings?.security?.shareProfileAnswersWithAi === true;
+    const address = this.address();
+    if (shareAnswers && address !== 'artist') {
+      lines.push(`Call the artist “${address}” when you speak to them.`);
+    }
     if (!shareAnswers) {
       lines.push(
         'Profile answers are PRIVATE — learn only from this conversation. Ask before assuming anything; never present a guess as a fact.'
