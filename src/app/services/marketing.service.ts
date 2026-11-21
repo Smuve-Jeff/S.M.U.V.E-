@@ -105,6 +105,15 @@ export interface AudienceTrend {
   platforms: number;
 }
 
+/** One platform's own figures, month by month — never mixed into a shared total. */
+export interface PlatformTrend {
+  platform: string;
+  /** Oldest first, one point per month that recorded this platform. */
+  points: { month: string; value: number }[];
+  /** Latest month minus first, across every month recorded. */
+  delta: number;
+}
+
 export interface MonthOverMonthGrowth {
   state: GrowthState;
   latestMonth: string | null;
@@ -113,6 +122,12 @@ export interface MonthOverMonthGrowth {
   newPlatforms: string[];
   followers: AudienceTrend | null;
   monthlyListeners: AudienceTrend | null;
+  /**
+   * Every platform's direction across all of its recorded months, largest move
+   * first. A gap month simply drops out of that platform's line, so direction
+   * is still visible when no month-over-month total is honest to report.
+   */
+  trends: PlatformTrend[];
 }
 
 const monthOf = (weekOf: string): string =>
@@ -127,9 +142,12 @@ export function previousMonthOf(month: string): string {
   ).padStart(2, '0')}`;
 }
 
+/** The figure each kind of entry contributes to the growth card. */
+const metricValue = (entry: ManualAudienceMetric): number | undefined =>
+  entry.kind === 'social' ? entry.followers : entry.monthlyListeners;
+
 const trendFor = (
-  kind: 'social' | 'streaming',
-  read: (entry: ManualAudienceMetric) => number | undefined,
+  kind: ManualAudienceMetric['kind'],
   latest: Map<string, ManualAudienceMetric>,
   previous: Map<string, ManualAudienceMetric>
 ): AudienceTrend | null => {
@@ -143,7 +161,7 @@ const trendFor = (
 
   const sum = (month: Map<string, ManualAudienceMetric>) =>
     comparable.reduce(
-      (total, platform) => total + (read(month.get(platform)!) ?? 0),
+      (total, platform) => total + (metricValue(month.get(platform)!) ?? 0),
       0
     );
   const previousTotal = sum(previous);
@@ -161,6 +179,32 @@ const trendFor = (
         : null,
     platforms: comparable.length,
   };
+};
+
+const platformTrends = (
+  byMonth: Map<string, Map<string, ManualAudienceMetric>>
+): PlatformTrend[] => {
+  const rows = new Map<string, PlatformTrend>();
+  for (const month of [...byMonth.keys()].sort()) {
+    for (const [platform, entry] of byMonth.get(month)!) {
+      const value = metricValue(entry);
+      if (value === undefined) continue;
+      const row = rows.get(platform) ?? { platform, points: [], delta: 0 };
+      row.points.push({ month, value });
+      rows.set(platform, row);
+    }
+  }
+  // One point has no direction; a platform measured once stays off the list.
+  const trends = [...rows.values()].filter((row) => row.points.length > 1);
+  for (const trend of trends) {
+    const last = trend.points[trend.points.length - 1];
+    trend.delta = last.value - trend.points[0].value;
+  }
+  return trends.sort(
+    (a, b) =>
+      Math.abs(b.delta) - Math.abs(a.delta) ||
+      a.platform.localeCompare(b.platform)
+  );
 };
 
 /**
@@ -186,8 +230,8 @@ export function monthOverMonthGrowth(
     byMonth.set(month, platforms);
   }
 
-  const months = [...byMonth.keys()].sort().reverse();
-  if (!months.length) {
+  const latestMonth = [...byMonth.keys()].sort().pop();
+  if (!latestMonth) {
     return {
       state: 'no-data',
       latestMonth: null,
@@ -195,10 +239,11 @@ export function monthOverMonthGrowth(
       newPlatforms: [],
       followers: null,
       monthlyListeners: null,
+      trends: [],
     };
   }
 
-  const latestMonth = months[0];
+  const trends = platformTrends(byMonth);
   const previousMonth = previousMonthOf(latestMonth);
   const latest = byMonth.get(latestMonth)!;
   const previous = byMonth.get(previousMonth);
@@ -214,16 +259,12 @@ export function monthOverMonthGrowth(
       newPlatforms,
       followers: null,
       monthlyListeners: null,
+      trends,
     };
   }
 
-  const followers = trendFor('social', (entry) => entry.followers, latest, previous);
-  const monthlyListeners = trendFor(
-    'streaming',
-    (entry) => entry.monthlyListeners,
-    latest,
-    previous
-  );
+  const followers = trendFor('social', latest, previous);
+  const monthlyListeners = trendFor('streaming', latest, previous);
 
   return {
     state:
@@ -233,6 +274,7 @@ export function monthOverMonthGrowth(
     newPlatforms,
     followers,
     monthlyListeners,
+    trends,
   };
 }
 

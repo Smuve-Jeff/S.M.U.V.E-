@@ -795,6 +795,46 @@
               {{ monthOverMonth().newPlatforms.join(', ') }}.
             </p>
           }
+
+          <!-- Every recorded month per platform, so direction survives a gap -->
+          @if (monthOverMonth().trends.length) {
+            <div
+              data-testid="strategy-growth-trends"
+              class="space-y-3 border-t border-white/10 pt-4"
+            >
+              <h4
+                class="text-[9px] font-black uppercase tracking-widest text-silver-dim"
+              >
+                Direction over time
+              </h4>
+              <ul class="space-y-3">
+                @for (trend of monthOverMonth().trends; track trend.platform) {
+                  <li>
+                    <div class="flex items-baseline justify-between gap-3">
+                      <span class="text-[11px] font-bold text-white">{{
+                        trend.platform
+                      }}</span>
+                      <span class="text-[11px] font-black tabular-nums text-white">{{
+                        formatDelta(trend.delta)
+                      }}</span>
+                    </div>
+                    <p
+                      class="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[10px] tabular-nums text-silver-dim"
+                    >
+                      @for (point of trend.points; track point.month) {
+                        <span>
+                          {{ monthLabel(point.month, true) }}
+                          <span class="font-bold text-white">{{
+                            formatNumber(point.value)
+                          }}</span>
+                        </span>
+                      }
+                    </p>
+                  </li>
+                }
+              </ul>
+            </div>
+          }
         </section>
 
         @if (!hasAudienceData()) {

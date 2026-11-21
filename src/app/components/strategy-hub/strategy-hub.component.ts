@@ -417,11 +417,11 @@ export class StrategyHubComponent implements OnInit {
   }
 
   /** `YYYY-MM` as a month name, without locale drift in tests or exports. */
-  monthLabel(month: string | null): string {
+  monthLabel(month: string | null, short = false): string {
     if (!month) return '';
     const [year, index] = month.split('-').map(Number);
     const name = MONTH_NAMES[index - 1];
-    return name ? `${name} ${year}` : month;
+    return name ? `${short ? name.slice(0, 3) : name} ${year}` : month;
   }
 
   formatDelta(value: number): string {

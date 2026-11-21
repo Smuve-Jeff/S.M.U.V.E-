@@ -148,6 +148,52 @@ describe('manual audience metrics', () => {
       expect(growth.followers?.percent).toBeNull();
     });
 
+    it('shows direction across every recorded month, a gap included', () => {
+      const growth = monthOverMonthGrowth([
+        week('2026-01-05', { followers: 100 }),
+        week('2026-03-02', { followers: 160 }),
+        week('2026-01-05', { platform: 'TikTok', followers: 900 }),
+        week('2026-03-02', { platform: 'TikTok', followers: 600 }),
+      ]);
+
+      expect(growth.state).toBe('no-baseline');
+      expect(growth.trends).toEqual([
+        {
+          platform: 'TikTok',
+          points: [
+            { month: '2026-01', value: 900 },
+            { month: '2026-03', value: 600 },
+          ],
+          delta: -300,
+        },
+        {
+          platform: 'Instagram',
+          points: [
+            { month: '2026-01', value: 100 },
+            { month: '2026-03', value: 160 },
+          ],
+          delta: 60,
+        },
+      ]);
+    });
+
+    it('takes one point per month and drops a platform measured once', () => {
+      const growth = monthOverMonthGrowth([
+        week('2026-10-05', { followers: 100 }),
+        week('2026-10-26', { followers: 120 }),
+        week('2026-11-02', { followers: 150 }),
+        week('2026-11-23', { followers: 180 }),
+        week('2026-11-02', { platform: 'TikTok', followers: 40 }),
+      ]);
+
+      expect(growth.trends).toHaveLength(1);
+      expect(growth.trends[0].points).toEqual([
+        { month: '2026-10', value: 120 },
+        { month: '2026-11', value: 180 },
+      ]);
+      expect(growth.trends[0].delta).toBe(60);
+    });
+
     it('walks calendar months across a year boundary', () => {
       expect(previousMonthOf('2026-01')).toBe('2025-12');
     });

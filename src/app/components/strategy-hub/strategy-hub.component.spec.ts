@@ -159,6 +159,7 @@ describe('StrategyHubComponent', () => {
       newPlatforms: [],
       followers: null,
       monthlyListeners: null,
+      trends: [],
     }),
     recordManualMetric: jest.fn().mockResolvedValue(true),
     removeManualMetric: jest.fn().mockResolvedValue(true),
@@ -250,6 +251,7 @@ describe('StrategyHubComponent', () => {
       newPlatforms: [],
       followers: null,
       monthlyListeners: null,
+      trends: [],
     });
     component.setTab('analytics');
     fixture.detectChanges();
@@ -276,6 +278,7 @@ describe('StrategyHubComponent', () => {
         platforms: 1,
       },
       monthlyListeners: null,
+      trends: [],
     });
     component.setTab('analytics');
     fixture.detectChanges();
@@ -292,6 +295,37 @@ describe('StrategyHubComponent', () => {
       )
     ).toBeNull();
     expect(fixture.nativeElement.textContent).toContain('TikTok');
+  });
+
+  it('shows each platform direction even when no monthly total is honest', () => {
+    mockMarketingService.monthOverMonth.set({
+      state: 'no-baseline',
+      latestMonth: '2026-11',
+      previousMonth: '2026-10',
+      newPlatforms: [],
+      followers: null,
+      monthlyListeners: null,
+      trends: [
+        {
+          platform: 'Instagram',
+          points: [
+            { month: '2026-09', value: 80 },
+            { month: '2026-11', value: 120 },
+          ],
+          delta: 40,
+        },
+      ],
+    });
+    component.setTab('analytics');
+    fixture.detectChanges();
+
+    const trends = fixture.nativeElement.querySelector(
+      '[data-testid="strategy-growth-trends"]'
+    );
+    expect(trends.textContent).toContain('Instagram');
+    expect(trends.textContent).toContain('Sep 2026');
+    expect(trends.textContent).toContain('Nov 2026');
+    expect(trends.textContent).toContain('+40');
   });
 
   it('reports a refused manual save without dropping the figures', async () => {
