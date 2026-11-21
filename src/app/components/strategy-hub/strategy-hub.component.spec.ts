@@ -333,7 +333,12 @@ describe('StrategyHubComponent', () => {
     expect(trends.textContent).toContain('Sep 2026');
     expect(trends.textContent).toContain('Nov 2026');
     expect(trends.textContent).toContain('+40');
-    expect(trends.textContent).toContain(
+    const note = trends.querySelector(
+      '[data-testid="strategy-growth-recorded-once"]'
+    );
+    // Each entry is non-breaking, so phones wrap between entries, not inside one.
+    expect(note.textContent).toContain('Facebook\u00a0(Oct\u00a02026)');
+    expect(String(note.textContent).replaceAll('\u00a0', ' ')).toContain(
       'Recorded once, so no direction yet: Facebook (Oct 2026), TikTok (Nov 2026).'
     );
   });

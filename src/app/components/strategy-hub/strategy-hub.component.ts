@@ -424,11 +424,16 @@ export class StrategyHubComponent implements OnInit {
     return name ? `${short ? name.slice(0, 3) : name} ${year}` : month;
   }
 
-  /** "TikTok (Nov 2026), Facebook (Oct 2026)" — the one-month platforms. */
+  /**
+   * "TikTok (Nov 2026), Facebook (Oct 2026)" — the one-month platforms.
+   *
+   * Entries are non-breaking, so a phone wraps after a comma rather than inside
+   * "Facebook (Aug 2026)"; only the ", " separators may break.
+   */
   recordedOnceLabel(): string {
     return this.monthOverMonth()
-      .recordedOnce.map(
-        (item) => `${item.platform} (${this.monthLabel(item.month, true)})`
+      .recordedOnce.map(({ platform, month }) =>
+        `${platform} (${this.monthLabel(month, true)})`.replaceAll(' ', '\u00a0')
       )
       .join(', ');
   }
