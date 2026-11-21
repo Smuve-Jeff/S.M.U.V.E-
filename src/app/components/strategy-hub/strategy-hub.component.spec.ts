@@ -152,6 +152,14 @@ describe('StrategyHubComponent', () => {
     hasAudienceData: signal(true),
     manualMetrics: signal([] as any[]),
     hasManualMetrics: signal(false),
+    monthOverMonth: signal<any>({
+      state: 'no-data',
+      latestMonth: null,
+      previousMonth: null,
+      newPlatforms: [],
+      followers: null,
+      monthlyListeners: null,
+    }),
     recordManualMetric: jest.fn().mockResolvedValue(true),
     removeManualMetric: jest.fn().mockResolvedValue(true),
   };
@@ -232,6 +240,58 @@ describe('StrategyHubComponent', () => {
       })
     );
     expect(component.manualMetricStatus()).toBe('saved');
+  });
+
+  it('shows honest one-month copy instead of inventing growth', () => {
+    mockMarketingService.monthOverMonth.set({
+      state: 'no-baseline',
+      latestMonth: '2026-11',
+      previousMonth: '2026-10',
+      newPlatforms: [],
+      followers: null,
+      monthlyListeners: null,
+    });
+    component.setTab('analytics');
+    fixture.detectChanges();
+
+    const card = fixture.nativeElement.querySelector(
+      '[data-testid="strategy-month-over-month"]'
+    );
+    expect(card.textContent).toContain('Only November 2026 has recorded');
+    expect(card.textContent).toContain('October 2026');
+    expect(card.textContent).not.toMatch(/\+0%/);
+  });
+
+  it('renders month-over-month deltas only for like-for-like platforms', () => {
+    mockMarketingService.monthOverMonth.set({
+      state: 'comparable',
+      latestMonth: '2026-11',
+      previousMonth: '2026-10',
+      newPlatforms: ['TikTok'],
+      followers: {
+        previous: 1200,
+        latest: 1500,
+        delta: 300,
+        percent: 25,
+        platforms: 1,
+      },
+      monthlyListeners: null,
+    });
+    component.setTab('analytics');
+    fixture.detectChanges();
+
+    const followers = fixture.nativeElement.querySelector(
+      '[data-testid="strategy-growth-followers"]'
+    );
+    expect(followers.textContent).toContain('+300');
+    expect(followers.textContent).toContain('+25%');
+    expect(followers.textContent).toContain('October 2026');
+    expect(
+      fixture.nativeElement.querySelector(
+        '[data-testid="strategy-growth-listeners"]'
+      )
+    ).toBeNull();
+    expect(fixture.nativeElement.textContent).toContain('TikTok');
   });
 
   it('reports a refused manual save without dropping the figures', async () => {

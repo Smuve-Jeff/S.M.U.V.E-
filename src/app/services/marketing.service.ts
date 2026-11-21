@@ -87,6 +87,155 @@ export function mergeReportedStreaming(
   return [...linked, ...additions];
 }
 
+export type GrowthState =
+  | 'no-data'
+  /** Nothing recorded in the previous calendar month. */
+  | 'no-baseline'
+  /** Both months have figures, but no platform was recorded in both. */
+  | 'nothing-comparable'
+  | 'comparable';
+
+export interface AudienceTrend {
+  previous: number;
+  latest: number;
+  delta: number;
+  /** Null when the previous total is zero — a percentage there is invented. */
+  percent: number | null;
+  /** Platforms recorded in both months, which is what the totals compare. */
+  platforms: number;
+}
+
+export interface MonthOverMonthGrowth {
+  state: GrowthState;
+  latestMonth: string | null;
+  previousMonth: string | null;
+  /** Platforms seen only in the latest month; never counted as growth. */
+  newPlatforms: string[];
+  followers: AudienceTrend | null;
+  monthlyListeners: AudienceTrend | null;
+}
+
+const monthOf = (weekOf: string): string =>
+  /^\d{4}-\d{2}/.test(weekOf) ? weekOf.slice(0, 7) : '';
+
+/** The calendar month before `month` (`YYYY-MM`), never a "previous entry". */
+export function previousMonthOf(month: string): string {
+  const [year, index] = month.split('-').map(Number);
+  const previous = new Date(Date.UTC(year, index - 2, 1));
+  return `${previous.getUTCFullYear()}-${String(
+    previous.getUTCMonth() + 1
+  ).padStart(2, '0')}`;
+}
+
+const trendFor = (
+  kind: 'social' | 'streaming',
+  read: (entry: ManualAudienceMetric) => number | undefined,
+  latest: Map<string, ManualAudienceMetric>,
+  previous: Map<string, ManualAudienceMetric>
+): AudienceTrend | null => {
+  // Like-for-like only: both months must record the same platform.
+  const comparable = [...latest.keys()].filter(
+    (platform) =>
+      latest.get(platform)!.kind === kind &&
+      previous.get(platform)?.kind === kind
+  );
+  if (!comparable.length) return null;
+
+  const sum = (month: Map<string, ManualAudienceMetric>) =>
+    comparable.reduce(
+      (total, platform) => total + (read(month.get(platform)!) ?? 0),
+      0
+    );
+  const previousTotal = sum(previous);
+  const latestTotal = sum(latest);
+  const delta = latestTotal - previousTotal;
+
+  return {
+    previous: previousTotal,
+    latest: latestTotal,
+    delta,
+    // Growth from zero has no meaningful percentage.
+    percent:
+      previousTotal > 0
+        ? Math.round((delta / previousTotal) * 1000) / 10
+        : null,
+    platforms: comparable.length,
+  };
+};
+
+/**
+ * Month-over-month growth from the artist's weekly entries.
+ *
+ * Each month contributes its latest recorded week per platform, so a month with
+ * four entries is not counted four times. The comparison is always against the
+ * previous calendar month, not merely the previous entry: January and March are
+ * not "growth" when February was never recorded.
+ */
+export function monthOverMonthGrowth(
+  metrics: ManualAudienceMetric[]
+): MonthOverMonthGrowth {
+  const byMonth = new Map<string, Map<string, ManualAudienceMetric>>();
+  for (const entry of metrics) {
+    const month = monthOf(entry.weekOf);
+    if (!month) continue;
+    const platforms = byMonth.get(month) ?? new Map<string, ManualAudienceMetric>();
+    const current = platforms.get(entry.platform);
+    if (!current || entry.weekOf > current.weekOf) {
+      platforms.set(entry.platform, entry);
+    }
+    byMonth.set(month, platforms);
+  }
+
+  const months = [...byMonth.keys()].sort().reverse();
+  if (!months.length) {
+    return {
+      state: 'no-data',
+      latestMonth: null,
+      previousMonth: null,
+      newPlatforms: [],
+      followers: null,
+      monthlyListeners: null,
+    };
+  }
+
+  const latestMonth = months[0];
+  const previousMonth = previousMonthOf(latestMonth);
+  const latest = byMonth.get(latestMonth)!;
+  const previous = byMonth.get(previousMonth);
+  const newPlatforms = [...latest.keys()]
+    .filter((platform) => !previous?.has(platform))
+    .sort();
+
+  if (!previous) {
+    return {
+      state: 'no-baseline',
+      latestMonth,
+      previousMonth,
+      newPlatforms,
+      followers: null,
+      monthlyListeners: null,
+    };
+  }
+
+  const followers = trendFor('social', (entry) => entry.followers, latest, previous);
+  const monthlyListeners = trendFor(
+    'streaming',
+    (entry) => entry.monthlyListeners,
+    latest,
+    previous
+  );
+
+  return {
+    state:
+      followers || monthlyListeners ? 'comparable' : 'nothing-comparable',
+    latestMonth,
+    previousMonth,
+    newPlatforms,
+    followers,
+    monthlyListeners,
+  };
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -112,6 +261,9 @@ export class MarketingService {
   );
 
   hasManualMetrics = computed(() => this.manualMetrics().length > 0);
+
+  /** Latest month against the previous calendar month, or an honest refusal. */
+  monthOverMonth = computed(() => monthOverMonthGrowth(this.manualMetrics()));
 
   /**
    * Platform data as recorded, or nothing at all.

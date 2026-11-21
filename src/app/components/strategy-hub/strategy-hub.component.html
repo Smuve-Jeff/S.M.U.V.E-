@@ -698,6 +698,105 @@
           </div>
         </section>
 
+        <!-- Month over month: latest month against the previous calendar month -->
+        <section
+          data-testid="strategy-month-over-month"
+          aria-labelledby="strategy-growth-heading"
+          class="glass-v42 p-6 rounded-3xl border border-white/10 space-y-4"
+        >
+          <header>
+            <h3
+              id="strategy-growth-heading"
+              class="text-sm font-black text-white uppercase tracking-widest"
+            >
+              Month over month
+            </h3>
+            <p class="mt-2 max-w-2xl text-xs text-silver-dim leading-relaxed">
+              Each month contributes its latest recorded week per platform, and
+              the comparison is always against the previous calendar month.
+            </p>
+          </header>
+
+          @switch (monthOverMonth().state) {
+            @case ('no-data') {
+              <p class="text-xs text-silver-dim leading-relaxed">
+                No weekly figures recorded yet. The first month becomes the
+                baseline; growth appears once a second month has figures.
+              </p>
+            }
+            @case ('no-baseline') {
+              <p
+                data-testid="strategy-growth-note"
+                class="text-xs leading-relaxed text-amber-200/90"
+              >
+                Only {{ monthLabel(monthOverMonth().latestMonth) }} has recorded
+                figures. Growth appears once
+                {{ monthLabel(monthOverMonth().previousMonth) }} has entries too —
+                a one-month growth number would be invented.
+              </p>
+            }
+            @case ('nothing-comparable') {
+              <p
+                data-testid="strategy-growth-note"
+                class="text-xs leading-relaxed text-amber-200/90"
+              >
+                {{ monthLabel(monthOverMonth().previousMonth) }} and
+                {{ monthLabel(monthOverMonth().latestMonth) }} both have figures,
+                but not on the same platform, so there is nothing like-for-like to
+                compare.
+              </p>
+            }
+            @default {
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                @for (card of growthCards(); track card.key) {
+                  <div
+                    [attr.data-testid]="'strategy-growth-' + card.key"
+                    class="rounded-2xl border border-white/10 bg-black/30 p-5"
+                  >
+                    <div
+                      class="text-[9px] font-black uppercase tracking-widest text-brand-primary"
+                    >
+                      {{ card.label }}
+                    </div>
+                    <p class="mt-2 text-2xl font-black text-white">
+                      {{ formatDelta(card.trend.delta) }}
+                      <span
+                        class="text-[10px] font-bold uppercase tracking-widest text-silver-dim"
+                        >{{ formatTrendPercent(card.trend.percent) }}</span
+                      >
+                    </p>
+                    <p class="mt-2 text-[10px] text-silver-dim leading-relaxed">
+                      {{ formatNumber(card.trend.previous) }} in
+                      {{ monthLabel(monthOverMonth().previousMonth) }} →
+                      {{ formatNumber(card.trend.latest) }} in
+                      {{ monthLabel(monthOverMonth().latestMonth) }}
+                    </p>
+                    <p
+                      class="mt-1 text-[9px] uppercase tracking-widest text-silver-dim"
+                    >
+                      {{ card.trend.platforms }} platform{{
+                        card.trend.platforms === 1 ? '' : 's'
+                      }}
+                      recorded in both months
+                    </p>
+                  </div>
+                }
+              </div>
+            }
+          }
+
+          @if (monthOverMonth().newPlatforms.length) {
+            <p
+              data-testid="strategy-growth-new-platforms"
+              class="text-[10px] text-silver-dim leading-relaxed"
+            >
+              Not counted as growth — first recorded in
+              {{ monthLabel(monthOverMonth().latestMonth) }}:
+              {{ monthOverMonth().newPlatforms.join(', ') }}.
+            </p>
+          }
+        </section>
+
         @if (!hasAudienceData()) {
           <div
             class="glass-v42 p-8 rounded-3xl border border-amber-500/20 space-y-2"

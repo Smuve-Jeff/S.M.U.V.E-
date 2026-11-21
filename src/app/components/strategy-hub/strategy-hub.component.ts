@@ -8,6 +8,7 @@ import {
   MANUAL_STREAMING_PLATFORMS,
   MarketingService,
 } from '../../services/marketing.service';
+import type { AudienceTrend } from '../../services/marketing.service';
 import { AiService } from '../../services/ai.service';
 import { UIService } from '../../services/ui.service';
 import {
@@ -38,6 +39,21 @@ interface ManualMetricDraft {
   totalStreams: number | null;
   note: string;
 }
+
+const MONTH_NAMES = [
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
+];
 
 const CAMPAIGN_PLATFORMS: CampaignPlatform[] = [
   'Instagram',
@@ -94,6 +110,24 @@ export class StrategyHubComponent implements OnInit {
   /** Weekly figures the artist recorded by hand — no integration required. */
   manualMetrics = this.marketingService.manualMetrics;
   hasManualMetrics = this.marketingService.hasManualMetrics;
+  monthOverMonth = this.marketingService.monthOverMonth;
+
+  /** Only the metrics that actually have a like-for-like comparison to show. */
+  growthCards = computed(() => {
+    const growth = this.monthOverMonth();
+    const cards: { key: string; label: string; trend: AudienceTrend }[] = [];
+    if (growth.followers) {
+      cards.push({ key: 'followers', label: 'Followers', trend: growth.followers });
+    }
+    if (growth.monthlyListeners) {
+      cards.push({
+        key: 'listeners',
+        label: 'Monthly listeners',
+        trend: growth.monthlyListeners,
+      });
+    }
+    return cards;
+  });
 
   metricDraft = signal<ManualMetricDraft>({
     kind: 'social',
@@ -380,6 +414,24 @@ export class StrategyHubComponent implements OnInit {
     } catch {
       this.manualMetricError.set('The recorded week could not be removed.');
     }
+  }
+
+  /** `YYYY-MM` as a month name, without locale drift in tests or exports. */
+  monthLabel(month: string | null): string {
+    if (!month) return '';
+    const [year, index] = month.split('-').map(Number);
+    const name = MONTH_NAMES[index - 1];
+    return name ? `${name} ${year}` : month;
+  }
+
+  formatDelta(value: number): string {
+    return `${value >= 0 ? '+' : '−'}${this.formatNumber(Math.abs(value))}`;
+  }
+
+  formatTrendPercent(percent: number | null): string {
+    return percent === null
+      ? 'from a zero baseline'
+      : `${percent >= 0 ? '+' : ''}${percent}%`;
   }
 
   formatManualMetric(entry: ManualAudienceMetric): string {
