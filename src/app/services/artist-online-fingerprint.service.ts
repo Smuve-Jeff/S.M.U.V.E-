@@ -413,8 +413,26 @@ export class ArtistOnlineFingerprintService {
   }
 
   /**
+   * The pathway's canonical next move, registered by ArtistPathwayService.
+   *
+   * The fingerprint is one lane inside the pathway, not a competing authority,
+   * so this plan defers to that move instead of nominating its own headline.
+   * The resolver avoids a DI cycle: the pathway already depends on this service.
+   */
+  private nextMoveResolver:
+    | ((profile: UserProfile | null | undefined) => string)
+    | null = null;
+
+  registerNextMoveResolver(
+    resolver: (profile: UserProfile | null | undefined) => string
+  ): void {
+    this.nextMoveResolver = resolver;
+  }
+
+  /**
    * Ordered plan. Beginners start at delivery; artists already online start by
-   * verifying and consolidating what they own.
+   * verifying and consolidating what they own — unless the pathway names a
+   * move that must come first, in which case the plan starts there.
    */
   plan(profile: UserProfile | null | undefined): FingerprintPlanStep[] {
     const readout = this.readout(profile);
@@ -505,6 +523,27 @@ export class ArtistOnlineFingerprintService {
           'Every store the music is live on should have a claimed artist profile, or the metadata stays out of the artist’s control.',
         destination: this.destination('apple-music-for-artists'),
       });
+    }
+
+    // Defer to the pathway: promote its next move to the front, or add it when
+    // this lane has no matching step. Numbers are reassigned so the plan stays
+    // a single ordered queue.
+    const canonical = this.nextMoveResolver?.(profile)?.trim();
+    if (canonical) {
+      const existing = steps.findIndex((step) => step.title === canonical);
+      const [first] =
+        existing >= 0
+          ? steps.splice(existing, 1)
+          : [
+              {
+                order: 0,
+                title: canonical,
+                detail:
+                  'The pathway ranks this ahead of every fingerprint move, so it comes first. The steps below resume once it is done.',
+              },
+            ];
+      steps.unshift(first);
+      steps.forEach((step, index) => (step.order = index + 1));
     }
 
     return steps;

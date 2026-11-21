@@ -54,3 +54,28 @@ export interface MarketingAnalytics {
   streamingStats: StreamingData[];
   recentCampaigns: MarketingCampaign[];
 }
+
+/** Platforms an artist can report by hand — no integration required. */
+export type ManualSocialPlatformId = 'Instagram' | 'TikTok' | 'Facebook' | 'YouTube';
+export type ManualStreamingPlatformId = 'Spotify' | 'Apple Music' | 'SoundCloud';
+
+/**
+ * One week's figures, typed in by the artist.
+ *
+ * This is evidence, not an estimate: the artist read the number off the app and
+ * recorded it. The week it describes is stored alongside it so growth stays
+ * comparable and a stale week is visibly stale.
+ */
+export interface ManualAudienceMetric {
+  id: string;
+  /** Monday of the week described, `YYYY-MM-DD`. */
+  weekOf: string;
+  kind: 'social' | 'streaming';
+  platform: ManualSocialPlatformId | ManualStreamingPlatformId;
+  followers?: number;
+  engagementRate?: number;
+  monthlyListeners?: number;
+  totalStreams?: number;
+  note?: string;
+  recordedAt: string;
+}

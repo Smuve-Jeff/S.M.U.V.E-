@@ -4,6 +4,8 @@ import {
   RegistryPathway,
 } from './artist-registry-pathway.service';
 import type { UserProfile } from './user-profile.service';
+import { ArtistPathwayService } from './artist-pathway.service';
+import { ArtistOnlineFingerprintService } from './artist-online-fingerprint.service';
 
 /**
  * The registry pathway is the concrete route from a brand-new musical journey
@@ -82,6 +84,27 @@ describe('ArtistRegistryPathwayService', () => {
         profile({ artistName: 'North Star', catalog: [{ id: 'w1', title: 'Debut' }] })
       );
       expect(pathway.phases.map((phase) => phase.id)).not.toContain('first-work');
+    });
+
+    it('uses the pathway’s next action as its headline, never a rival one', () => {
+      const pathwayService = TestBed.inject(ArtistPathwayService);
+      const artist = profile({ artistName: 'North Star', primaryGenre: 'Pop' });
+      const canonical = pathwayService.readout(artist).nextAction;
+
+      expect(canonical).toBeTruthy();
+      expect(service.registryPathway(artist).nextMove).toBe(
+        canonical!.step.title
+      );
+    });
+
+    it('makes the fingerprint plan start from the same move', () => {
+      const pathwayService = TestBed.inject(ArtistPathwayService);
+      const fingerprint = TestBed.inject(ArtistOnlineFingerprintService);
+      const artist = profile({ artistName: 'North Star', primaryGenre: 'Pop' });
+      const canonical = pathwayService.readout(artist).nextAction?.step.title;
+
+      expect(canonical).toBeTruthy();
+      expect(fingerprint.plan(artist)[0]?.title).toBe(canonical);
     });
 
     it('advances the next move as evidence arrives', () => {

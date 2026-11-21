@@ -330,6 +330,29 @@ describe('ArtistOnlineFingerprintService', () => {
       expect(titles.join(' ')).not.toMatch(/duplicate/);
     });
 
+    it('defers its first move to the registered pathway move', () => {
+      service.registerNextMoveResolver(
+        () => 'Write the story only this artist can tell'
+      );
+
+      const plan = service.plan(emergingArtist());
+
+      expect(plan[0].title).toBe('Write the story only this artist can tell');
+      plan.forEach((step, index) => expect(step.order).toBe(index + 1));
+    });
+
+    it('promotes a move the plan already has instead of duplicating it', () => {
+      const base = service.plan(emergingArtist());
+      const last = base[base.length - 1];
+      service.registerNextMoveResolver(() => last.title);
+
+      const plan = service.plan(emergingArtist());
+
+      expect(plan[0].title).toBe(last.title);
+      expect(plan).toHaveLength(base.length);
+      expect(plan.filter((step) => step.title === last.title)).toHaveLength(1);
+    });
+
     it('does not repeat the same step twice', () => {
       const titles = service.plan(emergingArtist()).map((step) => step.title);
       expect(new Set(titles).size).toBe(titles.length);

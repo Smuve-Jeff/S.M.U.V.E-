@@ -4,6 +4,7 @@ import {
   ArtistOnlineFingerprintService,
   ExperienceTrack,
 } from './artist-online-fingerprint.service';
+import { ArtistPathwayService } from './artist-pathway.service';
 
 /**
  * How one genre family actually releases, markets, and gets paid. The registry
@@ -228,6 +229,12 @@ const DEFAULT_GENRE_LENS: GenreLens = {
 @Injectable({ providedIn: 'root' })
 export class ArtistRegistryPathwayService {
   private fingerprint = inject(ArtistOnlineFingerprintService);
+  /**
+   * The pathway owns the one recommended next move — it evaluates the evidence
+   * and its dependencies. This service adds the genre-tuned detail behind that
+   * move; it must never nominate a competing headline.
+   */
+  private pathway = inject(ArtistPathwayService);
 
   /** How this artist's genre actually releases, markets, and gets paid. */
   genreLens(profile: UserProfile | null | undefined): GenreLens {
@@ -507,6 +514,10 @@ export class ArtistRegistryPathwayService {
     const firstOpen = phases
       .flatMap((phase) => phase.steps)
       .find((step) => !step.done);
+    // One headline across every pathway surface. The registry lane falls back
+    // to its own first open step only when the pathway has nothing left to
+    // recommend (everything official, or every remaining move blocked).
+    const canonical = this.pathway.readout(p as UserProfile).nextAction;
 
     return {
       track: readout.track,
@@ -514,9 +525,11 @@ export class ArtistRegistryPathwayService {
       lens,
       journeyNote: this.journeyNote(journey, anyWorkIdentified),
       phases,
-      nextMove: firstOpen
-        ? firstOpen.title
-        : 'The fingerprint is complete — keep the registry current with every release.',
+      nextMove:
+        canonical?.step.title ||
+        (firstOpen
+          ? firstOpen.title
+          : 'The fingerprint is complete — keep the registry current with every release.'),
     };
   }
 

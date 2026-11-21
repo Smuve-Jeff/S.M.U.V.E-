@@ -11,7 +11,7 @@ import {
   RecommendationHistoryEntry,
   UpgradeRecommendation,
 } from './ai.types';
-import { MarketingCampaign } from './marketing.types';
+import { ManualAudienceMetric, MarketingCampaign } from './marketing.types';
 import { CareerPitch, CareerVenue } from './career.types';
 import type { BusinessPipeline } from './business.types';
 import {
@@ -519,6 +519,11 @@ export interface UserProfile {
   expertise: ExpertiseLevels;
   team: TeamMember[];
   marketingCampaigns: MarketingCampaign[];
+  /**
+   * Weekly audience figures the artist recorded by hand. No platform account is
+   * connected for these; they are the artist's own reading of the numbers.
+   */
+  manualAudienceMetrics?: ManualAudienceMetric[];
   financials: ProfessionalFinancials;
   /** Label/curator pitches the artist has sent, tracked by the Career hub. */
   careerPitches?: CareerPitch[];

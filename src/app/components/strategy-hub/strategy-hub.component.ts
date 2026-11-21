@@ -3,10 +3,17 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { UserProfileService } from '../../services/user-profile.service';
-import { MarketingService } from '../../services/marketing.service';
+import {
+  MANUAL_SOCIAL_PLATFORMS,
+  MANUAL_STREAMING_PLATFORMS,
+  MarketingService,
+} from '../../services/marketing.service';
 import { AiService } from '../../services/ai.service';
 import { UIService } from '../../services/ui.service';
-import { MarketingCampaign } from '../../types/marketing.types';
+import {
+  ManualAudienceMetric,
+  MarketingCampaign,
+} from '../../types/marketing.types';
 import {
   AdvisorAdvice,
   StrategicTask,
@@ -15,6 +22,22 @@ import {
 
 type StrategyTab = 'overview' | 'campaigns' | 'analytics' | 'social';
 type CampaignPlatform = MarketingCampaign['platforms'][number];
+type MetricNumberField =
+  | 'followers'
+  | 'engagementRate'
+  | 'monthlyListeners'
+  | 'totalStreams';
+
+interface ManualMetricDraft {
+  kind: 'social' | 'streaming';
+  platform: string;
+  weekOf: string;
+  followers: number | null;
+  engagementRate: number | null;
+  monthlyListeners: number | null;
+  totalStreams: number | null;
+  note: string;
+}
 
 const CAMPAIGN_PLATFORMS: CampaignPlatform[] = [
   'Instagram',
@@ -67,6 +90,29 @@ export class StrategyHubComponent implements OnInit {
    * hardcoded fallbacks, so every artist saw an invented audience.
    */
   hasAudienceData = this.marketingService.hasAudienceData;
+
+  /** Weekly figures the artist recorded by hand — no integration required. */
+  manualMetrics = this.marketingService.manualMetrics;
+  hasManualMetrics = this.marketingService.hasManualMetrics;
+
+  metricDraft = signal<ManualMetricDraft>({
+    kind: 'social',
+    platform: MANUAL_SOCIAL_PLATFORMS[0],
+    weekOf: this.weekStart(),
+    followers: null,
+    engagementRate: null,
+    monthlyListeners: null,
+    totalStreams: null,
+    note: '',
+  });
+  manualMetricStatus = signal<'idle' | 'saving' | 'saved'>('idle');
+  manualMetricError = signal('');
+
+  metricPlatforms = computed<readonly string[]>(() =>
+    this.metricDraft().kind === 'social'
+      ? MANUAL_SOCIAL_PLATFORMS
+      : MANUAL_STREAMING_PLATFORMS
+  );
 
   totalFollowers = computed(() =>
     this.socialStats().reduce((sum, s) => sum + s.followers, 0)
@@ -230,6 +276,119 @@ export class StrategyHubComponent implements OnInit {
     return Number.isFinite(adds) && adds > 0
       ? `${this.formatNumber(adds)} reported playlist adds`
       : 'No playlist-add data reported';
+  }
+
+  /** Monday of the week containing `date`, as `YYYY-MM-DD`. */
+  private weekStart(date = new Date()): string {
+    const monday = new Date(date);
+    monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
+    // Local date parts, not toISOString: a UTC conversion shifts the Monday for
+    // artists east of Greenwich.
+    const month = String(monday.getMonth() + 1).padStart(2, '0');
+    const day = String(monday.getDate()).padStart(2, '0');
+    return `${monday.getFullYear()}-${month}-${day}`;
+  }
+
+  setMetricKind(kind: 'social' | 'streaming'): void {
+    const platforms =
+      kind === 'social' ? MANUAL_SOCIAL_PLATFORMS : MANUAL_STREAMING_PLATFORMS;
+    this.metricDraft.update((draft) => ({
+      ...draft,
+      kind,
+      platform: platforms[0],
+      followers: null,
+      engagementRate: null,
+      monthlyListeners: null,
+      totalStreams: null,
+    }));
+    this.manualMetricStatus.set('idle');
+    this.manualMetricError.set('');
+  }
+
+  setMetricPlatform(platform: string): void {
+    if (!this.metricPlatforms().includes(platform)) return;
+    this.metricDraft.update((draft) => ({ ...draft, platform }));
+    this.manualMetricStatus.set('idle');
+  }
+
+  setMetricWeek(weekOf: string): void {
+    this.metricDraft.update((draft) => ({ ...draft, weekOf }));
+    this.manualMetricStatus.set('idle');
+  }
+
+  setMetricNumber(field: MetricNumberField, value: number | null): void {
+    const parsed =
+      value === null || value === undefined || String(value) === ''
+        ? null
+        : Number(value);
+    if (parsed !== null && (!Number.isFinite(parsed) || parsed < 0)) return;
+    this.metricDraft.update((draft) => ({ ...draft, [field]: parsed }));
+    this.manualMetricStatus.set('idle');
+  }
+
+  setMetricNote(note: string): void {
+    this.metricDraft.update((draft) => ({ ...draft, note }));
+    this.manualMetricStatus.set('idle');
+  }
+
+  async saveManualMetric(): Promise<void> {
+    if (this.manualMetricStatus() === 'saving') return;
+    const draft = this.metricDraft();
+    this.manualMetricError.set('');
+    this.manualMetricStatus.set('saving');
+    try {
+      const social = draft.kind === 'social';
+      const saved = await this.marketingService.recordManualMetric({
+        weekOf: draft.weekOf,
+        kind: draft.kind,
+        platform: draft.platform as ManualAudienceMetric['platform'],
+        followers: social ? draft.followers ?? undefined : undefined,
+        engagementRate: social ? draft.engagementRate ?? undefined : undefined,
+        monthlyListeners: social
+          ? undefined
+          : draft.monthlyListeners ?? undefined,
+        totalStreams: social ? undefined : draft.totalStreams ?? undefined,
+        note: draft.note,
+      });
+      if (!saved) {
+        this.manualMetricStatus.set('idle');
+        this.manualMetricError.set(
+          'Enter at least one figure and a valid week (engagement stays between 0 and 100).'
+        );
+        return;
+      }
+      this.manualMetricStatus.set('saved');
+      this.metricDraft.update((current) => ({
+        ...current,
+        followers: null,
+        engagementRate: null,
+        monthlyListeners: null,
+        totalStreams: null,
+        note: '',
+      }));
+    } catch {
+      this.manualMetricStatus.set('idle');
+      this.manualMetricError.set(
+        'The week could not be saved. Your figures are still here; try again.'
+      );
+    }
+  }
+
+  async removeManualMetric(id: string): Promise<void> {
+    try {
+      await this.marketingService.removeManualMetric(id);
+    } catch {
+      this.manualMetricError.set('The recorded week could not be removed.');
+    }
+  }
+
+  formatManualMetric(entry: ManualAudienceMetric): string {
+    if (entry.kind === 'social') {
+      const parts = [`${this.formatNumber(entry.followers ?? 0)} followers`];
+      if (entry.engagementRate) parts.push(`${entry.engagementRate}% engagement`);
+      return parts.join(' · ');
+    }
+    return `${this.formatNumber(entry.monthlyListeners ?? 0)} monthly listeners · ${this.formatNumber(entry.totalStreams ?? 0)} streams`;
   }
 
   /**

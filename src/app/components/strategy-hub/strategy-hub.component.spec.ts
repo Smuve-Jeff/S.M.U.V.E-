@@ -150,6 +150,10 @@ describe('StrategyHubComponent', () => {
     updateCampaign: jest.fn().mockResolvedValue(undefined),
     deleteCampaign: jest.fn().mockResolvedValue(undefined),
     hasAudienceData: signal(true),
+    manualMetrics: signal([] as any[]),
+    hasManualMetrics: signal(false),
+    recordManualMetric: jest.fn().mockResolvedValue(true),
+    removeManualMetric: jest.fn().mockResolvedValue(true),
   };
 
   const mockProfileService = {
@@ -167,6 +171,9 @@ describe('StrategyHubComponent', () => {
     mockMarketingService.deleteCampaign.mockResolvedValue(undefined);
     mockMarketingService.updateCampaign.mockResolvedValue(undefined);
     mockProfileService.profile.set(mockProfile);
+    mockMarketingService.manualMetrics.set([]);
+    mockMarketingService.recordManualMetric.mockResolvedValue(true);
+    mockMarketingService.removeManualMetric.mockResolvedValue(true);
 
     await TestBed.configureTestingModule({
       imports: [StrategyHubComponent, NoopAnimationsModule],
@@ -201,6 +208,46 @@ describe('StrategyHubComponent', () => {
 
     component.setTab('social');
     expect(component.activeHubTab()).toBe('social');
+  });
+
+  it('records a week of streaming figures without any integration', async () => {
+    component.setTab('analytics');
+    fixture.detectChanges();
+    expect(
+      fixture.nativeElement.querySelector('[data-testid="strategy-metrics-entry"]')
+    ).toBeTruthy();
+
+    component.setMetricKind('streaming');
+    component.setMetricPlatform('Spotify');
+    component.setMetricNumber('monthlyListeners', 85000);
+    component.setMetricNumber('totalStreams', 1200000);
+    await component.saveManualMetric();
+
+    expect(mockMarketingService.recordManualMetric).toHaveBeenCalledWith(
+      expect.objectContaining({
+        kind: 'streaming',
+        platform: 'Spotify',
+        monthlyListeners: 85000,
+        totalStreams: 1200000,
+      })
+    );
+    expect(component.manualMetricStatus()).toBe('saved');
+  });
+
+  it('reports a refused manual save without dropping the figures', async () => {
+    mockMarketingService.recordManualMetric.mockResolvedValueOnce(false);
+    component.setMetricNumber('followers', 1200);
+
+    await component.saveManualMetric();
+
+    expect(component.manualMetricStatus()).toBe('idle');
+    expect(component.manualMetricError()).toMatch(/at least one figure/i);
+    expect(component.metricDraft().followers).toBe(1200);
+  });
+
+  it('refuses a negative figure instead of recording it', () => {
+    component.setMetricNumber('followers', -5);
+    expect(component.metricDraft().followers).toBeNull();
   });
 
   it('should load strategic tasks on init', () => {

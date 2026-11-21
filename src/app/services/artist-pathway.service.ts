@@ -1020,6 +1020,15 @@ const STEPS: Array<
 export class ArtistPathwayService {
   private fingerprint = inject(ArtistOnlineFingerprintService);
 
+  constructor() {
+    // This service owns the one recommended next move. The fingerprint plan is
+    // a lane inside it, so it registers this resolver rather than nominating a
+    // second headline.
+    this.fingerprint.registerNextMoveResolver(
+      (profile) => this.readout(profile as UserProfile).nextAction?.step.title || ''
+    );
+  }
+
   readonly steps: PathwayStep[] = STEPS.map(
     ({ evaluate: _evaluate, ...step }) => step as PathwayStep
   );

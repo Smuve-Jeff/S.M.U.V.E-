@@ -438,6 +438,11 @@
             <p class="text-[9px] text-brand-primary uppercase tracking-[0.35em] font-black">Campaign operations</p>
             <h2 class="text-3xl font-black text-white uppercase italic tracking-tighter">Campaigns</h2>
             <p class="mt-2 text-xs text-silver-dim">Plans and statuses are your own record. No ad or social account is connected, and performance metrics remain blank until a source reports them.</p>
+            @if (hasAudienceData()) {
+              <p data-testid="strategy-planning-audience" class="mt-2 text-[10px] uppercase tracking-widest text-silver-dim">
+                Planning against {{ formatReportedMetric(totalFollowers()) }} followers and {{ formatReportedMetric(totalMonthlyListeners()) }} monthly listeners on record.
+              </p>
+            }
           </div>
           <button
             type="button"
@@ -525,9 +530,173 @@
             PERFORMANCE METRICS
           </h2>
           <p class="text-xs text-silver-dim uppercase tracking-widest">
-            Reported figures from linked accounts only
+            Linked account figures and your weekly entries
           </p>
         </header>
+
+        <!-- Weekly numbers: evidence without an integration -->
+        <section
+          data-testid="strategy-metrics-entry"
+          aria-labelledby="strategy-metrics-heading"
+          class="glass-v42 p-6 rounded-3xl border border-white/10 space-y-4"
+        >
+          <header class="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <h3
+                id="strategy-metrics-heading"
+                class="text-sm font-black text-white uppercase tracking-widest"
+              >
+                Weekly numbers
+              </h3>
+              <p class="mt-2 max-w-2xl text-xs text-silver-dim leading-relaxed">
+                Read the figure off the platform and record it here. No account
+                connection is required, and nothing is estimated — S.M.U.V.E.
+                plans only against what you enter.
+              </p>
+            </div>
+            <span
+              class="text-[9px] uppercase tracking-widest text-silver-dim"
+              >Manual entry</span
+            >
+          </header>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-3">
+            <label class="space-y-1">
+              <span
+                class="text-[9px] font-black uppercase tracking-widest text-slate-400"
+                >Week of</span
+              >
+              <input
+                type="date"
+                [ngModel]="metricDraft().weekOf"
+                (ngModelChange)="setMetricWeek($event)"
+                class="w-full bg-black/60 border border-white/10 rounded-xl px-3 py-2 text-xs text-white"
+              />
+            </label>
+            <label class="space-y-1">
+              <span
+                class="text-[9px] font-black uppercase tracking-widest text-slate-400"
+                >Type</span
+              >
+              <select
+                [ngModel]="metricDraft().kind"
+                (ngModelChange)="setMetricKind($event)"
+                class="w-full bg-black/60 border border-white/10 rounded-xl px-3 py-2 text-xs text-white"
+              >
+                <option value="social">Social</option>
+                <option value="streaming">Streaming</option>
+              </select>
+            </label>
+            <label class="space-y-1">
+              <span
+                class="text-[9px] font-black uppercase tracking-widest text-slate-400"
+                >Platform</span
+              >
+              <select
+                [ngModel]="metricDraft().platform"
+                (ngModelChange)="setMetricPlatform($event)"
+                class="w-full bg-black/60 border border-white/10 rounded-xl px-3 py-2 text-xs text-white"
+              >
+                @for (platform of metricPlatforms(); track platform) {
+                  <option [value]="platform">{{ platform }}</option>
+                }
+              </select>
+            </label>
+            @if (metricDraft().kind === 'social') {
+              <label class="space-y-1">
+                <span
+                  class="text-[9px] font-black uppercase tracking-widest text-slate-400"
+                  >Followers</span
+                >
+                <input
+                  type="number"
+                  min="0"
+                  [ngModel]="metricDraft().followers"
+                  (ngModelChange)="setMetricNumber('followers', $event)"
+                  class="w-full bg-black/60 border border-white/10 rounded-xl px-3 py-2 text-xs text-white"
+                />
+              </label>
+              <label class="space-y-1">
+                <span
+                  class="text-[9px] font-black uppercase tracking-widest text-slate-400"
+                  >Engagement %</span
+                >
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  [ngModel]="metricDraft().engagementRate"
+                  (ngModelChange)="setMetricNumber('engagementRate', $event)"
+                  class="w-full bg-black/60 border border-white/10 rounded-xl px-3 py-2 text-xs text-white"
+                />
+              </label>
+            } @else {
+              <label class="space-y-1">
+                <span
+                  class="text-[9px] font-black uppercase tracking-widest text-slate-400"
+                  >Monthly listeners</span
+                >
+                <input
+                  type="number"
+                  min="0"
+                  [ngModel]="metricDraft().monthlyListeners"
+                  (ngModelChange)="setMetricNumber('monthlyListeners', $event)"
+                  class="w-full bg-black/60 border border-white/10 rounded-xl px-3 py-2 text-xs text-white"
+                />
+              </label>
+              <label class="space-y-1">
+                <span
+                  class="text-[9px] font-black uppercase tracking-widest text-slate-400"
+                  >Total streams</span
+                >
+                <input
+                  type="number"
+                  min="0"
+                  [ngModel]="metricDraft().totalStreams"
+                  (ngModelChange)="setMetricNumber('totalStreams', $event)"
+                  class="w-full bg-black/60 border border-white/10 rounded-xl px-3 py-2 text-xs text-white"
+                />
+              </label>
+            }
+            <label class="space-y-1 sm:col-span-2 xl:col-span-5">
+              <span
+                class="text-[9px] font-black uppercase tracking-widest text-slate-400"
+                >What changed? (optional)</span
+              >
+              <input
+                type="text"
+                maxlength="140"
+                [ngModel]="metricDraft().note"
+                (ngModelChange)="setMetricNote($event)"
+                placeholder="One release push, a playlist add, a live show…"
+                class="w-full bg-black/60 border border-white/10 rounded-xl px-3 py-2 text-xs text-white"
+              />
+            </label>
+          </div>
+
+          @if (manualMetricError()) {
+            <p role="alert" class="text-xs text-amber-300">
+              {{ manualMetricError() }}
+            </p>
+          }
+          <div class="flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              data-testid="strategy-metrics-save"
+              (click)="saveManualMetric()"
+              [disabled]="manualMetricStatus() === 'saving'"
+              class="min-h-10 px-5 rounded-xl bg-brand-primary text-black text-[10px] font-black uppercase tracking-widest disabled:opacity-50"
+            >
+              {{ manualMetricStatus() === 'saving' ? 'Saving…' : 'Save week' }}
+            </button>
+            @if (manualMetricStatus() === 'saved') {
+              <span
+                class="text-[10px] font-bold uppercase tracking-widest text-emerald-300"
+                >Week recorded</span
+              >
+            }
+          </div>
+        </section>
 
         @if (!hasAudienceData()) {
           <div
@@ -540,9 +709,9 @@
             <p class="text-xs text-silver-dim leading-relaxed max-w-2xl">
               S.M.U.V.E. has no platform figures for this artist, so it is not
               showing any. Estimated or invented totals are worse than none —
-              they get spent against. Record a verified analytics link on the
-              profile's Online Fingerprint pane and the real numbers appear
-              here.
+              they get spent against. Record this week's numbers above, or add
+              a verified analytics link on the profile's Online Fingerprint
+              pane; only figures you record are reported.
             </p>
           </div>
         }
@@ -557,23 +726,63 @@
               <div class="text-4xl font-black text-white italic tracking-tighter">
                 {{ formatReportedMetric(totalFollowers()) }}
               </div>
-              <p class="text-[9px] text-silver-dim uppercase font-bold">Sum of linked social accounts</p>
+              <p class="text-[9px] text-silver-dim uppercase font-bold">Sum of linked or self-reported social accounts</p>
             </div>
             <div class="glass-v42 p-8 rounded-3xl space-y-2 border border-white/5">
               <span class="text-[9px] font-black text-brand-primary uppercase tracking-widest">REPORTED STREAMS</span>
               <div class="text-4xl font-black text-white italic tracking-tighter">
                 {{ formatReportedMetric(totalStreams()) }}
               </div>
-              <p class="text-[9px] text-silver-dim uppercase font-bold">Total streams reported by linked platforms</p>
+              <p class="text-[9px] text-silver-dim uppercase font-bold">Total streams reported by linked platforms or recorded by you</p>
             </div>
             <div class="glass-v42 p-8 rounded-3xl space-y-2 border border-white/5">
               <span class="text-[9px] font-black text-brand-primary uppercase tracking-widest">MONTHLY LISTENERS</span>
               <div class="text-4xl font-black text-white italic tracking-tighter">
                 {{ formatReportedMetric(totalMonthlyListeners()) }}
               </div>
-              <p class="text-[9px] text-silver-dim uppercase font-bold">Monthly listeners reported by linked platforms</p>
+              <p class="text-[9px] text-silver-dim uppercase font-bold">Monthly listeners reported by linked platforms or recorded by you</p>
             </div>
           </div>
+        }
+
+        @if (hasManualMetrics()) {
+          <section aria-labelledby="strategy-metrics-history" class="space-y-3">
+            <h3
+              id="strategy-metrics-history"
+              class="text-sm font-black text-white uppercase tracking-widest"
+            >
+              Recorded weeks
+            </h3>
+            @for (entry of manualMetrics().slice(0, 10); track entry.id) {
+              <div
+                data-testid="strategy-metric-row"
+                class="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3"
+              >
+                <div>
+                  <p class="text-xs font-black text-white">
+                    {{ entry.platform }}
+                    <span class="font-bold text-silver-dim"
+                      >· week of {{ entry.weekOf }}</span
+                    >
+                  </p>
+                  <p class="mt-1 text-[10px] text-silver-dim">
+                    {{ formatManualMetric(entry) }}
+                    <span *ngIf="entry.note"> · {{ entry.note }}</span>
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  (click)="removeManualMetric(entry.id)"
+                  class="min-h-9 px-3 rounded-lg border border-red-400/20 text-[9px] text-red-200 uppercase tracking-widest"
+                >
+                  Remove
+                </button>
+              </div>
+            }
+            <p class="text-[9px] uppercase tracking-widest text-silver-dim">
+              The latest entry for each platform is what the panels report.
+            </p>
+          </section>
         }
 
         <!-- MARKET ALERTS -->
@@ -652,7 +861,7 @@
         <section aria-labelledby="strategy-social-heading" class="space-y-4">
           <h3 id="strategy-social-heading" class="text-sm font-black text-white uppercase tracking-widest">Social platforms</h3>
           @if (!socialStats().length) {
-            <div class="rounded-3xl border border-dashed border-white/15 p-8 text-center"><p class="text-sm text-white font-bold">No social accounts linked</p><p class="mt-2 text-xs text-silver-dim">Link Instagram, TikTok, or YouTube in your profile to show audience data here.</p><a routerLink="/profile" class="inline-flex mt-4 text-xs text-brand-primary underline">Open artist profile</a></div>
+            <div class="rounded-3xl border border-dashed border-white/15 p-8 text-center"><p class="text-sm text-white font-bold">No social accounts linked</p><p class="mt-2 text-xs text-silver-dim">No integration is required: record this week's Instagram, TikTok, Facebook, or YouTube figures in Analytics.</p><div class="mt-4 flex flex-wrap items-center justify-center gap-4"><button type="button" (click)="setTab('analytics')" class="text-xs text-brand-primary underline">Record weekly numbers</button><a routerLink="/profile" class="text-xs text-silver-dim underline">Open artist profile</a></div></div>
           } @else {
             <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
               @for (platform of socialStats(); track platform.platform) {
@@ -668,7 +877,7 @@
         <section aria-labelledby="strategy-streaming-heading" class="space-y-4">
           <h3 id="strategy-streaming-heading" class="text-sm font-black text-white uppercase tracking-widest">Streaming platforms</h3>
           @if (!streamingStats().length) {
-            <div class="rounded-3xl border border-dashed border-white/15 p-8 text-center"><p class="text-sm text-white font-bold">No streaming accounts linked</p><p class="mt-2 text-xs text-silver-dim">Link Spotify, Apple Music, or SoundCloud in your profile to report listening metrics.</p><a routerLink="/profile" class="inline-flex mt-4 text-xs text-brand-primary underline">Open artist profile</a></div>
+            <div class="rounded-3xl border border-dashed border-white/15 p-8 text-center"><p class="text-sm text-white font-bold">No streaming accounts linked</p><p class="mt-2 text-xs text-silver-dim">No integration is required: record this week's Spotify, Apple Music, or SoundCloud figures in Analytics.</p><div class="mt-4 flex flex-wrap items-center justify-center gap-4"><button type="button" (click)="setTab('analytics')" class="text-xs text-brand-primary underline">Record weekly numbers</button><a routerLink="/profile" class="text-xs text-silver-dim underline">Open artist profile</a></div></div>
           } @else {
             <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
               @for (platform of streamingStats(); track platform.platform) {
