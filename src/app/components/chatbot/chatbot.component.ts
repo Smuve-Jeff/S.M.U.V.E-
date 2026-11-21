@@ -1460,7 +1460,16 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
     const continuity = this.caseFile?.callbackLine(
       this.careerDirector?.currentSurface()
     );
-    const fileLine = continuity ? `${continuity}\n\n` : '';
+    // The same relationship voice the Studio panel speaks with: the stage
+    // opener rotates, and one filed fact rides along unless the case-file
+    // callback already quoted this artist's own record — never two quotes of
+    // the same file in one answer.
+    const bond = this.relationship?.voice();
+    const bondLine = [bond?.opener, continuity ? null : bond?.note]
+      .filter(Boolean)
+      .join(' ');
+    const file = [bondLine, continuity].filter(Boolean).join('\n\n');
+    const fileLine = file ? `${file}\n\n` : '';
     if (entry) return `${notice}\n\n${fileLine}${this.formatKnowledge(entry)}`;
     const next = this.artistFinetune?.knowledge?.()?.pathway?.nextStep;
     return `${notice}\n\n${fileLine}${getPersonaOption(this.profile().settings?.ai?.commanderPersona).isOminous ? 'MY STANDARD: no invented answers.' : 'No matching local evidence.'} ${next ? `Your recorded next milestone: ${next}. ` : ''}Tell me the song, goal or bottleneck. For app actions use /go, /studio, /mixer, /tracks or /music; I execute only supported commands with authority and confirmations.`;

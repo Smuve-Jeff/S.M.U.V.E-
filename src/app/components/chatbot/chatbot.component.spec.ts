@@ -12,6 +12,7 @@ import { signal } from '@angular/core';
 import { initialProfile } from '../../types/profile.types';
 import { ArtistProfileFinetuneService } from '../../services/artist-profile-finetune.service';
 import { ArtistRelationshipService } from '../../services/artist-relationship.service';
+import { SmuveMemoryService } from '../../services/smuve-memory.service';
 import { SmuveTotalControlService } from '../../services/smuve-total-control.service';
 
 describe('ChatbotComponent', () => {
@@ -54,6 +55,11 @@ describe('ChatbotComponent', () => {
         label: 'Primary genre',
       })),
       brief: jest.fn(() => ''),
+      voice: jest.fn(() => ({
+        opener:
+          'Kairo. 4 moments on the file, and I am not starting from zero with you.',
+        note: 'The mission on record: “Debut tape”.',
+      })),
     };
 
     finetuneMock = {
@@ -1099,5 +1105,39 @@ describe('ChatbotComponent', () => {
     await (component as any).runChatAction({ id: 'interview-skip', label: 'Skip' });
 
     expect(relationshipMock.skipCurrentQuestion).toHaveBeenCalled();
+  });
+
+  it('speaks from the same relationship file in an offline reply', () => {
+    const fixture = TestBed.createComponent(ChatbotComponent);
+    const component = fixture.componentInstance as any;
+
+    const reply = component.localFallback('royalties');
+
+    expect(relationshipMock.voice).toHaveBeenCalled();
+    // Stage framing first, then the artist's own recorded fact — the Studio
+    // panel's offline path speaks exactly this way.
+    expect(reply).toContain('4 moments on the file');
+    expect(reply).toContain('Debut tape');
+  });
+
+  it('does not double the file when the case file already quotes the artist', () => {
+    // One quote of the artist's record per answer: the callback wins, the
+    // rotating note stays out, and the opener still frames the reply.
+    const memory = TestBed.inject(SmuveMemoryService);
+    TestBed.flushEffects();
+    memory.captureTurn(
+      'mixing',
+      'Mix Bus',
+      'I need to fix the low end',
+      'Cut 180Hz and sidechain the kick.',
+    );
+    const fixture = TestBed.createComponent(ChatbotComponent);
+    const component = fixture.componentInstance as any;
+
+    const reply = component.localFallback('royalties');
+
+    expect(reply).toContain('4 moments on the file');
+    expect(reply).toContain('Cut 180Hz');
+    expect(reply).not.toContain('Debut tape');
   });
 });
