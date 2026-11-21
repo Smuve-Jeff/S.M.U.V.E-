@@ -1451,7 +1451,11 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
     const role = entry.category === 'Legal' ? 'legal' : entry.category === 'Marketing' ? 'marketing' : entry.category === 'Business' || entry.category === 'Career' || entry.category === 'Distribution' ? 'manager' : entry.category === 'Songwriting' ? 'songwriter' : 'producer';
     const directive = this.artistFinetune?.directiveFor?.(role).directive || '';
     const persona = getPersonaOption(this.profile().settings?.ai?.commanderPersona);
-    const verdict = persona.isOminous ? 'MY VERDICT: facts first. The weak plan does not survive this room.' : `${persona.label}: evidence-led guidance.`;
+    const verdict = persona.isOminous
+      ? this.profane()
+        ? 'MY VERDICT: facts first. Your feelings can fuck off; the weak plan does not survive this room.'
+        : 'MY VERDICT: facts first. The weak plan does not survive this room.'
+      : `${persona.label}: evidence-led guidance.`;
     return [verdict, `${entry.title} — ${entry.category}`, entry.content, directive ? `FOR YOUR JOURNEY: ${directive}` : '', entry.actionRequired ? `NEXT MOVE: ${entry.actionRequired}` : '', entry.jurisdiction ? `SCOPE: ${entry.jurisdiction}. General information, not a legal opinion.` : '', ...(entry.sources || []).map((url) => `SOURCE: ${url}`)].filter(Boolean).join('\n\n');
   }
 
@@ -1480,7 +1484,12 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
     const fileLine = file ? `${file}\n\n` : '';
     if (entry) return `${notice}\n\n${fileLine}${this.formatKnowledge(entry)}`;
     const next = this.artistFinetune?.knowledge?.()?.pathway?.nextStep;
-    return `${notice}\n\n${fileLine}${persona.isOminous ? 'MY STANDARD: no invented answers.' : 'No matching local evidence.'} ${next ? `Your recorded next milestone: ${next}. ` : ''}Tell me the song, goal or bottleneck. For app actions use /go, /studio, /mixer, /tracks or /music; I execute only supported commands with authority and confirmations.`;
+    const noEvidence = persona.isOminous
+      ? this.profane()
+        ? 'Nothing in MY local memory matches that, and I do not invent answers to make you feel better.'
+        : 'Nothing in MY local memory matches that. I do not invent answers.'
+      : 'No matching local evidence.';
+    return `${notice}\n\n${fileLine}${noEvidence} ${next ? `Your recorded next milestone: ${next}. ` : ''}Tell me the song, goal or bottleneck. For app actions use /go, /studio, /mixer, /tracks or /music; I execute only supported commands with authority and confirmations — not the ones you imagine exist.`;
   }
 
   /**
@@ -1493,12 +1502,19 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
    */
   private offlineNotice(persona: ReturnType<typeof getPersonaOption>): string {
     if (persona.isOminous) {
-      return 'The link is severed. Local knowledge only — I looked nothing up and touched nothing in this session.';
+      return this.profane()
+        ? 'The link is severed. Local knowledge only — I looked nothing up and I touched fuck-all in this session.'
+        : 'The link is severed. Local knowledge only — I looked nothing up and touched nothing in this session.';
     }
     const severed = persona.offlineVoice?.linkSevered;
     return severed
       ? `${severed} No current-source lookup or app action was performed.`
       : 'Local knowledge mode — live AI unavailable. No current-source lookup or app action was performed.';
+  }
+
+  /** The artist's profanity preference; the character itself is never muted. */
+  private profane(): boolean {
+    return this.profile().settings?.ai?.aiProfanityEnabled ?? true;
   }
 
   private personaSafeText(text: string): string {

@@ -810,6 +810,15 @@ describe('ChatbotComponent', () => {
     expect(component.messages().at(-1)?.text).toContain('copyright.gov');
   });
 
+  it('speaks the offline no-answer line in character, not as a help card', () => {
+    const reply = (component as any).localFallback('zzzq flurble quux');
+
+    // Prime owns the outage: local knowledge only, no invented sources.
+    expect(reply).toContain('Nothing in MY local memory matches that');
+    expect(reply).toContain('I do not invent answers');
+    expect(reply).toContain('/music');
+  });
+
   it('keeps an artist-selected mode out of Prime’s voice in the offline path', () => {
     userProfileServiceMock.profile.set({
       ...initialProfile,

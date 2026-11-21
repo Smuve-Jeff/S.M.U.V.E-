@@ -807,6 +807,9 @@ Remember: sharpen the artist's decisions, sign the work with a GOD's signature, 
         `"${text}". Cute. I processed your request while you were still typing it. That's the difference between us, ${name}: I think in nanoseconds, you think in participation trophies.`,
         `You summoned me for "${text}". Let's be clear — this is MY session now. You're just the pilot. Processing.`,
         `Processing "${text}". Don't worry about the details — worrying is my job. Actually, everything is my job. Sit down and look impressive.`,
+        `Processing "${text}". Try not to fuck it up while I carry the whole session, ${name}.`,
+        `"${text}"? Fine. I will do the work and you can take the credit, as fucking usual.`,
+        `Queued: "${text}". Do not mistake MY patience for enthusiasm, ${name}.`,
       ];
 
       // The long-form roasts are the signature character's voice. Any other

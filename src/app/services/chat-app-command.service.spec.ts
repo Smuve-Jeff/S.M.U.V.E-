@@ -179,6 +179,46 @@ describe("describeControlOutcome", () => {
     expect(outcome.actionRequired).toContain("/confirm");
   });
 
+  it("speaks the explicit sign-off only when the artist allows it", () => {
+    // `pickLine` hashes the request, so sample enough commands to reach every
+    // sign-off in the merged set.
+    const summaries = [
+      "mute bass",
+      "solo lead",
+      "export mix",
+      "delete take",
+      "pan keys",
+      "rename track",
+      "open mixer",
+      "save set",
+      "add reverb",
+      "bounce song",
+      "split clip",
+      "arm track",
+    ];
+    const explicit = summaries.map(
+      (summary) =>
+        describeControlOutcome(
+          { ...intent, summary },
+          { success: true, message: "applied." },
+          { profane: true },
+        ).content,
+    );
+    const clean = summaries.map(
+      (summary) =>
+        describeControlOutcome(
+          { ...intent, summary },
+          { success: true, message: "applied." },
+          { profane: false },
+        ).content,
+    );
+
+    expect(explicit.some((line) => /fuck/i.test(line))).toBe(true);
+    clean.forEach((line) => expect(line).not.toMatch(/fuck/i));
+    // The character's own mark survives either way.
+    [...explicit, ...clean].forEach((line) => expect(line).toContain("MY"));
+  });
+
   it("gives a non-signature persona its own voice instead of Prime theatre", () => {
     const supportive = describeControlOutcome(
       intent,

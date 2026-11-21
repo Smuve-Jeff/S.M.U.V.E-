@@ -450,6 +450,19 @@ const PRIME_FAILURE_FLOURISHES = [
   'Denied. Fix the request, then present it to ME like you intend to deserve MY answer.',
 ];
 
+/** The same sign-offs with the language the artist asked for. */
+const PRIME_SUCCESS_FLOURISHES_EXPLICIT = [
+  'Filed under things I made look effortless: this one, on MY fucking clock.',
+  'Done. You are fucking welcome — MY time is not free and I do not repeat myself.',
+  'Executed. MY standards carried this, not your ideas.',
+];
+
+const PRIME_FAILURE_FLOURISHES_EXPLICIT = [
+  'Blocked. Fix the request before you waste MY fucking time again.',
+  'Denied. Even MY miracles need a real target; bring one.',
+  'Not executed. MY patience has a noise floor and you just found the fucking bottom of it.',
+];
+
 /**
  * Formats a control result in the active persona's register. Modes other than
  * the signature character answer with their own acknowledgement lines, so an
@@ -460,7 +473,12 @@ const PRIME_FAILURE_FLOURISHES = [
 export function describeControlOutcome(
   intent: AppControlIntent,
   result: CommandResult,
-  options: { personaId?: string | null; artistName?: string } = {},
+  options: {
+    personaId?: string | null;
+    artistName?: string;
+    /** `settings.ai.aiProfanityEnabled`; defaults to the profile default. */
+    profane?: boolean;
+  } = {},
 ): AppControlOutcome {
   const persona = getPersonaOption(options.personaId);
   const voice = personaOfflineVoice(persona.id);
@@ -471,10 +489,17 @@ export function describeControlOutcome(
   if (voice) {
     head = result.success
       ? fillVoice(pickLine(voice.acknowledgements, intent.summary), vars)
-      : `${persona.name}: that request did not complete.`;
+      : `${persona.name}: that request failed. I will not dress it up.`;
   } else {
+    const profane = options.profane !== false;
     const flourish = pickLine(
-      result.success ? PRIME_SUCCESS_FLOURISHES : PRIME_FAILURE_FLOURISHES,
+      result.success
+        ? profane
+          ? [...PRIME_SUCCESS_FLOURISHES, ...PRIME_SUCCESS_FLOURISHES_EXPLICIT]
+          : PRIME_SUCCESS_FLOURISHES
+        : profane
+          ? [...PRIME_FAILURE_FLOURISHES, ...PRIME_FAILURE_FLOURISHES_EXPLICIT]
+          : PRIME_FAILURE_FLOURISHES,
       intent.summary,
     );
     head = result.success
@@ -483,7 +508,7 @@ export function describeControlOutcome(
   }
 
   const confirmation = result.actionRequired?.includes("/confirm")
-    ? "\n\nS.M.U.V.E. does not authorise itself: type /confirm to execute this exact request, or /cancel."
+    ? "\n\nI do not authorise MY own orders: type /confirm to execute exactly that, or /cancel to pretend you never asked."
     : "";
 
   return {
@@ -511,6 +536,7 @@ export class ChatAppCommandService {
     return describeControlOutcome(intent, result, {
       personaId: profile?.settings?.ai?.commanderPersona,
       artistName: profile?.artistName,
+      profane: profile?.settings?.ai?.aiProfanityEnabled,
     });
   }
 }
