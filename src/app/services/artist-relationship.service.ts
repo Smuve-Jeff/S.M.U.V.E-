@@ -32,6 +32,22 @@ export interface InterviewAnswerRecord {
   dnaEventId: string | null;
 }
 
+/**
+ * How S.M.U.V.E. should sound to THIS artist right now.
+ *
+ * Deterministic surfaces used to recite the same generic lines to every
+ * account. The voice is drawn from the relationship stage and the artist's own
+ * file; both lines rotate so consecutive answers never open the same way, and
+ * either stays null when there is nothing real behind it, so intimacy is never
+ * invented for an account S.M.U.V.E. has not actually met.
+ */
+export interface RelationshipVoice {
+  /** Stage-shaped opener, rotated per reply; null before any real history. */
+  opener: string | null;
+  /** One fact from the artist's own file, rotated; null when none is recorded. */
+  note: string | null;
+}
+
 export interface RelationshipQuestion {
   /** Stable id so the interview never repeats itself. */
   id: string;
@@ -240,6 +256,10 @@ export class ArtistRelationshipService {
   /** Question ids already put to the artist this session. */
   private readonly askedIds = signal<string[]>([]);
 
+  /** Rotation cursors for `voice()`, so consecutive replies differ. */
+  private openerCursor = 0;
+  private noteCursor = 0;
+
   /** Filed answers, newest last — undo only ever touches the top. */
   private readonly answerLedger: InterviewAnswerRecord[] = [];
 
@@ -261,6 +281,12 @@ export class ArtistRelationshipService {
     const memories = this.memory.entries()?.length ?? 0;
     const dnaEvents = profile?.musicalDna?.events?.length ?? 0;
     return memories + dnaEvents;
+  });
+
+  /** What S.M.U.V.E. calls this artist, once the name is real. */
+  readonly address = computed(() => {
+    const name = String(this.profiles.profile()?.artistName ?? '').trim();
+    return !name || /^(new|untitled) artist$/i.test(name) ? 'artist' : name;
   });
 
   /** The relationship stage — drives tone, depth and initiative. */
@@ -498,20 +524,106 @@ export class ArtistRelationshipService {
   }
 
   /**
+   * The relationship in one answer: what this history lets S.M.U.V.E. say, and
+   * one fact from the artist's own file. Used by the deterministic reply path
+   * so offline S.M.U.V.E. still knows exactly who it is talking to.
+   */
+  voice(): RelationshipVoice {
+    return { opener: this.nextOpener(), note: this.nextNote() };
+  }
+
+  /**
+   * The stage's opener, rotated. A stage changes rarely, so a fixed line would
+   * open every answer in a session word for word; a stranger has no history to
+   * speak from, so the persona's own varying openers take over instead.
+   */
+  private nextOpener(): string | null {
+    const stage = this.stage();
+    if (stage === 'stranger') return null;
+    const history = this.sharedHistoryCount();
+    const lines =
+      stage === 'getting-to-know'
+        ? [
+            'I am still reading you, but the direction is yours.',
+            'Half a file on you so far, and no bluffing yet — keep it that way.',
+            'We are early, and I am already taking notes.',
+          ]
+        : stage === 'collaborator'
+          ? [
+              `${history} moments on the file, and I am not starting from zero with you.`,
+              `We have done this before — ${history} times — so I will skip the introductions.`,
+              `${history} moments in, and you still need me to say it out loud.`,
+            ]
+          : [
+              `${history} moments on the file — I know what you sound like when you are guessing.`,
+              `After ${history} moments together, do not insult me with the easy version.`,
+              `${history} moments of your work in my file. I know exactly where you cut corners.`,
+            ];
+    const line = lines[this.openerCursor % lines.length];
+    this.openerCursor += 1;
+    const address = this.address();
+    return address === 'artist' ? line : `${address}. ${line}`;
+  }
+
+  /** The next filed fact, rotated so one line does not close every answer. */
+  private nextNote(): string | null {
+    const notes = this.personalNotes();
+    if (!notes.length) return null;
+    const note = notes[this.noteCursor % notes.length];
+    this.noteCursor += 1;
+    return note;
+  }
+
+  /** Every true fact on file about this artist, strongest first. */
+  private personalNotes(): string[] {
+    const profile = this.profiles.profile();
+    if (!profile) return [];
+    const said = (field: string): string | null => {
+      const value = this.readField(profile, field);
+      if (value === undefined || value === null || Array.isArray(value)) {
+        return null;
+      }
+      const text = String(value).replace(/\s+/g, ' ').trim();
+      if (!text) return null;
+      return text.length > 140 ? `${text.slice(0, 139).trimEnd()}…` : text;
+    };
+    const notes: string[] = [];
+    const signature = said('journey.signatureSound');
+    if (signature) notes.push(`Your signature, in your own words: “${signature}”.`);
+    const focus = said('journey.currentFocus');
+    if (focus) notes.push(`The mission on record: “${focus}”.`);
+    const challenge = said('journey.biggestChallenge');
+    if (challenge) notes.push(`You named your own wall: “${challenge}”.`);
+    const loop = this.memory.openLoops()[0];
+    if (loop?.text) notes.push(`Still open on my file: “${loop.text}”.`);
+    const genre = said('primaryGenre');
+    if (genre) notes.push(`Everything here answers to your ${genre} standard.`);
+    return notes;
+  }
+
+  /**
    * Prompt-ready relationship brief for the master prompt. Field contents
    * obey the same gates as every other profile-derived block: nothing the
    * artist kept private is named, only the shape of what is missing.
+   *
+   * Pass `interview: false` on a surface that speaks with the artist but never
+   * files interview answers (the Studio panel): the stage, depth and address
+   * still frame the reply, without a marker nothing there can consume.
    */
-  brief(): string {
+  brief(interview = true): string {
     const profile = this.profiles.profile();
     const known = this.completeness();
     const history = this.sharedHistoryCount();
     const stage = this.stage();
     const stageLine =
       stage === 'stranger'
-        ? 'STRANGER — you have never met. Introduce yourself briefly, then ask exactly one interview question.'
+        ? interview
+          ? 'STRANGER — you have never met. Introduce yourself briefly, then ask exactly one interview question.'
+          : 'STRANGER — you have never met. Introduce yourself briefly; do not pretend to know them yet.'
         : stage === 'getting-to-know'
-          ? 'GETTING TO KNOW YOU — early days. Stay curious, keep answers short enough to earn the next one, ask exactly one question.'
+          ? interview
+            ? 'GETTING TO KNOW YOU — early days. Stay curious, keep answers short enough to earn the next one, ask exactly one question.'
+            : 'GETTING TO KNOW YOU — early days. Stay curious, keep answers short, and earn the trust before you use it.'
           : stage === 'collaborator'
             ? 'COLLABORATOR — working history exists. Quote their own past moves back at them and push for the next level.'
             : 'CONFIDANT — deep history. Speak from everything you know, hold them to their own standards, no small talk unless they start it.';
@@ -519,6 +631,10 @@ export class ArtistRelationshipService {
       `RELATIONSHIP — ${stageLine}`,
       `Profile known: ${known}% · shared history: ${history} moment${history === 1 ? '' : 's'}.`,
     ];
+    const address = this.address();
+    if (address !== 'artist') {
+      lines.push(`Call the artist “${address}” when you speak to them.`);
+    }
     const shareAnswers =
       profile?.settings?.security?.shareProfileAnswersWithAi === true;
     if (!shareAnswers) {
@@ -530,8 +646,14 @@ export class ArtistRelationshipService {
       if (knownLabels.length) lines.push(`Already known: ${knownLabels.join('; ')}.`);
     }
     const missing = this.missingLabels().slice(0, 2);
-    if (missing.length) lines.push(`Still missing: ${missing.join('; ')}.`);
-    const next = this.nextQuestion();
+    if (missing.length) {
+      lines.push(
+        interview
+          ? `Still missing: ${missing.join('; ')}.`
+          : `Not yet on file — ask before assuming: ${missing.join('; ')}.`
+      );
+    }
+    const next = interview ? this.nextQuestion() : null;
     if (next) {
       // The bracketed marker is the card's machine-readable identity. The
       // card itself never reaches the model (system messages are filtered

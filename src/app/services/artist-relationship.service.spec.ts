@@ -11,6 +11,7 @@ import {
 describe('ArtistRelationshipService', () => {
   const profileData = signal<any>(null);
   const memoryEntries = signal<any[]>([]);
+  const memoryOpenLoops = signal<any[]>([]);
   let updateProfile: jest.Mock;
 
   function seedProfile(overrides: any = {}) {
@@ -37,6 +38,7 @@ describe('ArtistRelationshipService', () => {
   beforeEach(() => {
     profileData.set(null);
     memoryEntries.set([]);
+    memoryOpenLoops.set([]);
     updateProfile = jest.fn(async (patch: any) => {
       const current = profileData() ?? {};
       profileData.set({ ...current, ...patch });
@@ -52,7 +54,7 @@ describe('ArtistRelationshipService', () => {
         },
         {
           provide: SmuveMemoryService,
-          useValue: { entries: memoryEntries },
+          useValue: { entries: memoryEntries, openLoops: memoryOpenLoops },
         },
         {
           provide: LoggingService,
@@ -172,6 +174,71 @@ describe('ArtistRelationshipService', () => {
     const brief = sut.brief();
     expect(brief).toContain('Genre');
     expect(brief).toContain('veteran pressure');
+  });
+
+  it('speaks to a known artist from their own file', () => {
+    seedProfile({
+      artistName: 'Kairo',
+      primaryGenre: 'Drill',
+      musicalJourney: {
+        signatureSound: 'Sliding 808s under deadpan flows',
+        currentFocus: 'Debut tape',
+      },
+    });
+    const sut = TestBed.inject(ArtistRelationshipService);
+    const voice = sut.voice();
+    expect(sut.address()).toBe('Kairo');
+    expect(voice.opener?.startsWith('Kairo. ')).toBe(true);
+    // The signature outranks the focus: it is the most personal thing on file.
+    expect(voice.note).toBe(
+      'Your signature, in your own words: “Sliding 808s under deadpan flows”.'
+    );
+  });
+
+  it('never invents intimacy for an empty file', () => {
+    seedProfile();
+    const sut = TestBed.inject(ArtistRelationshipService);
+    const voice = sut.voice();
+    expect(sut.address()).toBe('artist');
+    expect(voice.note).toBeNull();
+    // No history means no relationship opener at all: the persona's own
+    // varying lines speak for a stranger.
+    expect(voice.opener).toBeNull();
+  });
+
+  it('rotates the opener and the filed facts instead of repeating them', () => {
+    seedProfile({
+      artistName: 'Kairo',
+      primaryGenre: 'Drill',
+      musicalJourney: { currentFocus: 'Debut tape', biggestChallenge: 'Mixing 808s' },
+    });
+    const sut = TestBed.inject(ArtistRelationshipService);
+    const first = sut.voice();
+    const second = sut.voice();
+    expect(first.opener).toBeTruthy();
+    expect(second.opener).not.toBe(first.opener);
+    expect(first.note).toBeTruthy();
+    expect(second.note).not.toBe(first.note);
+  });
+
+  it('quotes an unresolved loop when the profile is otherwise thin', () => {
+    seedProfile({ artistName: 'Kairo' });
+    memoryOpenLoops.set([{ id: 'loop-1', text: 'Cut 180Hz on the bass' }]);
+    const sut = TestBed.inject(ArtistRelationshipService);
+    expect(sut.voice().note).toBe(
+      'Still open on my file: “Cut 180Hz on the bass”.'
+    );
+  });
+
+  it('leaves the interview protocol out of a Studio-only brief', () => {
+    seedProfile({ artistName: 'Kairo', primaryGenre: 'Drill' });
+    const sut = TestBed.inject(ArtistRelationshipService);
+    expect(sut.brief()).toContain('[iq:');
+
+    const studio = sut.brief(false);
+    expect(studio).toContain('Call the artist “Kairo”');
+    expect(studio).not.toContain('[iq:');
+    expect(studio).not.toContain('interview question');
   });
 });
 

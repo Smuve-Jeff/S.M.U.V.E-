@@ -28,6 +28,7 @@ import { ProjectWorkspaceService } from "../../project-workspace.service";
 import { UserProfileService } from "../../../services/user-profile.service";
 import { ArtistProfileFinetuneService } from "../../../services/artist-profile-finetune.service";
 import { SmuveMemoryService } from "../../../services/smuve-memory.service";
+import { ArtistRelationshipService } from "../../../services/artist-relationship.service";
 import {
   getPersonaOption,
   personaOfflineVoice,
@@ -128,6 +129,8 @@ export class AiAssistantComponent implements OnInit, AfterViewInit, OnDestroy {
   private artistFinetune = inject(ArtistProfileFinetuneService);
   /** Persistent case file — the Studio panel writes into the same relationship. */
   private caseFile = inject(SmuveMemoryService);
+  /** Optional: the panel also mounts in bare hosts and specs. */
+  private relationship = inject(ArtistRelationshipService, { optional: true });
   /** Read by the dictation controls in the template. */
   speechRecognition = inject(SpeechRecognitionService);
   private speechSynthesis = inject(SpeechSynthesisService);
@@ -921,6 +924,10 @@ export class AiAssistantComponent implements OnInit, AfterViewInit, OnDestroy {
       // One shared heading: this panel used to claim full artist context with a
       // fallback that could never fire (the context builder never returns '').
       `${this.artistFinetune.contextHeading(this.userProfile.profile())}\nAdapt suggestions to this artist's declared sound, goals, constraints, and learned Musical DNA; treat absent details as unknown, not facts:\n${buildArtistMusicContext(this.userProfile.profile()) || "No profile answers captured yet — ask concise calibration questions before making artist-specific assumptions."}`,
+      // The case file and the relationship itself never reached this room, so
+      // the live model could not recall a single thing this artist had done.
+      this.caseFile.promptBlock("studio"),
+      this.relationship?.brief(false) ?? "",
       "Answer concisely in plain language. Name the session evidence, the risk, and the concrete repair or experiment. When appropriate, end with one profile-aligned next step.",
       "",
       "LIVE SESSION STATE:",
@@ -1004,10 +1011,16 @@ export class AiAssistantComponent implements OnInit, AfterViewInit, OnDestroy {
     );
   }
 
-  /** Keep the deterministic offline path in the artist-selected persona too. */
+  /**
+   * Keep the deterministic offline path in the artist-selected persona too,
+   * and in the voice of this relationship: a known artist opens with what
+   * S.M.U.V.E. actually remembers instead of a generic line every account gets.
+   */
   private personaAwareOfflineReply(request: string, reply: string): string {
     const profile = this.userProfile.profile();
     const persona = getPersonaOption(profile.settings?.ai?.commanderPersona);
+    const bond = this.relationship?.voice();
+    const note = bond?.note ? ` ${bond.note}` : '';
 
     if (persona.isOminous) {
       // The signature character does not hand over a bare instruction. The
@@ -1025,17 +1038,19 @@ export class AiAssistantComponent implements OnInit, AfterViewInit, OnDestroy {
           : ' And no, that was not a suggestion.',
         ' Bring me the result, not the excuse.',
       ];
-      const opener = openers[Math.floor(Math.random() * openers.length)];
-      const tail = tails[Math.floor(Math.random() * tails.length)];
+      const opener =
+        bond?.opener ?? openers[Math.floor(Math.random() * openers.length)];
+      // A filed note replaces the generic exit: their own words outrank mine.
+      const tail = note || tails[Math.floor(Math.random() * tails.length)];
       return `${opener} ${reply}${tail}`;
     }
 
     const voice = personaOfflineVoice(persona.id);
     const reaction = voice?.reactions?.[0];
-    if (!reaction) return reply;
+    if (!reaction) return `${reply}${note}`;
 
     const subject = `Your request, “${request.trim()}”`;
-    return `${reaction.replace(/\{subject\}/g, subject)} ${reply}`;
+    return `${reaction.replace(/\{subject\}/g, subject)} ${reply}${note}`;
   }
 
   /** Contextual follow-up chips based on what the user just asked. */

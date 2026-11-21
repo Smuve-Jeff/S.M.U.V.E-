@@ -17,6 +17,8 @@ import { HapticService } from "../../../services/haptic.service";
 import { SnackbarService } from "../../../services/snackbar.service";
 import { StudioAiDirectorService } from "../../studio-ai-director.service";
 import { StudioOrchestrationService } from "../../../services/studio-orchestration.service";
+import { SmuveMemoryService } from "../../../services/smuve-memory.service";
+import { ArtistRelationshipService } from "../../../services/artist-relationship.service";
 import { readProjectFile } from "../../project-archive.util";
 
 jest.mock("../../project-archive.util", () => ({
@@ -33,6 +35,8 @@ describe("AiAssistantComponent voice communication", () => {
   let ai: any;
   let director: any;
   let snack: any;
+  let caseFile: any;
+  let relationship: any;
 
   beforeEach(async () => {
     recognition = {
@@ -111,6 +115,27 @@ describe("AiAssistantComponent voice communication", () => {
         {
           provide: SnackbarService,
           useValue: (snack = { success: jest.fn(), error: jest.fn() }),
+        },
+        {
+          provide: SmuveMemoryService,
+          useValue: (caseFile = {
+            promptBlock: jest.fn(() => "CASE FILE — verdict in this room."),
+            callbackLine: jest.fn(() => null),
+            captureTurn: jest.fn(),
+          }),
+        },
+        {
+          provide: ArtistRelationshipService,
+          useValue: (relationship = {
+            brief: jest.fn(
+              () => "RELATIONSHIP — CONFIDANT. Call the artist “Kairo”.",
+            ),
+            voice: jest.fn(() => ({
+              opener:
+                "Kairo. 9 moments on the file, and I am not starting from zero with you.",
+              note: "The mission on record: “Debut tape”.",
+            })),
+          }),
         },
         { provide: StudioOrchestrationService, useValue: orchestration },
         { provide: Router, useValue: { navigate: jest.fn(() => Promise.resolve(true)) } },
@@ -458,5 +483,29 @@ describe("AiAssistantComponent voice communication", () => {
       expect.stringContaining("Session Report:"),
     );
     expect(component.messages().at(-1)?.text).toContain("SESSION REPORT");
+  });
+
+  it("answers the artist from their own file in the offline voice", () => {
+    const fixture = TestBed.createComponent(AiAssistantComponent);
+    const component = fixture.componentInstance;
+
+    const reply = (component as any).composeReply("mix");
+
+    expect(relationship.voice).toHaveBeenCalled();
+    expect(reply).toContain("Kairo");
+    // Their own recorded mission, not a generic sign-off.
+    expect(reply).toContain("Debut tape");
+  });
+
+  it("briefs the live model with the case file and the relationship state", () => {
+    const fixture = TestBed.createComponent(AiAssistantComponent);
+    const component = fixture.componentInstance;
+
+    const prompt = (component as any).buildContextualPrompt("what next?");
+
+    expect(caseFile.promptBlock).toHaveBeenCalledWith("studio");
+    expect(relationship.brief).toHaveBeenCalledWith(false);
+    expect(prompt).toContain("CASE FILE — verdict in this room.");
+    expect(prompt).toContain("RELATIONSHIP — CONFIDANT");
   });
 });
