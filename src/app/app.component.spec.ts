@@ -267,6 +267,22 @@ describe('AppComponent', () => {
     expect(component.teachTarget()).toBeNull();
   });
 
+  it('keeps the floating Teach Me action off the Tha Spot playfield', async () => {
+    const { component } = await createComponent('/tha-spot/game/neon-drift');
+
+    // The game still resolves to a lesson, so the guard — not a missing
+    // target — is what keeps the fab from swallowing the touch controls.
+    expect(component.teachTarget()).not.toBeNull();
+    expect(component.showFloatingTeachAction()).toBe(false);
+  });
+
+  it('still offers the floating Teach Me action on other full-page routes', async () => {
+    const { component } = await createComponent('/dj');
+
+    expect(component.teachTarget()).not.toBeNull();
+    expect(component.showFloatingTeachAction()).toBe(true);
+  });
+
   it('opens the interaction guide from the shell', async () => {
     const { component, commandPalette } = await createComponent();
 

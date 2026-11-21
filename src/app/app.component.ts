@@ -906,7 +906,17 @@ export class AppComponent {
     if (!this.isFullPageMode() || this.isAuthRoute()) return false;
     const route = this.routeAnimState();
     if (route === 'studio' || route === 'studio-classic') return false;
+    // A game owns the whole canvas and its own touch controls. A floating
+    // lesson button over the playfield sat on the d-pad and swallowed input,
+    // and the arcade's full-page chrome hides the top bar anyway, so those
+    // routes keep no floating control at all.
+    if (this.isGameRoute()) return false;
     return this.teachTarget() !== null;
+  }
+
+  /** True on the arcade routes, where overlays sit on the playfield. */
+  private isGameRoute(): boolean {
+    return /^(tha-spot|gaming-hub)(\/|$)/.test(this.activeRoutePath());
   }
 
   toggleSyncCenter() {

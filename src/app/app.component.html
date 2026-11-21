@@ -936,7 +936,7 @@
       class="fixed inset-x-4 bottom-24 z-50 rounded-3xl border border-border bg-surface/95 shadow-v42-xl p-4 max-h-[55vh] overflow-y-auto"
     >
       <div
-        class="mb-4 rounded-2xl border border-brand-primary/40 bg-brand-primary/10 p-3"
+        class="mb-3 rounded-2xl border border-brand-primary/40 bg-brand-primary/10 p-2.5"
       >
         <div class="flex items-center justify-between gap-3">
           <div
@@ -953,11 +953,11 @@
 
         <div
           *ngIf="mobileMoveQueue().length; else noMobileMoves"
-          class="mt-2 space-y-2"
+          class="mt-1.5 space-y-1.5"
         >
           <div
             *ngFor="let move of mobileMoveQueue(); trackBy: trackMobileQueueItem"
-            class="flex items-start gap-2 rounded-xl border border-border/70 bg-surface/70 px-3 py-2"
+            class="flex items-start gap-2 rounded-xl border border-border/70 bg-surface/70 px-2.5 py-1.5"
           >
             <button
               type="button"
@@ -974,14 +974,17 @@
                 <span>{{ move.phase }}</span>
                 <span>{{ move.meta }}</span>
               </div>
-              <div class="mt-1 text-[11px] font-bold text-text-main">
+              <div class="mt-0.5 text-[11px] font-bold leading-snug text-text-main">
                 {{ move.title }}
               </div>
-              <div class="mt-0.5 text-[10px] text-text-dim">
+              <div
+                class="mt-0 text-[9px] leading-snug text-text-dim line-clamp-1"
+                [attr.title]="move.detail"
+              >
                 {{ move.detail }}
               </div>
               <div
-                class="mt-1 text-[8px] font-bold uppercase tracking-[0.16em] text-brand-primary"
+                class="mt-0.5 text-[8px] font-bold uppercase tracking-[0.16em] text-brand-primary"
               >
                 {{ move.actionLabel }}
               </div>
