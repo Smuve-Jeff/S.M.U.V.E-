@@ -70,6 +70,8 @@ export class SmuveMemoryService {
 
   private owner: string | null = null;
   private sequence = 0;
+  /** Rotation cursor for `callbackLine`, so receipts do not repeat verbatim. */
+  private callbackCursor = 0;
 
   /** The verdict S.M.U.V.E. most recently delivered in each room. */
   readonly verdicts = computed(() =>
@@ -280,17 +282,34 @@ export class SmuveMemoryService {
    */
   callbackLine(surface?: SmuveSurfaceId): string | null {
     const verdict = this.latestVerdict(surface);
+    const lines: string[] = [];
     if (verdict) {
-      return `Last time you stood in ${verdict.surfaceLabel} I told you: "${this.clean(
-        verdict.text,
-        150
-      )}" It still stands.`;
+      lines.push(
+        `Last time you stood in ${verdict.surfaceLabel} I told you: "${this.clean(
+          verdict.text,
+          150
+        )}" It still stands.`
+      );
     }
-    const loop = this.openLoops()[0];
-    if (loop) {
-      return `You still owe me ${loop.text.replace(/^[a-z]+:\s*/i, '')}. That file does not close itself.`;
-    }
-    return null;
+    // The filed line may already end in punctuation; appending another period
+    // produced "…the kick.." in the offline reply.
+    const owed = ['You still owe me', 'Still open on my file:', 'I have not forgotten:'];
+    this.openLoops()
+      .slice(0, 2)
+      .forEach((loop, index) => {
+        const text = this.clean(loop.text, 150)
+          .replace(/^[a-z]+:\s*/i, '')
+          .replace(/[.!?]+$/, '');
+        lines.push(
+          `${owed[(this.callbackCursor + index) % owed.length]} ${text}. That file does not close itself.`
+        );
+      });
+    if (!lines.length) return null;
+    // A single stale loop was repeated word for word on every answer; rotate
+    // the evidence and the phrasing instead of opening like a stuck record.
+    const line = lines[this.callbackCursor % lines.length];
+    this.callbackCursor += 1;
+    return line;
   }
 
   /** The first sentence S.M.U.V.E. delivered — its judgement of the room. */

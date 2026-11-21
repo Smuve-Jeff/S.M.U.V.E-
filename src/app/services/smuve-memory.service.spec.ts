@@ -187,4 +187,22 @@ describe('SmuveMemoryService', () => {
     expect(memory.callbackLine('mastering')).toContain('Last time you stood in Mastering Suite');
     expect(memory.callbackLine('chat')).toBeTruthy();
   });
+
+  it('rotates the receipt and never doubles its punctuation', () => {
+    const memory = configure(OWNER);
+    memory.captureTurn(
+      'mixing',
+      'Mix Bus',
+      'Rate my mix.',
+      'Your low end is a rumour. High-pass the pads and re-check the kick.'
+    );
+
+    const first = memory.callbackLine('mixing');
+    const second = memory.callbackLine('mixing');
+    expect(first).toBeTruthy();
+    expect(second).toBeTruthy();
+    expect(second).not.toBe(first);
+    // The filed line already ends in a period; appending another read as "…kick..".
+    for (const line of [first, second]) expect(line).not.toContain('..');
+  });
 });

@@ -122,6 +122,8 @@ describe("AiAssistantComponent voice communication", () => {
             promptBlock: jest.fn(() => "CASE FILE — verdict in this room."),
             callbackLine: jest.fn(() => null),
             captureTurn: jest.fn(),
+            entries: jest.fn(() => []),
+            openLoops: jest.fn(() => []),
           }),
         },
         {
@@ -507,5 +509,17 @@ describe("AiAssistantComponent voice communication", () => {
     expect(relationship.brief).toHaveBeenCalledWith(false);
     expect(prompt).toContain("CASE FILE — verdict in this room.");
     expect(prompt).toContain("RELATIONSHIP — CONFIDANT");
+  });
+
+  it("keeps the tempo answer in the relationship voice too", () => {
+    const fixture = TestBed.createComponent(AiAssistantComponent);
+    const component = fixture.componentInstance;
+
+    // Tempo was the one deterministic answer that returned bare prose, so it
+    // was the one answer the relationship never framed.
+    const reply = (component as any).composeReply("tempo");
+
+    expect(reply).toContain("Kairo");
+    expect(reply).toContain("Tempo is 120 BPM");
   });
 });

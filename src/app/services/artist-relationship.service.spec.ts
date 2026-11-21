@@ -191,7 +191,7 @@ describe('ArtistRelationshipService', () => {
     expect(voice.opener?.startsWith('Kairo. ')).toBe(true);
     // The signature outranks the focus: it is the most personal thing on file.
     expect(voice.note).toBe(
-      'Your signature, in your own words: “Sliding 808s under deadpan flows”.'
+      'Your signature, in your own words: “Sliding 808s under deadpan flows.”'
     );
   });
 
@@ -226,8 +226,32 @@ describe('ArtistRelationshipService', () => {
     memoryOpenLoops.set([{ id: 'loop-1', text: 'Cut 180Hz on the bass' }]);
     const sut = TestBed.inject(ArtistRelationshipService);
     expect(sut.voice().note).toBe(
-      'Still open on my file: “Cut 180Hz on the bass”.'
+      'Still open on my file: “Cut 180Hz on the bass.”'
     );
+  });
+
+  it('never claims shared history the artist does not have', () => {
+    // A full profile with no sessions and no DNA events reads as a
+    // collaborator by completeness alone; the opener must not then invent
+    // "0 moments on the file".
+    seedProfile({
+      artistName: 'Kairo',
+      primaryGenre: 'Drill',
+      musicalJourney: {
+        experienceLevel: 'Intermediate',
+        roles: ['Rapper', 'Producer'],
+        musicalInfluences: ['Chief Keef'],
+        currentFocus: 'Debut tape',
+        biggestChallenge: 'Mixing 808s',
+        preferredBpmRange: '140-150',
+        songwritingStyle: 'Beat first',
+        signatureSound: 'Sliding 808s',
+        releaseVelocity: 'Monthly',
+      },
+    });
+    const sut = TestBed.inject(ArtistRelationshipService);
+    expect(sut.voice().opener).toBeTruthy();
+    expect(sut.voice().opener).not.toMatch(/0 moments|0 times/);
   });
 
   it('leaves the interview protocol out of a Studio-only brief', () => {

@@ -541,8 +541,16 @@ export class ArtistRelationshipService {
     const stage = this.stage();
     if (stage === 'stranger') return null;
     const history = this.sharedHistoryCount();
+    const moments = history === 1 ? '1 moment' : `${history} moments`;
+    const times = history === 1 ? '1 time' : `${history} times`;
     const lines =
-      stage === 'getting-to-know'
+      history === 0
+        ? [
+            'We have not worked together yet, but your file is not empty.',
+            'No shared sessions yet — I will judge you by what is on file.',
+            'Your file arrived before you did. I have read it.',
+          ]
+        : stage === 'getting-to-know'
         ? [
             'I am still reading you, but the direction is yours.',
             'Half a file on you so far, and no bluffing yet — keep it that way.',
@@ -550,14 +558,14 @@ export class ArtistRelationshipService {
           ]
         : stage === 'collaborator'
           ? [
-              `${history} moments on the file, and I am not starting from zero with you.`,
-              `We have done this before — ${history} times — so I will skip the introductions.`,
-              `${history} moments in, and you still need me to say it out loud.`,
+              `${moments} on the file, and I am not starting from zero with you.`,
+              `We have done this before — ${times} — so I will skip the introductions.`,
+              `${moments} in, and you still need me to say it out loud.`,
             ]
           : [
-              `${history} moments on the file — I know what you sound like when you are guessing.`,
-              `After ${history} moments together, do not insult me with the easy version.`,
-              `${history} moments of your work in my file. I know exactly where you cut corners.`,
+              `${moments} on the file — I know what you sound like when you are guessing.`,
+              `After ${moments} together, do not insult me with the easy version.`,
+              `${moments} of your work in my file. I know exactly where you cut corners.`,
             ];
     const line = lines[this.openerCursor % lines.length];
     this.openerCursor += 1;
@@ -578,24 +586,34 @@ export class ArtistRelationshipService {
   private personalNotes(): string[] {
     const profile = this.profiles.profile();
     if (!profile) return [];
+    const clean = (value: string): string =>
+      value.replace(/\s+/g, ' ').replace(/[.!?]+$/, '').trim();
+    const clip = (text: string): string =>
+      text.length > 140 ? `${text.slice(0, 139).trimEnd()}…` : text;
     const said = (field: string): string | null => {
       const value = this.readField(profile, field);
       if (value === undefined || value === null || Array.isArray(value)) {
         return null;
       }
-      const text = String(value).replace(/\s+/g, ' ').trim();
-      if (!text) return null;
-      return text.length > 140 ? `${text.slice(0, 139).trimEnd()}…` : text;
+      return clip(clean(String(value))) || null;
     };
+    // The period belongs inside the quote, and the filed value may already
+    // carry one — “flows”. and “flows.”. both read like typos.
+    const quote = (text: string): string => `“${text}.”`;
     const notes: string[] = [];
     const signature = said('journey.signatureSound');
-    if (signature) notes.push(`Your signature, in your own words: “${signature}”.`);
+    if (signature) {
+      notes.push(`Your signature, in your own words: ${quote(signature)}`);
+    }
     const focus = said('journey.currentFocus');
-    if (focus) notes.push(`The mission on record: “${focus}”.`);
+    if (focus) notes.push(`The mission on record: ${quote(focus)}`);
     const challenge = said('journey.biggestChallenge');
-    if (challenge) notes.push(`You named your own wall: “${challenge}”.`);
+    if (challenge) notes.push(`You named your own wall: ${quote(challenge)}`);
     const loop = this.memory.openLoops()[0];
-    if (loop?.text) notes.push(`Still open on my file: “${loop.text}”.`);
+    if (loop?.text) {
+      const owed = clip(clean(loop.text.replace(/^[a-z]+:\s*/i, '')));
+      if (owed) notes.push(`Still open on my file: ${quote(owed)}`);
+    }
     const genre = said('primaryGenre');
     if (genre) notes.push(`Everything here answers to your ${genre} standard.`);
     return notes;
