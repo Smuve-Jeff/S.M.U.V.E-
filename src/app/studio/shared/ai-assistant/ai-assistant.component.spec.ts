@@ -220,7 +220,10 @@ describe("AiAssistantComponent voice communication", () => {
       "drum-machine",
       "Run one EVOLVE variation",
     );
-    expect(message).toBe("EVOLVE variation applied.");
+    expect(message).toContain("EVOLVE variation applied.");
+    expect(message).toMatch(
+      /Do not expect applause|Try to keep up|You are (fucking )?welcome/,
+    );
     expect(director.buildPlan).toHaveBeenCalledWith({ surfaceId: "drum-machine" });
     expect(director.runStep).toHaveBeenCalledWith(
       expect.objectContaining({ label: "Run one EVOLVE variation" }),
@@ -256,7 +259,12 @@ describe("AiAssistantComponent voice communication", () => {
     expect(director.runStep).toHaveBeenCalledWith(
       expect.objectContaining({ label: "Export the transport loop as WAV" }),
     );
-    expect(component.messages().at(-1).text).toBe("Loop WAV exported.");
+    const text = component.messages().at(-1).text;
+    // The Director's evidence is kept and the character signs off on it.
+    expect(text).toContain("Loop WAV exported.");
+    expect(text).toMatch(
+      /Do not expect applause|Try to keep up|You are (fucking )?welcome/,
+    );
   });
 
   it("hands the Director plan off to the selected Studio surface", () => {
@@ -471,9 +479,7 @@ describe("AiAssistantComponent voice communication", () => {
       ...action,
       run: jest.fn(() => "again"),
     } as any);
-    const text = component.messages().at(-1)?.text ?? "";
-    expect(text).toContain("again");
-    expect(text).toMatch(/Do not expect applause|Try to keep up|You may continue/);
+    expect(component.messages().at(-1)?.text).toBe("again");
   });
 
   it("runs a suggested chip that names a quick action instead of asking the AI", async () => {
@@ -533,10 +539,23 @@ describe("AiAssistantComponent voice communication", () => {
     await component.runAction(action);
 
     const text = component.messages().at(-1)?.text ?? "";
-    expect(text).toContain("Intro, Verse and Chorus markers laid down.");
-    expect(text).toMatch(/Do not expect applause|Try to keep up|You may continue/);
+    expect(text).toContain("Intro, verse, chorus — laid down.");
     // The action is named once, by its result, not again by the transcript.
     expect(text).not.toContain(`${action.label} —`);
+  });
+
+  it("speaks every quick action in the shifting voices", async () => {
+    const fixture = TestBed.createComponent(AiAssistantComponent);
+    const component = fixture.componentInstance;
+    const action = component.quickActions().find((a) => a.id === "structure")!;
+
+    await component.runAction(action);
+
+    // Random per-sentence archetypes are the identity, not an option.
+    expect(synthesis.speak).toHaveBeenCalledWith(
+      component.messages().at(-1)!.text,
+      expect.objectContaining({ shapeShift: true }),
+    );
   });
 
   it("reports a missing track as a failure, never as a success", async () => {
@@ -583,14 +602,16 @@ describe("AiAssistantComponent voice communication", () => {
     await component.runAction(action);
 
     const text = component.messages().at(-1)?.text ?? "";
-    // The Director's measured evidence survives verbatim; the mode adds the
-    // closing line, not a verdict buried inside the shared result.
+    // The Director's measured evidence survives verbatim; the character signs
+    // off on it instead of returning a bare status message.
     expect(text).toContain("Wrote pad, bass and top-line parts into three tracks.");
-    expect(text).toMatch(/Do not expect applause|Try to keep up|You may continue/);
+    expect(text).toMatch(
+      /Do not expect applause|Try to keep up|You are (fucking )?welcome/,
+    );
     expect(text).not.toContain(`${action.label} —`);
   });
 
-  it("closes a finished action with the selected mode’s completion, not a pre-review", async () => {
+  it("keeps the signature character when another mode is selected", async () => {
     profileService.profile.mockReturnValue({
       ...initialProfile,
       settings: {
@@ -605,10 +626,9 @@ describe("AiAssistantComponent voice communication", () => {
     await component.runAction(action);
 
     const text = component.messages().at(-1)?.text ?? "";
-    // Neutral shared result, then this mode's closer — no Prime wording.
-    expect(text).toContain("Intro, Verse and Chorus markers laid down.");
-    expect(text).toMatch(/one clear step forward|Take a moment to hear/);
-    expect(text).not.toContain("Do not expect applause");
+    // Commands are S.M.U.V.E., not a mode-neutral status report.
+    expect(text).toContain("Intro, verse, chorus — laid down.");
+    expect(text).toContain("not a folder of riffs");
     // `reactions` review work that has not happened yet — the old bug put one
     // in front of a completed action.
     expect(text).not.toContain("has real potential");

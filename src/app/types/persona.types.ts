@@ -35,12 +35,6 @@ export interface PersonaOfflineVoice {
   reactions: string[];
   welcome: string[];
   linkSevered: string;
-  /**
-   * Post-action closers for work that is already done (quick actions,
-   * commands). `reactions` review work that has not happened yet, so they
-   * read in the wrong tense bolted onto a finished result.
-   */
-  completions?: string[];
 }
 
 export interface SmuvePersonaOption {
@@ -115,10 +109,6 @@ export const SMUVE_PERSONAS: SmuvePersonaOption[] = [
       ],
       linkSevered:
         'Strategic link severed. Offline analysis continues on cached evidence.',
-      completions: [
-        'Complete. Measured, applied and logged.',
-        'Executed. The session now matches the specification.',
-      ],
     },
   },
   {
@@ -152,10 +142,6 @@ export const SMUVE_PERSONAS: SmuvePersonaOption[] = [
       ],
       linkSevered:
         'Strategic link severed. Continuing offline with the profile we already have.',
-      completions: [
-        'Done. Re-reference it and confirm the change landed.',
-        'Applied. Listen once, then decide what it changed.',
-      ],
     },
   },
   {
@@ -189,10 +175,6 @@ export const SMUVE_PERSONAS: SmuvePersonaOption[] = [
       ],
       linkSevered:
         'Strategic link severed. We can keep going offline with what we have.',
-      completions: [
-        'Done — that is one clear step forward; listen back and tell me what you hear.',
-        'Complete. Take a moment to hear the difference before the next step.',
-      ],
     },
   },
 ];

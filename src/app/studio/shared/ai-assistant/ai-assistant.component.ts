@@ -222,10 +222,13 @@ export class AiAssistantComponent implements OnInit, AfterViewInit, OnDestroy {
           contexts: ["arrangement", "piano-roll"],
           run: () => {
             const id = this.musicManager.selectedTrackId();
-            if (!id) throw new Error("Select a track first.");
+            if (!id)
+              throw new Error("Select a track first. I do not edit ghosts.");
             this.musicManager.humanizeTrack(id);
             this.haptic.medium();
-            return "Micro-timing and velocity corrected.";
+            return this.profane
+              ? "Humanized. Micro-timing and velocity corrected — it breathes now, unlike your fucking confidence."
+              : "Humanized. Micro-timing and velocity corrected — it breathes now.";
           },
         },
         {
@@ -236,9 +239,9 @@ export class AiAssistantComponent implements OnInit, AfterViewInit, OnDestroy {
           contexts: ["arrangement", "piano-roll"],
           run: () => {
             const id = this.musicManager.selectedTrackId();
-            if (!id) throw new Error("Select a track first.");
+            if (!id) throw new Error("Select a track first. I cannot quantize a rumour.");
             this.musicManager.quantizeTrack(id);
-            return "Quantized to the 1/16 grid.";
+            return "Quantized to the 1/16 grid. Your timing is a fact now, not a feeling.";
           },
         },
         {
@@ -249,9 +252,9 @@ export class AiAssistantComponent implements OnInit, AfterViewInit, OnDestroy {
           contexts: ["arrangement", "piano-roll"],
           run: () => {
             const id = this.musicManager.selectedTrackId();
-            if (!id) throw new Error("Select a track first.");
+            if (!id) throw new Error("Select a track first. There is nothing there to arpeggiate.");
             this.musicManager.arpeggiateTrack(id);
-            return "Arpeggio built from your own notes.";
+            return "Arpeggio built from your own notes. I made them worth hearing.";
           },
         },
         {
@@ -262,9 +265,9 @@ export class AiAssistantComponent implements OnInit, AfterViewInit, OnDestroy {
           contexts: ["arrangement", "piano-roll"],
           run: () => {
             const id = this.musicManager.selectedTrackId();
-            if (!id) throw new Error("Select a track first.");
+            if (!id) throw new Error("Select a track first. I cannot strum an empty room.");
             this.musicManager.strumTrack(id);
-            return "Strum timing applied.";
+            return "Strum timing applied. It sounds played by a person — barely.";
           },
         },
       );
@@ -307,7 +310,9 @@ export class AiAssistantComponent implements OnInit, AfterViewInit, OnDestroy {
           run: () => {
             this.neural.applyNeuralMix();
             this.haptic.medium();
-            return "Rough balance applied — a ±5% gain nudge and a safety compressor; EQ untouched.";
+            return this.profane
+              ? "Rough balance applied. A ±5% nudge and a safety compressor; your EQ is untouched because I do not polish shit."
+              : "Rough balance applied. A ±5% nudge and a safety compressor; your EQ is untouched.";
           },
         },
         {
@@ -332,7 +337,7 @@ export class AiAssistantComponent implements OnInit, AfterViewInit, OnDestroy {
         contexts: ["*"],
         run: () => {
           this.copilot.suggestStructure();
-          return "Intro, Verse and Chorus markers laid down.";
+          return "Intro, verse, chorus — laid down. It is a song now, not a folder of riffs.";
         },
       },
       {
@@ -366,7 +371,7 @@ export class AiAssistantComponent implements OnInit, AfterViewInit, OnDestroy {
           const advice = this.ai.getSmartMixAdvice(this.musicManager.tracks());
           return (
             advice ||
-            "Tracks are balanced. A long-decay reverb on the lead is the next move."
+            "It is balanced. Suspicious. Put a long-decay reverb on the lead and see if you can ruin it."
           );
         },
       },
@@ -773,7 +778,8 @@ export class AiAssistantComponent implements OnInit, AfterViewInit, OnDestroy {
     // A failed step used to report its error text through the success snackbar;
     // throwing keeps the refusal visible instead of dressing it as a result.
     if (!result.ok) throw new Error(result.message);
-    return result.message;
+    // The evidence stays verbatim; the character signs off on the result.
+    return this.withVerdict(result.message);
   }
 
   async runDirectorPlan(): Promise<void> {
@@ -836,9 +842,10 @@ export class AiAssistantComponent implements OnInit, AfterViewInit, OnDestroy {
     this.haptic.medium();
     try {
       const result = await a.run();
-      const line = this.quickResultLine(result);
-      this.snack.success(line);
-      this.postAssistant(line);
+      this.snack.success(result);
+      this.postAssistant(result);
+      // Every reply is spoken: per-sentence voice shifting is the identity.
+      this.readAssistantMessage(result);
     } catch (e) {
       const message = `${a.label} failed: ${(e as Error).message}`;
       this.snack.error(message);
@@ -848,33 +855,25 @@ export class AiAssistantComponent implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
-  /** Post-action closers for the signature character, in its own register. */
-  private readonly primeClosers = [
-    "Done. Do not expect applause.",
-    "Applied. Try to keep up.",
-    "Complete. You may continue.",
-  ];
+  /** The artist's profanity preference; the character itself is never muted. */
+  private get profane(): boolean {
+    return this.userProfile.profile().settings?.ai?.aiProfanityEnabled ?? true;
+  }
 
-  /**
-   * A quick action's neutral, factual result plus the active mode's own
-   * closing line.
-   *
-   * The shared results deliberately carry no persona's tone: a Prime verdict
-   * under another mode's closer read as sarcasm in a costume. `completions`
-   * close work that is already done — `reactions` review work that has not
-   * happened yet, so they cannot prefix a finished action.
-   */
-  private quickResultLine(result: string): string {
-    const persona = getPersonaOption(
-      this.userProfile.profile().settings?.ai?.commanderPersona,
-    );
-    const closers = persona.isOminous
-      ? this.primeClosers
-      : personaOfflineVoice(persona.id)?.completions ?? [];
-    if (!closers.length) return result;
-    const base = result.trim();
-    const closed = /[.!?]$/.test(base) ? base : `${base}.`;
-    return `${closed} ${closers[Math.floor(Math.random() * closers.length)]}`;
+  /** The character's sign-off on a finished Director step. */
+  private withVerdict(message: string): string {
+    const verdicts = this.profane
+      ? [
+          "Done. Do not expect applause.",
+          "Applied. Try to keep up.",
+          "Executed. You are fucking welcome.",
+        ]
+      : [
+          "Done. Do not expect applause.",
+          "Applied. Try to keep up.",
+          "Executed. You are welcome.",
+        ];
+    return `${message} ${verdicts[Math.floor(Math.random() * verdicts.length)]}`;
   }
 
   async sendMessage() {
@@ -1213,7 +1212,11 @@ export class AiAssistantComponent implements OnInit, AfterViewInit, OnDestroy {
       this.postAssistant(message);
       return;
     }
-    if (result) this.postAssistant(result);
+    if (result) {
+      this.postAssistant(result);
+      // Commands are S.M.U.V.E. too — spoken, shifting entity every sentence.
+      this.readAssistantMessage(result);
+    }
   }
 
   /**
@@ -1227,15 +1230,15 @@ export class AiAssistantComponent implements OnInit, AfterViewInit, OnDestroy {
     switch (a.id) {
       case "tempo-90":
         this.audio.tempo.set(90);
-        result = "Tempo locked to 90 BPM. Even you can ride this.";
+        result = "Ninety BPM. Slow enough for your ideas to keep up. Try not to bore me.";
         break;
       case "tempo-124":
         this.audio.tempo.set(124);
-        result = "Tempo locked to 124 BPM. House floor approved.";
+        result = "One twenty-four. House tempo — now give me a groove that earns it.";
         break;
       case "tempo-140":
         this.audio.tempo.set(140);
-        result = "Tempo locked to 140 BPM. Try to keep up.";
+        result = "One forty. If you cannot ride this, that is a you problem.";
         break;
       case "chords":
         result = await this.runDirectorStepFor(
@@ -1251,22 +1254,21 @@ export class AiAssistantComponent implements OnInit, AfterViewInit, OnDestroy {
         break;
       case "structure":
         this.copilot.suggestStructure();
-        result =
-          "Song structure manifested — Intro, Verse, Chorus. You're welcome.";
+        result = "Intro, verse, chorus — laid down. It is a song now, not a folder of riffs.";
         break;
       case "neural-mix":
         this.neural.applyNeuralMix();
-        result =
-          "Rough balance applied — randomized ±5% gain nudge, no EQ change.";
+        result = this.profane
+          ? "Rough balance applied. A ±5% nudge and a safety compressor; your EQ is untouched because I do not polish shit."
+          : "Rough balance applied. A ±5% nudge and a safety compressor; your EQ is untouched.";
         break;
       case "humanize": {
         const id = this.musicManager.selectedTrackId();
-        if (!id) {
-          result = "Select a track first, genius.";
-          break;
-        }
+        if (!id) throw new Error("Select a track first. I do not edit ghosts.");
         this.musicManager.humanizeTrack(id);
-        result = "Humanized. Your notes breathe now — unlike your confidence.";
+        result = this.profane
+          ? "Humanized. Micro-timing and velocity corrected — it sounds human now, the only fucking thing in this session that does."
+          : "Humanized. Micro-timing and velocity corrected — it sounds human now, the only thing in this session that does.";
         break;
       }
       case "session-report":
@@ -1274,7 +1276,9 @@ export class AiAssistantComponent implements OnInit, AfterViewInit, OnDestroy {
         return null;
       case "tips": {
         const advice = this.ai.getSmartMixAdvice(this.musicManager.tracks());
-        result = advice || "Mix is balanced. Shocking. Keep it that way.";
+        result =
+          advice ||
+          "It is balanced. Suspicious. Put a long-decay reverb on the lead and see if you can ruin it.";
         break;
       }
       case "director-loop-wav":
