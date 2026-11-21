@@ -471,7 +471,9 @@ describe("AiAssistantComponent voice communication", () => {
       ...action,
       run: jest.fn(() => "again"),
     } as any);
-    expect(component.messages().at(-1)?.text).toBe("Slow — again");
+    const text = component.messages().at(-1)?.text ?? "";
+    expect(text).toContain("again");
+    expect(text).toMatch(/Do not expect applause|Try to keep up|You may continue/);
   });
 
   it("runs a suggested chip that names a quick action instead of asking the AI", async () => {
@@ -482,7 +484,7 @@ describe("AiAssistantComponent voice communication", () => {
 
     expect(ai.getAIResponse).not.toHaveBeenCalled();
     expect(snack.success).toHaveBeenCalledWith(
-      expect.stringContaining("Session Report:"),
+      expect.stringContaining("SESSION REPORT"),
     );
     expect(component.messages().at(-1)?.text).toContain("SESSION REPORT");
   });
@@ -530,7 +532,11 @@ describe("AiAssistantComponent voice communication", () => {
 
     await component.runAction(action);
 
-    expect(component.messages().at(-1)?.text).toContain("finish it");
+    const text = component.messages().at(-1)?.text ?? "";
+    expect(text).toContain("Intro, Verse and Chorus markers laid down.");
+    expect(text).toMatch(/Do not expect applause|Try to keep up|You may continue/);
+    // The action is named once, by its result, not again by the transcript.
+    expect(text).not.toContain(`${action.label} —`);
   });
 
   it("reports a missing track as a failure, never as a success", async () => {
@@ -577,9 +583,11 @@ describe("AiAssistantComponent voice communication", () => {
     await component.runAction(action);
 
     const text = component.messages().at(-1)?.text ?? "";
-    // The Director's measured evidence survives verbatim; the verdict is new.
+    // The Director's measured evidence survives verbatim; the mode adds the
+    // closing line, not a verdict buried inside the shared result.
     expect(text).toContain("Wrote pad, bass and top-line parts into three tracks.");
-    expect(text).toContain("Voice them like you mean it.");
+    expect(text).toMatch(/Do not expect applause|Try to keep up|You may continue/);
+    expect(text).not.toContain(`${action.label} —`);
   });
 
   it("closes a finished action with the selected mode’s completion, not a pre-review", async () => {
@@ -597,11 +605,14 @@ describe("AiAssistantComponent voice communication", () => {
     await component.runAction(action);
 
     const text = component.messages().at(-1)?.text ?? "";
-    expect(text).toContain("Structure laid down");
+    // Neutral shared result, then this mode's closer — no Prime wording.
+    expect(text).toContain("Intro, Verse and Chorus markers laid down.");
     expect(text).toMatch(/one clear step forward|Take a moment to hear/);
+    expect(text).not.toContain("Do not expect applause");
     // `reactions` review work that has not happened yet — the old bug put one
     // in front of a completed action.
     expect(text).not.toContain("has real potential");
     expect(text).not.toContain("reviewed:");
+    expect(text).not.toContain(`${action.label} —`);
   });
 });

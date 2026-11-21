@@ -116,8 +116,8 @@ export const SMUVE_PERSONAS: SmuvePersonaOption[] = [
       linkSevered:
         'Strategic link severed. Offline analysis continues on cached evidence.',
       completions: [
-        '{subject} complete. Measured, applied and logged.',
-        '{subject} executed. The session now matches the specification.',
+        'Complete. Measured, applied and logged.',
+        'Executed. The session now matches the specification.',
       ],
     },
   },
@@ -153,8 +153,8 @@ export const SMUVE_PERSONAS: SmuvePersonaOption[] = [
       linkSevered:
         'Strategic link severed. Continuing offline with the profile we already have.',
       completions: [
-        '{subject} done. Re-reference it and confirm the change landed.',
-        '{subject} applied. Listen once, then decide what it changed.',
+        'Done. Re-reference it and confirm the change landed.',
+        'Applied. Listen once, then decide what it changed.',
       ],
     },
   },
@@ -190,8 +190,8 @@ export const SMUVE_PERSONAS: SmuvePersonaOption[] = [
       linkSevered:
         'Strategic link severed. We can keep going offline with what we have.',
       completions: [
-        '{subject} — done. That is one clear step forward; listen back and tell me what you hear.',
-        '{subject} complete. Take a moment to hear the difference before the next step.',
+        'Done — that is one clear step forward; listen back and tell me what you hear.',
+        'Complete. Take a moment to hear the difference before the next step.',
       ],
     },
   },

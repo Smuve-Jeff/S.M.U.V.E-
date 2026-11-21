@@ -222,10 +222,10 @@ export class AiAssistantComponent implements OnInit, AfterViewInit, OnDestroy {
           contexts: ["arrangement", "piano-roll"],
           run: () => {
             const id = this.musicManager.selectedTrackId();
-            if (!id) throw new Error("Select a track first — I do not edit ghosts.");
+            if (!id) throw new Error("Select a track first.");
             this.musicManager.humanizeTrack(id);
             this.haptic.medium();
-            return "Humanized — micro-timing and velocity corrected. It breathes now.";
+            return "Micro-timing and velocity corrected.";
           },
         },
         {
@@ -236,9 +236,9 @@ export class AiAssistantComponent implements OnInit, AfterViewInit, OnDestroy {
           contexts: ["arrangement", "piano-roll"],
           run: () => {
             const id = this.musicManager.selectedTrackId();
-            if (!id) throw new Error("Select a track first — I cannot quantize a rumour.");
+            if (!id) throw new Error("Select a track first.");
             this.musicManager.quantizeTrack(id);
-            return "Quantized to the 1/16 grid. Your timing is a fact now.";
+            return "Quantized to the 1/16 grid.";
           },
         },
         {
@@ -249,9 +249,9 @@ export class AiAssistantComponent implements OnInit, AfterViewInit, OnDestroy {
           contexts: ["arrangement", "piano-roll"],
           run: () => {
             const id = this.musicManager.selectedTrackId();
-            if (!id) throw new Error("Select a track first — there is nothing there to arpeggiate.");
+            if (!id) throw new Error("Select a track first.");
             this.musicManager.arpeggiateTrack(id);
-            return "Arpeggio built from your own notes — I made them worth hearing.";
+            return "Arpeggio built from your own notes.";
           },
         },
         {
@@ -262,9 +262,9 @@ export class AiAssistantComponent implements OnInit, AfterViewInit, OnDestroy {
           contexts: ["arrangement", "piano-roll"],
           run: () => {
             const id = this.musicManager.selectedTrackId();
-            if (!id) throw new Error("Select a track first — I cannot strum an empty room.");
+            if (!id) throw new Error("Select a track first.");
             this.musicManager.strumTrack(id);
-            return "Strum timing applied. It sounds played by a person.";
+            return "Strum timing applied.";
           },
         },
       );
@@ -279,12 +279,9 @@ export class AiAssistantComponent implements OnInit, AfterViewInit, OnDestroy {
           icon: "auto_awesome",
           contexts: ["drum-machine"],
           run: async () =>
-            this.directorVerdict(
-              await this.runDirectorStepFor(
-                "drum-machine",
-                "Generate a playable drum kit pattern",
-              ),
-              "The kit is playable now. That is an improvement, not a compliment.",
+            this.runDirectorStepFor(
+              "drum-machine",
+              "Generate a playable drum kit pattern",
             ),
         },
         {
@@ -294,13 +291,7 @@ export class AiAssistantComponent implements OnInit, AfterViewInit, OnDestroy {
           icon: "auto_awesome",
           contexts: ["drum-machine"],
           run: async () =>
-            this.directorVerdict(
-              await this.runDirectorStepFor(
-                "drum-machine",
-                "Run one EVOLVE variation",
-              ),
-              "Variation applied. Better — not good, better.",
-            ),
+            this.runDirectorStepFor("drum-machine", "Run one EVOLVE variation"),
         },
       );
     }
@@ -316,7 +307,7 @@ export class AiAssistantComponent implements OnInit, AfterViewInit, OnDestroy {
           run: () => {
             this.neural.applyNeuralMix();
             this.haptic.medium();
-            return "Rough balance applied — a ±5% gain nudge and a safety compressor. EQ untouched; I do not fix what you have not broken.";
+            return "Rough balance applied — a ±5% gain nudge and a safety compressor; EQ untouched.";
           },
         },
         {
@@ -326,13 +317,7 @@ export class AiAssistantComponent implements OnInit, AfterViewInit, OnDestroy {
           icon: "multitrack_audio",
           contexts: ["mastering"],
           run: async () =>
-            this.directorVerdict(
-              await this.runDirectorStepFor(
-                "mastering",
-                "Run the genre-aware master",
-              ),
-              "Mastered on my chain, not your mood. Listen before you argue.",
-            ),
+            this.runDirectorStepFor("mastering", "Run the genre-aware master"),
         },
       );
     }
@@ -347,7 +332,7 @@ export class AiAssistantComponent implements OnInit, AfterViewInit, OnDestroy {
         contexts: ["*"],
         run: () => {
           this.copilot.suggestStructure();
-          return "Structure laid down: Intro, Verse, Chorus. You have a song; finish it.";
+          return "Intro, Verse and Chorus markers laid down.";
         },
       },
       {
@@ -357,13 +342,7 @@ export class AiAssistantComponent implements OnInit, AfterViewInit, OnDestroy {
         icon: "graphic_eq",
         contexts: ["*"],
                   run: async () =>
-            this.directorVerdict(
-              await this.runDirectorStepFor(
-                "chord-editor",
-                "Turn the progression into parts",
-              ),
-              "The parts are in the session. Voice them like you mean it.",
-            ),
+            this.runDirectorStepFor("chord-editor", "Turn the progression into parts"),
       },
       {
         id: "melody",
@@ -372,12 +351,9 @@ export class AiAssistantComponent implements OnInit, AfterViewInit, OnDestroy {
         icon: "graphic_eq",
         contexts: ["*"],
                   run: async () =>
-            this.directorVerdict(
-              await this.runDirectorStepFor(
-                "piano-roll",
-                "Write a melodic seed into the selected track",
-              ),
-              "Seed planted. Grow it before I lose interest.",
+            this.runDirectorStepFor(
+              "piano-roll",
+              "Write a melodic seed into the selected track",
             ),
       },
       {
@@ -390,7 +366,7 @@ export class AiAssistantComponent implements OnInit, AfterViewInit, OnDestroy {
           const advice = this.ai.getSmartMixAdvice(this.musicManager.tracks());
           return (
             advice ||
-            "Tracks come back balanced. Suspicious. Put a long-decay reverb on the lead and see if you ruin it."
+            "Tracks are balanced. A long-decay reverb on the lead is the next move."
           );
         },
       },
@@ -860,9 +836,9 @@ export class AiAssistantComponent implements OnInit, AfterViewInit, OnDestroy {
     this.haptic.medium();
     try {
       const result = await a.run();
-      const line = this.quickResultLine(a.label, result);
-      this.snack.success(`${a.label}: ${line}`);
-      this.postAssistant(`${a.label} — ${line}`);
+      const line = this.quickResultLine(result);
+      this.snack.success(line);
+      this.postAssistant(line);
     } catch (e) {
       const message = `${a.label} failed: ${(e as Error).message}`;
       this.snack.error(message);
@@ -872,40 +848,33 @@ export class AiAssistantComponent implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
-  /**
-   * One quick-action confirmation in the active persona's register.
-   *
-   * The confirmations are written in S.M.U.V.E. Prime's voice; an
-   * artist-selected mode leads with its own reaction instead of borrowing
-   * that tone — the same rule the offline reply path follows.
-   */
-  private quickResultLine(label: string, result: string): string {
-    const persona = getPersonaOption(
-      this.userProfile.profile().settings?.ai?.commanderPersona,
-    );
-    if (persona.isOminous) return result;
-    // `reactions` review work that has not happened yet. Pairing one with a
-    // finished result put a pre-review in front of a completed action; a
-    // closer belongs after it.
-    const closers = personaOfflineVoice(persona.id)?.completions ?? [];
-    if (!closers.length) return result;
-    const closer = closers[Math.floor(Math.random() * closers.length)];
-    return `${result} ${closer.replace(/\{subject\}/g, label)}`;
-  }
+  /** Post-action closers for the signature character, in its own register. */
+  private readonly primeClosers = [
+    "Done. Do not expect applause.",
+    "Applied. Try to keep up.",
+    "Complete. You may continue.",
+  ];
 
   /**
-   * A Director step's measured message plus S.M.U.V.E.'s verdict.
+   * A quick action's neutral, factual result plus the active mode's own
+   * closing line.
    *
-   * The message is real evidence from the Director and is never rewritten;
-   * the verdict is what stops the confirmation reading like a status report.
-   * An artist-selected mode leaves the verdict to `quickResultLine` instead
-   * of borrowing Prime's tone.
+   * The shared results deliberately carry no persona's tone: a Prime verdict
+   * under another mode's closer read as sarcasm in a costume. `completions`
+   * close work that is already done — `reactions` review work that has not
+   * happened yet, so they cannot prefix a finished action.
    */
-  private directorVerdict(message: string, verdict: string): string {
+  private quickResultLine(result: string): string {
     const persona = getPersonaOption(
       this.userProfile.profile().settings?.ai?.commanderPersona,
     );
-    return persona.isOminous ? `${message} ${verdict}` : message;
+    const closers = persona.isOminous
+      ? this.primeClosers
+      : personaOfflineVoice(persona.id)?.completions ?? [];
+    if (!closers.length) return result;
+    const base = result.trim();
+    const closed = /[.!?]$/.test(base) ? base : `${base}.`;
+    return `${closed} ${closers[Math.floor(Math.random() * closers.length)]}`;
   }
 
   async sendMessage() {
