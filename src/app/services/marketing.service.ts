@@ -128,6 +128,8 @@ export interface MonthOverMonthGrowth {
    * is still visible when no month-over-month total is honest to report.
    */
   trends: PlatformTrend[];
+  /** Platforms with a single recorded month — no direction yet, never dropped. */
+  recordedOnce: string[];
 }
 
 const monthOf = (weekOf: string): string =>
@@ -181,7 +183,7 @@ const trendFor = (
   };
 };
 
-const platformTrends = (
+const platformSeries = (
   byMonth: Map<string, Map<string, ManualAudienceMetric>>
 ): PlatformTrend[] => {
   const rows = new Map<string, PlatformTrend>();
@@ -194,17 +196,11 @@ const platformTrends = (
       rows.set(platform, row);
     }
   }
-  // One point has no direction; a platform measured once stays off the list.
-  const trends = [...rows.values()].filter((row) => row.points.length > 1);
-  for (const trend of trends) {
-    const last = trend.points[trend.points.length - 1];
-    trend.delta = last.value - trend.points[0].value;
+  for (const row of rows.values()) {
+    const last = row.points[row.points.length - 1];
+    row.delta = last.value - row.points[0].value;
   }
-  return trends.sort(
-    (a, b) =>
-      Math.abs(b.delta) - Math.abs(a.delta) ||
-      a.platform.localeCompare(b.platform)
-  );
+  return [...rows.values()];
 };
 
 /**
@@ -240,10 +236,22 @@ export function monthOverMonthGrowth(
       followers: null,
       monthlyListeners: null,
       trends: [],
+      recordedOnce: [],
     };
   }
 
-  const trends = platformTrends(byMonth);
+  const rows = platformSeries(byMonth);
+  const trends = rows
+    .filter((row) => row.points.length > 1)
+    .sort(
+      (a, b) =>
+        Math.abs(b.delta) - Math.abs(a.delta) ||
+        a.platform.localeCompare(b.platform)
+    );
+  const recordedOnce = rows
+    .filter((row) => row.points.length === 1)
+    .map((row) => row.platform)
+    .sort();
   const previousMonth = previousMonthOf(latestMonth);
   const latest = byMonth.get(latestMonth)!;
   const previous = byMonth.get(previousMonth);
@@ -260,6 +268,7 @@ export function monthOverMonthGrowth(
       followers: null,
       monthlyListeners: null,
       trends,
+      recordedOnce,
     };
   }
 
@@ -275,6 +284,7 @@ export function monthOverMonthGrowth(
     followers,
     monthlyListeners,
     trends,
+    recordedOnce,
   };
 }
 

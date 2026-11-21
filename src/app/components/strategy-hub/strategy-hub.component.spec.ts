@@ -160,6 +160,7 @@ describe('StrategyHubComponent', () => {
       followers: null,
       monthlyListeners: null,
       trends: [],
+      recordedOnce: [],
     }),
     recordManualMetric: jest.fn().mockResolvedValue(true),
     removeManualMetric: jest.fn().mockResolvedValue(true),
@@ -252,6 +253,7 @@ describe('StrategyHubComponent', () => {
       followers: null,
       monthlyListeners: null,
       trends: [],
+      recordedOnce: [],
     });
     component.setTab('analytics');
     fixture.detectChanges();
@@ -279,6 +281,7 @@ describe('StrategyHubComponent', () => {
       },
       monthlyListeners: null,
       trends: [],
+      recordedOnce: [],
     });
     component.setTab('analytics');
     fixture.detectChanges();
@@ -315,6 +318,7 @@ describe('StrategyHubComponent', () => {
           delta: 40,
         },
       ],
+      recordedOnce: ['TikTok'],
     });
     component.setTab('analytics');
     fixture.detectChanges();
@@ -326,6 +330,8 @@ describe('StrategyHubComponent', () => {
     expect(trends.textContent).toContain('Sep 2026');
     expect(trends.textContent).toContain('Nov 2026');
     expect(trends.textContent).toContain('+40');
+    expect(trends.textContent).toContain('Recorded once, so no direction yet');
+    expect(trends.textContent).toContain('TikTok');
   });
 
   it('reports a refused manual save without dropping the figures', async () => {

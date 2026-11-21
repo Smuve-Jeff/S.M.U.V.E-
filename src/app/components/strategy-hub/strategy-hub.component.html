@@ -797,7 +797,10 @@
           }
 
           <!-- Every recorded month per platform, so direction survives a gap -->
-          @if (monthOverMonth().trends.length) {
+          @if (
+            monthOverMonth().trends.length ||
+            monthOverMonth().recordedOnce.length
+          ) {
             <div
               data-testid="strategy-growth-trends"
               class="space-y-3 border-t border-white/10 pt-4"
@@ -833,6 +836,15 @@
                   </li>
                 }
               </ul>
+              @if (monthOverMonth().recordedOnce.length) {
+                <p
+                  data-testid="strategy-growth-recorded-once"
+                  class="text-[10px] leading-relaxed text-silver-dim"
+                >
+                  Recorded once, so no direction yet:
+                  {{ monthOverMonth().recordedOnce.join(', ') }}.
+                </p>
+              }
             </div>
           }
         </section>

@@ -177,7 +177,7 @@ describe('manual audience metrics', () => {
       ]);
     });
 
-    it('takes one point per month and drops a platform measured once', () => {
+    it('takes one point per month and names a platform measured once', () => {
       const growth = monthOverMonthGrowth([
         week('2026-10-05', { followers: 100 }),
         week('2026-10-26', { followers: 120 }),
@@ -192,6 +192,7 @@ describe('manual audience metrics', () => {
         { month: '2026-11', value: 180 },
       ]);
       expect(growth.trends[0].delta).toBe(60);
+      expect(growth.recordedOnce).toEqual(['TikTok']);
     });
 
     it('walks calendar months across a year boundary', () => {
