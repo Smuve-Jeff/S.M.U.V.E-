@@ -162,7 +162,7 @@ describe('manual audience metrics', () => {
           platform: 'TikTok',
           points: [
             { month: '2026-01', value: 900 },
-            { month: '2026-03', value: 600 },
+            { month: '2026-03', value: 600, gapBefore: ['2026-02'] },
           ],
           delta: -300,
         },
@@ -170,10 +170,29 @@ describe('manual audience metrics', () => {
           platform: 'Instagram',
           points: [
             { month: '2026-01', value: 100 },
-            { month: '2026-03', value: 160 },
+            { month: '2026-03', value: 160, gapBefore: ['2026-02'] },
           ],
           delta: 60,
         },
+      ]);
+    });
+
+    it('lists every skipped month, and none for adjacent months', () => {
+      const growth = monthOverMonthGrowth([
+        week('2026-08-03', { followers: 100 }),
+        week('2026-11-02', { followers: 190 }),
+        week('2026-10-05', { platform: 'TikTok', followers: 40 }),
+        week('2026-11-02', { platform: 'TikTok', followers: 55 }),
+      ]);
+
+      expect(growth.trends[0].points).toEqual([
+        { month: '2026-08', value: 100 },
+        { month: '2026-11', value: 190, gapBefore: ['2026-09', '2026-10'] },
+      ]);
+      // A platform with no skipped month keeps a plain point, with no marker.
+      expect(growth.trends[1].points).toEqual([
+        { month: '2026-10', value: 40 },
+        { month: '2026-11', value: 55 },
       ]);
     });
 

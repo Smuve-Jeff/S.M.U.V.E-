@@ -425,6 +425,21 @@ export class StrategyHubComponent implements OnInit {
   }
 
   /**
+   * "Sep–Oct 2026" — the months a platform skipped between two figures.
+   *
+   * Short names match the points beside it, and a run inside one year reads as
+   * a single range rather than repeating the year.
+   */
+  gapLabel(months: string[]): string {
+    const first = this.monthLabel(months[0], true);
+    if (months.length === 1) return first;
+    const last = this.monthLabel(months[months.length - 1], true);
+    return months[0].slice(0, 4) === months[months.length - 1].slice(0, 4)
+      ? `${first.slice(0, 3)}–${last}`
+      : `${first}–${last}`;
+  }
+
+  /**
    * "TikTok (Nov 2026), Facebook (Oct 2026)" — the one-month platforms.
    *
    * Entries are non-breaking, so a phone wraps after a comma rather than inside

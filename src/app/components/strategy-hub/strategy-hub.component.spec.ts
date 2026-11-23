@@ -343,6 +343,68 @@ describe('StrategyHubComponent', () => {
     );
   });
 
+  it('marks the months a platform skipped instead of reading across them', () => {
+    mockMarketingService.monthOverMonth.set({
+      state: 'no-baseline',
+      latestMonth: '2026-11',
+      previousMonth: '2026-10',
+      newPlatforms: [],
+      followers: null,
+      monthlyListeners: null,
+      trends: [
+        {
+          platform: 'Instagram',
+          points: [
+            { month: '2026-08', value: 900 },
+            {
+              month: '2026-11',
+              value: 1100,
+              gapBefore: ['2026-09', '2026-10'],
+            },
+          ],
+          delta: 200,
+        },
+        {
+          platform: 'TikTok',
+          points: [
+            { month: '2026-10', value: 400 },
+            { month: '2026-11', value: 500 },
+          ],
+          delta: 100,
+        },
+      ],
+      recordedOnce: [],
+    });
+    component.setTab('analytics');
+    fixture.detectChanges();
+
+    const trends = fixture.nativeElement.querySelector(
+      '[data-testid="strategy-growth-trends"]'
+    );
+    // Only the platform with a skipped month is marked, and the marker sits
+    // between its two figures, so Aug and Nov are not read as adjacent.
+    const gaps = trends.querySelectorAll('[data-testid="strategy-growth-gap"]');
+    expect(gaps).toHaveLength(1);
+    expect(gaps[0].textContent).toContain('Sep–Oct 2026 no data');
+
+    // The label keeps the short names the points use, and repeats the year only
+    // when the skipped run crosses one.
+    expect(component.gapLabel(['2026-10'])).toBe('Oct 2026');
+    expect(component.gapLabel(['2025-12', '2026-01'])).toBe(
+      'Dec 2025–Jan 2026'
+    );
+
+    const rows = [...trends.querySelectorAll('li')] as HTMLElement[];
+    const row = rows.find((li) => li.textContent?.includes('Instagram'));
+    const text = (row?.textContent ?? '').replace(/\s+/g, ' ');
+    expect(text.indexOf('Aug 2026')).toBeLessThan(
+      text.indexOf('Sep–Oct 2026 no data')
+    );
+    expect(text.indexOf('Sep–Oct 2026 no data')).toBeLessThan(
+      text.indexOf('Nov 2026')
+    );
+  });
+
   it('reports a refused manual save without dropping the figures', async () => {
     mockMarketingService.recordManualMetric.mockResolvedValueOnce(false);
     component.setMetricNumber('followers', 1200);

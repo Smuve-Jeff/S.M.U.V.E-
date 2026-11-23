@@ -109,7 +109,12 @@ export interface AudienceTrend {
 export interface PlatformTrend {
   platform: string;
   /** Oldest first, one point per month that recorded this platform. */
-  points: { month: string; value: number }[];
+  points: {
+    month: string;
+    value: number;
+    /** Months skipped since the previous point, which are not zeros. */
+    gapBefore?: string[];
+  }[];
   /** Latest month minus first, across every month recorded. */
   delta: number;
 }
@@ -135,14 +140,35 @@ export interface MonthOverMonthGrowth {
 const monthOf = (weekOf: string): string =>
   /^\d{4}-\d{2}/.test(weekOf) ? weekOf.slice(0, 7) : '';
 
+/** The calendar month `offset` months from `month` (`YYYY-MM`). */
+const shiftMonth = (month: string, offset: number): string => {
+  const [year, index] = month.split('-').map(Number);
+  const shifted = new Date(Date.UTC(year, index - 1 + offset, 1));
+  return `${shifted.getUTCFullYear()}-${String(
+    shifted.getUTCMonth() + 1
+  ).padStart(2, '0')}`;
+};
+
 /** The calendar month before `month` (`YYYY-MM`), never a "previous entry". */
 export function previousMonthOf(month: string): string {
-  const [year, index] = month.split('-').map(Number);
-  const previous = new Date(Date.UTC(year, index - 2, 1));
-  return `${previous.getUTCFullYear()}-${String(
-    previous.getUTCMonth() + 1
-  ).padStart(2, '0')}`;
+  return shiftMonth(month, -1);
 }
+
+/**
+ * The months a platform skipped between two recorded ones, oldest first.
+ *
+ * They stay missing points, never zeros, so a direction that spans them can say
+ * so instead of reading as a month-to-month comparison.
+ */
+const monthsBetween = (from: string, to: string): string[] => {
+  const skipped: string[] = [];
+  let month = shiftMonth(from, 1);
+  while (month < to) {
+    skipped.push(month);
+    month = shiftMonth(month, 1);
+  }
+  return skipped;
+};
 
 /** The figure each kind of entry contributes to the growth card. */
 const metricValue = (entry: ManualAudienceMetric): number | undefined =>
@@ -192,7 +218,13 @@ const platformSeries = (
       const value = metricValue(entry);
       if (value === undefined) continue;
       const row = rows.get(platform) ?? { platform, points: [], delta: 0 };
-      row.points.push({ month, value });
+      const previousPoint = row.points[row.points.length - 1];
+      const gapBefore = previousPoint
+        ? monthsBetween(previousPoint.month, month)
+        : [];
+      row.points.push(
+        gapBefore.length ? { month, value, gapBefore } : { month, value }
+      );
       rows.set(platform, row);
     }
   }
