@@ -825,14 +825,16 @@
                       class="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[10px] tabular-nums text-silver-dim"
                     >
                       @for (point of trend.points; track point.month) {
-                        @if (point.gapBefore; as gapBefore) {
-                          <span
-                            data-testid="strategy-growth-gap"
-                            class="italic"
-                            >{{ gapLabel(gapBefore) }} no data</span
-                          >
-                        }
+                        <!-- The gap travels with the figure it precedes, so a
+                             narrow card breaks between figures, not after "no data". -->
                         <span>
+                          @if (point.gapBefore; as gapBefore) {
+                            <span
+                              data-testid="strategy-growth-gap"
+                              class="mr-3 italic whitespace-nowrap"
+                              >{{ gapLabel(gapBefore) }} no data</span
+                            >
+                          }
                           {{ monthLabel(point.month, true) }}
                           <span class="font-bold text-white">{{
                             formatNumber(point.value)

@@ -343,38 +343,41 @@ describe('StrategyHubComponent', () => {
     );
   });
 
+  /** Instagram skipped Sep and Oct, so its Aug → Nov direction spans a gap. */
+  const skippedMonthGrowth = () => ({
+    state: 'no-baseline',
+    latestMonth: '2026-11',
+    previousMonth: '2026-10',
+    newPlatforms: [],
+    followers: null,
+    monthlyListeners: null,
+    trends: [
+      {
+        platform: 'Instagram',
+        points: [
+          { month: '2026-08', value: 900 },
+          {
+            month: '2026-11',
+            value: 1100,
+            gapBefore: ['2026-09', '2026-10'],
+          },
+        ],
+        delta: 200,
+      },
+      {
+        platform: 'TikTok',
+        points: [
+          { month: '2026-10', value: 400 },
+          { month: '2026-11', value: 500 },
+        ],
+        delta: 100,
+      },
+    ],
+    recordedOnce: [],
+  });
+
   it('marks the months a platform skipped instead of reading across them', () => {
-    mockMarketingService.monthOverMonth.set({
-      state: 'no-baseline',
-      latestMonth: '2026-11',
-      previousMonth: '2026-10',
-      newPlatforms: [],
-      followers: null,
-      monthlyListeners: null,
-      trends: [
-        {
-          platform: 'Instagram',
-          points: [
-            { month: '2026-08', value: 900 },
-            {
-              month: '2026-11',
-              value: 1100,
-              gapBefore: ['2026-09', '2026-10'],
-            },
-          ],
-          delta: 200,
-        },
-        {
-          platform: 'TikTok',
-          points: [
-            { month: '2026-10', value: 400 },
-            { month: '2026-11', value: 500 },
-          ],
-          delta: 100,
-        },
-      ],
-      recordedOnce: [],
-    });
+    mockMarketingService.monthOverMonth.set(skippedMonthGrowth());
     component.setTab('analytics');
     fixture.detectChanges();
 
@@ -403,6 +406,31 @@ describe('StrategyHubComponent', () => {
     expect(text.indexOf('Sep–Oct 2026 no data')).toBeLessThan(
       text.indexOf('Nov 2026')
     );
+  });
+
+  it('keeps the gap marker inside the figure it precedes', () => {
+    mockMarketingService.monthOverMonth.set(skippedMonthGrowth());
+    component.setTab('analytics');
+    fixture.detectChanges();
+
+    const trends = fixture.nativeElement.querySelector(
+      '[data-testid="strategy-growth-trends"]'
+    );
+    const gap = trends.querySelector('[data-testid="strategy-growth-gap"]');
+    const unit = gap.parentElement as HTMLElement;
+    const list = unit.parentElement as HTMLElement;
+
+    // The marker and its figure are one flex item, so a narrow card has nowhere
+    // to break between "no data" and the figure — they wrap together instead of
+    // leaving the figure alone on a line that reads like a new entry.
+    expect(list.tagName).toBe('P');
+    expect(list.children).toHaveLength(2);
+    expect(list.children[1]).toBe(unit);
+    expect(unit.textContent).toContain('Nov 2026');
+
+    // Inside that item the marker leads the figure and never splits in two.
+    expect(unit.firstElementChild).toBe(gap);
+    expect(gap.classList).toContain('whitespace-nowrap');
   });
 
   it('reports a refused manual save without dropping the figures', async () => {
