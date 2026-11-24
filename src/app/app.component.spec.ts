@@ -149,7 +149,9 @@ describe('AppComponent', () => {
             isSyncing: signal(false),
             lastSyncTime: signal(null),
             cloudSyncPending: signal(false),
+            cloudSyncDeadLettered: signal(false),
             cloudSyncError: signal(null),
+            retryProfileCloudSync: jest.fn(),
           },
         },
         {

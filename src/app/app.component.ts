@@ -224,6 +224,10 @@ export class AppComponent {
     this.allowViews(this.uiService.getPrimaryMobileViewConfigs())
   );
 
+  async retryProfileCloudSync(): Promise<void> {
+    await this.databaseService.retryProfileCloudSync();
+  }
+
   mobileNavLabel(label: string): string {
     return MOBILE_NAV_SHORT_LABELS[label] ?? label;
   }
@@ -241,6 +245,7 @@ export class AppComponent {
     isCloudSyncing: this.databaseService.isSyncing(),
     lastCloudSync: this.databaseService.lastSyncTime(),
     cloudSyncPending: this.databaseService.cloudSyncPending(),
+    cloudSyncDeadLettered: this.databaseService.cloudSyncDeadLettered(),
     cloudSyncError: this.databaseService.cloudSyncError(),
     pending: this.offlineSync.pendingCount(),
     deadLetter: this.offlineSync.deadLetterCount(),

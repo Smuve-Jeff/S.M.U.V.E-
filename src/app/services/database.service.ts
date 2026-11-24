@@ -1,5 +1,5 @@
 import { APP_SECURITY_CONFIG } from '../app.security';
-import { Injectable, inject, signal } from '@angular/core';
+import { Injectable, computed, inject, signal } from '@angular/core';
 import { UserProfile } from '../types/profile.types';
 import { LoggingService } from './logging.service';
 import { HttpClient } from '@angular/common/http';
@@ -14,6 +14,8 @@ export const PROFILE_SYNC_ENDPOINT = 'smuve://profile-sync';
 
 const PROFILE_SYNC_FAILED =
   'Profile cloud sync failed. Changes are on this device and queued for retry.';
+const PROFILE_SYNC_DEAD_LETTERED =
+  'Profile sync stopped after repeated retries. Reconnect, then retry the profile sync.';
 
 @Injectable({
   providedIn: 'root',
@@ -28,8 +30,19 @@ export class DatabaseService {
 
   /** True while a profile write is on this device but not confirmed in the cloud. */
   readonly cloudSyncPending = signal(false);
+  /** True once the queued profile retry exhausted its attempts. */
+  readonly cloudSyncDeadLettered = computed(() =>
+    this.offlineSync
+      .deadLetteredEndpoints()
+      .includes(PROFILE_SYNC_ENDPOINT)
+  );
+  private readonly profileSyncError = signal<string | null>(null);
   /** Human-readable reason for the last failed profile cloud write. */
-  readonly cloudSyncError = signal<string | null>(null);
+  readonly cloudSyncError = computed(() =>
+    this.cloudSyncDeadLettered()
+      ? PROFILE_SYNC_DEAD_LETTERED
+      : this.profileSyncError()
+  );
 
   constructor() {
     // Replay queued profile writes through the same verified path. The queued
@@ -140,14 +153,16 @@ export class DatabaseService {
         );
         this.lastSyncTime.set(Date.now());
         this.cloudSyncPending.set(false);
-        this.cloudSyncError.set(null);
+        this.profileSyncError.set(null);
+        // A confirmed write makes any dead-lettered profile retry obsolete.
+        await this.clearProfileDeadLetters();
         // Only the provider confirming the write counts as cloud sync; the
         // local backup does not.
         return true;
       } catch (error) {
         this.logger.error('Failed to sync profile to cloud', error);
         this.cloudSyncPending.set(true);
-        this.cloudSyncError.set(PROFILE_SYNC_FAILED);
+        this.profileSyncError.set(PROFILE_SYNC_FAILED);
         if (queueRetry) await this.queueProfileRetry(profile, userId);
         return false;
       } finally {
@@ -157,7 +172,7 @@ export class DatabaseService {
 
     // Offline: the device has the profile and the queue will replay it.
     this.cloudSyncPending.set(true);
-    this.cloudSyncError.set(
+    this.profileSyncError.set(
       'Waiting for a connection. Profile changes are on this device.'
     );
     if (queueRetry) await this.queueProfileRetry(profile, userId);
@@ -173,6 +188,39 @@ export class DatabaseService {
       return JSON.parse(raw) as UserProfile;
     } catch {
       return null;
+    }
+  }
+
+  /** Re-queue profile writes that exhausted their automatic retries. */
+  async retryProfileCloudSync(): Promise<void> {
+    try {
+      const dead = (await this.offlineSync.listDeadLetters()).filter(
+        (item) => item.endpoint === PROFILE_SYNC_ENDPOINT
+      );
+      if (!dead.length) return;
+      // Mark pending before replaying: the queue may process synchronously and
+      // a late write here would overwrite a successful result.
+      this.cloudSyncPending.set(true);
+      this.profileSyncError.set(PROFILE_SYNC_FAILED);
+      for (const item of dead) {
+        await this.offlineSync.replayDeadLetter(item.id);
+      }
+    } catch (error) {
+      this.logger.warn('Could not retry the dead-lettered profile write', error);
+    }
+  }
+
+  /** Drop dead-lettered profile writes once a fresh write reaches the cloud. */
+  private async clearProfileDeadLetters(): Promise<void> {
+    try {
+      const dead = await this.offlineSync.listDeadLetters();
+      for (const item of dead) {
+        if (item.endpoint === PROFILE_SYNC_ENDPOINT) {
+          await this.offlineSync.clearDeadLetter(item.id);
+        }
+      }
+    } catch (error) {
+      this.logger.warn('Could not clear dead-lettered profile writes', error);
     }
   }
 

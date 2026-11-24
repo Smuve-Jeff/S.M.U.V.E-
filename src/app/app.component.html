@@ -495,11 +495,13 @@
               {{
                 syncSummary().autoSaveBusy || syncSummary().isCloudSyncing
                   ? 'SYNCING'
-                  : syncSummary().cloudSyncPending
-                    ? 'SYNC PENDING'
-                    : syncSummary().lastSavedAt
-                      ? (syncSummary().lastSavedAt | date: 'shortTime')
-                      : 'IDLE'
+                  : syncSummary().cloudSyncDeadLettered
+                    ? 'SYNC FAILED'
+                    : syncSummary().cloudSyncPending
+                      ? 'SYNC PENDING'
+                      : syncSummary().lastSavedAt
+                        ? (syncSummary().lastSavedAt | date: 'shortTime')
+                        : 'IDLE'
               }}
             </span>
           </div>
@@ -515,11 +517,13 @@
             {{
               syncSummary().offline
                 ? 'cloud_off'
-                : syncSummary().cloudSyncPending
-                  ? 'cloud_upload'
-                  : syncSummary().pending
-                    ? 'sync'
-                    : 'cloud_done'
+                : syncSummary().cloudSyncDeadLettered
+                  ? 'sync_problem'
+                  : syncSummary().cloudSyncPending
+                    ? 'cloud_upload'
+                    : syncSummary().pending
+                      ? 'sync'
+                      : 'cloud_done'
             }}
           </span>
         </button>
@@ -852,13 +856,23 @@
               {{
                 syncSummary().isCloudSyncing
                   ? 'Syncing…'
-                  : syncSummary().cloudSyncPending
-                    ? 'Pending retry'
-                    : syncSummary().lastCloudSync
-                      ? (syncSummary().lastCloudSync | date: 'shortTime')
-                      : 'Not yet'
+                  : syncSummary().cloudSyncDeadLettered
+                    ? 'Manual retry needed'
+                    : syncSummary().cloudSyncPending
+                      ? 'Pending retry'
+                      : syncSummary().lastCloudSync
+                        ? (syncSummary().lastCloudSync | date: 'shortTime')
+                        : 'Not yet'
               }}
             </div>
+            <button
+              *ngIf="syncSummary().cloudSyncDeadLettered"
+              type="button"
+              (click)="retryProfileCloudSync()"
+              class="mt-3 w-full rounded-xl border border-yellow-500/30 bg-yellow-500/10 px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-yellow-400 hover:bg-yellow-500/20"
+            >
+              Retry profile sync
+            </button>
           </div>
         </div>
 

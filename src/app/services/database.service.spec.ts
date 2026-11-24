@@ -1,4 +1,5 @@
 import { TestBed } from '@angular/core/testing';
+import { signal } from '@angular/core';
 import { provideHttpClient } from '@angular/common/http';
 import {
   provideHttpClientTesting,
@@ -32,10 +33,15 @@ describe('DatabaseService profile ownership', () => {
     hasPending: jest.fn(async () => false),
     queueOperation: jest.fn(async () => 'sync-profile'),
     registerEndpointHandler: jest.fn(),
+    deadLetteredEndpoints: signal<string[]>([]),
+    listDeadLetters: jest.fn(async () => [] as any[]),
+    clearDeadLetter: jest.fn(async () => true),
+    replayDeadLetter: jest.fn(async () => true),
   };
 
   beforeEach(() => {
     jest.clearAllMocks();
+    offlineSync.deadLetteredEndpoints.set([]);
     warn = jest.fn();
     apiToken = true;
     TestBed.configureTestingModule({
@@ -119,6 +125,24 @@ describe('DatabaseService profile ownership', () => {
       PROFILE_SYNC_ENDPOINT,
       expect.objectContaining({ userId: 'user-a' })
     );
+  });
+
+  it('distinguishes a dead-lettered profile write from a queued retry', () => {
+    offlineSync.deadLetteredEndpoints.set([PROFILE_SYNC_ENDPOINT]);
+
+    expect(service.cloudSyncDeadLettered()).toBe(true);
+    expect(service.cloudSyncError()).toContain('Reconnect');
+  });
+
+  it('re-queues a dead-lettered profile write on manual retry', async () => {
+    offlineSync.listDeadLetters.mockResolvedValueOnce([
+      { id: 'dead-1', endpoint: PROFILE_SYNC_ENDPOINT },
+    ]);
+
+    await service.retryProfileCloudSync();
+
+    expect(offlineSync.replayDeadLetter).toHaveBeenCalledWith('dead-1');
+    expect(service.cloudSyncPending()).toBe(true);
   });
 
   it('replays a queued write with the latest device copy and clears pending', async () => {

@@ -31,6 +31,8 @@ export class OfflineSyncService {
   isSyncing = signal(false);
   pendingCount = signal(0);
   deadLetterCount = signal(0);
+  /** Endpoints whose queued work exhausted its retries. */
+  deadLetteredEndpoints = signal<string[]>([]);
   lastSyncAttempt = signal<number | null>(null);
   networkStatus = signal<'online' | 'offline'>('online');
   /** Optimistic local-save mode — data persists to IndexedDB instantly */
@@ -378,9 +380,13 @@ export class OfflineSyncService {
         await this.localStorage.getAllItems('sync_dead_letter');
       this.pendingCount.set(items.length);
       this.deadLetterCount.set(deadLetter.length);
+      this.deadLetteredEndpoints.set(
+        deadLetter.map((item: SyncQueueItem) => item.endpoint)
+      );
     } catch {
       this.pendingCount.set(0);
       this.deadLetterCount.set(0);
+      this.deadLetteredEndpoints.set([]);
     }
   }
 
