@@ -581,11 +581,6 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
     () => this.speechSynthesisService.archetypeCatalog?.() ?? []
   );
 
-  /** Engine voices currently available — a lab with none cannot audition. */
-  labVoiceCount(): number {
-    return this.speechSynthesisService.availableVoiceNames?.()?.length ?? 0;
-  }
-
   /** Human-quality voices the rotation actually deals on this device. */
   labHumanVoiceCount(): number {
     return this.speechSynthesisService.humanVoiceNames?.()?.length ?? 0;

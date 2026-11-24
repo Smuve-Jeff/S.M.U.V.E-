@@ -129,7 +129,6 @@ describe('ChatbotComponent', () => {
           texture: 'growl',
         },
       ]),
-      availableVoiceNames: jest.fn(() => ['Fake Voice A', 'Fake Voice B']),
       humanVoiceNames: jest.fn(() => ['Fake Voice A', 'Fake Voice B']),
       excludedVoiceNames: jest.fn(() => ['Zarvox']),
       setArchetype: jest.fn(),
@@ -1225,7 +1224,6 @@ describe('ChatbotComponent', () => {
 
     expect(component.voiceLabOpen()).toBe(true);
     expect(component.voiceLabArchetypes()).toHaveLength(2);
-    expect(component.labVoiceCount()).toBe(2);
     // The lab states what is rotating and what was refused.
     expect(component.labHumanVoiceCount()).toBe(2);
     expect(component.labExcludedVoiceCount()).toBe(1);
@@ -1245,6 +1243,19 @@ describe('ChatbotComponent', () => {
     );
     // The notice names the delivery the artist is hearing.
     expect(component.voiceLabNotice()).toContain('growl');
+  });
+
+  it('does not call novelty voices excluded when they are the rotation in use', () => {
+    speechSynthesisServiceMock.humanVoiceNames.mockReturnValue([]);
+    speechSynthesisServiceMock.excludedVoiceNames.mockReturnValue(['Zarvox']);
+
+    component.toggleVoiceLab();
+    fixture.detectChanges();
+
+    const text = fixture.nativeElement.textContent as string;
+    expect(text).toContain('no human voices installed');
+    expect(text).toContain('using 1 novelty voice so the reply is not silent');
+    expect(text).not.toContain('novelty voice excluded');
   });
 
   it('runs the spectrum demo through the shape-shifting path', () => {

@@ -283,11 +283,13 @@
         >{{ voiceLabArchetypes().length }} tones ·
         @if (labHumanVoiceCount() > 0) {
           {{ labHumanVoiceCount() }} human voices in rotation
+          @if (labExcludedVoiceCount() > 0) {
+            · {{ labExcludedVoiceCount() }} novelty {{ labExcludedVoiceCount() === 1 ? 'voice' : 'voices' }} excluded
+          }
+        } @else if (labExcludedVoiceCount() > 0) {
+          no human voices installed — using {{ labExcludedVoiceCount() }} novelty {{ labExcludedVoiceCount() === 1 ? 'voice' : 'voices' }} so the reply is not silent
         } @else {
-          no human voices installed — novelty fallback
-        }
-        @if (labExcludedVoiceCount() > 0) {
-          · {{ labExcludedVoiceCount() }} novelty {{ labExcludedVoiceCount() === 1 ? 'voice' : 'voices' }} excluded
+          no voices installed
         }
       </span>
       @if (pinnedVoice()) {
