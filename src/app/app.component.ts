@@ -227,8 +227,31 @@ export class AppComponent {
     this.allowViews(this.uiService.getPrimaryMobileViewConfigs())
   );
 
+  /** True while a manual profile retry is replaying; blocks a second click. */
+  readonly profileRetryInFlight = signal(false);
+
   async retryProfileCloudSync(): Promise<void> {
-    await this.databaseService.retryProfileCloudSync();
+    if (this.profileRetryInFlight()) return;
+    this.profileRetryInFlight.set(true);
+    try {
+      await this.databaseService.retryProfileCloudSync();
+    } finally {
+      this.profileRetryInFlight.set(false);
+    }
+  }
+
+  /** Readable endpoint name; URLs stay whole rather than becoming word salad. */
+  endpointLabel(endpoint: string): string {
+    if (/^https?:\/\//.test(endpoint)) return endpoint;
+    const words = endpoint
+      .replace(/^smuve:\/\//, '')
+      .replace(/[?#].*$/, '')
+      .split(/[/_-]+/)
+      .filter(Boolean);
+    if (!words.length) return endpoint;
+    return words
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
   }
 
   mobileNavLabel(label: string): string {
@@ -252,6 +275,9 @@ export class AppComponent {
     cloudSyncError: this.databaseService.cloudSyncError(),
     pending: this.offlineSync.pendingCount(),
     deadLetter: this.offlineSync.deadLetterCount(),
+    deadLetteredEndpoints: Array.from(
+      new Set(this.offlineSync.deadLetteredEndpoints())
+    ),
     offline: this.offlineSync.networkStatus() === 'offline',
   }));
 

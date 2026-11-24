@@ -14,7 +14,10 @@ import { NotificationService } from './services/notification.service';
 import { SessionSafetyService } from './services/session-safety.service';
 import { AiService } from './services/ai.service';
 import { SettingsIntegrationService } from './services/settings-integration.service';
-import { DatabaseService } from './services/database.service';
+import {
+  DatabaseService,
+  PROFILE_SYNC_ENDPOINT,
+} from './services/database.service';
 import { AutoSaveService } from './services/auto-save.service';
 import { CommandPaletteService } from './services/command-palette.service';
 import { UserProfileService } from './services/user-profile.service';
@@ -112,6 +115,7 @@ describe('AppComponent', () => {
     const offlineSync = {
       pendingCount: signal(0),
       deadLetterCount: signal(0),
+      deadLetteredEndpoints: signal<string[]>([]),
       networkStatus: signal<'online' | 'offline'>('online'),
       refreshQueueStatus: jest.fn(async () => undefined),
     };
@@ -1330,6 +1334,59 @@ describe('AppComponent', () => {
         delete (document as any).visibilityState;
       }
     }
+  });
+
+  it('names the dead-lettered endpoint in the sync panel', async () => {
+    const { component, fixture, offlineSync } = await createComponent(
+      '/hub',
+      undefined,
+      true
+    );
+    offlineSync.deadLetterCount.set(1);
+    offlineSync.deadLetteredEndpoints.set([PROFILE_SYNC_ENDPOINT]);
+
+    component.toggleSyncCenter();
+    fixture.detectChanges();
+
+    const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
+    // A count alone leaves the artist guessing what is stuck.
+    expect(text).toContain('Profile Sync');
+    expect(text).not.toContain('smuve://profile-sync');
+  });
+
+  it('disables the retry button while a retry is in flight', async () => {
+    const { component, fixture } = await createComponent('/hub', undefined, true);
+    const database = TestBed.inject(DatabaseService) as any;
+    database.cloudSyncDeadLettered.set(true);
+    database.cloudSyncError.set(
+      'Profile sync stopped after repeated retries. Reconnect, then retry the profile sync.'
+    );
+    let finishRetry!: () => void;
+    database.retryProfileCloudSync.mockReturnValue(
+      new Promise<void>((resolve) => {
+        finishRetry = resolve;
+      })
+    );
+
+    component.toggleSyncCenter();
+    fixture.detectChanges();
+
+    const retry = Array.from(
+      (fixture.nativeElement as HTMLElement).querySelectorAll('button')
+    ).find((button) =>
+      (button.textContent ?? '').includes('Retry profile sync')
+    ) as HTMLButtonElement;
+    expect(retry).toBeTruthy();
+    expect(retry.disabled).toBe(false);
+
+    retry.click();
+    fixture.detectChanges();
+    expect(retry.disabled).toBe(true);
+
+    finishRetry();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(retry.disabled).toBe(false);
   });
 
   it('shows manual retry for a dead-lettered profile sync and retries from the button', async () => {
