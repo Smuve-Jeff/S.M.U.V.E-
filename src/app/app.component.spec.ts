@@ -1,6 +1,11 @@
 import { TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
-import { ActivatedRoute, NavigationEnd, Router } from '@angular/router';
+import {
+  ActivatedRoute,
+  NavigationEnd,
+  Router,
+  Routes,
+} from '@angular/router';
 import { SwUpdate } from '@angular/service-worker';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { Subject, of } from 'rxjs';
@@ -8,6 +13,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { AppComponent } from './app.component';
+import { routes as appRoutes } from './app.routes';
 import { AuthService } from './services/auth.service';
 import { UIService } from './services/ui.service';
 import { NotificationService } from './services/notification.service';
@@ -249,7 +255,7 @@ describe('AppComponent', () => {
     fixture.detectChanges();
 
     expect(component.resumeLabel()).toBe('Back to studio mixer');
-    expect(component.resumeShortLabel()).toBe('mixer');
+    expect(component.resumeShortLabel()).toBe('Mixer');
 
     component.resumeLastRoute();
 
@@ -260,6 +266,69 @@ describe('AppComponent', () => {
     component.resumeTarget.set('/hub');
     component.dismissResume();
     expect(component.resumeTarget()).toBeNull();
+  });
+
+  it('names the surface, not a qualifier, in the tablet chip', async () => {
+    const { component } = await createComponent();
+    const expectations: Record<string, string> = {
+      '/hub': 'Hub',
+      '/studio': 'Studio',
+      '/studio?view=mixer': 'Mixer',
+      '/studio?view=arrangement': 'Arrange',
+      '/studio?view=ai-produce': 'Produce',
+      '/intel-lab': 'Intel',
+      '/masterclass': 'Class',
+      '/songwriting': 'Songs',
+      '/songwriting/pad': 'Pad',
+      '/songwriting/cowrite': 'Cowrite',
+      '/tha-spot': 'Tha Spot',
+      '/tha-spot/room/42': 'Tha Spot',
+      '/release-pipeline': 'Release',
+      '/knowledge-base': 'Knowledge',
+      '/image-video-lab': 'Image',
+      '/adaptive-profile': 'Adaptive',
+      '/business-pipeline/42': 'Business',
+      '/canvas-piano-roll': 'Canvas',
+      '/drum-machine': 'Drum',
+      '/vocal-suite': 'Vocal',
+      '/networking': 'Network',
+      '/performance': 'Show',
+      '/onboarding/tour': 'Tour',
+      '/settings/streaming': 'Settings',
+      '/artist/neil': 'Artist',
+    };
+
+    for (const [target, label] of Object.entries(expectations)) {
+      component.resumeTarget.set(target);
+      expect(`${target} -> ${component.resumeShortLabel()}`).toBe(
+        `${target} -> ${label}`
+      );
+    }
+  });
+
+  it('keeps every resumable route inside the tablet chip', async () => {
+    const { component } = await createComponent();
+    const collect = (list: Routes, base = ''): string[] =>
+      list.flatMap((route) => {
+        if (route.path === '**' || route.redirectTo) return [];
+        if (!route.path) {
+          return route.children?.length ? collect(route.children, base) : [];
+        }
+        const path = `${base}/${route.path}`.replace(/:[^/]+/g, '42');
+        return route.children?.length ? collect(route.children, path) : [path];
+      });
+    const paths = collect(appRoutes);
+
+    expect(paths.length).toBeGreaterThan(40);
+    for (const path of paths) {
+      component.resumeTarget.set(path);
+      const label = component.resumeShortLabel();
+      expect(`${path} -> ${label}`).toMatch(
+        /^\/[a-z0-9/-]+ -> [A-Za-z0-9][A-Za-z0-9 ]*$/
+      );
+      expect(label.length).toBeGreaterThanOrEqual(2);
+      expect(label.length).toBeLessThanOrEqual(9);
+    }
   });
 
   it('never offers an auth door as the surface to resume', async () => {

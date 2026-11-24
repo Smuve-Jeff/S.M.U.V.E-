@@ -410,9 +410,26 @@ footer {
    8px the surface card is short at 768-783: its "LIVE SURFACE" label was
    wrapping to a third line there. Tighten the gap a notch on that stretch so
    the card keeps its 125px and the header keeps its single 62px row. */
-@media (min-width: 768px) and (max-width: 1023px) {
+@media (min-width: 768px) and (max-width: 1024px) {
   .app-top-bar > div:first-child {
     column-gap: 0.75rem;
+  }
+}
+
+/* The tablet chip now names the surface in words, so the bare divider beside it
+   is pure decoration: dropping it and tightening the chip's own padding and
+   tracking buys the ~17px that keeps the surface card at its full 125px even
+   with a nine-letter label at 701px. */
+@media (min-width: 641px) and (max-width: 1024px) {
+  .app-top-bar .shell-header-divider {
+    display: none;
+  }
+
+  .app-top-bar .resume-chip {
+    gap: 0.25rem;
+    padding-left: 0.375rem;
+    padding-right: 0.375rem;
+    letter-spacing: 0.04em;
   }
 }
 

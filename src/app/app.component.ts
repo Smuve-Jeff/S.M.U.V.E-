@@ -43,6 +43,43 @@ import { LoggingService } from './services/logging.service';
 import { ViewConfig } from './services/workspace-registry';
 import { SessionContinuityService } from './services/session-continuity.service';
 import { LocalSchemaService } from './services/local-schema.service';
+
+/** What the tablet resume chip can show on one 62px row. */
+const RESUME_SHORT_MAX = 9;
+
+/** Words that qualify a surface without naming it: "intel lab" -> "Intel". */
+const SURFACE_QUALIFIERS = new Set([
+  'arena',
+  'base',
+  'browse',
+  'center',
+  'centre',
+  'editor',
+  'hub',
+  'lab',
+  'machine',
+  'pipeline',
+  'rack',
+  'roll',
+  'studio',
+  'suite',
+  'tour',
+  'view',
+  'wizard',
+]);
+
+const RESUME_ACRONYMS = new Set(['dj', 'ai']);
+
+/** Surfaces whose own name is longer than the chip allows. */
+const SHORT_SURFACE_NAMES: Record<string, string> = {
+  arrangement: 'Arrange',
+  masterclass: 'Class',
+  networking: 'Network',
+  onboarding: 'Tour',
+  performance: 'Show',
+  songwriting: 'Songs',
+  synthesizer: 'Synth',
+};
 import { LocalBackupService } from './services/local-backup.service';
 import {
   GUEST_AI_LOCK_NOTICE,
@@ -143,6 +180,7 @@ export class AppComponent {
   continuity = inject(SessionContinuityService);
   /** Previous route, offered as a "back to where you were" shortcut. */
   resumeTarget = signal<string | null>(null);
+
   private lastRoute: string | null = null;
   /**
    * The auth doors are not surfaces an artist returns to: their URLs carry a
@@ -395,15 +433,50 @@ export class AppComponent {
     return `Back to ${words || 'home'}`;
   }
 
-  /** Compact label for the tablet header, where the full one will not fit. */
+  /**
+   * Compact label for the tablet header: the surface's own name, short enough
+   * for the chip. "Intel Lab" must not collapse to "Lab", so qualifiers like
+   * `lab`, `hub` and `suite` are dropped before anything is cut.
+   */
   resumeShortLabel(): string {
-    if (!this.resumeTarget()) return '';
-    // The last word names the specific surface ("studio mixer" -> "mixer").
-    const words = this.resumeLabel()
-      .replace(/^Back to /, '')
-      .split(' ')
-      .filter(Boolean);
-    return words[words.length - 1] || 'hub';
+    const target = this.resumeTarget();
+    if (!target) return '';
+    const [path, query = ''] = target.split('?');
+    const view = new URLSearchParams(query).get('view');
+    const words = [
+      ...path.split('/').filter((part) => part && !part.startsWith(':')),
+      ...(view ? [view] : []),
+    ].flatMap((part) => part.split('-').filter(Boolean));
+    const core = words.filter((word) => !SURFACE_QUALIFIERS.has(word));
+    const named = core.length ? core : words;
+    if (!named.length) return 'Hub';
+    const titleCase = (value: string) =>
+      value
+        .split(' ')
+        .map((word) =>
+          RESUME_ACRONYMS.has(word.toLowerCase())
+            ? word.toUpperCase()
+            : word.replace(/^[a-z]/, (letter) => letter.toUpperCase())
+        )
+        .join(' ');
+
+    // Longest leading run that still fits, so "tha spot room" keeps "tha spot"
+    // and "ai produce" is not cut down to the two letters "ai".
+    for (let end = named.length; end > 0; end--) {
+      const candidate = named.slice(0, end).join(' ');
+      if (candidate.length >= 3 && candidate.length <= RESUME_SHORT_MAX) {
+        return titleCase(candidate);
+      }
+    }
+    // A single over-long word: the specific view first, then the surface.
+    const specific = named[named.length - 1];
+    if (specific.length <= RESUME_SHORT_MAX) return titleCase(specific);
+    const surface = named[0];
+    return (
+      SHORT_SURFACE_NAMES[surface] ??
+      SHORT_SURFACE_NAMES[specific] ??
+      titleCase(specific.slice(0, RESUME_SHORT_MAX))
+    );
   }
 
   /** Return to the previous surface and offer nothing stale afterwards. */
