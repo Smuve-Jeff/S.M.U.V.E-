@@ -65,6 +65,12 @@ export class ReleasePipelineService {
    */
   readonly reconciliationHistory = signal<PlannedDateReconciliation[]>([]);
 
+  /**
+   * False when the stored history could not be read. An empty in-memory view
+   * then says nothing about the stored copy, so writes must leave it alone.
+   */
+  private reconciliationHistoryReadable = true;
+
   /** The newest entry that can still be restored. */
   readonly lastPlannedDateReconciliation = computed(
     () =>
@@ -488,6 +494,11 @@ export class ReleasePipelineService {
   private persistReconciliationHistory(): void {
     try {
       if (typeof localStorage === 'undefined') return;
+      if (!this.reconciliationHistoryReadable) {
+        // The load could not read this history; do not remove or replace a
+        // record that may still hold the artist's entries.
+        return;
+      }
       const history = this.reconciliationHistory();
       if (!history.length) {
         localStorage.removeItem(PLANNED_DATE_RECONCILIATION_STORAGE_KEY);
@@ -548,9 +559,15 @@ export class ReleasePipelineService {
       );
       return [migrated];
     } catch {
+      // The stored history is unreadable: keep it for a later visit instead of
+      // treating this failed read as an empty, safe-to-overwrite history.
+      this.reconciliationHistoryReadable = false;
       return [];
     }
   }
+
+
+
 
   /** Accepts only well-formed records; corrupt or stale data is ignored. */
   private normalizeReconciliation(

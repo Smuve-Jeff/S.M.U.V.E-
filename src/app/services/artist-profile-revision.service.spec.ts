@@ -324,4 +324,21 @@ describe('ArtistProfileRevisionService', () => {
     expect(line).toContain('current focus: “finish the EP” → “new focus”');
     expect(line).toContain('Judge the next move against this version');
   });
+
+  it('keeps a corrupt sources record instead of replacing it with an empty list', () => {
+    const sourceKey = 'smuve.profile.revision.sources.v1:artist-1';
+    localStorage.setItem(sourceKey, '{not json');
+    const setItem = jest.spyOn(Storage.prototype, 'setItem');
+
+    try {
+      // The first read consumes any pending marks; a failed read must not be
+      // "consumed" by writing an empty list over the stored attribution.
+      expect(service.takeChanges()).toBeNull();
+      expect(setItem).not.toHaveBeenCalledWith(sourceKey, '[]');
+    } finally {
+      setItem.mockRestore();
+    }
+
+    expect(localStorage.getItem(sourceKey)).toBe('{not json');
+  });
 });

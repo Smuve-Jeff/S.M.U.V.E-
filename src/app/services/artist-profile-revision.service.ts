@@ -357,6 +357,9 @@ export class ArtistProfileRevisionService {
     const artistId = this.profileService.profile()?.id || 'local';
     const now = Date.now();
     const sources = this.readSources(artistId);
+    // An unreadable store has nothing to append to; writing now would replace
+    // whatever is still stored with this one mark.
+    if (sources === null) return;
     const last = sources[sources.length - 1];
     // A pane can write several fields in one commit; keep one trigger per burst.
     if (last && last.id === id && now - last.at < 10_000) {
@@ -377,13 +380,18 @@ export class ArtistProfileRevisionService {
     return `${SOURCE_PREFIX}:${artistId}`;
   }
 
-  private readSources(artistId: string): ProfileRevisionSource[] {
-    if (typeof localStorage === 'undefined') return [];
+  /**
+   * The recorded sources, or null when the stored value cannot be read. Callers
+   * that write must tell "no sources" from "no access": an unreadable record
+   * is not an empty one, and overwriting it would drop real attribution.
+   */
+  private readSources(artistId: string): ProfileRevisionSource[] | null {
+    if (typeof localStorage === 'undefined') return null;
     try {
       const raw = localStorage.getItem(this.sourceKey(artistId));
       if (!raw) return [];
       const parsed = JSON.parse(raw);
-      if (!Array.isArray(parsed)) return [];
+      if (!Array.isArray(parsed)) return null;
       return parsed
         .filter(
           (source): source is ProfileRevisionSource =>
@@ -400,12 +408,17 @@ export class ArtistProfileRevisionService {
           at: source.at,
         }));
     } catch {
-      return [];
+      return null;
     }
   }
 
   private takeSources(artistId: string): ProfileRevisionSource[] {
     const sources = this.readSources(artistId);
+    if (sources === null) {
+      // The read failed, so nothing can be attributed and nothing may be
+      // cleared: the stored sources are kept for a later, readable visit.
+      return [];
+    }
     this.writeSources(artistId, []);
     return sources;
   }
