@@ -122,4 +122,31 @@ describe("CoWriteService.saveProject", () => {
     expect(service.lastSaveError()).toBeNull();
     expect(service.savedProjects().map((p) => p.id)).toEqual([saved!.id]);
   });
+
+  it("refuses a delete when the stored list cannot be read", () => {
+    const saved = service.saveProject("Take 1");
+    expect(saved).not.toBeNull();
+    const getItem = jest
+      .spyOn(Storage.prototype, "getItem")
+      .mockImplementation(() => {
+        throw new Error("storage blocked");
+      });
+    const setItem = jest.spyOn(Storage.prototype, "setItem");
+
+    let result: string | null = null;
+    try {
+      result = service.deleteProject(saved!.id);
+    } finally {
+      getItem.mockRestore();
+      setItem.mockRestore();
+    }
+
+    // An unreadable list is not proof the project is gone.
+    expect(result).toBe("refused");
+    expect(service.lastSaveError()).toContain("could not be deleted");
+    expect(setItem).not.toHaveBeenCalled();
+    expect(
+      JSON.parse(localStorage.getItem("smuve_cowrite_projects") ?? "[]"),
+    ).toHaveLength(1);
+  });
 });

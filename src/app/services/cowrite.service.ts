@@ -990,17 +990,25 @@ export class CoWriteService {
     return this.projectsSignal.asReadonly();
   }
 
-  loadProjects(): CoWriteProject[] {
+  /**
+   * The stored list, or null when the store cannot be read at all. Writers
+   * must tell "no projects" from "no access": an unreadable list is not
+   * evidence that a project is gone.
+   */
+  private readStoredProjects(): CoWriteProject[] | null {
     try {
       const raw = localStorage.getItem(this.STORAGE_KEY);
-      if (raw) {
-        const projects = JSON.parse(raw) as CoWriteProject[];
-        this.projectsSignal.set(projects);
-        return projects;
-      }
-    } catch { /* ignore */ }
-    this.projectsSignal.set([]);
-    return [];
+      if (!raw) return [];
+      return JSON.parse(raw) as CoWriteProject[];
+    } catch {
+      return null;
+    }
+  }
+
+  loadProjects(): CoWriteProject[] {
+    const projects = this.readStoredProjects() ?? [];
+    this.projectsSignal.set(projects);
+    return projects;
   }
 
   saveProject(name?: string): CoWriteProject | null {
@@ -1028,11 +1036,13 @@ export class CoWriteService {
       lastModified: Date.now(),
       sessionPreview: this.getCompiledLyrics().slice(0, 200),
     };
+    // Build a new list instead of mutating the one loadProjects returned:
+    // it is the same array the signal holds, so an in-place unshift would
+    // publish a project that was never written.
     const existing = this.loadProjects();
-    existing.unshift(project);
-    if (existing.length > 50) existing.length = 50;
+    const next = [project, ...existing].slice(0, 50);
     try {
-      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(existing));
+      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(next));
     } catch {
       // Storage can refuse (quota, private mode). Do not pretend the project
       // is on disk, and do not add it to the in-memory saved list either.
@@ -1042,7 +1052,7 @@ export class CoWriteService {
       return null;
     }
     this.lastSaveError.set(null);
-    this.projectsSignal.set(existing);
+    this.projectsSignal.set(next);
     return project;
   }
 
@@ -1075,7 +1085,15 @@ export class CoWriteService {
    * rejected the write. Callers must not warn the artist about a no-op.
    */
   deleteProject(projectId: string): 'deleted' | 'missing' | 'refused' {
-    const projects = this.loadProjects();
+    const projects = this.readStoredProjects();
+    if (projects === null) {
+      // Without a readable list there is no way to know what would be lost by
+      // writing, so refuse the delete and leave the visible rows alone.
+      this.lastSaveError.set(
+        'This project could not be deleted from this device.',
+      );
+      return 'refused';
+    }
     const filtered = projects.filter((p) => p.id !== projectId);
     if (filtered.length === projects.length) return 'missing';
     try {
