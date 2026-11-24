@@ -311,6 +311,29 @@ export class SmuveTeachLearnService {
 
   readonly learnTracks = LEARN_TRACKS;
 
+  /**
+   * Deterministic match for the `/teach` command: only an exact id, title,
+   * workspace label or alias opens a walkthrough. Fuzzy matching stays for
+   * `#teach` and natural-language searches, where a near miss is harmless —
+   * but from a command it would swallow a real question and hide the desk.
+   */
+  findTeachExact(query?: string): CompleteGuideLesson | null {
+    const topic = cleanTopic(query ?? '');
+    if (!topic) return null;
+
+    for (const entry of this.teachTopics) {
+      const names = [
+        entry.lesson.id,
+        entry.lesson.title,
+        entry.lesson.workspaceLabel,
+        ...entry.aliases,
+      ].map(normalize);
+      if (names.includes(topic)) return entry.lesson;
+    }
+
+    return null;
+  }
+
   findTeach(query?: string): CompleteGuideLesson | null {
     const topic = cleanTopic(query ?? '');
     if (!topic) return null;

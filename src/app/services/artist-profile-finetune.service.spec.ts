@@ -4,6 +4,7 @@ import { ArtistProfileFinetuneService } from './artist-profile-finetune.service'
 import { UserProfileService } from './user-profile.service';
 import type { UserProfile } from './user-profile.service';
 import { initialProfile } from '../types/profile.types';
+import { ARTIST_ROLE_IDS } from './artist-role.registry';
 
 const strongProfile = {
   artistName: 'North Star',
@@ -580,6 +581,23 @@ describe('ArtistProfileFinetuneService', () => {
     } as UserProfile);
     expect(service.promptBlock()).toContain('STUDIO CHAIN: Portable recorder');
     expect(service.promptBlock()).toContain('kitchen light and train platforms');
+  });
+
+  it('withholds the held genre from every role desk', () => {
+    profileSignal.set({
+      primaryGenre: 'Hip Hop',
+      settings: { security: { shareProfileAnswersWithAi: true } },
+    } as UserProfile);
+
+    for (const role of ARTIST_ROLE_IDS) {
+      const directive = service.directiveFor(role);
+      expect(directive.profileState).toBe('foundational');
+      expect(directive.directive).toContain('foundational');
+      // The untouched default is a placeholder, not a genre answer: no desk
+      // may repeat it back as if the artist had chosen it.
+      expect(directive.directive).not.toContain('Hip Hop');
+      expect(directive.directive).not.toMatch(/genre[^.]*\bHip Hop\b/i);
+    }
   });
 
   it('keeps every role inside the artist guardrails and away from imitation', () => {

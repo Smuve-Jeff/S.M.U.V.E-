@@ -5,6 +5,7 @@ import {
   ARTIST_ROLE_LABELS,
   artistRoleForAlias,
 } from './artist-role.registry';
+import { CHATBOT_COMMANDS, QUICK_COMMANDS } from '../components/chatbot/chatbot.commands';
 
 describe('artist role registry', () => {
   it('covers every expert exactly once with unique lowercase aliases', () => {
@@ -45,6 +46,32 @@ describe('artist role registry', () => {
       expect(chip.description.trim().length).toBeGreaterThan(0);
     }
     expect(ARTIST_ROLE_CHIPS.map((chip) => chip.label)).toContain('/teach');
+  });
+
+  it('never shadows an existing chat command with a desk alias', () => {
+    const deskChips = new Set(
+      ARTIST_ROLE_CHIPS.map((chip) => chip.label.slice(1))
+    );
+    const reservedSlash = new Set(
+      QUICK_COMMANDS.map((command) => command.label)
+        .filter((label) => label.startsWith('/'))
+        .map((label) => label.slice(1))
+        .filter((name) => !deskChips.has(name))
+    );
+    const reservedWords = new Set(
+      CHATBOT_COMMANDS.map((command) => command.command.toLowerCase())
+    );
+
+    for (const definition of ARTIST_ROLES) {
+      for (const alias of definition.aliases) {
+        expect(reservedSlash.has(alias)).toBe(false);
+        expect(reservedWords.has(alias)).toBe(false);
+      }
+    }
+
+    // The promotion plan keeps /promo; the desk is /promotion.
+    expect(reservedSlash.has('promo')).toBe(true);
+    expect(artistRoleForAlias('promo')).toBeNull();
   });
 
   it('owns the labels the fine-tune prompt and desks display', () => {

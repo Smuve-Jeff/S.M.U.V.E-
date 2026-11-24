@@ -299,6 +299,13 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
 
   close = output<void>();
   messages = signal<ChatMessage[]>([]);
+
+  /**
+   * Active role desk. While one is open, plain follow-ups stay in that
+   * expert's voice; `/exit` (or another desk) is the deliberate way out.
+   */
+  readonly activeDesk = signal<ArtistRoleDefinition | null>(null);
+  readonly activeDeskLabel = computed(() => this.activeDesk()?.label ?? null);
   userInput = '';
   isTyping = signal(false);
   /** False until the welcome (or restored transcript) is in place. */
@@ -922,6 +929,18 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
     const trimmed = text.trim();
     const lower = trimmed.toLowerCase();
 
+    // Leaving a desk is explicit and always available, even mid-question.
+    if (/^\/exit$/i.test(trimmed)) {
+      const desk = this.activeDesk();
+      this.activeDesk.set(null);
+      return {
+        content: desk
+          ? `${desk.label.toUpperCase()} DESK CLOSED\nBack to S.M.U.V.E. across every lane. Open another desk with its command, or ask me anything.`
+          : 'No desk is open — you are already talking to S.M.U.V.E. Open one with /ar, /engineer, /coach and the rest.',
+        actions: [],
+      };
+    }
+
     // Resolve an exact pending confirmation before any new intent.
     if (/^(yes|no|confirm|cancel|\/confirm|\/cancel)$/i.test(trimmed)) {
       const musicConfirmation = this.chatMusic?.tryExecute(trimmed);
@@ -997,12 +1016,25 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
       // short feature names keep the walkthrough, an unknown short topic gets
       // the lesson index, and a real question goes to the teacher desk.
       if (alias === 'teach' && rest) {
-        if (this.teachCommandTarget(rest) === 'desk') {
+        const target = this.teachCommandTarget(rest);
+        if (target === 'desk') {
           return this.roleDeskIntent(roleDef, alias, rest);
+        }
+        // An unmatched short topic must land on the index, not on a fuzzy
+        // near-miss lesson that the artist never named.
+        if (target === 'index') {
+          return { content: this.teachLearn.teachIndex(rest), actions: [] };
         }
         return this.teachLearnIntent('teach', rest);
       }
       return this.roleDeskIntent(roleDef, alias, rest);
+    }
+
+    // 0e) Sticky desk — a follow-up that is not a command keeps the open
+    //     expert's voice instead of falling back to the blended generalist.
+    const openDesk = this.activeDesk();
+    if (openDesk && !trimmed.startsWith('/') && !trimmed.startsWith('#')) {
+      return this.roleDeskIntent(openDesk, openDesk.aliases[0], trimmed);
     }
 
     // 1) Slash commands → Total Control engine
@@ -1101,6 +1133,11 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
     return null;
   }
 
+  /** Closes the active desk; the next plain message is general again. */
+  exitDesk(): void {
+    this.activeDesk.set(null);
+  }
+
   /**
    * Every alias in the shared role registry answers as that expert for this
    * artist. The brief comes from the same profile-derived directive the model
@@ -1112,6 +1149,7 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
     alias: string,
     question: string
   ): Promise<MasterIntent> {
+    this.activeDesk.set(definition);
     const label = definition.label;
     const brief = this.aiService?.getArtistDirective?.(definition.role);
     const playbook = brief
@@ -1504,7 +1542,7 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
         topic
       );
     if (looksLikeQuestion) return 'desk';
-    return this.teachLearn.findTeach(topic) ? 'walkthrough' : 'index';
+    return this.teachLearn.findTeachExact(topic) ? 'walkthrough' : 'index';
   }
 
   private teachLearnIntent(mode: 'teach' | 'learn', topic?: string): MasterIntent {

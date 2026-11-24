@@ -258,6 +258,77 @@ describe('ChatbotComponent', () => {
     expect(index.content).not.toContain('TEACHER DESK');
   });
 
+  it('opens a walkthrough only for an exact feature name', async () => {
+    const exactAlias = await (component as any).routeMasterIntent('/teach beat');
+    expect(exactAlias.content).toContain('#TEACH //');
+    expect(exactAlias.content).toContain('STEP BY STEP');
+
+    // A near miss used to fuzzy-match the studio lesson; it is now an index
+    // request rather than a walkthrough the artist did not ask for.
+    const nearMiss = await (component as any).routeMasterIntent(
+      '/teach recording vocals'
+    );
+    expect(nearMiss.content).toContain('No app module matched');
+    expect(nearMiss.content).not.toContain('#TEACH //');
+  });
+
+  it('keeps an open desk for follow-up questions and shows it', async () => {
+    const getAIResponse = jest.fn(async () => 'Fix the phase before EQ.');
+    aiServiceMock.getAIResponse = getAIResponse;
+
+    await (component as any).routeMasterIntent('/ar');
+    expect(component.activeDeskLabel()).toBe('A&R');
+
+    const followUp = await (component as any).routeMasterIntent(
+      'what do I fix first?'
+    );
+    expect(followUp.content).toBe('Fix the phase before EQ.');
+    const prompt = getAIResponse.mock.calls[0][0] as string;
+    expect(prompt).toContain("ar directive from the artist's evidence");
+    expect(prompt).toContain('what do I fix first?');
+    expect(aiServiceMock.getArtistDirective).toHaveBeenCalledWith('ar');
+
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('A&R desk active');
+  });
+
+  it('switches desks when another desk is chosen', async () => {
+    await (component as any).routeMasterIntent('/ar');
+    await (component as any).routeMasterIntent('/coach');
+    expect(component.activeDeskLabel()).toBe('Coach');
+
+    const followUp = await (component as any).routeMasterIntent(
+      'what is the next commitment?'
+    );
+    expect(followUp.content).toContain('COACH DESK');
+    expect(aiServiceMock.getArtistDirective).toHaveBeenLastCalledWith('coach');
+  });
+
+  it('leaves the desk on /exit and stops answering as that expert', async () => {
+    await (component as any).routeMasterIntent('/ar');
+
+    const exit = await (component as any).routeMasterIntent('/exit');
+    expect(exit.content).toContain('A&R DESK CLOSED');
+    expect(component.activeDesk()).toBeNull();
+
+    aiServiceMock.getArtistDirective.mockClear();
+    await (component as any).routeMasterIntent('what do I fix first?');
+    expect(aiServiceMock.getArtistDirective).not.toHaveBeenCalled();
+  });
+
+  it('closes the desk from the visible /exit control', async () => {
+    await (component as any).routeMasterIntent('/engineer');
+    fixture.detectChanges();
+
+    const exit = fixture.nativeElement.querySelector(
+      '[data-testid="desk-exit"]'
+    ) as HTMLButtonElement;
+    expect(exit).toBeTruthy();
+    exit.click();
+
+    expect(component.activeDesk()).toBeNull();
+  });
+
   it('sends a real /teach question to the teacher desk, not the walkthrough', async () => {
     const question = await (component as any).routeMasterIntent(
       '/teach how do I record vocals'
