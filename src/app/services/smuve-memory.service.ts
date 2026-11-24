@@ -1,6 +1,7 @@
 import { Injectable, computed, effect, inject, signal } from '@angular/core';
 import { UserProfileService } from './user-profile.service';
 import { UserStoreService } from './user-store.service';
+import { writeJsonStore } from './guarded-storage';
 import { reportUnreadableStore } from './storage-notice';
 import type { SmuveSurfaceId } from './smuve-career-director.service';
 
@@ -439,14 +440,13 @@ export class SmuveMemoryService {
       // Keep whatever is stored for this owner until it can be read again.
       return;
     }
-    try {
-      window.localStorage.setItem(
-        this.storageKey(this.owner),
-        JSON.stringify(this.entries().slice(0, MAX_ENTRIES))
-      );
-    } catch {
-      // A full or blocked store costs continuity, never the conversation.
-    }
+    // A full or blocked store costs continuity, never the conversation — and
+    // the artist hears about it once instead of silently losing the file.
+    writeJsonStore(
+      'The S.M.U.V.E. case file',
+      this.storageKey(this.owner),
+      this.entries().slice(0, MAX_ENTRIES)
+    );
   }
 
   /** Fallback label when a caller cannot supply the live room label. */

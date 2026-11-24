@@ -25,20 +25,58 @@ export function onStorageNotice(listener: StorageNoticeListener): () => void {
   };
 }
 
+/** Emits once per key, buffering when nobody is listening yet. */
+function emit(key: string, message: string): void {
+  if (reported.has(key)) return;
+  reported.add(key);
+  if (listeners.size === 0) {
+    pending.push(message);
+    return;
+  }
+  for (const listener of listeners) listener(message);
+}
+
 /**
  * Report that `store` could not be read, at most once per session so one
  * broken record cannot spam the artist on every save. Notices reported with
  * no listener yet are buffered for the first one to subscribe.
  */
 export function reportUnreadableStore(store: string): void {
-  if (reported.has(store)) return;
-  reported.add(store);
-  const message = `${store} could not be read on this device. Changes made now will not be saved.`;
-  if (listeners.size === 0) {
-    pending.push(message);
-    return;
-  }
-  for (const listener of listeners) listener(message);
+  emit(
+    `read:${store}`,
+    `${store} could not be read on this device. Changes made now will not be saved.`
+  );
+}
+
+/**
+ * True when a write failed because the device is out of room rather than
+ * because the browser blocked storage. The two incidents need different
+ * advice: one is fixable by freeing space, the other is not fixable by the
+ * artist at all.
+ */
+export function isQuotaExceededError(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false;
+  const { name, code } = error as { name?: unknown; code?: unknown };
+  return (
+    name === 'QuotaExceededError' ||
+    name === 'NS_ERROR_DOM_QUOTA_REACHED' ||
+    code === 22 ||
+    code === 1014
+  );
+}
+
+/**
+ * Report a save the device refused, once per store. Storage being full is not
+ * an unreadable record: the data on disk is fine and the session keeps going,
+ * but the artist has to know this change did not land.
+ */
+export function reportUnwritableStore(store: string, error: unknown): void {
+  emit(
+    `write:${store}`,
+    isQuotaExceededError(error)
+      ? `${store} could not be saved: this device's storage is full. Free up space and the next change will save.`
+      : `${store} could not be saved on this device. This browser is blocking storage for the app.`
+  );
 }
 
 /** Test helper: forget which stores have been reported and drop the buffer. */

@@ -1,6 +1,7 @@
 import { Injectable, inject, signal, computed } from '@angular/core';
 import { NotificationService } from './notification.service';
 import { HapticService } from './haptic.service';
+import { writeJsonStore } from './guarded-storage';
 import { reportUnreadableStore } from './storage-notice';
 
 /**
@@ -57,6 +58,23 @@ interface StreakState {
 
 const STORAGE_KEY = 'smuve_daily_missions_v1';
 const STREAK_KEY = 'smuve_daily_mission_streak_v1';
+
+/**
+ * A record that parses but is not this day's state (null, an array, a foreign
+ * object) is unreadable — treating it as "no state yet" would let today's
+ * generated list overwrite whatever is really stored.
+ */
+function isStoredState(value: unknown): value is DailyMissionsState {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const state = value as Partial<DailyMissionsState>;
+  return typeof state.dateKey === 'string' && Array.isArray(state.missions);
+}
+
+function isStoredStreak(value: unknown): value is StreakState {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const streak = value as Partial<StreakState>;
+  return typeof streak.streak === 'number' && typeof streak.bestStreak === 'number';
+}
 
 // 8-mission pool (deterministic pick by date => 3 missions per day = 56 unique daily sets)
 const MISSION_POOL: Omit<
@@ -292,9 +310,7 @@ export class DailyMissionsService {
     };
     this.streak.set(ns);
     if (this.streakReadable) {
-      try {
-        localStorage.setItem(STREAK_KEY, JSON.stringify(ns));
-      } catch { /* ignore */ }
+      writeJsonStore('Your mission streak', STREAK_KEY, ns);
     }
     this.notify.show(`🔥 ${newStreak}-day streak · keep it going!`, 'success');
   }
@@ -311,7 +327,14 @@ export class DailyMissionsService {
         typeof localStorage !== 'undefined'
           ? localStorage.getItem(STORAGE_KEY)
           : null;
-      return raw ? (JSON.parse(raw) as DailyMissionsState) : null;
+      if (!raw) return null;
+      const parsed: unknown = JSON.parse(raw);
+      if (!isStoredState(parsed)) {
+        this.stateReadable = false;
+        reportUnreadableStore("Today's missions");
+        return null;
+      }
+      return parsed;
     } catch {
       // An unreadable state must not look like "no state yet": today's
       // mission list would then be written over the stored one.
@@ -327,9 +350,14 @@ export class DailyMissionsService {
         typeof localStorage !== 'undefined'
           ? localStorage.getItem(STREAK_KEY)
           : null;
-      return raw
-        ? JSON.parse(raw)
-        : { streak: 0, bestStreak: 0, lastCompletedDate: null };
+      if (!raw) return { streak: 0, bestStreak: 0, lastCompletedDate: null };
+      const parsed: unknown = JSON.parse(raw);
+      if (!isStoredStreak(parsed)) {
+        this.streakReadable = false;
+        reportUnreadableStore('Your mission streak');
+        return { streak: 0, bestStreak: 0, lastCompletedDate: null };
+      }
+      return parsed;
     } catch {
       this.streakReadable = false;
       reportUnreadableStore('Your mission streak');
@@ -339,13 +367,11 @@ export class DailyMissionsService {
 
   private persist(): void {
     if (!this.stateReadable) return;
-    try {
-      const state: DailyMissionsState = {
-        dateKey: dateKey(),
-        missions: this.missions(),
-        totalCompletedToday: this.totalCompletedToday(),
-      };
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-    } catch { /* ignore */ }
+    const state: DailyMissionsState = {
+      dateKey: dateKey(),
+      missions: this.missions(),
+      totalCompletedToday: this.totalCompletedToday(),
+    };
+    writeJsonStore("Today's missions", STORAGE_KEY, state);
   }
 }

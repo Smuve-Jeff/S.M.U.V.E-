@@ -1,6 +1,7 @@
 import { Injectable, OnDestroy, computed, signal } from "@angular/core";
 import { isValidViewerHealth } from "./viewer-health";
 import type { ViewerHealthThresholds } from "./viewer-health";
+import { removeStore, writeJsonStore } from "./guarded-storage";
 import { reportUnreadableStore } from "./storage-notice";
 
 export const VIEWER_HEALTH_STORAGE_KEY = "smuve.cinema.viewer-health.v1";
@@ -199,12 +200,13 @@ function loadOverrides(): ViewerHealthOverrides | null {
 }
 
 function persist(overrides: ViewerHealthOverrides): void {
-  if (typeof localStorage === "undefined") return;
-  try {
-    localStorage.setItem(VIEWER_HEALTH_STORAGE_KEY, JSON.stringify(overrides));
-  } catch {
-    // Storage can be blocked or full; the in-memory override still applies.
-  }
+  // Storage can be blocked or full; the in-memory override still applies and
+  // the artist is told once that it did not land.
+  writeJsonStore(
+    "Your viewer-health overrides",
+    VIEWER_HEALTH_STORAGE_KEY,
+    overrides,
+  );
 }
 
 function loadUndo(): UndoSnapshot | null {
@@ -233,17 +235,18 @@ function loadUndo(): UndoSnapshot | null {
 }
 
 function persistUndo(snapshot: UndoSnapshot | null): void {
-  if (typeof sessionStorage === "undefined") return;
-  try {
-    if (snapshot) {
-      sessionStorage.setItem(
-        VIEWER_HEALTH_UNDO_STORAGE_KEY,
-        JSON.stringify(snapshot),
-      );
-    } else {
-      sessionStorage.removeItem(VIEWER_HEALTH_UNDO_STORAGE_KEY);
-    }
-  } catch {
-    // Session storage can be blocked; undo then only lasts for this instance.
+  if (snapshot) {
+    writeJsonStore(
+      "Viewer-health undo",
+      VIEWER_HEALTH_UNDO_STORAGE_KEY,
+      snapshot,
+      "sessionStorage",
+    );
+    return;
   }
+  removeStore(
+    "Viewer-health undo",
+    VIEWER_HEALTH_UNDO_STORAGE_KEY,
+    "sessionStorage",
+  );
 }

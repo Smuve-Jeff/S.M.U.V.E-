@@ -30,6 +30,7 @@
     "test:e2e:live-sync": "node scripts/run-masterclass-live-sync.mjs",
     "test:live-sync-api": "node --test scripts/live-sync-api.test.mjs",
     "audit:links": "node scripts/audit-links.mjs",
+    "audit:storage": "node scripts/audit-storage.mjs",
     "audit:tha-spot-artwork": "node scripts/audit-tha-spot-artwork.cjs",
     "check:tv-feeds": "node scripts/check-smuve-tv-feeds.mjs",
     "youtube:oauth": "node scripts/youtube-oauth.mjs",

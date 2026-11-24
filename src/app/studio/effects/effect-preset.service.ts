@@ -1,5 +1,6 @@
 import { Injectable, signal } from "@angular/core";
 
+import { writeJsonStore } from "../../services/guarded-storage";
 import { reportUnreadableStore } from "../../services/storage-notice";
 
 /** A named snapshot of one macro insert's parameter surface. */
@@ -103,11 +104,6 @@ export class EffectPresetService {
       // An unreadable preset list is not an empty one; never replace it.
       return;
     }
-    if (typeof localStorage === "undefined") return;
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-    } catch {
-      /* storage full / private mode: keep the in-memory preset list usable */
-    }
+    writeJsonStore("Your saved insert presets", STORAGE_KEY, next);
   }
 }

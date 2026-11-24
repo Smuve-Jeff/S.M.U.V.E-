@@ -1,6 +1,7 @@
 import { Injectable, inject, signal } from "@angular/core";
 import { LocalStorageService } from "../services/local-storage.service";
 import { LoggingService } from "../services/logging.service";
+import { writeJsonStore } from "../services/guarded-storage";
 import { reportUnreadableStore } from "../services/storage-notice";
 import {
   SAMPLE_PACK_MAX_FILE_BYTES,
@@ -97,10 +98,8 @@ export class SamplePackService {
       // instead of replacing it with this session's view.
       return;
     }
-    try {
-      localStorage.setItem(PACKS_KEY, JSON.stringify(packs));
-    } catch (error) {
-      this.logger.error("Failed to persist installed sample packs", error);
+    if (!writeJsonStore("Your installed sample packs", PACKS_KEY, packs)) {
+      this.logger.error("Failed to persist installed sample packs");
     }
   }
 

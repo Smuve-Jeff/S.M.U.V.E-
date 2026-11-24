@@ -2,6 +2,7 @@ import { Component, output, signal, OnInit } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 
+import { removeStore, writeJsonStore } from "../../../services/guarded-storage";
 import { reportUnreadableStore } from "../../../services/storage-notice";
 
 export interface SearchResult {
@@ -96,11 +97,7 @@ export class SearchOverlayComponent implements OnInit {
   clearRecentSearches() {
     this.recentSearches.set([]);
     if (!this.recentsReadable) return;
-    try {
-      if (typeof localStorage !== "undefined") {
-        localStorage.removeItem(this.RECENT_SEARCHES_KEY);
-      }
-    } catch { /* blocked storage */ }
+    removeStore("Your recent searches", this.RECENT_SEARCHES_KEY);
   }
 
   private loadRecentSearches() {
@@ -124,12 +121,6 @@ export class SearchOverlayComponent implements OnInit {
     this.recentSearches.set(updated);
     if (!this.recentsReadable) return;
 
-    try {
-      if (typeof localStorage !== "undefined") {
-        localStorage.setItem(this.RECENT_SEARCHES_KEY, JSON.stringify(updated));
-      }
-    } catch {
-      /* blocked storage: the picker still shows this session's recents */
-    }
+    writeJsonStore("Your recent searches", this.RECENT_SEARCHES_KEY, updated);
   }
 }

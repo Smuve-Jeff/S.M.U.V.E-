@@ -1,5 +1,6 @@
 import { Injectable, signal, computed } from '@angular/core';
 
+import { removeStore, writeJsonStore } from './guarded-storage';
 import { reportUnreadableStore } from './storage-notice';
 
 /**
@@ -42,6 +43,18 @@ export interface GameStats {
 interface RatingsStore {
   ratingsByGame: Record<string, GameRating[]>;
   statsByGame: Record<string, GameStats>;
+}
+
+/**
+ * A stored record that parses but is not this shape (an array, a number, a
+ * foreign object) is an unreadable store, not an empty one.
+ */
+function isRatingsStore(value: unknown): value is Partial<RatingsStore> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const store = value as Partial<RatingsStore>;
+  const isRecord = (candidate: unknown) =>
+    !candidate || (typeof candidate === 'object' && !Array.isArray(candidate));
+  return isRecord(store.ratingsByGame) && isRecord(store.statsByGame);
 }
 
 const STORAGE_KEY = 'smuve_game_ratings_v1';
@@ -217,9 +230,7 @@ export class GameRatingsService {
   resetAll(): void {
     this.allRatings.set([]);
     this.allStats.set({});
-    try {
-      localStorage.removeItem(STORAGE_KEY);
-    } catch { /* ignore */ }
+    removeStore('Your game ratings', STORAGE_KEY);
   }
 
   private load(): void {
@@ -229,7 +240,13 @@ export class GameRatingsService {
           ? localStorage.getItem(STORAGE_KEY)
           : null;
       if (!raw) return;
-      const parsed = JSON.parse(raw) as RatingsStore;
+      const parsed: unknown = JSON.parse(raw);
+      if (!isRatingsStore(parsed)) {
+        // Parsed but wrong shape: keep the record for a readable visit.
+        this.storeReadable = false;
+        reportUnreadableStore('Your game ratings');
+        return;
+      }
       this.allRatings.set(
         parsed.ratingsByGame ? Object.values(parsed.ratingsByGame).flat() : []
       );
@@ -244,16 +261,14 @@ export class GameRatingsService {
 
   private persist(): void {
     if (!this.storeReadable) return;
-    try {
-      const ratingsByGame: Record<string, GameRating[]> = {};
-      this.allRatings().forEach((r) => {
-        (ratingsByGame[r.gameId] ||= []).push(r);
-      });
-      const store: RatingsStore = {
-        ratingsByGame,
-        statsByGame: this.allStats(),
-      };
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
-    } catch { /* ignore */ }
+    const ratingsByGame: Record<string, GameRating[]> = {};
+    this.allRatings().forEach((r) => {
+      (ratingsByGame[r.gameId] ||= []).push(r);
+    });
+    const store: RatingsStore = {
+      ratingsByGame,
+      statsByGame: this.allStats(),
+    };
+    writeJsonStore('Your game ratings', STORAGE_KEY, store);
   }
 }
