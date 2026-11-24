@@ -37,7 +37,10 @@ import {
 import { LoggingService } from '../../services/logging.service';
 import { QUICK_COMMANDS, CHATBOT_COMMANDS } from './chatbot.commands';
 import { buildArtistMusicContext } from '../../types/profile.types';
-import { welcomeWithReadBack } from '../../services/artist-profile-read';
+import {
+  readArtistProfile,
+  welcomeWithReadBack,
+} from '../../services/artist-profile-read';
 import {
   DEFAULT_SMUVE_PERSONA,
   getPersonaOption,
@@ -1932,7 +1935,9 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
       return 'Androgynous Oracle';
     if (/androgyn|neutral|non-?binary/.test(declared)) return 'Androgynous Oracle';
 
-    return this.archetypeForGenre(profile?.primaryGenre);
+    // Genre-level fallback only applies to a genre the artist has committed;
+    // otherwise the full-catalog shuffle decides.
+    return this.archetypeForGenre(readArtistProfile(profile).genre);
   }
 
   /** Genre-level voice fallback; returns null to keep the full-catalog shuffle. */

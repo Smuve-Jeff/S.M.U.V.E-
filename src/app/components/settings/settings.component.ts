@@ -12,6 +12,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
+import { isGenreAdviceHeld } from '../../services/artist-profile-read';
 import { HowToOverlayComponent } from './how-to-overlay.component';
 import {
   UserProfileService,
@@ -148,7 +149,9 @@ export class SettingsComponent implements OnInit, OnDestroy {
     const officialLinks = profile.officialArtistProfiles ?? [];
     const recordedSignals = [
       profile.artistName && profile.artistName !== 'New Artist',
-      profile.primaryGenre && profile.primaryGenre !== 'Hip Hop',
+      // A committed genre is a real signal even when it is Hip Hop; the
+      // untouched default is not a signal at all.
+      Boolean(profile.primaryGenre) && !isGenreAdviceHeld(profile),
       Boolean(journey?.originStory || journey?.firstSong || journey?.breakthroughMoment),
       Boolean(journey?.signatureSound || blueprint?.artisticIntent || blueprint?.recognitionCue),
       officialLinks.length > 0,

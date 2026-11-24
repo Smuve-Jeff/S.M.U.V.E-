@@ -1,6 +1,7 @@
 import { APP_SECURITY_CONFIG } from '../app.security';
 import { Injectable, computed, inject, signal, effect } from '@angular/core';
 import { UserProfileService } from './user-profile.service';
+import { readArtistProfile } from './artist-profile-read';
 import { Injector } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
@@ -1111,7 +1112,8 @@ export class SocialNetworkingService {
     const profile = this.profileService.profile();
     return {
       artistName: profile.artistName,
-      primaryGenre: profile.primaryGenre,
+      // Never broadcast the untouched default genre as the artist's own.
+      primaryGenre: readArtistProfile(profile).genre || undefined,
       avatarImage: profile.avatarImage,
       location: profile.location,
       profileSetupCompleted: profile.profileSetupCompleted,

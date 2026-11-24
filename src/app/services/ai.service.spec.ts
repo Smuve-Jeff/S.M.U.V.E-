@@ -277,4 +277,22 @@ describe('AiService growth brief', () => {
     const prompt = await sentPrompt();
     expect(prompt).not.toContain('1,100');
   });
+
+  it('never presents the default genre as the artist’s sound', () => {
+    configure();
+    const profileSignal = TestBed.inject(UserProfileService).profile as any;
+
+    // Uncommitted profile with the default Hip Hop genre: the hook copy has no
+    // genre to lead with, so it must not claim one.
+    expect(service.getViralHooks()[0]).toContain('your sound signature');
+    expect(service.getViralHooks()[0]).not.toContain('Hip Hop');
+
+    profileSignal.set({
+      ...clone(initialProfile),
+      artistName: 'Test Artist',
+      primaryGenre: 'Country',
+      profileSetupCompleted: true,
+    });
+    expect(service.getViralHooks()[0]).toContain('Country signature');
+  });
 });

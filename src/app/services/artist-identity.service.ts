@@ -1,5 +1,6 @@
 import { Injectable, computed, inject } from '@angular/core';
 import { UserProfile, UserProfileService } from './user-profile.service';
+import { readArtistProfile } from './artist-profile-read';
 import { OfflineSyncService } from './offline-sync.service';
 import { LoggingService } from './logging.service';
 import { DatabaseService } from './database.service';
@@ -127,9 +128,11 @@ export class ArtistIdentityService {
   );
 
   buildIdentitySnapshot(profile: UserProfile): ArtistIdentityState {
+    // The identity graph must not claim the default genre as the artist's.
+    const declaredGenre = readArtistProfile(profile).genre;
     const base = ensureArtistIdentityState(
       profile.artistName,
-      profile.primaryGenre,
+      declaredGenre,
       profile.artistIdentity
     );
     const linkedAccounts = this.buildLinkedAccounts(
@@ -170,7 +173,7 @@ export class ArtistIdentityService {
         ipi: profile.proIpi || base.core.ipi,
         genres: Array.from(
           new Set(
-            [profile.primaryGenre, ...(base.core.genres || [])].filter(Boolean)
+            [declaredGenre, ...(base.core.genres || [])].filter(Boolean)
           )
         ),
       },
@@ -194,7 +197,7 @@ export class ArtistIdentityService {
     const identity = this.buildIdentitySnapshot(profile);
     const previous = ensureArtistIdentityState(
       profile.artistName,
-      profile.primaryGenre,
+      readArtistProfile(profile).genre,
       profile.artistIdentity
     );
     const refreshed: ArtistIdentityState = {
@@ -540,7 +543,7 @@ export class ArtistIdentityService {
         id: item.id || `work-${index + 1}`,
         title: item.title,
         artistName,
-        genre: item.genre || profile.primaryGenre,
+        genre: item.genre || readArtistProfile(profile).genre,
         status: item.status || 'draft',
         // Real identifiers only. Placeholder codes used to be generated here,
         // which let the fingerprint report a fully documented catalogue the

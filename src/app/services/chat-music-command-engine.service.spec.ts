@@ -241,6 +241,22 @@ describe('ChatMusicCommandEngineService', () => {
     expect(trackNames()).toContain('Drums');
   });
 
+  it('does not stamp the default genre on an uncommitted profile', () => {
+    profile.set({
+      ...initialProfile,
+      settings: {
+        ...initialProfile.settings,
+        ai: { ...initialProfile.settings.ai, aiTotalControlEnabled: true },
+      },
+      artistName: 'Named Artist',
+    } as any);
+
+    const result = service.tryExecute('play some drums');
+
+    expect(result!.content).toContain('your session');
+    expect(result!.content).not.toContain('Hip Hop');
+  });
+
   it('routes instrument phrasing to the right writer and keeps its key', () => {
     expect(service.tryExecute('play some drums')!.content).toContain('Drum pattern');
     expect(service.tryExecute('play bass in A minor')!.content).toContain('A minor');

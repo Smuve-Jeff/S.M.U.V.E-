@@ -23,6 +23,7 @@ import {
   LIFECYCLE_PHASE_LABEL,
 } from '../types/artist-lifecycle.types';
 import { buildArtistMusicContext } from '../types/profile.types';
+import { readArtistProfile } from './artist-profile-read';
 import {
   PersonaOfflineVoice,
   getPersonaOption,
@@ -329,7 +330,7 @@ export class AiService {
     const hideSensitive =
       profile.settings?.security?.hideSensitiveProfileDetails !== false;
     const artistDnaLine = shareAnswers
-      ? `${profile.artistName}, Genre: ${profile.primaryGenre}.`
+      ? `${profile.artistName}, Genre: ${readArtistProfile(profile).genre || 'not declared yet'}.`
       : 'withheld — the artist has not shared profile answers with AI.';
     const journeyLine = shareAnswers
       ? `Style=${journey?.songwritingStyle || 'Unspecified'}, Velocity=${journey?.releaseVelocity || 'Unknown'}, Goal=${journey?.primarySuccessMetric || 'Unclear'}.`
@@ -976,7 +977,9 @@ Remember: sharpen the artist's decisions, sign the work with a GOD's signature, 
     // Completion records that the flow finished; calibration requires enough
     // actual evidence to personalize recommendations responsibly.
     const calibrated = knowledge.state === 'calibrated';
-    const genre = profile.primaryGenre || 'unspecified genre';
+    // Same hold as the read-back and the adaptive engine: the default genre is
+    // not an answer until the interview is committed.
+    const genre = readArtistProfile(profile).genre || 'unspecified genre';
     const sound = journey.signatureSound || 'an undefined signature sound';
     const intent = blueprint.artisticIntent || 'a clear audience transformation';
     const audience = blueprint.audienceProfile || 'the artist’s intended listener';
@@ -1441,9 +1444,15 @@ Remember: sharpen the artist's decisions, sign the work with a GOD's signature, 
     const released = catalogue.filter((c) =>
       /releas|live|publish/i.test(c.status || '')
     ).length;
-    const alignedGenre = catalogue.filter(
-      (c) => (c.genre || '').toLowerCase() === profile.primaryGenre.toLowerCase()
-    ).length;
+    // Nothing can be aligned to a genre the artist has not committed yet, and
+    // nothing should be tagged against the placeholder.
+    const declaredGenre = readArtistProfile(profile).genre;
+    const declaredGenreKey = declaredGenre?.toLowerCase();
+    const alignedGenre = declaredGenreKey
+      ? catalogue.filter(
+          (c) => (c.genre || '').toLowerCase() === declaredGenreKey
+        ).length
+      : 0;
 
     const sonicCohesion = count
       ? Math.round(pct(processed) * 0.6 + pct(balanced) * 0.4)
@@ -1499,9 +1508,13 @@ Remember: sharpen the artist's decisions, sign the work with a GOD's signature, 
       technicalRecommendations.push(
         'Tempo spread across the catalogue is wide — group releases by tempo family.'
       );
-    if (catalogue.length > 0 && alignedGenre < catalogue.length)
+    if (
+      declaredGenre &&
+      catalogue.length > 0 &&
+      alignedGenre < catalogue.length
+    )
       technicalRecommendations.push(
-        `Tag the remaining ${catalogue.length - alignedGenre} catalogue item(s) with your primary genre (${profile.primaryGenre}).`
+        `Tag the remaining ${catalogue.length - alignedGenre} catalogue item(s) with your primary genre (${declaredGenre}).`
       );
     if (technicalRecommendations.length === 0)
       technicalRecommendations.push('No technical blockers detected in this session.');
@@ -1813,7 +1826,7 @@ Remember: sharpen the artist's decisions, sign the work with a GOD's signature, 
   /** Marketing hooks derived from the artist's genre and success metric. */
   getViralHooks(): string[] {
     const profile = this.userProfileService.profile();
-    const genre = profile.primaryGenre || 'your sound';
+    const genre = readArtistProfile(profile).genre || 'your sound';
     const metric =
       profile.musicalJourney?.primarySuccessMetric || 'Creative Satisfaction';
     const anchor = profile.musicalJourney?.musicBlueprint?.vocalDelivery;
@@ -2161,11 +2174,15 @@ Remember: sharpen the artist's decisions, sign the work with a GOD's signature, 
       if (index >= 0) dataPoints[index] = point;
       else dataPoints.push(point);
     };
+    // The knowledge base records what the artist actually answered, not the
+    // untouched default genre.
+    const declaredGenre = readArtistProfile(profile).genre;
+    const declaredGenreKey = declaredGenre?.toLowerCase();
     upsert({
       id: 'kb-profile-identity',
       type: 'identity',
       artistName: profile.artistName,
-      primaryGenre: profile.primaryGenre,
+      primaryGenre: declaredGenre || 'undetermined',
       marketPosition: profile.musicalJourney?.marketPosition,
       yearsInIndustry: profile.musicalJourney?.yearsInIndustry,
       updatedAt: now,
@@ -2196,12 +2213,13 @@ Remember: sharpen the artist's decisions, sign the work with a GOD's signature, 
     const catalogue = profile.catalog || [];
     const genreAnalysis = {
       ...(kb.genreAnalysis || {}),
-      [profile.primaryGenre]: {
+      [declaredGenre || 'unclassified']: {
         catalogueSize: catalogue.length,
         alignedTitles: catalogue
           .filter(
             (c) =>
-              (c.genre || '').toLowerCase() === profile.primaryGenre.toLowerCase()
+              Boolean(declaredGenreKey) &&
+              (c.genre || '').toLowerCase() === declaredGenreKey
           )
           .map((c) => c.title),
         updatedAt: now,

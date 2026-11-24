@@ -12,6 +12,7 @@ import { UserProfileService } from '../../services/user-profile.service';
 import { AiService } from '../../services/ai.service';
 import { ArtistOnlineFingerprintService } from '../../services/artist-online-fingerprint.service';
 import { EnhancedArtistQuestionnaireEngine } from '../../services/enhanced-artist-questionnaire-engine';
+import { readArtistProfile } from '../../services/artist-profile-read';
 
 /**
  * Accent and icon per fingerprint destination, so the public page shows the
@@ -185,9 +186,10 @@ export class ArtistLandingComponent implements OnDestroy {
       parts.push(`${arch.toLowerCase()} `);
     }
 
-    parts.push(
-      `an independent ${profile.primaryGenre?.toLowerCase() || 'music'} artist `
-    );
+    // A public bio must not announce the default genre as the artist's own
+    // before the interview is committed.
+    const genre = readArtistProfile(profile).genre;
+    parts.push(`an independent ${genre?.toLowerCase() || 'music'} artist `);
 
     if (j.originStory) {
       const originMap: Record<string, string> = {

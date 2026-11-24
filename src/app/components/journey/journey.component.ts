@@ -15,6 +15,7 @@ import {
   UserProfile,
 } from '../../services/user-profile.service';
 import { AuthService } from '../../services/auth.service';
+import { isGenreAdviceHeld } from '../../services/artist-profile-read';
 import { ALL_GENRES } from '../../services/enhanced-artist-questionnaire-engine';
 
 @Component({
@@ -71,7 +72,10 @@ export class JourneyComponent implements OnDestroy {
         Boolean(journey.experienceLevel) &&
         Boolean(journey.originStory) &&
         Boolean(journey.artistNameMeaning),
-      identified && Boolean((p.primaryGenre || '').trim()),
+      // The default genre only counts once the interview is committed.
+      identified &&
+        Boolean((p.primaryGenre || '').trim()) &&
+        !isGenreAdviceHeld(p),
       identified &&
         Boolean(journey.preferredBpmRange) &&
         (p.skills?.length || 0) > 0 &&

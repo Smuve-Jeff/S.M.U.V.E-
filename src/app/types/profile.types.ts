@@ -374,8 +374,14 @@ export function buildArtistMusicContext(
 
   // Keep profile-derived identity out of prompts unless explicitly opted in.
   if (profile.settings?.security?.shareProfileInDiscovery === true) {
+    // The untouched default genre is not an answer until the interview is
+    // committed; prompts must not present it as the artist's genre.
+    const genreHeld =
+      profile.profileSetupCompleted !== true &&
+      (profile.primaryGenre || '').trim().toLowerCase() ===
+        initialProfile.primaryGenre.toLowerCase();
     push('Artist', cap(profile.artistName, 80));
-    push('Genre', cap(profile.primaryGenre, 60));
+    push('Genre', genreHeld ? 'Not declared yet' : cap(profile.primaryGenre, 60));
   } else {
     push('Artist', 'Private artist');
     push('Genre', 'Artist-defined');

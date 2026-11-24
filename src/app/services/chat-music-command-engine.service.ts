@@ -7,6 +7,7 @@ import {
 import { AudioEngineService } from './audio-engine.service';
 import { SpeechSynthesisService } from './speech-synthesis.service';
 import { UserProfileService } from './user-profile.service';
+import { readArtistProfile } from './artist-profile-read';
 import {
   InstrumentPreset,
   InstrumentsService,
@@ -293,6 +294,15 @@ export class ChatMusicCommandEngineService {
 
   private currentProfile() {
     return this.profileService?.profile() ?? null;
+  }
+
+  /**
+   * The artist's committed genre. The untouched default is not an answer, so a
+   * new profile falls back to the session's neutral beat pack instead of being
+   * told its beat is Hip Hop.
+   */
+  private committedGenre(): string | undefined {
+    return readArtistProfile(this.currentProfile()).genre || undefined;
   }
 
   private readonly undoStack: UndoEntry[] = [];
@@ -1152,7 +1162,7 @@ export class ChatMusicCommandEngineService {
       this.parseKey(args.key) ??
       this.parseKey(profile?.genreSpecificData?.key) ??
       this.defaultKey(variation);
-    const genre = args.genre || profile?.primaryGenre || 'trap';
+    const genre = args.genre || this.committedGenre() || 'trap';
 
     const target = this.music.selectedTrackId();
     const tracks = this.music.tracks();
@@ -1233,7 +1243,7 @@ export class ChatMusicCommandEngineService {
       selectedTrackId: this.music.selectedTrackId(),
     };
     const variation = this.beatVariation++;
-    const genre = args.genre || this.currentProfile()?.primaryGenre || 'trap';
+    const genre = args.genre || this.committedGenre() || 'trap';
     const pack = beatPackForGenre(genre, variation);
     const drumId = this.ensureTrack(
       tracks,
@@ -1251,7 +1261,7 @@ export class ChatMusicCommandEngineService {
     this.pushUndo(snapshot);
     this.lastCommandLabel = snapshot.label;
     return {
-      content: `Drum pattern locked on the Drums track for ${args.genre || this.currentProfile()?.primaryGenre || 'your session'} — kick, snare, hats and claps at ${this.currentTempo()} BPM. Say "preview".`,
+      content: `Drum pattern locked on the Drums track for ${args.genre || this.committedGenre() || 'your session'} — kick, snare, hats and claps at ${this.currentTempo()} BPM. Say "preview".`,
       actions: [
         { id: 'music-preview', label: 'Preview' },
         { id: 'music-undo', label: 'Undo' },
@@ -1270,10 +1280,7 @@ export class ChatMusicCommandEngineService {
       createdTrackIds: [],
       selectedTrackId: this.music.selectedTrackId(),
     };
-    const pack = beatPackForGenre(
-      this.currentProfile()?.primaryGenre || 'trap',
-      variation
-    );
+    const pack = beatPackForGenre(this.committedGenre() || 'trap', variation);
     const bassId = this.ensureTrack(
       tracks,
       'Bass',
@@ -1303,10 +1310,7 @@ export class ChatMusicCommandEngineService {
       selectedTrackId: this.music.selectedTrackId(),
     };
     const variation = this.beatVariation++;
-    const pack = beatPackForGenre(
-      this.currentProfile()?.primaryGenre || 'trap',
-      variation
-    );
+    const pack = beatPackForGenre(this.committedGenre() || 'trap', variation);
     const chordId = this.ensureTrack(
       tracks,
       'Chords',
@@ -1349,10 +1353,7 @@ export class ChatMusicCommandEngineService {
       createdTrackIds: [],
       selectedTrackId: this.music.selectedTrackId(),
     };
-    const pack = beatPackForGenre(
-      this.currentProfile()?.primaryGenre || 'trap',
-      variation
-    );
+    const pack = beatPackForGenre(this.committedGenre() || 'trap', variation);
     const melodyId = this.ensureTrack(
       tracks,
       'Melody',
