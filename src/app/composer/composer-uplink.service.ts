@@ -1,6 +1,9 @@
 import { Injectable, computed, inject } from '@angular/core';
 import { UserProfileService, UserProfile } from '../services/user-profile.service';
-import { readArtistProfile } from '../services/artist-profile-read';
+import {
+  isGenreAdviceHeld,
+  readArtistProfile,
+} from '../services/artist-profile-read';
 import type { ComposerGate, ComposerBlocker, ComposerPersonalization, GenreProfile } from './composer.types';
 import { GENRE_ATLAS, resolveGenre, resolveSubgenres } from './atlas';
 
@@ -46,7 +49,11 @@ export class ComposerUplinkService {
   readonly gate = computed<ComposerGate>(() => {
     const profile = this.profile();
     const read = readArtistProfile(profile);
-    const genre = this.primaryGenre();
+    // The same hold the read-back and the adaptive engine use. An uncommitted
+    // profile with the default genre has no accepted genre answer, so the gate
+    // must not show one either — that is how "held" drifts between surfaces.
+    const held = isGenreAdviceHeld(profile);
+    const genre = held ? null : this.primaryGenre();
     const blockers: ComposerBlocker[] = [];
 
     if (profile?.profileSetupCompleted !== true) {
@@ -71,24 +78,26 @@ export class ComposerUplinkService {
       });
     }
 
-    if (!profile?.primaryGenre) {
-      blockers.push({
-        id: 'genre',
-        label: 'No primary genre declared',
-        detail:
-          'Genre is not decoration here — it decides tempo, groove, harmony and arrangement. Declare the genre you actually work in.',
-        fixRoute: '/profile',
-        fixLabel: 'Declare genre',
-      });
-    } else if (!genre) {
-      blockers.push({
-        id: 'genre-unresolved',
-        label: `S.M.U.V.E. cannot read “${profile.primaryGenre}” yet`,
-        detail:
-          'That genre name does not map to a working rule set in the atlas. Pick the closest genre label, or add the specific subgenre so the engine can align.',
-        fixRoute: '/profile',
-        fixLabel: 'Adjust genre',
-      });
+    if (!held) {
+      if (!profile?.primaryGenre) {
+        blockers.push({
+          id: 'genre',
+          label: 'No primary genre declared',
+          detail:
+            'Genre is not decoration here — it decides tempo, groove, harmony and arrangement. Declare the genre you actually work in.',
+          fixRoute: '/profile',
+          fixLabel: 'Declare genre',
+        });
+      } else if (!genre) {
+        blockers.push({
+          id: 'genre-unresolved',
+          label: `S.M.U.V.E. cannot read “${profile.primaryGenre}” yet`,
+          detail:
+            'That genre name does not map to a working rule set in the atlas. Pick the closest genre label, or add the specific subgenre so the engine can align.',
+          fixRoute: '/profile',
+          fixLabel: 'Adjust genre',
+        });
+      }
     }
 
     if (profile?.profileSetupCompleted === true && !read.body.hasBody) {
@@ -107,7 +116,9 @@ export class ComposerUplinkService {
 
     return {
       ready,
-      genreLabel: genre?.label ?? (profile?.primaryGenre || 'Not declared'),
+      genreLabel: held
+        ? 'Not declared yet'
+        : genre?.label ?? (profile?.primaryGenre || 'Not declared'),
       genre,
       blockers,
       personalization,
