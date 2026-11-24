@@ -44,6 +44,12 @@ import {
   SmuveSurfaceIntel,
 } from './smuve-career-director.service';
 import { SmuveMemoryService } from './smuve-memory.service';
+import { MarketingService } from './marketing.service';
+import {
+  GROWTH_WITHHELD,
+  buildGrowthBrief,
+  trimGrowthBrief,
+} from './growth-brief.util';
 import { ArtistRelationshipService } from './artist-relationship.service';
 import { UserStoreService } from './user-store.service';
 import { GUEST_AI_LOCK_NOTICE, mayUseAi } from './guest-access';
@@ -90,6 +96,12 @@ export class AiService {
    * across modules and sessions instead of starting each prompt cold.
    */
   private caseFile = inject(SmuveMemoryService);
+  /**
+   * The artist's own recorded audience figures. The growth card and the model
+   * must read the same record under the same honesty rules, so the brief below
+   * is built from this service instead of a second, drifting summary.
+   */
+  private marketing = inject(MarketingService);
   /**
    * The living artist model: relationship stage, interview progress and
    * tone calibration. Appended to the master prompt so a new artist meets
@@ -596,25 +608,32 @@ Remember: sharpen the artist's decisions, sign the work with a GOD's signature, 
     const career = this.careerDirector.compactDirective();
     const caseFile = this.caseFile.promptBlock(this.careerDirector.currentSurface());
     const artist = this.artistFinetune.promptBlock();
+    // The artist's recorded audience figures. Without this block the manager
+    // can hold a whole conversation about growth without having seen a single
+    // number the artist entered in Strategy.
+    const growth = this.growthAdvisorBrief();
     const marker = prompt.lastIndexOf('ARTIST REQUEST:');
     const requestLength = marker >= 0 ? prompt.length - marker : Math.min(3020, prompt.length + 16);
     const prefixBudget = Math.max(0, 7960 - requestLength);
-    // The artist's own evidence is the point of this prefix; the shared
-    // operating standards are the part allowed to shrink. Giving the standards
-    // first claim (as this did) meant the longest requests — the ones needing
-    // the most adaptation — kept a fraction of the fine-tune block and, once
-    // the standards filled the budget, none of it, while still printing an
-    // empty "ARTIST DATA (self-reported):" header.
+    // Priority is explicit: persona contract first, then the artist's recorded
+    // growth figures, then the fine-tune block, the room lens, continuity, and
+    // last the shared standards — the one block allowed to vanish. The
+    // standards used to take first claim, so the longest requests kept only a
+    // fraction of the fine-tune block and still printed an empty "ARTIST DATA
+    // (self-reported):" header.
     //
-    // Priority is now explicit: persona contract first, then the artist's
-    // fine-tune block (the actual personalisation), then the room lens, then
-    // continuity, then the shared standards. The career lens used to take its
-    // slice before the artist and, on a long request, cut the artist's own
-    // calibration in half — the opposite of an app that claims to know this
-    // artist's career better than a generic assistant.
+    // The growth block outranks the fine-tune block because it is the evidence
+    // an audience question is actually about, and because a manager that
+    // cannot see the ledger answers growth questions with borrowed numbers.
+    // Its binding rules sit above its data, so a trim at this budget costs
+    // figures before it can cost the rules that keep them honest.
     const available = Math.max(0, prefixBudget - directives.length - 64);
-    const keptArtist = artist.slice(0, Math.min(2000, available));
-    const afterArtist = Math.max(0, available - keptArtist.length);
+    // Line-boundary trim: a mid-line cut leaves a figure without its month,
+    // which is exactly how an invented number gets read as a recorded one.
+    const keptGrowth = trimGrowthBrief(growth, Math.min(1200, available));
+    const afterGrowth = Math.max(0, available - keptGrowth.length);
+    const keptArtist = artist.slice(0, Math.min(2000, afterGrowth));
+    const afterArtist = Math.max(0, afterGrowth - keptArtist.length);
     const keptCareer = career.slice(0, Math.min(1400, afterArtist));
     const afterCareer = Math.max(0, afterArtist - keptCareer.length);
     // Continuity is what turns a string of good answers into a manager. It is
@@ -623,7 +642,7 @@ Remember: sharpen the artist's decisions, sign the work with a GOD's signature, 
     const keptCase = caseFile.slice(0, Math.min(1200, afterCareer));
     const standardsBudget = Math.max(0, afterCareer - keptCase.length);
     const standards = standardsBudget > 40 ? AI_MANAGER_STANDARDS.slice(0, standardsBudget) : '';
-    const core = `${directives}${keptCareer ? `\n\n${keptCareer}` : ''}${keptCase ? `\n\n${keptCase}` : ''}${standards ? `\n\n${standards}` : ''}`;
+    const core = `${directives}${keptGrowth ? `\n\n${keptGrowth}` : ''}${keptCareer ? `\n\n${keptCareer}` : ''}${keptCase ? `\n\n${keptCase}` : ''}${standards ? `\n\n${standards}` : ''}`;
     const prefix = keptArtist
       ? `${core}\n\nARTIST DATA (self-reported):\n${keptArtist}`
       : core;
@@ -2001,6 +2020,30 @@ Remember: sharpen the artist's decisions, sign the work with a GOD's signature, 
     this.advisorAdvice.update((list) =>
       list.filter((item) => item.id !== id)
     );
+  }
+
+  /**
+   * Compact growth block for the model prompt.
+   *
+   * Strategy already refuses a percentage from one recorded month, a
+   * percentage against a zero baseline, a comparison that spans a skipped
+   * month, and a new platform counted as growth. The model receives the same
+   * record under the same rules through `buildGrowthBrief`, so an audience
+   * answer is grounded in the artist's weekly entries instead of a
+   * plausible-sounding number.
+   *
+   * Gated exactly like the lifecycle brief: these are profile-derived business
+   * figures, so they are withheld until the artist shares them.
+   */
+  growthAdvisorBrief(): string {
+    const security = this.userProfileService.profile().settings?.security;
+    if (
+      security?.shareProfileAnswersWithAi !== true ||
+      security?.hideSensitiveProfileDetails !== false
+    ) {
+      return GROWTH_WITHHELD;
+    }
+    return buildGrowthBrief(this.marketing.monthOverMonth());
   }
 
   /**
