@@ -28,6 +28,7 @@ import {
 } from './composer-engine';
 import { GENRE_BY_ID } from './atlas';
 import { ComposerUplinkService } from './composer-uplink.service';
+import { saveJson } from '../services/guarded-storage';
 
 const LIBRARY_KEY = 'smuve.composer.library.v1';
 const PASS_HISTORY_KEY = 'smuve.composer.history.v1';
@@ -453,7 +454,7 @@ export class CompositionCoreService {
         brief: pass.brief,
         createdAt: pass.createdAt,
       }));
-      localStorage.setItem(PASS_HISTORY_KEY, JSON.stringify(records));
+      saveJson(PASS_HISTORY_KEY, records, 'localStorage');
     } catch {
       // Storage can be unavailable; the in-memory history still works.
     }
@@ -608,7 +609,7 @@ export class CompositionCoreService {
 
   private writeLibrary(entries: SavedComposition[]): void {
     try {
-      localStorage.setItem(LIBRARY_KEY, JSON.stringify(entries));
+      saveJson(LIBRARY_KEY, entries, 'localStorage');
     } catch {
       // Storage can be unavailable (private mode, quota). The in-memory
       // library still works for this session; nothing else breaks.

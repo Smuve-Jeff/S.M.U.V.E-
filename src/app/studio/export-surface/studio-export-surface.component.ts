@@ -36,6 +36,7 @@ import {
   type ProjectConflict,
 } from "../../services/collaboration.service";
 import { MusicManagerService } from "../../services/music-manager.service";
+import { saveJson, saveString } from '../../services/guarded-storage';
 
 type ExportFeedback = { tone: "ok" | "error"; text: string };
 
@@ -312,7 +313,7 @@ export class StudioExportSurfaceComponent {
 
   private persistPresets() {
     try {
-      localStorage.setItem(EXPORT_PRESETS_KEY, JSON.stringify(this.presets()));
+      saveJson(EXPORT_PRESETS_KEY, this.presets(), 'localStorage');
     } catch {
       // Storage can be full or blocked; the presets still work this session.
     }
@@ -323,7 +324,7 @@ export class StudioExportSurfaceComponent {
     if (!this.deliveryTargets.some((target) => target.id === id)) return;
     this.deliveryTargetId.set(id);
     try {
-      localStorage.setItem(EXPORT_TARGET_KEY, id);
+      saveString(EXPORT_TARGET_KEY, id, 'localStorage');
     } catch {
       // Remembering the choice is a convenience; the check still applies.
     }

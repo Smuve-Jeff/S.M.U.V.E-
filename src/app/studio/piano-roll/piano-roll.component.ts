@@ -39,6 +39,7 @@ import { QuantizationService } from "../quantization.service";
 import { WebGLRenderer } from "../webgl/webgl-renderer";
 import { PianoRollRenderer, PianoRollNote } from "../webgl/piano-roll-renderer";
 import { StudioVisualSchedulerService } from "../shared/studio-visual-scheduler.service";
+import { saveString } from '../../services/guarded-storage';
 
 const VELOCITY_LANE_HEIGHT = 80;
 const MAX_MIDI = 96;
@@ -350,7 +351,7 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
     this.rowSize.update((size) => (size === "tall" ? "compact" : "tall"));
     try {
       if (typeof localStorage !== "undefined") {
-        localStorage.setItem(PIANO_ROLL_ROWS_KEY, this.rowSize());
+        saveString(PIANO_ROLL_ROWS_KEY, this.rowSize(), 'localStorage');
       }
     } catch {
       /* private mode / WebView — the choice still applies for this session */

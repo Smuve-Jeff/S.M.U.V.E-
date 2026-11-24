@@ -90,6 +90,7 @@ import {
   CHAT_TUTORIAL_SRC,
   ChatLesson,
 } from './chatbot.lessons';
+import { saveJson, deleteSaved } from '../../services/guarded-storage';
 
 /** Voice Lab: one line per archetype, and a multi-sentence spectrum demo. */
 const VOICE_LAB_SAMPLE =
@@ -761,7 +762,7 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
         this.owner = nextOwner;
         this.persistDesk();
         try {
-          sessionStorage.removeItem(guestKey);
+          deleteSaved(guestKey, 'sessionStorage');
         } catch {
           // The account copy is what matters; a blocked guest key is stale.
         }
@@ -1286,13 +1287,10 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
     const desk = this.activeDesk();
     if (!desk) return;
     try {
-      sessionStorage.setItem(
-        this.deskStorageKey(),
-        JSON.stringify({
+      saveJson(this.deskStorageKey(), {
           alias: desk.aliases[0],
           turns: this.deskTurns.get(desk.role) ?? [],
-        })
-      );
+        }, 'sessionStorage');
     } catch {
       // Persistence is a convenience; the desk works without it.
     }
@@ -1315,7 +1313,7 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
     this.legacyDeskMigrated = false;
     if (!forget) return;
     try {
-      sessionStorage.removeItem(this.deskStorageKey());
+      deleteSaved(this.deskStorageKey(), 'sessionStorage');
     } catch {
       // A blocked store costs continuity, never the close.
     }
@@ -1363,11 +1361,18 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
     if (!definition) return null;
 
     try {
-      sessionStorage.setItem(
+      const stored = saveJson(
         key,
-        JSON.stringify({ alias: definition.aliases[0], turns: parsed.turns })
+        { alias: definition.aliases[0], turns: parsed.turns },
+        'sessionStorage'
       );
-      sessionStorage.removeItem(DESK_STORAGE_KEY);
+      if (!stored) {
+        // A blocked store keeps the legacy copy for a later, writable visit —
+        // which means keeping the key, not just the session's desk.
+        this.legacyDeskMigrated = false;
+        return { alias: definition.aliases[0], turns: parsed.turns };
+      }
+      deleteSaved(DESK_STORAGE_KEY, 'sessionStorage');
       // Migrated into the guest bucket only because the owner was not known
       // yet; if an account resolves next, the desk moves with it.
       this.legacyDeskMigrated = this.owner === null;
@@ -2267,10 +2272,7 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
   private persistLearnProgress(): void {
     if (typeof window === 'undefined') return;
     try {
-      window.localStorage.setItem(
-        CHAT_PROGRESS_KEY,
-        JSON.stringify([...this.completedLessons()]),
-      );
+      saveJson(CHAT_PROGRESS_KEY, [...this.completedLessons()], 'localStorage');
     } catch {
       // Private browsing can reject storage; mastery stays in memory.
     }
@@ -2876,6 +2878,8 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
       return;
     }
     let result: string | null = null;
+    // A reversible action hands its inverse to the ledger below.
+    let undoAction: (() => void) | undefined;
 
     switch (action.id) {
       case 'desk-switch': {
@@ -2946,17 +2950,22 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
         break;
       }
       case 'tempo-90':
-        this.setTempo(90);
-        result = 'Tempo locked to 90 BPM. Even you can ride this.';
-        break;
       case 'tempo-124':
-        this.setTempo(124);
-        result = 'Tempo locked to 124 BPM. House floor approved.';
+      case 'tempo-140': {
+        const bpm =
+          action.id === 'tempo-90' ? 90 : action.id === 'tempo-124' ? 124 : 140;
+        const previous = this.currentTempo();
+        this.setTempo(bpm);
+        // Real undo: the tempo the session had before S.M.U.V.E. touched it.
+        undoAction = () => this.setTempo(previous);
+        result =
+          bpm === 90
+            ? 'Tempo locked to 90 BPM. Even you can ride this.'
+            : bpm === 124
+              ? 'Tempo locked to 124 BPM. House floor approved.'
+              : 'Tempo locked to 140 BPM. Try to keep up.';
         break;
-      case 'tempo-140':
-        this.setTempo(140);
-        result = 'Tempo locked to 140 BPM. Try to keep up.';
-        break;
+      }
       case 'chords':
         result = this.seedChords();
         break;
@@ -3066,8 +3075,9 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
     }
 
     if (result) {
-      // Full Control leaves a trail: what ran, and the app's own answer to it.
-      this.actionLedger.record(action.id, result.slice(0, 240));
+      // Full Control leaves a trail: what ran, the app's own answer to it, and
+      // the inverse when the action can be taken back.
+      this.actionLedger.record(action.id, result.slice(0, 240), undoAction);
       this.messages.update((m) => [
         ...m,
         {
@@ -3107,6 +3117,13 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
   private setTempo(bpm: number) {
     const tempo = (this.audioEngineService as any).tempo;
     if (tempo?.set) tempo.set(bpm);
+  }
+
+  /** Current BPM, so an applied tempo can be undone to what it replaced. */
+  private currentTempo(): number {
+    const tempo = (this.audioEngineService as any).tempo;
+    const value = typeof tempo === 'function' ? tempo() : undefined;
+    return typeof value === 'number' ? value : 120;
   }
 
   /** Drop a triad seed (root–fourth–fifth) on the selected track. */
@@ -3287,7 +3304,7 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
           timestamp,
           category,
         }));
-      window.localStorage.setItem(key, JSON.stringify(slim));
+      saveJson(key, slim, 'localStorage');
     } catch {
       // storage unavailable — degrade silently
     }

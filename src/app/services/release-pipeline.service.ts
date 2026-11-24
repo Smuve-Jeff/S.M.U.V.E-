@@ -15,6 +15,7 @@ import {
 } from './release-split.util';
 import { isCalendarDay } from './release-window.util';
 import { CatalogItem } from '../types/profile.types';
+import { saveJson, deleteSaved } from './guarded-storage';
 
 export const PLANNED_DATE_RECONCILIATION_STORAGE_KEY =
   'smuve_planned_date_reconciliation_history';
@@ -502,13 +503,10 @@ export class ReleasePipelineService {
       }
       const history = this.reconciliationHistory();
       if (!history.length) {
-        localStorage.removeItem(PLANNED_DATE_RECONCILIATION_STORAGE_KEY);
+        deleteSaved(PLANNED_DATE_RECONCILIATION_STORAGE_KEY, 'localStorage');
         return;
       }
-      localStorage.setItem(
-        PLANNED_DATE_RECONCILIATION_STORAGE_KEY,
-        JSON.stringify(history)
-      );
+      saveJson(PLANNED_DATE_RECONCILIATION_STORAGE_KEY, history, 'localStorage');
     } catch {
       // Storage can be blocked or full; the in-memory history still works.
     }
@@ -533,7 +531,7 @@ export class ReleasePipelineService {
             .slice(0, PLANNED_DATE_RECONCILIATION_HISTORY_LIMIT);
           if (history.length) return history;
         }
-        localStorage.removeItem(PLANNED_DATE_RECONCILIATION_STORAGE_KEY);
+        deleteSaved(PLANNED_DATE_RECONCILIATION_STORAGE_KEY, 'localStorage');
       }
 
       const legacyRaw = localStorage.getItem(
@@ -541,7 +539,7 @@ export class ReleasePipelineService {
       );
       if (!legacyRaw) return [];
       const legacy = JSON.parse(legacyRaw) as Partial<PlannedDateReconciliation> | null;
-      localStorage.removeItem(LEGACY_PLANNED_DATE_RECONCILIATION_STORAGE_KEY);
+      deleteSaved(LEGACY_PLANNED_DATE_RECONCILIATION_STORAGE_KEY, 'localStorage');
       if (!legacy) return [];
 
       const migrated = this.normalizeReconciliation({
@@ -554,10 +552,7 @@ export class ReleasePipelineService {
 
       // Persist immediately so the migrated entry survives this reload even
       // before the artist changes another date.
-      localStorage.setItem(
-        PLANNED_DATE_RECONCILIATION_STORAGE_KEY,
-        JSON.stringify([migrated])
-      );
+      saveJson(PLANNED_DATE_RECONCILIATION_STORAGE_KEY, [migrated], 'localStorage');
       return [migrated];
     } catch {
       // The stored history is unreadable: keep it for a later visit instead of

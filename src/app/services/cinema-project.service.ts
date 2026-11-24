@@ -21,6 +21,7 @@ import {
   sanitizeDirectorShotPlan,
   type DirectorShotPlan,
 } from './director-shot-plan';
+import { saveString, deleteSaved } from './guarded-storage';
 
 /**
  * A saved project as the project list needs it. The edit itself is deliberately
@@ -281,8 +282,8 @@ export class CinemaProjectService {
   private writeStoredProjectId(id: string | null): void {
     try {
       if (typeof localStorage === 'undefined') return;
-      if (id) localStorage.setItem(LAST_PROJECT_KEY, id);
-      else localStorage.removeItem(LAST_PROJECT_KEY);
+      if (id) saveString(LAST_PROJECT_KEY, id, 'localStorage');
+      else deleteSaved(LAST_PROJECT_KEY, 'localStorage');
     } catch (error) {
       // Persistence still works; only the automatic reopen is unavailable.
       this.logger.warn(

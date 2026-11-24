@@ -20,6 +20,7 @@ import {
   type LoopbackClickQuality,
   type LoopbackConfidence,
 } from './loopback-latency.util';
+import { saveJson } from './guarded-storage';
 
 /** Timing and retry controls for a loopback measurement. */
 export interface LoopbackOptions {
@@ -330,7 +331,7 @@ function joinCaptureChunks(chunks: readonly Float32Array[]): Float32Array {
 /** Persist this device's baseline; failure keeps the in-memory signal. */
 function writeStoredBaseline(baseline: DeviceLatencyBaseline): void {
   try {
-    localStorage.setItem(DEVICE_BASELINE_KEY, JSON.stringify(baseline));
+    saveJson(DEVICE_BASELINE_KEY, baseline, 'localStorage');
   } catch {
     // Quota/privacy-mode failures only cost cross-session pre-fill; the
     // compensation the artist just accepted is already in the profile.

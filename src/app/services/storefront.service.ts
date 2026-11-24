@@ -10,6 +10,7 @@ import {
   SkuCategory,
   SkuDescriptor,
 } from '../types/storefront.types';
+import { saveJson } from './guarded-storage';
 
 /**
  * Sprint C2 — StorefrontService
@@ -351,7 +352,7 @@ export class StorefrontService {
       return;
     }
     try {
-      localStorage.setItem(OWNERSHIP_KEY, JSON.stringify(map));
+      saveJson(OWNERSHIP_KEY, map, 'localStorage');
     } catch {
       /* ignore */
     }
@@ -364,7 +365,7 @@ export class StorefrontService {
       return;
     }
     try {
-      localStorage.setItem(CART_KEY, JSON.stringify(lines));
+      saveJson(CART_KEY, lines, 'localStorage');
     } catch {
       /* ignore */
     }

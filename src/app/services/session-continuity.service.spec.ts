@@ -18,7 +18,7 @@ describe('SessionContinuityService', () => {
     service.record('route', '/studio', 'Studio');
 
     expect(service.latest('project')?.label).toBe('Night Bus');
-    expect(service.resumeLabel()).toContain('Studio');
+    expect(service.latest('route')?.id).toBe('/studio');
 
     const reloaded = new SessionContinuityService();
     expect(reloaded.latest('project')?.id).toBe('proj-1');

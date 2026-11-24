@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { ReleasePipelineService } from '../../services/release-pipeline.service';
 import { SongwritingHandoffService } from '../../services/songwriting-handoff.service';
+import { saveJson } from '../../services/guarded-storage';
 
 const LYRIC_DRAFT_KEY = 'smuve_lyric_draft';
 const WRITER_PAGES_KEY = 'smuve_writer_pages_v1';
@@ -138,19 +139,13 @@ export class LyricEditorComponent implements OnDestroy {
       this.flushActivePage(savedAt);
       const pages = this.pages();
 
-      localStorage.setItem(
-        WRITER_PAGES_KEY,
-        JSON.stringify({ pages, activePageId: this.activePageId(), savedAt })
-      );
+      saveJson(WRITER_PAGES_KEY, { pages, activePageId: this.activePageId(), savedAt }, 'localStorage');
       // Keep the original single-draft key current for older builds of the Pad.
-      localStorage.setItem(
-        LYRIC_DRAFT_KEY,
-        JSON.stringify({
+      saveJson(LYRIC_DRAFT_KEY, {
           lyrics: this.lyrics(),
           title: this.trackTitle(),
           savedAt,
-        })
-      );
+        }, 'localStorage');
 
       this.savedAt.set(savedAt);
       this.saveError.set('');

@@ -7,6 +7,7 @@ import {
   type MidiInputRef,
 } from './midi-input-bus.service';
 import { setMidiInputHandler } from './midi-input-chain';
+import { saveJson } from './guarded-storage';
 
 const DJ_MIDI_HANDLER = Symbol('smuve-dj-midi');
 
@@ -460,10 +461,7 @@ export class DjMidiService {
   /** Persist performer CC mappings (public — the mapping editor calls this). */
   savePerformerCCMappings() {
     try {
-      localStorage.setItem(
-        'smuve_performer_cc_mappings',
-        JSON.stringify(this.performerCCMap())
-      );
+      saveJson('smuve_performer_cc_mappings', this.performerCCMap(), 'localStorage');
     } catch { /* ignore */ }
   }
 
@@ -506,10 +504,7 @@ export class DjMidiService {
 
   private saveCustomMappings() {
     try {
-      localStorage.setItem(
-        'smuve_midi_mappings',
-        JSON.stringify(this.mappings())
-      );
+      saveJson('smuve_midi_mappings', this.mappings(), 'localStorage');
     } catch { /* ignore */ }
   }
 

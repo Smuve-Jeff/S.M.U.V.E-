@@ -5,6 +5,7 @@ import {
   LegalDocumentEditorComponent,
   type LegalDocument,
 } from '../legal-document-editor/legal-document-editor.component';
+import { saveJson } from '../../services/guarded-storage';
 
 const LEGAL_DRAFT_STORAGE_KEY = 'smuve.legal.drafts.v1';
 
@@ -361,10 +362,7 @@ export class LegalTemplateComponent {
   private persistDrafts(docs: LegalDocument[]) {
     if (typeof window === 'undefined') return;
     try {
-      window.localStorage.setItem(
-        LEGAL_DRAFT_STORAGE_KEY,
-        JSON.stringify(docs)
-      );
+      saveJson(LEGAL_DRAFT_STORAGE_KEY, docs, 'localStorage');
     } catch {
       // Storage unavailable (private mode / quota) — drafts stay in memory.
     }

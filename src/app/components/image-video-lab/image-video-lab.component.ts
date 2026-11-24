@@ -172,6 +172,7 @@ import {
 import type { ViewerHealthThresholds } from '../../services/viewer-health';
 import { isValidViewerHealth } from '../../services/viewer-health';
 import { ViewerHealthSettingsService } from '../../services/viewer-health-settings.service';
+import { saveJson, saveString } from '../../services/guarded-storage';
 
 interface ProductionDirective {
   title: string;
@@ -6671,10 +6672,7 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
 
   private persistTransparentExportPreference(enabled: boolean): void {
     try {
-      localStorage.setItem(
-        TRANSPARENT_EXPORT_STORAGE_KEY,
-        enabled ? '1' : '0',
-      );
+      saveString(TRANSPARENT_EXPORT_STORAGE_KEY, enabled ? '1' : '0', 'localStorage');
     } catch {
       // The session still exports even when storage is unavailable.
     }
@@ -8905,10 +8903,7 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     else next.add(id);
     this.completedLessons.set(next);
     try {
-      localStorage.setItem(
-        'smuve.cinema.learn.progress.v1',
-        JSON.stringify([...next])
-      );
+      saveJson('smuve.cinema.learn.progress.v1', [...next], 'localStorage');
     } catch {
       // Private-mode storage can reject writes; the session still works.
     }

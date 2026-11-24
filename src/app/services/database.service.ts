@@ -8,6 +8,7 @@ import { firstValueFrom } from 'rxjs';
 import { ArtistIdentityState } from '../types/artist-identity.types';
 import { TokenService } from './token.service';
 import { OfflineSyncService } from './offline-sync.service';
+import { saveJson, deleteSaved } from './guarded-storage';
 
 /** In-process queue endpoint for profile cloud retries (no fetch URL). */
 export const PROFILE_SYNC_ENDPOINT = 'smuve://profile-sync';
@@ -99,7 +100,7 @@ export class DatabaseService {
 
   private removeProfileBackup(key: string): void {
     try {
-      if (typeof localStorage !== 'undefined') localStorage.removeItem(key);
+      if (typeof localStorage !== 'undefined') deleteSaved(key, 'localStorage');
     } catch {
       // A blocked store keeps a stale copy; it is never trusted while blocked.
     }
@@ -128,12 +129,9 @@ export class DatabaseService {
     if (typeof localStorage !== 'undefined') {
       try {
         if (keepBackup) {
-          localStorage.setItem(
-            this.getProfileBackupKey(userId),
-            JSON.stringify(profile)
-          );
+          saveJson(this.getProfileBackupKey(userId), profile, 'localStorage');
         } else {
-          localStorage.removeItem(this.getProfileBackupKey(userId));
+          deleteSaved(this.getProfileBackupKey(userId), 'localStorage');
         }
       } catch (error) {
         this.logger.warn('Local profile backup unavailable; cloud sync will continue.', error);
@@ -285,10 +283,7 @@ export class DatabaseService {
         if (profile) {
           if (typeof localStorage !== 'undefined' && profile.settings?.security?.keepLocalProfileBackup !== false) {
             try {
-              localStorage.setItem(
-                this.getProfileBackupKey(userId),
-                JSON.stringify(profile)
-              );
+              saveJson(this.getProfileBackupKey(userId), profile, 'localStorage');
             } catch (error) {
               this.logger.warn('Could not refresh local profile backup.', error);
             }
@@ -329,7 +324,7 @@ export class DatabaseService {
     try {
       const parsed = JSON.parse(backup);
       if (parsed?.settings?.security?.keepLocalProfileBackup === false) {
-        localStorage.removeItem(this.getProfileBackupKey(userId));
+        deleteSaved(this.getProfileBackupKey(userId), 'localStorage');
         return null;
       }
       return parsed;

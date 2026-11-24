@@ -442,6 +442,30 @@
             {{ isSidebarOpen() ? 'menu_open' : 'menu' }}
           </span>
         </button>
+        <div
+          *ngIf="resumeTarget()"
+          class="flex items-center gap-1 shrink-0"
+        >
+          <button
+            type="button"
+            (click)="resumeLastRoute()"
+            class="h-9 px-2.5 rounded-lg border border-brand-primary/30 bg-brand-primary/10 text-brand-primary text-[9px] font-black uppercase tracking-widest flex items-center gap-1 hover:bg-brand-primary/20 transition-colors"
+            [attr.aria-label]="'Return to the previous surface: ' + resumeLabel()"
+            [title]="'Return to ' + (resumeTarget() || '') + ' — where you were before this page'"
+          >
+            <span class="material-symbols-outlined text-base">history</span>
+            {{ resumeLabel() }}
+          </button>
+          <button
+            type="button"
+            (click)="dismissResume()"
+            class="size-6 rounded-md text-slate-500 hover:text-red-400 text-xs font-black leading-none"
+            aria-label="Dismiss the resume shortcut"
+            title="Dismiss the resume shortcut"
+          >
+            ×
+          </button>
+        </div>
         <div class="h-6 w-px bg-border mx-1 md:mx-2 hidden sm:block"></div>
         <div
           class="mobile-surface-card flex items-center gap-3 md:gap-4 rounded-2xl border border-border bg-background-alt/40 px-3 md:px-4 py-2 min-w-0"

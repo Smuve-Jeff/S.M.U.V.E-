@@ -16,6 +16,7 @@ import {
   WORKSPACE_INDEX,
   WORKSPACE_REGISTRY,
 } from './workspace-registry';
+import { saveJson, saveString } from './guarded-storage';
 
 const THEMES: AppTheme[] = [
   {
@@ -173,7 +174,7 @@ export class UIService {
   setBeginnerMode(value: boolean) {
     this.beginnerMode.set(value);
     try {
-      localStorage.setItem('smuve_beginner_mode', String(value));
+      saveString('smuve_beginner_mode', String(value), 'localStorage');
     } catch {
       /* locked storage — degrade silently */
     }
@@ -265,7 +266,7 @@ export class UIService {
       return;
     }
     try {
-      localStorage.setItem(key, JSON.stringify(modes));
+      saveJson(key, modes, 'localStorage');
     } catch {
       // Recent and pinned workspaces still update in memory; routing and the
       // settings that depend on them keep working when the store is blocked.

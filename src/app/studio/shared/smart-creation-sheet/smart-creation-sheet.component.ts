@@ -44,6 +44,7 @@ import {
   type ProjectTemplate,
   type TemplateSection,
 } from "../../../services/project-template.service";
+import { saveJson } from '../../../services/guarded-storage';
 
 export interface GenreStarter {
   id: string;
@@ -400,7 +401,7 @@ export class SmartCreationSheetComponent implements OnDestroy {
     this.memory = { ...this.memory, ...patch, updatedAt: Date.now() };
     try {
       if (typeof window !== "undefined") {
-        window.localStorage.setItem(MEMORY_KEY, JSON.stringify(this.memory));
+        saveJson(MEMORY_KEY, this.memory, 'localStorage');
       }
     } catch {
       // Local mirror is best-effort; the account copy still lands.

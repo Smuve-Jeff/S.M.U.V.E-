@@ -5,6 +5,7 @@ import { AudioSessionService } from "./audio-session.service";
 import { MusicManagerService } from "../services/music-manager.service";
 import { DjMidiService } from "../services/dj-midi.service";
 import { PluginStoreService } from "../services/plugin-store.service";
+import { saveJson } from '../services/guarded-storage';
 
 export type StudioMidiTargetKind = "continuous" | "momentary";
 
@@ -452,7 +453,7 @@ export class StudioMidiLearnService {
 
   private persist(): void {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(this.bindings()));
+      saveJson(STORAGE_KEY, this.bindings(), 'localStorage');
     } catch {
       // Storage may be unavailable; bindings still work for this session.
     }

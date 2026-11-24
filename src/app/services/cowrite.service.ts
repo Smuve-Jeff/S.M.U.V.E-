@@ -2,6 +2,7 @@ import { Injectable, inject, signal, computed } from '@angular/core';
 import { SongwritingAssistantService, LyricSection, LyricLine } from './songwriting-assistant.service';
 import { SmuveStyleMimicService } from './smuve-style-mimic.service';
 import { AiService } from './ai.service';
+import { saveJson } from './guarded-storage';
 
 export interface CoWriteTurn {
   id: string;
@@ -1041,11 +1042,9 @@ export class CoWriteService {
     // publish a project that was never written.
     const existing = this.loadProjects();
     const next = [project, ...existing].slice(0, 50);
-    try {
-      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(next));
-    } catch {
-      // Storage can refuse (quota, private mode). Do not pretend the project
-      // is on disk, and do not add it to the in-memory saved list either.
+    // Storage can refuse (quota, private mode). Do not pretend the project is
+    // on disk, and do not add it to the in-memory saved list either.
+    if (!saveJson(this.STORAGE_KEY, next, 'localStorage')) {
       this.lastSaveError.set(
         'This project could not be saved on this device. Copy the lyrics out before leaving.',
       );
@@ -1096,11 +1095,9 @@ export class CoWriteService {
     }
     const filtered = projects.filter((p) => p.id !== projectId);
     if (filtered.length === projects.length) return 'missing';
-    try {
-      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(filtered));
-    } catch {
-      // A refused write leaves the project on disk, so it must stay in the
-      // list too: report the failure instead of claiming it was deleted.
+    // A refused write leaves the project on disk, so it must stay in the list
+    // too: report the failure instead of claiming it was deleted.
+    if (!saveJson(this.STORAGE_KEY, filtered, 'localStorage')) {
       this.lastSaveError.set(
         'This project could not be deleted from this device.',
       );

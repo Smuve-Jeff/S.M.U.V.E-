@@ -1,4 +1,5 @@
-/** Input trim bounds and dB→linear conversion for the recorder preamp stage. */
+
+import { saveJson, deleteSaved } from '../../services/guarded-storage';/** Input trim bounds and dB→linear conversion for the recorder preamp stage. */
 export const INPUT_TRIM_MIN_DB = -24;
 export const INPUT_TRIM_MAX_DB = 24;
 
@@ -80,9 +81,9 @@ export function rememberInputTrimDbForDevice(
     else map[key] = value;
 
     if (Object.keys(map).length === 0) {
-      localStorage.removeItem(INPUT_TRIM_BY_DEVICE_KEY);
+      deleteSaved(INPUT_TRIM_BY_DEVICE_KEY, 'localStorage');
     } else {
-      localStorage.setItem(INPUT_TRIM_BY_DEVICE_KEY, JSON.stringify(map));
+      saveJson(INPUT_TRIM_BY_DEVICE_KEY, map, 'localStorage');
     }
   } catch {
     // Keep the in-memory trim when storage is unavailable.

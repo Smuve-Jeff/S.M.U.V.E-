@@ -11,6 +11,7 @@ import {
 } from '../studio/wasm/wasm-dsp-kernels';
 import { createAlgorithmicReverb } from '../studio/wasm/algorithmic-reverb';
 import { LoggingService } from './logging.service';
+import { saveJson } from './guarded-storage';
 
 /**
  * S.M.U.V.E. 2.0 — WASM Plugin Framework (Sprint B1)
@@ -589,7 +590,7 @@ export class PluginStoreService {
       return;
     }
     try {
-      localStorage.setItem(ENABLED_KEY, JSON.stringify(next));
+      saveJson(ENABLED_KEY, next, 'localStorage');
     } catch {
       // storage unavailable — ignore
     }
@@ -601,7 +602,7 @@ export class PluginStoreService {
       return;
     }
     try {
-      localStorage.setItem(COMMUNITY_KEY, JSON.stringify(next));
+      saveJson(COMMUNITY_KEY, next, 'localStorage');
     } catch {
       // storage unavailable — ignore
     }
@@ -620,7 +621,7 @@ export class PluginStoreService {
       return;
     }
     try {
-      localStorage.setItem(PARAMS_KEY, JSON.stringify(this.paramOverrides()));
+      saveJson(PARAMS_KEY, this.paramOverrides(), 'localStorage');
     } catch {
       // storage unavailable — ignore
     }

@@ -63,6 +63,7 @@ import {
   musicXmlFileName,
   type MusicXmlPart,
 } from './score-view/score-musicxml.util';
+import { saveJson, deleteSaved } from '../services/guarded-storage';
 
 export interface StudioDirectorContext {
   surfaceId: string;
@@ -708,7 +709,7 @@ export class StudioAiDirectorService {
   private persistRunHistory(): void {
     try {
       if (typeof localStorage === 'undefined') return;
-      localStorage.setItem(DIRECTOR_RUN_HISTORY_KEY, JSON.stringify(this.runHistory));
+      saveJson(DIRECTOR_RUN_HISTORY_KEY, this.runHistory, 'localStorage');
     } catch {
       // Persistence is a convenience for the loop; a failed write must not break a run.
     }
@@ -719,7 +720,7 @@ export class StudioAiDirectorService {
     this.runHistory = [];
     this.lastRun = null;
     try {
-      if (typeof localStorage !== 'undefined') localStorage.removeItem(DIRECTOR_RUN_HISTORY_KEY);
+      if (typeof localStorage !== 'undefined') deleteSaved(DIRECTOR_RUN_HISTORY_KEY, 'localStorage');
     } catch {
       // Clearing persistence is best effort; memory state is already reset.
     }

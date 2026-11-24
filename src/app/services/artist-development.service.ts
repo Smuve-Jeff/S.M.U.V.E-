@@ -2,6 +2,7 @@ import { Injectable, inject, signal } from '@angular/core';
 import { UserProfileService } from './user-profile.service';
 import { ArtistPathwayService } from './artist-pathway.service';
 import { ReleaseProject } from '../types/release.types';
+import { saveJson, deleteSaved } from './guarded-storage';
 
 // ── PRO Registry ──────────────────────────────────────────
 
@@ -282,7 +283,7 @@ export class ArtistDevelopmentService {
   clearDspAnalytics(): void {
     this.dspAnalytics.set(null);
     try {
-      localStorage.removeItem('smuve_dsp_analytics');
+      deleteSaved('smuve_dsp_analytics', 'localStorage');
     } catch { /* ignore */ }
   }
 
@@ -592,16 +593,14 @@ export class ArtistDevelopmentService {
    * look like the change survived a reload when it did not.
    */
   private saveToStorage(key: string, data: any): boolean {
-    try {
-      localStorage.setItem(key, JSON.stringify(data));
-      if (this.storageError()) this.storageError.set(null);
-      return true;
-    } catch {
+    if (!saveJson(key, data, 'localStorage')) {
       this.storageError.set(
         'This change could not be saved on this device. Export a backup before leaving.',
       );
       return false;
     }
+    if (this.storageError()) this.storageError.set(null);
+    return true;
   }
 
   private loadFromStorage<T>(key: string): T | null {

@@ -40,6 +40,7 @@ import {
   normalizePersona,
   SMUVE_PERSONAS,
 } from '../../types/persona.types';
+import { saveString } from '../../services/guarded-storage';
 
 @Component({
   selector: 'app-settings',
@@ -269,7 +270,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
     const ui = this.settings().ui;
     const studio = this.settings().studio;
     try {
-      localStorage.setItem('smuve_beginner_mode', ui.beginnerMode ? 'on' : 'off');
+      saveString('smuve_beginner_mode', ui.beginnerMode ? 'on' : 'off', 'localStorage');
       document.body.classList.toggle('stage-fx-off', studio.stageFxEnabled === false);
     } catch {
       // Browser storage and DOM are optional in SSR, tests, and embedded hosts.
@@ -979,7 +980,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
       // optional guard also supports lightweight embedded/test hosts.
       this.uiService.beginnerMode?.set(!!value);
       try {
-        localStorage.setItem('smuve_beginner_mode', value ? 'on' : 'off');
+        saveString('smuve_beginner_mode', value ? 'on' : 'off', 'localStorage');
       } catch {
         // Locked storage is non-fatal; the profile remains the source of truth.
       }
@@ -989,7 +990,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
         document.body.classList.toggle('stage-fx-off', !value);
       }
       try {
-        localStorage.setItem('smuve_stage_fx', value ? 'on' : 'off');
+        saveString('smuve_stage_fx', value ? 'on' : 'off', 'localStorage');
       } catch {
         /* locked storage — degrade silently */
       }

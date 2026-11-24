@@ -8,6 +8,7 @@ import { SnackbarService } from "../../services/snackbar.service";
 import { HapticService } from "../../services/haptic.service";
 import { SamplePackService } from "../sample-pack.service";
 import { SamplerStateService } from "../sampler-state.service";
+import { saveJson } from '../../services/guarded-storage';
 
 interface LibraryCategory {
   id: string;
@@ -634,10 +635,7 @@ export class SampleLibraryComponent implements OnInit {
     else next.add(sampleId);
     this.favorites.set(next);
     try {
-      localStorage.setItem(
-        SampleLibraryComponent.FAVORITES_KEY,
-        JSON.stringify([...next]),
-      );
+      saveJson(SampleLibraryComponent.FAVORITES_KEY, [...next], 'localStorage');
     } catch {
       /* storage unavailable */
     }

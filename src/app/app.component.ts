@@ -141,6 +141,9 @@ export class AppComponent {
   router = inject(Router);
   destroyRef = inject(DestroyRef);
   continuity = inject(SessionContinuityService);
+  /** Previous route, offered as a "back to where you were" shortcut. */
+  resumeTarget = signal<string | null>(null);
+  private lastRoute: string | null = null;
   localSchema = inject(LocalSchemaService);
   localBackup = inject(LocalBackupService);
 
@@ -336,15 +339,22 @@ export class AppComponent {
     this.armAudioOnFirstUserGesture();
     this.startAutoSave();
 
+    this.lastRoute = this.router.url;
     this.router.events
       .pipe(
         filter((event) => event instanceof NavigationEnd),
         takeUntilDestroyed(this.destroyRef)
       )
       .subscribe(() => {
-        this.updateShellFromUrl(this.router.url);
+        const url = this.router.url;
+        // Offer the page the artist just left, not the one they are on.
+        if (this.lastRoute && this.lastRoute !== url) {
+          this.resumeTarget.set(this.lastRoute);
+        }
+        this.lastRoute = url;
+        this.updateShellFromUrl(url);
         this.resetRouteScroll();
-        this.continuity.record('route', this.router.url);
+        this.continuity.record('route', url);
       });
 
     // Local stores are versioned; the registry starts empty and every store
@@ -359,6 +369,30 @@ export class AppComponent {
         this.notificationService.show('System Offline', 'error', 3000);
       }
     });
+  }
+
+  /** Human label for the resume shortcut's destination. */
+  resumeLabel(): string {
+    const target = this.resumeTarget();
+    if (!target) return '';
+    const words = target
+      .replace(/^\//, '')
+      .split(/[/\\?=&]+/)
+      .filter(Boolean)
+      .join(' ');
+    return `Back to ${words || 'home'}`;
+  }
+
+  /** Return to the previous surface and offer nothing stale afterwards. */
+  resumeLastRoute(): void {
+    const target = this.resumeTarget();
+    if (!target) return;
+    this.resumeTarget.set(null);
+    void this.router.navigateByUrl(target);
+  }
+
+  dismissResume(): void {
+    this.resumeTarget.set(null);
   }
 
   @HostListener('window:beforeinstallprompt', ['$event'])

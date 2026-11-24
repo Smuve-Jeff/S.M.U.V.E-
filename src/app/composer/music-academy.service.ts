@@ -18,6 +18,7 @@ import {
   VOCAL_PRESETS,
   VOCAL_PROGRAM,
 } from './academy-data';
+import { saveJson } from '../services/guarded-storage';
 
 export const ACADEMY_PROGRESS_KEY = 'smuve.academy.progress.v1';
 
@@ -344,7 +345,7 @@ export class MusicAcademyService {
   private writeProgress(progress: Record<string, number>): void {
     if (typeof localStorage === 'undefined') return;
     try {
-      localStorage.setItem(ACADEMY_PROGRESS_KEY, JSON.stringify(progress));
+      saveJson(ACADEMY_PROGRESS_KEY, progress, 'localStorage');
     } catch {
       // Storage unavailable — in-memory progress still works this session.
     }

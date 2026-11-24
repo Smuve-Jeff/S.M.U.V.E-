@@ -1,6 +1,7 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { UserProfileService, UserProfile } from './user-profile.service';
 import { reportUnreadableStore } from './storage-notice';
+import { saveJson } from './guarded-storage';
 
 /** One profile signal that changed between S.M.U.V.E.'s reads. */
 export interface ProfileRevisionChange {
@@ -431,7 +432,7 @@ export class ArtistProfileRevisionService {
   private writeSources(artistId: string, sources: ProfileRevisionSource[]): void {
     if (typeof localStorage === 'undefined') return;
     try {
-      localStorage.setItem(this.sourceKey(artistId), JSON.stringify(sources));
+      saveJson(this.sourceKey(artistId), sources, 'localStorage');
     } catch {
       // Source attribution must not break the profile write.
     }
@@ -528,7 +529,7 @@ export class ArtistProfileRevisionService {
   private writeHistory(entries: ArtistProfileRevisionEntry[]): void {
     if (typeof localStorage === 'undefined') return;
     try {
-      localStorage.setItem(HISTORY_KEY, JSON.stringify(entries));
+      saveJson(HISTORY_KEY, entries, 'localStorage');
     } catch {
       // History is an audit aid, never a dependency of the current read.
     }
@@ -632,7 +633,7 @@ export class ArtistProfileRevisionService {
   private writeSnapshot(profile: UserProfile, snapshot: ProfileSnapshot): void {
     if (typeof localStorage === 'undefined') return;
     try {
-      localStorage.setItem(this.storageKey(profile), JSON.stringify(snapshot));
+      saveJson(this.storageKey(profile), snapshot, 'localStorage');
     } catch {
       // A full or restricted storage must not break the chat. The in-memory
       // baseline still appears on the next read of the same live profile.

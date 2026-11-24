@@ -15,6 +15,7 @@ import {
   SyncStatus,
   SyncTimelineEntry,
 } from '../types/cloud-sync.types';
+import { saveJson } from './guarded-storage';
 
 /**
  * Pushes at or above this size earn a notice (and a metered-connection
@@ -157,7 +158,7 @@ export class CloudSyncService {
       platform: PLATFORM,
     };
     try {
-      localStorage.setItem(DEVICE_KEY, JSON.stringify(device));
+      saveJson(DEVICE_KEY, device, 'localStorage');
     } catch {
       // The minted id still identifies this session when storage is blocked.
     }
@@ -212,7 +213,7 @@ export class CloudSyncService {
             };
         parsed.name = trimmed;
         parsed.lastActive = Date.now();
-        localStorage.setItem(DEVICE_KEY, JSON.stringify(parsed));
+        saveJson(DEVICE_KEY, parsed, 'localStorage');
       }
     } catch {
       // The in-memory name is enough when device storage is unavailable.

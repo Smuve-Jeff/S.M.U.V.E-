@@ -50,6 +50,7 @@ import {
   STUDIO_SURFACES,
   isStudioSurfaceId,
 } from "../../studio-surfaces";
+import { saveJson } from '../../../services/guarded-storage';
 
 type AssistantTab = "quick" | "chat" | "director";
 
@@ -443,7 +444,7 @@ export class AiAssistantComponent implements OnInit, AfterViewInit, OnDestroy {
       const slim = this.messages()
         .slice(-CHAT_STORAGE_MAX)
         .map(({ role, text, ts }) => ({ role, text, ts }));
-      window.localStorage.setItem(this.chatStorageKey(), JSON.stringify(slim));
+      saveJson(this.chatStorageKey(), slim, 'localStorage');
     } catch {
       // storage unavailable — degrade silently
     }

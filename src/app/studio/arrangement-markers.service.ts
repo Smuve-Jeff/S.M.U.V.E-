@@ -1,4 +1,5 @@
 import { Injectable, computed, signal } from "@angular/core";
+import { saveJson } from '../services/guarded-storage';
 
 /** A named arrangement location. `time` is in bars, like the arrangement ruler. */
 export interface ArrangementMarker {
@@ -121,7 +122,7 @@ export class ArrangementMarkersService {
 
   private persist(): void {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(this.markers()));
+      saveJson(STORAGE_KEY, this.markers(), 'localStorage');
     } catch {
       // Storage unavailable: markers still work for this session.
     }

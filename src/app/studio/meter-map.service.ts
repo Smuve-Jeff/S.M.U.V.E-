@@ -1,5 +1,6 @@
 import { Injectable, computed, inject, signal } from "@angular/core";
 import { AudioEngineService } from "../services/audio-engine.service";
+import { saveJson } from '../services/guarded-storage';
 
 /** A time-signature change pinned to an absolute song step. */
 export interface MeterMarker {
@@ -241,7 +242,7 @@ export class MeterMapService {
 
   private persist(): void {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(this.markers()));
+      saveJson(STORAGE_KEY, this.markers(), 'localStorage');
     } catch { /* ignore */ }
   }
 }

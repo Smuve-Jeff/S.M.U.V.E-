@@ -31,6 +31,7 @@ import {
   chapterNarration,
 } from './complete-app-guide.lessons';
 import { SpeechSynthesisService } from '../../services/speech-synthesis.service';
+import { saveJson, saveString, deleteSaved } from '../../services/guarded-storage';
 
 /**
  * The complete application guide.
@@ -247,8 +248,8 @@ export class HowToOverlayComponent implements AfterViewInit, OnDestroy {
     this.resumedChapter.set(null);
     this.selectedLesson.set(this.lessons[0]);
     try {
-      localStorage.removeItem(COMPLETE_GUIDE_PROGRESS_KEY);
-      localStorage.removeItem(COMPLETE_GUIDE_RESUME_KEY);
+      deleteSaved(COMPLETE_GUIDE_PROGRESS_KEY, 'localStorage');
+      deleteSaved(COMPLETE_GUIDE_RESUME_KEY, 'localStorage');
     } catch {
       // Private browsing can refuse storage; the in-memory reset still applies.
     }
@@ -518,7 +519,7 @@ export class HowToOverlayComponent implements AfterViewInit, OnDestroy {
 
   private rememberLesson(id: string): void {
     try {
-      localStorage.setItem(COMPLETE_GUIDE_RESUME_KEY, id);
+      saveString(COMPLETE_GUIDE_RESUME_KEY, id, 'localStorage');
     } catch {
       // Private browsing can refuse storage; the in-memory selection remains.
     }
@@ -540,10 +541,7 @@ export class HowToOverlayComponent implements AfterViewInit, OnDestroy {
     next.add(id);
     this.completed.set(next);
     try {
-      localStorage.setItem(
-        COMPLETE_GUIDE_PROGRESS_KEY,
-        JSON.stringify([...next])
-      );
+      saveJson(COMPLETE_GUIDE_PROGRESS_KEY, [...next], 'localStorage');
     } catch {
       // Private browsing can refuse storage; progress remains in memory.
     }

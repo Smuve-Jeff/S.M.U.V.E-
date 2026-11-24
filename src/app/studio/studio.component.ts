@@ -217,7 +217,7 @@ function readMusicMapSeen(): boolean {
 function markMusicMapSeen(): void {
   if (typeof window === "undefined") return;
   try {
-    window.localStorage.setItem(MUSIC_MAP_SEEN_STORAGE_KEY, "1");
+    saveString(MUSIC_MAP_SEEN_STORAGE_KEY, "1", 'localStorage');
   } catch {
     /* ignore */
   }
@@ -269,6 +269,7 @@ import {
   StemCacheService,
   StemCacheStore,
 } from "./stem-cache.service";
+import { saveString } from '../services/guarded-storage';
 /**
  * Views that render their own screen. Everything else falls through the
  * `*ngSwitchDefault` body of the view switch, which is the arrangement — so the
@@ -1153,7 +1154,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     if (this.firstNavigationSeen()) return;
     this.firstNavigationSeen.set(true);
     try {
-      localStorage.setItem("smuve_first_nav_seen", "true");
+      saveString("smuve_first_nav_seen", "true", 'localStorage');
     } catch {
       /* private mode / locked storage — degrade silently */
     }
@@ -1901,10 +1902,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   private persistMobileStart(): void {
     try {
       if (typeof localStorage === "undefined") return;
-      localStorage.setItem(
-        MOBILE_START_STORAGE_KEY,
-        this.mobileStartExpanded() ? "open" : "closed",
-      );
+      saveString(MOBILE_START_STORAGE_KEY, this.mobileStartExpanded() ? "open" : "closed", 'localStorage');
     } catch {
       /* private mode / WebView — the choice still applies for this session */
     }
@@ -2043,7 +2041,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     effect(() => {
       const theme = this.themeMode();
       try {
-        localStorage.setItem(THEME_STORAGE_KEY, theme);
+        saveString(THEME_STORAGE_KEY, theme, 'localStorage');
       } catch {
         /* ignore */
       }
@@ -2578,7 +2576,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
    */
   private persistStageFxState(enabled: boolean): void {
     try {
-      localStorage.setItem(STAGE_FX_STORAGE_KEY, enabled ? "on" : "off");
+      saveString(STAGE_FX_STORAGE_KEY, enabled ? "on" : "off", 'localStorage');
     } catch {
       /* private mode / locked storage — degrade silently */
     }

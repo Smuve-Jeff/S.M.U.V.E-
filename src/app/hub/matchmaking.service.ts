@@ -18,6 +18,7 @@ import {
   InviteMode,
 } from "../services/shareable-invite.service";
 import { APP_SECURITY_CONFIG } from "../app.security";
+import { saveJson } from '../services/guarded-storage';
 
 // ── Matchmaking Types (same shape as server-side payloads) ──
 
@@ -1715,10 +1716,7 @@ export class MatchmakingService implements OnDestroy {
   private saveLobbyChatHistory(lobbyId: string): void {
     try {
       const msgs = this.lobbyChatMessages();
-      localStorage.setItem(
-        this.LOBBY_CHAT_PREFIX + lobbyId,
-        JSON.stringify(msgs.slice(-50)),
-      );
+      saveJson(this.LOBBY_CHAT_PREFIX + lobbyId, msgs.slice(-50), 'localStorage');
     } catch {
       /* storage full */
     }
@@ -1808,10 +1806,7 @@ export class MatchmakingService implements OnDestroy {
   private saveReplayHistory(lobbyId: string): void {
     try {
       const snaps = this.lobbyReplaySnapshots();
-      localStorage.setItem(
-        this.REPLAY_PREFIX + lobbyId,
-        JSON.stringify(snaps.slice(-200)),
-      );
+      saveJson(this.REPLAY_PREFIX + lobbyId, snaps.slice(-200), 'localStorage');
     } catch {
       /* storage full */
     }

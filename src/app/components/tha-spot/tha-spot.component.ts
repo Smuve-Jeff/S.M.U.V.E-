@@ -58,6 +58,7 @@ import { LiveChatComponent } from "../live-chat/live-chat.component";
 import { SplitScreenPanelComponent } from "../split-screen-panel/split-screen-panel.component";
 import { SmuveTvComponent } from "../smuve-tv/smuve-tv.component";
 import { FormatTimePipe } from "./format-time.pipe";
+import { saveJson, deleteSaved } from '../../services/guarded-storage';
 
 const LIVE_CLOCK_INTERVAL_MS = 60000;
 const FEED_REFRESH_INTERVAL_MS = 300000;
@@ -4283,7 +4284,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     if (current.length > 8) current.length = 8;
     this.recentGames.set(current);
     try {
-      localStorage.setItem(this.RECENT_GAMES_KEY, JSON.stringify(current));
+      saveJson(this.RECENT_GAMES_KEY, current, 'localStorage');
     } catch {
       /* storage full — silently ignore */
     }
@@ -4292,7 +4293,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   clearRecentGames(): void {
     this.recentGames.set([]);
     try {
-      localStorage.removeItem(this.RECENT_GAMES_KEY);
+      deleteSaved(this.RECENT_GAMES_KEY, 'localStorage');
     } catch {
       /* ignore */
     }
@@ -4543,10 +4544,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
 
   private saveAchievements(): void {
     try {
-      localStorage.setItem(
-        this.ACHIEVEMENTS_KEY,
-        JSON.stringify(this.achievements()),
-      );
+      saveJson(this.ACHIEVEMENTS_KEY, this.achievements(), 'localStorage');
     } catch {
       /* ignore */
     }
@@ -4727,7 +4725,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     this.favorites.set(updated);
     this.checkAchievements();
     try {
-      localStorage.setItem("tha_spot_favorites", JSON.stringify(updated));
+      saveJson("tha_spot_favorites", updated, 'localStorage');
     } catch {
       /* ignore */
     }

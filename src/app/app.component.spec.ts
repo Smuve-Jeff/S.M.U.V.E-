@@ -242,6 +242,25 @@ describe('AppComponent', () => {
     };
   };
 
+  it('offers a resume shortcut to the surface the artist just left', async () => {
+    const { component, fixture, router } = await createComponent();
+
+    component.resumeTarget.set('/studio?view=mixer');
+    fixture.detectChanges();
+
+    expect(component.resumeLabel()).toBe('Back to studio view mixer');
+
+    component.resumeLastRoute();
+
+    expect(router.navigateByUrl).toHaveBeenCalledWith('/studio?view=mixer');
+    expect(component.resumeTarget()).toBeNull();
+
+    // Dismissing leaves nothing stale behind.
+    component.resumeTarget.set('/hub');
+    component.dismissResume();
+    expect(component.resumeTarget()).toBeNull();
+  });
+
   it('boots the shell when storage reads are blocked', async () => {
     const getItem = jest
       .spyOn(Storage.prototype, 'getItem')

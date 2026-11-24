@@ -1,4 +1,5 @@
 import { Injectable, computed, signal } from "@angular/core";
+import { saveJson, deleteSaved } from '../services/guarded-storage';
 
 export type StudioTelemetryEventName =
   | "studio_session_start"
@@ -541,7 +542,7 @@ export class StudioTelemetryService {
   resetCoachDismissals(): void {
     this.dismissedCoachIds.set(new Set());
     try {
-      localStorage.removeItem(this.DISMISS_KEY);
+      deleteSaved(this.DISMISS_KEY, 'localStorage');
     } catch {
       /* ignore */
     }
@@ -594,7 +595,7 @@ export class StudioTelemetryService {
   private saveEvents(events: StudioTelemetryEvent[]): void {
     if (!this.eventsReadable) return;
     try {
-      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(events));
+      saveJson(this.STORAGE_KEY, events, 'localStorage');
     } catch {
       // best-effort persistence
     }
@@ -620,7 +621,7 @@ export class StudioTelemetryService {
   private saveDismissed(ids: Set<StudioCoachActionId>): void {
     if (!this.dismissedReadable) return;
     try {
-      localStorage.setItem(this.DISMISS_KEY, JSON.stringify([...ids]));
+      saveJson(this.DISMISS_KEY, [...ids], 'localStorage');
     } catch {
       // best-effort persistence
     }

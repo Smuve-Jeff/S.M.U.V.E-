@@ -17,6 +17,7 @@ import { Clip } from "../instrument.service";
 import { AudioEngineService } from "../../services/audio-engine.service";
 import { MusicManagerService } from "../../services/music-manager.service";
 import { HapticService } from "../../services/haptic.service";
+import { saveString } from '../../services/guarded-storage';
 
 interface SynthPatch {
   id: string;
@@ -81,7 +82,7 @@ export class SynthesizerComponent implements OnInit, AfterViewInit, OnDestroy {
   toggleBeginner() {
     this.isBeginner.update((v) => !v);
     try {
-      localStorage.setItem("synth_beginner", String(this.isBeginner()));
+      saveString("synth_beginner", String(this.isBeginner()), 'localStorage');
     } catch { /* ignore */ }
     this.haptic.light();
   }

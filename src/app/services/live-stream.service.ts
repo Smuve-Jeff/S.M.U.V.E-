@@ -13,6 +13,7 @@ import {
 } from './broadcast-ingest.service';
 import { StreamingPlatformsService } from './streaming-platforms.service';
 import type { Socket } from 'socket.io-client';
+import { saveString, deleteSaved } from './guarded-storage';
 
 /**
  * Mirrors backend LiveStreamPlatform. `smuve` is the native S.M.U.V.E Live
@@ -870,7 +871,7 @@ export class LiveStreamService {
   private markHostingToken(token: string): void {
     this.hostingToken.set(token);
     try {
-      sessionStorage.setItem(HOST_TOKEN_STORAGE_KEY, token);
+      saveString(HOST_TOKEN_STORAGE_KEY, token, 'sessionStorage');
     } catch {
       /* storage can be blocked; this tab still owns its in-memory token */
     }
@@ -879,7 +880,7 @@ export class LiveStreamService {
   private clearHostingToken(): void {
     this.hostingToken.set(null);
     try {
-      sessionStorage.removeItem(HOST_TOKEN_STORAGE_KEY);
+      deleteSaved(HOST_TOKEN_STORAGE_KEY, 'sessionStorage');
     } catch {
       /* nothing to clear */
     }
@@ -981,7 +982,7 @@ export class LiveStreamService {
         typeof globalThis.crypto?.randomUUID === 'function'
           ? globalThis.crypto.randomUUID()
           : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
-      localStorage.setItem(LIVE_VIEWER_ID_STORAGE_KEY, created);
+      saveString(LIVE_VIEWER_ID_STORAGE_KEY, created, 'localStorage');
       return created;
     } catch {
       this.fallbackViewerId ??= `anon-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;

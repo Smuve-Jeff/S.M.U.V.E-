@@ -6,6 +6,7 @@ import {
 import { PluginStoreService } from "../services/plugin-store.service";
 import { VcaBusService } from "./vca-bus.service";
 import { bezierInterpolate, BezierPresets } from "./automation/bezier-utils";
+import { saveJson } from '../services/guarded-storage';
 
 export interface AutomationPoint {
   time: number;
@@ -106,10 +107,7 @@ export class AutomationService {
       const smoothing = this.writeSmoothing();
       if (typeof localStorage === "undefined") return;
       try {
-        localStorage.setItem(
-          this.writePrefsKey,
-          JSON.stringify({ mode, smoothing }),
-        );
+        saveJson(this.writePrefsKey, { mode, smoothing }, 'localStorage');
       } catch {
         // Private-mode storage failures must not break the transport.
       }

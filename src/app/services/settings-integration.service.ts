@@ -1,6 +1,7 @@
 import { Injectable, inject, effect } from '@angular/core';
 import { UserProfileService } from './user-profile.service';
 import { AudioEngineService } from './audio-engine.service';
+import { saveString } from './guarded-storage';
 
 @Injectable({
   providedIn: 'root',
@@ -31,7 +32,7 @@ export class SettingsIntegrationService {
         document.body.classList.toggle('stage-fx-off', !stageFx);
       }
       try {
-        localStorage.setItem('smuve_stage_fx', stageFx ? 'on' : 'off');
+        saveString('smuve_stage_fx', stageFx ? 'on' : 'off', 'localStorage');
       } catch {
         /* private mode / locked storage — degrade silently */
       }

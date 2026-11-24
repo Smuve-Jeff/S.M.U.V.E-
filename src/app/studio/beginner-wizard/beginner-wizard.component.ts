@@ -12,6 +12,7 @@ import {
   BEGINNER_SONG_STEPS,
   BeginnerPathService,
 } from "./beginner-path.service";
+import { saveJson } from '../../services/guarded-storage';
 
 export type { WizardStep } from "./beginner-path.service";
 
@@ -356,13 +357,12 @@ export class BeginnerWizardComponent {
    * does the artist must be told, or finished steps silently reset on reload.
    */
   private persistDoneSteps(set: Set<number>) {
-    try {
-      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(Array.from(set)));
-      if (this.progressError()) this.progressError.set(null);
-    } catch {
+    if (!saveJson(this.STORAGE_KEY, Array.from(set), 'localStorage')) {
       this.progressError.set(
         "Progress could not be saved on this device. Finished steps may reset after a reload.",
       );
+      return;
     }
+    if (this.progressError()) this.progressError.set(null);
   }
 }

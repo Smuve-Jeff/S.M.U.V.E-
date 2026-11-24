@@ -29,6 +29,7 @@ import {
   stepTiming,
   type StepTiming,
 } from '../studio/timing/ppq';
+import { saveString, deleteSaved } from './guarded-storage';
 
 export type DeckId = 'A' | 'B';
 
@@ -5805,9 +5806,7 @@ export class AudioEngineService {
 
   private persistTransportPrefs(): void {
     try {
-      localStorage.setItem(
-        TRANSPORT_PREFS_KEY,
-        serializeTransportPrefs({
+      saveString(TRANSPORT_PREFS_KEY, serializeTransportPrefs({
           loop: this.playbackLoopEnabled(),
           metronome: this.metronomeEnabled(),
           loopStart: this.playbackLoopStart(),
@@ -5817,8 +5816,7 @@ export class AudioEngineService {
           clickSound: this.clickSound(),
           countInLevel: this.countInLevel(),
           clickOutput: this.clickOutput(),
-        })
-      );
+        }), 'localStorage');
     } catch {
       // Quota or a locked store: the toggles still work for this session.
     }
@@ -6553,9 +6551,9 @@ export class AudioEngineService {
     try {
       if (typeof localStorage === 'undefined') return;
       if (deviceId) {
-        localStorage.setItem('smuve_output_device_v1', deviceId);
+        saveString('smuve_output_device_v1', deviceId, 'localStorage');
       } else {
-        localStorage.removeItem('smuve_output_device_v1');
+        deleteSaved('smuve_output_device_v1', 'localStorage');
       }
     } catch {
       /* private mode / storage disabled */

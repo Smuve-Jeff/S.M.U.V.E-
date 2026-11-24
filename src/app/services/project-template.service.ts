@@ -5,6 +5,7 @@ import {
   type PatternSlot,
 } from './music-manager.service';
 import { LoggingService } from './logging.service';
+import { saveJson } from './guarded-storage';
 
 export interface TemplateNote {
   midi: number;
@@ -911,7 +912,7 @@ export class ProjectTemplateService {
   private persist(templates: ProjectTemplate[]): void {
     if (typeof localStorage === 'undefined') return;
     try {
-      localStorage.setItem(USER_TEMPLATES_KEY, JSON.stringify(templates));
+      saveJson(USER_TEMPLATES_KEY, templates, 'localStorage');
     } catch {
       // Storage full or refused: the in-memory list still works this session.
     }

@@ -98,6 +98,8 @@ describe('ChatbotComponent', () => {
       // engine.setSongLengthSteps() while instantiating; mock it so the
       // chatbot component test can compile without throwing.
       setSongLengthSteps: jest.fn(),
+      // Tempo is a writable signal; Full Control's tempo actions use it.
+      tempo: signal(120),
     };
     speechRecognitionServiceMock = {
       isSupported: signal(true),
@@ -469,6 +471,35 @@ describe('ChatbotComponent', () => {
     expect(component.messages().at(-1)?.text).toContain('A&R DESK');
     expect(capture).not.toHaveBeenCalled();
     capture.mockRestore();
+  });
+
+  it('records an applied tempo with an undo that restores the previous BPM', async () => {
+    const profile = userProfileServiceMock.profile();
+    userProfileServiceMock.profile.set({
+      ...profile,
+      settings: {
+        ...profile.settings,
+        ai: { ...profile.settings.ai, aiTotalControlEnabled: true },
+      },
+    });
+    const tempo = (component as any).audioEngineService.tempo;
+    tempo.set(132);
+
+    await (component as any).runChatAction({
+      id: 'tempo-90',
+      label: 'Lock 90',
+    });
+
+    expect(tempo()).toBe(90);
+    const ledger = (component as any).actionLedger;
+    const entry = ledger.history().at(-1);
+    expect(entry.action).toBe('tempo-90');
+    expect(entry.undoable).toBe(true);
+
+    ledger.undoLast();
+
+    expect(tempo()).toBe(132);
+    expect(ledger.canUndo()).toBe(false);
   });
 
   it('carries the previous exchange into the receiving desk', async () => {

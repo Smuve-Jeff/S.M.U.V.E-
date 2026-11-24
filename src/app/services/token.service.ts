@@ -1,4 +1,5 @@
 import { Injectable, signal } from '@angular/core';
+import { saveString, deleteSaved } from './guarded-storage';
 
 export type TokenSource = 'api' | 'legacy' | null;
 
@@ -44,11 +45,11 @@ export class TokenService {
     try {
       if (typeof localStorage !== 'undefined') {
         if (token) {
-          localStorage.setItem(TOKEN_STORAGE_KEY, token);
-          localStorage.setItem(TOKEN_SOURCE_STORAGE_KEY, source);
+          saveString(TOKEN_STORAGE_KEY, token, 'localStorage');
+          saveString(TOKEN_SOURCE_STORAGE_KEY, source, 'localStorage');
         } else {
-          localStorage.removeItem(TOKEN_STORAGE_KEY);
-          localStorage.removeItem(TOKEN_SOURCE_STORAGE_KEY);
+          deleteSaved(TOKEN_STORAGE_KEY, 'localStorage');
+          deleteSaved(TOKEN_SOURCE_STORAGE_KEY, 'localStorage');
         }
       }
     } catch {

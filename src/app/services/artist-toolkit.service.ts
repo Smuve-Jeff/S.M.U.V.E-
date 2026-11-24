@@ -17,6 +17,7 @@ import {
   RIGHTS_TASKS,
   TOOLKIT_GUIDES,
 } from './artist-toolkit.data';
+import { saveJson } from './guarded-storage';
 
 const STORAGE_KEY = 'smuve_artist_toolkit_v1';
 
@@ -712,16 +713,13 @@ export class ArtistToolkitService {
   private persist(): void {
     if (typeof localStorage === 'undefined') return;
     try {
-      localStorage.setItem(
-        STORAGE_KEY,
-        JSON.stringify({
+      saveJson(STORAGE_KEY, {
           version: 1,
           blueprint: this.blueprint(),
           splitSheet: this.splitSheet(),
           royalty: this.royalty(),
           completedRights: this.completedRights(),
-        })
-      );
+        }, 'localStorage');
       this.persistenceError.set(null);
     } catch {
       this.persistenceError.set(

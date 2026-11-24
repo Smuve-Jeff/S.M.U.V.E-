@@ -1,5 +1,6 @@
 import { Injectable, computed, inject, signal } from "@angular/core";
 import { AudioEngineService } from "../services/audio-engine.service";
+import { saveJson } from '../services/guarded-storage';
 
 /** A tempo change pinned to an absolute song step (16 steps = one 4/4 bar). */
 export interface TempoMarker {
@@ -225,7 +226,7 @@ export class TempoMapService {
 
   private persist(): void {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(this.markers()));
+      saveJson(STORAGE_KEY, this.markers(), 'localStorage');
     } catch { /* ignore */ }
   }
 }

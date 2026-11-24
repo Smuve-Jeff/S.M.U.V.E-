@@ -38,6 +38,7 @@ import {
   trackLength,
 } from '../../services/smuve-tv-feeds.service';
 import { SmuveTvPlaybackService /* app-wide */ } from '../../services/smuve-tv-playback.service';
+import { saveJson } from '../../services/guarded-storage';
 
 /** Deterministic 0–1 noise, so scenes never allocate and never repeat visibly. */
 function noise01(seed: number): number {
@@ -76,7 +77,7 @@ function readFavoriteStations(service: SmuveTvService): string[] {
 function writeFavoriteStations(ids: string[]): void {
   try {
     if (typeof localStorage === 'undefined') return;
-    localStorage.setItem(STATION_FAVORITES_KEY, JSON.stringify(ids));
+    saveJson(STATION_FAVORITES_KEY, ids, 'localStorage');
   } catch {
     // Storage is read-only in a private context; favourites stay in memory.
   }

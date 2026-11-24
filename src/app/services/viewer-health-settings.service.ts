@@ -3,6 +3,7 @@ import { isValidViewerHealth } from "./viewer-health";
 import type { ViewerHealthThresholds } from "./viewer-health";
 import { removeStore, writeJsonStore } from "./guarded-storage";
 import { reportUnreadableStore } from "./storage-notice";
+import { deleteSaved } from './guarded-storage';
 
 export const VIEWER_HEALTH_STORAGE_KEY = "smuve.cinema.viewer-health.v1";
 export const VIEWER_HEALTH_UNDO_STORAGE_KEY =
@@ -223,7 +224,7 @@ function loadUndo(): UndoSnapshot | null {
       typeof record.expiresAt !== "number" ||
       record.expiresAt <= Date.now()
     ) {
-      sessionStorage.removeItem(VIEWER_HEALTH_UNDO_STORAGE_KEY);
+      deleteSaved(VIEWER_HEALTH_UNDO_STORAGE_KEY, 'sessionStorage');
       return null;
     }
     const overrides = sanitizeOverrides(record.overrides);

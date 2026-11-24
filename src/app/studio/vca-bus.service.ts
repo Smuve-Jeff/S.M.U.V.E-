@@ -1,4 +1,5 @@
 import { Injectable, computed, signal } from "@angular/core";
+import { saveJson } from '../services/guarded-storage';
 
 /**
  * A Voltage Controlled Amplifier (VCA) bus.
@@ -68,13 +69,10 @@ export class VcaBusService {
 
   private persist(): void {
     try {
-      localStorage.setItem(
-        STORAGE_KEY,
-        JSON.stringify({
+      saveJson(STORAGE_KEY, {
           buses: this.buses(),
           assignments: this.assignments(),
-        }),
-      );
+        }, 'localStorage');
     } catch {
       // no-op: Safari private mode, etc.
     }

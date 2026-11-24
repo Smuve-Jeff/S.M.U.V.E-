@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import type { FinetuneRole } from './artist-profile-finetune.service';
 import { reportUnreadableStore } from './storage-notice';
+import { saveJson, deleteSaved } from './guarded-storage';
 
 export type DeskTelemetryEvent = 'opened' | 'answered' | 'fallback';
 
@@ -44,7 +45,7 @@ export class DeskTelemetryService {
   reset(): void {
     this.counts = {};
     try {
-      sessionStorage.removeItem(STORAGE_KEY);
+      deleteSaved(STORAGE_KEY, 'sessionStorage');
     } catch {
       // Storage is optional; counters simply stay in memory.
     }
@@ -66,7 +67,7 @@ export class DeskTelemetryService {
   private write(): void {
     if (!this.countsReadable) return;
     try {
-      sessionStorage.setItem(STORAGE_KEY, JSON.stringify(this.counts));
+      saveJson(STORAGE_KEY, this.counts, 'sessionStorage');
     } catch {
       // A blocked store costs telemetry, never the desk.
     }

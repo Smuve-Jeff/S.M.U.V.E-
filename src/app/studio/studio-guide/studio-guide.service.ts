@@ -7,6 +7,7 @@ import {
   type GuideTrack,
   type GuideTrackId,
 } from "./studio-guide.data";
+import { saveJson } from '../../services/guarded-storage';
 
 /** Persisted progress for the Masterclass. One array of lesson ids. */
 export const GUIDE_PROGRESS_STORAGE_KEY = "smuve.studio.guide.progress.v1";
@@ -150,10 +151,7 @@ export class StudioGuideService {
     this.completedIds.set(next);
     if (typeof window === "undefined") return;
     try {
-      window.localStorage.setItem(
-        GUIDE_PROGRESS_STORAGE_KEY,
-        JSON.stringify([...next]),
-      );
+      saveJson(GUIDE_PROGRESS_STORAGE_KEY, [...next], 'localStorage');
       if (this.storageError()) this.storageError.set(null);
     } catch {
       this.storageError.set(

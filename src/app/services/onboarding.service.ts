@@ -4,6 +4,7 @@ import { Router } from '@angular/router';
 import { UserProfileService } from './user-profile.service';
 import { MainViewMode } from './user-context.service';
 import { UIService } from './ui.service';
+import { saveJson, saveString, deleteSaved } from './guarded-storage';
 
 const DEFAULT_ARTIST_NAME = 'New Artist';
 
@@ -117,7 +118,7 @@ function readCompletedTourSteps(): Record<string, boolean> {
 function writeCompletedTourSteps(record: Record<string, boolean>): void {
   if (typeof window === 'undefined') return;
   try {
-    localStorage.setItem(TOUR_PROGRESS_KEY, JSON.stringify(record));
+    saveJson(TOUR_PROGRESS_KEY, record, 'localStorage');
   } catch {
     /* ignore */
   }
@@ -228,7 +229,7 @@ export class OnboardingService {
     this.dismissed.set(true);
     try {
       if (typeof window !== 'undefined') {
-        localStorage.setItem('smuve_onboarding_dismissed', 'true');
+        saveString('smuve_onboarding_dismissed', 'true', 'localStorage');
       }
     } catch {
       // Dismissal still holds for this session when storage is blocked.
@@ -239,7 +240,7 @@ export class OnboardingService {
     this.dismissed.set(false);
     try {
       if (typeof window !== 'undefined') {
-        localStorage.removeItem('smuve_onboarding_dismissed');
+        deleteSaved('smuve_onboarding_dismissed', 'localStorage');
       }
     } catch {
       // The in-memory reset is enough when storage is blocked.
@@ -296,7 +297,7 @@ export class OnboardingService {
   startTour(): void {
     try {
       if (typeof window !== 'undefined') {
-        localStorage.setItem(TOUR_STORAGE_KEY, '1');
+        saveString(TOUR_STORAGE_KEY, '1', 'localStorage');
       }
     } catch {
       // The tour still runs for this session when storage is blocked.
@@ -317,7 +318,7 @@ export class OnboardingService {
     this.currentTour.set(null);
     try {
       if (typeof window !== 'undefined') {
-        localStorage.removeItem(TOUR_STORAGE_KEY);
+        deleteSaved(TOUR_STORAGE_KEY, 'localStorage');
       }
     } catch {
       // Closing the tour never depends on the write.
@@ -328,7 +329,7 @@ export class OnboardingService {
     this.currentTour.set(null);
     try {
       if (typeof window !== 'undefined') {
-        localStorage.removeItem(TOUR_STORAGE_KEY);
+        deleteSaved(TOUR_STORAGE_KEY, 'localStorage');
       }
     } catch {
       // Closing the tour never depends on the write.
