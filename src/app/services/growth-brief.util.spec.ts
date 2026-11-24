@@ -1,7 +1,9 @@
 import {
+  GROWTH_MAX_CHARS,
   GROWTH_TRUNCATED_NOTE,
   GROWTH_WITHHELD,
   buildGrowthBrief,
+  growthBudgetFor,
   growthGapLabel,
   growthMonthLabel,
   trimGrowthBrief,
@@ -231,6 +233,20 @@ describe('growth brief for the model prompt', () => {
     // record is worse than no record at all.
     expect(trimGrowthBrief('x'.repeat(50), 10)).toBe('');
     expect(trimGrowthBrief(GROWTH_TRUNCATED_NOTE, 10)).toBe('');
+  });
+
+  it('never takes so much of a tight budget that the fine-tune starves', () => {
+    // A fixed 1,400 claim on a long request leaves the artist fine-tune with a
+    // fragment; the share cap keeps at least two fifths of the remainder.
+    const tight = 1400;
+    const growth = growthBudgetFor(tight);
+    expect(growth).toBe(840);
+    expect(tight - growth).toBeGreaterThanOrEqual(500);
+    expect(growthBudgetFor(600)).toBe(360);
+    expect(growthBudgetFor(5000)).toBe(GROWTH_MAX_CHARS);
+    expect(growthBudgetFor(0)).toBe(0);
+    expect(growthBudgetFor(-40)).toBe(0);
+    expect(growthBudgetFor(Number.NaN)).toBe(0);
   });
 
   it('carries the withheld notice for artists who do not share figures', () => {

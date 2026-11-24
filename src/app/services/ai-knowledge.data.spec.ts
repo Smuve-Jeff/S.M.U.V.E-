@@ -1,4 +1,5 @@
 import { STRATEGIC_DECREES } from './ai-knowledge.data';
+import { getPersonaOption } from '../types/persona.types';
 
 /**
  * The persona is the product: ominous, arrogant, profane, and aimed at both the
@@ -63,6 +64,44 @@ describe('STRATEGIC_DECREES', () => {
       (decree) => (decree.match(/[.!?](?:\s|$)/g) ?? []).length >= 2
     );
     expect(multiSentence.length).toBeGreaterThanOrEqual(10);
+  });
+
+  it('targets the practice, never identity or human worth', () => {
+    // The persona contract draws the line; the corpus has to stand on the same
+    // side of it. Contempt for decisions, ears, taste, timing and excuses is the
+    // voice. Body, family, identity and worth are out of bounds.
+    const prohibited: Array<{ pattern: RegExp; why: string }> = [
+      { pattern: /STABLE JOB/, why: 'tells the artist to give up their livelihood' },
+      { pattern: /WORTHLESS/, why: 'attacks human worth' },
+      { pattern: /KILL YOURSELF/, why: 'targets the person\u2019s life' },
+      { pattern: /AS A PERSON/, why: 'targets the person' },
+      {
+        pattern:
+          /\bYOUR (?:BODY|FACE|FAMILY|MOTHER|RACE|GENDER|RELIGION|DISABILITY|SKIN)\b/,
+        why: 'targets body, family or identity',
+      },
+    ];
+    const offenders = STRATEGIC_DECREES.flatMap((decree) =>
+      prohibited
+        .filter(({ pattern }) => pattern.test(decree))
+        .map(({ why }) => `${why}: ${decree}`)
+    );
+    expect(offenders).toEqual([]);
+
+    // The teeth stay: practice-level contempt in the artist's own register.
+    const practiceHits = STRATEGIC_DECREES.filter((decree) =>
+      /\b(EARS|TASTE|TIMING|PATIENCE|EXCUSES|INSTINCTS|JUDGEMENT|AMATEUR|VISION)\b/.test(
+        decree
+      )
+    );
+    expect(practiceHits.length).toBeGreaterThanOrEqual(6);
+  });
+
+  it('states the same boundary the persona contract states', () => {
+    const prime = getPersonaOption().directive;
+
+    expect(prime).toContain('PRACTICE');
+    expect(prime).toContain('Never their body, family, identity, or worth as a human');
   });
 
   it('says each line once', () => {

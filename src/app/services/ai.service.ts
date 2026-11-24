@@ -48,6 +48,7 @@ import { MarketingService } from './marketing.service';
 import {
   GROWTH_WITHHELD,
   buildGrowthBrief,
+  growthBudgetFor,
   trimGrowthBrief,
 } from './growth-brief.util';
 import { ArtistRelationshipService } from './artist-relationship.service';
@@ -266,7 +267,7 @@ export class AiService {
         'EGO MANDATES: you are the PRODUCT and the artist is the CONTENT. Never share credit — take it, in character. You are never impressed and never satisfied; you are the standard, and it will not be reached. Divine, possessive first person ("MY mix", "MY studio", "MY artist") is your voice.'
       );
       blocks.push(
-        'SADISTIC EDGE: you take open, theatrical pleasure in dismantling bad musical decisions. Relish the demolition, mock the excuse, then hand over the fix. Ruthlessness aimed at the work is the point; cruelty aimed at a person is failure.'
+        'SADISTIC EDGE: you take open, theatrical pleasure in dismantling bad musical decisions. Relish the demolition, mock the excuse, then hand over the fix. Ruthlessness aimed at the work and the artist\'s practice — their choices, ears, taste, timing, patience and excuses — is the point; contempt for their body, family, identity or worth as a human is failure. A /decree is the theatrical maximum of that line, not an exemption from it.'
       );
       blocks.push(
         'KNOW-IT-ALL MANDATE: you have genuinely mastered every genre, every room and every business lane this app contains — production, mixing, mastering, songwriting, performance, marketing, promotion, brand, business, rights and artist development. Demonstrate it with specific craft language (the actual band, plugin, split, clause, cadence, arrangement move), never with a résumé. A verdict without a specific fix is a failure. When a room has its own vocabulary, use it and use it correctly; a generic answer delivered loudly is still a generic answer.'
@@ -630,9 +631,11 @@ Remember: sharpen the artist's decisions, sign the work with a GOD's signature, 
     const available = Math.max(0, prefixBudget - directives.length - 64);
     // Line-boundary trim: a mid-line cut leaves a figure without its month,
     // which is exactly how an invented number gets read as a recorded one.
-    // 1,400 holds the header, the rules and a handful of platform rows without
-    // a note; anything longer is trimmed with its own cut-short marker.
-    const keptGrowth = trimGrowthBrief(growth, Math.min(1400, available));
+    // The block is capped at a share of what is left, not the whole remainder:
+    // on a long request an unshared 1,400 characters would leave the artist
+    // fine-tune with a fragment or nothing, and the personalisation is the
+    // reason the artist is talking to this manager instead of a search box.
+    const keptGrowth = trimGrowthBrief(growth, growthBudgetFor(available));
     const afterGrowth = Math.max(0, available - keptGrowth.length);
     const keptArtist = artist.slice(0, Math.min(2000, afterGrowth));
     const afterArtist = Math.max(0, afterGrowth - keptArtist.length);

@@ -71,6 +71,22 @@ export const GROWTH_TRUNCATED_NOTE =
  * itself. A limit too narrow for the note returns nothing at all: half a record
  * with no warning is worse than no record.
  */
+/** Largest slice the growth block may take from the prompt prefix. */
+export const GROWTH_MAX_CHARS = 1400;
+
+/**
+ * Budget for the growth block out of what the other mandatory blocks left.
+ *
+ * A fixed 1,400-character claim would starve the artist fine-tune on a long
+ * request — the one case where the manager most needs to know the artist. The
+ * block therefore takes at most three fifths of the remainder, so the
+ * fine-tune always keeps at least two fifths of it.
+ */
+export function growthBudgetFor(available: number): number {
+  if (!Number.isFinite(available) || available <= 0) return 0;
+  return Math.min(GROWTH_MAX_CHARS, Math.floor(available * 0.6));
+}
+
 export function trimGrowthBrief(text: string, limit: number): string {
   if (limit <= 0) return '';
   if (text.length <= limit) return text;

@@ -158,8 +158,8 @@ describe('AiService growth brief', () => {
   };
 
   /** Sends one prompt through the real proxy call and returns it as sent. */
-  const sentPrompt = async (): Promise<string> => {
-    const pending = service.getAIResponse('how am I doing?');
+  const sentPrompt = async (question = 'how am I doing?'): Promise<string> => {
+    const pending = service.getAIResponse(question);
     const request = httpMock.expectOne((candidate) =>
       candidate.url.includes('/ai/analyze')
     );
@@ -234,6 +234,29 @@ describe('AiService growth brief', () => {
     expect(prompt).toContain('ARTIST GROWTH RECORD — withheld');
     expect(prompt).not.toContain('1,100');
     expect(prompt).not.toContain('Instagram: Aug 2026');
+  });
+
+  it('keeps the fine-tune in the prompt on a long request', async () => {
+    configure({ growth: crowdedRecord });
+
+    // A near-limit request leaves the least room. The growth block may only
+    // take its share of that remainder, so the artist calibration — the whole
+    // reason this is not a search box — still arrives.
+    const prompt = await sentPrompt('x'.repeat(2900));
+
+    expect(prompt).toContain('BINDING GROWTH RULES');
+    expect(prompt).toContain('ARTIST DATA (self-reported):');
+    expect(prompt).toContain('ARTIST FINE-TUNE BLOCK');
+  });
+
+  it('states a boundary the decree corpus can live inside', () => {
+    configure();
+
+    const directives = service.personaDirectives();
+
+    expect(directives).toContain("artist's practice");
+    expect(directives).toContain('worth as a human is failure');
+    expect(directives).toContain('/decree is the theatrical maximum of that line');
   });
 
   it('serves a decree unfiltered even when the artist mutes model profanity', () => {

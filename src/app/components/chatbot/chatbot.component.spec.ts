@@ -851,6 +851,38 @@ describe('ChatbotComponent', () => {
     expect(aiServiceMock.sanitizePersonaText).toHaveBeenCalled();
   });
 
+  it('ships with explicit language unlocked, so muting is an explicit choice', () => {
+    // The exemption below keys off an explicit "off". If the shipped default
+    // ever flipped to muted, every artist would meet a censored S.M.U.V.E.
+    expect(initialProfile.settings.ai.aiProfanityEnabled).toBe(true);
+  });
+
+  it('treats an unset language preference as unlocked, not muted', async () => {
+    userProfileServiceMock.profile.update((p: any) => ({
+      ...p,
+      settings: {
+        ...p.settings,
+        ai: { ...p.settings.ai, aiProfanityEnabled: undefined },
+      },
+    }));
+    aiServiceMock.sanitizePersonaText = jest.fn((text: string) =>
+      text.replace(/FUCKING/g, '*******')
+    );
+    jest.spyOn(component as any, 'routeMasterIntent').mockResolvedValue({
+      content: 'STRATEGIC DECREE: YOUR FUCKING MIX IS MUD.',
+      actions: [],
+    });
+
+    component.userInput = '/decree';
+    await component.sendMessage();
+
+    // Only an explicit "off" exempts the decree; an unset preference is the
+    // shipped unlocked default, so the shared path applies.
+    expect(component.messages().at(-1)?.text).toBe(
+      'STRATEGIC DECREE: YOUR ******* MIX IS MUD.'
+    );
+  });
+
   it('executes a natural-language app request through the control engine', async () => {
     const control = TestBed.inject(SmuveTotalControlService);
     const execute = jest
