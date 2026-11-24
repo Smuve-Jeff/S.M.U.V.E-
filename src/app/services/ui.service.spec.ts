@@ -33,6 +33,33 @@ describe('UIService responsive breakpoints', () => {
     service = TestBed.inject(UIService);
   });
 
+  it('defaults beginner mode when the store is unreadable at construction', () => {
+    const getItem = jest
+      .spyOn(Storage.prototype, 'getItem')
+      .mockImplementation(() => {
+        throw new Error('storage blocked');
+      });
+
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({
+      providers: [
+        { provide: Router, useValue: { navigateByUrl: jest.fn() } },
+        {
+          provide: UserProfileService,
+          useValue: { profile: () => null, updateProfile: jest.fn() },
+        },
+      ],
+    });
+
+    let blocked: UIService | null = null;
+    expect(() => {
+      blocked = TestBed.inject(UIService);
+    }).not.toThrow();
+    expect(blocked!.beginnerMode()).toBe(true);
+
+    getItem.mockRestore();
+  });
+
   it('enables the compact mobile shell on phones (≤768px)', () => {
     setViewport(400, 800);
 

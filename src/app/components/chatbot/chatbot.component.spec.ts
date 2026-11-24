@@ -665,6 +665,25 @@ describe('ChatbotComponent', () => {
     getItem.mockRestore();
   });
 
+  it('initializes with an unreadable store and still greets the artist', () => {
+    const getItem = jest
+      .spyOn(Storage.prototype, 'getItem')
+      .mockImplementation(() => {
+        throw new Error('storage blocked');
+      });
+
+    let blocked: ComponentFixture<ChatbotComponent> | null = null;
+    expect(() => {
+      blocked = TestBed.createComponent(ChatbotComponent);
+      blocked.componentInstance.ngOnInit();
+      blocked.detectChanges();
+    }).not.toThrow();
+
+    getItem.mockRestore();
+    expect(blocked!.componentInstance.messages().length).toBeGreaterThan(0);
+    blocked!.destroy();
+  });
+
   it('restores the guest desk on sign-out instead of the account desk', async () => {
     const users = TestBed.inject(UserStoreService);
     users.user.set(null);

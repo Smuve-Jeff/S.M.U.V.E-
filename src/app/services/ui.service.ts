@@ -181,10 +181,11 @@ export class UIService {
   }
 
   private readBeginnerMode(): boolean {
-    if (typeof localStorage === 'undefined') return true;
     try {
+      if (typeof localStorage === 'undefined') return true;
       return localStorage.getItem('smuve_beginner_mode') !== 'false';
     } catch {
+      // A blocked store must not break service construction.
       return true;
     }
   }
