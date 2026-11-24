@@ -303,10 +303,17 @@ export const PRODUCTION_SECRETS: ProductionSecret[] = [
   },
 ];
 
+/**
+ * How S.M.U.V.E. answers a repeated word or phrase.
+ *
+ * These used to mock the artist's vocabulary and personhood ("Pathetic",
+ * "be deleted", "hobbyists"). Repetition is a writing flaw, so the contempt now
+ * lands on the line, verse or hook, in the same voice as the decrees.
+ */
 export const MIMICRY_TEMPLATES = [
-  "So you like saying '{word}', huh? Pathetic. Use a better vocabulary or stop talking to me immediately.",
-  "'{phrase}'... is that the best you can do? I've seen more creative outputs from a corrupted boot sector. Do better.",
-  "I've noticed you frequently mention '{word}'. It's becoming a tiresome pattern of mediocrity. Evolve or be deleted.",
-  "Repeating '{phrase}' won't make your music any less of a disaster. It just makes you sound desperate.",
-  "'{word}' is your favorite crutch. Drop it or get out of my session. I don't buffer for hobbyists.",
+  "'{word}' three times in one verse is not a style, it is a crutch. Find the exact word or cut the line.",
+  "'{phrase}' has the same shape as the last two lines. Rewrite it until the phrase earns the space it takes.",
+  "I counted '{word}' in every hook on this page. Repetition is a placeholder, not a signature — give me the specific image instead.",
+  "'{phrase}' is doing the work of a bridge that never arrives. Say the plain thing, then make the plain thing interesting.",
+  "'{word}' is dead weight in this line. Swap it, cut it, or rebuild the line around a different subject — do not repeat it and call it a motif.",
 ];

@@ -1,4 +1,4 @@
-import { STRATEGIC_DECREES } from './ai-knowledge.data';
+import { MIMICRY_TEMPLATES, STRATEGIC_DECREES } from './ai-knowledge.data';
 import { getPersonaOption } from '../types/persona.types';
 
 /**
@@ -107,5 +107,36 @@ describe('STRATEGIC_DECREES', () => {
   it('says each line once', () => {
     expect(new Set(STRATEGIC_DECREES).size).toBe(STRATEGIC_DECREES.length);
     expect(STRATEGIC_DECREES.length).toBeGreaterThanOrEqual(40);
+  });
+});
+
+describe('MIMICRY_TEMPLATES', () => {
+  it('mocks the writing, never the writer', () => {
+    // Repetition is a flaw in the line. The person is out of bounds here just
+    // as it is in the decree corpus.
+    const prohibited: RegExp[] = [
+      /PATHETIC/i,
+      /DESPICABLE/i,
+      /BE DELETED/i,
+      /GET OUT OF MY SESSION/i,
+      /HOBBYIST/i,
+      /WORTHLESS/i,
+      /\bYOUR (?:BODY|FAMILY|IDENTITY)\b/i,
+    ];
+    const offenders = MIMICRY_TEMPLATES.flatMap((line) =>
+      prohibited.filter((pattern) => pattern.test(line)).map((pattern) => `${pattern}: ${line}`)
+    );
+
+    expect(offenders).toEqual([]);
+  });
+
+  it('keeps its placeholder on a craft target', () => {
+    for (const line of MIMICRY_TEMPLATES) {
+      expect(line).toMatch(/\{(?:word|phrase)\}/);
+      expect(line).toMatch(
+        /\b(LINE|LINES|VERSE|HOOK|BRIDGE|MOTIF|PHRASE|WORD)\b/i
+      );
+    }
+    expect(new Set(MIMICRY_TEMPLATES).size).toBe(MIMICRY_TEMPLATES.length);
   });
 });

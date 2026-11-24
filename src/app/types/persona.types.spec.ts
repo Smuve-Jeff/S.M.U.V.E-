@@ -65,6 +65,36 @@ describe('S.M.U.V.E. persona catalog', () => {
     expect(personaOfflineVoice(DEFAULT_SMUVE_PERSONA)).toBeNull();
   });
 
+  it('states the practice-versus-person boundary in every mode', () => {
+    // The decree corpus is held to this line; every shipped persona text now
+    // says the same thing, so no mode can contradict the contract.
+    for (const persona of SMUVE_PERSONAS) {
+      expect(persona.directive).toContain('PRACTICE');
+      expect(persona.directive).toMatch(
+        /body, family, identity, or worth as a human/
+      );
+    }
+  });
+
+  it('gives every non-signature mode its own response shape', () => {
+    const modes = SMUVE_PERSONAS.filter((persona) => !persona.isOminous);
+    const shapes = modes.map(
+      (persona) => /signature shape: (.+)$/.exec(persona.directive)?.[1] ?? ''
+    );
+
+    // Each mode carries its own creative shape, not a copy of Prime's voice.
+    expect(shapes.every(Boolean)).toBe(true);
+    expect(new Set(shapes).size).toBe(shapes.length);
+    for (const mode of modes) {
+      expect(mode.directive).not.toContain('S.M.U.V.E. Prime');
+    }
+
+    const reactions = modes.flatMap(
+      (persona) => persona.offlineVoice?.reactions ?? []
+    );
+    expect(new Set(reactions).size).toBe(reactions.length);
+  });
+
   describe('normalizePersona', () => {
     it('resolves canonical ids regardless of case and padding', () => {
       for (const persona of SMUVE_PERSONAS) {
