@@ -390,6 +390,20 @@ footer {
     font-size: 9px;
     letter-spacing: 0.06em;
   }
+
+  /* The bar is one row here and owes the page its 60px. The card's icon is
+     36px and the inbox tile 40px, so their own padding is what made the row
+     56px tall and pushed the header to 74px once it stopped being compressed.
+     Trim the vertical padding (horizontal box untouched) so both fit a 44px
+     row and the bar returns to 60px. */
+  .app-top-bar .mobile-surface-card {
+    padding-top: 0.125rem;
+    padding-bottom: 0.125rem;
+  }
+
+  .app-top-bar .mobile-compact-tertiary {
+    padding: 0;
+  }
 }
 
 @media (max-width: 1024px) {
