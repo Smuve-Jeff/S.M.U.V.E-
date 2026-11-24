@@ -781,6 +781,76 @@ describe('ChatbotComponent', () => {
     expect(speechSynthesisServiceMock.speak).toHaveBeenCalledWith('Actual personalized answer.', expect.objectContaining({ shapeShift: true }));
   });
 
+  it('exposes a decree unfiltered only while the artist has muted profanity', async () => {
+    const profile = userProfileServiceMock.profile;
+    const setProfanity = (enabled: boolean) =>
+      profile.update((p: any) => ({
+        ...p,
+        settings: {
+          ...p.settings,
+          ai: { ...p.settings.ai, aiProfanityEnabled: enabled },
+        },
+      }));
+    // Mirrors AiService.sanitizePersonaText: masking belongs to the artist's
+    // own mute, so an unmuted persona is never touched.
+    aiServiceMock.sanitizePersonaText = jest.fn((text: string) =>
+      profile().settings?.ai?.aiProfanityEnabled === false
+        ? text.replace(/FUCKING/g, '*******')
+        : text
+    );
+    jest.spyOn(component as any, 'routeMasterIntent').mockResolvedValue({
+      content: 'STRATEGIC DECREE: YOUR FUCKING MIX IS MUD.',
+      actions: [],
+    });
+
+    setProfanity(false);
+    expect(profile().settings?.ai?.aiProfanityEnabled).toBe(false);
+    component.userInput = '/decree';
+    await component.sendMessage();
+    // Muted: the decree is the one reply that skips the sanitizer entirely.
+    expect(component.messages().at(-1)?.text).toContain(
+      'YOUR FUCKING MIX IS MUD.'
+    );
+    expect(aiServiceMock.sanitizePersonaText).not.toHaveBeenCalled();
+
+    // Unlocked: there is nothing to exempt, so the reply takes the shared
+    // sanitizer, which is a no-op on a live vocabulary.
+    (aiServiceMock.sanitizePersonaText as jest.Mock).mockClear();
+    setProfanity(true);
+    component.userInput = '/decree';
+    await component.sendMessage();
+    expect(aiServiceMock.sanitizePersonaText).toHaveBeenCalled();
+    expect(component.messages().at(-1)?.text).toContain(
+      'YOUR FUCKING MIX IS MUD.'
+    );
+  });
+
+  it('still masks an ordinary reply while profanity is muted', async () => {
+    userProfileServiceMock.profile.update((p: any) => ({
+      ...p,
+      settings: {
+        ...p.settings,
+        ai: { ...p.settings.ai, aiProfanityEnabled: false },
+      },
+    }));
+    aiServiceMock.sanitizePersonaText = jest.fn((text: string) =>
+      text.replace(/FUCKING/g, '*******')
+    );
+    jest.spyOn(component as any, 'routeMasterIntent').mockResolvedValue({
+      content: 'YOUR FUCKING MIX IS MUD.',
+      actions: [],
+    });
+
+    component.userInput = 'how is my mix';
+    await component.sendMessage();
+
+    // Only the decree gets the exemption; a plain reply is still masked.
+    expect(component.messages().at(-1)?.text).toBe(
+      'YOUR ******* MIX IS MUD.'
+    );
+    expect(aiServiceMock.sanitizePersonaText).toHaveBeenCalled();
+  });
+
   it('executes a natural-language app request through the control engine', async () => {
     const control = TestBed.inject(SmuveTotalControlService);
     const execute = jest

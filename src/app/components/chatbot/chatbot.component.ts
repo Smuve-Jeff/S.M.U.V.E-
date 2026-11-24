@@ -865,18 +865,7 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
       }
 
       if (generation !== this.replyGeneration || this.destroyed) return;
-      // A strategic decree is a persona artifact, not a model reply. The
-      // exemption applies only when the artist has muted profanity for model
-      // output: with the language unlocked the sanitizer is already a no-op,
-      // so every reply goes through one shared path, and with it muted the
-      // decree is the single reply still delivered exactly as filed.
-      const profanityMuted =
-        this.userProfileService.profile().settings?.ai?.aiProfanityEnabled ===
-        false;
-      content =
-        profanityMuted && content.startsWith('STRATEGIC DECREE:')
-          ? content
-          : this.personaSafeText(content);
+      content = this.personaSafeText(content);
       await this.streamResponse(content, category, actions);
       // Only conversation is filed. Command acknowledgements and knowledge
       // modules are not verdicts, and filing them would make the case file
@@ -1529,6 +1518,17 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
   }
 
   private personaSafeText(text: string): string {
+    // A strategic decree is a persona artifact, not a model reply. The
+    // exemption applies only while the artist has muted profanity for model
+    // output; with the language unlocked the sanitizer is already a no-op, so
+    // every reply shares one path. The rule lives here because both the live
+    // send and the stored transcript pass through this method — exempting only
+    // one of them masked the decree on its way into the chat.
+    const decree = text.trimStart().startsWith('STRATEGIC DECREE:');
+    const muted =
+      this.userProfileService.profile().settings?.ai?.aiProfanityEnabled ===
+      false;
+    if (decree && muted) return text;
     return typeof this.aiService.sanitizePersonaText === 'function' ? this.aiService.sanitizePersonaText(text) : text;
   }
 
