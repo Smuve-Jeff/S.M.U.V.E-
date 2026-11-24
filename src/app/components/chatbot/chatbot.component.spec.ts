@@ -198,6 +198,11 @@ describe('ChatbotComponent', () => {
     expect(teach.content).toContain("teacher directive from the artist's evidence");
     expect(aiServiceMock.getArtistDirective).toHaveBeenCalledWith('teacher');
 
+    const coach = await (component as any).routeMasterIntent('/coach');
+    expect(coach.content).toContain('COACH DESK');
+    expect(coach.content).toContain("coach directive from the artist's evidence");
+    expect(aiServiceMock.getArtistDirective).toHaveBeenCalledWith('coach');
+
     const ceo = await (component as any).routeMasterIntent('/ceo');
     expect(ceo.content).toContain('CEO DESK');
     expect(ceo.content).toContain("ceo directive from the artist's evidence");

@@ -1,4 +1,4 @@
-import { Component, inject, effect, signal, HostListener, computed, DestroyRef, Injector, ViewChild, ElementRef } from '@angular/core';
+import { Component, inject, effect, signal, HostListener, computed, DestroyRef, Injector, ViewChild, ElementRef, afterNextRender } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule, Location } from '@angular/common';
 import {
@@ -26,7 +26,6 @@ import {
 } from './services/database.service';
 import { AutoSaveStatusService } from './services/auto-save-status.service';
 import { CommandPaletteComponent } from './components/command-palette/command-palette.component';
-import { ArtistCoachCommandIntegrationService } from './services/artist-coach-command-integration.service';
 import { ArtistLifecycleCommandIntegrationService } from './services/artist-lifecycle-command-integration.service';
 import { ArtistLifecycleService } from './services/artist-lifecycle.service';
 import {
@@ -124,7 +123,6 @@ export class AppComponent {
   commandPalette = inject(CommandPaletteService);
   /** Registers one palette action per studio surface; injecting it is the point. */
   private readonly surfaceCommands = inject(StudioSurfaceCommandsService);
-  private coachCommands = inject(ArtistCoachCommandIntegrationService);
   // Publishes the pathway's next move and blocked phases into the palette.
   private lifecycleCommands = inject(ArtistLifecycleCommandIntegrationService);
   private lifecycleService = inject(ArtistLifecycleService);
@@ -313,6 +311,17 @@ export class AppComponent {
 
   constructor() {
     this.breakIframeLoop();
+
+    // Coach palette actions are not needed to paint the shell. Loading the
+    // integration after the first render keeps the coach/adaptive graph in its
+    // own chunk; its effect registers the palette actions once the chunk lands.
+    afterNextRender(() => {
+      void import('./services/artist-coach-command-integration.service')
+        .then((module) =>
+          this.injector.get(module.ArtistCoachCommandIntegrationService)
+        )
+        .catch(() => undefined);
+    });
     this.applyMobileDefaultPerformanceMode();
     this.checkMobile();
     this.setupPwaListeners();

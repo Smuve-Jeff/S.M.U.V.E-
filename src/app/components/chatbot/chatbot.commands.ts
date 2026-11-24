@@ -139,6 +139,7 @@ export const QUICK_COMMANDS = [
   { label: '/business', description: 'Business strategy' },
   { label: '/engineer', description: 'Engineer the session — chain, gain, translation' },
   { label: '/teach', description: 'A lesson and a task at your real level' },
+  { label: '/coach', description: 'Hold the process — commitment, obstacle, evidence' },
   { label: '/ceo', description: 'Run the business — fund, cut, protect' },
   { label: '/release', description: 'Release strategy' },
   { label: '/status', description: 'System status' },

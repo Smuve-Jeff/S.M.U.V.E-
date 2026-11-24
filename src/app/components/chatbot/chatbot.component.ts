@@ -982,7 +982,7 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
 
     // 0d) Role desks — one named expert answers from the profile-derived
     //     directive instead of a blended generalist voice.
-    const roleMatch = trimmed.match(/^\/(engineer|teach|ceo)\b\s*([\s\S]*)$/i);
+    const roleMatch = trimmed.match(/^\/(engineer|teach|coach|ceo)\b\s*([\s\S]*)$/i);
     if (roleMatch) {
       return this.roleDeskIntent(roleMatch[1].toLowerCase(), roleMatch[2].trim());
     }
@@ -1084,7 +1084,7 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
   }
 
   /**
-   * `/engineer`, `/teach` and `/ceo` answer as that expert for this artist.
+   * `/engineer`, `/teach`, `/coach` and `/ceo` answer as that expert for this artist.
    * The brief comes from the same profile-derived directive the model prompt
    * carries, so the desk cannot invent a persona the profile has not earned.
    */
@@ -1095,6 +1095,7 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
     const desks = {
       engineer: { role: 'engineer' as const, label: 'Engineer' },
       teach: { role: 'teacher' as const, label: 'Teacher' },
+      coach: { role: 'coach' as const, label: 'Coach' },
       ceo: { role: 'ceo' as const, label: 'CEO' },
     };
     const desk = desks[alias as keyof typeof desks] ?? desks.engineer;
