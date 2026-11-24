@@ -68,6 +68,18 @@ describe('DatabaseService profile ownership', () => {
     localStorage.clear();
   });
 
+  it('treats an unreadable store as no local profile backup', () => {
+    const getItem = jest.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+      throw new Error('storage blocked');
+    });
+    try {
+      expect(service.readLocalProfileBackup('artist-a')).toBeNull();
+      expect(() => service.removeLocalProfileBackup('artist-a')).not.toThrow();
+    } finally {
+      getItem.mockRestore();
+    }
+  });
+
   afterEach(() => {
     http.verify();
   });

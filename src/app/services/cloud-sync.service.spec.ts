@@ -64,6 +64,32 @@ describe('CloudSyncService (D1)', () => {
     cloud.__seed([]);
   });
 
+  it('mints a device id at construction when storage reads are blocked', () => {
+    jest.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+      throw new Error('storage blocked');
+    });
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({
+      providers: [
+        CloudSyncService,
+        MockCloudServer,
+        { provide: CLOUD_SERVER, useExisting: MockCloudServer },
+        { provide: OfflineSyncService, useClass: StubOfflineSync },
+        { provide: LocalStorageService, useClass: StubStorage },
+      ],
+    });
+
+    let blocked!: CloudSyncService;
+    try {
+      expect(() => {
+        blocked = TestBed.inject(CloudSyncService);
+      }).not.toThrow();
+      expect(blocked.deviceId()).toMatch(/^dev_/);
+    } finally {
+      jest.restoreAllMocks();
+    }
+  });
+
   it('mints a stable device id and defaults the device name', () => {
     expect(sut.deviceId()).toMatch(/^dev_/);
     expect(sut.deviceName().length).toBeGreaterThan(0);

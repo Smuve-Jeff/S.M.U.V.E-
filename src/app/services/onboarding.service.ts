@@ -226,15 +226,23 @@ export class OnboardingService {
 
   dismiss(): void {
     this.dismissed.set(true);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('smuve_onboarding_dismissed', 'true');
+    try {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('smuve_onboarding_dismissed', 'true');
+      }
+    } catch {
+      // Dismissal still holds for this session when storage is blocked.
     }
   }
 
   reset(): void {
     this.dismissed.set(false);
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('smuve_onboarding_dismissed');
+    try {
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('smuve_onboarding_dismissed');
+      }
+    } catch {
+      // The in-memory reset is enough when storage is blocked.
     }
   }
 

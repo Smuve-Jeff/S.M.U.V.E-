@@ -91,20 +91,19 @@ export class SearchOverlayComponent implements OnInit {
 
   clearRecentSearches() {
     this.recentSearches.set([]);
-    if (typeof localStorage !== "undefined") {
-      localStorage.removeItem(this.RECENT_SEARCHES_KEY);
-    }
+    try {
+      if (typeof localStorage !== "undefined") {
+        localStorage.removeItem(this.RECENT_SEARCHES_KEY);
+      }
+    } catch { /* blocked storage */ }
   }
 
   private loadRecentSearches() {
-    if (typeof localStorage !== "undefined") {
+    try {
+      if (typeof localStorage === "undefined") return;
       const stored = localStorage.getItem(this.RECENT_SEARCHES_KEY);
-      if (stored) {
-        try {
-          this.recentSearches.set(JSON.parse(stored));
-        } catch { /* ignore */ }
-      }
-    }
+      if (stored) this.recentSearches.set(JSON.parse(stored));
+    } catch { /* blocked or corrupt storage */ }
   }
 
   private addToRecentSearches(search: string) {

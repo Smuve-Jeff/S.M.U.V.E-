@@ -66,9 +66,17 @@ export class SynthesizerComponent implements OnInit, AfterViewInit, OnDestroy {
   private adsrRaf: number | null = null;
 
   // ── Beginner mode toggle ──────────────────────────────
-  isBeginner = signal<boolean>(
-    localStorage.getItem("synth_beginner") !== "false",
-  );
+  isBeginner = signal<boolean>(this.readBeginnerPreference());
+
+  private readBeginnerPreference(): boolean {
+    try {
+      if (typeof localStorage === 'undefined') return true;
+      return localStorage.getItem('synth_beginner') !== 'false';
+    } catch {
+      // Blocked storage falls back to the beginner-friendly default.
+      return true;
+    }
+  }
 
   toggleBeginner() {
     this.isBeginner.update((v) => !v);

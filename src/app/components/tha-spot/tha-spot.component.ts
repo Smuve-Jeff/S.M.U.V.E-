@@ -2303,8 +2303,12 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
       if (stream && owns && !replaced) this.liveVideo.startHosting(stream);
       else this.liveVideo.stopHosting();
     });
-    const savedFavs = localStorage.getItem("tha_spot_favorites");
-    if (savedFavs) this.favorites.set(JSON.parse(savedFavs));
+    try {
+      const savedFavs = localStorage.getItem('tha_spot_favorites');
+      if (savedFavs) this.favorites.set(JSON.parse(savedFavs));
+    } catch {
+      // Blocked or corrupt storage simply starts with no favourites.
+    }
     this.loadRecentGames();
     this.loadAchievements();
 
