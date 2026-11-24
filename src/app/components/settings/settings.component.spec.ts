@@ -570,6 +570,39 @@ describe('SettingsComponent', () => {
     http.delete.mockImplementation(() => of({ ok: true }));
   });
 
+  it('reports cloud sync success only when the cloud write is confirmed', async () => {
+    const { component } = await createComponent();
+    const database = TestBed.inject(DatabaseService) as any;
+    const notifications = TestBed.inject(NotificationService) as any;
+    database.saveUserProfile.mockResolvedValueOnce(true);
+
+    await component.forceSync();
+
+    expect(notifications.show).toHaveBeenCalledWith(
+      'Profile reached the cloud.',
+      'success'
+    );
+  });
+
+  it('reports cloud sync failure when the cloud write did not happen', async () => {
+    const { component } = await createComponent();
+    const database = TestBed.inject(DatabaseService) as any;
+    const notifications = TestBed.inject(NotificationService) as any;
+    database.saveUserProfile.mockResolvedValueOnce(false);
+
+    await component.forceSync();
+
+    expect(notifications.show).toHaveBeenCalledWith(
+      expect.stringContaining('saved on this device only'),
+      'error',
+      5000
+    );
+    expect(notifications.show).not.toHaveBeenCalledWith(
+      'Profile reached the cloud.',
+      'success'
+    );
+  });
+
   it('deletes only the local profile copy, never the account record', async () => {
     const { component, dialogMock } = await createComponent();
     const database = TestBed.inject(DatabaseService) as any;

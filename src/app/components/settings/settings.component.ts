@@ -275,8 +275,21 @@ export class SettingsComponent implements OnInit, OnDestroy {
     const profile = this.profileService.profile();
     // Use the profile's stamped owner id (real account) instead of the legacy
     // 'current' key so forced sync passes the backend's ownership check.
-    await this.databaseService.saveUserProfile(profile, profile.id || 'current');
-    this.notificationService.show('Cloud synchronization forced.', 'success');
+    // The save also writes a local backup, so only the cloud acknowledgement
+    // may produce a success message.
+    const synced = await this.databaseService.saveUserProfile(
+      profile,
+      profile.id || 'current'
+    );
+    if (synced) {
+      this.notificationService.show('Profile reached the cloud.', 'success');
+    } else {
+      this.notificationService.show(
+        'Cloud sync failed — the profile is saved on this device only. Check your connection and sign in.',
+        'error',
+        5000
+      );
+    }
   }
 
   async updateStorageStats() {

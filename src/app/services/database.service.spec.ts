@@ -55,8 +55,12 @@ describe('DatabaseService profile ownership', () => {
   });
 
   it('refuses to write one account\u2019s record into another account\u2019s slot', async () => {
-    await service.saveUserProfile(profile({ id: 'user-a', artistName: 'A' }), 'user-b');
+    const saved = await service.saveUserProfile(
+      profile({ id: 'user-a', artistName: 'A' }),
+      'user-b'
+    );
 
+    expect(saved).toBe(false);
     // Neither the local backup nor the cloud write may happen.
     http.expectNone(service.apiUrl + '/profile');
     expect(localStorage.getItem('smuve_user_profile_backup_user-b')).toBeNull();
@@ -74,10 +78,26 @@ describe('DatabaseService profile ownership', () => {
     http
       .expectOne(service.apiUrl + '/profile')
       .flush({ ok: true }, { status: 200, statusText: 'OK' });
-    await pending;
+    await expect(pending).resolves.toBe(true);
 
     expect(JSON.parse(localStorage.getItem('smuve_user_profile_backup_user-a')!).artistName).toBe('A');
     expect(warn).not.toHaveBeenCalled();
+  });
+
+  it('reports failure when the cloud write fails but the local backup succeeds', async () => {
+    const pending = service.saveUserProfile(
+      profile({ id: 'user-a', artistName: 'A' }),
+      'user-a'
+    );
+
+    http
+      .expectOne(service.apiUrl + '/profile')
+      .flush({}, { status: 500, statusText: 'Server Error' });
+
+    await expect(pending).resolves.toBe(false);
+    expect(
+      localStorage.getItem('smuve_user_profile_backup_user-a')
+    ).toContain('A');
   });
 
   it('lets an unstamped record be saved, since it has no owner to compare', async () => {

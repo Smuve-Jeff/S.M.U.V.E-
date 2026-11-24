@@ -50,14 +50,14 @@ export class DatabaseService {
    * freshly imported record) is allowed through, because there is no owner to
    * compare and the caller stamps it as part of saving.
    */
-  async saveUserProfile(profile: UserProfile, userId: string): Promise<void> {
+  async saveUserProfile(profile: UserProfile, userId: string): Promise<boolean> {
     const owner = typeof profile?.id === 'string' ? profile.id.trim() : '';
     const destination = typeof userId === 'string' ? userId.trim() : '';
     if (owner && destination && owner !== destination) {
       this.logger.warn(
         'Profile save refused: the record is stamped with a different account than the destination key.'
       );
-      return;
+      return false;
     }
 
     const keepBackup = profile.settings?.security?.keepLocalProfileBackup !== false;
@@ -87,12 +87,19 @@ export class DatabaseService {
           )
         );
         this.lastSyncTime.set(Date.now());
+        // Only the provider confirming the write counts as cloud sync; the
+        // local backup above does not.
+        return true;
       } catch (error) {
         this.logger.error('Failed to sync profile to cloud', error);
+        return false;
       } finally {
         this.isSyncing.set(false);
       }
     }
+
+    // Offline or no account key: this device has the profile, the cloud does not.
+    return false;
   }
 
   /**
