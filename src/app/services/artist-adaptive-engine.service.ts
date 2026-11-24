@@ -51,7 +51,6 @@ export interface GenreAdaptationProfile {
   };
   /** Present only when the artist names two families, e.g. "Country Trap". */
   hybrid?: {
-    label: string;
     secondaryLabels: string[];
     tempoRange: [number, number];
     structures: string[];
@@ -316,12 +315,23 @@ export class ArtistAdaptiveEngineService {
   }
 
   private detectGenreProfile(profile: UserProfile | null | undefined, knowledge: ArtistProfileKnowledge): GenreAdaptationProfile {
-    const genreQuery = (profile?.primaryGenre || '').trim().toLowerCase();
+    const declaredGenre = (profile?.primaryGenre || '').trim();
+    // A brand-new profile ships with the placeholder name and the default
+    // genre. Neither is an answer the artist gave, so an uncommitted profile
+    // must not be handed a Hip Hop tempo, form and mix plan before the
+    // interview or uplink is accepted. The same untouched rule already governs
+    // the profile read-back.
+    const untouched =
+      profile?.profileSetupCompleted !== true &&
+      (!profile?.artistName || profile.artistName === 'New Artist') &&
+      declaredGenre.toLowerCase() === initialProfile.primaryGenre.toLowerCase();
+    const genreInput = untouched ? '' : declaredGenre;
+    const genreQuery = genreInput.toLowerCase();
     // The catalog does the fuzzy work now. The old substring probe ran before
     // it, so "Country Trap" was claimed by Hip Hop on the word "trap" and the
     // hybrid never reached the profile; it also matched every artist on an
     // empty query because `includes('')` is true.
-    const resolved = resolveGenre(profile?.primaryGenre);
+    const resolved = resolveGenre(genreInput);
     const curated =
       (resolved
         ? GENRE_PROFILES.find(
@@ -332,8 +342,8 @@ export class ArtistAdaptiveEngineService {
         g.primaryGenres.some((pg) => pg.toLowerCase() === genreQuery)
       );
     const base: GenreAdaptationProfile = curated ??
-      (resolved ? this.catalogGenreProfile(resolved, profile) : {
-      id: 'artist-defined', label: profile?.primaryGenre || 'Artist-defined', primaryGenres: [],
+      (resolved ? this.catalogGenreProfile(resolved) : {
+      id: 'artist-defined', label: genreInput || 'Artist-defined', primaryGenres: [],
       productionDefaults: { recommendedDaw: ['your existing DAW'], typicalBpmRange: [40, 240], mixPriorities: ['Artist intent', 'Translation and dynamics'], recordingFocus: ['Capture the intended performance'], sonicSignatures: ['Artist-defined sonic signature'] },
       songwritingRules: { typicalStructures: ['Artist-selected structure'], harmonyApproaches: ['Artist-defined harmony'], vocalDeliveryStyles: ['Declared delivery'], lyricalThemePatterns: ['Artist-owned themes'], arrangementPatterns: ['Artist-defined arrangement'] },
       businessPlaybook: { releaseStrategy: 'Readiness-led release plan within capacity and budget', typicalVelocity: 'Artist-selected sustainable cadence', incomeStreamPriority: ['Evaluate rights, direct support and live/sync fit'], targetAudience: 'Not declared — validate with listener evidence', marketPosition: 'Not declared', syncOpportunities: ['Assess catalog and clearance before pitching'] },
@@ -347,7 +357,6 @@ export class ArtistAdaptiveEngineService {
     // next to the primary one, and its mix priority is named in the directive.
     const hybrid = resolved?.hybrid
       ? {
-          label: resolved.label,
           secondaryLabels: resolved.secondary.map((family) => family.label),
           tempoRange: hybridTempoRange(resolved),
           structures: secondaryStructures(resolved).map(
@@ -376,7 +385,7 @@ export class ArtistAdaptiveEngineService {
           )
         : base.songwritingRules.typicalStructures;
     return {
-      ...base, label: profile?.primaryGenre || base.label,
+      ...base, label: genreInput || base.label,
       hybrid,
       productionDefaults: { ...base.productionDefaults, recommendedDaw: profile?.daw?.length ? profile.daw : base.productionDefaults.recommendedDaw, typicalBpmRange: bpm, mixPriorities: hybrid ? [...mixPriorities, ...hybrid.productionNotes] : mixPriorities, recordingFocus: knowledge.craft.recordingPriorities.length ? knowledge.craft.recordingPriorities : base.productionDefaults.recordingFocus, sonicSignatures: knowledge.sonic.signatureSound ? [knowledge.sonic.signatureSound] : base.productionDefaults.sonicSignatures },
       songwritingRules: { ...base.songwritingRules, typicalStructures: hybrid ? [...primaryStructures, ...hybrid.structures] : primaryStructures, harmonyApproaches: knowledge.sonic.harmony ? [knowledge.sonic.harmony] : base.songwritingRules.harmonyApproaches, vocalDeliveryStyles: knowledge.sonic.delivery ? [knowledge.sonic.delivery] : base.songwritingRules.vocalDeliveryStyles, lyricalThemePatterns: knowledge.craft.lyricalThemes.length ? knowledge.craft.lyricalThemes : base.songwritingRules.lyricalThemePatterns, arrangementPatterns: hybrid ? [...base.songwritingRules.arrangementPatterns, `Blend: ${hybrid.productionNotes.join('; ')}`] : base.songwritingRules.arrangementPatterns },
@@ -393,13 +402,12 @@ export class ArtistAdaptiveEngineService {
    * the catalog's own defaults and section structures.
    */
   private catalogGenreProfile(
-    resolved: GenreResolution,
-    profile: UserProfile | null | undefined
+    resolved: GenreResolution
   ): GenreAdaptationProfile {
     const family = resolved.family;
     return {
       id: family.id,
-      label: profile?.primaryGenre || family.label,
+      label: resolved.label || family.label,
       primaryGenres: family.aliases,
       productionDefaults: {
         recommendedDaw: family.recommendedDaw,

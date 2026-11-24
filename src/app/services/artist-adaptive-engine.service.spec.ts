@@ -1,6 +1,9 @@
 import { TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
-import { ArtistAdaptiveEngineService } from './artist-adaptive-engine.service';
+import {
+  ArtistAdaptiveEngineService,
+  GENRE_PROFILES,
+} from './artist-adaptive-engine.service';
 import { ArtistAiCoachService } from './artist-ai-coach.service';
 import { ArtistCareerExpansionService } from './artist-career-expansion.service';
 import { UserProfileService, initialProfile, UserProfile } from './user-profile.service';
@@ -173,6 +176,50 @@ describe('Profile-adaptive music manager', () => {
     expect(state.productionDirective).toContain('Hybrid read: Hip Hop');
     expect(state.productionDirective).toContain('Hip Hop half');
     expect(state.productionDirective).toContain('Alternate form: Hook-First Rap');
+  });
+
+  it.each([
+    ['Rap', 'hip-hop'],
+    ['Electronic', 'electronic-edm'],
+    ['Singer-Songwriter', 'singer-songwriter'],
+  ])(
+    'keeps the curated %s profile ahead of the catalog',
+    (genre, curatedId) => {
+      profile.update((p) => ({ ...p, primaryGenre: genre }));
+
+      const state = service.adaptationState();
+      const curated = GENRE_PROFILES.find((entry) => entry.id === curatedId);
+      if (!curated) throw new Error(`missing curated profile ${curatedId}`);
+
+      // The catalog now resolves the genre; the curated profile must still win
+      // the business/live detail instead of being replaced by the synthetic
+      // one, or removing the substring probe would have silently downgraded
+      // the four families that had real playbooks.
+      expect(state.genreProfile.label).toBe(genre);
+      expect(state.genreProfile.businessPlaybook.releaseStrategy).toBe(
+        curated.businessPlaybook.releaseStrategy
+      );
+      expect(
+        state.genreProfile.livePerformance.tourReadinessRequirements
+      ).toEqual(curated.livePerformance.tourReadinessRequirements);
+      expect(state.genreProfile.businessPlaybook.releaseStrategy).not.toBe(
+        'Readiness-led release plan within capacity and budget'
+      );
+    }
+  );
+
+  it('holds genre recommendations until the profile is committed', () => {
+    // A fresh profile still carries the default genre and placeholder name, so
+    // there is no accepted interview to attach a tempo or form to.
+    const state = service.adaptationState();
+
+    expect(state.genreProfile.id).toBe('artist-defined');
+    expect(state.genreProfile.label).toBe('Artist-defined');
+    expect(state.genreProfile.songwritingRules.typicalStructures).toEqual([
+      'Artist-selected structure',
+    ]);
+    expect(state.productionDirective).toContain('ARTIST-DEFINED');
+    expect(state.productionDirective).not.toContain('Hip Hop');
   });
 
   it('never profiles a missing genre as Hip Hop', () => {
