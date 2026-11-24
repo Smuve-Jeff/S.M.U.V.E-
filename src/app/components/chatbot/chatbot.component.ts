@@ -1088,12 +1088,11 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
       return null;
     }
 
-    // 4) Navigate anywhere in the app
-    const navMatch = lower.match(
-      /^(?:open|go to|take me to|launch|navigate to|show me)\s+(.+)$/
-    );
-    if (navMatch) {
-      const result = await this.controlService.executeCommand(`/go ${navMatch[1].trim()}`);
+    // 4) Navigate anywhere in the app. "show me how…" is a question and is
+    //    left to the knowledge/model path, never sent to /go.
+    const navTarget = this.navigationTarget(trimmed);
+    if (navTarget) {
+      const result = await this.controlService.executeCommand(`/go ${navTarget}`);
       return { content: result.message, actions: [] };
     }
 
@@ -1539,11 +1538,26 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
    * with the desk: `interpretAppRequest` refuses interrogatives by design.
    */
   private isExplicitAppControl(text: string): boolean {
-    return (
-      /^(?:open|go to|take me to|launch|navigate to|show me)\s+\S/i.test(
-        text
-      ) || interpretAppRequest(text) !== null
-    );
+    // "show me how to record vocals" is a question, not a destination. Only a
+    // "show me <surface>" target navigates.
+    if (/^show me\s+(?:how|what|why|when|where|who|which)\b/i.test(text)) {
+      return false;
+    }
+    return this.navigationTarget(text) !== null || interpretAppRequest(text) !== null;
+  }
+
+  /**
+   * The destination of an explicit navigation phrase, or null. A question word
+   * after the lead ("show me how…", "show me what…") is not a surface.
+   */
+  private navigationTarget(text: string): string | null {
+    const match = text
+      .trim()
+      .match(/^(?:open|go to|take me to|launch|navigate to|show me)\s+(.+)$/i);
+    if (!match) return null;
+    const target = match[1].trim();
+    if (/^(?:how|what|why|when|where|who|which)\b/i.test(target)) return null;
+    return target || null;
   }
 
   /**

@@ -325,6 +325,34 @@ describe('ChatbotComponent', () => {
     execute.mockRestore();
   });
 
+  it('navigates “show me <surface>” but keeps “show me how…” with the desk', async () => {
+    const control = TestBed.inject(SmuveTotalControlService);
+    const execute = jest
+      .spyOn(control, 'executeCommand')
+      .mockResolvedValue({ success: true, message: 'Opening the mixer.' });
+    aiServiceMock.getAIResponse = jest
+      .fn()
+      .mockResolvedValue('Record vocals close, then check the room.');
+
+    await (component as any).routeMasterIntent('/engineer');
+
+    const nav = await (component as any).routeMasterIntent('show me the mixer');
+    expect(nav.content).toBe('Opening the mixer.');
+    expect(execute).toHaveBeenCalledWith('/go the mixer');
+    expect(component.activeDeskLabel()).toBe('Engineer');
+
+    const question = await (component as any).routeMasterIntent(
+      'show me how to record vocals'
+    );
+    expect(question.content).toBe('Record vocals close, then check the room.');
+    const prompt = aiServiceMock.getAIResponse.mock.calls[0][0] as string;
+    expect(prompt).toContain("engineer directive from the artist's evidence");
+    expect(prompt).toContain('show me how to record vocals');
+    expect(component.activeDeskLabel()).toBe('Engineer');
+
+    execute.mockRestore();
+  });
+
   it('switches desks when another desk is chosen', async () => {
     await (component as any).routeMasterIntent('/ar');
     await (component as any).routeMasterIntent('/coach');
