@@ -20,7 +20,10 @@ import { SmuveTvPersistentPlayerComponent } from './components/smuve-tv-persiste
 import { NotificationService } from './services/notification.service';
 import { SessionSafetyService } from './services/session-safety.service';
 import { MainViewMode } from './services/user-context.service';
-import { DatabaseService } from './services/database.service';
+import {
+  DatabaseService,
+  PROFILE_SYNC_ENDPOINT,
+} from './services/database.service';
 import { AutoSaveStatusService } from './services/auto-save-status.service';
 import { CommandPaletteComponent } from './components/command-palette/command-palette.component';
 import { ArtistCoachCommandIntegrationService } from './services/artist-coach-command-integration.service';
@@ -227,17 +230,26 @@ export class AppComponent {
     this.allowViews(this.uiService.getPrimaryMobileViewConfigs())
   );
 
-  /** True while a manual profile retry is replaying; blocks a second click. */
-  readonly profileRetryInFlight = signal(false);
+  /** The dead-lettered endpoint replaying right now; one retry at a time. */
+  readonly retryingEndpoint = signal<string | null>(null);
+
+  /** Replay one dead-lettered endpoint: profile writes keep their verified path. */
+  async retryDeadLetteredEndpoint(endpoint: string): Promise<void> {
+    if (this.retryingEndpoint()) return;
+    this.retryingEndpoint.set(endpoint);
+    try {
+      if (endpoint === PROFILE_SYNC_ENDPOINT) {
+        await this.databaseService.retryProfileCloudSync();
+      } else {
+        await this.offlineSync.retryDeadLetteredEndpoint(endpoint);
+      }
+    } finally {
+      this.retryingEndpoint.set(null);
+    }
+  }
 
   async retryProfileCloudSync(): Promise<void> {
-    if (this.profileRetryInFlight()) return;
-    this.profileRetryInFlight.set(true);
-    try {
-      await this.databaseService.retryProfileCloudSync();
-    } finally {
-      this.profileRetryInFlight.set(false);
-    }
+    await this.retryDeadLetteredEndpoint(PROFILE_SYNC_ENDPOINT);
   }
 
   /** Readable endpoint name; URLs stay whole rather than becoming word salad. */

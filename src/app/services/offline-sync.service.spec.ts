@@ -95,6 +95,25 @@ describe('OfflineSyncService queue status', () => {
     expect(service.deadLetteredEndpoints()).toEqual(['smuve://profile-sync']);
   });
 
+  it('requeues only the dead letters for the requested endpoint', async () => {
+    // Offline so the requeued write waits in the queue instead of being sent.
+    service.networkStatus.set('offline');
+    await storage.saveItem('sync_dead_letter', queuedItem('dead-profile'));
+    await storage.saveItem(
+      'sync_dead_letter',
+      queuedItem('dead-push', '/cloud/push')
+    );
+
+    const requeued = await service.retryDeadLetteredEndpoint('/cloud/push');
+
+    expect(requeued).toBe(1);
+    expect(service.deadLetteredEndpoints()).toEqual(['smuve://profile-sync']);
+    expect((await storage.getAllItems('sync_queue')).map((item) => item.id)).toEqual([
+      'dead-push',
+    ]);
+    expect(service.pendingCount()).toBe(1);
+  });
+
   it('drops a dead letter removed outside this service on the next refresh', async () => {
     await storage.saveItem('sync_dead_letter', queuedItem('dead-1'));
     await service.refreshQueueStatus();

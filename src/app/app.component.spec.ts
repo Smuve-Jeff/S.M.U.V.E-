@@ -118,6 +118,7 @@ describe('AppComponent', () => {
       deadLetteredEndpoints: signal<string[]>([]),
       networkStatus: signal<'online' | 'offline'>('online'),
       refreshQueueStatus: jest.fn(async () => undefined),
+      retryDeadLetteredEndpoint: jest.fn(async () => 1),
     };
     const dialog = {
       confirm: jest.fn().mockResolvedValue(false),
@@ -1334,6 +1335,42 @@ describe('AppComponent', () => {
         delete (document as any).visibilityState;
       }
     }
+  });
+
+  it('keeps full URLs whole and humanizes smuve endpoints', async () => {
+    const { component } = await createComponent();
+
+    expect(component.endpointLabel('https://api.example.com/v1/sync?sig=abc')).toBe(
+      'https://api.example.com/v1/sync?sig=abc'
+    );
+    expect(component.endpointLabel('http://legacy.test/queue')).toBe(
+      'http://legacy.test/queue'
+    );
+    expect(component.endpointLabel(PROFILE_SYNC_ENDPOINT)).toBe('Profile Sync');
+    expect(component.endpointLabel('/cloud/push')).toBe('Cloud Push');
+  });
+
+  it('retries a listed dead-lettered endpoint from its row', async () => {
+    const { component, fixture, offlineSync } = await createComponent(
+      '/hub',
+      undefined,
+      true
+    );
+    offlineSync.deadLetterCount.set(1);
+    offlineSync.deadLetteredEndpoints.set(['/cloud/push']);
+
+    component.toggleSyncCenter();
+    fixture.detectChanges();
+
+    const retry = (fixture.nativeElement as HTMLElement).querySelector(
+      'button[aria-label="Retry Cloud Push"]'
+    ) as HTMLButtonElement;
+    expect(retry).toBeTruthy();
+    retry.click();
+
+    expect(offlineSync.retryDeadLetteredEndpoint).toHaveBeenCalledWith(
+      '/cloud/push'
+    );
   });
 
   it('names the dead-lettered endpoint in the sync panel', async () => {

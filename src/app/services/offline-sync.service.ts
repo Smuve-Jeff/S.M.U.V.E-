@@ -374,6 +374,29 @@ export class OfflineSyncService {
     await this.updatePendingCount();
   }
 
+  /**
+   * Re-queue every dead-lettered operation for one endpoint, after the failure
+   * behind it has been fixed. Other endpoints' dead letters are untouched.
+   * Returns how many were requeued.
+   */
+  async retryDeadLetteredEndpoint(endpoint: string): Promise<number> {
+    try {
+      const dead = (await this.listDeadLetters()).filter(
+        (item) => item.endpoint === endpoint
+      );
+      for (const item of dead) {
+        await this.replayDeadLetter(item.id);
+      }
+      return dead.length;
+    } catch (error) {
+      this.logger.warn(
+        `OfflineSync: Could not retry dead letters for ${endpoint}`,
+        error
+      );
+      return 0;
+    }
+  }
+
   /** List dead-lettered operations (oldest first) for operator review. */
   async listDeadLetters(): Promise<SyncQueueItem[]> {
     const items = await this.localStorage.getAllItems('sync_dead_letter');
