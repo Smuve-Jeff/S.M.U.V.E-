@@ -927,7 +927,11 @@ export class AppComponent {
   }
 
   toggleSyncCenter() {
-    this.isSyncCenterOpen.update((value) => !value);
+    const open = !this.isSyncCenterOpen();
+    this.isSyncCenterOpen.set(open);
+    // The panel must not open on cached counts: a dead letter or queued write
+    // that appeared since the last queue update would stay hidden.
+    if (open) void this.offlineSync.refreshQueueStatus();
   }
 
   toggleMobileWorkspaceTray() {

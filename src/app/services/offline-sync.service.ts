@@ -363,6 +363,15 @@ export class OfflineSyncService {
     return true;
   }
 
+  /**
+   * Re-read the queue and dead-letter stores so counts and endpoint flags are
+   * current. Callers use this before showing queue state that may have changed
+   * elsewhere, instead of trusting the cached signals.
+   */
+  async refreshQueueStatus(): Promise<void> {
+    await this.updatePendingCount();
+  }
+
   /** List dead-lettered operations (oldest first) for operator review. */
   async listDeadLetters(): Promise<SyncQueueItem[]> {
     const items = await this.localStorage.getAllItems('sync_dead_letter');

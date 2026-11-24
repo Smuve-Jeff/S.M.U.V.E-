@@ -109,6 +109,12 @@ describe('AppComponent', () => {
       isGuest: jest.fn().mockReturnValue(false),
       logout: jest.fn(),
     };
+    const offlineSync = {
+      pendingCount: signal(0),
+      deadLetterCount: signal(0),
+      networkStatus: signal<'online' | 'offline'>('online'),
+      refreshQueueStatus: jest.fn(async () => undefined),
+    };
     const dialog = {
       confirm: jest.fn().mockResolvedValue(false),
       confirmWithAlternate: jest.fn().mockResolvedValue('cancel'),
@@ -192,14 +198,7 @@ describe('AppComponent', () => {
             profile: signal({ knowledgeBase: { strategicHealthScore: 0 } }),
           },
         },
-        {
-          provide: OfflineSyncService,
-          useValue: {
-            pendingCount: signal(0),
-            deadLetterCount: signal(0),
-            networkStatus: signal<'online' | 'offline'>('online'),
-          },
-        },
+        { provide: OfflineSyncService, useValue: offlineSync },
         { provide: InteractionDialogService, useValue: dialog },
         { provide: Router, useValue: router },
         {
@@ -234,6 +233,7 @@ describe('AppComponent', () => {
       notificationService,
       authService,
       dialog,
+      offlineSync,
     };
   };
 
@@ -1258,6 +1258,20 @@ describe('AppComponent', () => {
       );
       expect(authService.logout).not.toHaveBeenCalled();
     });
+  });
+
+  it('refreshes the offline queue when the sync center opens', async () => {
+    const { component, offlineSync } = await createComponent();
+
+    component.toggleSyncCenter();
+
+    expect(component.isSyncCenterOpen()).toBe(true);
+    expect(offlineSync.refreshQueueStatus).toHaveBeenCalledTimes(1);
+
+    // Closing the panel changes nothing, so it does not pay for another read.
+    component.toggleSyncCenter();
+    expect(component.isSyncCenterOpen()).toBe(false);
+    expect(offlineSync.refreshQueueStatus).toHaveBeenCalledTimes(1);
   });
 
   it('shows manual retry for a dead-lettered profile sync and retries from the button', async () => {
