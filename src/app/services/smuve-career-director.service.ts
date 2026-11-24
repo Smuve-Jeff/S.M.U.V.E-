@@ -384,7 +384,7 @@ const SURFACE_LENSES: Record<SmuveSurfaceId, SmuveSurfaceLens> = {
   mixing: {
     id: 'mixing',
     label: 'Mix Bus',
-    role: 'producer',
+    role: 'engineer',
     assignment:
       'Establish hierarchy, depth and translation before touching a single corrective plugin.',
     currency: 'a mix that survives phone, car and club',
@@ -393,7 +393,7 @@ const SURFACE_LENSES: Record<SmuveSurfaceId, SmuveSurfaceLens> = {
   mastering: {
     id: 'mastering',
     label: 'Mastering Chain',
-    role: 'producer',
+    role: 'engineer',
     assignment:
       'Deliver the record at a competitive loudness without destroying its transients or its intent.',
     currency: 'loudness with dynamics intact',
@@ -528,7 +528,7 @@ const SURFACE_LENSES: Record<SmuveSurfaceId, SmuveSurfaceLens> = {
   'artist-development': {
     id: 'artist-development',
     label: 'Artist Development',
-    role: 'manager',
+    role: 'coach',
     assignment:
       'Build the artist, not just the record: skills, identity, team and the pathway step that unlocks the next phase.',
     currency: 'capability that compounds',
@@ -555,7 +555,7 @@ const SURFACE_LENSES: Record<SmuveSurfaceId, SmuveSurfaceLens> = {
   education: {
     id: 'education',
     label: 'Knowledge Base',
-    role: 'songwriter',
+    role: 'teacher',
     assignment:
       'Teach the why at the artist’s demonstrated level, then hand back a task that proves they understood it.',
     currency: 'a skill the artist can repeat without me',

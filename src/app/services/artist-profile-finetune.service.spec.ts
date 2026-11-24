@@ -264,6 +264,52 @@ describe('ArtistProfileFinetuneService', () => {
     expect(service.directiveFor('producer').directive).toContain('foundational');
   });
 
+  it('gives the engineer, teacher, coach and CEO directives from the artist’s own evidence', () => {
+    profileSignal.set({
+      ...strongProfile,
+      settings: {
+        security: {
+          shareProfileAnswersWithAi: true,
+          hideSensitiveProfileDetails: false,
+        },
+      },
+    } as any);
+
+    const engineer = service.directiveFor('engineer');
+    expect(engineer.directive).toContain('Tape hiss');
+    expect(engineer.tips.join(' ')).toContain('Reaper');
+
+    const teacher = service.directiveFor('teacher').directive;
+    expect(teacher).toContain('lesson');
+    expect(teacher).toContain('Build the press kit');
+
+    const coach = service.directiveFor('coach').directive;
+    expect(coach).toContain('over-polishing');
+
+    const ceo = service.directiveFor('ceo').directive;
+    expect(ceo).toContain('sync');
+
+    // The model prompt carries every role, so the chat can answer as the panel
+    // instead of one blended voice.
+    const block = service.promptBlock();
+    expect(block).toContain('ARTIST SPECIFICITY');
+    expect(block).toContain('no two artists get the same plan');
+    for (const label of ['ENGINEER:', 'TEACHER:', 'COACH:', 'CEO:']) {
+      expect(block).toContain(label);
+    }
+  });
+
+  it('keeps the new roles behind the profile-sharing gate', () => {
+    profileSignal.set({
+      ...strongProfile,
+      settings: { security: { shareProfileAnswersWithAi: false } },
+    } as any);
+
+    expect(service.directiveFor('engineer').directive).toContain('opted out');
+    expect(service.directiveFor('teacher').directive).toContain('opted out');
+    expect(service.promptBlock()).not.toContain('ENGINEER:');
+  });
+
   it('publishes a live calibration that only reaches calibrated with a complete shared profile', () => {
     expect(service.profileCalibration().state).toBe('foundational');
     expect(service.profileCalibration().completeness).toBeLessThan(60);

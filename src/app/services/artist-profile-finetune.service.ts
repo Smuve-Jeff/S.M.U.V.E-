@@ -18,7 +18,11 @@ export type FinetuneRole =
   | 'promotion'
   | 'marketing'
   | 'legal'
-  | 'brand';
+  | 'brand'
+  | 'engineer'
+  | 'teacher'
+  | 'coach'
+  | 'ceo';
 
 export interface ArtistProfileKnowledge {
   state: 'calibrated' | 'partial' | 'foundational';
@@ -191,6 +195,10 @@ const ROLE_LABEL: Record<FinetuneRole, string> = {
   marketing: 'MARKETING',
   legal: 'LEGAL',
   brand: 'BRAND',
+  engineer: 'ENGINEER',
+  teacher: 'TEACHER',
+  coach: 'COACH',
+  ceo: 'CEO',
 };
 
 const ALL_ROLES: FinetuneRole[] = [
@@ -202,6 +210,10 @@ const ALL_ROLES: FinetuneRole[] = [
   'marketing',
   'legal',
   'brand',
+  'engineer',
+  'teacher',
+  'coach',
+  'ceo',
 ];
 
 /**
@@ -408,6 +420,9 @@ export class ArtistProfileFinetuneService {
     return [
       `ARTIST PROFILE FINE-TUNE (${k.state}, ${k.completeness}% evidence) — adapt every answer to this artist:`,
       `GENRE CONTEXT: ${k.genre} is a reference frame, not an identity verdict; do not assume one genre technique fits every subgenre or artist. If the artist blends styles, preserve the blend and explain trade-offs rather than forcing a single genre template.`,
+      hideSensitive
+        ? 'ARTIST SPECIFICITY: never transplant another artist’s structure, palette, wording or release plan. The artist’s distinguishing details are withheld by privacy setting, so ask before naming them.'
+        : `ARTIST SPECIFICITY: ${k.differentiators.slice(0, 3).join('; ') || 'no differentiators captured yet'} — no two artists get the same plan. Every recommendation must name what makes this artist different, and never transplant another artist’s structure, palette, wording or release plan.`,
       `SKILL CALIBRATION: production=${k.expertise.production}; songwriting=${k.expertise.songwriting ?? 'unknown'}; marketing=${k.expertise.marketing}; business=${k.expertise.business ?? 'unknown'}; legal=${k.expertise.legal ?? 'unknown'}; performance=${k.expertise.performance ?? 'unknown'}; mastering=${k.expertise.mastering}; audioEngineering=${k.expertise.audioEngineering}. Explain unfamiliar concepts at the artist’s demonstrated level, offer an optional advanced path, and do not confuse a low self-rating with inability.`,
       this.musicalBodyLine(profile, hideSensitive),
       'DOMAIN RESPONSE STANDARD: For production and music theory, state the musical goal, give a reversible starting experiment, and explain what to listen for; do not prescribe universal settings as rules. For business, marketing and promotion, distinguish stable principles from current platform policies, request current evidence before time-sensitive claims, tailor actions to the artist’s recorded audience, resources and goal, and never invent results.',
@@ -814,6 +829,68 @@ export class ArtistProfileFinetuneService {
             'Keep masters and publishing ownership explicit in every session and producer agreement.',
             'Flag sample, feature, and sync usage in writing before delivery.',
             'Legal output is drafting guidance only — confirm jurisdiction-specific terms with a licensed attorney.',
+          ],
+        };
+      case 'engineer':
+        return {
+          directive: `Capture ${k.sonic.signatureSound || 'the artist’s signature sound'} so it survives the listener’s device. Protect the room tone and the ${k.sonic.delivery || 'lead'} delivery, keep headroom before any processing, and judge every decision against ${k.craft.mixingPriorities.join(', ') || 'translation on phone, car and club'}.`,
+          tips: [
+            k.craft.gear.length
+              ? `Work inside the real chain: ${k.craft.gear.join(', ')} — do not invent converters or mics.`
+              : 'Confirm the recording chain before recommending converters or microphones.',
+            `Fix phase, gain staging and masking before reaching for EQ or compression; the ${k.sonic.groove || 'chosen'} groove must stay intact.`,
+            k.operations.daw.length
+              ? `Keep the session in the artist’s DAW (${k.operations.daw.join(', ')}) so it stays portable.`
+              : 'Agree one DAW before the session starts.',
+            k.expertise.audioEngineering
+              ? `The artist’s engineering self-rating is ${k.expertise.audioEngineering} — explain the mechanism, not just the setting.`
+              : 'Calibrate the artist’s engineering vocabulary before naming plugins.',
+            k.sonic.nonNegotiables
+              ? `Protect “${k.sonic.nonNegotiables}” — never trade it for a louder print.`
+              : 'Define the sonic non-negotiable that must survive the mix.',
+          ],
+        };
+      case 'teacher':
+        return {
+          directive: `Teach from the artist’s demonstrated level (production ${k.expertise.production}, songwriting ${k.expertise.songwriting || 'unknown'}, business ${k.expertise.business || 'unknown'}). Build one lesson around “${k.missing[0] || k.pathway.nextStep || 'their next step'}”, use the artist’s own material as the example, and end with a task that proves understanding.`,
+          tips: [
+            `Anchor the lesson in what they already make: ${k.sonic.signatureSound || 'their current sound'}.`,
+            `${k.genre} is a reference frame, not a rulebook — name the subgenre differences that change the answer.`,
+            k.pathway.stage
+              ? `Pathway stage is ${k.pathway.stage}; do not teach past a prerequisite the pathway still lists.`
+              : 'Ask which step they are on before teaching ahead.',
+            'Explain the mechanism, then the exercise, then how they will know it worked. Never shame a low self-rating.',
+          ],
+        };
+      case 'coach':
+        return {
+          directive: `Coach the process, not the taste. Their stated challenge is “${k.business.challenge || 'not captured'}”, focus “${k.business.focus || 'not declared'}”, cadence ${k.business.velocity || 'unset'}. Convert it into one commitment for the next session, one named obstacle, and one piece of evidence that it happened.`,
+          tips: [
+            `Keep the goal visible: ${k.business.goals.join(', ') || 'define one measurable goal with them'}.`,
+            `Measure against ${k.business.successMetric || 'one agreed success metric'} — never against another artist’s numbers.`,
+            k.pathway.nextStep
+              ? `Protect the pathway step “${k.pathway.nextStep}” from new distractions.`
+              : 'The pathway is complete — coach consistency, not novelty.',
+            'Name avoidance once, ask what made the task hard, and do not moralise.',
+          ],
+        };
+      case 'ceo':
+        return {
+          directive: `Run this artist like a business built on ${k.business.streams.join(', ') || 'undefined revenue streams'}: decide what to fund, what to cut and what to protect. Focus “${k.business.focus || 'not declared'}”, challenge “${k.business.challenge || 'not captured'}”.`,
+          tips: [
+            `Judge every spend against ${k.business.successMetric || 'one agreed metric'} and the recorded budget evidence.`,
+            k.operations.roster.length
+              ? `Use the real team: ${k.operations.roster.join(' | ')} — hire only to remove the named bottleneck.`
+              : 'Solo operation — outsource the bottleneck, never the identity.',
+            k.legal.incorporated
+              ? 'The entity exists — route masters, contracts and payouts through it.'
+              : 'Liability and ownership still sit on the individual — recommend an entity before revenue scales.',
+            k.presence.hasAnalytics
+              ? 'Quote only connected analytics figures and label their date range.'
+              : 'No analytics connected — ask for real numbers before forecasting.',
+            k.business.velocity
+              ? `Keep the release cadence (${k.business.velocity}) matched to real capacity.`
+              : 'Set a cadence the artist can actually sustain.',
           ],
         };
       case 'brand':

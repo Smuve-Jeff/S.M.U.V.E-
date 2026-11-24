@@ -5,7 +5,19 @@ import { MusicalDnaService } from './musical-dna.service';
 import { ArtistProfileFinetuneService } from './artist-profile-finetune.service';
 
 export interface CoachPrompt {
-  role: 'producer' | 'songwriter' | 'manager' | 'ar' | 'promotion' | 'marketing' | 'legal' | 'brand';
+  role:
+    | 'producer'
+    | 'songwriter'
+    | 'manager'
+    | 'ar'
+    | 'promotion'
+    | 'marketing'
+    | 'legal'
+    | 'brand'
+    | 'engineer'
+    | 'teacher'
+    | 'coach'
+    | 'ceo';
   title: string;
   prompt: string;
   context: string;
@@ -133,6 +145,70 @@ export class ArtistAiCoachService {
           `Check: does it fit ${genre.songwritingRules.typicalStructures[0]}?`,
           `Evaluate: ${knowledge.audience.marketPosition || 'where does this sit in the market?'}`,
           `Protect: reject anything that trades away "${knowledge.sonic.nonNegotiables || 'the sound'}"`,
+        ],
+      });
+    }
+
+    prompts.push({
+      role: 'engineer',
+      title: adaptation.genreAdviceHeld
+        ? 'Engineer the capture — signature first'
+        : `Engineer the ${genre.label} session`,
+      urgency: 'high',
+      prompt: `You are the engineer for ${knowledge.identity.name || 'this artist'} (${genreNote}). Protect the capture before the mix:\n\nChain: ${knowledge.craft.gear.join(', ') || genre.productionDefaults.recordingFocus[0]}\nMix priorities: ${(knowledge.craft.mixingPriorities.length ? knowledge.craft.mixingPriorities : genre.productionDefaults.mixPriorities).join(', ')}\nNon-negotiable: ${knowledge.sonic.nonNegotiables || 'define the sonic non-negotiable'}\n\nFix phase, gain staging and masking first. Every plugin must answer a problem you can hear.`,
+      context: `DAW: ${profile.daw?.[0] || 'unspecified'}. Delivery: ${knowledge.sonic.delivery || 'not captured'}. Groove: ${knowledge.sonic.groove || genre.productionDefaults.sonicSignatures[0]}.`,
+      actionItems: [
+        'Print a rough at the artist’s real listening level before judging tone',
+        `Gain stage for: ${knowledge.sonic.delivery || 'the lead vocal'}`,
+        'Check mono compatibility and low-end translation on phone, car and club',
+        `Keep the session in ${profile.daw?.[0] || 'one DAW'} so it stays portable`,
+      ],
+    });
+
+    prompts.push({
+      role: 'teacher',
+      title:
+        knowledge.state === 'foundational'
+          ? 'Teach the foundation — one skill this week'
+          : 'Teach the next skill at the artist’s real level',
+      urgency: knowledge.state === 'foundational' ? 'high' : 'medium',
+      prompt: `You are the teacher for ${knowledge.identity.name || 'this artist'} (${genreNote}). Teach at the demonstrated level: production ${knowledge.expertise.production}, songwriting ${knowledge.expertise.songwriting || 'unknown'}, business ${knowledge.expertise.business || 'unknown'}. Build one lesson around “${knowledge.missing[0] || knowledge.pathway.nextStep || 'the next pathway step'}”, use the artist’s own material as the example, and end with a task that proves understanding.`,
+      context: `Structure to study: ${genre.songwritingRules.typicalStructures[0]}. Pathway stage: ${knowledge.pathway.stage}.`,
+      actionItems: [
+        'Explain the mechanism in plain language before any terminology',
+        `Use their record as the example: ${knowledge.sonic.signatureSound || 'their current sound'}`,
+        'Set one practice task with a finish line',
+        'Have them teach it back in two sentences',
+      ],
+    });
+
+    prompts.push({
+      role: 'coach',
+      title: 'Hold the process, not the taste',
+      urgency: 'medium',
+      prompt: `You are the coach for ${knowledge.identity.name || 'this artist'}. Their stated challenge is “${knowledge.business.challenge || 'not captured'}”, focus “${knowledge.business.focus || 'not declared'}”, cadence ${knowledge.business.velocity || 'unset'}. Convert it into one commitment for the next session, one obstacle named in advance, and one piece of evidence that it happened. Do not moralise and never attack the person.`,
+      context: `Success metric: ${knowledge.business.successMetric || 'not declared yet'}. Pathway step: ${knowledge.pathway.nextStep || 'not set'}.`,
+      actionItems: [
+        'Agree the single commitment and its date',
+        'Name the likely avoidance before it happens',
+        'Review the evidence, not the intention',
+      ],
+    });
+
+    if (knowledge.state !== 'foundational' && !adaptation.genreAdviceHeld) {
+      prompts.push({
+        role: 'ceo',
+        title: adaptation.genreAdviceHeld
+          ? 'Run the business — no genre assumptions'
+          : `Run the ${genre.label} business`,
+        urgency: 'high',
+        prompt: `You are the CEO for ${knowledge.identity.name || 'this artist'}. Decide what to fund, cut and protect across: ${knowledge.business.streams.join(', ') || genre.businessPlaybook.incomeStreamPriority.join(', ')}. Judge every spend against ${knowledge.business.successMetric || 'one agreed metric'} and the artist’s real capacity.\n\n${adaptation.businessStrategy}`,
+        context: `Team: ${knowledge.operations.roster.join(' | ') || 'solo'}. Entity: ${knowledge.legal.incorporated ? 'incorporated' : 'not incorporated'}. Analytics: ${knowledge.presence.hasAnalytics ? 'connected' : 'not connected — ask for real numbers'}.`,
+        actionItems: [
+          `Fund only what moves: ${knowledge.business.focus || 'the declared focus'}`,
+          `Cut: ${knowledge.business.challenge || 'the named bottleneck'}`,
+          `Protect: ${knowledge.sonic.nonNegotiables || 'the sonic non-negotiable'} and ${knowledge.craft.collaborationBoundaries || 'the collaboration boundary'}`,
+          'Set the next review date and the metric it will be judged on',
         ],
       });
     }

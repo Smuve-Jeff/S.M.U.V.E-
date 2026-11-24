@@ -72,6 +72,15 @@ describe('SmuveCareerDirectorService', () => {
     expect(service.surfaceIntel().surfaceLabel).toBe('Case File');
   });
 
+  it('assigns specialist rooms to the specialist roles', () => {
+    expect(service.directiveFor('mixing')).toContain('role: ENGINEER');
+    expect(service.directiveFor('mastering')).toContain('role: ENGINEER');
+    expect(service.directiveFor('education')).toContain('role: TEACHER');
+    expect(service.directiveFor('artist-development')).toContain('role: COACH');
+    // The studio stays a producer's room; only the mix and master chains move.
+    expect(service.directiveFor('studio')).toContain('role: PRODUCER');
+  });
+
   it('owns a real Promotion lens instead of collapsing it into marketing', () => {
     const intel = service.surfaceIntel('promotion');
     expect(intel.surfaceLabel).toBe('Promotion');
