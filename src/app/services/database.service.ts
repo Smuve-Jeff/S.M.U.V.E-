@@ -193,6 +193,8 @@ export class DatabaseService {
 
   /** Re-queue profile writes that exhausted their automatic retries. */
   async retryProfileCloudSync(): Promise<void> {
+    // No dead letter for this endpoint: there is nothing to scan for.
+    if (!this.cloudSyncDeadLettered()) return;
     try {
       const dead = (await this.offlineSync.listDeadLetters()).filter(
         (item) => item.endpoint === PROFILE_SYNC_ENDPOINT
@@ -212,6 +214,8 @@ export class DatabaseService {
 
   /** Drop dead-lettered profile writes once a fresh write reaches the cloud. */
   private async clearProfileDeadLetters(): Promise<void> {
+    // Normal autosaves skip the IndexedDB dead-letter scan entirely.
+    if (!this.cloudSyncDeadLettered()) return;
     try {
       const dead = await this.offlineSync.listDeadLetters();
       for (const item of dead) {

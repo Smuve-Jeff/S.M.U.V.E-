@@ -1,8 +1,9 @@
 import { TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
-import { NavigationEnd, Router } from '@angular/router';
+import { ActivatedRoute, NavigationEnd, Router } from '@angular/router';
 import { SwUpdate } from '@angular/service-worker';
-import { Subject } from 'rxjs';
+import { provideNoopAnimations } from '@angular/platform-browser/animations';
+import { Subject, of } from 'rxjs';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -23,7 +24,11 @@ import { OfflineSyncService } from './services/offline-sync.service';
 import { InteractionDialogService } from './services/interaction-dialog.service';
 
 describe('AppComponent', () => {
-  const createComponent = async (routerUrl = '/hub', swUpdate?: unknown) => {
+  const createComponent = async (
+    routerUrl = '/hub',
+    swUpdate?: unknown,
+    realTemplate = false
+  ) => {
     localStorage.clear();
     const routerEvents$ = new Subject<any>();
     const uiService = {
@@ -95,7 +100,10 @@ describe('AppComponent', () => {
       navigateByUrl: jest.fn(),
       navigate: jest.fn(),
     };
-    const notificationService = { show: jest.fn() };
+    const notificationService = {
+      show: jest.fn(),
+      notifications: signal([]),
+    };
     const authService = {
       isAuthenticated: jest.fn().mockReturnValue(false),
       isGuest: jest.fn().mockReturnValue(false),
@@ -104,11 +112,25 @@ describe('AppComponent', () => {
     const dialog = {
       confirm: jest.fn().mockResolvedValue(false),
       confirmWithAlternate: jest.fn().mockResolvedValue('cancel'),
+      activeDialog: signal(null),
+      settle: jest.fn(),
     };
     const commandPalette = {
       handleGlobalKey: jest.fn(),
       togglePalette: jest.fn(),
       openGuide: jest.fn(),
+      isOpen: signal(false),
+      showGuide: signal(false),
+      query: signal(''),
+      filteredActions: signal([]),
+      activeIndex: signal(0),
+      keyboardShortcutNote: '',
+      keyboardShortcuts: [],
+      closePalette: jest.fn(),
+      toggleGuide: jest.fn(),
+      setActiveIndex: jest.fn(),
+      updateQuery: jest.fn(),
+      runAction: jest.fn(),
       // AppComponent now injects ArtistCoachCommandIntegrationService, whose
       // constructor publishes coach actions through this palette method.
       setExtensionActions: jest.fn(),
@@ -128,9 +150,10 @@ describe('AppComponent', () => {
       ]),
     };
 
-    await TestBed.configureTestingModule({
+    const testingModule = TestBed.configureTestingModule({
       imports: [AppComponent],
       providers: [
+        provideNoopAnimations(),
         ...(swUpdate ? [{ provide: SwUpdate, useValue: swUpdate }] : []),
         { provide: AuthService, useValue: authService },
         { provide: UIService, useValue: uiService },
@@ -179,10 +202,23 @@ describe('AppComponent', () => {
         },
         { provide: InteractionDialogService, useValue: dialog },
         { provide: Router, useValue: router },
+        {
+          provide: ActivatedRoute,
+          useValue: {
+            snapshot: { params: {}, queryParams: {}, data: {} },
+            params: of({}),
+            queryParams: of({}),
+            data: of({}),
+          },
+        },
       ],
-    })
-      .overrideComponent(AppComponent, { set: { template: '<div></div>' } })
-      .compileComponents();
+    });
+    if (!realTemplate) {
+      testingModule.overrideComponent(AppComponent, {
+        set: { template: '<div></div>' },
+      });
+    }
+    await testingModule.compileComponents();
 
     const fixture = TestBed.createComponent(AppComponent);
     const component = fixture.componentInstance;
@@ -190,6 +226,7 @@ describe('AppComponent', () => {
 
     return {
       component,
+      fixture,
       uiService,
       commandPalette,
       routerEvents$,
@@ -1221,5 +1258,29 @@ describe('AppComponent', () => {
       );
       expect(authService.logout).not.toHaveBeenCalled();
     });
+  });
+
+  it('shows manual retry for a dead-lettered profile sync and retries from the button', async () => {
+    const { component, fixture } = await createComponent('/hub', undefined, true);
+    const database = TestBed.inject(DatabaseService) as any;
+    database.cloudSyncDeadLettered.set(true);
+    database.cloudSyncError.set(
+      'Profile sync stopped after repeated retries. Reconnect, then retry the profile sync.'
+    );
+
+    component.toggleSyncCenter();
+    fixture.detectChanges();
+
+    const element = fixture.nativeElement as HTMLElement;
+    expect(element.textContent).toContain('Manual retry needed');
+    expect(element.textContent).toContain('Reconnect, then retry');
+
+    const retry = Array.from(element.querySelectorAll('button')).find((button) =>
+      (button.textContent ?? '').includes('Retry profile sync')
+    );
+    expect(retry).toBeTruthy();
+    retry!.click();
+
+    expect(database.retryProfileCloudSync).toHaveBeenCalled();
   });
 });

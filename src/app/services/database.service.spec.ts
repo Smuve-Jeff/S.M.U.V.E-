@@ -100,6 +100,8 @@ describe('DatabaseService profile ownership', () => {
 
     expect(JSON.parse(localStorage.getItem('smuve_user_profile_backup_user-a')!).artistName).toBe('A');
     expect(warn).not.toHaveBeenCalled();
+    // A normal save has no dead letter to inspect, so it must not scan.
+    expect(offlineSync.listDeadLetters).not.toHaveBeenCalled();
   });
 
   it('reports failure when the cloud write fails but the local backup succeeds', async () => {
@@ -135,6 +137,7 @@ describe('DatabaseService profile ownership', () => {
   });
 
   it('re-queues a dead-lettered profile write on manual retry', async () => {
+    offlineSync.deadLetteredEndpoints.set([PROFILE_SYNC_ENDPOINT]);
     offlineSync.listDeadLetters.mockResolvedValueOnce([
       { id: 'dead-1', endpoint: PROFILE_SYNC_ENDPOINT },
     ]);
