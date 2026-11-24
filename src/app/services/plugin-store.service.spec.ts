@@ -45,6 +45,62 @@ describe('PluginStoreService (Sprint B1)', () => {
     svc = TestBed.inject(PluginStoreService);
   });
 
+  it('keeps corrupt enabled and imported lists instead of overwriting them', () => {
+    localStorage.setItem('smuve_plugins_enabled', '{not json');
+    localStorage.setItem('smuve_plugins_community', '{not json');
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({
+      providers: [
+        PluginStoreService,
+        { provide: WasmLoaderService, useValue: mockLoader },
+        { provide: LoggingService, useValue: mockLogger },
+      ],
+    });
+    const fresh = TestBed.inject(PluginStoreService);
+    const setItem = jest.spyOn(Storage.prototype, 'setItem');
+
+    try {
+      fresh.toggle('smuve.saturation.v2');
+      const id = fresh.importCommunityPlugin(
+        JSON.stringify({
+          format: 'smuve-plugin',
+          manifest: {
+            id: 'community.test.v1',
+            name: 'Test Insert',
+            version: '1.0.0',
+            author: 'Test',
+            category: 'EQ',
+            description: 'A test insert',
+            icon: 'graphic_eq',
+            kernelName: 'eq',
+            params: [
+              { id: 'depth', label: 'Depth', min: 0, max: 1, step: 0.1, default: 0.5 },
+            ],
+          },
+        })
+      );
+
+      // The session still uses what it just changed...
+      expect(id).toBe('community.test.v1');
+      expect(fresh.isEnabled('smuve.saturation.v2')).toBe(true);
+      expect(fresh.communityPlugins()).toHaveLength(1);
+      // ...but neither unreadable stored list is replaced by that view.
+      expect(setItem).not.toHaveBeenCalledWith(
+        'smuve_plugins_enabled',
+        expect.any(String)
+      );
+      expect(setItem).not.toHaveBeenCalledWith(
+        'smuve_plugins_community',
+        expect.any(String)
+      );
+    } finally {
+      setItem.mockRestore();
+    }
+
+    expect(localStorage.getItem('smuve_plugins_enabled')).toBe('{not json');
+    expect(localStorage.getItem('smuve_plugins_community')).toBe('{not json');
+  });
+
   it('exposes the built-in plugin catalog across every category', () => {
     const ids = svc.catalog.map((p) => p.id);
     expect(ids).toContain('smuve.dynamics.v2');

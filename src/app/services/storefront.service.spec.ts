@@ -208,4 +208,61 @@ describe('StorefrontService · Sprint C2', () => {
     const result = await sut.checkoutCart();
     expect(result).toEqual({ purchased: 0 });
   });
+
+  /** Fresh service with one corrupt store, so the load sees an unreadable value. */
+  const createWithCorruptStore = (
+    key: string,
+    value: string,
+  ): StorefrontService => {
+    localStorage.setItem(key, value);
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({
+      providers: [
+        StorefrontService,
+        MockPlayBillingClient,
+        { provide: NotificationService, useValue: new StubNotify() },
+      ],
+    });
+    const fresh = TestBed.inject(StorefrontService);
+    fresh.setBilling(TestBed.inject(MockPlayBillingClient));
+    return fresh;
+  };
+
+  it('keeps a corrupt ownership record instead of replacing it with an empty map', () => {
+    const fresh = createWithCorruptStore('smuve_store_owned', '{not json');
+    const setItem = jest.spyOn(Storage.prototype, 'setItem');
+
+    try {
+      // The session still grants what it just acquired...
+      fresh.acquireSku('smuve.lofi-chill.v1', 1, 'mock_token');
+      expect(fresh.owned('smuve.lofi-chill.v1')).toBe(true);
+      // ...but the unreadable entitlements are not replaced by that view.
+      expect(setItem).not.toHaveBeenCalledWith(
+        'smuve_store_owned',
+        expect.any(String),
+      );
+    } finally {
+      setItem.mockRestore();
+    }
+
+    expect(localStorage.getItem('smuve_store_owned')).toBe('{not json');
+  });
+
+  it('keeps a corrupt cart instead of replacing it with an empty list', () => {
+    const fresh = createWithCorruptStore('smuve_store_cart', '{not json');
+    const setItem = jest.spyOn(Storage.prototype, 'setItem');
+
+    try {
+      fresh.addToCart('smuve.trap-essentials.v1', 1);
+      expect(fresh.cart()).toHaveLength(1);
+      expect(setItem).not.toHaveBeenCalledWith(
+        'smuve_store_cart',
+        expect.any(String),
+      );
+    } finally {
+      setItem.mockRestore();
+    }
+
+    expect(localStorage.getItem('smuve_store_cart')).toBe('{not json');
+  });
 });

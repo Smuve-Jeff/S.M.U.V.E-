@@ -41,32 +41,38 @@ function priceLabel(cents: number): string {
   return `$${dollars.toFixed(2)}`;
 }
 
-function readOwnership(): PersistedOwnership {
-  if (typeof window === 'undefined') return {};
+/**
+ * Entitlements, or null when the stored value cannot be read. A writer must
+ * tell "nothing owned" from "cannot read": replacing an unreadable record
+ * with the session view would drop purchases the instance never saw.
+ */
+function readOwnership(): PersistedOwnership | null {
+  if (typeof window === 'undefined') return null;
   try {
     const raw = localStorage.getItem(OWNERSHIP_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (parsed && typeof parsed === 'object') return parsed;
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+      return parsed as PersistedOwnership;
     }
   } catch {
-    /* storage unavailable */
+    /* storage unavailable or unreadable */
   }
-  return {};
+  return null;
 }
 
-function readCart(): CartLine[] {
-  if (typeof window === 'undefined') return [];
+/** The stored cart, or null when it cannot be read (see readOwnership). */
+function readCart(): CartLine[] | null {
+  if (typeof window === 'undefined') return null;
   try {
     const raw = localStorage.getItem(CART_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed)) return parsed.filter(isCartLine);
-    }
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) return parsed.filter(isCartLine);
   } catch {
     /* ignore */
   }
-  return [];
+  return null;
 }
 
 function isCartLine(x: any): x is CartLine {
@@ -253,8 +259,17 @@ export class StorefrontService {
   ];
 
   // ░░░ State ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
-  private readonly ownedMap = signal<PersistedOwnership>(readOwnership());
-  private readonly cartLines = signal<CartLine[]>(readCart());
+  // Read each store once so the persist helpers know whether the stored copy
+  // was actually readable; an empty view is not proof the stored copy is empty.
+  private readonly storedOwnership = readOwnership();
+  private readonly ownershipReadable = this.storedOwnership !== null;
+  private readonly storedCart = readCart();
+  private readonly cartReadable = this.storedCart !== null;
+
+  private readonly ownedMap = signal<PersistedOwnership>(
+    this.storedOwnership ?? {},
+  );
+  private readonly cartLines = signal<CartLine[]>(this.storedCart ?? []);
 
   readonly cart = this.cartLines.asReadonly();
   readonly ownedSkus = computed(() => Object.values(this.ownedMap()));
@@ -327,6 +342,11 @@ export class StorefrontService {
 
   private persistOwnership(map: PersistedOwnership): void {
     if (typeof window === 'undefined') return;
+    if (!this.ownershipReadable) {
+      // The stored entitlements could not be read; keep them for a later visit
+      // instead of replacing them with what this instance happens to know.
+      return;
+    }
     try {
       localStorage.setItem(OWNERSHIP_KEY, JSON.stringify(map));
     } catch {
@@ -336,6 +356,10 @@ export class StorefrontService {
 
   private persistCart(lines: CartLine[]): void {
     if (typeof window === 'undefined') return;
+    if (!this.cartReadable) {
+      // Same rule as ownership: an unreadable cart is not an empty cart.
+      return;
+    }
     try {
       localStorage.setItem(CART_KEY, JSON.stringify(lines));
     } catch {

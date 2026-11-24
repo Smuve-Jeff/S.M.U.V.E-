@@ -90,30 +90,37 @@ const ALLOWED_CATEGORIES = new Set([
   'Filter',
 ]);
 
-function readArray(key: string): string[] {
+/**
+ * The stored string list, or null when it cannot be read. Writers must tell
+ * "nothing stored" from "cannot read": replacing an unreadable list with the
+ * session view would drop the user's real entries.
+ */
+function readArray(key: string): string[] | null {
   try {
     const raw = localStorage.getItem(key);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed)) return parsed.filter((x) => typeof x === 'string');
-    }
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) return parsed.filter((x) => typeof x === 'string');
   } catch {
-    // storage unavailable — ignore
+    // storage unavailable or unreadable
   }
-  return [];
+  return null;
 }
 
-function readParams(key: string): Record<string, Record<string, number>> {
+function readParams(
+  key: string
+): Record<string, Record<string, number>> | null {
   try {
     const raw = localStorage.getItem(key);
-    if (raw) {
-      const parsed = JSON.parse(raw) as Record<string, Record<string, number>>;
-      if (parsed && typeof parsed === 'object') return parsed;
+    if (!raw) return {};
+    const parsed = JSON.parse(raw) as Record<string, Record<string, number>>;
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+      return parsed;
     }
   } catch {
-    // storage unavailable — ignore
+    // storage unavailable or unreadable
   }
-  return {};
+  return null;
 }
 
 function clamp(v: number, min: number, max: number): number {
@@ -121,17 +128,16 @@ function clamp(v: number, min: number, max: number): number {
 }
 
 /** Read the persisted community plugin payloads. */
-function readCommunity(): CommunityPluginPayload[] {
+function readCommunity(): CommunityPluginPayload[] | null {
   try {
     const raw = localStorage.getItem(COMMUNITY_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed)) return parsed;
-    }
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) return parsed;
   } catch {
-    // storage unavailable — ignore
+    // storage unavailable or unreadable
   }
-  return [];
+  return null;
 }
 
 /** Interleave any channel count into a stereo frame buffer the kernels expect. */
@@ -391,15 +397,26 @@ export class PluginStoreService {
     },
   ];
 
+  // Read each store once so the write helpers know whether the stored copy was
+  // readable; an empty view is not proof the stored copy is empty.
+  private readonly storedCommunity = readCommunity();
+  private readonly communityReadable = this.storedCommunity !== null;
+  private readonly storedEnabled = readArray(ENABLED_KEY);
+  private readonly enabledReadable = this.storedEnabled !== null;
+  private readonly storedParams = readParams(PARAMS_KEY);
+  private readonly paramsReadable = this.storedParams !== null;
+
   /** Community plugins imported from .smuveplugin JSON (persisted). */
-  private readonly community = signal<CommunityPluginPayload[]>(readCommunity());
+  private readonly community = signal<CommunityPluginPayload[]>(
+    this.storedCommunity ?? []
+  );
 
   /** Plugin ids the user has enabled on this device (persisted). */
-  private readonly enabledIds = signal<string[]>(readArray(ENABLED_KEY));
+  private readonly enabledIds = signal<string[]>(this.storedEnabled ?? []);
 
   /** Per-plugin param overrides (id → paramId → value). */
   private readonly paramOverrides = signal<Record<string, Record<string, number>>>(
-    readParams(PARAMS_KEY)
+    this.storedParams ?? {}
   );
 
   readonly enabled = computed(() => new Set(this.enabledIds()));
@@ -503,11 +520,7 @@ export class PluginStoreService {
 
     const next = [...this.community(), payload];
     this.community.set(next);
-    try {
-      localStorage.setItem(COMMUNITY_KEY, JSON.stringify(next));
-    } catch {
-      // storage unavailable — ignore
-    }
+    this.writeCommunity(next);
     return m.id;
   }
 
@@ -515,11 +528,7 @@ export class PluginStoreService {
   removeCommunityPlugin(id: string): void {
     const next = this.community().filter((p) => p.manifest.id !== id);
     this.community.set(next);
-    try {
-      localStorage.setItem(COMMUNITY_KEY, JSON.stringify(next));
-    } catch {
-      // storage unavailable — ignore
-    }
+    this.writeCommunity(next);
     // Drop it from the enabled set too.
     if (this.isEnabled(id)) this.toggle(id);
   }
@@ -566,8 +575,29 @@ export class PluginStoreService {
       ? current.filter((x) => x !== id)
       : [...current, id];
     this.enabledIds.set(next);
+    this.writeEnabled(next);
+  }
+
+  private writeEnabled(next: string[]): void {
+    if (!this.enabledReadable) {
+      // The stored enabled set could not be read; never replace it with this
+      // session's view.
+      return;
+    }
     try {
       localStorage.setItem(ENABLED_KEY, JSON.stringify(next));
+    } catch {
+      // storage unavailable — ignore
+    }
+  }
+
+  private writeCommunity(next: CommunityPluginPayload[]): void {
+    if (!this.communityReadable) {
+      // Same rule for the imported plugin list.
+      return;
+    }
+    try {
+      localStorage.setItem(COMMUNITY_KEY, JSON.stringify(next));
     } catch {
       // storage unavailable — ignore
     }
@@ -581,6 +611,10 @@ export class PluginStoreService {
       ...all,
       [pluginId]: { ...(all[pluginId] ?? {}), [paramId]: clamped },
     }));
+    if (!this.paramsReadable) {
+      // Param overrides read as empty are not an empty stored map.
+      return;
+    }
     try {
       localStorage.setItem(PARAMS_KEY, JSON.stringify(this.paramOverrides()));
     } catch {
