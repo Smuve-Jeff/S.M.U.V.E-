@@ -248,12 +248,33 @@ describe('ChatbotComponent', () => {
     expect(desk.content).toContain('TEACHER DESK');
     expect(desk.content).toContain("teacher directive from the artist's evidence");
 
-    // A topic that is not a shipped feature is a teacher question, not an
-    // index dump of every lesson.
-    const question = await (component as any).routeMasterIntent(
+    // A short topic that is not a shipped feature falls back to the lesson
+    // index, so the artist can pick a real one.
+    const index = await (component as any).routeMasterIntent(
       '/teach quantum knitting'
     );
+    expect(index.content).toContain('No app module matched');
+    expect(index.content).toContain('Ask by name');
+    expect(index.content).not.toContain('TEACHER DESK');
+  });
+
+  it('sends a real /teach question to the teacher desk, not the walkthrough', async () => {
+    const question = await (component as any).routeMasterIntent(
+      '/teach how do I record vocals'
+    );
+
     expect(question.content).toContain('TEACHER DESK');
+    expect(question.content).toContain(
+      "teacher directive from the artist's evidence"
+    );
+    expect(aiServiceMock.getArtistDirective).toHaveBeenCalledWith('teacher');
+  });
+
+  it('still walks through an exact short feature name', async () => {
+    const lyrics = await (component as any).routeMasterIntent('/teach lyrics');
+
+    expect(lyrics.content).toMatch(/#TEACH \/\//);
+    expect(lyrics.content).toContain('STEP BY STEP');
   });
 
   it('builds every desk chip from the shared registry', () => {

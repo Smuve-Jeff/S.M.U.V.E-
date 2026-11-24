@@ -993,10 +993,13 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
     if (roleMatch && roleDef) {
       const alias = roleMatch[1].toLowerCase();
       const rest = roleMatch[2].trim();
-      // `/teach` is both a desk and the shipped feature walkthrough. A named
-      // feature keeps its walkthrough; the bare form opens the teacher desk,
-      // and an unknown topic is a question for that desk.
-      if (alias === 'teach' && rest && this.teachLearn.findTeach(rest)) {
+      // `/teach` is both a desk and the shipped feature walkthrough. Exact or
+      // short feature names keep the walkthrough, an unknown short topic gets
+      // the lesson index, and a real question goes to the teacher desk.
+      if (alias === 'teach' && rest) {
+        if (this.teachCommandTarget(rest) === 'desk') {
+          return this.roleDeskIntent(roleDef, alias, rest);
+        }
         return this.teachLearnIntent('teach', rest);
       }
       return this.roleDeskIntent(roleDef, alias, rest);
@@ -1486,6 +1489,24 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
    * #Teach and #Learn are S.M.U.V.E.'s own classroom. Both resolve locally so
    * the answer is deterministic, tied to shipped routes, and available offline.
    */
+  /**
+   * Decides what `/teach <text>` means. Only an exact or short feature name
+   * reaches the walkthrough; a sentence is a question for the teacher desk, and
+   * a short unknown topic gets the lesson index instead of a dead end.
+   */
+  private teachCommandTarget(text: string): 'walkthrough' | 'index' | 'desk' {
+    const topic = text.trim();
+    const words = topic.split(/\s+/).filter(Boolean);
+    const looksLikeQuestion =
+      /\?$/.test(topic) ||
+      words.length > 4 ||
+      /^(how|what|why|when|where|who|which|should|can|could|do|does|is|are|explain)\b/i.test(
+        topic
+      );
+    if (looksLikeQuestion) return 'desk';
+    return this.teachLearn.findTeach(topic) ? 'walkthrough' : 'index';
+  }
+
   private teachLearnIntent(mode: 'teach' | 'learn', topic?: string): MasterIntent {
     if (mode === 'teach') {
       const lesson = topic ? this.teachLearn.findTeach(topic) : null;
