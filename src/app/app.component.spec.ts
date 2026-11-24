@@ -1274,6 +1274,29 @@ describe('AppComponent', () => {
     expect(offlineSync.refreshQueueStatus).toHaveBeenCalledTimes(1);
   });
 
+  it('keeps reading the queue while the sync center stays open', async () => {
+    const { component, offlineSync } = await createComponent();
+    jest.useFakeTimers();
+    try {
+      component.toggleSyncCenter();
+      expect(offlineSync.refreshQueueStatus).toHaveBeenCalledTimes(1);
+
+      // A dead letter can land after the panel opened; the open panel keeps
+      // reading instead of showing the snapshot it opened with.
+      jest.advanceTimersByTime(5000);
+      expect(offlineSync.refreshQueueStatus).toHaveBeenCalledTimes(2);
+      jest.advanceTimersByTime(5000);
+      expect(offlineSync.refreshQueueStatus).toHaveBeenCalledTimes(3);
+
+      // Closing stops the reads.
+      component.toggleSyncCenter();
+      jest.advanceTimersByTime(15000);
+      expect(offlineSync.refreshQueueStatus).toHaveBeenCalledTimes(3);
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
   it('shows manual retry for a dead-lettered profile sync and retries from the button', async () => {
     const { component, fixture } = await createComponent('/hub', undefined, true);
     const database = TestBed.inject(DatabaseService) as any;

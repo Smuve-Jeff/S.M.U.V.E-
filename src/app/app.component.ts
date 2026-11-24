@@ -142,6 +142,9 @@ export class AppComponent {
   isMobile = signal(false);
   isAuthRoute = signal(false);
   isSyncCenterOpen = signal(false);
+  /** Live queue re-read while the sync center stays open. */
+  private syncCenterRefreshTimer?: ReturnType<typeof setInterval>;
+  private static readonly SYNC_CENTER_REFRESH_MS = 5000;
   isMobileWorkspaceTrayOpen = signal(false);
   installPrompt = signal<BeforeInstallPromptEvent | null>(null);
   /**
@@ -862,7 +865,7 @@ export class AppComponent {
   navigateHome(): void {
     this.isSidebarOpen.set(!this.isMobile());
     this.isMobileWorkspaceTrayOpen.set(false);
-    this.isSyncCenterOpen.set(false);
+    this.closeSyncCenter();
     this.uiService.closeChatbot();
     void this.router.navigateByUrl('/hub');
   }
@@ -900,7 +903,7 @@ export class AppComponent {
 
     this.uiService.closeChatbot();
     this.isMobileWorkspaceTrayOpen.set(false);
-    this.isSyncCenterOpen.set(false);
+    this.closeSyncCenter();
     if (this.isMobile()) this.isSidebarOpen.set(false);
 
     void this.router.navigate(['/masterclass'], {
@@ -927,11 +930,37 @@ export class AppComponent {
   }
 
   toggleSyncCenter() {
-    const open = !this.isSyncCenterOpen();
-    this.isSyncCenterOpen.set(open);
-    // The panel must not open on cached counts: a dead letter or queued write
-    // that appeared since the last queue update would stay hidden.
-    if (open) void this.offlineSync.refreshQueueStatus();
+    if (this.isSyncCenterOpen()) {
+      this.closeSyncCenter();
+      return;
+    }
+    this.isSyncCenterOpen.set(true);
+    // The panel must not open on cached counts, and must keep reading while it
+    // stays open: a dead letter can appear after the first read.
+    void this.offlineSync.refreshQueueStatus();
+    this.startSyncCenterRefresh();
+  }
+
+  private closeSyncCenter(): void {
+    this.isSyncCenterOpen.set(false);
+    this.stopSyncCenterRefresh();
+  }
+
+  private startSyncCenterRefresh(): void {
+    this.stopSyncCenterRefresh();
+    this.syncCenterRefreshTimer = setInterval(() => {
+      void this.offlineSync.refreshQueueStatus();
+    }, AppComponent.SYNC_CENTER_REFRESH_MS);
+  }
+
+  private stopSyncCenterRefresh(): void {
+    if (this.syncCenterRefreshTimer === undefined) return;
+    clearInterval(this.syncCenterRefreshTimer);
+    this.syncCenterRefreshTimer = undefined;
+  }
+
+  ngOnDestroy(): void {
+    this.stopSyncCenterRefresh();
   }
 
   toggleMobileWorkspaceTray() {
