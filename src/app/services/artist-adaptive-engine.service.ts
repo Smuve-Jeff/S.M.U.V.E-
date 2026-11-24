@@ -3,7 +3,7 @@ import { UserProfile, UserProfileService } from './user-profile.service';
 import { ArtistProfileFinetuneService, ArtistProfileKnowledge } from './artist-profile-finetune.service';
 import { initialProfile } from './user-profile.service';
 import { buildMusicalDnaContext } from '../types/musical-dna.types';
-import { isGenreAdviceHeld } from '../types/genre-hold';
+import { GENRE_HOLD_MESSAGE, isGenreAdviceHeld } from '../types/genre-hold';
 import { declaredJourneyValue } from '../types/profile.types';
 import {
   GenreResolution,
@@ -592,9 +592,7 @@ export class ArtistAdaptiveEngineService {
   private deriveWarningsAndProtections(profile: UserProfile | null | undefined, knowledge: ArtistProfileKnowledge): string[] {
     const warnings: string[] = [];
     if (isGenreAdviceHeld(profile)) {
-      warnings.push(
-        'Genre-specific tempo, structure and mix advice is held until the artist interview or uplink is committed and accepted.'
-      );
+      warnings.push(GENRE_HOLD_MESSAGE);
     }
     if ((profile?.catalog || []).some((item) => !item.credits)) {
       warnings.push('Rights evidence incomplete: verify contributors and any samples/interpolations. Missing credits do not prove sampling; genre never proves clearance.');

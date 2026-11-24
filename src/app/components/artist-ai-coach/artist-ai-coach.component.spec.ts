@@ -63,11 +63,10 @@ describe('ArtistAiCoachComponent', () => {
 
     expect(text).not.toContain('Artist-defined track');
     expect(text).toContain('genre not declared yet');
-    // The hold is not a sensitive detail, so it still reaches the warnings
-    // card even while sensitive profile details are hidden.
-    expect(text).toContain(
-      'Genre-specific tempo, structure and mix advice is held'
-    );
+    // The banner states the hold once; the warnings card must not repeat it.
+    expect(
+      text.match(/Genre-specific tempo, structure and mix advice/g)
+    ).toHaveLength(1);
   });
 
   it('shows only general guidance when profile answers are private', () => {

@@ -3,6 +3,7 @@ import { UserProfileService, UserProfile } from './user-profile.service';
 import { ArtistAdaptiveEngineService, ArtistAdaptationState } from './artist-adaptive-engine.service';
 import { MusicalDnaService } from './musical-dna.service';
 import { ArtistProfileFinetuneService } from './artist-profile-finetune.service';
+import { GENRE_HOLD_MESSAGE } from '../types/genre-hold';
 
 export interface CoachPrompt {
   role: 'producer' | 'songwriter' | 'manager' | 'ar' | 'promotion' | 'marketing' | 'legal' | 'brand';
@@ -238,18 +239,14 @@ export class ArtistAiCoachService {
 
   private generateWarnings(profile: UserProfile | null | undefined, adaptation: ArtistAdaptationState): string[] {
     if (profile?.settings?.security?.hideSensitiveProfileDetails !== false) {
-      const warnings = [
+      return [
         'Sensitive profile details are withheld from AI coaching by privacy setting.',
       ];
-      // The genre hold is not a sensitive detail, so it still has to surface
-      // here exactly as it does on the adaptive dashboard.
-      if (adaptation.genreAdviceHeld) {
-        warnings.push(
-          'Genre-specific tempo, structure and mix advice is held until the artist interview or uplink is committed and accepted.'
-        );
-      }
-      return warnings;
     }
-    return adaptation.warningsAndProtections;
+    // The held banner above already states the hold, so the warnings card must
+    // not repeat the same sentence.
+    return adaptation.warningsAndProtections.filter(
+      (warning) => warning !== GENRE_HOLD_MESSAGE
+    );
   }
 }
