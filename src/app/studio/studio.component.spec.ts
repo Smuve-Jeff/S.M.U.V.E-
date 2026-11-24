@@ -530,6 +530,34 @@ describe("StudioComponent", () => {
     expect(component.versionHistoryOffline()).toBe(true);
   });
 
+  it("does not call a confirmed push unreachable when the index is empty", async () => {
+    mockProjectWorkspace.metadata.set({ id: "proj_a", name: "Set" });
+    const bundle = { metadata: { id: "proj_a", name: "Set" }, tracks: [] };
+    const mockCloud = {
+      payloadBytes: jest.fn(() => 1024),
+      push: jest.fn().mockResolvedValue("success"),
+      listSnapshots: jest.fn(() => []),
+      refresh: jest.fn(),
+    };
+    const injector = (component as any).injector;
+    const originalGet = injector.get.bind(injector);
+    jest
+      .spyOn(injector, "get")
+      .mockImplementation((token: any, ...rest: any[]) =>
+        token === CloudSyncService ? mockCloud : originalGet(token, ...rest),
+      );
+
+    await component.pushVersionSnapshot(bundle as any);
+
+    expect(mockSnackbar.success).not.toHaveBeenCalledWith(
+      "Version saved to cloud history",
+    );
+    expect(mockSnackbar.info).toHaveBeenCalledWith(
+      "Cloud accepted the upload but holds no version yet — this version is saved on this device.",
+    );
+    expect(component.versionHistoryOffline()).toBe(true);
+  });
+
   it("reads the header pill from push state and multipart progress", async () => {
     const injector = (component as any).injector;
     const originalGet = injector.get.bind(injector);

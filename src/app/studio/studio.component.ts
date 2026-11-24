@@ -3968,9 +3968,11 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
         await this.keepLocalVersion(
           projectId,
           bundle,
-          status === "conflict"
-            ? "Cloud has a competing version — resolve it in Cloud Vault. This version is saved on this device."
-            : "Cloud is unreachable — this version is saved on this device.",
+          status === "success"
+            ? "Cloud accepted the upload but holds no version yet — this version is saved on this device."
+            : status === "conflict"
+              ? "Cloud has a competing version — resolve it in Cloud Vault. This version is saved on this device."
+              : "Cloud is unreachable — this version is saved on this device.",
         );
       }
     } catch (error) {
