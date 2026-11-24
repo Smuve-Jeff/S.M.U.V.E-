@@ -331,6 +331,77 @@ describe('SpeechSynthesisService', () => {
     });
   });
 
+  describe('human voice selection', () => {
+    it('prefers natural and neural voices over engine toys', () => {
+      mockSpeechSynthesis.getVoices.mockReturnValue([
+        { name: 'Zarvox', lang: 'en-US' },
+        { name: 'Albert', lang: 'en-US' },
+        { name: 'Microsoft David', lang: 'en-US' },
+        { name: 'Samantha (Premium)', lang: 'en-US' },
+        { name: 'Microsoft Aria Online (Natural)', lang: 'en-US' },
+      ]);
+      randomSpy.mockReturnValue(0.2);
+
+      service.speak('One. Two! Three? Four. Five! Six?');
+
+      const names = mockUtterances.map((u) => u.voice.name);
+      expect(names).not.toContain('Zarvox');
+      expect(names).not.toContain('Albert');
+      // Quality tiers are dealt in order: the natural voice leads, then the
+      // enhanced install, then the default narrator.
+      expect(names[0]).toBe('Microsoft Aria Online (Natural)');
+      expect(names[1]).toBe('Samantha (Premium)');
+      expect(names[2]).toBe('Microsoft David');
+    });
+
+    it('keeps every human voice in the rotation and drops the toys', () => {
+      mockSpeechSynthesis.getVoices.mockReturnValue([
+        { name: 'Bells', lang: 'en-US' },
+        { name: 'Google US English', lang: 'en-US' },
+        { name: 'Microsoft Aria Online (Natural)', lang: 'en-US' },
+        { name: 'Samantha (Premium)', lang: 'en-US' },
+      ]);
+      randomSpy.mockReturnValue(0.5);
+
+      service.speak('One. Two! Three?');
+
+      const names = new Set(mockUtterances.map((u) => u.voice.name));
+      expect(names).toEqual(
+        new Set([
+          'Google US English',
+          'Microsoft Aria Online (Natural)',
+          'Samantha (Premium)',
+        ])
+      );
+    });
+
+    it('collapses duplicate voice entries so one voice cannot speak twice running', () => {
+      mockSpeechSynthesis.getVoices.mockReturnValue([
+        { name: 'Google US English', lang: 'en-US', voiceURI: 'a' },
+        { name: 'Google US English', lang: 'en-US', voiceURI: 'b' },
+        { name: 'Microsoft Zira', lang: 'en-US' },
+      ]);
+      randomSpy.mockReturnValue(0.5);
+
+      service.speak('One. Two!');
+
+      const names = mockUtterances.map((u) => u.voice.name);
+      expect(names).toHaveLength(2);
+      expect(names[0]).not.toBe(names[1]);
+    });
+
+    it('still speaks when the device only ships engine toys', () => {
+      mockSpeechSynthesis.getVoices.mockReturnValue([
+        { name: 'Zarvox', lang: 'en-US' },
+      ]);
+      randomSpy.mockReturnValue(0);
+
+      service.speak('Say something.');
+
+      expect(mockUtterances[0].voice.name).toBe('Zarvox');
+    });
+  });
+
   it('should censor profanity when allowVulgarLanguage is false', () => {
     randomSpy.mockReturnValue(0);
 

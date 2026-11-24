@@ -71,6 +71,29 @@ export type VoiceOutputCapability =
 const VOICE_LIST_WAIT_MS = 1200;
 
 /**
+ * Installed voices that are not human speech: the engine's novelty voices
+ * (macOS ships a whole drawer of them next to the real narrators) and the
+ * legacy formant synths Linux exposes through eSpeak/Festival/MBROLA.
+ *
+ * Dealt into the rotation they made S.M.U.V.E. sound like a novelty answering
+ * machine, which undercuts the persona far more than a plain voice would.
+ */
+const NON_HUMAN_VOICE_PATTERN =
+  /\b(albert|bad news|bahh|bells|boing|bubbles|cellos|deranged|good news|jester|organ|superstar|trinoids|whisper|wobble|zarvox|espeak|festival|flite|mbrola|pico|sam)\b/i;
+
+/**
+ * How human an installed voice sounds, best first. Engines publish no quality
+ * field, so the advertised name is the only signal: modern engines mark their
+ * neural voices ("Online (Natural)", "Neural"), the OS marks premium and
+ * enhanced installs, and the vendor name identifies the default narrator.
+ */
+const HUMAN_VOICE_TIERS: readonly RegExp[] = [
+  /\b(neural|natural|online)\b/i,
+  /\b(premium|enhanced|siri|wavenet|studio|multilingual)\b/i,
+  /\b(google|microsoft|apple)\b/i,
+];
+
+/**
  * How a sentence is delivered, beyond the voice that speaks it.
  *
  * Pitch/rate/volume and the browser voice already change every sentence, but
@@ -436,13 +459,63 @@ export class SpeechSynthesisService {
     waiters.forEach((resolve) => resolve());
   }
 
-  /** The engine's own default voice — the last resort before silence. */
+  /**
+   * How human a voice sounds — higher is better. A name that matches no tier
+   * still counts (real voices exist outside the vendor lists); it just speaks
+   * after the ones the engine advertises as natural.
+   */
+  private voiceQualityTier(voice: SpeechSynthesisVoice): number {
+    const name = voice?.name ?? '';
+    const index = HUMAN_VOICE_TIERS.findIndex((pattern) => pattern.test(name));
+    return index === -1 ? 0 : HUMAN_VOICE_TIERS.length - index;
+  }
+
+  /**
+   * The voices worth speaking with: novelty and formant voices removed,
+   * duplicate name/language entries collapsed, best quality first.
+   *
+   * A device whose only voices are novelty voices keeps them — a toy telling
+   * the artist what they need to hear beats silence.
+   */
+  private humanVoicePool(): SpeechSynthesisVoice[] {
+    const voices = this.engineVoices();
+    const seen = new Set<string>();
+    const human = voices.filter((voice) => {
+      const name = voice?.name ?? '';
+      if (!name || NON_HUMAN_VOICE_PATTERN.test(name)) return false;
+      const key = `${name}::${voice.lang ?? ''}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+    return human.length > 0 ? human : voices;
+  }
+
+  /**
+   * One shuffled deck ordered by voice quality: the most human voices speak
+   * first, and every curated voice is used before the deck refills — the
+   * per-sentence change survives, it just changes between human voices.
+   */
+  private buildVoiceDeck(
+    voices: SpeechSynthesisVoice[]
+  ): SpeechSynthesisVoice[] {
+    const byTier = new Map<number, SpeechSynthesisVoice[]>();
+    for (const voice of voices) {
+      const tier = this.voiceQualityTier(voice);
+      const bucket = byTier.get(tier);
+      if (bucket) bucket.push(voice);
+      else byTier.set(tier, [voice]);
+    }
+    return [...byTier.keys()]
+      .sort((a, b) => b - a)
+      .flatMap((tier) => this.shuffle(byTier.get(tier) as SpeechSynthesisVoice[]));
+  }
+
+  /** The most human installed voice — the last resort before silence. */
   private defaultVoice(): SpeechSynthesisVoice | null {
     if (typeof window === 'undefined' || !window.speechSynthesis) return null;
-    const voices = this.voices.length
-      ? this.voices
-      : window.speechSynthesis.getVoices() ?? [];
-    return voices.find((voice) => voice.default) ?? voices[0] ?? null;
+    const pool = this.humanVoicePool();
+    return pool.find((voice) => voice.default) ?? pool[0] ?? null;
   }
 
   /**
@@ -1007,23 +1080,25 @@ export class SpeechSynthesisService {
   }
 
   /**
-   * Draws one installed browser voice from a shuffled deck. Every voice is used
-   * before the deck refills, and a refill rotates away from the voice that just
-   * spoke, so the reader changes every sentence and both genders appear in each
-   * full cycle instead of a fixed male-low / female-high mapping.
+   * Draws one installed browser voice from a shuffled deck of HUMAN voices.
+   * Every curated voice is used before the deck refills, and a refill rotates
+   * away from the voice that just spoke, so the reader changes every sentence
+   * and both genders appear in each full cycle instead of a fixed male-low /
+   * female-high mapping. Engine toys and legacy formant voices never enter the
+   * deck unless the device has nothing else.
    */
   private pickNextBrowserVoice(): SpeechSynthesisVoice | null {
-    const voices = this.engineVoices();
+    const voices = this.humanVoicePool();
     if (voices.length === 0) return null;
 
     const signature = voices.map((voice) => this.voiceKey(voice)).join('|');
     if (signature !== this.voiceDeckSignature) {
-      this.voiceDeck = this.shuffle([...voices]);
+      this.voiceDeck = this.buildVoiceDeck(voices);
       this.voiceDeckSignature = signature;
     }
 
     if (this.voiceDeck.length === 0) {
-      this.voiceDeck = this.shuffle([...voices]);
+      this.voiceDeck = this.buildVoiceDeck(voices);
     }
 
     let voice = this.voiceDeck.shift() as SpeechSynthesisVoice;
