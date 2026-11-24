@@ -56,6 +56,11 @@ describe('ArtistAdaptiveDashboardComponent', () => {
     expect(text).toContain('Genre advice is held');
     expect(text).toContain('committed and accepted');
     expect(text).toContain('not a read of your genre');
+    // The held banner is the only place the hold is stated; the warnings card
+    // must not repeat the sentence.
+    expect(
+      text.match(/Genre-specific tempo, structure and mix advice/g)
+    ).toHaveLength(1);
 
     const link = element.querySelector('.held-note a') as HTMLAnchorElement | null;
     expect(link?.getAttribute('href')).toBe('/profile');

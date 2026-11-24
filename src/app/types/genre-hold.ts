@@ -6,13 +6,6 @@ import type { UserProfile } from './profile.types';
  */
 export const DEFAULT_PRIMARY_GENRE = 'Hip Hop';
 
-/**
- * The one wording for the hold notice. Surfaces with their own held banner
- * filter this out of warning lists instead of saying it twice.
- */
-export const GENRE_HOLD_MESSAGE =
-  'Genre-specific tempo, structure and mix advice is held until the artist interview or uplink is committed and accepted.';
-
 /** Just the fields the hold rule reads, so callers can pass a partial profile. */
 export type GenreHoldProfile = Pick<
   UserProfile,

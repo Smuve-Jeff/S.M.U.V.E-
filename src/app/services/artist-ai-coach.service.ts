@@ -3,7 +3,6 @@ import { UserProfileService, UserProfile } from './user-profile.service';
 import { ArtistAdaptiveEngineService, ArtistAdaptationState } from './artist-adaptive-engine.service';
 import { MusicalDnaService } from './musical-dna.service';
 import { ArtistProfileFinetuneService } from './artist-profile-finetune.service';
-import { GENRE_HOLD_MESSAGE } from '../types/genre-hold';
 
 export interface CoachPrompt {
   role: 'producer' | 'songwriter' | 'manager' | 'ar' | 'promotion' | 'marketing' | 'legal' | 'brand';
@@ -243,10 +242,6 @@ export class ArtistAiCoachService {
         'Sensitive profile details are withheld from AI coaching by privacy setting.',
       ];
     }
-    // The held banner above already states the hold, so the warnings card must
-    // not repeat the same sentence.
-    return adaptation.warningsAndProtections.filter(
-      (warning) => warning !== GENRE_HOLD_MESSAGE
-    );
+    return adaptation.warningsAndProtections;
   }
 }

@@ -268,9 +268,11 @@ describe('Profile-adaptive music manager', () => {
     expect(state.genreAdviceHeld).toBe(true);
     expect(state.genreProfile.id).toBe('artist-defined');
     expect(state.productionDirective).not.toContain('Hip Hop');
-    expect(
-      state.warningsAndProtections.join(' ')
-    ).toContain('held until the artist interview');
+    // The held banner owns this notice; repeating it in the warnings list made
+    // the dashboard show the same sentence twice.
+    expect(state.warningsAndProtections.join(' ')).not.toContain(
+      'held until the artist interview'
+    );
   });
 
   it('never profiles a missing genre as Hip Hop', () => {
