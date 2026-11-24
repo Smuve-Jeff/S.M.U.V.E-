@@ -286,6 +286,9 @@ describe('AiService growth brief', () => {
     // genre to lead with, so it must not claim one.
     expect(service.getViralHooks()[0]).toContain('your sound signature');
     expect(service.getViralHooks()[0]).not.toContain('Hip Hop');
+    expect(service.getViralHooks().join(' ')).not.toContain(
+      'Creative Satisfaction'
+    );
 
     profileSignal.set({
       ...clone(initialProfile),

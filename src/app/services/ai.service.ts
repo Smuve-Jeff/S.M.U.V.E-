@@ -24,6 +24,7 @@ import {
 } from '../types/artist-lifecycle.types';
 import { buildArtistMusicContext } from '../types/profile.types';
 import { readArtistProfile } from './artist-profile-read';
+import { declaredJourneyValue } from '../types/profile.types';
 import {
   PersonaOfflineVoice,
   getPersonaOption,
@@ -333,7 +334,7 @@ export class AiService {
       ? `${profile.artistName}, Genre: ${readArtistProfile(profile).genre || 'not declared yet'}.`
       : 'withheld — the artist has not shared profile answers with AI.';
     const journeyLine = shareAnswers
-      ? `Style=${journey?.songwritingStyle || 'Unspecified'}, Velocity=${journey?.releaseVelocity || 'Unknown'}, Goal=${journey?.primarySuccessMetric || 'Unclear'}.`
+      ? `Style=${declaredJourneyValue(profile, 'songwritingStyle') || 'Unknown'}, Velocity=${declaredJourneyValue(profile, 'releaseVelocity') || 'Unknown'}, Goal=${declaredJourneyValue(profile, 'primarySuccessMetric') || 'Unclear'}.`
       : 'withheld — the artist has not shared profile answers with AI.';
     const intelLines: string[] = shareAnswers
       ? [
@@ -375,7 +376,7 @@ ${(() => {
     if (shareAnswers && !hideSensitive && synth?.archetype) {
       prompt += `
 S.M.U.V.E has synthesized the artist as: ${synth.archetype}.
-Sonic Signature: ${synth.sonicSignature || 'Undefined'}${shareAnswers ? `.\nMarket Position: ${journey?.marketPosition || 'Unknown'}` : ''}.
+Sonic Signature: ${synth.sonicSignature || 'Undefined'}${shareAnswers ? `.\nMarket Position: ${declaredJourneyValue(profile, 'marketPosition') || 'Unknown'}` : ''}.
 Use this profile to tailor the questions, experiments, and strategic pressure. Name the weak spot in their archetype out loud.
 If the artist is an 'architect', test technical choices; if a 'storyteller', test narrative depth; if a 'strategist', test the evidence. Make the feedback precise and useful.`;
     }
@@ -979,14 +980,17 @@ Remember: sharpen the artist's decisions, sign the work with a GOD's signature, 
     const calibrated = knowledge.state === 'calibrated';
     // Same hold as the read-back and the adaptive engine: the default genre is
     // not an answer until the interview is committed.
-    const genre = readArtistProfile(profile).genre || 'unspecified genre';
+    const genre = readArtistProfile(profile).genre;
     const sound = journey.signatureSound || 'an undefined signature sound';
     const intent = blueprint.artisticIntent || 'a clear audience transformation';
     const audience = blueprint.audienceProfile || 'the artist’s intended listener';
     const priorities = Array.isArray(blueprint.mixingPriorities)
       ? blueprint.mixingPriorities.join(', ')
       : 'translation and clarity';
-    const goal = journey.currentFocus || journey.primarySuccessMetric || 'build a durable independent career';
+    const goal =
+      journey.currentFocus ||
+      declaredJourneyValue(profile, 'primarySuccessMetric') ||
+      'build a durable independent career';
     const challenge = journey.biggestChallenge || 'protect focus and consistency';
     const streams = Array.isArray(journey.incomeStreams) && journey.incomeStreams.length
       ? journey.incomeStreams.join(', ')
@@ -994,7 +998,9 @@ Remember: sharpen the artist's decisions, sign the work with a GOD's signature, 
 
     return {
       profileState: calibrated ? 'calibrated' : 'incomplete',
-      producer: `Produce ${genre} around ${sound}. Protect ${priorities}; do not polish away the artist’s character. Intent: ${intent}.`,
+      producer: genre
+        ? `Produce ${genre} around ${sound}. Protect ${priorities}; do not polish away the artist’s character. Intent: ${intent}.`
+        : `Produce around ${sound}. Protect ${priorities}; do not polish away the artist’s character. Intent: ${intent}.`,
       manager: `Route the next move toward ${goal}. Remove the bottleneck: ${challenge}. Prefer one measurable weekly milestone over scattered activity.`,
       aAndR: `Evaluate songs for fit with ${sound}, the stated intent (${intent}), and the listener context (${audience}). Recommend development only when it strengthens the artist’s point of view.`,
       promotion: `Build campaign angles from the artist’s own world and language. Lead with the recognizable story, sound, and audience moment—not generic genre claims.`,
@@ -1828,7 +1834,8 @@ Remember: sharpen the artist's decisions, sign the work with a GOD's signature, 
     const profile = this.userProfileService.profile();
     const genre = readArtistProfile(profile).genre || 'your sound';
     const metric =
-      profile.musicalJourney?.primarySuccessMetric || 'Creative Satisfaction';
+      declaredJourneyValue(profile, 'primarySuccessMetric') ||
+      'one metric you can actually measure';
     const anchor = profile.musicalJourney?.musicBlueprint?.vocalDelivery;
     return [
       `Hooks inside 3 seconds: lead with the ${genre} signature, kill the intro runway.`,
@@ -2183,7 +2190,7 @@ Remember: sharpen the artist's decisions, sign the work with a GOD's signature, 
       type: 'identity',
       artistName: profile.artistName,
       primaryGenre: declaredGenre || 'undetermined',
-      marketPosition: profile.musicalJourney?.marketPosition,
+      marketPosition: declaredJourneyValue(profile, 'marketPosition') || undefined,
       yearsInIndustry: profile.musicalJourney?.yearsInIndustry,
       updatedAt: now,
     });

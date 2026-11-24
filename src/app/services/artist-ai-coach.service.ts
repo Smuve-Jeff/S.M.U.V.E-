@@ -70,12 +70,18 @@ export class ArtistAiCoachService {
     }
     const genre = adaptation.genreProfile;
     const knowledge = adaptation.knowledge;
+    // A held profile has no accepted genre, so the prompts must not name one.
+    const genreNote = adaptation.genreAdviceHeld
+      ? 'genre not declared yet'
+      : genre.label;
 
     prompts.push({
       role: 'producer',
-      title: `Produce the next ${genre.label} track`,
+      title: adaptation.genreAdviceHeld
+        ? 'Produce the next track — genre not declared yet'
+        : `Produce the next ${genre.label} track`,
       urgency: knowledge.state === 'foundational' ? 'immediate' : 'high',
-      prompt: `You are the producer for ${knowledge.identity.name || 'this artist'} (${genre.label}). Use this setup:\n\n${adaptation.productionDirective}\n\nYour job is to produce a track that\n1. Protects the sonic rules\n2. Uses the actual equipment\n3. Delivers on the stated mix priorities\n4. Keeps the artist's production philosophy`,
+      prompt: `You are the producer for ${knowledge.identity.name || 'this artist'} (${genreNote}). Use this setup:\n\n${adaptation.productionDirective}\n\nYour job is to produce a track that\n1. Protects the sonic rules\n2. Uses the actual equipment\n3. Delivers on the stated mix priorities\n4. Keeps the artist's production philosophy`,
       context: `Signature sound: ${knowledge.sonic.signatureSound}. Non-negotiables: ${knowledge.sonic.nonNegotiables}. DAW: ${profile.daw?.[0] || 'unspecified'}.`,
       actionItems: [
         `Set up ${profile.daw?.[0] || 'your DAW'} with these mix priorities: ${(knowledge.craft.mixingPriorities.length ? knowledge.craft.mixingPriorities : genre.productionDefaults.mixPriorities).join(', ')}`,
@@ -104,11 +110,11 @@ export class ArtistAiCoachService {
         role: 'manager',
         title: 'Route the career toward the next milestone',
         urgency: adaptation.liveReadiness.score < 40 ? 'immediate' : 'high',
-        prompt: `You are the manager for ${knowledge.identity.name || 'this artist'} (${genre.label}). Your job is routing:\n\n${adaptation.businessStrategy}\n\nNext move: ${adaptation.nextPrioritizedAction}\n\nProtect the artist's schedule and focus the effort on this one step.`,
-        context: `Current focus: ${knowledge.business.focus}. Success metric: ${knowledge.business.successMetric}. Live readiness: ${adaptation.liveReadiness.score}%.`,
+        prompt: `You are the manager for ${knowledge.identity.name || 'this artist'} (${genreNote}). Your job is routing:\n\n${adaptation.businessStrategy}\n\nNext move: ${adaptation.nextPrioritizedAction}\n\nProtect the artist's schedule and focus the effort on this one step.`,
+        context: `Current focus: ${knowledge.business.focus || 'not declared yet'}. Success metric: ${knowledge.business.successMetric || 'not declared yet'}. Live readiness: ${adaptation.liveReadiness.score}%.`,
         actionItems: [
           `Define the ${adaptation.liveReadiness.score < 40 ? 'live' : 'release'} milestone for the next 90 days`,
-          `Set ONE success metric: ${knowledge.business.successMetric}`,
+          `Set ONE success metric: ${knowledge.business.successMetric || 'agree it with the artist'}`,
           'Remove all work that does not feed this metric',
           `Block calendar: ${knowledge.business.velocity || 'define release cadence'}`,
         ],
@@ -160,11 +166,13 @@ export class ArtistAiCoachService {
         format: knowledge.sync.hasStems ? ['Master', 'Clean', 'Instrumental', 'Stems'] : ['Master', 'Clean', 'Instrumental'],
         strategy: `${releaseType} release targeting ${genre.businessPlaybook.incomeStreamPriority[0]}. Lead with: ${knowledge.audience.recognitionCue || 'the signature sound'}.`,
       },
-      catalogStrategy: `Develop ${knowledge.sonic.subgenres[0] || genre.label} at ${privateDetails ? knowledge.business.velocity || 'a sustainable artist-selected cadence' : 'a sustainable artist-selected cadence'}. ${catalogSize} catalog items recorded; drafts do not prove release readiness.`,
-      marketingApproach: `Lead with the artist's own voice and lived-world story. Avoid generic ${genre.label} tropes. Use: ${knowledge.audience.visualAesthetic?.[0] || 'define visual language'}.`,
+      catalogStrategy: `Develop ${knowledge.sonic.subgenres[0] || (adaptation.genreAdviceHeld ? 'the artist’s sound' : genre.label)} at ${privateDetails && knowledge.business.velocity ? knowledge.business.velocity : 'a sustainable artist-selected cadence'}. ${catalogSize} catalog items recorded; drafts do not prove release readiness.`,
+      marketingApproach: adaptation.genreAdviceHeld
+        ? `Lead with the artist's own voice and lived-world story. Avoid generic genre tropes until the artist declares one. Use: ${knowledge.audience.visualAesthetic?.[0] || 'define visual language'}.`
+        : `Lead with the artist's own voice and lived-world story. Avoid generic ${genre.label} tropes. Use: ${knowledge.audience.visualAesthetic?.[0] || 'define visual language'}.`,
       revenueTargets: (knowledge.business.streams.length ? knowledge.business.streams : genre.businessPlaybook.incomeStreamPriority).slice(0, 3),
       successMetrics: [
-        knowledge.business.successMetric || 'Monthly listeners',
+        knowledge.business.successMetric || 'One artist-defined metric (not declared yet)',
         `Playlist adds (${genre.businessPlaybook.targetAudience.toLowerCase()})`,
         'Save rate on Spotify',
         'Fan engagement (direct messages, comments)',
@@ -223,14 +231,24 @@ export class ArtistAiCoachService {
       opportunities.push('No For Artists dashboard claimed — editorial pitching and analytics require this');
     }
     if (profile.services?.length === 0) {
-      opportunities.push(`No production services listed — consider: ${genre.productionDefaults.recommendedDaw[0] || 'DAW'}, mixing tools, distribution`);
+      opportunities.push(`No production services listed — consider: ${knowledge.operations.daw?.[0] || 'a DAW'}, mixing tools, distribution`);
     }
     return opportunities.slice(0, 4);
   }
 
   private generateWarnings(profile: UserProfile | null | undefined, adaptation: ArtistAdaptationState): string[] {
     if (profile?.settings?.security?.hideSensitiveProfileDetails !== false) {
-      return ['Sensitive profile details are withheld from AI coaching by privacy setting.'];
+      const warnings = [
+        'Sensitive profile details are withheld from AI coaching by privacy setting.',
+      ];
+      // The genre hold is not a sensitive detail, so it still has to surface
+      // here exactly as it does on the adaptive dashboard.
+      if (adaptation.genreAdviceHeld) {
+        warnings.push(
+          'Genre-specific tempo, structure and mix advice is held until the artist interview or uplink is committed and accepted.'
+        );
+      }
+      return warnings;
     }
     return adaptation.warningsAndProtections;
   }

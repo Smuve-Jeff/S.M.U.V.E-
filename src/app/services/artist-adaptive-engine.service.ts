@@ -60,6 +60,19 @@ export interface GenreAdaptationProfile {
   };
 }
 
+/**
+ * The honest fallback when a genre is unlisted or not declared yet. Catalog
+ * profiles reuse it so business, live and legal stay general in one place.
+ */
+const neutralGenreProfile = (label: string): GenreAdaptationProfile => ({
+  id: 'artist-defined', label, primaryGenres: [],
+  productionDefaults: { recommendedDaw: ['your existing DAW'], typicalBpmRange: [40, 240], mixPriorities: ['Artist intent', 'Translation and dynamics'], recordingFocus: ['Capture the intended performance'], sonicSignatures: ['Artist-defined sonic signature'] },
+  songwritingRules: { typicalStructures: ['Artist-selected structure'], harmonyApproaches: ['Artist-defined harmony'], vocalDeliveryStyles: ['Declared delivery'], lyricalThemePatterns: ['Artist-owned themes'], arrangementPatterns: ['Artist-defined arrangement'] },
+  businessPlaybook: { releaseStrategy: 'Readiness-led release plan within capacity and budget', typicalVelocity: 'Artist-selected sustainable cadence', incomeStreamPriority: ['Evaluate rights, direct support and live/sync fit'], targetAudience: 'Not declared — validate with listener evidence', marketPosition: 'Not declared', syncOpportunities: ['Assess catalog and clearance before pitching'] },
+  livePerformance: { isTourReady: false, tourReadinessRequirements: ['Rehearsed set', 'Budget', 'Verified audience draw'], typicalBacklineNeeds: ['Verify requirements with the artist and venue'], regionalStrength: ['Use declared regions and demand evidence'] },
+  legalSpecifics: { clearanceModel: 'Assess actual usage and jurisdiction, not genre', sampleClearanceApproach: 'Check recording and composition permissions when applicable', proAffiliation: 'Territory-dependent', splitSheetRequirement: 'Negotiate separate composition and master pools' },
+});
+
 /** Curated profiles that add business/live detail on top of a catalog family. */
 const CURATED_FAMILY_IDS: Record<string, string> = {
   'hip-hop': 'hip-hop',
@@ -319,7 +332,7 @@ export class ArtistAdaptiveEngineService {
       syncReadiness: this.assessSyncReadiness(profile, knowledge, genreProfile),
       aiPersonaDirectives: this.buildAiPersonaDirectives(profile, knowledge, genreProfile),
       nextPrioritizedAction: this.derivePrioritizedAction(profile, knowledge, genreProfile),
-      warningsAndProtections: this.deriveWarningsAndProtections(profile, knowledge, genreProfile),
+      warningsAndProtections: this.deriveWarningsAndProtections(profile, knowledge),
     };
   }
 
@@ -347,14 +360,9 @@ export class ArtistAdaptiveEngineService {
         g.primaryGenres.some((pg) => pg.toLowerCase() === genreQuery)
       );
     const base: GenreAdaptationProfile = curated ??
-      (resolved ? this.catalogGenreProfile(resolved) : {
-      id: 'artist-defined', label: genreInput || 'Artist-defined', primaryGenres: [],
-      productionDefaults: { recommendedDaw: ['your existing DAW'], typicalBpmRange: [40, 240], mixPriorities: ['Artist intent', 'Translation and dynamics'], recordingFocus: ['Capture the intended performance'], sonicSignatures: ['Artist-defined sonic signature'] },
-      songwritingRules: { typicalStructures: ['Artist-selected structure'], harmonyApproaches: ['Artist-defined harmony'], vocalDeliveryStyles: ['Declared delivery'], lyricalThemePatterns: ['Artist-owned themes'], arrangementPatterns: ['Artist-defined arrangement'] },
-      businessPlaybook: { releaseStrategy: 'Readiness-led release plan within capacity and budget', typicalVelocity: 'Artist-selected sustainable cadence', incomeStreamPriority: ['Evaluate rights, direct support and live/sync fit'], targetAudience: 'Not declared — validate with listener evidence', marketPosition: 'Not declared', syncOpportunities: ['Assess catalog and clearance before pitching'] },
-      livePerformance: { isTourReady: false, tourReadinessRequirements: ['Rehearsed set', 'Budget', 'Verified audience draw'], typicalBacklineNeeds: ['Verify requirements with the artist and venue'], regionalStrength: ['Use declared regions and demand evidence'] },
-      legalSpecifics: { clearanceModel: 'Assess actual usage and jurisdiction, not genre', sampleClearanceApproach: 'Check recording and composition permissions when applicable', proAffiliation: 'Territory-dependent', splitSheetRequirement: 'Negotiate separate composition and master pools' },
-      });
+      (resolved
+        ? this.catalogGenreProfile(resolved)
+        : neutralGenreProfile(genreInput || 'Artist-defined'));
     // Explicit answers override suggestions, including hybrid/unlisted genres.
     const range = knowledge.sonic.tempoZone.match(/(\d{2,3})\s*[-–]\s*(\d{2,3})/);
     // A hybrid keeps the primary family in front but has to carry the second
@@ -411,8 +419,8 @@ export class ArtistAdaptiveEngineService {
   ): GenreAdaptationProfile {
     const family = resolved.family;
     return {
+      ...neutralGenreProfile(resolved.label || family.label),
       id: family.id,
-      label: resolved.label || family.label,
       primaryGenres: family.aliases,
       productionDefaults: {
         recommendedDaw: family.recommendedDaw,
@@ -429,28 +437,6 @@ export class ArtistAdaptiveEngineService {
         vocalDeliveryStyles: family.vocalDelivery,
         lyricalThemePatterns: family.lyricalThemes,
         arrangementPatterns: family.arrangementPatterns,
-      },
-      businessPlaybook: {
-        releaseStrategy: 'Readiness-led release plan within capacity and budget',
-        typicalVelocity: 'Artist-selected sustainable cadence',
-        incomeStreamPriority: ['Evaluate rights, direct support and live/sync fit'],
-        targetAudience: 'Not declared — validate with listener evidence',
-        marketPosition: 'Not declared',
-        syncOpportunities: ['Assess catalog and clearance before pitching'],
-      },
-      livePerformance: {
-        isTourReady: false,
-        tourReadinessRequirements: ['Rehearsed set', 'Budget', 'Verified audience draw'],
-        typicalBacklineNeeds: ['Verify requirements with the artist and venue'],
-        regionalStrength: ['Use declared regions and demand evidence'],
-      },
-      legalSpecifics: {
-        clearanceModel: 'Assess actual usage and jurisdiction, not genre',
-        sampleClearanceApproach:
-          'Check recording and composition permissions when applicable',
-        proAffiliation: 'Territory-dependent',
-        splitSheetRequirement:
-          'Negotiate separate composition and master pools',
       },
     };
   }
@@ -505,7 +491,8 @@ export class ArtistAdaptiveEngineService {
       `Current focus: ${focus}`,
       `Success metric: ${metric}`,
       `Income streams (priority): ${Array.isArray(streams) ? streams.slice(0, 3).join(', ') : streams}`,
-      `Market position: ${genre.businessPlaybook.targetAudience}`,
+      `Market position: ${genre.businessPlaybook.marketPosition}`,
+      `Target audience: ${genre.businessPlaybook.targetAudience}`,
       `Sync opportunities: ${genre.businessPlaybook.syncOpportunities.join(', ')}`,
     ].join('\n');
   }
@@ -602,7 +589,7 @@ export class ArtistAdaptiveEngineService {
     return knowledge.pathway.nextStep || `Keep building: next release should prove ${knowledge.business.successMetric || "the artist's intent"}.`;
   }
 
-  private deriveWarningsAndProtections(profile: UserProfile | null | undefined, knowledge: ArtistProfileKnowledge, _genre: GenreAdaptationProfile): string[] {
+  private deriveWarningsAndProtections(profile: UserProfile | null | undefined, knowledge: ArtistProfileKnowledge): string[] {
     const warnings: string[] = [];
     if (isGenreAdviceHeld(profile)) {
       warnings.push(

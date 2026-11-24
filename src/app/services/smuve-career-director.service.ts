@@ -879,7 +879,8 @@ export class SmuveCareerDirectorService {
     const _profile = this.profileService.profile();
     const knowledge = this.finetune.knowledge();
     const haystack = [
-      knowledge.genre,
+      // The placeholder is not a genre family signal.
+      knowledge.genre === 'unspecified genre' ? '' : knowledge.genre,
       ...(knowledge.sonic?.subgenres ?? []),
       ...(knowledge.sonic?.influences ?? []),
     ]

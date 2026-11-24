@@ -58,6 +58,18 @@ describe('ArtistAiCoachComponent', () => {
     expect(link?.textContent).toContain('Finish the artist interview');
   });
 
+  it('never names a placeholder genre in the coach prompts', () => {
+    const text = (render().nativeElement as HTMLElement).textContent ?? '';
+
+    expect(text).not.toContain('Artist-defined track');
+    expect(text).toContain('genre not declared yet');
+    // The hold is not a sensitive detail, so it still reaches the warnings
+    // card even while sensitive profile details are hidden.
+    expect(text).toContain(
+      'Genre-specific tempo, structure and mix advice is held'
+    );
+  });
+
   it('shows only general guidance when profile answers are private', () => {
     profile.update((current) => ({
       ...current,

@@ -82,6 +82,14 @@ describe('Profile-adaptive music manager', () => {
     expect(state.businessStrategy).not.toContain('Occasional');
     expect(state.businessStrategy).toContain('Success metric: Not declared');
     expect(state.businessStrategy).not.toContain('Creative Satisfaction');
+    // Market position and target audience are separate facts and were being
+    // printed as each other.
+    expect(state.businessStrategy).toContain(
+      `Market position: ${state.genreProfile.businessPlaybook.marketPosition}`
+    );
+    expect(state.businessStrategy).toContain(
+      `Target audience: ${state.genreProfile.businessPlaybook.targetAudience}`
+    );
   });
   it('does not mistake string No for prepared assets or crash with incomplete settings', () => {
     const p = {
