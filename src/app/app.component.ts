@@ -395,6 +395,17 @@ export class AppComponent {
     return `Back to ${words || 'home'}`;
   }
 
+  /** Compact label for the tablet header, where the full one will not fit. */
+  resumeShortLabel(): string {
+    if (!this.resumeTarget()) return '';
+    // The last word names the specific surface ("studio mixer" -> "mixer").
+    const words = this.resumeLabel()
+      .replace(/^Back to /, '')
+      .split(' ')
+      .filter(Boolean);
+    return words[words.length - 1] || 'hub';
+  }
+
   /** Return to the previous surface and offer nothing stale afterwards. */
   resumeLastRoute(): void {
     const target = this.resumeTarget();

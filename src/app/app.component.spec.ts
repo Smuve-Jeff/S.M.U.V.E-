@@ -249,6 +249,7 @@ describe('AppComponent', () => {
     fixture.detectChanges();
 
     expect(component.resumeLabel()).toBe('Back to studio mixer');
+    expect(component.resumeShortLabel()).toBe('mixer');
 
     component.resumeLastRoute();
 

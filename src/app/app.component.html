@@ -456,8 +456,11 @@
             <span class="material-symbols-outlined text-base">history</span>
             <!-- A phone header has no room for the label; the icon and the
                  aria-label keep the shortcut legible without crowding the
-                 actions at the other end of the bar. -->
+                 actions at the other end of the bar. Tablets get the last
+                 word of the destination, since the full label would crush
+                 the live-surface card at 641-1023. -->
             <span class="hidden lg:inline">{{ resumeLabel() }}</span>
+            <span class="hidden uppercase sm:inline lg:hidden">{{ resumeShortLabel() }}</span>
           </button>
           <button
             type="button"
