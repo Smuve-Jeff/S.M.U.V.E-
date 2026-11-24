@@ -1310,10 +1310,10 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
     turns: { question?: string; answer?: string; label?: string }[];
   } | null {
     const key = this.deskStorageKey();
-    const scoped = sessionStorage.getItem(key);
+    const scoped = this.readSessionItem(key);
     if (scoped) return this.parseSavedDesk(scoped);
 
-    const legacy = sessionStorage.getItem(DESK_STORAGE_KEY);
+    const legacy = this.readSessionItem(DESK_STORAGE_KEY);
     if (!legacy) return null;
     const parsed = this.parseSavedDesk(legacy);
     if (!parsed) return null;
@@ -1329,6 +1329,14 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
     // yet; if an account resolves next, the desk moves with it.
     this.legacyDeskMigrated = this.owner === null;
     return { alias: definition.aliases[0], turns: parsed.turns };
+  }
+
+  private readSessionItem(key: string): string | null {
+    try {
+      return sessionStorage.getItem(key);
+    } catch {
+      return null;
+    }
   }
 
   private parseSavedDesk(raw: string): {

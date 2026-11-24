@@ -77,6 +77,21 @@ describe("SynthesizerComponent", () => {
     );
   });
 
+  it("boots in beginner mode when storage reads are blocked", () => {
+    const getItem = jest
+      .spyOn(Storage.prototype, "getItem")
+      .mockImplementation(() => {
+        throw new Error("storage blocked");
+      });
+
+    try {
+      const fixture = TestBed.createComponent(SynthesizerComponent);
+      expect(fixture.componentInstance.isBeginner()).toBe(true);
+    } finally {
+      getItem.mockRestore();
+    }
+  });
+
   it("persists the beginner toggle", () => {
     const fixture = TestBed.createComponent(SynthesizerComponent);
     const component = fixture.componentInstance;

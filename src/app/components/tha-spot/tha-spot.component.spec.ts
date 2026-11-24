@@ -345,6 +345,26 @@ describe("ThaSpotComponent", () => {
     expect(component).toBeTruthy();
   });
 
+  it("boots with no favourites when storage reads are blocked", () => {
+    const getItem = jest
+      .spyOn(Storage.prototype, "getItem")
+      .mockImplementation(() => {
+        throw new Error("storage blocked");
+      });
+
+    let blockedFixture: ComponentFixture<ThaSpotComponent> | null = null;
+    try {
+      expect(() => {
+        blockedFixture = TestBed.createComponent(ThaSpotComponent);
+        blockedFixture.detectChanges();
+      }).not.toThrow();
+      expect(blockedFixture!.componentInstance.favorites()).toEqual([]);
+    } finally {
+      blockedFixture?.destroy();
+      getItem.mockRestore();
+    }
+  });
+
   it("keeps account and RTMP configuration in Settings", () => {
     const template = readFileSync(
       join(__dirname, "tha-spot.component.html"),
