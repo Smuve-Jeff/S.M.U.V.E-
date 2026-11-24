@@ -214,8 +214,9 @@ export class DatabaseService {
 
   /** Drop dead-lettered profile writes once a fresh write reaches the cloud. */
   private async clearProfileDeadLetters(): Promise<void> {
-    // Normal autosaves skip the IndexedDB dead-letter scan entirely.
-    if (!this.cloudSyncDeadLettered()) return;
+    // Read the store itself: the cached endpoint list is only refreshed on a
+    // queue update, so a stale copy would leave a dead letter behind after the
+    // cloud already accepted the write. One store read per confirmed save.
     try {
       const dead = await this.offlineSync.listDeadLetters();
       for (const item of dead) {

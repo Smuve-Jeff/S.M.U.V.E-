@@ -100,8 +100,10 @@ describe('DatabaseService profile ownership', () => {
 
     expect(JSON.parse(localStorage.getItem('smuve_user_profile_backup_user-a')!).artistName).toBe('A');
     expect(warn).not.toHaveBeenCalled();
-    // A normal save has no dead letter to inspect, so it must not scan.
-    expect(offlineSync.listDeadLetters).not.toHaveBeenCalled();
+    // The store is read even when the cached list says there is nothing, and a
+    // clean store clears nothing.
+    expect(offlineSync.listDeadLetters).toHaveBeenCalled();
+    expect(offlineSync.clearDeadLetter).not.toHaveBeenCalled();
   });
 
   it('reports failure when the cloud write fails but the local backup succeeds', async () => {
@@ -234,6 +236,23 @@ describe('DatabaseService profile ownership', () => {
     expect(offlineSync.clearDeadLetter).toHaveBeenCalledWith('dead-profile');
     expect(service.cloudSyncDeadLettered()).toBe(false);
     expect(service.cloudSyncError()).toBeNull();
+  });
+
+  it('clears a profile dead letter the cached endpoint list does not know about', async () => {
+    // A failed queue refresh leaves the cached list empty while the store still
+    // holds the dead letter, so the save must not trust the cached list.
+    expect(service.cloudSyncDeadLettered()).toBe(false);
+    offlineSync.listDeadLetters.mockResolvedValueOnce([
+      { id: 'dead-profile', endpoint: PROFILE_SYNC_ENDPOINT },
+    ]);
+
+    const pending = service.saveUserProfile(profile({ id: 'user-a' }), 'user-a');
+    http
+      .expectOne(service.apiUrl + '/profile')
+      .flush({ ok: true }, { status: 200, statusText: 'OK' });
+    await expect(pending).resolves.toBe(true);
+
+    expect(offlineSync.clearDeadLetter).toHaveBeenCalledWith('dead-profile');
   });
 
   it('lets an unstamped record be saved, since it has no owner to compare', async () => {
