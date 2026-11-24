@@ -130,4 +130,24 @@ describe('DatabaseService profile ownership', () => {
       'Guest'
     );
   });
+
+  it('removes only the requested account\u2019s local copy', () => {
+    localStorage.setItem(
+      'smuve_user_profile_backup_user-a',
+      JSON.stringify({ id: 'user-a' })
+    );
+    localStorage.setItem(
+      'smuve_user_profile_backup_user-b',
+      JSON.stringify({ id: 'user-b' })
+    );
+
+    service.removeLocalProfileBackup('user-a');
+
+    expect(
+      localStorage.getItem('smuve_user_profile_backup_user-a')
+    ).toBeNull();
+    expect(
+      localStorage.getItem('smuve_user_profile_backup_user-b')
+    ).not.toBeNull();
+  });
 });

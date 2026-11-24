@@ -81,6 +81,8 @@ export class SettingsComponent implements OnInit, OnDestroy {
     this.showHowTo.set(false);
     this.keyboardHelpRequested.set(false);
   }
+  profileRestoring = signal(false);
+  cloudReconnecting = signal(false);
   outputDeviceError = signal('');
   latencyCalibrationRunning = signal(false);
   twoFactorSetup = signal<{ secret: string; qrCodeUri: string } | null>(null);
@@ -976,6 +978,94 @@ export class SettingsComponent implements OnInit, OnDestroy {
       this.notificationService.show('PROFILE_IMPORTED_SUCCESSFULLY', 'success');
     } else {
       this.notificationService.show('PROFILE_IMPORT_FAILED', 'error');
+    }
+  }
+
+  /**
+   * Replace unsaved changes with the last saved copy. The database reads the
+   * cloud copy first when online and this device's backup otherwise, and this
+   * method checks that a copy exists before loading so a missing record cannot
+   * silently seed a blank profile over the artist's work.
+   */
+  async restoreSavedProfile() {
+    const confirmed = await this.dialog.confirm({
+      title: 'Restore profile',
+      message:
+        'This replaces any unsaved changes with the last saved copy — the cloud copy when online, otherwise this device’s backup. Continue?',
+      confirmLabel: 'Restore profile',
+      cancelLabel: 'Cancel',
+      tone: 'default',
+    });
+    if (!confirmed) return;
+
+    this.profileRestoring.set(true);
+    try {
+      const id = this.profileService.profile().id || 'current';
+      const saved = await this.databaseService.loadUserProfile(id);
+      if (!saved) {
+        this.notificationService.show(
+          'No saved profile copy was found. Nothing was changed.',
+          'error',
+          4000
+        );
+        return;
+      }
+      await this.profileService.loadProfile(id);
+      this.notificationService.show('Profile restored.', 'success');
+    } catch {
+      this.notificationService.show(
+        'Restore failed. Nothing was changed.',
+        'error',
+        3000
+      );
+    } finally {
+      this.profileRestoring.set(false);
+    }
+  }
+
+  /** Delete this device's copy without touching the account or cloud record. */
+  async deleteLocalProfileCopy() {
+    const confirmed = await this.dialog.confirm({
+      title: 'Delete local profile copy',
+      message:
+        'This removes only this device’s backup. Your account and cloud copy stay untouched. If local backup is on, the next save writes a new copy.',
+      confirmLabel: 'Delete local copy',
+      cancelLabel: 'Keep it',
+      tone: 'danger',
+    });
+    if (!confirmed) return;
+
+    this.databaseService.removeLocalProfileBackup(
+      this.profileService.profile().id || 'current'
+    );
+    this.notificationService.show(
+      'Local profile copy deleted. Your account and cloud copy are unchanged.',
+      'success'
+    );
+  }
+
+  /** Re-read the stored session and refresh the API session when possible. */
+  async reconnectCloudAccess() {
+    this.cloudReconnecting.set(true);
+    try {
+      await this.authService.loadSession();
+      if (this.authService.isAuthenticated()) {
+        this.notificationService.show('Cloud access restored.', 'success');
+      } else {
+        this.notificationService.show(
+          'No saved session to restore. Sign in to reconnect cloud access.',
+          'error',
+          4000
+        );
+      }
+    } catch {
+      this.notificationService.show(
+        'Cloud access could not be restored. Check your connection and sign in again.',
+        'error',
+        4000
+      );
+    } finally {
+      this.cloudReconnecting.set(false);
     }
   }
 

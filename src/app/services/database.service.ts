@@ -95,6 +95,19 @@ export class DatabaseService {
     }
   }
 
+  /**
+   * Remove this device's copy only. The account and its cloud record stay, and
+   * the next save writes a fresh local copy when local backup is enabled.
+   */
+  removeLocalProfileBackup(userId: string): void {
+    if (typeof localStorage === 'undefined') return;
+    localStorage.removeItem(this.getProfileBackupKey(userId));
+    if (userId === 'current') {
+      // Older builds also wrote the generic fallback key.
+      localStorage.removeItem(this.getProfileBackupKey());
+    }
+  }
+
   async loadUserProfile(userId: string): Promise<UserProfile | null> {
     if (userId && typeof navigator !== 'undefined' && navigator.onLine) {
       try {

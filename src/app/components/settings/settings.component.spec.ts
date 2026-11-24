@@ -64,6 +64,7 @@ describe('SettingsComponent', () => {
         },
       }),
       updateProfile: jest.fn().mockResolvedValue(undefined),
+      loadProfile: jest.fn().mockResolvedValue(undefined),
     };
 
     const microphoneServiceMock = {
@@ -115,6 +116,8 @@ describe('SettingsComponent', () => {
 
     const authServiceMock = {
       logout: jest.fn(),
+      loadSession: jest.fn().mockResolvedValue(undefined),
+      isAuthenticated: signal(true),
     };
 
     const dialogMock = {
@@ -195,6 +198,8 @@ describe('SettingsComponent', () => {
           provide: DatabaseService,
           useValue: {
             saveUserProfile: jest.fn().mockResolvedValue(undefined),
+            loadUserProfile: jest.fn().mockResolvedValue(null),
+            removeLocalProfileBackup: jest.fn(),
           },
         },
       ],
@@ -551,5 +556,42 @@ describe('SettingsComponent', () => {
 
     expect(authServiceMock.logout).toHaveBeenCalled();
     http.delete.mockImplementation(() => of({ ok: true }));
+  });
+
+  it('deletes only the local profile copy, never the account record', async () => {
+    const { component, dialogMock } = await createComponent();
+    const database = TestBed.inject(DatabaseService) as any;
+    const profile = TestBed.inject(UserProfileService) as any;
+    profile.profile.set({ ...profile.profile(), id: 'usr-42' });
+    dialogMock.confirm.mockResolvedValue(true);
+
+    await component.deleteLocalProfileCopy();
+
+    expect(database.removeLocalProfileBackup).toHaveBeenCalledWith('usr-42');
+    expect(database.saveUserProfile).not.toHaveBeenCalled();
+  });
+
+  it('restoreSavedProfile changes nothing when no saved copy exists', async () => {
+    const { component, dialogMock } = await createComponent();
+    const database = TestBed.inject(DatabaseService) as any;
+    const profile = TestBed.inject(UserProfileService) as any;
+    database.loadUserProfile.mockResolvedValueOnce(null);
+    dialogMock.confirm.mockResolvedValue(true);
+
+    await component.restoreSavedProfile();
+
+    expect(profile.loadProfile).not.toHaveBeenCalled();
+  });
+
+  it('restoreSavedProfile reloads the saved copy', async () => {
+    const { component, dialogMock } = await createComponent();
+    const database = TestBed.inject(DatabaseService) as any;
+    const profile = TestBed.inject(UserProfileService) as any;
+    database.loadUserProfile.mockResolvedValueOnce({ artistName: 'Saved' });
+    dialogMock.confirm.mockResolvedValue(true);
+
+    await component.restoreSavedProfile();
+
+    expect(profile.loadProfile).toHaveBeenCalledWith('current');
   });
 });
