@@ -1240,16 +1240,12 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
 
   private restoreDesk(): void {
     try {
-      const raw = sessionStorage.getItem(this.deskStorageKey());
-      if (!raw) return;
-      const saved = JSON.parse(raw) as {
-        alias?: string;
-        turns?: { question?: string; answer?: string; label?: string }[];
-      };
-      const definition = artistRoleForAlias(saved.alias ?? '');
+      const saved = this.readSavedDesk();
+      if (!saved) return;
+      const definition = artistRoleForAlias(saved.alias);
       if (!definition) return;
 
-      const turns = (saved.turns ?? []).filter(
+      const turns = saved.turns.filter(
         (turn) =>
           typeof turn?.question === 'string' &&
           typeof turn?.answer === 'string'
@@ -1259,8 +1255,57 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
       }
       this.activeDesk.set(definition);
     } catch {
-      // An unavailable or legacy store simply starts with no desk.
+      // An unavailable or unreadable store simply starts with no desk.
     }
+  }
+
+  /**
+   * Reads the account-scoped desk. A desk saved by the old build is a bare
+   * alias at the unscoped key; it is migrated into the current scope on first
+   * load so existing sessions are not silently dropped.
+   */
+  private readSavedDesk(): {
+    alias: string;
+    turns: { question?: string; answer?: string; label?: string }[];
+  } | null {
+    const key = this.deskStorageKey();
+    const scoped = sessionStorage.getItem(key);
+    if (scoped) return this.parseSavedDesk(scoped);
+
+    const legacy = sessionStorage.getItem(DESK_STORAGE_KEY);
+    if (!legacy) return null;
+    const parsed = this.parseSavedDesk(legacy);
+    if (!parsed) return null;
+    const definition = artistRoleForAlias(parsed.alias);
+    if (!definition) return null;
+
+    sessionStorage.setItem(
+      key,
+      JSON.stringify({ alias: definition.aliases[0], turns: parsed.turns })
+    );
+    sessionStorage.removeItem(DESK_STORAGE_KEY);
+    return { alias: definition.aliases[0], turns: parsed.turns };
+  }
+
+  private parseSavedDesk(raw: string): {
+    alias: string;
+    turns: { question?: string; answer?: string; label?: string }[];
+  } | null {
+    const text = raw.trim();
+    if (!text) return null;
+    if (!text.startsWith('{')) return { alias: text, turns: [] };
+
+    const parsed = JSON.parse(text) as {
+      alias?: unknown;
+      turns?: unknown;
+    };
+    if (typeof parsed.alias !== 'string' || !parsed.alias) return null;
+    return {
+      alias: parsed.alias,
+      turns: Array.isArray(parsed.turns)
+        ? (parsed.turns as { question?: string; answer?: string; label?: string }[])
+        : [],
+    };
   }
 
   /** Files one desk exchange for prompt continuity (bounded, no persistence). */

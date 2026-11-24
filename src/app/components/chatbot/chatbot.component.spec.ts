@@ -34,6 +34,7 @@ describe('ChatbotComponent', () => {
 
   beforeEach(async () => {
     localStorage.clear();
+    sessionStorage.clear();
     userProfileServiceMock = {
       profile: signal(initialProfile),
       updateProfile: jest.fn(),
@@ -518,6 +519,55 @@ describe('ChatbotComponent', () => {
     expect(prompt).toContain('A&R:');
 
     restoredFixture.destroy();
+  });
+
+  it('migrates a desk saved in the old bare-alias format on first load', () => {
+    const users = TestBed.inject(UserStoreService);
+    users.user.set(null);
+    fixture.detectChanges();
+    TestBed.flushEffects();
+
+    sessionStorage.setItem('smuve.master.desk.v1', 'coach');
+
+    const restoredFixture = TestBed.createComponent(ChatbotComponent);
+    const restored = restoredFixture.componentInstance;
+    restored.ngOnInit();
+    restoredFixture.detectChanges();
+
+    expect(restored.activeDeskLabel()).toBe('Coach');
+    expect(sessionStorage.getItem('smuve.master.desk.v1')).toBeNull();
+    expect(
+      sessionStorage.getItem((restored as any).deskStorageKey())
+    ).toContain('"alias":"coach"');
+
+    restoredFixture.destroy();
+  });
+
+  it('restores the guest desk on sign-out instead of the account desk', async () => {
+    const users = TestBed.inject(UserStoreService);
+    users.user.set(null);
+    fixture.detectChanges();
+    TestBed.flushEffects();
+
+    await (component as any).routeMasterIntent('/coach');
+    expect(component.activeDeskLabel()).toBe('Coach');
+
+    users.user.set({ id: 'artist-a' } as any);
+    fixture.detectChanges();
+    TestBed.flushEffects();
+
+    await (component as any).routeMasterIntent('/ar');
+    expect(component.activeDeskLabel()).toBe('A&R');
+
+    users.user.set(null);
+    fixture.detectChanges();
+    TestBed.flushEffects();
+
+    // Signing out closes the account desk and restores the guest's own.
+    expect(component.activeDeskLabel()).toBe('Coach');
+    expect(sessionStorage.getItem('smuve.master.desk.v1:artist-a')).toContain(
+      '"alias":"ar"'
+    );
   });
 
   it('closes a guest desk when an account appears and restores the account desk', async () => {
