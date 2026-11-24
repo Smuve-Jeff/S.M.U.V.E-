@@ -8,6 +8,7 @@ import {
 } from './artist-profile-read';
 import { isGenreAdviceHeld } from '../types/genre-hold';
 import { declaredJourneyValue } from '../types/profile.types';
+import { ARTIST_ROLE_IDS, ARTIST_ROLES } from './artist-role.registry';
 
 /** S.M.U.V.E. operating roles that adapt to the artist’s completed profile. */
 export type FinetuneRole =
@@ -186,35 +187,14 @@ export interface ArtistVoiceSpec {
   avoid: string[];
 }
 
-const ROLE_LABEL: Record<FinetuneRole, string> = {
-  producer: 'PRODUCER',
-  songwriter: 'SONGWRITER',
-  manager: 'MANAGER',
-  ar: 'A&R',
-  promotion: 'PROMOTION',
-  marketing: 'MARKETING',
-  legal: 'LEGAL',
-  brand: 'BRAND',
-  engineer: 'ENGINEER',
-  teacher: 'TEACHER',
-  coach: 'COACH',
-  ceo: 'CEO',
-};
+const ROLE_LABEL: Record<FinetuneRole, string> = Object.fromEntries(
+  ARTIST_ROLES.map((definition) => [
+    definition.role,
+    definition.label.toUpperCase(),
+  ])
+) as Record<FinetuneRole, string>;
 
-const ALL_ROLES: FinetuneRole[] = [
-  'producer',
-  'songwriter',
-  'manager',
-  'ar',
-  'promotion',
-  'marketing',
-  'legal',
-  'brand',
-  'engineer',
-  'teacher',
-  'coach',
-  'ceo',
-];
+const ALL_ROLES: FinetuneRole[] = [...ARTIST_ROLE_IDS];
 
 /**
  * Compiles the complete artist profile into deterministic operating knowledge.

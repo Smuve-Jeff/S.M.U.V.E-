@@ -6,6 +6,7 @@ import { ArtistProfileFinetuneService } from './artist-profile-finetune.service'
 import { MusicalDnaService } from './musical-dna.service';
 import { UserProfileService } from './user-profile.service';
 import type { UserProfile } from './user-profile.service';
+import { ARTIST_ROLE_IDS } from './artist-role.registry';
 
 const profile = (overrides: Record<string, unknown> = {}): UserProfile =>
   ({
@@ -85,6 +86,11 @@ describe('ArtistAiCoachService expert panel', () => {
     );
     // The panel renders with one Angular track key per role.
     expect(new Set(roles).size).toBe(roles.length);
+    // Every card names a role the shared registry owns, so a new panel role
+    // cannot appear without a directive and label behind it.
+    for (const role of roles) {
+      expect(ARTIST_ROLE_IDS).toContain(role);
+    }
 
     const engineer = prompts.find((prompt) => prompt.role === 'engineer')!;
     expect(engineer.title).toContain('Country');

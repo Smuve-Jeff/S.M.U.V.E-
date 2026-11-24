@@ -2,22 +2,13 @@ import { Injectable, computed, inject } from '@angular/core';
 import { UserProfileService, UserProfile } from './user-profile.service';
 import { ArtistAdaptiveEngineService, ArtistAdaptationState } from './artist-adaptive-engine.service';
 import { MusicalDnaService } from './musical-dna.service';
-import { ArtistProfileFinetuneService } from './artist-profile-finetune.service';
+import {
+  ArtistProfileFinetuneService,
+  FinetuneRole,
+} from './artist-profile-finetune.service';
 
 export interface CoachPrompt {
-  role:
-    | 'producer'
-    | 'songwriter'
-    | 'manager'
-    | 'ar'
-    | 'promotion'
-    | 'marketing'
-    | 'legal'
-    | 'brand'
-    | 'engineer'
-    | 'teacher'
-    | 'coach'
-    | 'ceo';
+  role: FinetuneRole;
   title: string;
   prompt: string;
   context: string;

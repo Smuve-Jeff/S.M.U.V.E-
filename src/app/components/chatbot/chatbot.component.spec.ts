@@ -12,6 +12,7 @@ import { signal } from '@angular/core';
 import { initialProfile } from '../../types/profile.types';
 import { ArtistProfileFinetuneService } from '../../services/artist-profile-finetune.service';
 import { ArtistRelationshipService } from '../../services/artist-relationship.service';
+import { ARTIST_ROLES } from '../../services/artist-role.registry';
 import { SmuveMemoryService } from '../../services/smuve-memory.service';
 import { SmuveTotalControlService } from '../../services/smuve-total-control.service';
 
@@ -203,10 +204,35 @@ describe('ChatbotComponent', () => {
     expect(coach.content).toContain("coach directive from the artist's evidence");
     expect(aiServiceMock.getArtistDirective).toHaveBeenCalledWith('coach');
 
+    for (const [alias, role] of [
+      ['manager', 'manager'],
+      ['ar', 'ar'],
+      ['marketing', 'marketing'],
+      ['legal', 'legal'],
+    ] as const) {
+      const intent = await (component as any).routeMasterIntent(`/${alias}`);
+      expect(intent.content).toContain(`${role} directive from the artist's evidence`);
+      expect(aiServiceMock.getArtistDirective).toHaveBeenCalledWith(role);
+    }
+
     const ceo = await (component as any).routeMasterIntent('/ceo');
     expect(ceo.content).toContain('CEO DESK');
     expect(ceo.content).toContain("ceo directive from the artist's evidence");
     expect(aiServiceMock.getArtistDirective).toHaveBeenCalledWith('ceo');
+  });
+
+  it('opens a desk for every alias in the shared role registry', async () => {
+    for (const definition of ARTIST_ROLES) {
+      for (const alias of definition.aliases) {
+        const intent = await (component as any).routeMasterIntent(`/${alias}`);
+        expect(intent.content).toContain(
+          `${definition.label.toUpperCase()} DESK`
+        );
+        expect(intent.content).toContain(
+          `${definition.role} directive from the artist's evidence`
+        );
+      }
+    }
   });
 
   it('sends a role-desk question to the model with that desk’s directive', async () => {

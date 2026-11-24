@@ -36,6 +36,10 @@ import {
 } from '../../services/speech-recognition.service';
 import { LoggingService } from '../../services/logging.service';
 import { QUICK_COMMANDS, CHATBOT_COMMANDS } from './chatbot.commands';
+import {
+  ArtistRoleDefinition,
+  artistRoleForAlias,
+} from '../../services/artist-role.registry';
 import { buildArtistMusicContext } from '../../types/profile.types';
 import {
   readArtistProfile,
@@ -981,10 +985,17 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
     }
 
     // 0d) Role desks — one named expert answers from the profile-derived
-    //     directive instead of a blended generalist voice.
-    const roleMatch = trimmed.match(/^\/(engineer|teach|coach|ceo)\b\s*([\s\S]*)$/i);
-    if (roleMatch) {
-      return this.roleDeskIntent(roleMatch[1].toLowerCase(), roleMatch[2].trim());
+    //     directive instead of a blended generalist voice. Aliases and labels
+    //     come from the shared role registry, so a desk cannot drift from the
+    //     roles the fine-tune and coach panel use.
+    const roleMatch = trimmed.match(/^\/([a-z][a-z0-9-]*)\b\s*([\s\S]*)$/i);
+    const roleDef = roleMatch ? artistRoleForAlias(roleMatch[1]) : null;
+    if (roleMatch && roleDef) {
+      return this.roleDeskIntent(
+        roleDef,
+        roleMatch[1].toLowerCase(),
+        roleMatch[2].trim()
+      );
     }
 
     // 1) Slash commands → Total Control engine
@@ -1084,22 +1095,18 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
   }
 
   /**
-   * `/engineer`, `/teach`, `/coach` and `/ceo` answer as that expert for this artist.
-   * The brief comes from the same profile-derived directive the model prompt
-   * carries, so the desk cannot invent a persona the profile has not earned.
+   * Every alias in the shared role registry answers as that expert for this
+   * artist. The brief comes from the same profile-derived directive the model
+   * prompt carries, so the desk cannot invent a persona the profile has not
+   * earned.
    */
   private async roleDeskIntent(
+    definition: ArtistRoleDefinition,
     alias: string,
     question: string
   ): Promise<MasterIntent> {
-    const desks = {
-      engineer: { role: 'engineer' as const, label: 'Engineer' },
-      teach: { role: 'teacher' as const, label: 'Teacher' },
-      coach: { role: 'coach' as const, label: 'Coach' },
-      ceo: { role: 'ceo' as const, label: 'CEO' },
-    };
-    const desk = desks[alias as keyof typeof desks] ?? desks.engineer;
-    const brief = this.aiService?.getArtistDirective?.(desk.role);
+    const label = definition.label;
+    const brief = this.aiService?.getArtistDirective?.(definition.role);
     const playbook = brief
       ? [
           brief.directive,
@@ -1108,17 +1115,17 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
             ? [`Guardrails: ${brief.guardrails.join(' | ')}`]
             : []),
         ].join('\n')
-      : `No ${desk.label.toLowerCase()} brief is available yet. Ask a specific ${desk.label.toLowerCase()} question and I will work from your profile.`;
+      : `No ${label.toLowerCase()} brief is available yet. Ask a specific ${label.toLowerCase()} question and I will work from your profile.`;
 
     if (!question) {
       return {
-        content: `${desk.label.toUpperCase()} DESK\n${playbook}\n\nAsk a follow-up: /${alias} <question>`,
+        content: `${label.toUpperCase()} DESK\n${playbook}\n\nAsk a follow-up: /${alias} <question>`,
         actions: [],
       };
     }
 
     const prompt = [
-      `You are S.M.U.V.E. acting as the artist's ${desk.label}.`,
+      `You are S.M.U.V.E. acting as the artist's ${label}.`,
       brief?.directive ?? '',
       brief?.tips.length
         ? `Working knowledge:\n${brief.tips.map((tip) => `- ${tip}`).join('\n')}`
@@ -1127,7 +1134,7 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
         ? `Guardrails:\n${brief.guardrails.map((rule) => `- ${rule}`).join('\n')}`
         : '',
       `Artist question: ${question}`,
-      `Answer as the ${desk.label}, using the artist's own evidence. If the evidence is missing, say what you need instead of inventing it.`,
+      `Answer as the ${label}, using the artist's own evidence. If the evidence is missing, say what you need instead of inventing it.`,
     ]
       .filter(Boolean)
       .join('\n\n');
@@ -1143,7 +1150,7 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
       // A dead link falls back to the local brief, never a raw error.
     }
     return {
-      content: `${desk.label.toUpperCase()} DESK\n${playbook}\n\nI could not reach the model for that question, so here is the brief to work from.`,
+      content: `${label.toUpperCase()} DESK\n${playbook}\n\nI could not reach the model for that question, so here is the brief to work from.`,
       actions: [],
     };
   }
