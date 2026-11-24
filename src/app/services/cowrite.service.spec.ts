@@ -78,7 +78,7 @@ describe("CoWriteService.saveProject", () => {
     expect(service.savedProjects()).toHaveLength(1);
   });
 
-  it("drops a deleted project from the list when the store refuses the write", () => {
+  it("reports a refused write and keeps the project when a delete cannot persist", () => {
     const saved = service.saveProject("Take 1");
     expect(saved).not.toBeNull();
     const setItem = jest
@@ -87,7 +87,7 @@ describe("CoWriteService.saveProject", () => {
         throw new Error("QuotaExceededError");
       });
 
-    let removed = false;
+    let removed: boolean | null = null;
     try {
       expect(() => {
         removed = service.deleteProject(saved!.id);
@@ -96,7 +96,11 @@ describe("CoWriteService.saveProject", () => {
       setItem.mockRestore();
     }
 
-    expect(removed).toBe(true);
-    expect(service.savedProjects()).toHaveLength(0);
+    expect(removed).toBe(false);
+    expect(service.lastSaveError()).toContain("could not be deleted");
+    // The project is still on disk, so it must still be listed.
+    expect(service.savedProjects().map((p) => p.id)).toEqual([saved!.id]);
+    expect(JSON.parse(localStorage.getItem("smuve_cowrite_projects") ?? "[]"))
+      .toHaveLength(1);
   });
 });

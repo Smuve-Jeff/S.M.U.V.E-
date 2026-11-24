@@ -97,6 +97,8 @@ describe('applyH264Preference', () => {
 });
 
 describe('WhipPublisher.start', () => {
+  let lastPc: FakePeerConnection;
+
   class FakePeerConnection {
     localDescription: { sdp: string } | null = { sdp: 'v=0' };
     iceGatheringState: RTCIceGatheringState = 'complete';
@@ -116,7 +118,12 @@ describe('WhipPublisher.start', () => {
     ]);
 
     constructor() {
-      lastPc = this;
+      FakePeerConnection.capture(this);
+    }
+
+    /** Records the instance for assertions without aliasing `this`. */
+    private static capture(pc: FakePeerConnection): void {
+      lastPc = pc;
     }
   }
 
@@ -131,7 +138,6 @@ describe('WhipPublisher.start', () => {
     text: async () => 'v=0',
   });
 
-  let lastPc: FakePeerConnection;
   let fetchMock: jest.Mock;
   let originalPc: unknown;
 

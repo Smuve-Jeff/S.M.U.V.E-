@@ -352,7 +352,15 @@ export class CowriteStudioComponent implements OnInit {
   }
 
   deleteProject(projectId: string) {
-    this.cowrite.deleteProject(projectId);
+    if (!this.cowrite.deleteProject(projectId)) {
+      // false means "already gone" or "storage refused the write"; say which
+      // rather than dropping it from the visible list.
+      this.saveConfirm.set(
+        this.cowrite.lastSaveError() ?? 'That project could not be deleted.',
+      );
+      setTimeout(() => this.saveConfirm.set(null), 3000);
+      return;
+    }
     this.savedProjectsList.update((list) =>
       list.filter((p) => p.id !== projectId)
     );

@@ -1076,9 +1076,14 @@ export class CoWriteService {
     try {
       localStorage.setItem(this.STORAGE_KEY, JSON.stringify(filtered));
     } catch {
-      // The project still leaves the list for this session when the store is
-      // blocked; the next save reports the failure in lastSaveError.
+      // A refused write leaves the project on disk, so it must stay in the
+      // list too: report the failure instead of claiming it was deleted.
+      this.lastSaveError.set(
+        'This project could not be deleted from this device.',
+      );
+      return false;
     }
+    this.lastSaveError.set(null);
     this.projectsSignal.set(filtered);
     return true;
   }
