@@ -67,6 +67,16 @@ export type VoiceOutputCapability =
   | 'no-voices'
   | 'unsupported';
 
+/**
+ * Whether the engine will actually make sound.
+ *
+ * `ready` only proves voices were published; a packaged WebView can publish
+ * voices, accept an utterance and play nothing. Speaking one silent syllable
+ * and waiting for `onstart` is the only local proof that audio is leaving the
+ * engine at all.
+ */
+export type VoiceAudibility = 'unknown' | 'audible' | 'silent' | 'unsupported';
+
 /** How long to wait for the engine's asynchronous voice list before giving up. */
 const VOICE_LIST_WAIT_MS = 1200;
 
@@ -80,6 +90,24 @@ const VOICE_LIST_WAIT_MS = 1200;
  */
 const NON_HUMAN_VOICE_PATTERN =
   /\b(albert|bad news|bahh|bells|boing|bubbles|cellos|deranged|good news|jester|organ|superstar|trinoids|whisper|wobble|zarvox|espeak|festival|flite|mbrola|pico|sam)\b/i;
+
+/**
+ * Rough register of familiar voice families, used only as a preference so a
+ * deep archetype is not read by a high voice at pitch 0.2. Unknown names stay
+ * `mid` and keep their normal turn in the rotation.
+ */
+const VOICE_REGISTER_HINTS: { pattern: RegExp; register: PitchBand }[] = [
+  {
+    pattern:
+      /\b(male|david|daniel|fred|alex|george|james|guy|ryan|thomas|arthur|oliver|aaron|eddy|grandpa)\b/i,
+    register: 'low',
+  },
+  {
+    pattern:
+      /\b(female|zira|samantha|karen|moira|tessa|victoria|serena|aria|jenny|michelle|ava|allison|susan|zoe|flo|sandy|shelley|grandma)\b/i,
+    register: 'high',
+  },
+];
 
 /**
  * How human an installed voice sounds, best first. Engines publish no quality
@@ -122,6 +150,8 @@ export interface VoiceReadout {
   prosody: 'measured' | 'urgent' | 'conversational' | 'dramatic';
   /** Delivery texture used for this sentence (`plain` for human personas). */
   texture: VoiceTexture;
+  /** The plain sentence being spoken, for the on-screen caption. */
+  line?: string;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -388,6 +418,9 @@ export class SpeechSynthesisService {
 
   /** Live voice readout — updated on every sentence as it begins speaking. */
   liveVoice = signal<VoiceReadout | null>(null);
+  /** Result of the last audibility probe; `unknown` until one runs. */
+  audibility = signal<VoiceAudibility>('unknown');
+  private audibilityProbe: Promise<VoiceAudibility> | null = null;
 
   constructor() {
     this.watchVoiceList();
@@ -706,7 +739,7 @@ export class SpeechSynthesisService {
     );
     const volume = archetype.baseVolume * (0.85 + Math.random() * 0.15);
 
-    const voice = this.pickNextBrowserVoice() ?? this.defaultVoice();
+    const voice = this.pickNextBrowserVoice(archetype) ?? this.defaultVoice();
     const meta: VoiceReadout = {
       archetype: archetype.name,
       band: 'stable',
@@ -716,6 +749,7 @@ export class SpeechSynthesisService {
       prosody: this.prosodyFor(processed, rate),
       // One voice for the whole script, but the tone's own delivery applies.
       texture: this.textureFor(archetype),
+      line: processed,
     };
 
     const finish = () => {
@@ -1046,7 +1080,8 @@ export class SpeechSynthesisService {
 
     // 3) Every installed voice is dealt from a separate shuffled deck, so the
     // reader changes sentence by sentence alongside the archetype.
-    const voice = this.pickNextBrowserVoice() ?? this.defaultVoice();
+    const voice =
+      this.pickNextBrowserVoice(this.currentArchetype) ?? this.defaultVoice();
     this.applyVoiceToUtterance(utterance, voice);
 
     return {
@@ -1057,6 +1092,7 @@ export class SpeechSynthesisService {
       rate: utterance.rate,
       prosody: this.prosodyFor(text, utterance.rate),
       texture: this.textureFor(this.currentArchetype),
+      line: text,
     };
   }
 
@@ -1096,6 +1132,15 @@ export class SpeechSynthesisService {
     return voice.voiceURI || `${voice.name}::${voice.lang}`;
   }
 
+  /** Rough register advertised by a voice's name; `mid` when unknown. */
+  private voiceRegister(voice: SpeechSynthesisVoice): PitchBand {
+    const name = voice?.name ?? '';
+    for (const hint of VOICE_REGISTER_HINTS) {
+      if (hint.pattern.test(name)) return hint.register;
+    }
+    return 'mid';
+  }
+
   /**
    * Draws one installed browser voice from a shuffled deck of HUMAN voices.
    * Every curated voice is used before the deck refills, and a refill rotates
@@ -1104,7 +1149,9 @@ export class SpeechSynthesisService {
    * female-high mapping. Engine toys and legacy formant voices never enter the
    * deck unless the device has nothing else.
    */
-  private pickNextBrowserVoice(): SpeechSynthesisVoice | null {
+  private pickNextBrowserVoice(
+    archetype?: SmuveArchetype
+  ): SpeechSynthesisVoice | null {
     const voices = this.humanVoicePool();
     if (voices.length === 0) return null;
 
@@ -1118,7 +1165,21 @@ export class SpeechSynthesisService {
       this.voiceDeck = this.buildVoiceDeck(voices);
     }
 
-    let voice = this.voiceDeck.shift() as SpeechSynthesisVoice;
+    // Prefer a voice whose advertised register matches the archetype about to
+    // speak: a subterranean bass read by a high voice sounds like a cartoon.
+    // The preference only reorders the deck — every voice still gets its turn.
+    let voice: SpeechSynthesisVoice | undefined;
+    if (archetype) {
+      const register = this.bandForArchetype(archetype);
+      const match = this.voiceDeck.findIndex(
+        (candidate) =>
+          this.voiceRegister(candidate) === register &&
+          this.voiceKey(candidate) !== this.lastUsedVoiceKey
+      );
+      if (match >= 0) voice = this.voiceDeck.splice(match, 1)[0];
+    }
+    voice ??= this.voiceDeck.shift();
+    if (!voice) return null;
     if (
       this.lastUsedVoiceKey &&
       this.voiceKey(voice) === this.lastUsedVoiceKey &&
@@ -1185,6 +1246,67 @@ export class SpeechSynthesisService {
   /** Novelty/formant voices the rotation excludes on this device. */
   excludedVoiceNames(): string[] {
     return this.partitionVoices().excluded.map((voice) => voice.name);
+  }
+
+  /**
+   * Speaks one near-silent syllable and reports whether the engine started it.
+   *
+   * Used by the Voice Lab to tell "this device has voices" apart from "this
+   * device has voices and will actually play them", which is the difference
+   * the packaged shell needed and the badge could not see.
+   */
+  probeAudibility(timeoutMs = 900): Promise<VoiceAudibility> {
+    if (
+      typeof window === 'undefined' ||
+      !window.speechSynthesis ||
+      typeof SpeechSynthesisUtterance === 'undefined'
+    ) {
+      this.audibility.set('unsupported');
+      return Promise.resolve('unsupported');
+    }
+    if (this.audibilityProbe) return this.audibilityProbe;
+
+    this.audibilityProbe = new Promise<VoiceAudibility>((resolve) => {
+      let settled = false;
+      let timer: ReturnType<typeof setTimeout> | null = null;
+      const stop = () => {
+        try {
+          window.speechSynthesis.cancel();
+        } catch {
+          // Cancelling a probe that never started is not an error.
+        }
+      };
+      const settle = (result: VoiceAudibility) => {
+        if (settled) return;
+        settled = true;
+        if (timer !== null) clearTimeout(timer);
+        this.audibilityProbe = null;
+        this.audibility.set(result);
+        resolve(result);
+      };
+
+      timer = setTimeout(() => {
+        stop();
+        settle('silent');
+      }, timeoutMs);
+
+      try {
+        const utterance = new SpeechSynthesisUtterance('a.');
+        utterance.volume = 0.01;
+        utterance.pitch = 1;
+        utterance.rate = 1;
+        this.applyVoiceToUtterance(utterance, this.defaultVoice());
+        utterance.onstart = () => {
+          stop();
+          settle('audible');
+        };
+        utterance.onerror = () => settle('silent');
+        window.speechSynthesis.speak(utterance);
+      } catch {
+        settle('silent');
+      }
+    });
+    return this.audibilityProbe;
   }
 
   cancel(): void {

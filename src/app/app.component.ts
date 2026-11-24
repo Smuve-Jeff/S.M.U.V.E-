@@ -41,6 +41,9 @@ import { InteractionDialogService } from './services/interaction-dialog.service'
 import { ChallengeInboxService } from './services/challenge-inbox.service';
 import { LoggingService } from './services/logging.service';
 import { ViewConfig } from './services/workspace-registry';
+import { SessionContinuityService } from './services/session-continuity.service';
+import { LocalSchemaService } from './services/local-schema.service';
+import { LocalBackupService } from './services/local-backup.service';
 import {
   GUEST_AI_LOCK_NOTICE,
   isGuestRouteAllowed,
@@ -137,6 +140,9 @@ export class AppComponent {
   swUpdate = inject(SwUpdate, { optional: true });
   router = inject(Router);
   destroyRef = inject(DestroyRef);
+  continuity = inject(SessionContinuityService);
+  localSchema = inject(LocalSchemaService);
+  localBackup = inject(LocalBackupService);
 
   isSidebarOpen = signal(true);
   isFullPageMode = signal(false);
@@ -338,7 +344,15 @@ export class AppComponent {
       .subscribe(() => {
         this.updateShellFromUrl(this.router.url);
         this.resetRouteScroll();
+        this.continuity.record('route', this.router.url);
       });
+
+    // Local stores are versioned; the registry starts empty and every store
+    // that changes shape adds its migration here. A backup runs first so a
+    // migration can always be undone from the file.
+    this.localSchema.run([], {
+      beforeMigrate: () => this.localBackup.download(),
+    });
 
     effect(() => {
       if (!this.uiService.isOnline()) {

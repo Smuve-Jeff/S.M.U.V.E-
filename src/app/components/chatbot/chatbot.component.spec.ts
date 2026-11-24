@@ -131,6 +131,8 @@ describe('ChatbotComponent', () => {
       ]),
       humanVoiceNames: jest.fn(() => ['Fake Voice A', 'Fake Voice B']),
       excludedVoiceNames: jest.fn(() => ['Zarvox']),
+      audibility: signal<string>('unknown'),
+      probeAudibility: jest.fn(async () => 'audible'),
       setArchetype: jest.fn(),
       clearArchetypePin: jest.fn(),
       pinnedArchetypeName: jest.fn(() => null),
@@ -1243,6 +1245,21 @@ describe('ChatbotComponent', () => {
     );
     // The notice names the delivery the artist is hearing.
     expect(component.voiceLabNotice()).toContain('growl');
+  });
+
+  it('probes whether the device actually plays speech, not just that voices exist', async () => {
+    await component.checkVoiceAudibility();
+
+    expect(speechSynthesisServiceMock.probeAudibility).toHaveBeenCalled();
+    expect(component.voiceLabNotice()).toContain('Audio check passed');
+
+    // A shell with voices but no audio must not read as ready.
+    speechSynthesisServiceMock.probeAudibility.mockResolvedValueOnce('silent');
+    await component.checkVoiceAudibility();
+    expect(component.voiceLabNotice()).toContain('never started the probe');
+
+    speechSynthesisServiceMock.audibility.set('silent');
+    expect(component.labOutputNotice()).toContain('silent for the app');
   });
 
   it('does not call novelty voices excluded when they are the rotation in use', () => {

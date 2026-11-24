@@ -213,7 +213,12 @@ describe('AiService', () => {
   });
 
   const calibratedProfile = {
-      settings: { security: { shareProfileAnswersWithAi: true } },
+      settings: {
+        security: {
+          shareProfileAnswersWithAi: true,
+          hideSensitiveProfileDetails: false,
+        },
+      },
       artistName: 'Nova Vale',
       primaryGenre: 'Electronic',
       location: 'Atlanta',

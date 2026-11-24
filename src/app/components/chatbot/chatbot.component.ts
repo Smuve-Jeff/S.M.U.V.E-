@@ -17,6 +17,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AiService } from '../../services/ai.service';
+import { ActionLedgerService } from '../../services/action-ledger.service';
 import {
   UserProfileService,
   initialProfile,
@@ -28,6 +29,7 @@ import {
   SpeechSynthesisService,
   VoiceArchetype,
   VoiceArchetypeOption,
+  VoiceAudibility,
   VoiceOutputCapability,
 } from '../../services/speech-synthesis.service';
 
@@ -195,6 +197,7 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
   private userContext = inject(UserContextService);
   private audioEngineService = inject(AudioEngineService);
   private speechSynthesisService = inject(SpeechSynthesisService);
+  private actionLedger = inject(ActionLedgerService);
   private logger = inject(LoggingService);
   private controlService = inject(SmuveTotalControlService);
   private knowledgeEngine = inject(SmuveKnowledgeEngine);
@@ -591,8 +594,42 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
     return this.speechSynthesisService.excludedVoiceNames?.()?.length ?? 0;
   }
 
+  /** Last audio probe: voices existing is not the same as voices playing. */
+  public voiceAudibility = computed<VoiceAudibility>(
+    () => this.speechSynthesisService.audibility?.() ?? 'unknown'
+  );
+
+  /**
+   * Speaks one near-silent syllable and reports whether the engine started it.
+   * This is how the lab tells a muted shell apart from a device with voices.
+   */
+  async checkVoiceAudibility(): Promise<void> {
+    if (typeof this.speechSynthesisService.probeAudibility !== 'function') {
+      this.voiceLabNotice.set('This build cannot probe the speech engine.');
+      return;
+    }
+    const result = await this.speechSynthesisService.probeAudibility();
+    this.voiceLabNotice.set(this.audibilityNotice(result));
+  }
+
+  private audibilityNotice(result: VoiceAudibility): string {
+    switch (result) {
+      case 'audible':
+        return 'Audio check passed — the engine started a silent probe, so replies will be heard.';
+      case 'silent':
+        return 'Audio check failed: the engine published voices but never started the probe. This device is silent for the app — check the media volume or install a speech voice.';
+      case 'unsupported':
+        return 'No speech engine in this shell, so there is nothing to probe.';
+      default:
+        return 'Audio check did not finish.';
+    }
+  }
+
   /** Eyebrow for the lab: what it can actually do on this device. */
   labOutputNotice(): string {
+    if (this.voiceAudibility() === 'silent') {
+      return 'The engine published voices but never played a probe — this device is silent for the app. Check the media volume before trusting the badge.';
+    }
     switch (this.voiceOutputCapability()) {
       case 'no-voices':
         return 'This device has no speech voices installed — the roster is listed, but nothing can be auditioned.';
@@ -3029,6 +3066,8 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
     }
 
     if (result) {
+      // Full Control leaves a trail: what ran, and the app's own answer to it.
+      this.actionLedger.record(action.id, result.slice(0, 240));
       this.messages.update((m) => [
         ...m,
         {

@@ -96,6 +96,52 @@ export class LocalBackupService {
   }
 
   /**
+   * What is on this device right now, for the diagnostics panel: size and
+   * whether the record still parses. `parseable: false` is the same class of
+   * damage the guards report, shown before it bites.
+   */
+  inventory(): {
+    key: string;
+    storage: BackupStorage;
+    bytes: number;
+    parseable: boolean;
+  }[] {
+    const rows: {
+      key: string;
+      storage: BackupStorage;
+      bytes: number;
+      parseable: boolean;
+    }[] = [];
+    for (const kind of STORAGE_KINDS) {
+      const source = resolve(kind);
+      if (!source) continue;
+      try {
+        for (let index = 0; index < source.length; index++) {
+          const key = source.key(index);
+          if (!key) continue;
+          const value = source.getItem(key);
+          if (value === null) continue;
+          let parseable = true;
+          try {
+            JSON.parse(value);
+          } catch {
+            parseable = false;
+          }
+          rows.push({
+            key,
+            storage: kind,
+            bytes: new Blob([value]).size,
+            parseable,
+          });
+        }
+      } catch {
+        // A blocked inventory is better than a broken settings page.
+      }
+    }
+    return rows.sort((a, b) => b.bytes - a.bytes);
+  }
+
+  /**
    * Restores a backup file. Entries with a failed checksum are left alone —
    * writing them would replace good data with the corruption being restored.
    */

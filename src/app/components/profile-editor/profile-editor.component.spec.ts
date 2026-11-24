@@ -215,7 +215,11 @@ describe('ProfileEditorComponent', () => {
       team: [],
       settings: {
         ...initialProfile.settings,
-        security: { ...initialProfile.settings.security, shareProfileAnswersWithAi: true },
+        security: {
+          ...initialProfile.settings.security,
+          shareProfileAnswersWithAi: true,
+          hideSensitiveProfileDetails: false,
+        },
       },
     });
     userProfileService = {

@@ -331,6 +331,47 @@ describe('SpeechSynthesisService', () => {
     });
   });
 
+  describe('voice register matching', () => {
+    it('pairs a deep archetype with a low voice and a soprano with a high one', () => {
+      mockSpeechSynthesis.getVoices.mockReturnValue([
+        { name: 'Microsoft Zira', lang: 'en-US' },
+        { name: 'Microsoft David', lang: 'en-US' },
+      ]);
+      randomSpy.mockReturnValue(0.5);
+
+      service.speak('Deep.', { forceArchetype: 'Deep Bass (Male)' });
+      service.speak('High.', { forceArchetype: 'Soprano Elite (Female)' });
+
+      expect(mockUtterances[0].voice.name).toBe('Microsoft David');
+      expect(mockUtterances[1].voice.name).toBe('Microsoft Zira');
+    });
+  });
+
+  describe('audibility probe', () => {
+    it('reports audible once the engine starts the probe', async () => {
+      const probe = service.probeAudibility();
+
+      expect(mockUtterances).toHaveLength(1);
+      mockUtterances[0].onstart();
+
+      await expect(probe).resolves.toBe('audible');
+      expect(service.audibility()).toBe('audible');
+    });
+
+    it('reports silent when the engine never starts it', async () => {
+      jest.useFakeTimers();
+      try {
+        const probe = service.probeAudibility(500);
+        jest.advanceTimersByTime(501);
+
+        await expect(probe).resolves.toBe('silent');
+        expect(service.audibility()).toBe('silent');
+      } finally {
+        jest.useRealTimers();
+      }
+    });
+  });
+
   describe('human voice selection', () => {
     it('prefers natural and neural voices over engine toys', () => {
       mockSpeechSynthesis.getVoices.mockReturnValue([

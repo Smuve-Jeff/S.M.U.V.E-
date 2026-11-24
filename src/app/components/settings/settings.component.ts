@@ -31,6 +31,8 @@ import { InteractionDialogService } from '../../services/interaction-dialog.serv
 import { PermissionService } from '../../services/permission.service';
 import { HardwareService } from '../../services/hardware.service';
 import { LocalStorageService } from '../../services/local-storage.service';
+import { LocalBackupService } from '../../services/local-backup.service';
+import { removeStore } from '../../services/guarded-storage';
 import { AudioEngineLatencyService } from '../../services/audio-engine-latency.service';
 import { TokenService } from '../../services/token.service';
 import { APP_SECURITY_CONFIG } from '../../app.security';
@@ -245,6 +247,20 @@ export class SettingsComponent implements OnInit, OnDestroy {
     totalBytes: number;
     percentUsed: number;
   } | null>(null);
+  /** Backup panel: every local store, its size, and whether it still parses. */
+  backupService = inject(LocalBackupService);
+  backupInventory = signal<
+    { key: string; storage: 'localStorage' | 'sessionStorage'; bytes: number; parseable: boolean }[]
+  >([]);
+  backupNotice = signal('');
+  readonly backupBytes = computed(() =>
+    this.backupInventory().reduce((sum, row) => sum + row.bytes, 0)
+  );
+  readonly backupDamaged = computed(() =>
+    this.backupInventory()
+      .filter((row) => !row.parseable)
+      .map((row) => row.key)
+  );
   securityAudit = computed(() => this.securityService.getSecurityAudit());
 
   ngOnInit() {
@@ -262,6 +278,46 @@ export class SettingsComponent implements OnInit, OnDestroy {
     this.securityService.fetchSessions();
     this.refreshSecurityControls();
     this.updateStorageStats();
+    this.refreshBackupInventory();
+  }
+
+  /** Reads what is actually on this device, for the backup panel. */
+  refreshBackupInventory(): void {
+    this.backupInventory.set(this.backupService.inventory());
+  }
+
+  downloadBackup(): void {
+    this.backupService.download();
+    this.backupNotice.set(
+      'Backup downloaded. Keep the file somewhere that is not this browser.'
+    );
+    this.refreshBackupInventory();
+  }
+
+  async restoreFromFile(event: Event): Promise<void> {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+    try {
+      const report = this.backupService.restore(await file.text());
+      this.backupNotice.set(this.backupService.describe(report));
+      this.refreshBackupInventory();
+      void this.updateStorageStats();
+    } catch {
+      this.backupNotice.set('That file could not be read. Nothing was changed.');
+    } finally {
+      input.value = '';
+    }
+  }
+
+  removeStoreRow(row: {
+    key: string;
+    storage: 'localStorage' | 'sessionStorage';
+  }): void {
+    removeStore('A stored item', row.key, row.storage);
+    this.backupNotice.set(`${row.key} removed.`);
+    this.refreshBackupInventory();
+    void this.updateStorageStats();
   }
 
   ngOnDestroy() {
