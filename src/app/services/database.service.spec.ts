@@ -121,6 +121,43 @@ describe('DatabaseService profile ownership', () => {
     );
   });
 
+  it('replays a queued write with the latest device copy and clears pending', async () => {
+    const failed = service.saveUserProfile(
+      profile({ id: 'user-a', artistName: 'Old' }),
+      'user-a'
+    );
+    http
+      .expectOne(service.apiUrl + '/profile')
+      .flush({}, { status: 500, statusText: 'Server Error' });
+    await failed;
+    expect(service.cloudSyncPending()).toBe(true);
+
+    // The device copy moved on after the failure; the retry must not post the
+    // stale queued payload.
+    localStorage.setItem(
+      'smuve_user_profile_backup_user-a',
+      JSON.stringify(profile({ id: 'user-a', artistName: 'New' }))
+    );
+    const handler = offlineSync.registerEndpointHandler.mock.calls[0][1];
+    const replay = handler({
+      payload: {
+        userId: 'user-a',
+        profile: profile({ id: 'user-a', artistName: 'Old' }),
+      },
+    });
+
+    const request = http.expectOne(service.apiUrl + '/profile');
+    expect(
+      (request.request.body as { profileData: UserProfile }).profileData
+        .artistName
+    ).toBe('New');
+    request.flush({ ok: true }, { status: 200, statusText: 'OK' });
+    await expect(replay).resolves.toBeUndefined();
+
+    expect(service.cloudSyncPending()).toBe(false);
+    expect(service.cloudSyncError()).toBeNull();
+  });
+
   it('clears the pending cloud state after a confirmed write', async () => {
     const failed = service.saveUserProfile(profile({ id: 'user-a' }), 'user-a');
     http
