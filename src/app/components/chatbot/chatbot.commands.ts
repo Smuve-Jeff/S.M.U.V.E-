@@ -1,3 +1,5 @@
+import { ARTIST_ROLE_CHIPS } from '../../services/artist-role.registry';
+
 export const CHATBOT_COMMANDS = [
   // ── Production ────────────────────────────────────────────
   {
@@ -137,14 +139,9 @@ export const QUICK_COMMANDS = [
   { label: '/promo', description: 'Promotion plan' },
   { label: '/hooks', description: 'Viral hooks' },
   { label: '/business', description: 'Business strategy' },
-  { label: '/engineer', description: 'Engineer the session — chain, gain, translation' },
-  { label: '/teach', description: 'A lesson and a task at your real level' },
-  { label: '/coach', description: 'Hold the process — commitment, obstacle, evidence' },
-  { label: '/manager', description: 'Route the next move toward one milestone' },
-  { label: '/ar', description: 'Judge the song against your signature' },
-  { label: '/marketing', description: 'Convert through your real listener routes' },
-  { label: '/legal', description: 'Draft and protect the rights you actually own' },
-  { label: '/ceo', description: 'Run the business — fund, cut, protect' },
+  // Role desks come from the shared registry, so a chip can never point at an
+  // alias the chat does not route.
+  ...ARTIST_ROLE_CHIPS,
   { label: '/release', description: 'Release strategy' },
   { label: '/status', description: 'System status' },
   { label: '/sync_kb', description: 'Sync knowledge base' },

@@ -991,11 +991,15 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
     const roleMatch = trimmed.match(/^\/([a-z][a-z0-9-]*)\b\s*([\s\S]*)$/i);
     const roleDef = roleMatch ? artistRoleForAlias(roleMatch[1]) : null;
     if (roleMatch && roleDef) {
-      return this.roleDeskIntent(
-        roleDef,
-        roleMatch[1].toLowerCase(),
-        roleMatch[2].trim()
-      );
+      const alias = roleMatch[1].toLowerCase();
+      const rest = roleMatch[2].trim();
+      // `/teach` is both a desk and the shipped feature walkthrough. A named
+      // feature keeps its walkthrough; the bare form opens the teacher desk,
+      // and an unknown topic is a question for that desk.
+      if (alias === 'teach' && rest && this.teachLearn.findTeach(rest)) {
+        return this.teachLearnIntent('teach', rest);
+      }
+      return this.roleDeskIntent(roleDef, alias, rest);
     }
 
     // 1) Slash commands → Total Control engine

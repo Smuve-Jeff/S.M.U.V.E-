@@ -1,5 +1,6 @@
 import {
   ARTIST_ROLES,
+  ARTIST_ROLE_CHIPS,
   ARTIST_ROLE_IDS,
   ARTIST_ROLE_LABELS,
   artistRoleForAlias,
@@ -33,6 +34,17 @@ describe('artist role registry', () => {
     expect(artistRoleForAlias('vibes')).toBeNull();
     expect(artistRoleForAlias('')).toBeNull();
     expect(artistRoleForAlias('promo')).toBeNull();
+  });
+
+  it('builds quick chips only from curated roles and live aliases', () => {
+    expect(ARTIST_ROLE_CHIPS.length).toBeGreaterThan(0);
+    expect(ARTIST_ROLE_CHIPS.length).toBeLessThan(ARTIST_ROLES.length);
+    for (const chip of ARTIST_ROLE_CHIPS) {
+      expect(chip.label).toMatch(/^\/[a-z][a-z0-9-]*$/);
+      expect(artistRoleForAlias(chip.label.slice(1))).toBeTruthy();
+      expect(chip.description.trim().length).toBeGreaterThan(0);
+    }
+    expect(ARTIST_ROLE_CHIPS.map((chip) => chip.label)).toContain('/teach');
   });
 
   it('owns the labels the fine-tune prompt and desks display', () => {

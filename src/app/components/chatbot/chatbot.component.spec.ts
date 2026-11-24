@@ -12,7 +12,11 @@ import { signal } from '@angular/core';
 import { initialProfile } from '../../types/profile.types';
 import { ArtistProfileFinetuneService } from '../../services/artist-profile-finetune.service';
 import { ArtistRelationshipService } from '../../services/artist-relationship.service';
-import { ARTIST_ROLES } from '../../services/artist-role.registry';
+import {
+  ARTIST_ROLES,
+  ARTIST_ROLE_CHIPS,
+  artistRoleForAlias,
+} from '../../services/artist-role.registry';
 import { SmuveMemoryService } from '../../services/smuve-memory.service';
 import { SmuveTotalControlService } from '../../services/smuve-total-control.service';
 
@@ -233,6 +237,34 @@ describe('ChatbotComponent', () => {
         );
       }
     }
+  });
+
+  it('keeps /teach <feature> as the walkthrough and bare /teach as the desk', async () => {
+    const walkthrough = await (component as any).routeMasterIntent('/teach studio');
+    expect(walkthrough.content).toContain('#TEACH // STUDIO: IDEA TO MASTER');
+    expect(walkthrough.content).toContain('STEP BY STEP');
+
+    const desk = await (component as any).routeMasterIntent('/teach');
+    expect(desk.content).toContain('TEACHER DESK');
+    expect(desk.content).toContain("teacher directive from the artist's evidence");
+
+    // A topic that is not a shipped feature is a teacher question, not an
+    // index dump of every lesson.
+    const question = await (component as any).routeMasterIntent(
+      '/teach quantum knitting'
+    );
+    expect(question.content).toContain('TEACHER DESK');
+  });
+
+  it('builds every desk chip from the shared registry', () => {
+    const labels = component.quickCommands.map((command) => command.label);
+
+    for (const chip of ARTIST_ROLE_CHIPS) {
+      expect(labels).toContain(chip.label);
+      // Each chip's alias must resolve, or the chip would be a dead command.
+      expect(artistRoleForAlias(chip.label.slice(1))).toBeTruthy();
+    }
+    expect(labels).toContain('/teach');
   });
 
   it('sends a role-desk question to the model with that desk’s directive', async () => {
