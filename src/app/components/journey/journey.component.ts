@@ -15,7 +15,7 @@ import {
   UserProfile,
 } from '../../services/user-profile.service';
 import { AuthService } from '../../services/auth.service';
-import { isGenreAdviceHeld } from '../../services/artist-profile-read';
+import { isGenreAdviceHeld } from '../../types/genre-hold';
 import { ALL_GENRES } from '../../services/enhanced-artist-questionnaire-engine';
 
 @Component({

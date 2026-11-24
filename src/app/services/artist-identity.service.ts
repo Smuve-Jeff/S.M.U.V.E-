@@ -1,6 +1,7 @@
 import { Injectable, computed, inject } from '@angular/core';
 import { UserProfile, UserProfileService } from './user-profile.service';
 import { readArtistProfile } from './artist-profile-read';
+import { isGenreAdviceHeld } from '../types/genre-hold';
 import { OfflineSyncService } from './offline-sync.service';
 import { LoggingService } from './logging.service';
 import { DatabaseService } from './database.service';
@@ -171,11 +172,15 @@ export class ArtistIdentityService {
         ) as string[],
         proName: profile.proName || base.core.proName,
         ipi: profile.proIpi || base.core.ipi,
-        genres: Array.from(
-          new Set(
-            [declaredGenre, ...(base.core.genres || [])].filter(Boolean)
-          )
-        ),
+        // A held profile has no genre answer, and the identity seed fills an
+        // empty genre with the default — so drop the seeded placeholder too.
+        genres: isGenreAdviceHeld(profile)
+          ? []
+          : Array.from(
+              new Set(
+                [declaredGenre, ...(base.core.genres || [])].filter(Boolean)
+              )
+            ),
       },
       linkedAccounts,
       works,

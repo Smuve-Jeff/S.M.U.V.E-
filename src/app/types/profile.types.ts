@@ -1,4 +1,8 @@
 import { ArtistIdentityState } from './artist-identity.types';
+import {
+  DEFAULT_PRIMARY_GENRE,
+  isGenreAdviceHeld,
+} from './genre-hold';
 import type {
   ArtistLifecycleHistoryEntry,
   ArtistLifecycleRecommendation,
@@ -374,14 +378,14 @@ export function buildArtistMusicContext(
 
   // Keep profile-derived identity out of prompts unless explicitly opted in.
   if (profile.settings?.security?.shareProfileInDiscovery === true) {
-    // The untouched default genre is not an answer until the interview is
-    // committed; prompts must not present it as the artist's genre.
-    const genreHeld =
-      profile.profileSetupCompleted !== true &&
-      (profile.primaryGenre || '').trim().toLowerCase() ===
-        initialProfile.primaryGenre.toLowerCase();
+    // Prompts must not present the untouched default as the artist's genre.
     push('Artist', cap(profile.artistName, 80));
-    push('Genre', genreHeld ? 'Not declared yet' : cap(profile.primaryGenre, 60));
+    push(
+      'Genre',
+      isGenreAdviceHeld(profile)
+        ? 'Not declared yet'
+        : cap(profile.primaryGenre, 60)
+    );
   } else {
     push('Artist', 'Private artist');
     push('Genre', 'Artist-defined');
@@ -681,7 +685,7 @@ export const initialProfile: UserProfile = {
       recognitionCue: '',
     },
   },
-  primaryGenre: 'Hip Hop',
+  primaryGenre: DEFAULT_PRIMARY_GENRE,
   location: 'Unspecified',
   proName: '',
   proIpi: '',

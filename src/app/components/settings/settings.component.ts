@@ -12,7 +12,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
-import { isGenreAdviceHeld } from '../../services/artist-profile-read';
+import { isGenreAdviceHeld } from '../../types/genre-hold';
 import { HowToOverlayComponent } from './how-to-overlay.component';
 import {
   UserProfileService,

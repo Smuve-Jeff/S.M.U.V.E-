@@ -268,4 +268,19 @@ describe('JourneyComponent', () => {
     expect(component.activeStep()).toBe(0);
     expect(back.preventDefault).toHaveBeenCalled();
   });
+
+  it('counts the genre step only once the interview is committed', () => {
+    component.profile.set({
+      ...component.profile(),
+      artistName: 'Named Artist',
+    });
+    expect(component.stepComplete()[1]).toBe(false);
+
+    component.profile.set({
+      ...component.profile(),
+      primaryGenre: 'Country',
+      profileSetupCompleted: true,
+    });
+    expect(component.stepComplete()[1]).toBe(true);
+  });
 });

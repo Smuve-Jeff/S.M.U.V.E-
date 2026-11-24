@@ -1,5 +1,5 @@
 import type { UserProfile } from './user-profile.service';
-import { initialProfile } from '../types/profile.types';
+import { isGenreAdviceHeld } from '../types/genre-hold';
 
 /**
  * S.M.U.V.E.'s reading of an artist profile.
@@ -169,26 +169,6 @@ const describeMusicalBody = (body: Omit<ArtistMusicalBody, 'statement' | 'hasBod
   const subject = identity ? `${article} ${identity} artist` : 'This artist';
   return cap(`${subject}; ${clauses.join('; ')}.`, 360);
 };
-
-/**
- * True while the interview or uplink has not been committed and the genre is
- * still the untouched default — the state a profile is in before the artist has
- * answered anything. Genre-specific advice and a genre in the read-back both
- * wait for that.
- *
- * One rule for the whole app: the adaptive engine's hold and this read-back
- * have to agree, or a named but uncommitted artist gets a genre in one place
- * and generic advice in the other.
- */
-export function isGenreAdviceHeld(
-  profile: UserProfile | null | undefined
-): boolean {
-  return (
-    profile?.profileSetupCompleted !== true &&
-    (profile?.primaryGenre || '').trim().toLowerCase() ===
-      initialProfile.primaryGenre.toLowerCase()
-  );
-}
 
 /** Reads the artist's musical body from the profile, with no inference. */
 export function readMusicalBody(

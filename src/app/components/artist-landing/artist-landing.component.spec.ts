@@ -237,4 +237,33 @@ describe('ArtistLandingComponent', () => {
       expect(spotify.length).toBe(1);
     });
   });
+
+  it('withholds the untouched default genre from the public bio', async () => {
+    const publicProfile = {
+      artistName: 'Named Artist',
+      settings: {
+        security: {
+          shareProfileAnswersPublicly: true,
+          shareProfileInDiscovery: true,
+        },
+      },
+      musicalJourney: { originStory: 'self-taught' },
+    } as unknown as UserProfile;
+
+    profile.set(publicProfile);
+    const held = await createComponent();
+    expect(held.component.aiBio()).toContain('an independent music artist');
+    expect(held.component.aiBio()).not.toContain('hip hop');
+
+    profile.set({
+      ...publicProfile,
+      primaryGenre: 'Country',
+      profileSetupCompleted: true,
+    } as unknown as UserProfile);
+
+    const committed = await createComponent();
+    expect(committed.component.aiBio()).toContain(
+      'an independent country artist'
+    );
+  });
 });

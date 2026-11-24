@@ -3,7 +3,7 @@ import { UserProfile, UserProfileService } from './user-profile.service';
 import { ArtistProfileFinetuneService, ArtistProfileKnowledge } from './artist-profile-finetune.service';
 import { initialProfile } from './user-profile.service';
 import { buildMusicalDnaContext } from '../types/musical-dna.types';
-import { isGenreAdviceHeld } from './artist-profile-read';
+import { isGenreAdviceHeld } from '../types/genre-hold';
 import {
   GenreResolution,
   hybridProductionNotes,
@@ -613,4 +613,4 @@ export class ArtistAdaptiveEngineService {
   }
 }
 
-export { GENRE_PROFILES, isGenreAdviceHeld };
+export { GENRE_PROFILES };

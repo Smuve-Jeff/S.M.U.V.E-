@@ -1,9 +1,7 @@
 import { Injectable, computed, inject } from '@angular/core';
 import { UserProfileService, UserProfile } from '../services/user-profile.service';
-import {
-  isGenreAdviceHeld,
-  readArtistProfile,
-} from '../services/artist-profile-read';
+import { readArtistProfile } from '../services/artist-profile-read';
+import { isGenreAdviceHeld } from '../types/genre-hold';
 import type { ComposerGate, ComposerBlocker, ComposerPersonalization, GenreProfile } from './composer.types';
 import { GENRE_ATLAS, resolveGenre, resolveSubgenres } from './atlas';
 

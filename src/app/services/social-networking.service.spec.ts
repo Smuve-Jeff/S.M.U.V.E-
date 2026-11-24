@@ -1448,4 +1448,26 @@ describe('SocialNetworkingService screen audio only', () => {
 
     expect(service.screenAudioOnly()).toBe(false);
   });
+
+  it('withholds the untouched default genre from presence metadata', () => {
+    const profileSignal = TestBed.inject(UserProfileService).profile as any;
+
+    profileSignal.set({
+      id: 'test-id',
+      artistName: 'Named Artist',
+      primaryGenre: 'Hip Hop',
+      profileSetupCompleted: false,
+    });
+    expect(
+      (service as any).presenceMetadata().primaryGenre
+    ).toBeUndefined();
+
+    profileSignal.set({
+      id: 'test-id',
+      artistName: 'Named Artist',
+      primaryGenre: 'Hip Hop',
+      profileSetupCompleted: true,
+    });
+    expect((service as any).presenceMetadata().primaryGenre).toBe('Hip Hop');
+  });
 });
