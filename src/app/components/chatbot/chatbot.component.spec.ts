@@ -577,6 +577,94 @@ describe('ChatbotComponent', () => {
     restoredFixture.destroy();
   });
 
+  it('moves turns created on the provisional guest desk into the account', async () => {
+    const users = TestBed.inject(UserStoreService);
+    users.user.set(null);
+    fixture.detectChanges();
+    TestBed.flushEffects();
+    aiServiceMock.getAIResponse = jest.fn().mockResolvedValue('Phase first.');
+
+    sessionStorage.setItem('smuve.master.desk.v1', 'coach');
+
+    const restoredFixture = TestBed.createComponent(ChatbotComponent);
+    const restored = restoredFixture.componentInstance;
+    restored.ngOnInit();
+    restoredFixture.detectChanges();
+
+    expect(restored.activeDeskLabel()).toBe('Coach');
+    restored.userInput = 'what should I commit to this week?';
+    await restored.sendMessage();
+
+    users.user.set({ id: 'artist-a' } as any);
+    restoredFixture.detectChanges();
+    TestBed.flushEffects();
+
+    const saved = JSON.parse(
+      sessionStorage.getItem('smuve.master.desk.v1:artist-a') ?? '{}'
+    );
+    expect(saved.alias).toBe('coach');
+    expect(saved.turns).toEqual([
+      {
+        question: 'what should I commit to this week?',
+        answer: 'Phase first.',
+      },
+    ]);
+    expect(sessionStorage.getItem('smuve.master.desk.v1:guest')).toBeNull();
+
+    restoredFixture.destroy();
+  });
+
+  it('keeps an account’s own saved desk over the guest legacy copy', async () => {
+    const users = TestBed.inject(UserStoreService);
+    users.user.set(null);
+    fixture.detectChanges();
+    TestBed.flushEffects();
+
+    sessionStorage.setItem(
+      'smuve.master.desk.v1:artist-a',
+      JSON.stringify({ alias: 'ar', turns: [] })
+    );
+    sessionStorage.setItem('smuve.master.desk.v1', 'coach');
+
+    const restoredFixture = TestBed.createComponent(ChatbotComponent);
+    const restored = restoredFixture.componentInstance;
+    restored.ngOnInit();
+    restoredFixture.detectChanges();
+    expect(restored.activeDeskLabel()).toBe('Coach');
+
+    users.user.set({ id: 'artist-a' } as any);
+    restoredFixture.detectChanges();
+    TestBed.flushEffects();
+
+    expect(restored.activeDeskLabel()).toBe('A&R');
+    expect(
+      JSON.parse(sessionStorage.getItem('smuve.master.desk.v1:artist-a')!)
+        .alias
+    ).toBe('ar');
+    expect(sessionStorage.getItem('smuve.master.desk.v1:guest')).toContain(
+      '"alias":"coach"'
+    );
+
+    restoredFixture.destroy();
+  });
+
+  it('resolves the owner when session storage reads are blocked', () => {
+    const users = TestBed.inject(UserStoreService);
+    const getItem = jest
+      .spyOn(Storage.prototype, 'getItem')
+      .mockImplementation(() => {
+        throw new Error('storage blocked');
+      });
+
+    expect(() => {
+      users.user.set({ id: 'artist-a' } as any);
+      fixture.detectChanges();
+      TestBed.flushEffects();
+    }).not.toThrow();
+
+    getItem.mockRestore();
+  });
+
   it('restores the guest desk on sign-out instead of the account desk', async () => {
     const users = TestBed.inject(UserStoreService);
     users.user.set(null);

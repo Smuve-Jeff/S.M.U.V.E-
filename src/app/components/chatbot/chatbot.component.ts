@@ -704,7 +704,6 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
       // saved state, then load only the incoming account's own desk.
       const hadDesk = this.activeDesk() !== null;
       const guestKey = this.deskStorageKey();
-      const accountKey = this.deskStorageKeyFor(nextOwner);
       // A legacy desk migrated moments ago into the guest bucket belongs to
       // the account that has just resolved, not to the guest. Move it there
       // and keep it open instead of closing and losing it. An account that
@@ -714,7 +713,7 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
         this.owner === null &&
         nextOwner !== null &&
         this.legacyDeskMigrated &&
-        !sessionStorage.getItem(accountKey);
+        !this.hasSavedDesk(nextOwner);
       this.cancelReply();
       if (promoteLegacy) {
         this.owner = nextOwner;
@@ -1230,6 +1229,15 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
 
   private deskStorageKeyFor(owner: string | null): string {
     return `${DESK_STORAGE_KEY}:${encodeURIComponent(owner ?? 'guest')}`;
+  }
+
+  /** Storage may be blocked; an unreadable key must not break the owner effect. */
+  private hasSavedDesk(owner: string | null): boolean {
+    try {
+      return sessionStorage.getItem(this.deskStorageKeyFor(owner)) !== null;
+    } catch {
+      return false;
+    }
   }
 
   private persistDesk(): void {
