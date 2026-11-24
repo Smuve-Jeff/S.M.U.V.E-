@@ -41,6 +41,8 @@ export class OfflineSyncService {
   lastLocalSaveAt = signal<number | null>(null);
 
   private syncInProgress = false;
+  /** Sequence of status reads; only the newest may publish its snapshot. */
+  private queueStatusRead = 0;
   private onlineHandler: (() => void) | null = null;
   private offlineHandler: (() => void) | null = null;
   /** In-process adapters for local/offline-backed endpoints. */
@@ -383,16 +385,22 @@ export class OfflineSyncService {
   }
 
   private async updatePendingCount(): Promise<void> {
+    // Two reads can be in flight (a queue operation and a panel refresh), and
+    // the older one can finish last. Publishing it would put a stale queue and
+    // dead-letter list back on screen, so only the newest read may publish.
+    const read = ++this.queueStatusRead;
     try {
       const items = await this.localStorage.getAllItems(this.SYNC_STORE);
       const deadLetter =
         await this.localStorage.getAllItems('sync_dead_letter');
+      if (read !== this.queueStatusRead) return;
       this.pendingCount.set(items.length);
       this.deadLetterCount.set(deadLetter.length);
       this.deadLetteredEndpoints.set(
         deadLetter.map((item: SyncQueueItem) => item.endpoint)
       );
     } catch {
+      if (read !== this.queueStatusRead) return;
       this.pendingCount.set(0);
       this.deadLetterCount.set(0);
       this.deadLetteredEndpoints.set([]);
