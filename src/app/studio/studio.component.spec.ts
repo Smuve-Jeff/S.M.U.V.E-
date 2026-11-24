@@ -500,6 +500,36 @@ describe("StudioComponent", () => {
     }
   });
 
+  it("does not claim a cloud version when the push only queued", async () => {
+    mockProjectWorkspace.metadata.set({ id: "proj_a", name: "Set" });
+    const bundle = { metadata: { id: "proj_a", name: "Set" }, tracks: [] };
+    const mockCloud = {
+      payloadBytes: jest.fn(() => 1024),
+      // The cloud index still lists an older snapshot; that must not make a
+      // queued push look like a saved version.
+      push: jest.fn().mockResolvedValue("queued"),
+      listSnapshots: jest.fn(() => [{ version: 1 }]),
+      refresh: jest.fn(),
+    };
+    const injector = (component as any).injector;
+    const originalGet = injector.get.bind(injector);
+    jest
+      .spyOn(injector, "get")
+      .mockImplementation((token: any, ...rest: any[]) =>
+        token === CloudSyncService ? mockCloud : originalGet(token, ...rest),
+      );
+
+    await component.pushVersionSnapshot(bundle as any);
+
+    expect(mockSnackbar.success).not.toHaveBeenCalledWith(
+      "Version saved to cloud history",
+    );
+    expect(mockSnackbar.info).toHaveBeenCalledWith(
+      "Cloud is unreachable — this version is saved on this device.",
+    );
+    expect(component.versionHistoryOffline()).toBe(true);
+  });
+
   it("reads the header pill from push state and multipart progress", async () => {
     const injector = (component as any).injector;
     const originalGet = injector.get.bind(injector);

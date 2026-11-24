@@ -3945,12 +3945,16 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
       this.logger.warn("Studio: large-upload guard skipped", guardError);
     }
     try {
-      await this.cloudSync.push(
+      // A queued or conflicted push is not a cloud version yet, even if the
+      // index still lists older snapshots. Only a confirmed success may claim
+      // the version reached cloud history.
+      const status = await this.cloudSync.push(
         projectId,
         bundle.metadata.name || "Untitled Set",
         bundle,
       );
-      const cloud = this.cloudSync.listSnapshots(projectId);
+      const cloud =
+        status === "success" ? this.cloudSync.listSnapshots(projectId) : [];
       if (cloud.length) {
         this.versionHistory.set(cloud);
         this.versionHistoryOffline.set(false);
@@ -3958,14 +3962,15 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
           this.snackbarService.success("Version saved to cloud history");
         }
       } else if (!quiet) {
-        // The push resolved but the cloud holds nothing for this set (an
-        // unreachable or stubbed endpoint). Keep the version on this device
-        // rather than reporting a save that left no trace. A quiet push came
-        // from a save, which already kept its own copy.
+        // The push was queued, conflicted, or left no cloud trace. Keep the
+        // version on this device rather than reporting a save that left no
+        // trace. A quiet push came from a save, which already kept its copy.
         await this.keepLocalVersion(
           projectId,
           bundle,
-          "Cloud is unreachable — this version is saved on this device.",
+          status === "conflict"
+            ? "Cloud has a competing version — resolve it in Cloud Vault. This version is saved on this device."
+            : "Cloud is unreachable — this version is saved on this device.",
         );
       }
     } catch (error) {
