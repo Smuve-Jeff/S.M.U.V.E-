@@ -9,6 +9,11 @@ import {
   SongwritingAssistantResult,
 } from './songwriting-assistant.service';
 import { AiMixAssistantService } from '../studio/effects/ai-mix-assistant.service';
+import {
+  bpmRangeForGenre,
+  energyForGenre,
+  structureForGenre,
+} from './genre-catalog.util';
 import { ReleasePipelineService } from './release-pipeline.service';
 import { MusicManagerService } from './music-manager.service';
 import { NotificationService } from './notification.service';
@@ -759,15 +764,22 @@ export class AiProduceService {
       Dubstep: [140, 150],
       Reggaeton: [90, 100],
     };
-    const r = ranges[genre] || [110, 130];
-    return Math.round((r[0] + r[1]) / 2);
+    // Explicit ranges win (a Lo-Fi idea is slower than Electronic as a whole),
+    // then the shared catalog, so Country, Blues, Rock and Gospel stop landing
+    // on the generic 120 BPM fallback.
+    const explicit = ranges[genre];
+    if (explicit) return Math.round((explicit[0] + explicit[1]) / 2);
+    const catalog = bpmRangeForGenre(genre);
+    if (catalog) return Math.round((catalog[0] + catalog[1]) / 2);
+    return 120;
   }
 
   private suggestEnergy(genre: string, mood: string): number {
     if (mood === 'high-energy') return 0.95;
     if (mood === 'chill' || mood === 'sad') return 0.4;
     if (mood === 'dark') return 0.7;
-    if (genre === 'Pop' || genre === 'House') return 0.75;
+    const catalog = energyForGenre(genre);
+    if (catalog !== null) return catalog;
     return 0.6;
   }
 
@@ -785,8 +797,13 @@ export class AiProduceService {
       Dubstep: [96, 128],
       Reggaeton: [80, 96],
     };
-    const r = ranges[genre] || [80, 128];
-    return Math.round((r[0] + r[1]) / 2);
+    const explicit = ranges[genre];
+    if (explicit) return Math.round((explicit[0] + explicit[1]) / 2);
+    // A produced idea should be the length of the genre's actual structure, so
+    // the Studio receives a form the arrangement can follow.
+    const catalog = structureForGenre(genre);
+    if (catalog) return catalog.totalBars;
+    return Math.round((80 + 128) / 2);
   }
 
   private guessBeatGenre(beatGenre: string): string {

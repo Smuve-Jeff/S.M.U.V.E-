@@ -5,6 +5,7 @@ import {
 } from './smuve-style-mimic.service';
 import { AiService } from './ai.service';
 import { ArtistProfileFinetuneService } from './artist-profile-finetune.service';
+import { structureForGenre } from './genre-catalog.util';
 
 export interface LyricLine {
   text: string;
@@ -559,8 +560,17 @@ export class SongwritingAssistantService {
     );
   }
 
-  /** Suggest a structure based on genre */
+  /**
+   * Suggest a structure based on genre.
+   *
+   * The catalog resolves aliases and hybrids first ("Rap", "rnb", "Country
+   * Trap"), so an artist typing Rap no longer receives the Modern Pop Standard
+   * because the exact-string match missed. The local library remains the
+   * fallback for a genre it knows and the catalog does not.
+   */
   suggestStructure(genre: string): SongStructureTemplate {
+    const catalog = structureForGenre(genre);
+    if (catalog) return catalog;
     const matched = this.structureLibrary.find(
       (s) => s.genre.toLowerCase() === genre.toLowerCase()
     );
@@ -1203,6 +1213,8 @@ export class SongwritingAssistantService {
   private selectStructure(profile: StyleProfile | null): SongStructureTemplate {
     if (!profile) return this.structureLibrary[0];
 
+    const catalog = structureForGenre(profile.genre);
+    if (catalog) return catalog;
     const genre = profile.genre.toLowerCase();
     const matched = this.structureLibrary.find((s) =>
       genre.includes(s.genre.toLowerCase())

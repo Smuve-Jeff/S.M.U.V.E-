@@ -126,4 +126,42 @@ describe('Profile-adaptive music manager', () => {
     expect(missed).toContain('before a pitch is credible');
     expect(missed).not.toMatch(/multiply revenue/i);
   });
+
+  it('gives Country and Blues real production defaults instead of artist-defined', () => {
+    profile.update((p) => ({ ...p, primaryGenre: 'Country' }));
+    let state = service.adaptationState();
+    expect(state.genreProfile.id).toBe('country');
+    expect(state.genreProfile.label).toBe('Country');
+    expect(state.genreProfile.songwritingRules.typicalStructures[0]).toContain(
+      'Country Verse'
+    );
+    expect(state.genreProfile.productionDefaults.mixPriorities.length).toBeGreaterThan(0);
+
+    profile.update((p) => ({ ...p, primaryGenre: 'Blues' }));
+    state = service.adaptationState();
+    expect(state.genreProfile.id).toBe('blues');
+    expect(state.genreProfile.songwritingRules.typicalStructures[0]).toContain(
+      '12-Bar Blues'
+    );
+  });
+
+  it('resolves Rap through the shared catalog and keeps the artist’s label', () => {
+    profile.update((p) => ({ ...p, primaryGenre: 'Rap' }));
+
+    const state = service.adaptationState();
+
+    expect(state.genreProfile.id).toBe('hip-hop');
+    expect(state.genreProfile.label).toBe('Rap');
+    expect(state.genreProfile.songwritingRules.typicalStructures[0]).toContain(
+      'Hook-First Rap'
+    );
+  });
+
+  it('never profiles a missing genre as Hip Hop', () => {
+    // The old substring probe ran on an empty query, where `includes('')` is
+    // true, so an artist with no genre was silently given the Hip Hop playbook.
+    profile.update((p) => ({ ...p, primaryGenre: '' }));
+
+    expect(service.adaptationState().genreProfile.id).toBe('artist-defined');
+  });
 });
