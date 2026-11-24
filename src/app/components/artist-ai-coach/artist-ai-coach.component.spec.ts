@@ -46,6 +46,18 @@ describe('ArtistAiCoachComponent', () => {
     expect(text).not.toMatch(/multiply revenue/i);
   });
 
+  it('explains that genre advice is held until the interview is committed', () => {
+    const element = render().nativeElement as HTMLElement;
+    const text = element.textContent ?? '';
+
+    expect(text).toContain('Genre advice is held');
+    expect(text).toContain('committed and accepted');
+
+    const link = element.querySelector('.held-note a') as HTMLAnchorElement | null;
+    expect(link?.getAttribute('href')).toBe('/profile');
+    expect(link?.textContent).toContain('Finish the artist interview');
+  });
+
   it('shows only general guidance when profile answers are private', () => {
     profile.update((current) => ({
       ...current,

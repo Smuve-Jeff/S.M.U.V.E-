@@ -58,6 +58,22 @@ export interface GenreAdaptationProfile {
   };
 }
 
+/**
+ * True while the profile still carries only the placeholder identity and the
+ * default genre — the state a profile is in before the artist interview or
+ * uplink has been committed and accepted. Genre-specific advice is held then.
+ */
+export function isGenreAdviceHeld(
+  profile: UserProfile | null | undefined
+): boolean {
+  return (
+    profile?.profileSetupCompleted !== true &&
+    (!profile?.artistName || profile.artistName === 'New Artist') &&
+    (profile?.primaryGenre || '').trim().toLowerCase() ===
+      initialProfile.primaryGenre.toLowerCase()
+  );
+}
+
 /** Curated profiles that add business/live detail on top of a catalog family. */
 const CURATED_FAMILY_IDS: Record<string, string> = {
   'hip-hop': 'hip-hop',
@@ -91,6 +107,11 @@ export interface ArtistAdaptationState {
   };
   nextPrioritizedAction: string;
   warningsAndProtections: string[];
+  /**
+   * True while the profile is uncommitted and still carries the default genre,
+   * so genre-specific tempo, structure and mix advice is held.
+   */
+  genreAdviceHeld?: boolean;
 }
 
 const GENRE_PROFILES: GenreAdaptationProfile[] = [
@@ -286,6 +307,7 @@ export class ArtistAdaptiveEngineService {
         knowledge,
         genreProfile,
         musicalDnaContext: '',
+        genreAdviceHeld: isGenreAdviceHeld(profile),
         productionDirective: 'Use general production advice only; profile answers are private.',
         businessStrategy: 'Use general business guidance only; profile answers are private.',
         liveReadiness: { score: 0, gaps: [], nextMove: 'Ask before personalizing with artist answers.' },
@@ -304,6 +326,7 @@ export class ArtistAdaptiveEngineService {
       knowledge,
       genreProfile,
       musicalDnaContext: dnaContext,
+      genreAdviceHeld: isGenreAdviceHeld(profile),
       productionDirective: this.buildProductionDirective(profile, knowledge, genreProfile),
       businessStrategy: this.buildBusinessStrategy(profile, knowledge, genreProfile),
       liveReadiness: this.assessLiveReadiness(profile, knowledge, genreProfile),
@@ -321,10 +344,7 @@ export class ArtistAdaptiveEngineService {
     // must not be handed a Hip Hop tempo, form and mix plan before the
     // interview or uplink is accepted. The same untouched rule already governs
     // the profile read-back.
-    const untouched =
-      profile?.profileSetupCompleted !== true &&
-      (!profile?.artistName || profile.artistName === 'New Artist') &&
-      declaredGenre.toLowerCase() === initialProfile.primaryGenre.toLowerCase();
+    const untouched = isGenreAdviceHeld(profile);
     const genreInput = untouched ? '' : declaredGenre;
     const genreQuery = genreInput.toLowerCase();
     // The catalog does the fuzzy work now. The old substring probe ran before
@@ -574,6 +594,9 @@ export class ArtistAdaptiveEngineService {
 
   private derivePrioritizedAction(profile: UserProfile | null | undefined, knowledge: ArtistProfileKnowledge, genre: GenreAdaptationProfile): string {
     if (!profile) return '';
+    if (isGenreAdviceHeld(profile)) {
+      return 'Finish the artist interview or accept the uplink so genre-specific tempo, structure and mix advice can attach.';
+    }
     if (knowledge.pathway.nextStep) return knowledge.pathway.nextStep;
     const live = this.assessLiveReadiness(profile, knowledge, genre);
     if (live.score < 40 && (profile.catalog?.length || 0) > 0) {
@@ -588,6 +611,11 @@ export class ArtistAdaptiveEngineService {
 
   private deriveWarningsAndProtections(profile: UserProfile | null | undefined, knowledge: ArtistProfileKnowledge, _genre: GenreAdaptationProfile): string[] {
     const warnings: string[] = [];
+    if (isGenreAdviceHeld(profile)) {
+      warnings.push(
+        'Genre-specific tempo, structure and mix advice is held until the artist interview or uplink is committed and accepted.'
+      );
+    }
     if ((profile?.catalog || []).some((item) => !item.credits)) {
       warnings.push('Rights evidence incomplete: verify contributors and any samples/interpolations. Missing credits do not prove sampling; genre never proves clearance.');
     }

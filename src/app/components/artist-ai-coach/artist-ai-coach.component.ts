@@ -1,6 +1,7 @@
 import { Component, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ArtistAiCoachService } from '../../services/artist-ai-coach.service';
+import { ArtistAdaptiveEngineService } from '../../services/artist-adaptive-engine.service';
 import { RouterModule } from '@angular/router';
 
 @Component({
@@ -13,6 +14,17 @@ import { RouterModule } from '@angular/router';
         <h1>S.M.U.V.E. Artist Coach</h1>
         <p>Personalized guidance based on your profile, genre, and stage</p>
         <p class="evidence-note">Targets and readiness below come from your declared profile; nothing here is a booking, placement, or platform measurement.</p>
+        @if (genreAdviceHeld()) {
+          <div class="held-note">
+            <strong>Genre advice is held.</strong>
+            <p>
+              Genre-specific tempo, structure and mix advice waits until your artist
+              interview or uplink is committed and accepted. Until then the coaching above
+              uses general defaults, not a read of your genre.
+            </p>
+            <a routerLink="/profile" class="link-button">Finish the artist interview</a>
+          </div>
+        }
         <a [routerLink]="['/adaptive-profile']" class="link-button">View Adaptive Profile</a>
       </div>
 
@@ -85,6 +97,9 @@ import { RouterModule } from '@angular/router';
     .coach-container { padding: 2rem; display: grid; grid-template-columns: minmax(0, 1fr); gap: 2rem; }
     .header { text-align: center; margin-bottom: 1rem; }
     .evidence-note { font-size: 0.85rem; opacity: 0.65; margin: 0.75rem 0 0 0; line-height: 1.5; }
+    .held-note { max-width: 640px; margin: 1rem auto 0; text-align: left; padding: 0.9rem; border-left: 3px solid #f59e0b; border-radius: 4px; background: rgba(245, 158, 11, 0.1); }
+    .held-note strong { display: block; font-size: 0.9rem; margin-bottom: 0.35rem; }
+    .held-note p { font-size: 0.85rem; opacity: 0.8; line-height: 1.5; margin: 0 0 0.6rem 0; }
     .link-button { display: inline-block; margin-top: 1rem; padding: 0.5rem 1rem; background: #6ee7b7; color: #000; border-radius: 6px; text-decoration: none; font-weight: 600; font-size: 0.9rem; }
     .layout { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1.5rem; }
     .card { min-width: 0; border: 1px solid #2a2a2a; border-radius: 12px; padding: 1.5rem; background: rgba(255,255,255,0.02); backdrop-filter: blur(8px); }
@@ -131,5 +146,9 @@ import { RouterModule } from '@angular/router';
 })
 export class ArtistAiCoachComponent {
   private readonly coachService = inject(ArtistAiCoachService);
+  private readonly adaptiveEngine = inject(ArtistAdaptiveEngineService);
   readonly coach = computed(() => this.coachService.coachState());
+  readonly genreAdviceHeld = computed(
+    () => this.adaptiveEngine.adaptationState().genreAdviceHeld === true
+  );
 }

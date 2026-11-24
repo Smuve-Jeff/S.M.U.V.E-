@@ -1,5 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
+import { provideRouter } from '@angular/router';
 import { ArtistAdaptiveDashboardComponent } from './artist-adaptive-dashboard.component';
 import {
   UserProfileService,
@@ -24,7 +25,10 @@ describe('ArtistAdaptiveDashboardComponent', () => {
   beforeEach(() => {
     profile = signal(baseProfile());
     TestBed.configureTestingModule({
-      providers: [{ provide: UserProfileService, useValue: { profile } }],
+      providers: [
+        provideRouter([]),
+        { provide: UserProfileService, useValue: { profile } },
+      ],
     });
   });
 
@@ -43,6 +47,33 @@ describe('ArtistAdaptiveDashboardComponent', () => {
     expect(text).toContain('What This Adaptation Reads');
     expect(text).toContain('not verified bookings');
     expect(element.querySelector('.dna-signature')).not.toBeNull();
+  });
+
+  it('explains that genre advice is held until the interview is committed', () => {
+    const element = render().nativeElement as HTMLElement;
+    const text = element.textContent ?? '';
+
+    expect(text).toContain('Genre advice is held');
+    expect(text).toContain('committed and accepted');
+    expect(text).toContain('not a read of your genre');
+
+    const link = element.querySelector('.held-note a') as HTMLAnchorElement | null;
+    expect(link?.getAttribute('href')).toBe('/profile');
+    expect(link?.textContent).toContain('Finish the artist interview');
+  });
+
+  it('drops the held note once the interview is committed', () => {
+    profile.update((current) => ({
+      ...current,
+      artistName: 'Test Artist',
+      primaryGenre: 'Country',
+      profileSetupCompleted: true,
+    }));
+
+    const element = render().nativeElement as HTMLElement;
+
+    expect(element.querySelector('.held-note')).toBeNull();
+    expect(element.textContent).toContain('Country Profile');
   });
 
   it('withholds the musical DNA when profile answers are private from AI', () => {

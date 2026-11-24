@@ -1,12 +1,13 @@
 import { Component, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { RouterModule } from '@angular/router';
 import { ArtistAdaptiveEngineService } from '../../services/artist-adaptive-engine.service';
 import { MusicalDnaService } from '../../services/musical-dna.service';
 
 @Component({
   selector: 'app-artist-adaptive-dashboard',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, RouterModule],
   template: `
     <section class="adaptive-dashboard">
       <div class="header">
@@ -66,6 +67,17 @@ import { MusicalDnaService } from '../../services/musical-dna.service';
 
         <div class="card genre-card">
           <h2>{{ adaptation().genreProfile.label }} Profile</h2>
+          @if (adaptation().genreAdviceHeld) {
+            <div class="held-note">
+              <strong>Genre advice is held.</strong>
+              <p>
+                Genre-specific tempo, structure and mix advice waits until your artist
+                interview or uplink is committed and accepted. Until then this page shows
+                general defaults, not a read of your genre.
+              </p>
+              <a routerLink="/profile" class="held-link">Finish the artist interview</a>
+            </div>
+          }
           <div class="section">
             <h3>Production Defaults</h3>
             <ul>
@@ -163,6 +175,11 @@ import { MusicalDnaService } from '../../services/musical-dna.service';
     .posture[data-posture="vision-led"] { background: #3b82f6; color: #fff; }
     .posture[data-posture="unread"] { background: #6b7280; color: #fff; }
     .privacy-note { font-size: 0.85rem; opacity: 0.75; line-height: 1.5; margin: 0; }
+    .held-note { margin: 0 0 1rem 0; padding: 0.9rem; border-left: 3px solid #f59e0b; border-radius: 4px; background: rgba(245, 158, 11, 0.1); }
+    .held-note strong { display: block; font-size: 0.9rem; margin-bottom: 0.35rem; }
+    .held-note p { font-size: 0.85rem; opacity: 0.8; line-height: 1.5; margin: 0 0 0.6rem 0; }
+    .held-link { display: inline-block; font-size: 0.85rem; font-weight: 600; color: #6ee7b7; text-decoration: none; }
+    .held-link:hover { text-decoration: underline; }
     .card-note { font-size: 0.8rem; opacity: 0.65; line-height: 1.45; margin: 0.75rem 0 0; }
     .evidence { display: grid; gap: 0.25rem; }
     .evidence-row { display: flex; justify-content: space-between; gap: 1rem; font-size: 0.85rem; padding: 0.45rem 0; border-bottom: 1px solid rgba(255,255,255,0.06); }
