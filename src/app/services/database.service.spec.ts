@@ -4,7 +4,11 @@ import {
   provideHttpClientTesting,
   HttpTestingController,
 } from '@angular/common/http/testing';
-import { DatabaseService } from './database.service';
+import {
+  DatabaseService,
+  PROFILE_SYNC_ENDPOINT,
+} from './database.service';
+import { OfflineSyncService } from './offline-sync.service';
 import { LoggingService } from './logging.service';
 import { TokenService } from './token.service';
 import { initialProfile } from '../types/profile.types';
@@ -24,7 +28,14 @@ describe('DatabaseService profile ownership', () => {
   const profile = (overrides: Partial<UserProfile> = {}): UserProfile =>
     JSON.parse(JSON.stringify({ ...initialProfile, ...overrides })) as UserProfile;
 
+  const offlineSync = {
+    hasPending: jest.fn(async () => false),
+    queueOperation: jest.fn(async () => 'sync-profile'),
+    registerEndpointHandler: jest.fn(),
+  };
+
   beforeEach(() => {
+    jest.clearAllMocks();
     warn = jest.fn();
     apiToken = true;
     TestBed.configureTestingModule({
@@ -43,6 +54,7 @@ describe('DatabaseService profile ownership', () => {
             isApiToken: () => apiToken,
           },
         },
+        { provide: OfflineSyncService, useValue: offlineSync },
       ],
     });
     service = TestBed.inject(DatabaseService);
@@ -98,6 +110,33 @@ describe('DatabaseService profile ownership', () => {
     expect(
       localStorage.getItem('smuve_user_profile_backup_user-a')
     ).toContain('A');
+    // A background save must not look synced: the status says so and a retry
+    // is queued instead of swallowing the failure.
+    expect(service.cloudSyncPending()).toBe(true);
+    expect(service.cloudSyncError()).toContain('queued for retry');
+    expect(offlineSync.queueOperation).toHaveBeenCalledWith(
+      'UPDATE',
+      PROFILE_SYNC_ENDPOINT,
+      expect.objectContaining({ userId: 'user-a' })
+    );
+  });
+
+  it('clears the pending cloud state after a confirmed write', async () => {
+    const failed = service.saveUserProfile(profile({ id: 'user-a' }), 'user-a');
+    http
+      .expectOne(service.apiUrl + '/profile')
+      .flush({}, { status: 500, statusText: 'Server Error' });
+    await failed;
+    expect(service.cloudSyncPending()).toBe(true);
+
+    const retried = service.saveUserProfile(profile({ id: 'user-a' }), 'user-a');
+    http
+      .expectOne(service.apiUrl + '/profile')
+      .flush({ ok: true }, { status: 200, statusText: 'OK' });
+    await expect(retried).resolves.toBe(true);
+
+    expect(service.cloudSyncPending()).toBe(false);
+    expect(service.cloudSyncError()).toBeNull();
   });
 
   it('lets an unstamped record be saved, since it has no owner to compare', async () => {

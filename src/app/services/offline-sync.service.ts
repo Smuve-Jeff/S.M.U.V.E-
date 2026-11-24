@@ -78,6 +78,18 @@ export class OfflineSyncService {
    * If localSaveEnabled, the payload is also persisted to IndexedDB
    * immediately so the app never blocks on network.
    */
+  /** True when the queue already holds work for this endpoint. */
+  async hasPending(endpoint: string): Promise<boolean> {
+    try {
+      const items = await this.localStorage.getAllItems(this.SYNC_STORE);
+      return (items || []).some(
+        (item: SyncQueueItem) => item.endpoint === endpoint
+      );
+    } catch {
+      return false;
+    }
+  }
+
   async queueOperation(
     action: SyncQueueItem['action'],
     endpoint: string,

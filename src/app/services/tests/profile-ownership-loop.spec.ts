@@ -5,6 +5,7 @@ import {
   HttpTestingController,
 } from '@angular/common/http/testing';
 import { UserProfileService } from '../user-profile.service';
+import { OfflineSyncService } from '../offline-sync.service';
 import { ProfileStoreService } from '../profile-store.service';
 import { DatabaseService } from '../database.service';
 import { LoggingService } from '../logging.service';
@@ -45,6 +46,10 @@ describe('profile ownership loop', () => {
         {
           provide: LoggingService,
           useValue: { info: jest.fn(), warn: jest.fn(), error: jest.fn(), system: jest.fn() },
+        },
+        {
+          provide: OfflineSyncService,
+          useValue: { registerEndpointHandler: jest.fn() },
         },
       ],
     });

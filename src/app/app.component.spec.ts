@@ -145,7 +145,12 @@ describe('AppComponent', () => {
         { provide: SettingsIntegrationService, useValue: {} },
         {
           provide: DatabaseService,
-          useValue: { isSyncing: signal(false), lastSyncTime: signal(null) },
+          useValue: {
+            isSyncing: signal(false),
+            lastSyncTime: signal(null),
+            cloudSyncPending: signal(false),
+            cloudSyncError: signal(null),
+          },
         },
         {
           provide: AutoSaveService,

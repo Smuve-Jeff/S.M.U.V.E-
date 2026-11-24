@@ -337,8 +337,15 @@ export class UserProfileService {
         return false;
       }
       // Save under the real user id so the local backup and the cloud sync
-      // (which enforces ownership on the backend) use the same key.
-      await this.db.saveUserProfile(next, targetId);
+      // (which enforces ownership on the backend) use the same key. The edit is
+      // locally persisted either way; the database service records any cloud
+      // failure in its sync status and queues the retry.
+      const cloudSynced = await this.db.saveUserProfile(next, targetId);
+      if (!cloudSynced) {
+        this.logger.warn(
+          'Profile saved on this device; cloud sync is pending retry.'
+        );
+      }
       return true;
     } catch (e) {
       this.logger.error('Profile save failed', e);

@@ -150,7 +150,17 @@ export class AutoSaveService {
   private async syncProfile(profile: any) {
     if (!profile.id) return;
     try {
-      await this.databaseService.saveUserProfile(profile, profile.id);
+      const synced = await this.databaseService.saveUserProfile(
+        profile,
+        profile.id
+      );
+      // The database service owns the pending/error state and the retry queue,
+      // so a false result is visible instead of looking like a clean save.
+      if (!synced) {
+        this.logger.warn(
+          'AutoSaveService: Profile is saved on this device; cloud sync is pending retry'
+        );
+      }
     } catch (e) {
       this.logger.error('AutoSaveService: Profile sync failed', e);
     }

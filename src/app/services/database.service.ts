@@ -7,6 +7,13 @@ import { LocalStorageService } from './local-storage.service';
 import { firstValueFrom } from 'rxjs';
 import { ArtistIdentityState } from '../types/artist-identity.types';
 import { TokenService } from './token.service';
+import { OfflineSyncService } from './offline-sync.service';
+
+/** In-process queue endpoint for profile cloud retries (no fetch URL). */
+export const PROFILE_SYNC_ENDPOINT = 'smuve://profile-sync';
+
+const PROFILE_SYNC_FAILED =
+  'Profile cloud sync failed. Changes are on this device and queued for retry.';
 
 @Injectable({
   providedIn: 'root',
@@ -16,7 +23,34 @@ export class DatabaseService {
   private http = inject(HttpClient);
   private localStorageService = inject(LocalStorageService);
   private tokenService = inject(TokenService);
+  private offlineSync = inject(OfflineSyncService);
   private API_URL = APP_SECURITY_CONFIG.api_url;
+
+  /** True while a profile write is on this device but not confirmed in the cloud. */
+  readonly cloudSyncPending = signal(false);
+  /** Human-readable reason for the last failed profile cloud write. */
+  readonly cloudSyncError = signal<string | null>(null);
+
+  constructor() {
+    // Replay queued profile writes through the same verified path. The queued
+    // payload is a fallback: the device backup is refreshed on every save, so
+    // a retry sends the latest profile rather than an older snapshot.
+    this.offlineSync.registerEndpointHandler(
+      PROFILE_SYNC_ENDPOINT,
+      async (item) => {
+        const userId = String(item.payload?.userId || '').trim();
+        const profile =
+          this.readLocalProfileBackup(userId) || item.payload?.profile;
+        if (!profile) {
+          throw new Error('No profile copy is available to retry.');
+        }
+        const synced = await this.syncProfileToCloud(profile, userId, false);
+        if (!synced) {
+          throw new Error('Profile cloud sync is still failing.');
+        }
+      }
+    );
+  }
 
   private getHeaders() {
     const token = this.tokenService.jwtToken();
@@ -76,7 +110,25 @@ export class DatabaseService {
       }
     }
 
-    if (userId && typeof navigator !== 'undefined' && navigator.onLine) {
+    return this.syncProfileToCloud(profile, destination, true);
+  }
+
+  /**
+   * The one cloud write for profiles. Success clears the pending state; any
+   * failure keeps it visible and queues a retry so a background save can never
+   * be presented as synced when the cloud did not accept it.
+   */
+  private async syncProfileToCloud(
+    profile: UserProfile,
+    userId: string,
+    queueRetry: boolean
+  ): Promise<boolean> {
+    if (!userId) {
+      // No cloud destination exists (guest/signed-out): nothing to retry.
+      return false;
+    }
+
+    if (typeof navigator !== 'undefined' && navigator.onLine) {
       this.isSyncing.set(true);
       try {
         await firstValueFrom(
@@ -87,19 +139,57 @@ export class DatabaseService {
           )
         );
         this.lastSyncTime.set(Date.now());
+        this.cloudSyncPending.set(false);
+        this.cloudSyncError.set(null);
         // Only the provider confirming the write counts as cloud sync; the
-        // local backup above does not.
+        // local backup does not.
         return true;
       } catch (error) {
         this.logger.error('Failed to sync profile to cloud', error);
+        this.cloudSyncPending.set(true);
+        this.cloudSyncError.set(PROFILE_SYNC_FAILED);
+        if (queueRetry) await this.queueProfileRetry(profile, userId);
         return false;
       } finally {
         this.isSyncing.set(false);
       }
     }
 
-    // Offline or no account key: this device has the profile, the cloud does not.
+    // Offline: the device has the profile and the queue will replay it.
+    this.cloudSyncPending.set(true);
+    this.cloudSyncError.set(
+      'Waiting for a connection. Profile changes are on this device.'
+    );
+    if (queueRetry) await this.queueProfileRetry(profile, userId);
     return false;
+  }
+
+  /** The latest device copy, used so a retry never posts a stale profile. */
+  readLocalProfileBackup(userId: string): UserProfile | null {
+    if (typeof localStorage === 'undefined') return null;
+    try {
+      const raw = localStorage.getItem(this.getProfileBackupKey(userId));
+      if (!raw) return null;
+      return JSON.parse(raw) as UserProfile;
+    } catch {
+      return null;
+    }
+  }
+
+  private async queueProfileRetry(
+    profile: UserProfile,
+    userId: string
+  ): Promise<void> {
+    try {
+      if (await this.offlineSync.hasPending(PROFILE_SYNC_ENDPOINT)) return;
+      await this.offlineSync.queueOperation(
+        'UPDATE',
+        PROFILE_SYNC_ENDPOINT,
+        { userId, profile }
+      );
+    } catch (error) {
+      this.logger.warn('Could not queue the profile sync retry', error);
+    }
   }
 
   /**

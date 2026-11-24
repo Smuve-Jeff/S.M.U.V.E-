@@ -240,6 +240,8 @@ export class AppComponent {
     lastError: this.autoSaveStatus.lastError(),
     isCloudSyncing: this.databaseService.isSyncing(),
     lastCloudSync: this.databaseService.lastSyncTime(),
+    cloudSyncPending: this.databaseService.cloudSyncPending(),
+    cloudSyncError: this.databaseService.cloudSyncError(),
     pending: this.offlineSync.pendingCount(),
     deadLetter: this.offlineSync.deadLetterCount(),
     offline: this.offlineSync.networkStatus() === 'offline',
