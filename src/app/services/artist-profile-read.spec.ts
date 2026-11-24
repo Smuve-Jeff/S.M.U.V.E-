@@ -62,6 +62,30 @@ describe('artist-profile-read', () => {
     expect(emptyBody.statement).not.toContain('Hip Hop');
   });
 
+  it('holds the default genre for a named but uncommitted profile', () => {
+    // The same rule the adaptive engine uses: the committed flag plus the
+    // untouched default genre. A name alone is not an accepted interview, so
+    // the read-back must not claim a genre while the advice is held.
+    const named = profileWith({
+      artistName: 'Named Artist',
+      'musicalJourney.currentFocus': 'finish the mixtape',
+    });
+
+    expect(readArtistProfile(named).genre).toBe('');
+    expect(readMusicalBody(named).genre).toBe('');
+    const block = profileReadBack(named);
+    expect(block).toContain('CURRENT MISSION: finish the mixtape');
+    expect(block).not.toContain('GENRE:');
+    expect(block).not.toContain('Hip Hop');
+
+    // Committed, the same default genre becomes the artist's real answer.
+    const committed = profileWith({
+      artistName: 'Named Artist',
+      profileSetupCompleted: true,
+    });
+    expect(readArtistProfile(committed).genre).toBe('Hip Hop');
+  });
+
   it('opens with the artist’s own answers, never a generic greeting', () => {
     const block = profileReadBack(COMMITTED, { nextMove: 'Claim the distributor dashboards' });
     expect(block).toContain('PROFILE READING');

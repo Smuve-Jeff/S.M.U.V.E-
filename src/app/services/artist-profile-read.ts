@@ -1,4 +1,5 @@
 import type { UserProfile } from './user-profile.service';
+import { initialProfile } from '../types/profile.types';
 
 /**
  * S.M.U.V.E.'s reading of an artist profile.
@@ -169,6 +170,26 @@ const describeMusicalBody = (body: Omit<ArtistMusicalBody, 'statement' | 'hasBod
   return cap(`${subject}; ${clauses.join('; ')}.`, 360);
 };
 
+/**
+ * True while the interview or uplink has not been committed and the genre is
+ * still the untouched default — the state a profile is in before the artist has
+ * answered anything. Genre-specific advice and a genre in the read-back both
+ * wait for that.
+ *
+ * One rule for the whole app: the adaptive engine's hold and this read-back
+ * have to agree, or a named but uncommitted artist gets a genre in one place
+ * and generic advice in the other.
+ */
+export function isGenreAdviceHeld(
+  profile: UserProfile | null | undefined
+): boolean {
+  return (
+    profile?.profileSetupCompleted !== true &&
+    (profile?.primaryGenre || '').trim().toLowerCase() ===
+      initialProfile.primaryGenre.toLowerCase()
+  );
+}
+
 /** Reads the artist's musical body from the profile, with no inference. */
 export function readMusicalBody(
   profile: UserProfile | null | undefined
@@ -176,12 +197,10 @@ export function readMusicalBody(
   const journey: any = profile?.musicalJourney || {};
   const blueprint: any = journey.musicBlueprint || {};
   const declaredTempo = cap(journey.preferredBpmRange, 40);
-  // A brand-new profile ships with the placeholder name "New Artist" and a
-  // default genre. Neither is an answer the artist gave, so S.M.U.V.E. must not
-  // describe them as the artist's body before the interview is committed.
-  const untouched =
-    profile?.profileSetupCompleted !== true &&
-    (!profile?.artistName || profile.artistName === 'New Artist');
+  // The default genre is not an answer the artist gave until the interview is
+  // committed, so S.M.U.V.E. must not describe it as the artist's body before
+  // then — the same hold the adaptive engine applies to its advice.
+  const untouched = isGenreAdviceHeld(profile);
   const body = {
     genre: untouched ? '' : cap(profile?.primaryGenre, 60),
     subgenres: list(journey.subgenres, 4),
@@ -283,7 +302,7 @@ export function readArtistProfile(
     ),
     mission: cap(journey.currentFocus || journey.biggestChallenge || '', 140),
     differentiator: cap(blueprint.signatureTension || blueprint.recognitionCue || '', 140),
-    genre: cap(profile?.primaryGenre || '', 60),
+    genre: isGenreAdviceHeld(profile) ? '' : cap(profile?.primaryGenre || '', 60),
     releaseVelocity: cap(journey.releaseVelocity || '', 60),
     successMetric: cap(journey.primarySuccessMetric || '', 60),
     profileComplete: profile?.profileSetupCompleted === true,

@@ -3,6 +3,7 @@ import { UserProfile, UserProfileService } from './user-profile.service';
 import { ArtistProfileFinetuneService, ArtistProfileKnowledge } from './artist-profile-finetune.service';
 import { initialProfile } from './user-profile.service';
 import { buildMusicalDnaContext } from '../types/musical-dna.types';
+import { isGenreAdviceHeld } from './artist-profile-read';
 import {
   GenreResolution,
   hybridProductionNotes,
@@ -56,25 +57,6 @@ export interface GenreAdaptationProfile {
     structures: string[];
     productionNotes: string[];
   };
-}
-
-/**
- * True while the interview or uplink has not been committed and the genre is
- * still the untouched default — the state a profile is in before the artist has
- * answered anything. Genre-specific advice is held then.
- *
- * The committed flag alone decides it: an artist who typed a name but never
- * finished the interview still has no accepted genre answer, so the default
- * "Hip Hop" must not become their tempo, form and mix plan.
- */
-export function isGenreAdviceHeld(
-  profile: UserProfile | null | undefined
-): boolean {
-  return (
-    profile?.profileSetupCompleted !== true &&
-    (profile?.primaryGenre || '').trim().toLowerCase() ===
-      initialProfile.primaryGenre.toLowerCase()
-  );
 }
 
 /** Curated profiles that add business/live detail on top of a catalog family. */
@@ -631,4 +613,4 @@ export class ArtistAdaptiveEngineService {
   }
 }
 
-export { GENRE_PROFILES };
+export { GENRE_PROFILES, isGenreAdviceHeld };
