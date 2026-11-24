@@ -700,10 +700,13 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
       // account change may close it.
       const hadOwner = this.owner !== null;
       this.cancelReply();
+      // Close against the old account before the id changes, so account B
+      // never inherits account A's desk or deletes B's own saved state.
+      if (hadOwner) this.closeDesk(false);
       this.owner = nextOwner;
       this.messages.set([]);
       this.announcedRooms.clear();
-      if (hadOwner) this.closeDesk();
+      if (hadOwner) this.restoreDesk();
       if (!this.restoreMessages()) this.setWelcomeGreeting();
     });
 
@@ -1192,25 +1195,44 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
     if (this.activeDesk()) this.closeDesk();
   }
 
-  private openDesk(definition: ArtistRoleDefinition): void {
-    const previous = this.activeDesk();
-    this.activeDesk.set(definition);
+  /** Saved desks are scoped to the signed-in account (or a guest bucket). */
+  private deskStorageKey(): string {
+    return `${DESK_STORAGE_KEY}:${encodeURIComponent(this.owner ?? 'guest')}`;
+  }
+
+  private persistDesk(): void {
+    const desk = this.activeDesk();
+    if (!desk) return;
     try {
-      sessionStorage.setItem(DESK_STORAGE_KEY, definition.aliases[0]);
+      sessionStorage.setItem(
+        this.deskStorageKey(),
+        JSON.stringify({
+          alias: desk.aliases[0],
+          turns: this.deskTurns.get(desk.role) ?? [],
+        })
+      );
     } catch {
       // Persistence is a convenience; the desk works without it.
     }
+  }
+
+  private openDesk(definition: ArtistRoleDefinition): void {
+    const previous = this.activeDesk();
+    this.activeDesk.set(definition);
+    this.persistDesk();
     if (previous?.role !== definition.role) {
       this.telemetry.record(definition.role, 'opened');
     }
   }
 
-  private closeDesk(): void {
+  /** `forget` false keeps the signed-out account's saved desk for its return. */
+  private closeDesk(forget = true): void {
     const desk = this.activeDesk();
     if (desk) this.deskTurns.delete(desk.role);
     this.activeDesk.set(null);
+    if (!forget) return;
     try {
-      sessionStorage.removeItem(DESK_STORAGE_KEY);
+      sessionStorage.removeItem(this.deskStorageKey());
     } catch {
       // A blocked store costs continuity, never the close.
     }
@@ -1218,11 +1240,26 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
 
   private restoreDesk(): void {
     try {
-      const alias = sessionStorage.getItem(DESK_STORAGE_KEY);
-      const definition = alias ? artistRoleForAlias(alias) : null;
-      if (definition) this.activeDesk.set(definition);
+      const raw = sessionStorage.getItem(this.deskStorageKey());
+      if (!raw) return;
+      const saved = JSON.parse(raw) as {
+        alias?: string;
+        turns?: { question?: string; answer?: string; label?: string }[];
+      };
+      const definition = artistRoleForAlias(saved.alias ?? '');
+      if (!definition) return;
+
+      const turns = (saved.turns ?? []).filter(
+        (turn) =>
+          typeof turn?.question === 'string' &&
+          typeof turn?.answer === 'string'
+      ) as { question: string; answer: string; label?: string }[];
+      if (turns.length) {
+        this.deskTurns.set(definition.role, turns.slice(-DESK_TURN_MAX));
+      }
+      this.activeDesk.set(definition);
     } catch {
-      // An unavailable session store simply starts with no desk.
+      // An unavailable or legacy store simply starts with no desk.
     }
   }
 
@@ -1236,6 +1273,7 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
     const turns = this.deskTurns.get(role) ?? [];
     turns.push({ question, answer, label });
     this.deskTurns.set(role, turns.slice(-DESK_TURN_MAX));
+    if (this.activeDesk()?.role === role) this.persistDesk();
   }
 
   /** Tells the artist a command did not end the desk. */

@@ -417,16 +417,23 @@ describe('ChatbotComponent', () => {
     }
   });
 
+  const deskStorageKeys = () =>
+    Array.from({ length: sessionStorage.length }, (_, i) =>
+      sessionStorage.key(i) ?? ''
+    ).filter((key) => key.startsWith('smuve.master.desk.v1'));
+
   it('persists the open desk for the session and closes it on Escape', async () => {
     await (component as any).routeMasterIntent('/coach');
-    expect(sessionStorage.getItem('smuve.master.desk.v1')).toBe('coach');
+    const keys = deskStorageKeys();
+    expect(keys).toHaveLength(1);
+    expect(JSON.parse(sessionStorage.getItem(keys[0])!).alias).toBe('coach');
 
     fixture.nativeElement.dispatchEvent(
       new KeyboardEvent('keydown', { key: 'Escape' })
     );
 
     expect(component.activeDesk()).toBeNull();
-    expect(sessionStorage.getItem('smuve.master.desk.v1')).toBeNull();
+    expect(deskStorageKeys()).toHaveLength(0);
   });
 
   it('files a desk question in the case file under the expert', async () => {
@@ -485,8 +492,65 @@ describe('ChatbotComponent', () => {
     expect(component.activeDeskLabel()).toBe('Marketing');
   });
 
+  it('restores the desk conversation with the role', async () => {
+    aiServiceMock.getAIResponse = jest
+      .fn()
+      .mockResolvedValueOnce('Phase first.')
+      .mockResolvedValue('Check translation next.');
+
+    component.userInput = '/ar why is my low end muddy?';
+    await component.sendMessage();
+
+    const restoredFixture = TestBed.createComponent(ChatbotComponent);
+    const restored = restoredFixture.componentInstance;
+    restored.ngOnInit();
+    restoredFixture.detectChanges();
+
+    expect(restored.activeDeskLabel()).toBe('A&R');
+
+    aiServiceMock.getAIResponse = jest.fn().mockResolvedValue('Next answer.');
+    restored.userInput = 'what do I fix first?';
+    await restored.sendMessage();
+
+    const prompt = aiServiceMock.getAIResponse.mock.calls[0][0] as string;
+    expect(prompt).toContain('why is my low end muddy?');
+    expect(prompt).toContain('Phase first.');
+    expect(prompt).toContain('A&R:');
+
+    restoredFixture.destroy();
+  });
+
+  it('scopes the saved desk to the account and never lets another inherit it', async () => {
+    const users = TestBed.inject(UserStoreService);
+    users.user.set({ id: 'artist-a' } as any);
+    fixture.detectChanges();
+    TestBed.flushEffects();
+
+    await (component as any).routeMasterIntent('/ar');
+    const keyA = 'smuve.master.desk.v1:artist-a';
+    expect(sessionStorage.getItem(keyA)).toContain('"alias":"ar"');
+
+    users.user.set({ id: 'artist-b' } as any);
+    fixture.detectChanges();
+    TestBed.flushEffects();
+
+    // B starts with no desk and cannot read A's saved state.
+    expect(component.activeDesk()).toBeNull();
+    expect(sessionStorage.getItem('smuve.master.desk.v1:artist-b')).toBeNull();
+    expect(sessionStorage.getItem(keyA)).toContain('"alias":"ar"');
+
+    // Returning to A restores A's own desk.
+    users.user.set({ id: 'artist-a' } as any);
+    fixture.detectChanges();
+    TestBed.flushEffects();
+    expect(component.activeDeskLabel()).toBe('A&R');
+  });
+
   it('keeps a desk restored from the session after the owner read', () => {
-    sessionStorage.setItem('smuve.master.desk.v1', 'coach');
+    sessionStorage.setItem(
+      (component as any).deskStorageKey(),
+      JSON.stringify({ alias: 'coach', turns: [] })
+    );
     const restoredFixture = TestBed.createComponent(ChatbotComponent);
     const restored = restoredFixture.componentInstance;
 
