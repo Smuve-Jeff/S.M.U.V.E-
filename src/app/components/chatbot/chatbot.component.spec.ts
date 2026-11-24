@@ -292,6 +292,39 @@ describe('ChatbotComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('A&R desk active');
   });
 
+  it('lets explicit navigation and app control through without closing the desk', async () => {
+    const control = TestBed.inject(SmuveTotalControlService);
+    const execute = jest
+      .spyOn(control, 'executeCommand')
+      .mockResolvedValue({ success: true, message: 'Opening the mixer.' });
+    aiServiceMock.getAIResponse = jest.fn().mockResolvedValue('desk answer');
+
+    await (component as any).routeMasterIntent('/engineer');
+
+    const nav = await (component as any).routeMasterIntent('open the mixer');
+    expect(nav.content).toBe('Opening the mixer.');
+    expect(execute).toHaveBeenCalledWith('/go the mixer');
+    expect(component.activeDeskLabel()).toBe('Engineer');
+
+    const appControl = await (component as any).routeMasterIntent(
+      'mute the bass'
+    );
+    expect(appControl.content.toLowerCase()).toContain('mute bass');
+    expect(execute).toHaveBeenLastCalledWith('/mixer mute bass');
+    expect(component.activeDeskLabel()).toBe('Engineer');
+
+    // The desk was not asked to answer either phrase.
+    expect(aiServiceMock.getAIResponse).not.toHaveBeenCalled();
+
+    // A question is still the desk's, so the bypass stays narrow.
+    const question = await (component as any).routeMasterIntent(
+      'how do I open the mixer?'
+    );
+    expect(question.content).toBe('desk answer');
+
+    execute.mockRestore();
+  });
+
   it('switches desks when another desk is chosen', async () => {
     await (component as any).routeMasterIntent('/ar');
     await (component as any).routeMasterIntent('/coach');
@@ -310,6 +343,11 @@ describe('ChatbotComponent', () => {
     const exit = await (component as any).routeMasterIntent('/exit');
     expect(exit.content).toContain('A&R DESK CLOSED');
     expect(component.activeDesk()).toBeNull();
+
+    // With no desk open, /exit is still this component's command, not a
+    // shadowed engine command with different behaviour.
+    const noDesk = await (component as any).routeMasterIntent('/exit');
+    expect(noDesk.content).toContain('No desk is open');
 
     aiServiceMock.getArtistDirective.mockClear();
     await (component as any).routeMasterIntent('what do I fix first?');

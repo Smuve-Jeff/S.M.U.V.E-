@@ -1033,7 +1033,12 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
     // 0e) Sticky desk — a follow-up that is not a command keeps the open
     //     expert's voice instead of falling back to the blended generalist.
     const openDesk = this.activeDesk();
-    if (openDesk && !trimmed.startsWith('/') && !trimmed.startsWith('#')) {
+    if (
+      openDesk &&
+      !trimmed.startsWith('/') &&
+      !trimmed.startsWith('#') &&
+      !this.isExplicitAppControl(trimmed)
+    ) {
       return this.roleDeskIntent(openDesk, openDesk.aliases[0], trimmed);
     }
 
@@ -1527,6 +1532,20 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
    * #Teach and #Learn are S.M.U.V.E.'s own classroom. Both resolve locally so
    * the answer is deterministic, tied to shipped routes, and available offline.
    */
+  /**
+   * Explicit navigation and app control are commands, not questions for the
+   * open desk. The detectors here are the same ones the router executes, so
+   * the bypass cannot drift into a second, half-correct list. Questions stay
+   * with the desk: `interpretAppRequest` refuses interrogatives by design.
+   */
+  private isExplicitAppControl(text: string): boolean {
+    return (
+      /^(?:open|go to|take me to|launch|navigate to|show me)\s+\S/i.test(
+        text
+      ) || interpretAppRequest(text) !== null
+    );
+  }
+
   /**
    * Decides what `/teach <text>` means. Only an exact or short feature name
    * reaches the walkthrough; a sentence is a question for the teacher desk, and
