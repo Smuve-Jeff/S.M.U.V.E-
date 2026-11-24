@@ -586,6 +586,16 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
     return this.speechSynthesisService.availableVoiceNames?.()?.length ?? 0;
   }
 
+  /** Human-quality voices the rotation actually deals on this device. */
+  labHumanVoiceCount(): number {
+    return this.speechSynthesisService.humanVoiceNames?.()?.length ?? 0;
+  }
+
+  /** Novelty/formant voices the rotation skips on this device. */
+  labExcludedVoiceCount(): number {
+    return this.speechSynthesisService.excludedVoiceNames?.()?.length ?? 0;
+  }
+
   /** Eyebrow for the lab: what it can actually do on this device. */
   labOutputNotice(): string {
     switch (this.voiceOutputCapability()) {
@@ -628,7 +638,7 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
       shapeShift: true,
     });
     this.voiceLabNotice.set(
-      'Running the spectrum: every sentence draws a different archetype and browser voice from the full catalog.'
+      'Running the spectrum: every sentence draws a different archetype and voice from the human voices on this device — novelty voices are excluded.'
     );
   }
 

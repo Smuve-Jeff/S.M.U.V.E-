@@ -390,6 +390,23 @@ describe('SpeechSynthesisService', () => {
       expect(names[0]).not.toBe(names[1]);
     });
 
+    it('reports the human rotation and the novelty voices it excludes', () => {
+      mockSpeechSynthesis.getVoices.mockReturnValue([
+        { name: 'Zarvox', lang: 'en-US' },
+        { name: 'Bells', lang: 'en-US' },
+        { name: 'Google US English', lang: 'en-US' },
+        { name: 'Google US English', lang: 'en-US', voiceURI: 'duplicate' },
+        { name: 'Microsoft Aria Online (Natural)', lang: 'en-US' },
+      ]);
+
+      // Collapsed duplicates, in engine order, with the toys named separately.
+      expect(service.humanVoiceNames()).toEqual([
+        'Google US English',
+        'Microsoft Aria Online (Natural)',
+      ]);
+      expect(service.excludedVoiceNames()).toEqual(['Zarvox', 'Bells']);
+    });
+
     it('still speaks when the device only ships engine toys', () => {
       mockSpeechSynthesis.getVoices.mockReturnValue([
         { name: 'Zarvox', lang: 'en-US' },
@@ -399,6 +416,9 @@ describe('SpeechSynthesisService', () => {
       service.speak('Say something.');
 
       expect(mockUtterances[0].voice.name).toBe('Zarvox');
+      // Nothing human to rotate: the lab has to say so instead of claiming one.
+      expect(service.humanVoiceNames()).toEqual([]);
+      expect(service.excludedVoiceNames()).toEqual(['Zarvox']);
     });
   });
 

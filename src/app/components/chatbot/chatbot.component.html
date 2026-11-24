@@ -280,9 +280,16 @@
         >Voice Lab</span
       >
       <span class="text-[7px] font-black text-slate-600 uppercase tracking-widest"
-        >{{ voiceLabArchetypes().length }} tones · {{ labVoiceCount() }} engine
-        voices</span
-      >
+        >{{ voiceLabArchetypes().length }} tones ·
+        @if (labHumanVoiceCount() > 0) {
+          {{ labHumanVoiceCount() }} human voices in rotation
+        } @else {
+          no human voices installed — novelty fallback
+        }
+        @if (labExcludedVoiceCount() > 0) {
+          · {{ labExcludedVoiceCount() }} novelty {{ labExcludedVoiceCount() === 1 ? 'voice' : 'voices' }} excluded
+        }
+      </span>
       @if (pinnedVoice()) {
         <span
           class="text-[7px] font-black text-yellow-400 uppercase tracking-widest"
@@ -304,7 +311,7 @@
         type="button"
         (click)="runVoiceSpectrumDemo()"
         class="px-2.5 py-1 rounded-lg bg-brand-primary/15 border border-brand-primary/40 text-[7px] font-black text-brand-primary uppercase tracking-widest hover:bg-brand-primary/25 transition-all"
-        title="Hear every sentence draw a different archetype and browser voice from the full catalog"
+        title="Hear every sentence draw a different archetype and a different human voice from this device — novelty voices are excluded"
       >
         ▶ Run the full spectrum
       </button>

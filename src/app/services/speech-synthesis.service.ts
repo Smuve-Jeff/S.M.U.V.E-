@@ -471,24 +471,41 @@ export class SpeechSynthesisService {
   }
 
   /**
-   * The voices worth speaking with: novelty and formant voices removed,
-   * duplicate name/language entries collapsed, best quality first.
+   * Splits the engine's list into human speech and the novelty/formant voices
+   * the rotation refuses. Duplicate name/language entries are collapsed here,
+   * so both the rotation and the Voice Lab readout count real speakers.
+   */
+  private partitionVoices(): {
+    human: SpeechSynthesisVoice[];
+    excluded: SpeechSynthesisVoice[];
+  } {
+    const seen = new Set<string>();
+    const human: SpeechSynthesisVoice[] = [];
+    const excluded: SpeechSynthesisVoice[] = [];
+    for (const voice of this.engineVoices()) {
+      const name = voice?.name ?? '';
+      if (!name) continue;
+      if (NON_HUMAN_VOICE_PATTERN.test(name)) {
+        excluded.push(voice);
+        continue;
+      }
+      const key = `${name}::${voice.lang ?? ''}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      human.push(voice);
+    }
+    return { human, excluded };
+  }
+
+  /**
+   * The voices worth speaking with: novelty and formant voices removed.
    *
    * A device whose only voices are novelty voices keeps them — a toy telling
    * the artist what they need to hear beats silence.
    */
   private humanVoicePool(): SpeechSynthesisVoice[] {
-    const voices = this.engineVoices();
-    const seen = new Set<string>();
-    const human = voices.filter((voice) => {
-      const name = voice?.name ?? '';
-      if (!name || NON_HUMAN_VOICE_PATTERN.test(name)) return false;
-      const key = `${name}::${voice.lang ?? ''}`;
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    });
-    return human.length > 0 ? human : voices;
+    const { human } = this.partitionVoices();
+    return human.length > 0 ? human : this.engineVoices();
   }
 
   /**
@@ -1158,6 +1175,16 @@ export class SpeechSynthesisService {
   /** Browser voices the engine has published, for the Voice Lab readout. */
   availableVoiceNames(): string[] {
     return this.engineVoices().map((voice) => voice.name);
+  }
+
+  /** Human-quality voices S.M.U.V.E. rotates through on this device. */
+  humanVoiceNames(): string[] {
+    return this.partitionVoices().human.map((voice) => voice.name);
+  }
+
+  /** Novelty/formant voices the rotation excludes on this device. */
+  excludedVoiceNames(): string[] {
+    return this.partitionVoices().excluded.map((voice) => voice.name);
   }
 
   cancel(): void {

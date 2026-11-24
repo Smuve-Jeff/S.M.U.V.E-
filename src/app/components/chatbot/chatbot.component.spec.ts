@@ -130,6 +130,8 @@ describe('ChatbotComponent', () => {
         },
       ]),
       availableVoiceNames: jest.fn(() => ['Fake Voice A', 'Fake Voice B']),
+      humanVoiceNames: jest.fn(() => ['Fake Voice A', 'Fake Voice B']),
+      excludedVoiceNames: jest.fn(() => ['Zarvox']),
       setArchetype: jest.fn(),
       clearArchetypePin: jest.fn(),
       pinnedArchetypeName: jest.fn(() => null),
@@ -1224,6 +1226,15 @@ describe('ChatbotComponent', () => {
     expect(component.voiceLabOpen()).toBe(true);
     expect(component.voiceLabArchetypes()).toHaveLength(2);
     expect(component.labVoiceCount()).toBe(2);
+    // The lab states what is rotating and what was refused.
+    expect(component.labHumanVoiceCount()).toBe(2);
+    expect(component.labExcludedVoiceCount()).toBe(1);
+    expect(fixture.nativeElement.textContent).toContain(
+      '2 human voices in rotation'
+    );
+    expect(fixture.nativeElement.textContent).toContain(
+      '1 novelty voice excluded'
+    );
     expect(fixture.nativeElement.textContent).toContain('Creature');
 
     component.auditionArchetype('Creature');
