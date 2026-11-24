@@ -1044,25 +1044,54 @@ export class SettingsComponent implements OnInit, OnDestroy {
     );
   }
 
-  /** Re-read the stored session and refresh the API session when possible. */
+  /**
+   * Re-read the stored session, then prove it to the API. A stored session or
+   * an in-memory flag is not cloud access: success is reported only after
+   * GET /auth/me confirms the same account behind a real API token.
+   */
   async reconnectCloudAccess() {
     this.cloudReconnecting.set(true);
     try {
       await this.authService.loadSession();
-      if (this.authService.isAuthenticated()) {
-        this.notificationService.show('Cloud access restored.', 'success');
-      } else {
+
+      const user = this.authService.currentUser();
+      if (!user) {
         this.notificationService.show(
           'No saved session to restore. Sign in to reconnect cloud access.',
           'error',
           4000
         );
+        return;
       }
+
+      const token = this.tokenService.jwtToken();
+      if (!token || !this.tokenService.isApiToken()) {
+        this.notificationService.show(
+          'This device has a stored session but no API token. Sign in again to verify cloud access.',
+          'error',
+          5000
+        );
+        return;
+      }
+
+      const apiUser = await this.apiAuth.me();
+      if (
+        !apiUser ||
+        String(apiUser.email).toLowerCase() !==
+          String(user.email || '').toLowerCase()
+      ) {
+        throw new Error('The API session belongs to a different account.');
+      }
+
+      this.notificationService.show(
+        'Cloud access verified with the API.',
+        'success'
+      );
     } catch {
       this.notificationService.show(
-        'Cloud access could not be restored. Check your connection and sign in again.',
+        'Cloud access could not be verified. Check your connection and sign in again.',
         'error',
-        4000
+        5000
       );
     } finally {
       this.cloudReconnecting.set(false);

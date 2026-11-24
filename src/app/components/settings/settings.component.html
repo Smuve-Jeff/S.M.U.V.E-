@@ -1834,8 +1834,9 @@
           <p class="text-xs text-text-dim mb-4 leading-relaxed">
             Restore reloads the last saved copy (cloud when online, otherwise this
             device). Deleting the local copy is not account deletion — the account and
-            cloud record stay. Reconnecting re-reads the stored session — including
-            its saved profile — and refreshes cloud access when the API is reachable.
+            cloud record stay. Reconnecting re-reads the stored session and asks the API
+            to verify it; success is reported only when the API confirms the same
+            account behind a real token.
           </p>
           <p class="text-[10px] font-bold uppercase tracking-widest text-text-dim mb-4">
             Local backup:

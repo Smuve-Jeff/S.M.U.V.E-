@@ -16,6 +16,7 @@ import { TokenService } from '../../services/token.service';
 import { PermissionService } from '../../services/permission.service';
 import { LocalStorageService } from '../../services/local-storage.service';
 import { DatabaseService } from '../../services/database.service';
+import { ApiAuthService } from '../../services/api-auth.service';
 import { AudioEngineLatencyService } from '../../services/audio-engine-latency.service';
 
 describe('SettingsComponent', () => {
@@ -118,6 +119,10 @@ describe('SettingsComponent', () => {
       logout: jest.fn(),
       loadSession: jest.fn().mockResolvedValue(undefined),
       isAuthenticated: signal(true),
+      currentUser: signal({
+        id: 'usr-42',
+        email: 'artist@example.com',
+      }),
     };
 
     const dialogMock = {
@@ -174,7 +179,14 @@ describe('SettingsComponent', () => {
         },
         {
           provide: TokenService,
-          useValue: { jwtToken: jest.fn(() => 'test-token') },
+          useValue: {
+            jwtToken: jest.fn(() => 'test-token'),
+            isApiToken: jest.fn(() => true),
+          },
+        },
+        {
+          provide: ApiAuthService,
+          useValue: { me: jest.fn() },
         },
         {
           provide: PermissionService,
@@ -581,6 +593,44 @@ describe('SettingsComponent', () => {
     await component.restoreSavedProfile();
 
     expect(profile.loadProfile).not.toHaveBeenCalled();
+  });
+
+  it('reports cloud access only after the API verifies the stored session', async () => {
+    const { component } = await createComponent();
+    const notifications = TestBed.inject(NotificationService) as any;
+    const api = TestBed.inject(ApiAuthService) as any;
+    const token = TestBed.inject(TokenService) as any;
+    token.isApiToken.mockReturnValue(true);
+    api.me.mockResolvedValue({
+      name: 'Artist',
+      email: 'artist@example.com',
+    });
+
+    await component.reconnectCloudAccess();
+
+    expect(api.me).toHaveBeenCalled();
+    expect(notifications.show).toHaveBeenCalledWith(
+      'Cloud access verified with the API.',
+      'success'
+    );
+  });
+
+  it('does not report cloud access for a stored session with no API token', async () => {
+    const { component } = await createComponent();
+    const notifications = TestBed.inject(NotificationService) as any;
+    const api = TestBed.inject(ApiAuthService) as any;
+    const token = TestBed.inject(TokenService) as any;
+    token.isApiToken.mockReturnValue(false);
+    api.me.mockReset();
+
+    await component.reconnectCloudAccess();
+
+    expect(api.me).not.toHaveBeenCalled();
+    expect(notifications.show).toHaveBeenCalledWith(
+      expect.stringContaining('no API token'),
+      'error',
+      5000
+    );
   });
 
   it('restoreSavedProfile reloads the saved copy', async () => {
