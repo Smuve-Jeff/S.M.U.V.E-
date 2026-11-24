@@ -44,11 +44,7 @@ export class DeskTelemetryService {
 
   reset(): void {
     this.counts = {};
-    try {
-      deleteSaved(STORAGE_KEY, 'sessionStorage');
-    } catch {
-      // Storage is optional; counters simply stay in memory.
-    }
+    deleteSaved(STORAGE_KEY, 'sessionStorage');
   }
 
   private read(): Partial<Record<FinetuneRole, DeskCounters>> | null {
@@ -66,10 +62,6 @@ export class DeskTelemetryService {
 
   private write(): void {
     if (!this.countsReadable) return;
-    try {
-      saveJson(STORAGE_KEY, this.counts, 'sessionStorage');
-    } catch {
-      // A blocked store costs telemetry, never the desk.
-    }
+    saveJson(STORAGE_KEY, this.counts, 'sessionStorage');
   }
 }

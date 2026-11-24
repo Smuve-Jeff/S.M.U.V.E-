@@ -4283,20 +4283,12 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     current.unshift(game);
     if (current.length > 8) current.length = 8;
     this.recentGames.set(current);
-    try {
-      saveJson(this.RECENT_GAMES_KEY, current, 'localStorage');
-    } catch {
-      /* storage full — silently ignore */
-    }
+    saveJson(this.RECENT_GAMES_KEY, current, 'localStorage');
   }
 
   clearRecentGames(): void {
     this.recentGames.set([]);
-    try {
-      deleteSaved(this.RECENT_GAMES_KEY, 'localStorage');
-    } catch {
-      /* ignore */
-    }
+    deleteSaved(this.RECENT_GAMES_KEY, 'localStorage');
   }
 
   addEmoji(emoji: string) {
@@ -4724,11 +4716,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
       : [...current, gameId];
     this.favorites.set(updated);
     this.checkAchievements();
-    try {
-      saveJson("tha_spot_favorites", updated, 'localStorage');
-    } catch {
-      /* ignore */
-    }
+    saveJson("tha_spot_favorites", updated, 'localStorage');
   }
 
   isFavorite(gameId: string): boolean {

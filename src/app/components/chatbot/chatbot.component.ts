@@ -761,11 +761,7 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
       if (promoteLegacy) {
         this.owner = nextOwner;
         this.persistDesk();
-        try {
-          deleteSaved(guestKey, 'sessionStorage');
-        } catch {
-          // The account copy is what matters; a blocked guest key is stale.
-        }
+        deleteSaved(guestKey, 'sessionStorage');
         this.legacyDeskMigrated = false;
         this.messages.set([]);
         this.announcedRooms.clear();
@@ -1360,27 +1356,21 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
     const definition = artistRoleForAlias(parsed.alias);
     if (!definition) return null;
 
-    try {
-      const stored = saveJson(
-        key,
-        { alias: definition.aliases[0], turns: parsed.turns },
-        'sessionStorage'
-      );
-      if (!stored) {
-        // A blocked store keeps the legacy copy for a later, writable visit —
-        // which means keeping the key, not just the session's desk.
-        this.legacyDeskMigrated = false;
-        return { alias: definition.aliases[0], turns: parsed.turns };
-      }
-      deleteSaved(DESK_STORAGE_KEY, 'sessionStorage');
-      // Migrated into the guest bucket only because the owner was not known
-      // yet; if an account resolves next, the desk moves with it.
-      this.legacyDeskMigrated = this.owner === null;
-    } catch {
-      // A blocked store keeps the legacy copy for a later, writable visit;
-      // the desk itself is still restored for this session.
+    const stored = saveJson(
+      key,
+      { alias: definition.aliases[0], turns: parsed.turns },
+      'sessionStorage'
+    );
+    if (!stored) {
+      // A blocked store keeps the legacy copy for a later, writable visit —
+      // which means keeping the key, not just the session's desk.
       this.legacyDeskMigrated = false;
+      return { alias: definition.aliases[0], turns: parsed.turns };
     }
+    deleteSaved(DESK_STORAGE_KEY, 'sessionStorage');
+    // Migrated into the guest bucket only because the owner was not known yet;
+    // if an account resolves next, the desk moves with it.
+    this.legacyDeskMigrated = this.owner === null;
     return { alias: definition.aliases[0], turns: parsed.turns };
   }
 

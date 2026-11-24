@@ -52,12 +52,8 @@ export function readPreferredInputDeviceId(): string | null {
 
 /** Remember the pick, or clear it (null) for "system default". */
 export function rememberPreferredInputDevice(deviceId: string | null): void {
-  try {
-    if (deviceId) saveString(INPUT_DEVICE_KEY, deviceId, 'localStorage');
-    else deleteSaved(INPUT_DEVICE_KEY, 'localStorage');
-  } catch {
-    // The choice still applies for this session.
-  }
+  if (deviceId) saveString(INPUT_DEVICE_KEY, deviceId, 'localStorage');
+else deleteSaved(INPUT_DEVICE_KEY, 'localStorage');
 }
 
 /**

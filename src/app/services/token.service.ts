@@ -42,19 +42,15 @@ export class TokenService {
     this._tokenSource.set(nextSource);
     this._isApiToken.set(nextSource === 'api');
 
-    try {
-      if (typeof localStorage !== 'undefined') {
-        if (token) {
-          saveString(TOKEN_STORAGE_KEY, token, 'localStorage');
-          saveString(TOKEN_SOURCE_STORAGE_KEY, source, 'localStorage');
-        } else {
-          deleteSaved(TOKEN_STORAGE_KEY, 'localStorage');
-          deleteSaved(TOKEN_SOURCE_STORAGE_KEY, 'localStorage');
-        }
-      }
-    } catch {
-      // The in-memory token still works for this session when storage is blocked.
-    }
+    if (typeof localStorage !== 'undefined') {
+  if (token) {
+    saveString(TOKEN_STORAGE_KEY, token, 'localStorage');
+    saveString(TOKEN_SOURCE_STORAGE_KEY, source, 'localStorage');
+  } else {
+    deleteSaved(TOKEN_STORAGE_KEY, 'localStorage');
+    deleteSaved(TOKEN_SOURCE_STORAGE_KEY, 'localStorage');
+  }
+}
   }
 
   private readStoredSource(token: string | null): TokenSource {

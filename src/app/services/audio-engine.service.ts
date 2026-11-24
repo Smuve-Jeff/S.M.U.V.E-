@@ -6548,16 +6548,13 @@ export class AudioEngineService {
   }
 
   private persistOutputDevice(deviceId: string): void {
-    try {
-      if (typeof localStorage === 'undefined') return;
-      if (deviceId) {
-        saveString('smuve_output_device_v1', deviceId, 'localStorage');
-      } else {
-        deleteSaved('smuve_output_device_v1', 'localStorage');
-      }
-    } catch {
-      /* private mode / storage disabled */
-    }
+    if (typeof localStorage === 'undefined') return;
+
+if (deviceId) {
+  saveString('smuve_output_device_v1', deviceId, 'localStorage');
+} else {
+  deleteSaved('smuve_output_device_v1', 'localStorage');
+}
   }
 
   private storedOutputDeviceId(): string {

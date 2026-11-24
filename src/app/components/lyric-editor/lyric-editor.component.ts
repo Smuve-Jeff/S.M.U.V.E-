@@ -134,24 +134,28 @@ export class LyricEditorComponent implements OnDestroy {
 
   /** Save every page in this browser. This is not a release-pipeline commit. */
   saveLyrics() {
-    try {
-      const savedAt = Date.now();
-      this.flushActivePage(savedAt);
-      const pages = this.pages();
+    const savedAt = Date.now();
+    this.flushActivePage(savedAt);
+    const pages = this.pages();
 
-      saveJson(WRITER_PAGES_KEY, { pages, activePageId: this.activePageId(), savedAt }, 'localStorage');
-      // Keep the original single-draft key current for older builds of the Pad.
-      saveJson(LYRIC_DRAFT_KEY, {
-          lyrics: this.lyrics(),
-          title: this.trackTitle(),
-          savedAt,
-        }, 'localStorage');
-
-      this.savedAt.set(savedAt);
-      this.saveError.set('');
-    } catch {
+    const pagesStored = saveJson(
+      WRITER_PAGES_KEY,
+      { pages, activePageId: this.activePageId(), savedAt },
+      'localStorage'
+    );
+    // Keep the original single-draft key current for older builds of the Pad.
+    const draftStored = saveJson(
+      LYRIC_DRAFT_KEY,
+      { lyrics: this.lyrics(), title: this.trackTitle(), savedAt },
+      'localStorage'
+    );
+    if (!pagesStored || !draftStored) {
       this.saveError.set('Draft could not be saved in this browser.');
+      return;
     }
+
+    this.savedAt.set(savedAt);
+    this.saveError.set('');
   }
 
   addPage(): void {

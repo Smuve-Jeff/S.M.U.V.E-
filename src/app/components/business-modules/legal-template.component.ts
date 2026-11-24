@@ -361,10 +361,6 @@ export class LegalTemplateComponent {
 
   private persistDrafts(docs: LegalDocument[]) {
     if (typeof window === 'undefined') return;
-    try {
-      saveJson(LEGAL_DRAFT_STORAGE_KEY, docs, 'localStorage');
-    } catch {
-      // Storage unavailable (private mode / quota) — drafts stay in memory.
-    }
+    saveJson(LEGAL_DRAFT_STORAGE_KEY, docs, 'localStorage');
   }
 }

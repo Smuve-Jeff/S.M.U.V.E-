@@ -216,11 +216,7 @@ function readMusicMapSeen(): boolean {
 
 function markMusicMapSeen(): void {
   if (typeof window === "undefined") return;
-  try {
-    saveString(MUSIC_MAP_SEEN_STORAGE_KEY, "1", 'localStorage');
-  } catch {
-    /* ignore */
-  }
+  saveString(MUSIC_MAP_SEEN_STORAGE_KEY, "1", 'localStorage');
 }
 
 /**
@@ -1153,11 +1149,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   private markFirstNavigationSeen(): void {
     if (this.firstNavigationSeen()) return;
     this.firstNavigationSeen.set(true);
-    try {
-      saveString("smuve_first_nav_seen", "true", 'localStorage');
-    } catch {
-      /* private mode / locked storage — degrade silently */
-    }
+    saveString("smuve_first_nav_seen", "true", 'localStorage');
   }
   footerCollapsed = signal(false);
   mobileDrawerOpen = signal(false);
@@ -2040,11 +2032,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     // ── Theme effect — sync body class for all 3 modes ──
     effect(() => {
       const theme = this.themeMode();
-      try {
-        saveString(THEME_STORAGE_KEY, theme, 'localStorage');
-      } catch {
-        /* ignore */
-      }
+      saveString(THEME_STORAGE_KEY, theme, 'localStorage');
       document.body.classList.remove("light-mode", "focus-mode", "dark-mode");
       document.body.classList.add(theme + "-mode");
     });
@@ -2575,11 +2563,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
    * Pro). The integration service applies it globally from the profile.
    */
   private persistStageFxState(enabled: boolean): void {
-    try {
-      saveString(STAGE_FX_STORAGE_KEY, enabled ? "on" : "off", 'localStorage');
-    } catch {
-      /* private mode / locked storage — degrade silently */
-    }
+    saveString(STAGE_FX_STORAGE_KEY, enabled ? "on" : "off", 'localStorage');
     this.syncStageFxToProfile(enabled);
   }
 

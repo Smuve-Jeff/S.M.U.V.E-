@@ -106,11 +106,7 @@ export class AutomationService {
       const mode = this.writeMode();
       const smoothing = this.writeSmoothing();
       if (typeof localStorage === "undefined") return;
-      try {
-        saveJson(this.writePrefsKey, { mode, smoothing }, 'localStorage');
-      } catch {
-        // Private-mode storage failures must not break the transport.
-      }
+      saveJson(this.writePrefsKey, { mode, smoothing }, 'localStorage');
     });
     /**
      * Read the curves while the song plays.

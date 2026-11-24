@@ -247,12 +247,8 @@ export class HowToOverlayComponent implements AfterViewInit, OnDestroy {
     this.completed.set(new Set<string>());
     this.resumedChapter.set(null);
     this.selectedLesson.set(this.lessons[0]);
-    try {
-      deleteSaved(COMPLETE_GUIDE_PROGRESS_KEY, 'localStorage');
-      deleteSaved(COMPLETE_GUIDE_RESUME_KEY, 'localStorage');
-    } catch {
-      // Private browsing can refuse storage; the in-memory reset still applies.
-    }
+    deleteSaved(COMPLETE_GUIDE_PROGRESS_KEY, 'localStorage');
+    deleteSaved(COMPLETE_GUIDE_RESUME_KEY, 'localStorage');
     this.seekToLesson(this.lessons[0].tutorialAt, false);
     this.pauseVideo();
     queueMicrotask(() => {
@@ -518,11 +514,7 @@ export class HowToOverlayComponent implements AfterViewInit, OnDestroy {
   }
 
   private rememberLesson(id: string): void {
-    try {
-      saveString(COMPLETE_GUIDE_RESUME_KEY, id, 'localStorage');
-    } catch {
-      // Private browsing can refuse storage; the in-memory selection remains.
-    }
+    saveString(COMPLETE_GUIDE_RESUME_KEY, id, 'localStorage');
   }
 
   private loadResumeLesson(): CompleteGuideLesson | null {
@@ -540,11 +532,7 @@ export class HowToOverlayComponent implements AfterViewInit, OnDestroy {
     const next = new Set(this.completed());
     next.add(id);
     this.completed.set(next);
-    try {
-      saveJson(COMPLETE_GUIDE_PROGRESS_KEY, [...next], 'localStorage');
-    } catch {
-      // Private browsing can refuse storage; progress remains in memory.
-    }
+    saveJson(COMPLETE_GUIDE_PROGRESS_KEY, [...next], 'localStorage');
   }
 
   private loadCompleted(): ReadonlySet<string> {

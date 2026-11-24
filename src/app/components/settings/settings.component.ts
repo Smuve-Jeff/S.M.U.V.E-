@@ -979,21 +979,13 @@ export class SettingsComponent implements OnInit, OnDestroy {
       // Keep the shared shell signal in lockstep with the profile write. The
       // optional guard also supports lightweight embedded/test hosts.
       this.uiService.beginnerMode?.set(!!value);
-      try {
-        saveString('smuve_beginner_mode', value ? 'on' : 'off', 'localStorage');
-      } catch {
-        // Locked storage is non-fatal; the profile remains the source of truth.
-      }
+      saveString('smuve_beginner_mode', value ? 'on' : 'off', 'localStorage');
     }
     if (category === 'studio' && key === 'stageFxEnabled') {
       if (typeof document !== 'undefined') {
         document.body.classList.toggle('stage-fx-off', !value);
       }
-      try {
-        saveString('smuve_stage_fx', value ? 'on' : 'off', 'localStorage');
-      } catch {
-        /* locked storage — degrade silently */
-      }
+      saveString('smuve_stage_fx', value ? 'on' : 'off', 'localStorage');
     }
   }
 

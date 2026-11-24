@@ -117,11 +117,7 @@ function readCompletedTourSteps(): Record<string, boolean> {
 
 function writeCompletedTourSteps(record: Record<string, boolean>): void {
   if (typeof window === 'undefined') return;
-  try {
-    saveJson(TOUR_PROGRESS_KEY, record, 'localStorage');
-  } catch {
-    /* ignore */
-  }
+  saveJson(TOUR_PROGRESS_KEY, record, 'localStorage');
 }
 
 export interface OnboardingStep {
@@ -227,24 +223,16 @@ export class OnboardingService {
 
   dismiss(): void {
     this.dismissed.set(true);
-    try {
-      if (typeof window !== 'undefined') {
-        saveString('smuve_onboarding_dismissed', 'true', 'localStorage');
-      }
-    } catch {
-      // Dismissal still holds for this session when storage is blocked.
-    }
+    if (typeof window !== 'undefined') {
+  saveString('smuve_onboarding_dismissed', 'true', 'localStorage');
+}
   }
 
   reset(): void {
     this.dismissed.set(false);
-    try {
-      if (typeof window !== 'undefined') {
-        deleteSaved('smuve_onboarding_dismissed', 'localStorage');
-      }
-    } catch {
-      // The in-memory reset is enough when storage is blocked.
-    }
+    if (typeof window !== 'undefined') {
+  deleteSaved('smuve_onboarding_dismissed', 'localStorage');
+}
   }
 
   private readDismissedState(): boolean {
@@ -295,13 +283,9 @@ export class OnboardingService {
   });
 
   startTour(): void {
-    try {
-      if (typeof window !== 'undefined') {
-        saveString(TOUR_STORAGE_KEY, '1', 'localStorage');
-      }
-    } catch {
-      // The tour still runs for this session when storage is blocked.
-    }
+    if (typeof window !== 'undefined') {
+  saveString(TOUR_STORAGE_KEY, '1', 'localStorage');
+}
     this.currentTour.set({
       id: 'first-beat',
       title: 'First Beat Tour',
@@ -316,24 +300,16 @@ export class OnboardingService {
       this.markStepComplete(step.id);
     }
     this.currentTour.set(null);
-    try {
-      if (typeof window !== 'undefined') {
-        deleteSaved(TOUR_STORAGE_KEY, 'localStorage');
-      }
-    } catch {
-      // Closing the tour never depends on the write.
-    }
+    if (typeof window !== 'undefined') {
+  deleteSaved(TOUR_STORAGE_KEY, 'localStorage');
+}
   }
 
   exitTour(): void {
     this.currentTour.set(null);
-    try {
-      if (typeof window !== 'undefined') {
-        deleteSaved(TOUR_STORAGE_KEY, 'localStorage');
-      }
-    } catch {
-      // Closing the tour never depends on the write.
-    }
+    if (typeof window !== 'undefined') {
+  deleteSaved(TOUR_STORAGE_KEY, 'localStorage');
+}
   }
 
   markStepComplete(id: string): void {

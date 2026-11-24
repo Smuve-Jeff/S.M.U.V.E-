@@ -75,12 +75,8 @@ function readFavoriteStations(service: SmuveTvService): string[] {
 }
 
 function writeFavoriteStations(ids: string[]): void {
-  try {
     if (typeof localStorage === 'undefined') return;
-    saveJson(STATION_FAVORITES_KEY, ids, 'localStorage');
-  } catch {
-    // Storage is read-only in a private context; favourites stay in memory.
-  }
+  saveJson(STATION_FAVORITES_KEY, ids, 'localStorage');
 }
 
 /** Everything below draws natively — no iframe, no codec, no network request. */

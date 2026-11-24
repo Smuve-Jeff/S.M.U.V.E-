@@ -528,11 +528,7 @@ export class ArtistProfileRevisionService {
 
   private writeHistory(entries: ArtistProfileRevisionEntry[]): void {
     if (typeof localStorage === 'undefined') return;
-    try {
-      saveJson(HISTORY_KEY, entries, 'localStorage');
-    } catch {
-      // History is an audit aid, never a dependency of the current read.
-    }
+    saveJson(HISTORY_KEY, entries, 'localStorage');
   }
 
   private snapshot(profile: UserProfile): ProfileSnapshot {

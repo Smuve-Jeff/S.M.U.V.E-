@@ -157,11 +157,7 @@ export class CloudSyncService {
       lastActive: Date.now(),
       platform: PLATFORM,
     };
-    try {
-      saveJson(DEVICE_KEY, device, 'localStorage');
-    } catch {
-      // The minted id still identifies this session when storage is blocked.
-    }
+    saveJson(DEVICE_KEY, device, 'localStorage');
     return id;
   }
 

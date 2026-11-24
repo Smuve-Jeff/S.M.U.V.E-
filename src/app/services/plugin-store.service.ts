@@ -589,11 +589,7 @@ export class PluginStoreService {
       // session's view.
       return;
     }
-    try {
-      saveJson(ENABLED_KEY, next, 'localStorage');
-    } catch {
-      // storage unavailable — ignore
-    }
+    saveJson(ENABLED_KEY, next, 'localStorage');
   }
 
   private writeCommunity(next: CommunityPluginPayload[]): void {
@@ -601,11 +597,7 @@ export class PluginStoreService {
       // Same rule for the imported plugin list.
       return;
     }
-    try {
-      saveJson(COMMUNITY_KEY, next, 'localStorage');
-    } catch {
-      // storage unavailable — ignore
-    }
+    saveJson(COMMUNITY_KEY, next, 'localStorage');
   }
 
   setParam(pluginId: string, paramId: string, value: number): void {

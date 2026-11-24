@@ -323,11 +323,7 @@ export class StudioExportSurfaceComponent {
     const id = (event.target as HTMLSelectElement).value;
     if (!this.deliveryTargets.some((target) => target.id === id)) return;
     this.deliveryTargetId.set(id);
-    try {
-      saveString(EXPORT_TARGET_KEY, id, 'localStorage');
-    } catch {
-      // Remembering the choice is a convenience; the check still applies.
-    }
+    saveString(EXPORT_TARGET_KEY, id, 'localStorage');
   }
 
   rateLabel(rate: number): string {

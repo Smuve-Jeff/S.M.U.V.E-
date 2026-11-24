@@ -707,23 +707,15 @@ export class StudioAiDirectorService {
   }
 
   private persistRunHistory(): void {
-    try {
-      if (typeof localStorage === 'undefined') return;
-      saveJson(DIRECTOR_RUN_HISTORY_KEY, this.runHistory, 'localStorage');
-    } catch {
-      // Persistence is a convenience for the loop; a failed write must not break a run.
-    }
+        if (typeof localStorage === 'undefined') return;
+    saveJson(DIRECTOR_RUN_HISTORY_KEY, this.runHistory, 'localStorage');
   }
 
   /** Clear the persisted run history and the current in-memory last run. */
   clearDirectorRuns(): void {
     this.runHistory = [];
     this.lastRun = null;
-    try {
-      if (typeof localStorage !== 'undefined') deleteSaved(DIRECTOR_RUN_HISTORY_KEY, 'localStorage');
-    } catch {
-      // Clearing persistence is best effort; memory state is already reset.
-    }
+    if (typeof localStorage !== 'undefined') deleteSaved(DIRECTOR_RUN_HISTORY_KEY, 'localStorage');
   }
 
   private isPersistedRun(run: unknown): run is StudioDirectorRunResult {

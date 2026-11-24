@@ -399,13 +399,9 @@ export class SmartCreationSheetComponent implements OnDestroy {
   /** Record a recall change locally at once, and push it to the account soon. */
   private remember(patch: Partial<SmartSheetMemory>): void {
     this.memory = { ...this.memory, ...patch, updatedAt: Date.now() };
-    try {
-      if (typeof window !== "undefined") {
-        saveJson(MEMORY_KEY, this.memory, 'localStorage');
-      }
-    } catch {
-      // Local mirror is best-effort; the account copy still lands.
-    }
+    if (typeof window !== "undefined") {
+  saveJson(MEMORY_KEY, this.memory, 'localStorage');
+}
     this.memorySyncPending = true;
     if (this.syncTimer) clearTimeout(this.syncTimer);
     this.syncTimer = setTimeout(

@@ -265,12 +265,7 @@ export class UIService {
     if (typeof window === 'undefined') {
       return;
     }
-    try {
-      saveJson(key, modes, 'localStorage');
-    } catch {
-      // Recent and pinned workspaces still update in memory; routing and the
-      // settings that depend on them keep working when the store is blocked.
-    }
+    saveJson(key, modes, 'localStorage');
   }
 
   normalizeMode(mode: MainViewMode): MainViewMode {

@@ -31,11 +31,7 @@ export class SettingsIntegrationService {
       if (typeof document !== 'undefined') {
         document.body.classList.toggle('stage-fx-off', !stageFx);
       }
-      try {
-        saveString('smuve_stage_fx', stageFx ? 'on' : 'off', 'localStorage');
-      } catch {
-        /* private mode / locked storage — degrade silently */
-      }
+      saveString('smuve_stage_fx', stageFx ? 'on' : 'off', 'localStorage');
     });
   }
 }

@@ -712,19 +712,24 @@ export class ArtistToolkitService {
 
   private persist(): void {
     if (typeof localStorage === 'undefined') return;
-    try {
-      saveJson(STORAGE_KEY, {
+    if (
+      !saveJson(
+        STORAGE_KEY,
+        {
           version: 1,
           blueprint: this.blueprint(),
           splitSheet: this.splitSheet(),
           royalty: this.royalty(),
           completedRights: this.completedRights(),
-        }, 'localStorage');
-      this.persistenceError.set(null);
-    } catch {
+        },
+        'localStorage'
+      )
+    ) {
       this.persistenceError.set(
         'This browser refused the save. Keep a copy of anything you need before closing.'
       );
+      return;
     }
+    this.persistenceError.set(null);
   }
 }

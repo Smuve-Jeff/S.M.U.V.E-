@@ -344,10 +344,6 @@ export class MusicAcademyService {
 
   private writeProgress(progress: Record<string, number>): void {
     if (typeof localStorage === 'undefined') return;
-    try {
-      saveJson(ACADEMY_PROGRESS_KEY, progress, 'localStorage');
-    } catch {
-      // Storage unavailable — in-memory progress still works this session.
-    }
+    saveJson(ACADEMY_PROGRESS_KEY, progress, 'localStorage');
   }
 }

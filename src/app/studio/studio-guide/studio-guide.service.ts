@@ -150,13 +150,12 @@ export class StudioGuideService {
   private commit(next: Set<string>): void {
     this.completedIds.set(next);
     if (typeof window === "undefined") return;
-    try {
-      saveJson(GUIDE_PROGRESS_STORAGE_KEY, [...next], 'localStorage');
-      if (this.storageError()) this.storageError.set(null);
-    } catch {
+    if (!saveJson(GUIDE_PROGRESS_STORAGE_KEY, [...next], 'localStorage')) {
       this.storageError.set(
         "Progress could not be saved on this device. Finished lessons may reset after a reload.",
       );
+      return;
     }
+    if (this.storageError()) this.storageError.set(null);
   }
 }

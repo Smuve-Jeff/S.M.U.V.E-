@@ -911,11 +911,7 @@ export class ProjectTemplateService {
 
   private persist(templates: ProjectTemplate[]): void {
     if (typeof localStorage === 'undefined') return;
-    try {
-      saveJson(USER_TEMPLATES_KEY, templates, 'localStorage');
-    } catch {
-      // Storage full or refused: the in-memory list still works this session.
-    }
+    saveJson(USER_TEMPLATES_KEY, templates, 'localStorage');
   }
 
   applyTemplate(templateId: string) {

@@ -144,6 +144,12 @@ export class AppComponent {
   /** Previous route, offered as a "back to where you were" shortcut. */
   resumeTarget = signal<string | null>(null);
   private lastRoute: string | null = null;
+  /**
+   * The auth doors are not surfaces an artist returns to: their URLs carry a
+   * `returnUrl` query that reads as gibberish in a one-line chip.
+   */
+  private static readonly NON_RESUMABLE =
+    /^\/(login|signup|register|guest-access|forgot-password|reset-password)(\/|\?|$)/;
   localSchema = inject(LocalSchemaService);
   localBackup = inject(LocalBackupService);
 
@@ -348,7 +354,11 @@ export class AppComponent {
       .subscribe(() => {
         const url = this.router.url;
         // Offer the page the artist just left, not the one they are on.
-        if (this.lastRoute && this.lastRoute !== url) {
+        if (
+          this.lastRoute &&
+          this.lastRoute !== url &&
+          !AppComponent.NON_RESUMABLE.test(this.lastRoute)
+        ) {
           this.resumeTarget.set(this.lastRoute);
         }
         this.lastRoute = url;
@@ -375,11 +385,13 @@ export class AppComponent {
   resumeLabel(): string {
     const target = this.resumeTarget();
     if (!target) return '';
-    const words = target
-      .replace(/^\//, '')
-      .split(/[/\\?=&]+/)
-      .filter(Boolean)
-      .join(' ');
+    // Path segments name the surface; only `view` is worth keeping from the
+    // query, so `?returnUrl=…` and tracking noise never reach the chip.
+    const [path, query = ''] = target.split('?');
+    const view = new URLSearchParams(query).get('view');
+    const words = [...path.split('/').filter(Boolean), ...(view ? [view] : [])]
+      .join(' ')
+      .replace(/-/g, ' ');
     return `Back to ${words || 'home'}`;
   }
 

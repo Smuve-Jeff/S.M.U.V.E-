@@ -541,11 +541,7 @@ export class StudioTelemetryService {
   /** Clear dismissed coach CTAs (used by tests / Insights reset). */
   resetCoachDismissals(): void {
     this.dismissedCoachIds.set(new Set());
-    try {
-      deleteSaved(this.DISMISS_KEY, 'localStorage');
-    } catch {
-      /* ignore */
-    }
+    deleteSaved(this.DISMISS_KEY, 'localStorage');
   }
 
   private recentEvents(): StudioTelemetryEvent[] {
@@ -594,11 +590,7 @@ export class StudioTelemetryService {
 
   private saveEvents(events: StudioTelemetryEvent[]): void {
     if (!this.eventsReadable) return;
-    try {
-      saveJson(this.STORAGE_KEY, events, 'localStorage');
-    } catch {
-      // best-effort persistence
-    }
+    saveJson(this.STORAGE_KEY, events, 'localStorage');
   }
 
   /** Stored dismissals, or null when the record cannot be read. */
@@ -620,11 +612,7 @@ export class StudioTelemetryService {
 
   private saveDismissed(ids: Set<StudioCoachActionId>): void {
     if (!this.dismissedReadable) return;
-    try {
-      saveJson(this.DISMISS_KEY, [...ids], 'localStorage');
-    } catch {
-      // best-effort persistence
-    }
+    saveJson(this.DISMISS_KEY, [...ids], 'localStorage');
   }
 
   private clampScore(value: number): number {

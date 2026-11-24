@@ -634,11 +634,7 @@ export class SampleLibraryComponent implements OnInit {
     if (next.has(sampleId)) next.delete(sampleId);
     else next.add(sampleId);
     this.favorites.set(next);
-    try {
-      saveJson(SampleLibraryComponent.FAVORITES_KEY, [...next], 'localStorage');
-    } catch {
-      /* storage unavailable */
-    }
+    saveJson(SampleLibraryComponent.FAVORITES_KEY, [...next], 'localStorage');
     this.haptic.light();
   }
 

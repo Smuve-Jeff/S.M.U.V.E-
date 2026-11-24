@@ -351,11 +351,7 @@ export class StorefrontService {
       // instead of replacing them with what this instance happens to know.
       return;
     }
-    try {
-      saveJson(OWNERSHIP_KEY, map, 'localStorage');
-    } catch {
-      /* ignore */
-    }
+    saveJson(OWNERSHIP_KEY, map, 'localStorage');
   }
 
   private persistCart(lines: CartLine[]): void {
@@ -364,11 +360,7 @@ export class StorefrontService {
       // Same rule as ownership: an unreadable cart is not an empty cart.
       return;
     }
-    try {
-      saveJson(CART_KEY, lines, 'localStorage');
-    } catch {
-      /* ignore */
-    }
+    saveJson(CART_KEY, lines, 'localStorage');
   }
 
   /**

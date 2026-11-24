@@ -99,11 +99,7 @@ export class DatabaseService {
   }
 
   private removeProfileBackup(key: string): void {
-    try {
-      if (typeof localStorage !== 'undefined') deleteSaved(key, 'localStorage');
-    } catch {
-      // A blocked store keeps a stale copy; it is never trusted while blocked.
-    }
+    if (typeof localStorage !== 'undefined') deleteSaved(key, 'localStorage');
   }
 
   /**

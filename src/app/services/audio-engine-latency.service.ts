@@ -330,12 +330,7 @@ function joinCaptureChunks(chunks: readonly Float32Array[]): Float32Array {
 
 /** Persist this device's baseline; failure keeps the in-memory signal. */
 function writeStoredBaseline(baseline: DeviceLatencyBaseline): void {
-  try {
-    saveJson(DEVICE_BASELINE_KEY, baseline, 'localStorage');
-  } catch {
-    // Quota/privacy-mode failures only cost cross-session pre-fill; the
-    // compensation the artist just accepted is already in the profile.
-  }
+  saveJson(DEVICE_BASELINE_KEY, baseline, 'localStorage');
 }
 
 @Injectable({ providedIn: 'root' })

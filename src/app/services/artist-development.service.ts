@@ -282,9 +282,7 @@ export class ArtistDevelopmentService {
   /** Removes recorded figures so the artist can start over honestly. */
   clearDspAnalytics(): void {
     this.dspAnalytics.set(null);
-    try {
-      deleteSaved('smuve_dsp_analytics', 'localStorage');
-    } catch { /* ignore */ }
+    deleteSaved('smuve_dsp_analytics', 'localStorage');
   }
 
   // ── Social Link Hub ───────────────────────────────────

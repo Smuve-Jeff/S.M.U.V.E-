@@ -248,7 +248,7 @@ describe('AppComponent', () => {
     component.resumeTarget.set('/studio?view=mixer');
     fixture.detectChanges();
 
-    expect(component.resumeLabel()).toBe('Back to studio view mixer');
+    expect(component.resumeLabel()).toBe('Back to studio mixer');
 
     component.resumeLastRoute();
 
@@ -259,6 +259,21 @@ describe('AppComponent', () => {
     component.resumeTarget.set('/hub');
     component.dismissResume();
     expect(component.resumeTarget()).toBeNull();
+  });
+
+  it('never offers an auth door as the surface to resume', async () => {
+    const { component, routerEvents$, router } = await createComponent('/hub');
+
+    router.url = '/studio';
+    routerEvents$.next(new NavigationEnd(1, '/hub', '/studio'));
+    expect(component.resumeTarget()).toBe('/hub');
+
+    // Signing out lands on /login?returnUrl=…; that is not a surface to return to.
+    router.url = '/login?returnUrl=%2Fstudio';
+    routerEvents$.next(
+      new NavigationEnd(2, '/studio', '/login?returnUrl=%2Fstudio')
+    );
+    expect(component.resumeTarget()).toBe('/studio');
   });
 
   it('boots the shell when storage reads are blocked', async () => {

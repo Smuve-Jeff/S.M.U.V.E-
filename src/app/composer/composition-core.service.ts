@@ -608,12 +608,7 @@ export class CompositionCoreService {
   }
 
   private writeLibrary(entries: SavedComposition[]): void {
-    try {
-      saveJson(LIBRARY_KEY, entries, 'localStorage');
-    } catch {
-      // Storage can be unavailable (private mode, quota). The in-memory
-      // library still works for this session; nothing else breaks.
-    }
+    saveJson(LIBRARY_KEY, entries, 'localStorage');
   }
 
   /* ── Studio handoff ──────────────────────────────────────────── */

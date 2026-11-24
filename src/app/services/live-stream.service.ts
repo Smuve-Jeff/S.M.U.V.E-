@@ -870,20 +870,12 @@ export class LiveStreamService {
 
   private markHostingToken(token: string): void {
     this.hostingToken.set(token);
-    try {
-      saveString(HOST_TOKEN_STORAGE_KEY, token, 'sessionStorage');
-    } catch {
-      /* storage can be blocked; this tab still owns its in-memory token */
-    }
+    saveString(HOST_TOKEN_STORAGE_KEY, token, 'sessionStorage');
   }
 
   private clearHostingToken(): void {
     this.hostingToken.set(null);
-    try {
-      deleteSaved(HOST_TOKEN_STORAGE_KEY, 'sessionStorage');
-    } catch {
-      /* nothing to clear */
-    }
+    deleteSaved(HOST_TOKEN_STORAGE_KEY, 'sessionStorage');
   }
 
   private isGoLivePlatform(

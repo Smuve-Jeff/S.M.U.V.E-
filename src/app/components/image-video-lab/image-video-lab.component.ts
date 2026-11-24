@@ -6671,11 +6671,7 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
   }
 
   private persistTransparentExportPreference(enabled: boolean): void {
-    try {
-      saveString(TRANSPARENT_EXPORT_STORAGE_KEY, enabled ? '1' : '0', 'localStorage');
-    } catch {
-      // The session still exports even when storage is unavailable.
-    }
+    saveString(TRANSPARENT_EXPORT_STORAGE_KEY, enabled ? '1' : '0', 'localStorage');
   }
 
   /** Use the playhead - beat-snapped when the grid is armed - as the start. */
@@ -8902,11 +8898,7 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     if (next.has(id)) next.delete(id);
     else next.add(id);
     this.completedLessons.set(next);
-    try {
-      saveJson('smuve.cinema.learn.progress.v1', [...next], 'localStorage');
-    } catch {
-      // Private-mode storage can reject writes; the session still works.
-    }
+    saveJson('smuve.cinema.learn.progress.v1', [...next], 'localStorage');
   }
 
   /** Leave the player and drive the console to the control being taught. */
