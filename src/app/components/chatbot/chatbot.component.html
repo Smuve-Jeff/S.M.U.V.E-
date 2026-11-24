@@ -405,6 +405,11 @@
           class="text-[8px] font-black text-slate-600 uppercase tracking-widest"
           >{{ getCategoryLabel(msg.category) }}</span
         >
+        <span
+          *ngIf="msg.desk"
+          class="text-[8px] font-black text-brand-primary/70 uppercase tracking-widest"
+          >{{ msg.desk }} desk</span
+        >
       </div>
       <div
         class="max-w-[85%] p-5 rounded-3xl text-xs font-medium leading-relaxed transition-all shadow-lg whitespace-pre-line"

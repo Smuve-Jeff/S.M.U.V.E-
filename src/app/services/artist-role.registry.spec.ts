@@ -37,6 +37,17 @@ describe('artist role registry', () => {
     expect(artistRoleForAlias('promo')).toBeNull();
   });
 
+  it('keeps the surface and handoff graph inside the registry', () => {
+    for (const definition of ARTIST_ROLES) {
+      expect(definition.surface.route).toMatch(/^\/[a-z0-9/-]+$/);
+      expect(definition.surface.label.length).toBeGreaterThan(0);
+
+      const next = artistRoleForAlias(definition.nextDesk);
+      expect(next).toBeTruthy();
+      expect(next?.role).not.toBe(definition.role);
+    }
+  });
+
   it('builds quick chips only from curated roles and live aliases', () => {
     expect(ARTIST_ROLE_CHIPS.length).toBeGreaterThan(0);
     expect(ARTIST_ROLE_CHIPS.length).toBeLessThan(ARTIST_ROLES.length);

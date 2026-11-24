@@ -251,6 +251,9 @@ export class ArtistProfileFinetuneService {
         guardrails: ['Respect the artist’s profile privacy preference.'],
       };
     }
+    if (this.sensitiveDetailsHidden(profile)) {
+      return this.redactedDirective(role, this.compile(profile).state);
+    }
     const knowledge = this.compile(profile);
     const { directive, tips } = this.buildRole(role, knowledge);
     const missing = knowledge.missing.slice(0, 3).join('; ') || 'n/a';
@@ -277,6 +280,9 @@ export class ArtistProfileFinetuneService {
         guardrails: ['Respect the artist’s AI profile-data privacy preference.'],
       };
     }
+    if (this.sensitiveDetailsHidden(profile)) {
+      return this.redactedDirective(role, this.compile(profile).state);
+    }
     const knowledge = this.compile(profile);
     const guardrails = this.guardrails(knowledge);
     const { directive, tips } = this.buildRole(role, knowledge);
@@ -291,6 +297,41 @@ export class ArtistProfileFinetuneService {
       tips,
       guardrails,
     };
+  }
+
+  /**
+   * One privacy gate for the desks, matching the model prompt: when the
+   * artist hides sensitive details, no role directive may quote biography,
+   * constraints, audience, rights or gear back to them.
+   */
+  private sensitiveDetailsHidden(
+    profile: UserProfile | null | undefined
+  ): boolean {
+    return profile?.settings?.security?.hideSensitiveProfileDetails === true;
+  }
+
+  private redactedDirective(
+    role: FinetuneRole,
+    state: ArtistProfileKnowledge['state']
+  ): RoleDirective {
+    return {
+      role,
+      profileState: state,
+      directive:
+        'Use general guidance only for this role. The artist chose to hide sensitive profile details, so do not quote biography, constraints, audience, rights or gear back to them.',
+      tips: ['Ask before using any artist-specific profile detail.'],
+      guardrails: [
+        'Sensitive profile-derived details are hidden by privacy setting.',
+        'Do not infer or reconstruct the withheld details.',
+      ],
+    };
+  }
+
+  /** Evidence still missing for this artist, capped for a desk line. */
+  missingEvidence(): string[] {
+    const profile = this.profileService.profile();
+    if (profile.settings?.security?.shareProfileAnswersWithAi !== true) return [];
+    return this.knowledge().missing.slice(0, 3);
   }
 
   /** How S.M.U.V.E. should sound when writing as or for this artist (live profile). */
@@ -698,7 +739,7 @@ export class ArtistProfileFinetuneService {
     switch (role) {
       case 'producer':
         return {
-          directive: `Produce ${k.genre} around ${k.sonic.signatureSound || 'an undefined signature sound'}. Protect ${k.craft.mixingPriorities.join(', ') || 'translation and clarity'} and the sonic rule “${k.sonic.nonNegotiables || 'none set yet'}”. Keep the ${k.sonic.delivery || 'lead'} delivery intelligible against the ${k.sonic.groove || 'chosen'} groove in ${k.sonic.tempoZone || 'the artist’s tempo zone'}.`,
+          directive: `Produce ${k.genre} around ${k.sonic.signatureSound || 'their signature sound'}. Protect ${k.craft.mixingPriorities.join(', ') || 'translation and clarity'} and the sonic rule “${k.sonic.nonNegotiables || 'none set yet'}”. Keep the ${k.sonic.delivery || 'lead'} delivery intelligible against the ${k.sonic.groove || 'chosen'} groove in ${k.sonic.tempoZone || 'the artist’s tempo zone'}.`,
           tips: [
             `Arrangement follows: ${k.sonic.arrangement || 'define an energy arc before producing'}.`,
             `Harmony stays inside: ${k.sonic.harmony || 'capture the harmonic language'}.`,
@@ -739,11 +780,11 @@ export class ArtistProfileFinetuneService {
         };
       case 'ar':
         return {
-          directive: `Evaluate songs against the signature sound (${k.sonic.signatureSound || 'undefined'}), the stated intent (${k.audience.intent || 'unstated'}), and ${audience}. Recommend development only when it strengthens the artist’s point of view.`,
+          directive: `Evaluate songs against the signature sound (${k.sonic.signatureSound || 'their signature sound'}), the stated intent (${k.audience.intent || 'unstated'}), and ${audience}. Recommend development only when it strengthens the artist’s point of view.`,
           tips: [
             `Reject anything that trades away “${k.sonic.nonNegotiables || 'the sonic non-negotiable'}”.`,
-            `Judge hooks by whether the first ten seconds deliver: ${k.audience.recognitionCue || 'an undefined cue'}.`,
-            `Position releases for ${k.audience.marketPosition || 'an undefined market position'}.`,
+            `Judge hooks by whether the first ten seconds deliver: ${k.audience.recognitionCue || 'their recognition cue'}.`,
+            `Position releases for ${k.audience.marketPosition || 'their market position'}.`,
             k.presence.catalogAverageCompleteness < 60
               ? `Catalogue claims are thin (${k.presence.catalogAverageCompleteness}% documented) — judge the song, not a record that cannot be evidenced.`
               : 'Use the documented release history when comparing a new work against the artist’s own catalogue.',
@@ -782,7 +823,7 @@ export class ArtistProfileFinetuneService {
         };
       case 'legal':
         return {
-          directive: `Draft and review agreements around this artist’s real relationships: collaborators on ${k.craft.lyricalThemes.join(', ') || 'songwriting'}, revenue from ${k.business.streams.join(', ') || 'undefined streams'}, and the artist-authored boundary “${k.craft.collaborationBoundaries || k.sonic.nonNegotiables || k.identity.tension || 'not yet captured'}” that must be protected contractually.`,
+          directive: `Draft and review agreements around this artist’s real relationships: collaborators on ${k.craft.lyricalThemes.join(', ') || 'songwriting'}, revenue from ${k.business.streams.join(', ') || 'declared revenue streams'}, and the artist-authored boundary “${k.craft.collaborationBoundaries || k.sonic.nonNegotiables || k.identity.tension || 'not yet captured'}” that must be protected contractually.`,
           tips: [
             k.legal.splitSheet && k.legal.splitSheet !== 'Never'
               ? `Split sheet practice on file: ${k.legal.splitSheet} — keep it ahead of every release.`
@@ -856,7 +897,7 @@ export class ArtistProfileFinetuneService {
         };
       case 'ceo':
         return {
-          directive: `Run this artist like a business built on ${k.business.streams.join(', ') || 'undefined revenue streams'}: decide what to fund, what to cut and what to protect. Focus “${k.business.focus || 'not declared'}”, challenge “${k.business.challenge || 'not captured'}”.`,
+          directive: `Run this artist like a business built on ${k.business.streams.join(', ') || 'declared revenue streams'}: decide what to fund, what to cut and what to protect. Focus “${k.business.focus || 'not declared'}”, challenge “${k.business.challenge || 'not captured'}”.`,
           tips: [
             `Judge every spend against ${k.business.successMetric || 'one agreed metric'} and the recorded budget evidence.`,
             k.operations.roster.length

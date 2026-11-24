@@ -19,6 +19,7 @@ import {
 } from '../../services/artist-role.registry';
 import { SmuveMemoryService } from '../../services/smuve-memory.service';
 import { SmuveTotalControlService } from '../../services/smuve-total-control.service';
+import { DeskTelemetryService } from '../../services/desk-telemetry.service';
 
 describe('ChatbotComponent', () => {
   let component: ChatbotComponent;
@@ -76,6 +77,7 @@ describe('ChatbotComponent', () => {
 
     finetuneMock = {
       promptBlock: jest.fn(() => 'SONIC NON-NEGOTIABLE: preserve the room tone.'),
+      missingEvidence: jest.fn(() => ['release date']),
       profileCalibration: signal({
         state: 'foundational',
         completeness: 12,
@@ -302,7 +304,8 @@ describe('ChatbotComponent', () => {
     await (component as any).routeMasterIntent('/engineer');
 
     const nav = await (component as any).routeMasterIntent('open the mixer');
-    expect(nav.content).toBe('Opening the mixer.');
+    expect(nav.content).toContain('Opening the mixer.');
+    expect(nav.content).toContain('Still with the Engineer');
     expect(execute).toHaveBeenCalledWith('/go the mixer');
     expect(component.activeDeskLabel()).toBe('Engineer');
 
@@ -325,6 +328,134 @@ describe('ChatbotComponent', () => {
     execute.mockRestore();
   });
 
+  it('offers the desk surface and a handoff as actions', async () => {
+    const intent = await (component as any).routeMasterIntent('/manager');
+
+    expect(intent.actions).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: 'open-route', data: '/career' }),
+        expect.objectContaining({ id: 'desk-switch', data: 'ceo' }),
+      ])
+    );
+  });
+
+  it('hands work to the next desk without losing the reply', async () => {
+    const manager = await (component as any).routeMasterIntent('/manager');
+    const handoff = manager.actions.find(
+      (action: any) => action.id === 'desk-switch'
+    );
+
+    await component.runChatAction(handoff);
+
+    expect(component.activeDeskLabel()).toBe('CEO');
+    expect(component.messages().at(-1)?.desk).toBe('CEO');
+    expect(component.messages().at(-1)?.text).toContain('CEO DESK');
+  });
+
+  it('draws desk history into the next prompt and attributes the reply', async () => {
+    aiServiceMock.getAIResponse = jest
+      .fn()
+      .mockResolvedValueOnce('The low end is phase.')
+      .mockResolvedValueOnce('Fix the phase, then re-check.');
+
+    component.userInput = '/engineer why is the low end muddy?';
+    await component.sendMessage();
+    component.userInput = 'and after that?';
+    await component.sendMessage();
+
+    const prompt = aiServiceMock.getAIResponse.mock.calls[1][0] as string;
+    expect(prompt).toContain('Conversation so far with this artist:');
+    expect(prompt).toContain('why is the low end muddy?');
+    expect(prompt).toContain('The low end is phase.');
+    expect(component.messages().at(-1)?.desk).toBe('Engineer');
+  });
+
+  it('surfaces missing evidence on a desk brief', async () => {
+    const intent = await (component as any).routeMasterIntent('/ar');
+    expect(intent.content).toContain('Evidence gap: release date');
+    expect(intent.actions).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: 'open-route', data: '/profile' }),
+      ])
+    );
+  });
+
+  it('lists every registry desk in /roles', async () => {
+    const intent = await (component as any).routeMasterIntent('/roles');
+
+    for (const definition of ARTIST_ROLES) {
+      expect(intent.content).toContain(`/${definition.aliases[0]}`);
+      expect(intent.content).toContain(definition.label);
+    }
+    expect(intent.content).toContain('/promotion');
+    expect(intent.content).toContain('/promo is still the promotion plan');
+    expect(intent.content).toContain('/exit leaves it');
+  });
+
+  it('turns the lesson index into one action per module', async () => {
+    const index = await (component as any).routeMasterIntent(
+      '/teach quantum knitting'
+    );
+
+    expect(index.actions.length).toBeGreaterThan(0);
+    expect(
+      index.actions.every(
+        (action: any) =>
+          action.id === 'open-route' && action.data?.startsWith('/')
+      )
+    ).toBe(true);
+  });
+
+  it('can reach every shipped lesson by its exact id and aliases', () => {
+    const teach = (component as any).teachLearn;
+
+    for (const entry of teach.teachTopics) {
+      expect(teach.findTeachExact(entry.lesson.id)).toBeTruthy();
+      for (const alias of entry.aliases) {
+        expect(teach.findTeachExact(alias)).toBeTruthy();
+      }
+    }
+  });
+
+  it('persists the open desk for the session and closes it on Escape', async () => {
+    await (component as any).routeMasterIntent('/coach');
+    expect(sessionStorage.getItem('smuve.master.desk.v1')).toBe('coach');
+
+    fixture.nativeElement.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'Escape' })
+    );
+
+    expect(component.activeDesk()).toBeNull();
+    expect(sessionStorage.getItem('smuve.master.desk.v1')).toBeNull();
+  });
+
+  it('files desk turns in the case file under the expert', async () => {
+    const memory = TestBed.inject(SmuveMemoryService);
+    const capture = jest.spyOn(memory, 'captureTurn');
+
+    component.userInput = '/ar';
+    await component.sendMessage();
+
+    expect(component.messages().at(-1)?.text).toContain('A&R DESK');
+    expect((component as any).caseFile).toBe(memory);
+    expect(capture).toHaveBeenCalledWith(
+      expect.any(String),
+      'A&R Desk',
+      expect.stringContaining('/ar'),
+      expect.stringContaining('A&R DESK')
+    );
+    capture.mockRestore();
+  });
+
+  it('counts desk opens in category-level telemetry', async () => {
+    const telemetry = TestBed.inject(DeskTelemetryService);
+    telemetry.reset();
+
+    await (component as any).routeMasterIntent('/legal');
+
+    expect(telemetry.snapshot().legal?.opened).toBe(1);
+  });
+
   it('navigates “show me <surface>” but keeps “show me how…” with the desk', async () => {
     const control = TestBed.inject(SmuveTotalControlService);
     const execute = jest
@@ -337,7 +468,7 @@ describe('ChatbotComponent', () => {
     await (component as any).routeMasterIntent('/engineer');
 
     const nav = await (component as any).routeMasterIntent('show me the mixer');
-    expect(nav.content).toBe('Opening the mixer.');
+    expect(nav.content).toContain('Opening the mixer.');
     expect(execute).toHaveBeenCalledWith('/go the mixer');
     expect(component.activeDeskLabel()).toBe('Engineer');
 

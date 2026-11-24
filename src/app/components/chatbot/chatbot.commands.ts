@@ -142,6 +142,7 @@ export const QUICK_COMMANDS = [
   // Role desks come from the shared registry, so a chip can never point at an
   // alias the chat does not route.
   ...ARTIST_ROLE_CHIPS,
+  { label: '/roles', description: 'Every role desk, alias and handoff' },
   { label: '/release', description: 'Release strategy' },
   { label: '/status', description: 'System status' },
   { label: '/sync_kb', description: 'Sync knowledge base' },

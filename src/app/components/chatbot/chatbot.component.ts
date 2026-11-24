@@ -11,6 +11,7 @@ import {
   AfterViewChecked,
   OnDestroy,
   OnInit,
+  HostListener,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -38,8 +39,10 @@ import { LoggingService } from '../../services/logging.service';
 import { QUICK_COMMANDS, CHATBOT_COMMANDS } from './chatbot.commands';
 import {
   ArtistRoleDefinition,
+  ARTIST_ROLES,
   artistRoleForAlias,
 } from '../../services/artist-role.registry';
+import { DeskTelemetryService } from '../../services/desk-telemetry.service';
 import { buildArtistMusicContext } from '../../types/profile.types';
 import {
   readArtistProfile,
@@ -101,6 +104,8 @@ interface ChatMessage {
   isStreaming?: boolean;
   /** One-tap apply actions attached to assistant replies. */
   actions?: ChatAction[];
+  /** Expert that answered, so scrolled history keeps its attribution. */
+  desk?: string;
 }
 
 type CommandCategory = 'production' | 'marketing' | 'business' | 'system';
@@ -139,7 +144,8 @@ type MasterActionId =
   | 'composer-audition-a'
   | 'composer-audition-b'
   | 'interview-skip'
-  | 'interview-undo';
+  | 'interview-undo'
+  | 'desk-switch';
 
 interface ChatAction {
   id: MasterActionId;
@@ -153,6 +159,8 @@ interface ChatAction {
 interface MasterIntent {
   content: string;
   actions: ChatAction[];
+  /** Set when a role desk produced this turn. */
+  desk?: string;
 }
 
 /** Closing line when the interview ladder runs out of questions. */
@@ -161,6 +169,8 @@ const INTERVIEW_COMPLETE =
 
 const MASTER_STORAGE_KEY = 'smuve.master.chat.v1';
 const MASTER_STORAGE_MAX = 60;
+const DESK_STORAGE_KEY = 'smuve.master.desk.v1';
+const DESK_TURN_MAX = 6;
 
 /** Converts a music key signature root (e.g. "C#m", "F", "Eb") to MIDI. */
 const NOTE_TO_MIDI: Record<string, number> = {
@@ -306,6 +316,13 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
    */
   readonly activeDesk = signal<ArtistRoleDefinition | null>(null);
   readonly activeDeskLabel = computed(() => this.activeDesk()?.label ?? null);
+
+  private readonly telemetry = inject(DeskTelemetryService);
+  /** Per-desk conversation memory; `/exit` clears the desk it closes. */
+  private readonly deskTurns = new Map<
+    string,
+    { question: string; answer: string }[]
+  >();
   userInput = '';
   isTyping = signal(false);
   /** False until the welcome (or restored transcript) is in place. */
@@ -376,13 +393,25 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
    * calls (JSON audits, style extraction) from polluting a conversational
    * memory with non-conversation output.
    */
-  private recordCaseTurn(artistText: string, replyText: string): void {
+  private recordCaseTurn(
+    artistText: string,
+    replyText: string,
+    desk?: string
+  ): void {
+    let surface: Parameters<SmuveMemoryService['captureTurn']>[0] = 'chat';
+    let surfaceLabel = 'Direct Console';
     try {
       const intel = this.careerDirector?.surfaceIntel();
+      if (intel?.surface) surface = intel.surface;
+      if (intel?.surfaceLabel) surfaceLabel = intel.surfaceLabel;
+    } catch {
+      // The room is optional; the turn is still filed.
+    }
+    try {
       this.caseFile?.captureTurn(
-        intel?.surface ?? 'chat',
-        intel?.surfaceLabel ?? 'Direct Console',
-        artistText,
+        surface,
+        desk ? `${desk} Desk` : surfaceLabel,
+        desk ? `[${desk} desk] ${artistText}` : artistText,
         replyText
       );
     } catch {
@@ -669,6 +698,7 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
       this.owner = nextOwner;
       this.messages.set([]);
       this.announcedRooms.clear();
+      this.closeDesk();
       if (!this.restoreMessages()) this.setWelcomeGreeting();
     });
 
@@ -714,6 +744,7 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
   ngOnInit() {
     this.owner = this.injector.get(UserStoreService).user()?.id || this.profile()?.id || null;
     this.loadLearnProgress();
+    this.restoreDesk();
     if (!this.restoreMessages()) this.setWelcomeGreeting();
     this.chatReady.set(true);
     this.consumeQueuedPrompt();
@@ -877,14 +908,15 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
         // The Master's brain — live Gemini persona prompt with offline fallback.
         content = await this.requestRealAi(text);
       }
+      const desk = intent?.desk ?? null;
 
       if (generation !== this.replyGeneration || this.destroyed) return;
       content = this.personaSafeText(content);
-      await this.streamResponse(content, category, actions);
+      await this.streamResponse(content, category, actions, desk);
       // Only conversation is filed. Command acknowledgements and knowledge
       // modules are not verdicts, and filing them would make the case file
       // look like a log instead of a manager's memory.
-      if (!intent) this.recordCaseTurn(text, content);
+      if (!intent || intent.desk) this.recordCaseTurn(text, content, intent?.desk);
       this.syncInterviewCard();
       if (generation !== this.replyGeneration || this.destroyed) return;
 
@@ -932,7 +964,7 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
     // Leaving a desk is explicit and always available, even mid-question.
     if (/^\/exit$/i.test(trimmed)) {
       const desk = this.activeDesk();
-      this.activeDesk.set(null);
+      this.closeDesk();
       return {
         content: desk
           ? `${desk.label.toUpperCase()} DESK CLOSED\nBack to S.M.U.V.E. across every lane. Open another desk with its command, or ask me anything.`
@@ -1003,6 +1035,11 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
       return { content: musicResult.content, actions: musicResult.actions };
     }
 
+    // The desk catalog is generated from the same registry the desks read.
+    if (/^\/roles$/i.test(trimmed)) {
+      return { content: this.rolesCatalog(), actions: [] };
+    }
+
     // 0d) Role desks — one named expert answers from the profile-derived
     //     directive instead of a blended generalist voice. Aliases and labels
     //     come from the shared role registry, so a desk cannot drift from the
@@ -1023,7 +1060,7 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
         // An unmatched short topic must land on the index, not on a fuzzy
         // near-miss lesson that the artist never named.
         if (target === 'index') {
-          return { content: this.teachLearn.teachIndex(rest), actions: [] };
+          return this.teachIndexIntent(rest);
         }
         return this.teachLearnIntent('teach', rest);
       }
@@ -1045,7 +1082,7 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
     // 1) Slash commands → Total Control engine
     if (trimmed.startsWith('/')) {
       const result = await this.controlService.executeCommand(trimmed);
-      return { content: result.message, actions: [] };
+      return { content: `${result.message}${this.deskSuffix()}`, actions: [] };
     }
 
     // 2) Mimic / style requests → Style Mimic library
@@ -1093,7 +1130,7 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
     const navTarget = this.navigationTarget(trimmed);
     if (navTarget) {
       const result = await this.controlService.executeCommand(`/go ${navTarget}`);
-      return { content: result.message, actions: [] };
+      return { content: `${result.message}${this.deskSuffix()}`, actions: [] };
     }
 
     // 5) Beginner journey roadmap
@@ -1125,7 +1162,7 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
     if (interpretAppRequest(trimmed)) {
       const executed = await this.appCommand?.tryExecute(trimmed);
       if (executed) {
-        return { content: executed.content, actions: [] };
+        return { content: `${executed.content}${this.deskSuffix()}`, actions: [] };
       }
     }
 
@@ -1139,23 +1176,148 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
 
   /** Closes the active desk; the next plain message is general again. */
   exitDesk(): void {
+    this.closeDesk();
+  }
+
+  /** Escape is the second way out; it never steals the first turn of a desk. */
+  @HostListener('keydown.escape')
+  onEscape(): void {
+    if (this.activeDesk()) this.closeDesk();
+  }
+
+  private openDesk(definition: ArtistRoleDefinition): void {
+    const previous = this.activeDesk();
+    this.activeDesk.set(definition);
+    try {
+      sessionStorage.setItem(DESK_STORAGE_KEY, definition.aliases[0]);
+    } catch {
+      // Persistence is a convenience; the desk works without it.
+    }
+    if (previous?.role !== definition.role) {
+      this.telemetry.record(definition.role, 'opened');
+    }
+  }
+
+  private closeDesk(): void {
+    const desk = this.activeDesk();
+    if (desk) this.deskTurns.delete(desk.role);
     this.activeDesk.set(null);
+    try {
+      sessionStorage.removeItem(DESK_STORAGE_KEY);
+    } catch {
+      // A blocked store costs continuity, never the close.
+    }
+  }
+
+  private restoreDesk(): void {
+    try {
+      const alias = sessionStorage.getItem(DESK_STORAGE_KEY);
+      const definition = alias ? artistRoleForAlias(alias) : null;
+      if (definition) this.activeDesk.set(definition);
+    } catch {
+      // An unavailable session store simply starts with no desk.
+    }
+  }
+
+  /** Files one desk exchange for prompt continuity (bounded, no persistence). */
+  private rememberDeskTurn(
+    role: string,
+    question: string,
+    answer: string
+  ): void {
+    const turns = this.deskTurns.get(role) ?? [];
+    turns.push({ question, answer });
+    this.deskTurns.set(role, turns.slice(-DESK_TURN_MAX));
+  }
+
+  /** Tells the artist a command did not end the desk. */
+  private deskSuffix(): string {
+    const desk = this.activeDesk();
+    return desk ? `\n\nStill with the ${desk.label} — /exit to leave.` : '';
+  }
+
+  private deskHistory(definition: ArtistRoleDefinition): string {
+    const turns = this.deskTurns.get(definition.role) ?? [];
+    return turns
+      .slice(-4)
+      .map(
+        (turn) =>
+          `Artist: ${turn.question}\n${definition.label}: ${turn.answer}`
+      )
+      .join('\n\n');
+  }
+
+  /** Real next steps a desk can offer: open its surface, or hand off. */
+  private deskActions(definition: ArtistRoleDefinition): ChatAction[] {
+    const actions: ChatAction[] = [
+      {
+        id: 'open-route',
+        label: `Open ${definition.surface.label}`,
+        data: definition.surface.route,
+      },
+    ];
+    const next = artistRoleForAlias(definition.nextDesk);
+    if (next) {
+      actions.push({
+        id: 'desk-switch',
+        label: `Take this to the ${next.label}`,
+        data: next.aliases[0],
+      });
+    }
+    return actions;
+  }
+
+  /** The `/roles` catalog, generated from the one registry. */
+  private rolesCatalog(): string {
+    const lines = ARTIST_ROLES.map(
+      (definition) =>
+        `/${definition.aliases[0]} — ${definition.label}: ${definition.summary}\n   also: ${definition.aliases
+          .slice(1)
+          .map((alias) => `/${alias}`)
+          .join(', ') || 'no other aliases'} · hand off: /${definition.nextDesk}`
+    ).join('\n');
+    return [
+      'S.M.U.V.E. ROLE DESKS',
+      lines,
+      'Every desk keeps its voice for follow-ups. /exit leaves it; choosing another desk switches directly.',
+      'Note: /promo is still the promotion plan; /promotion is the desk. /teach <feature> is still the walkthrough; bare /teach is the teacher desk.',
+    ].join('\n\n');
+  }
+
+  /** The lesson index, with one action per shipped module. */
+  private teachIndexIntent(topic: string): MasterIntent {
+    const actions: ChatAction[] = this.teachLearn.teachTopics.map((entry) => ({
+      id: 'open-route' as const,
+      label: `Walk through ${entry.lesson.title}`,
+      data: entry.lesson.route,
+    }));
+    return { content: this.teachLearn.teachIndex(topic), actions };
   }
 
   /**
    * Every alias in the shared role registry answers as that expert for this
    * artist. The brief comes from the same profile-derived directive the model
    * prompt carries, so the desk cannot invent a persona the profile has not
-   * earned.
+   * earned. Follow-ups carry this desk's own bounded history.
    */
   private async roleDeskIntent(
     definition: ArtistRoleDefinition,
     alias: string,
     question: string
   ): Promise<MasterIntent> {
-    this.activeDesk.set(definition);
+    this.openDesk(definition);
     const label = definition.label;
     const brief = this.aiService?.getArtistDirective?.(definition.role);
+    const gaps = this.artistFinetune?.missingEvidence?.() ?? [];
+    const gapLine = gaps.length ? `Evidence gap: ${gaps.join('; ')}.` : '';
+    const actions = this.deskActions(definition);
+    if (gaps.length) {
+      actions.unshift({
+        id: 'open-route',
+        label: 'Fill the missing evidence',
+        data: '/profile',
+      });
+    }
     const playbook = brief
       ? [
           brief.directive,
@@ -1163,16 +1325,19 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
           ...(brief.guardrails.length
             ? [`Guardrails: ${brief.guardrails.join(' | ')}`]
             : []),
+          ...(gapLine ? [gapLine] : []),
         ].join('\n')
-      : `No ${label.toLowerCase()} brief is available yet. Ask a specific ${label.toLowerCase()} question and I will work from your profile.`;
+      : `No ${label.toLowerCase()} brief is available yet. Ask a specific ${label.toLowerCase()} question and I will work from your profile.${gapLine ? `\n${gapLine}` : ''}`;
 
     if (!question) {
       return {
-        content: `${label.toUpperCase()} DESK\n${playbook}\n\nAsk a follow-up: /${alias} <question>`,
-        actions: [],
+        content: `${label.toUpperCase()} DESK\n${playbook}\n\nAsk a follow-up: /${alias} <question>\n/exit leaves this desk.`,
+        actions,
+        desk: label,
       };
     }
 
+    const history = this.deskHistory(definition);
     const prompt = [
       `You are S.M.U.V.E. acting as the artist's ${label}.`,
       brief?.directive ?? '',
@@ -1182,6 +1347,10 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
       brief?.guardrails.length
         ? `Guardrails:\n${brief.guardrails.map((rule) => `- ${rule}`).join('\n')}`
         : '',
+      history
+        ? `Conversation so far with this artist:\n${history}`
+        : '',
+      gapLine,
       `Artist question: ${question}`,
       `Answer as the ${label}, using the artist's own evidence. If the evidence is missing, say what you need instead of inventing it.`,
     ]
@@ -1192,15 +1361,20 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
       if (typeof (this.aiService as any).getAIResponse === 'function') {
         const reply = await this.aiService.getAIResponse(prompt);
         if (reply && !isOfflineAiText(reply)) {
-          return { content: reply.trim(), actions: [] };
+          const answer = reply.trim();
+          this.rememberDeskTurn(definition.role, question, answer);
+          this.telemetry.record(definition.role, 'answered');
+          return { content: answer, actions, desk: label };
         }
       }
     } catch {
       // A dead link falls back to the local brief, never a raw error.
     }
+    this.telemetry.record(definition.role, 'fallback');
     return {
       content: `${label.toUpperCase()} DESK\n${playbook}\n\nI could not reach the model for that question, so here is the brief to work from.`,
-      actions: [],
+      actions,
+      desk: label,
     };
   }
 
@@ -2279,6 +2453,7 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
   /** Wipe the conversation back to a fresh welcome. */
   clearHistory() {
     this.cancelReply();
+    this.closeDesk();
     this.messages.set([]);
     this.setWelcomeGreeting();
     this.persistMessages();
@@ -2511,6 +2686,26 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
     let result: string | null = null;
 
     switch (action.id) {
+      case 'desk-switch': {
+        const next = artistRoleForAlias(action.data ?? '');
+        if (!next) {
+          result = 'That desk is unavailable right now.';
+          break;
+        }
+        const intent = await this.routeMasterIntent(`/${next.aliases[0]}`);
+        if (intent) {
+          await this.streamResponse(
+            intent.content,
+            'system',
+            intent.actions,
+            intent.desk
+          );
+          this.scrollToBottom();
+          return;
+        }
+        result = 'That desk is unavailable right now.';
+        break;
+      }
       case 'apply-mimic':
         result = this.applyMimicRecipe(action.data || '');
         break;
@@ -2828,11 +3023,12 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
   private async streamResponse(
     fullText: string,
     category: ChatMessage['category'],
-    actions: ChatAction[] = []
+    actions: ChatAction[] = [],
+    desk?: string | null
   ) {
     // The proxy returns a complete reply, not provider streaming. Render it
     // once rather than charging 20–70ms per word and blocking the composer.
-    this.messages.update((m) => [...m, { id: this.nextMessageId(), role: 'assistant' as const, text: this.personaSafeText(fullText), timestamp: Date.now(), category, actions, isStreaming: false }].slice(-MASTER_STORAGE_MAX));
+    this.messages.update((m) => [...m, { id: this.nextMessageId(), role: 'assistant' as const, text: this.personaSafeText(fullText), timestamp: Date.now(), category, actions, desk: desk ?? undefined, isStreaming: false }].slice(-MASTER_STORAGE_MAX));
     this.persistMessages();
   }
 
@@ -2858,7 +3054,7 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
             typeof (m as ChatMessage).timestamp === 'number'
         )
         .slice(-MASTER_STORAGE_MAX)
-        .map((m) => ({ role: m.role, text: this.personaSafeText(m.text), timestamp: m.timestamp, category: m.category, id: this.nextMessageId() }));
+        .map((m) => ({ role: m.role, text: this.personaSafeText(m.text), timestamp: m.timestamp, category: m.category, desk: m.desk, id: this.nextMessageId() }));
       if (restored.length > 0) {
         this.messages.set(restored);
         this.syncInterviewCard();

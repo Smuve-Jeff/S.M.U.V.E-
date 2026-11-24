@@ -583,6 +583,50 @@ describe('ArtistProfileFinetuneService', () => {
     expect(service.promptBlock()).toContain('kitchen light and train platforms');
   });
 
+  it('withholds sensitive details from every role directive when the artist hides them', () => {
+    profileSignal.set({
+      ...strongProfile,
+      settings: {
+        security: {
+          shareProfileAnswersWithAi: true,
+          hideSensitiveProfileDetails: true,
+        },
+      },
+    } as any);
+
+    for (const role of ARTIST_ROLE_IDS) {
+      const directive = service.directiveFor(role);
+      expect(directive.directive).toContain('hide sensitive profile details');
+      expect(directive.tips.join(' ')).not.toContain('Reaper');
+      expect(directive.guardrails.join(' ')).toContain('hidden by privacy setting');
+
+      const rendered = [
+        directive.directive,
+        ...directive.tips,
+        ...directive.guardrails,
+      ].join(' ');
+      for (const secret of [
+        'kitchen light and train platforms',
+        'stillness versus motion',
+        'Window Light',
+        'Reaper',
+        'sync placements',
+      ]) {
+        expect(rendered).not.toContain(secret);
+      }
+    }
+  });
+
+  it('reports missing evidence for desks but nothing when sharing is off', () => {
+    expect(service.missingEvidence().length).toBeGreaterThan(0);
+
+    profileSignal.set({
+      ...strongProfile,
+      settings: { security: { shareProfileAnswersWithAi: false } },
+    } as any);
+    expect(service.missingEvidence()).toEqual([]);
+  });
+
   it('withholds the held genre from every role desk', () => {
     profileSignal.set({
       primaryGenre: 'Hip Hop',

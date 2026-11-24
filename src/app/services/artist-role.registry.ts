@@ -2,8 +2,8 @@ import type { FinetuneRole } from './artist-profile-finetune.service';
 
 /**
  * One expert identity S.M.U.V.E. can answer as. This is the single list the
- * fine-tune prompts, the coach panel, the chat desks and the quick chips all
- * read from, so a label or alias cannot drift between them.
+ * fine-tune prompts, the coach panel, the chat desks, the quick chips, the
+ * desk actions and the handoff graph all read from, so none of them can drift.
  */
 export interface ArtistRoleDefinition {
   role: FinetuneRole;
@@ -15,6 +15,10 @@ export interface ArtistRoleDefinition {
   summary: string;
   /** Whether this desk earns a quick chip; the list stays curated, not exhaustive. */
   chip?: boolean;
+  /** The shipped surface this expert usually works in. */
+  surface: { label: string; route: string };
+  /** Alias of the expert this desk naturally hands work to. */
+  nextDesk: string;
 }
 
 /**
@@ -29,12 +33,16 @@ export const ARTIST_ROLES: readonly ArtistRoleDefinition[] = [
     label: 'Producer',
     aliases: ['producer'],
     summary: 'Produce the next track inside your own sound',
+    surface: { label: 'Studio', route: '/studio' },
+    nextDesk: 'engineer',
   },
   {
     role: 'songwriter',
     label: 'Songwriter',
     aliases: ['songwriter'],
     summary: 'Write in your world, not a genre template',
+    surface: { label: "Writer's Pad", route: '/songwriting/pad' },
+    nextDesk: 'producer',
   },
   {
     role: 'manager',
@@ -42,6 +50,8 @@ export const ARTIST_ROLES: readonly ArtistRoleDefinition[] = [
     aliases: ['manager'],
     summary: 'Route the next move toward one milestone',
     chip: true,
+    surface: { label: 'Career Board', route: '/career' },
+    nextDesk: 'ceo',
   },
   {
     role: 'ar',
@@ -49,12 +59,16 @@ export const ARTIST_ROLES: readonly ArtistRoleDefinition[] = [
     aliases: ['ar'],
     summary: 'Judge the song against your signature',
     chip: true,
+    surface: { label: 'Career Board', route: '/career' },
+    nextDesk: 'marketing',
   },
   {
     role: 'promotion',
     label: 'Promotion',
     aliases: ['promotion'],
     summary: 'Pitch the story only in your own words',
+    surface: { label: 'Release Pipeline', route: '/release-pipeline' },
+    nextDesk: 'marketing',
   },
   {
     role: 'marketing',
@@ -62,6 +76,8 @@ export const ARTIST_ROLES: readonly ArtistRoleDefinition[] = [
     aliases: ['marketing'],
     summary: 'Convert through your real listener routes',
     chip: true,
+    surface: { label: 'Release Pipeline', route: '/release-pipeline' },
+    nextDesk: 'promotion',
   },
   {
     role: 'legal',
@@ -69,12 +85,16 @@ export const ARTIST_ROLES: readonly ArtistRoleDefinition[] = [
     aliases: ['legal'],
     summary: 'Draft and protect the rights you own',
     chip: true,
+    surface: { label: 'Business Suite', route: '/business-suite' },
+    nextDesk: 'manager',
   },
   {
     role: 'brand',
     label: 'Brand',
     aliases: ['brand'],
     summary: 'Make every surface unmistakably you',
+    surface: { label: 'Image & Video Lab', route: '/image-video-lab' },
+    nextDesk: 'marketing',
   },
   {
     role: 'engineer',
@@ -82,6 +102,8 @@ export const ARTIST_ROLES: readonly ArtistRoleDefinition[] = [
     aliases: ['engineer'],
     summary: 'Chain, gain and translation before plugins',
     chip: true,
+    surface: { label: 'Studio', route: '/studio' },
+    nextDesk: 'producer',
   },
   {
     role: 'teacher',
@@ -89,6 +111,8 @@ export const ARTIST_ROLES: readonly ArtistRoleDefinition[] = [
     aliases: ['teach', 'teacher'],
     summary: 'A lesson and a task at your real level',
     chip: true,
+    surface: { label: 'Knowledge Base', route: '/knowledge-base' },
+    nextDesk: 'coach',
   },
   {
     role: 'coach',
@@ -96,6 +120,8 @@ export const ARTIST_ROLES: readonly ArtistRoleDefinition[] = [
     aliases: ['coach'],
     summary: 'Commitment, obstacle and evidence',
     chip: true,
+    surface: { label: 'Career Board', route: '/career' },
+    nextDesk: 'manager',
   },
   {
     role: 'ceo',
@@ -103,6 +129,8 @@ export const ARTIST_ROLES: readonly ArtistRoleDefinition[] = [
     aliases: ['ceo'],
     summary: 'Fund, cut and protect across your streams',
     chip: true,
+    surface: { label: 'Business Suite', route: '/business-suite' },
+    nextDesk: 'legal',
   },
 ];
 
@@ -133,4 +161,11 @@ export function artistRoleForAlias(
     ARTIST_ROLES.find((definition) => definition.aliases.includes(needle)) ??
     null
   );
+}
+
+/** Resolve a role id to its definition. */
+export function artistRoleById(
+  role: FinetuneRole
+): ArtistRoleDefinition | null {
+  return ARTIST_ROLES.find((definition) => definition.role === role) ?? null;
 }
