@@ -1297,6 +1297,41 @@ describe('AppComponent', () => {
     }
   });
 
+  it('pauses polling while the tab is hidden and refreshes when it returns', async () => {
+    const { component, offlineSync } = await createComponent();
+    const original = Object.getOwnPropertyDescriptor(document, 'visibilityState');
+    let visibility: DocumentVisibilityState = 'visible';
+    Object.defineProperty(document, 'visibilityState', {
+      configurable: true,
+      get: () => visibility,
+    });
+    jest.useFakeTimers();
+    try {
+      component.toggleSyncCenter();
+      expect(offlineSync.refreshQueueStatus).toHaveBeenCalledTimes(1);
+
+      // A hidden tab stops reading; its throttled timers would tell nobody.
+      visibility = 'hidden';
+      jest.advanceTimersByTime(15000);
+      expect(offlineSync.refreshQueueStatus).toHaveBeenCalledTimes(1);
+
+      // Coming back reads at once, then polling resumes.
+      visibility = 'visible';
+      document.dispatchEvent(new Event('visibilitychange'));
+      expect(offlineSync.refreshQueueStatus).toHaveBeenCalledTimes(2);
+      jest.advanceTimersByTime(5000);
+      expect(offlineSync.refreshQueueStatus).toHaveBeenCalledTimes(3);
+    } finally {
+      component.toggleSyncCenter();
+      jest.useRealTimers();
+      if (original) {
+        Object.defineProperty(document, 'visibilityState', original);
+      } else {
+        delete (document as any).visibilityState;
+      }
+    }
+  });
+
   it('shows manual retry for a dead-lettered profile sync and retries from the button', async () => {
     const { component, fixture } = await createComponent('/hub', undefined, true);
     const database = TestBed.inject(DatabaseService) as any;

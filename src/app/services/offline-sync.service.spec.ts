@@ -76,6 +76,25 @@ describe('OfflineSyncService queue status', () => {
     ]);
   });
 
+  it('reports the store snapshot through getQueueStatus and updates the signals', async () => {
+    await storage.saveItem('sync_queue', queuedItem('queued-1'));
+    await storage.saveItem('sync_queue', {
+      ...queuedItem('queued-2'),
+      channel: 'connector' as const,
+    });
+    await storage.saveItem('sync_dead_letter', queuedItem('dead-1'));
+
+    const status = await service.getQueueStatus();
+
+    expect(status.pending).toBe(2);
+    expect(status.deadLetter).toBe(1);
+    expect(status.connectorPending).toBe(1);
+    // The status read is the guarded one, so asking leaves the signals current.
+    expect(service.pendingCount()).toBe(2);
+    expect(service.deadLetterCount()).toBe(1);
+    expect(service.deadLetteredEndpoints()).toEqual(['smuve://profile-sync']);
+  });
+
   it('drops a dead letter removed outside this service on the next refresh', async () => {
     await storage.saveItem('sync_dead_letter', queuedItem('dead-1'));
     await service.refreshQueueStatus();

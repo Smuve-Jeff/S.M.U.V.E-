@@ -385,30 +385,46 @@ export class OfflineSyncService {
   }
 
   private async updatePendingCount(): Promise<void> {
-    // Two reads can be in flight (a queue operation and a panel refresh), and
-    // the older one can finish last. Publishing it would put a stale queue and
-    // dead-letter list back on screen, so only the newest read may publish.
+    await this.readQueueStatus();
+  }
+
+  /**
+   * The one queue/dead-letter read. Two can be in flight (a queue operation and
+   * a panel refresh), and the older one can finish last; publishing it would put
+   * a stale queue and dead-letter list back on screen, so only the newest read
+   * may publish. The rows are still returned, since they answer this caller.
+   */
+  private async readQueueStatus(): Promise<{
+    items: SyncQueueItem[];
+    deadLetter: SyncQueueItem[];
+  } | null> {
     const read = ++this.queueStatusRead;
     try {
       const items = await this.localStorage.getAllItems(this.SYNC_STORE);
       const deadLetter =
         await this.localStorage.getAllItems('sync_dead_letter');
-      if (read !== this.queueStatusRead) return;
-      this.pendingCount.set(items.length);
-      this.deadLetterCount.set(deadLetter.length);
-      this.deadLetteredEndpoints.set(
-        deadLetter.map((item: SyncQueueItem) => item.endpoint)
-      );
+      if (read === this.queueStatusRead) {
+        this.pendingCount.set(items.length);
+        this.deadLetterCount.set(deadLetter.length);
+        this.deadLetteredEndpoints.set(
+          deadLetter.map((item: SyncQueueItem) => item.endpoint)
+        );
+      }
+      return { items, deadLetter };
     } catch {
-      if (read !== this.queueStatusRead) return;
-      this.pendingCount.set(0);
-      this.deadLetterCount.set(0);
-      this.deadLetteredEndpoints.set([]);
+      if (read === this.queueStatusRead) {
+        this.pendingCount.set(0);
+        this.deadLetterCount.set(0);
+        this.deadLetteredEndpoints.set([]);
+      }
+      return null;
     }
   }
 
   /**
-   * Gets the current queue status.
+   * Gets the current queue status. Reads through the same guarded path as
+   * `refreshQueueStatus`, so reporting status also leaves the cached signals
+   * current.
    */
   async getQueueStatus(): Promise<{
     pending: number;
@@ -417,8 +433,9 @@ export class OfflineSyncService {
     isOnline: boolean;
     lastSync: number | null;
   }> {
-    const pending = await this.localStorage.getAllItems(this.SYNC_STORE);
-    const deadLetter = await this.localStorage.getAllItems('sync_dead_letter');
+    const status = await this.readQueueStatus();
+    const pending = status?.items ?? [];
+    const deadLetter = status?.deadLetter ?? [];
 
     return {
       pending: pending.length,

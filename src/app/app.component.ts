@@ -948,12 +948,36 @@ export class AppComponent {
 
   private startSyncCenterRefresh(): void {
     this.stopSyncCenterRefresh();
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', this.onSyncCenterVisibility);
+    }
     this.syncCenterRefreshTimer = setInterval(() => {
+      // A hidden tab has nothing to show, and browsers throttle its timers. The
+      // visibility handler below reads once when the tab comes back instead.
+      if (
+        typeof document !== 'undefined' &&
+        document.visibilityState === 'hidden'
+      ) {
+        return;
+      }
       void this.offlineSync.refreshQueueStatus();
     }, AppComponent.SYNC_CENTER_REFRESH_MS);
   }
 
+  /** A returned tab reads once at once instead of waiting for the next tick. */
+  private readonly onSyncCenterVisibility = (): void => {
+    if (document.visibilityState === 'visible') {
+      void this.offlineSync.refreshQueueStatus();
+    }
+  };
+
   private stopSyncCenterRefresh(): void {
+    if (typeof document !== 'undefined') {
+      document.removeEventListener(
+        'visibilitychange',
+        this.onSyncCenterVisibility
+      );
+    }
     if (this.syncCenterRefreshTimer === undefined) return;
     clearInterval(this.syncCenterRefreshTimer);
     this.syncCenterRefreshTimer = undefined;
