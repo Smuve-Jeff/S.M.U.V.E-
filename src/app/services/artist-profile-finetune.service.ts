@@ -6,6 +6,8 @@ import {
   readMusicalBody,
   type ArtistMusicalBody,
 } from './artist-profile-read';
+import { isGenreAdviceHeld } from '../types/genre-hold';
+import { declaredJourneyValue } from '../types/profile.types';
 
 /** S.M.U.V.E. operating roles that adapt to the artist’s completed profile. */
 export type FinetuneRole =
@@ -952,7 +954,9 @@ export class ArtistProfileFinetuneService {
       completeness: 0,
       questionnaireComplete: p.profileSetupCompleted === true,
       musicalBody: readMusicalBody(null),
-      genre: str(p.primaryGenre) || 'unspecified genre',
+      genre: isGenreAdviceHeld(p)
+        ? 'unspecified genre'
+        : str(p.primaryGenre) || 'unspecified genre',
       expertise: this.compileExpertise(p),
       roles: list(p.expertise?.roles ?? journey.roles),
       identity: {
@@ -980,7 +984,7 @@ export class ArtistProfileFinetuneService {
         })(),
       },
       craft: {
-        productionPhilosophy: str(journey.productionPhilosophy),
+        productionPhilosophy: declaredJourneyValue(p, 'productionPhilosophy'),
         songwritingProcess: str(journey.songwritingProcess),
         collaborationBoundaries: str(blueprint.collaborationBoundaries),
         recordingPriorities: list(blueprint.recordingPriorities),
@@ -994,14 +998,14 @@ export class ArtistProfileFinetuneService {
         recognitionCue: str(blueprint.recognitionCue),
         brandVoices: list(p.brandVoices),
         visualAesthetic: list(journey.visualAesthetic),
-        contentStrategy: str(journey.contentStrategy),
-        marketPosition: str(journey.marketPosition),
+        contentStrategy: declaredJourneyValue(p, 'contentStrategy'),
+        marketPosition: declaredJourneyValue(p, 'marketPosition'),
       },
       business: {
         goals: list(p.strategicGoals),
         focus: str(journey.currentFocus),
-        successMetric: str(journey.primarySuccessMetric),
-        velocity: str(journey.releaseVelocity),
+        successMetric: declaredJourneyValue(p, 'primarySuccessMetric'),
+        velocity: declaredJourneyValue(p, 'releaseVelocity'),
         streams: list(journey.incomeStreams),
         challenge: str(journey.biggestChallenge),
         collaborations: list(journey.collaborationGoals),

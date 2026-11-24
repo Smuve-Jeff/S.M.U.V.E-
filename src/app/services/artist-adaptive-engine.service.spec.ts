@@ -63,7 +63,25 @@ describe('Profile-adaptive music manager', () => {
     expect(state.genreProfile.productionDefaults.mixPriorities).toEqual(['Natural dynamics']);
     expect(state.genreProfile.productionDefaults.typicalBpmRange).toEqual([60, 80]);
     expect(state.productionDirective).toContain('No quantization');
+    expect(state.productionDirective).toContain('Working DAW: Existing Setup');
+    expect(state.productionDirective).toContain('Tempo zone: 60-80 BPM');
     expect(state.genreProfile.songwritingRules.typicalStructures).toEqual(['Through-composed']);
+  });
+
+  it('labels a suggested DAW and tempo range as not declared', () => {
+    const state = service.adaptationState();
+
+    expect(state.productionDirective).toContain('Suggested DAW:');
+    expect(state.productionDirective).toContain('not declared yet');
+    expect(state.productionDirective).not.toContain('Working DAW:');
+
+    // Journey defaults are not the artist's business answers yet.
+    expect(state.businessStrategy).toContain(
+      'Release velocity: Artist-selected sustainable cadence'
+    );
+    expect(state.businessStrategy).not.toContain('Occasional');
+    expect(state.businessStrategy).toContain('Success metric: Not declared');
+    expect(state.businessStrategy).not.toContain('Creative Satisfaction');
   });
   it('does not mistake string No for prepared assets or crash with incomplete settings', () => {
     const p = {

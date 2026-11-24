@@ -4,6 +4,7 @@ import { ArtistProfileFinetuneService, ArtistProfileKnowledge } from './artist-p
 import { initialProfile } from './user-profile.service';
 import { buildMusicalDnaContext } from '../types/musical-dna.types';
 import { isGenreAdviceHeld } from '../types/genre-hold';
+import { declaredJourneyValue } from '../types/profile.types';
 import {
   GenreResolution,
   hybridProductionNotes,
@@ -456,13 +457,18 @@ export class ArtistAdaptiveEngineService {
 
   private buildProductionDirective(profile: UserProfile | null | undefined, knowledge: ArtistProfileKnowledge, genre: GenreAdaptationProfile): string {
     if (!profile) return '';
-    const daw = profile.daw?.[0] || genre.productionDefaults.recommendedDaw[0] || 'your DAW';
+    // A suggested DAW or working range is advice, not the artist's setup, so it
+    // is never labelled as if they had declared it.
+    const declaredDaw = profile.daw?.[0];
+    const dawLine = declaredDaw
+      ? `Working DAW: ${declaredDaw}`
+      : `Suggested DAW: ${genre.productionDefaults.recommendedDaw[0] || 'your DAW'} (not declared yet)`;
     const declaredTempo = profile.musicalJourney?.preferredBpmRange || '';
     const fallbackTempo = `${genre.productionDefaults.typicalBpmRange[0]}-${genre.productionDefaults.typicalBpmRange[1]} BPM`;
     // The profile may already carry the unit; appending it again produced
     // "60-80 BPM BPM" in the production directive.
     const bpm = !declaredTempo
-      ? fallbackTempo
+      ? `not declared yet — working range ${fallbackTempo}`
       : /bpm/i.test(declaredTempo)
         ? declaredTempo
         : `${declaredTempo} BPM`;
@@ -470,7 +476,7 @@ export class ArtistAdaptiveEngineService {
 
     return [
       `PRODUCTION FOR ${genre.label.toUpperCase()}`,
-      `Working DAW: ${daw}`,
+      dawLine,
       `Tempo zone: ${bpm}`,
       genre.hybrid
         ? `Hybrid read: ${genre.hybrid.secondaryLabels.join(' + ')} — ${genre.hybrid.productionNotes.join('; ')}`
@@ -485,9 +491,12 @@ export class ArtistAdaptiveEngineService {
 
   private buildBusinessStrategy(profile: UserProfile | null | undefined, knowledge: ArtistProfileKnowledge, genre: GenreAdaptationProfile): string {
     if (!profile) return '';
-    const velocity = profile.musicalJourney?.releaseVelocity || genre.businessPlaybook.typicalVelocity;
+    const velocity =
+      declaredJourneyValue(profile, 'releaseVelocity') ||
+      genre.businessPlaybook.typicalVelocity;
     const focus = profile.musicalJourney?.currentFocus || genre.businessPlaybook.marketPosition;
-    const metric = profile.musicalJourney?.primarySuccessMetric || 'Monthly listeners';
+    const metric =
+      declaredJourneyValue(profile, 'primarySuccessMetric') || 'Not declared';
     const streams = knowledge.business.streams.length ? knowledge.business.streams : genre.businessPlaybook.incomeStreamPriority;
 
     return [

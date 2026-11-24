@@ -1,6 +1,7 @@
 import { Injectable, Injector, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { UserProfileService } from './user-profile.service';
+import { isGenreAdviceHeld } from '../types/genre-hold';
 import {
   findPersona,
   getPersonaOption,
@@ -885,7 +886,7 @@ export class SmuveTotalControlService {
     if (cmd.action === 'status') {
       return {
         success: true,
-        message: `Profile: ${profiles.artistName} | Genre: ${profiles.primaryGenre} | Setup: ${profiles.profileSetupCompleted ? 'COMPLETE' : 'INCOMPLETE'} | Health: ${profiles.strategicHealthScore || 0}%`,
+        message: `Profile: ${profiles.artistName} | Genre: ${isGenreAdviceHeld(profiles) ? 'not declared yet' : profiles.primaryGenre} | Setup: ${profiles.profileSetupCompleted ? 'COMPLETE' : 'INCOMPLETE'} | Health: ${profiles.strategicHealthScore || 0}%`,
       };
     }
     if (cmd.action === 'edit' || cmd.action === 'open') {

@@ -1,4 +1,8 @@
-import { buildArtistMusicContext, initialProfile } from './profile.types';
+import {
+  buildArtistMusicContext,
+  initialProfile,
+  placeholderJourneyDefaults,
+} from './profile.types';
 
 const clone = <T>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
 
@@ -23,6 +27,38 @@ describe('buildArtistMusicContext genre line', () => {
 
     expect(prompt).toContain('- Genre: Not declared yet');
     expect(prompt).not.toContain('- Genre: Hip Hop');
+  });
+
+  it('does not send untouched journey defaults as the artist’s answers', () => {
+    const prompt = buildArtistMusicContext(
+      sharedProfile({ artistName: 'Named Artist' }) as any
+    );
+
+    expect(prompt).not.toContain('Release velocity: Occasional');
+    expect(prompt).not.toContain('Success metric: Creative Satisfaction');
+    expect(prompt).not.toContain('Market position: Independent');
+    expect(prompt).not.toContain('Songwriting style: Unspecified');
+    expect(prompt).not.toContain('Production philosophy: Unspecified');
+  });
+
+  it('sends the same fields once the interview is committed', () => {
+    const prompt = buildArtistMusicContext(
+      sharedProfile({
+        artistName: 'Named Artist',
+        primaryGenre: 'Country',
+        profileSetupCompleted: true,
+      }) as any
+    );
+
+    expect(prompt).toContain('Release velocity: Occasional');
+    expect(prompt).toContain('Success metric: Creative Satisfaction');
+    expect(prompt).toContain('Market position: Independent');
+  });
+
+  it('keeps the placeholder map aligned with the initial profile', () => {
+    for (const [key, value] of Object.entries(placeholderJourneyDefaults())) {
+      expect((initialProfile.musicalJourney as any)[key]).toBe(value);
+    }
   });
 
   it('sends the committed genre, including a committed default', () => {

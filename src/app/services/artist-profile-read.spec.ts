@@ -86,6 +86,29 @@ describe('artist-profile-read', () => {
     expect(readArtistProfile(committed).genre).toBe('Hip Hop');
   });
 
+  it('does not report untouched journey defaults as the artist’s answers', () => {
+    const named = profileWith({
+      artistName: 'Named Artist',
+      'musicalJourney.currentFocus': 'finish the EP',
+    });
+
+    expect(readArtistProfile(named).successMetric).toBe('');
+    expect(readArtistProfile(named).releaseVelocity).toBe('');
+    expect(profileReadBack(named)).not.toContain(
+      'THE ONLY SCORE THAT COUNTS'
+    );
+
+    // Committed, the stored answers are the artist's, defaults included.
+    const committed = profileWith({
+      artistName: 'Named Artist',
+      profileSetupCompleted: true,
+    });
+    expect(readArtistProfile(committed).successMetric).toBe(
+      'Creative Satisfaction'
+    );
+    expect(readArtistProfile(committed).releaseVelocity).toBe('Occasional');
+  });
+
   it('opens with the artist’s own answers, never a generic greeting', () => {
     const block = profileReadBack(COMMITTED, { nextMove: 'Claim the distributor dashboards' });
     expect(block).toContain('PROFILE READING');

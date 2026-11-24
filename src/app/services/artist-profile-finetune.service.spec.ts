@@ -3,6 +3,7 @@ import { signal } from '@angular/core';
 import { ArtistProfileFinetuneService } from './artist-profile-finetune.service';
 import { UserProfileService } from './user-profile.service';
 import type { UserProfile } from './user-profile.service';
+import { initialProfile } from '../types/profile.types';
 
 const strongProfile = {
   artistName: 'North Star',
@@ -228,6 +229,28 @@ describe('ArtistProfileFinetuneService', () => {
       ],
     });
     service = TestBed.inject(ArtistProfileFinetuneService);
+  });
+
+  it('does not quote the placeholder genre or journey defaults as answers', () => {
+    const held = service.compileProfile({
+      primaryGenre: 'Hip Hop',
+      artistName: 'Named Artist',
+      settings: { security: { shareProfileAnswersWithAi: true } },
+    } as any);
+
+    expect(held.genre).toBe('unspecified genre');
+    expect(held.business.successMetric).toBe('');
+    expect(held.business.velocity).toBe('');
+    expect(held.audience.marketPosition).toBe('');
+
+    const committed = service.compileProfile({
+      ...(JSON.parse(JSON.stringify(initialProfile)) as any),
+      primaryGenre: 'Country',
+      profileSetupCompleted: true,
+      artistName: 'Named Artist',
+    } as any);
+    expect(committed.genre).toBe('Country');
+    expect(committed.business.successMetric).toBe('Creative Satisfaction');
   });
 
   it('reports foundational state with actionable missing signals when the profile is empty', () => {

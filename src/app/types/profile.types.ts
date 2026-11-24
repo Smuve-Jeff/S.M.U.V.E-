@@ -336,6 +336,42 @@ export interface ArtistMusicBlueprint {
  * what the chatbot actually knows. Text fields are capped to keep prompts
  * lean; empty/absent fields are skipped entirely.
  */
+/**
+ * Journey answers a new profile ships with. They are placeholders until the
+ * artist commits the interview, so no surface may present them as the artist's
+ * own values before then.
+ */
+const PLACEHOLDER_JOURNEY_VALUES: Record<string, string> = {
+  songwritingStyle: 'Unspecified',
+  productionPhilosophy: 'Unspecified',
+  collaborativeMode: 'Solo',
+  releaseVelocity: 'Occasional',
+  primarySuccessMetric: 'Creative Satisfaction',
+  educationalBackground: 'Self-Taught',
+  contentStrategy: 'Organic',
+  marketPosition: 'Independent',
+};
+
+/** Exposed so a test can prove the map still matches initialProfile. */
+export function placeholderJourneyDefaults(): Record<string, string> {
+  return { ...PLACEHOLDER_JOURNEY_VALUES };
+}
+
+/**
+ * A journey answer only when it is really the artist's. A value still equal to
+ * the untouched default, on an uncommitted profile, reads as empty so callers
+ * say "not declared" instead of quoting the placeholder back as an answer.
+ */
+export function declaredJourneyValue(
+  profile: UserProfile | null | undefined,
+  key: string
+): string {
+  const raw = String((profile?.musicalJourney as any)?.[key] ?? '').trim();
+  if (!raw) return '';
+  if (profile?.profileSetupCompleted === true) return raw;
+  return PLACEHOLDER_JOURNEY_VALUES[key] === raw ? '' : raw;
+}
+
 export function buildArtistMusicContext(
   profile: UserProfile | null | undefined
 ): string {
@@ -375,6 +411,8 @@ export function buildArtistMusicContext(
   const push = (label: string, value: string) => {
     if (value) lines.push(`- ${label}: ${value}`);
   };
+  const declared = (key: string): string =>
+    declaredJourneyValue(profile, key);
 
   // Keep profile-derived identity out of prompts unless explicitly opted in.
   if (profile.settings?.security?.shareProfileInDiscovery === true) {
@@ -393,16 +431,16 @@ export function buildArtistMusicContext(
   push('Subgenres', list(j.subgenres));
   push('Roles', list(profile.expertise?.roles ?? j.roles));
   push('Influences', list(j.musicalInfluences));
-  push('Songwriting style', cap(j.songwritingStyle, 80));
-  push('Production philosophy', cap(j.productionPhilosophy, 80));
+  push('Songwriting style', cap(declared('songwritingStyle'), 80));
+  push('Production philosophy', cap(declared('productionPhilosophy'), 80));
   push('Signature sound', cap(j.signatureSound));
   push('Signature gear', cap(j.signatureGear, 120));
   push('Vocal range', cap(j.vocalRange, 60));
   push('Tempo zone', cap(j.preferredBpmRange, 30));
   const hideSensitive = profile.settings?.security?.hideSensitiveProfileDetails !== false;
-  push('Market position', cap(j.marketPosition, 60));
-  push('Release velocity', cap(j.releaseVelocity, 60));
-  push('Success metric', cap(j.primarySuccessMetric, 60));
+  push('Market position', cap(declared('marketPosition'), 60));
+  push('Release velocity', cap(declared('releaseVelocity'), 60));
+  push('Success metric', cap(declared('primarySuccessMetric'), 60));
   if (!hideSensitive) {
     push('Current focus', cap(j.currentFocus));
     push('Biggest challenge', cap(j.biggestChallenge));

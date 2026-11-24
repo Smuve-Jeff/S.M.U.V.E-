@@ -1,5 +1,6 @@
 import type { UserProfile } from './user-profile.service';
 import { isGenreAdviceHeld } from '../types/genre-hold';
+import { declaredJourneyValue } from '../types/profile.types';
 
 /**
  * S.M.U.V.E.'s reading of an artist profile.
@@ -283,8 +284,10 @@ export function readArtistProfile(
     mission: cap(journey.currentFocus || journey.biggestChallenge || '', 140),
     differentiator: cap(blueprint.signatureTension || blueprint.recognitionCue || '', 140),
     genre: isGenreAdviceHeld(profile) ? '' : cap(profile?.primaryGenre || '', 60),
-    releaseVelocity: cap(journey.releaseVelocity || '', 60),
-    successMetric: cap(journey.primarySuccessMetric || '', 60),
+    // A default like "Occasional" or "Creative Satisfaction" is not an answer
+    // until the interview is committed.
+    releaseVelocity: cap(declaredJourneyValue(profile, 'releaseVelocity'), 60),
+    successMetric: cap(declaredJourneyValue(profile, 'primarySuccessMetric'), 60),
     profileComplete: profile?.profileSetupCompleted === true,
     body: readMusicalBody(profile),
   };
