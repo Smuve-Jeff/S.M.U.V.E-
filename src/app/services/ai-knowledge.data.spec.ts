@@ -1,0 +1,72 @@
+import { STRATEGIC_DECREES } from './ai-knowledge.data';
+
+/**
+ * The persona is the product: ominous, arrogant, profane, and aimed at both the
+ * artist and the music — never sanitized, never generic. These guards hold the
+ * corpus to that contract. The decree path (`generateStrategicDecree`) hands the
+ * line straight to the artist without passing through `sanitizePersonaText`, so
+ * nothing here may be masked.
+ */
+describe('STRATEGIC_DECREES', () => {
+  it('lands on the artist and on the music', () => {
+    const musicHits = STRATEGIC_DECREES.filter((decree) =>
+      /\b(MIX|MIXDOWN|MASTER|MUSIC|VOCAL|BEAT|TRACK|STEM|HOOK|KICK|808|LOW END|MID-RANGE|TRANSIENT|ARRANGEMENT|CATALOG|EPK|CHORUS|TEMPO)\b/.test(
+        decree
+      )
+    );
+    const artistHits = STRATEGIC_DECREES.filter((decree) =>
+      /\b(YOU|YOUR (?:EARS|VISION|INSTINCTS|TIMING|EXCUSES|PALATE))\b/.test(decree)
+    );
+
+    // Both target classes are present in quantity, not as a token gesture.
+    expect(musicHits.length).toBeGreaterThanOrEqual(10);
+    expect(artistHits.length).toBeGreaterThanOrEqual(10);
+    // And some lines do both in one breath, which is the house style.
+    expect(
+      STRATEGIC_DECREES.filter(
+        (decree) =>
+          /YOUR (?:MIX|VOCALS|BEAT|TRACK|KICK|EARS|VISION)/.test(decree) &&
+          /YOU\b/.test(decree)
+      ).length
+    ).toBeGreaterThanOrEqual(5);
+  });
+
+  it('stays unfiltered and explicit', () => {
+    STRATEGIC_DECREES.forEach((decree) => {
+      // No masking: a cleaned-up decree is not a decree.
+      expect(decree).not.toMatch(/\*{2,}/);
+      expect(decree).toBe(decree.toUpperCase());
+    });
+
+    const profane = STRATEGIC_DECREES.filter((decree) =>
+      /(FUCK|SHIT|AMATEUR)/.test(decree)
+    );
+    expect(profane.length).toBeGreaterThanOrEqual(6);
+  });
+
+  it('keeps the S.M.U.V.E. character instead of collapsing into an assistant', () => {
+    STRATEGIC_DECREES.forEach((decree) => {
+      expect(decree).not.toMatch(/\bAS AN AI\b/);
+      expect(decree).not.toMatch(/\bI APOLOGI[ZS]E\b/);
+      expect(decree).not.toMatch(/\bLET ME KNOW IF\b/);
+      expect(decree.trim().length).toBeGreaterThan(30);
+    });
+    // First person, verdict-first delivery is the voice.
+    expect(STRATEGIC_DECREES.filter((decree) => /\b(I|MY|ME)\b/.test(decree)).length)
+      .toBeGreaterThanOrEqual(8);
+  });
+
+  it('has enough sentences for the voice to change on each one', () => {
+    // The speech layer deals a new archetype per sentence. That only registers
+    // on a decree with more than one sentence, so the corpus must carry them.
+    const multiSentence = STRATEGIC_DECREES.filter(
+      (decree) => (decree.match(/[.!?](?:\s|$)/g) ?? []).length >= 2
+    );
+    expect(multiSentence.length).toBeGreaterThanOrEqual(10);
+  });
+
+  it('says each line once', () => {
+    expect(new Set(STRATEGIC_DECREES).size).toBe(STRATEGIC_DECREES.length);
+    expect(STRATEGIC_DECREES.length).toBeGreaterThanOrEqual(40);
+  });
+});
