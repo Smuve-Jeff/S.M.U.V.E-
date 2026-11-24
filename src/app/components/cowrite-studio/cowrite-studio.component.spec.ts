@@ -28,6 +28,8 @@ describe('CowriteStudioComponent', () => {
     generateSmuveContribution: jest.Mock;
     getSuggestion: jest.Mock;
     getCompiledLyrics: jest.Mock;
+    deleteProject: jest.Mock;
+    lastSaveError: ReturnType<typeof signal<string | null>>;
   };
   let snackbar: { info: jest.Mock; success: jest.Mock; error: jest.Mock };
 
@@ -48,6 +50,8 @@ describe('CowriteStudioComponent', () => {
         context: 'start',
       }),
       getCompiledLyrics: jest.fn().mockReturnValue(''),
+      deleteProject: jest.fn().mockReturnValue('deleted'),
+      lastSaveError: signal<string | null>(null),
       smuveContributionCount: () => 1,
       userContributionCount: () => 1,
     };
@@ -87,6 +91,33 @@ describe('CowriteStudioComponent', () => {
     component = fixture.componentInstance;
     fixture.detectChanges();
   };
+
+  it('only warns when the store refuses a delete, not when the project is already gone', async () => {
+    await create();
+    component.savedProjectsList.set([
+      { id: 'p1', title: 'Already gone' } as never,
+    ]);
+    cowrite.deleteProject.mockReturnValueOnce('missing');
+
+    component.deleteProject('p1');
+
+    // A stale row leaves silently; there is no storage failure to report.
+    expect(component.saveConfirm()).toBeNull();
+    expect(component.savedProjectsList()).toEqual([]);
+
+    component.savedProjectsList.set([
+      { id: 'p2', title: 'Still on disk' } as never,
+    ]);
+    cowrite.deleteProject.mockReturnValueOnce('refused');
+    cowrite.lastSaveError.set(
+      'This project could not be deleted from this device.'
+    );
+
+    component.deleteProject('p2');
+
+    expect(component.saveConfirm()).toContain('could not be deleted');
+    expect(component.savedProjectsList()).toHaveLength(1);
+  });
 
   it('renders a contribution as a turn card with its Accept control', async () => {
     await create();

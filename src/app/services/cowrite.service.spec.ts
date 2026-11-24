@@ -87,20 +87,39 @@ describe("CoWriteService.saveProject", () => {
         throw new Error("QuotaExceededError");
       });
 
-    let removed: boolean | null = null;
+    let result: string | null = null;
     try {
       expect(() => {
-        removed = service.deleteProject(saved!.id);
+        result = service.deleteProject(saved!.id);
       }).not.toThrow();
     } finally {
       setItem.mockRestore();
     }
 
-    expect(removed).toBe(false);
+    expect(result).toBe("refused");
     expect(service.lastSaveError()).toContain("could not be deleted");
     // The project is still on disk, so it must still be listed.
     expect(service.savedProjects().map((p) => p.id)).toEqual([saved!.id]);
     expect(JSON.parse(localStorage.getItem("smuve_cowrite_projects") ?? "[]"))
       .toHaveLength(1);
+  });
+
+  it("reports an already-gone project as missing without flagging the store", () => {
+    const saved = service.saveProject("Take 1");
+    expect(saved).not.toBeNull();
+    const setItem = jest.spyOn(Storage.prototype, "setItem");
+
+    let result: string | null = null;
+    try {
+      result = service.deleteProject("project_that_is_gone");
+    } finally {
+      setItem.mockRestore();
+    }
+
+    expect(result).toBe("missing");
+    // No write was attempted, so there is no storage failure to report.
+    expect(setItem).not.toHaveBeenCalled();
+    expect(service.lastSaveError()).toBeNull();
+    expect(service.savedProjects().map((p) => p.id)).toEqual([saved!.id]);
   });
 });

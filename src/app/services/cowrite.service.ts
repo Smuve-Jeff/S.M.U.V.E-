@@ -1069,10 +1069,15 @@ export class CoWriteService {
     return found;
   }
 
-  deleteProject(projectId: string): boolean {
+  /**
+   * `missing` and `refused` are different answers: the first means the stored
+   * copy is already gone, the second that it is still there because storage
+   * rejected the write. Callers must not warn the artist about a no-op.
+   */
+  deleteProject(projectId: string): 'deleted' | 'missing' | 'refused' {
     const projects = this.loadProjects();
     const filtered = projects.filter((p) => p.id !== projectId);
-    if (filtered.length === projects.length) return false;
+    if (filtered.length === projects.length) return 'missing';
     try {
       localStorage.setItem(this.STORAGE_KEY, JSON.stringify(filtered));
     } catch {
@@ -1081,11 +1086,11 @@ export class CoWriteService {
       this.lastSaveError.set(
         'This project could not be deleted from this device.',
       );
-      return false;
+      return 'refused';
     }
     this.lastSaveError.set(null);
     this.projectsSignal.set(filtered);
-    return true;
+    return 'deleted';
   }
 
   exportToStudio(): { success: boolean; message: string; project?: any } {
