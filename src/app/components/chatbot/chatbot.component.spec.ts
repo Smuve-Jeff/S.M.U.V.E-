@@ -37,6 +37,13 @@ describe('ChatbotComponent', () => {
       conversationalTier: signal('Standard'),
       personaDirectives: jest.fn(() => 'Keep S.M.U.V.E. direct, precise, and in character.'),
       processCommand: jest.fn(),
+      getArtistDirective: jest.fn((role: string) => ({
+        role,
+        profileState: 'calibrated',
+        directive: `${role} directive from the artist's evidence`,
+        tips: [`${role} tip`],
+        guardrails: [],
+      })),
     };
 
     // Mutable calibration signal: tests flip it to foundational/partial/
@@ -177,6 +184,49 @@ describe('ChatbotComponent', () => {
     expect(learn.actions).toEqual([
       expect.objectContaining({ id: 'open-route', data: '/songwriting/pad' }),
     ]);
+  });
+
+  it('answers /engineer, /teach and /ceo from their role directives', async () => {
+    const engineer = await (component as any).routeMasterIntent('/engineer');
+    expect(engineer.content).toContain('ENGINEER DESK');
+    expect(engineer.content).toContain("engineer directive from the artist's evidence");
+    expect(engineer.content).toContain('engineer tip');
+    expect(aiServiceMock.getArtistDirective).toHaveBeenCalledWith('engineer');
+
+    const teach = await (component as any).routeMasterIntent('/teach');
+    expect(teach.content).toContain('TEACHER DESK');
+    expect(teach.content).toContain("teacher directive from the artist's evidence");
+    expect(aiServiceMock.getArtistDirective).toHaveBeenCalledWith('teacher');
+
+    const ceo = await (component as any).routeMasterIntent('/ceo');
+    expect(ceo.content).toContain('CEO DESK');
+    expect(ceo.content).toContain("ceo directive from the artist's evidence");
+    expect(aiServiceMock.getArtistDirective).toHaveBeenCalledWith('ceo');
+  });
+
+  it('sends a role-desk question to the model with that desk’s directive', async () => {
+    const getAIResponse = jest.fn(async () => 'Check phase before EQ.');
+    aiServiceMock.getAIResponse = getAIResponse;
+
+    const intent = await (component as any).routeMasterIntent(
+      '/engineer why is my low end muddy?'
+    );
+
+    expect(intent.content).toBe('Check phase before EQ.');
+    const prompt = getAIResponse.mock.calls[0][0] as string;
+    expect(prompt).toContain("engineer directive from the artist's evidence");
+    expect(prompt).toContain('why is my low end muddy?');
+  });
+
+  it('falls back to the local role brief when the model is unreachable', async () => {
+    aiServiceMock.getAIResponse = jest.fn(async () => {
+      throw new Error('offline');
+    });
+
+    const intent = await (component as any).routeMasterIntent('/ceo what do I fund?');
+
+    expect(intent.content).toContain('CEO DESK');
+    expect(intent.content).toContain("ceo directive from the artist's evidence");
   });
 
   it('lists every teaching module when #teach or #learn is used bare', async () => {

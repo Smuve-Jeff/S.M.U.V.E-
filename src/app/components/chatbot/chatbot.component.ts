@@ -980,6 +980,13 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
       return { content: musicResult.content, actions: musicResult.actions };
     }
 
+    // 0d) Role desks — one named expert answers from the profile-derived
+    //     directive instead of a blended generalist voice.
+    const roleMatch = trimmed.match(/^\/(engineer|teach|ceo)\b\s*([\s\S]*)$/i);
+    if (roleMatch) {
+      return this.roleDeskIntent(roleMatch[1].toLowerCase(), roleMatch[2].trim());
+    }
+
     // 1) Slash commands → Total Control engine
     if (trimmed.startsWith('/')) {
       const result = await this.controlService.executeCommand(trimmed);
@@ -1074,6 +1081,70 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
     }
 
     return null;
+  }
+
+  /**
+   * `/engineer`, `/teach` and `/ceo` answer as that expert for this artist.
+   * The brief comes from the same profile-derived directive the model prompt
+   * carries, so the desk cannot invent a persona the profile has not earned.
+   */
+  private async roleDeskIntent(
+    alias: string,
+    question: string
+  ): Promise<MasterIntent> {
+    const desks = {
+      engineer: { role: 'engineer' as const, label: 'Engineer' },
+      teach: { role: 'teacher' as const, label: 'Teacher' },
+      ceo: { role: 'ceo' as const, label: 'CEO' },
+    };
+    const desk = desks[alias as keyof typeof desks] ?? desks.engineer;
+    const brief = this.aiService?.getArtistDirective?.(desk.role);
+    const playbook = brief
+      ? [
+          brief.directive,
+          ...brief.tips.map((tip) => `• ${tip}`),
+          ...(brief.guardrails.length
+            ? [`Guardrails: ${brief.guardrails.join(' | ')}`]
+            : []),
+        ].join('\n')
+      : `No ${desk.label.toLowerCase()} brief is available yet. Ask a specific ${desk.label.toLowerCase()} question and I will work from your profile.`;
+
+    if (!question) {
+      return {
+        content: `${desk.label.toUpperCase()} DESK\n${playbook}\n\nAsk a follow-up: /${alias} <question>`,
+        actions: [],
+      };
+    }
+
+    const prompt = [
+      `You are S.M.U.V.E. acting as the artist's ${desk.label}.`,
+      brief?.directive ?? '',
+      brief?.tips.length
+        ? `Working knowledge:\n${brief.tips.map((tip) => `- ${tip}`).join('\n')}`
+        : '',
+      brief?.guardrails.length
+        ? `Guardrails:\n${brief.guardrails.map((rule) => `- ${rule}`).join('\n')}`
+        : '',
+      `Artist question: ${question}`,
+      `Answer as the ${desk.label}, using the artist's own evidence. If the evidence is missing, say what you need instead of inventing it.`,
+    ]
+      .filter(Boolean)
+      .join('\n\n');
+
+    try {
+      if (typeof (this.aiService as any).getAIResponse === 'function') {
+        const reply = await this.aiService.getAIResponse(prompt);
+        if (reply && !isOfflineAiText(reply)) {
+          return { content: reply.trim(), actions: [] };
+        }
+      }
+    } catch {
+      // A dead link falls back to the local brief, never a raw error.
+    }
+    return {
+      content: `${desk.label.toUpperCase()} DESK\n${playbook}\n\nI could not reach the model for that question, so here is the brief to work from.`,
+      actions: [],
+    };
   }
 
   /** Sends ALL-CAPS tokens through Total Control or domain knowledge. */
