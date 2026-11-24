@@ -131,4 +131,23 @@ describe("WasmInsertPresetService", () => {
         .map((preset) => preset.id),
     ).toEqual(["good"]);
   });
+
+  it("keeps a corrupt user preset list instead of replacing it with an empty one", () => {
+    localStorage.setItem(STORAGE_KEY, "{not json");
+    const service = new WasmInsertPresetService();
+    const setItem = jest.spyOn(Storage.prototype, "setItem");
+
+    try {
+      expect(service.presets()).toEqual([]);
+      expect(
+        service.save("Tight Room", "smuve.reverb.v2", { wet: 0.4 }),
+      ).not.toBeNull();
+      expect(service.presets()).toHaveLength(1);
+      expect(setItem).not.toHaveBeenCalledWith(STORAGE_KEY, expect.any(String));
+    } finally {
+      setItem.mockRestore();
+    }
+
+    expect(localStorage.getItem(STORAGE_KEY)).toBe("{not json");
+  });
 });

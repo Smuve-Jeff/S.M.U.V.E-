@@ -61,14 +61,17 @@ export class SamplePackService {
   private readonly storage = inject(LocalStorageService);
   private readonly logger = inject(LoggingService);
 
-  readonly packs = signal<InstalledSamplePack[]>(this.readPacks());
+  private readonly storedPacks = this.readPacks();
+  private readonly packsReadable = this.storedPacks !== null;
+  readonly packs = signal<InstalledSamplePack[]>(this.storedPacks ?? []);
 
-  private readPacks(): InstalledSamplePack[] {
+  /** The installed packs, or null when the stored list cannot be read. */
+  private readPacks(): InstalledSamplePack[] | null {
     try {
       const raw = localStorage.getItem(PACKS_KEY);
       if (!raw) return [];
       const parsed = JSON.parse(raw);
-      if (!Array.isArray(parsed)) return [];
+      if (!Array.isArray(parsed)) return null;
       return parsed.filter(
         (entry): entry is InstalledSamplePack =>
           !!entry &&
@@ -76,14 +79,19 @@ export class SamplePackService {
           typeof (entry as { id?: unknown }).id === "string" &&
           Array.isArray((entry as { samples?: unknown }).samples) &&
           Array.isArray((entry as { blobIds?: unknown }).blobIds),
-      );
+              );
     } catch {
-      return [];
+      return null;
     }
   }
 
   private writePacks(packs: InstalledSamplePack[]): void {
     this.packs.set(packs);
+    if (!this.packsReadable) {
+      // The stored pack list could not be read; keep it for a later visit
+      // instead of replacing it with this session's view.
+      return;
+    }
     try {
       localStorage.setItem(PACKS_KEY, JSON.stringify(packs));
     } catch (error) {

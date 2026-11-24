@@ -67,6 +67,9 @@ export class GameRatingsService {
   readonly allRatings = signal<GameRating[]>([]);
   /** Per-game stats lookup */
   readonly allStats = signal<Record<string, GameStats>>({});
+  /** False when the stored ratings could not be read; writes must not replace them. */
+  private storeReadable = true;
+
   /** Most recent game that closed and is awaiting a rating */
   readonly pendingRating = signal<{
     gameId: string;
@@ -229,10 +232,15 @@ export class GameRatingsService {
         parsed.ratingsByGame ? Object.values(parsed.ratingsByGame).flat() : []
       );
       this.allStats.set(parsed.statsByGame ?? {});
-    } catch { /* ignore */ }
+    } catch {
+      // Keep the stored ratings for a later readable visit rather than
+      // replacing them with the empty view this load produced.
+      this.storeReadable = false;
+    }
   }
 
   private persist(): void {
+    if (!this.storeReadable) return;
     try {
       const ratingsByGame: Record<string, GameRating[]> = {};
       this.allRatings().forEach((r) => {

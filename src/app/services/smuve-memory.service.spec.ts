@@ -205,4 +205,23 @@ describe('SmuveMemoryService', () => {
     // The filed line already ends in a period; appending another read as "…kick..".
     for (const line of [first, second]) expect(line).not.toContain('..');
   });
+
+  it('keeps corrupt stored entries instead of replacing them with an empty list', () => {
+    localStorage.setItem(KEY, '{not json');
+    const memory = configure(OWNER);
+    expect(memory.entries()).toEqual([]);
+
+    const setItem = jest.spyOn(Storage.prototype, 'setItem');
+    try {
+      // The session can still clear its own view...
+      memory.clear();
+      expect(memory.entries()).toEqual([]);
+      // ...but the unreadable stored entries are not replaced by it.
+      expect(setItem).not.toHaveBeenCalledWith(KEY, expect.any(String));
+    } finally {
+      setItem.mockRestore();
+    }
+
+    expect(localStorage.getItem(KEY)).toBe('{not json');
+  });
 });

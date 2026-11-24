@@ -12,16 +12,17 @@ export interface EffectPreset {
 
 const STORAGE_KEY = "smuve_fx_insert_presets_v1";
 
-function readPresets(): EffectPreset[] {
-  if (typeof localStorage === "undefined") return [];
+/** Stored presets, or null when the record cannot be read. */
+function readPresets(): EffectPreset[] | null {
+  if (typeof localStorage === "undefined") return null;
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return [];
     const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [];
+    if (!Array.isArray(parsed)) return null;
     return parsed.filter(isPreset);
   } catch {
-    return [];
+    return null;
   }
 }
 
@@ -54,7 +55,9 @@ function numericParams(params: unknown): Record<string, number> {
  */
 @Injectable({ providedIn: "root" })
 export class EffectPresetService {
-  readonly presets = signal<EffectPreset[]>(readPresets());
+  private readonly storedPresets = readPresets();
+  private readonly presetsReadable = this.storedPresets !== null;
+  readonly presets = signal<EffectPreset[]>(this.storedPresets ?? []);
 
   presetsFor(type: string | undefined): EffectPreset[] {
     if (!type) return [];
@@ -89,6 +92,10 @@ export class EffectPresetService {
 
   private write(next: EffectPreset[]): void {
     this.presets.set(next);
+    if (!this.presetsReadable) {
+      // An unreadable preset list is not an empty one; never replace it.
+      return;
+    }
     if (typeof localStorage === "undefined") return;
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(next));

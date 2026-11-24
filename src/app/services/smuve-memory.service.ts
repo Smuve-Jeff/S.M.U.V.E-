@@ -69,6 +69,8 @@ export class SmuveMemoryService {
   readonly entries = signal<SmuveMemoryEntry[]>([]);
 
   private owner: string | null = null;
+  /** False when the current owner's stored memory could not be read. */
+  private ownerReadable = true;
   private sequence = 0;
   /** Rotation cursor for `callbackLine`, so receipts do not repeat verbatim. */
   private callbackCursor = 0;
@@ -100,8 +102,11 @@ export class SmuveMemoryService {
     effect(() => {
       const owner = this.resolveOwner();
       if (owner === this.owner) return;
+      const loaded = this.load(owner);
       this.owner = owner;
-      this.entries.set(this.load(owner));
+      this.entries.set(loaded ?? []);
+      // An unreadable store must not be replaced by the empty view it produced.
+      this.ownerReadable = loaded !== null;
     });
   }
 
@@ -400,13 +405,14 @@ export class SmuveMemoryService {
     return `${STORAGE_PREFIX}:${encodeURIComponent(owner)}`;
   }
 
-  private load(owner: string): SmuveMemoryEntry[] {
-    if (typeof window === 'undefined') return [];
+  /** The owner's stored entries, or null when the record cannot be read. */
+  private load(owner: string): SmuveMemoryEntry[] | null {
+    if (typeof window === 'undefined') return null;
     try {
       const raw = window.localStorage.getItem(this.storageKey(owner));
       if (!raw) return [];
       const parsed = JSON.parse(raw) as unknown;
-      if (!Array.isArray(parsed)) return [];
+      if (!Array.isArray(parsed)) return null;
       return parsed
         .filter(
           (entry): entry is SmuveMemoryEntry =>
@@ -417,12 +423,16 @@ export class SmuveMemoryService {
         )
         .slice(0, MAX_ENTRIES);
     } catch {
-      return [];
+      return null;
     }
   }
 
   private persist(): void {
     if (typeof window === 'undefined' || !this.owner) return;
+    if (!this.ownerReadable) {
+      // Keep whatever is stored for this owner until it can be read again.
+      return;
+    }
     try {
       window.localStorage.setItem(
         this.storageKey(this.owner),

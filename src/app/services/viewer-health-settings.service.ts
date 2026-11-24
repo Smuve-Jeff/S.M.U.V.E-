@@ -25,7 +25,12 @@ interface UndoSnapshot {
  */
 @Injectable({ providedIn: "root" })
 export class ViewerHealthSettingsService implements OnDestroy {
-  private readonly overrides = signal<ViewerHealthOverrides>(loadOverrides());
+  // Read once so persistence can tell "no overrides" from "cannot read them".
+  private readonly storedOverrides = loadOverrides();
+  private readonly overridesReadable = this.storedOverrides !== null;
+  private readonly overrides = signal<ViewerHealthOverrides>(
+    this.storedOverrides ?? {},
+  );
   private readonly undo = signal<UndoSnapshot | null>(loadUndo());
   private undoTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -62,7 +67,7 @@ export class ViewerHealthSettingsService implements OnDestroy {
       ...current,
       [presetId]: { ...thresholds },
     }));
-    persist(this.overrides());
+    this.persistOverrides(this.overrides());
   }
 
   clearOverride(presetId: string): void {
@@ -73,7 +78,7 @@ export class ViewerHealthSettingsService implements OnDestroy {
       delete next[presetId];
       return next;
     });
-    persist(this.overrides());
+    this.persistOverrides(this.overrides());
   }
 
   /** Drop every preset override, remembering the map for a short undo. */
@@ -81,7 +86,7 @@ export class ViewerHealthSettingsService implements OnDestroy {
     if (!this.hasOverrides()) return null;
     const previous = this.snapshot();
     this.overrides.set({});
-    persist(this.overrides());
+    this.persistOverrides(this.overrides());
     this.setUndo(previous);
     return previous;
   }
@@ -112,6 +117,15 @@ export class ViewerHealthSettingsService implements OnDestroy {
     const next = sanitizeOverrides(overrides) ?? {};
     this.clearUndo();
     this.overrides.set(next);
+    this.persistOverrides(next);
+  }
+
+  private persistOverrides(next: ViewerHealthOverrides): void {
+    if (!this.overridesReadable) {
+      // The stored overrides could not be read; never replace them with this
+      // session's map.
+      return;
+    }
     persist(next);
   }
 
@@ -166,13 +180,15 @@ function sanitizeOverrides(value: unknown): ViewerHealthOverrides | null {
   return overrides;
 }
 
-function loadOverrides(): ViewerHealthOverrides {
-  if (typeof localStorage === "undefined") return {};
+/** Stored overrides, or null when the record cannot be read. */
+function loadOverrides(): ViewerHealthOverrides | null {
+  if (typeof localStorage === "undefined") return null;
   try {
     const raw = localStorage.getItem(VIEWER_HEALTH_STORAGE_KEY);
-    return raw ? (sanitizeOverrides(JSON.parse(raw)) ?? {}) : {};
+    if (!raw) return {};
+    return sanitizeOverrides(JSON.parse(raw));
   } catch {
-    return {};
+    return null;
   }
 }
 

@@ -113,4 +113,23 @@ describe("EffectPresetService", () => {
       ["good"],
     );
   });
+
+  it("keeps a corrupt preset list instead of replacing it with an empty one", () => {
+    localStorage.setItem(STORAGE_KEY, "{not json");
+    const service = new EffectPresetService();
+    const setItem = jest.spyOn(Storage.prototype, "setItem");
+
+    try {
+      // The session still uses the new preset...
+      expect(service.presets()).toEqual([]);
+      expect(service.save("Wide Hall", "Reverb", { wet: 50 })).not.toBeNull();
+      expect(service.presets()).toHaveLength(1);
+      // ...but the unreadable stored list is not replaced by that view.
+      expect(setItem).not.toHaveBeenCalledWith(STORAGE_KEY, expect.any(String));
+    } finally {
+      setItem.mockRestore();
+    }
+
+    expect(localStorage.getItem(STORAGE_KEY)).toBe("{not json");
+  });
 });

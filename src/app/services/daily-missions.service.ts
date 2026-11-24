@@ -163,6 +163,10 @@ export class DailyMissionsService {
   private notify = inject(NotificationService);
   private haptic = inject(HapticService);
 
+  /** False when the stored mission state or streak could not be read. */
+  private stateReadable = true;
+  private streakReadable = true;
+
   // ── Signals ──
   readonly missions = signal<DailyMission[]>([]);
   readonly streak = signal<StreakState>({
@@ -286,9 +290,11 @@ export class DailyMissionsService {
       lastCompletedDate: today,
     };
     this.streak.set(ns);
-    try {
-      localStorage.setItem(STREAK_KEY, JSON.stringify(ns));
-    } catch { /* ignore */ }
+    if (this.streakReadable) {
+      try {
+        localStorage.setItem(STREAK_KEY, JSON.stringify(ns));
+      } catch { /* ignore */ }
+    }
     this.notify.show(`🔥 ${newStreak}-day streak · keep it going!`, 'success');
   }
 
@@ -306,6 +312,9 @@ export class DailyMissionsService {
           : null;
       return raw ? (JSON.parse(raw) as DailyMissionsState) : null;
     } catch {
+      // An unreadable state must not look like "no state yet": today's
+      // mission list would then be written over the stored one.
+      this.stateReadable = false;
       return null;
     }
   }
@@ -320,11 +329,13 @@ export class DailyMissionsService {
         ? JSON.parse(raw)
         : { streak: 0, bestStreak: 0, lastCompletedDate: null };
     } catch {
+      this.streakReadable = false;
       return { streak: 0, bestStreak: 0, lastCompletedDate: null };
     }
   }
 
   private persist(): void {
+    if (!this.stateReadable) return;
     try {
       const state: DailyMissionsState = {
         dateKey: dateKey(),

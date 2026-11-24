@@ -84,6 +84,57 @@ describe("SamplePackService", () => {
 
   afterEach(() => {
     localStorage.removeItem(PACKS_KEY);
+    jest.restoreAllMocks();
+  });
+
+  /** Fresh service built against a corrupt stored pack list. */
+  const createWithCorruptStore = (): SamplePackService => {
+    localStorage.setItem(PACKS_KEY, "{not json");
+    store = new Map();
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({
+      providers: [
+        {
+          provide: LocalStorageService,
+          useValue: {
+            persistenceStatus: jest.fn().mockResolvedValue("ready"),
+            saveItem: jest.fn(async (_store: string, item: any) => {
+              store.set(item.id, item);
+            }),
+            getItem: jest.fn(async (_store: string, id: string) => store.get(id) ?? null),
+            deleteItem: jest.fn(async (_store: string, id: string) => {
+              store.delete(id);
+            }),
+            deleteItems: jest.fn(async (_store: string, ids: string[]) => {
+              ids.forEach((id) => store.delete(id));
+            }),
+          },
+        },
+        {
+          provide: LoggingService,
+          useValue: { info: jest.fn(), error: jest.fn(), warn: jest.fn() },
+        },
+      ],
+    });
+    return TestBed.inject(SamplePackService);
+  };
+
+  it("keeps a corrupt pack list instead of replacing it with the installed pack", async () => {
+    const fresh = createWithCorruptStore();
+    const setItem = jest.spyOn(Storage.prototype, "setItem");
+
+    try {
+      const result = await fresh.installFromFiles(packFiles());
+      // The session can still use what it just installed...
+      expect(result).toEqual({ ok: true, packId: "midnight-drums" });
+      expect(fresh.packs()).toHaveLength(1);
+      // ...but the unreadable stored list is not replaced by that view.
+      expect(setItem).not.toHaveBeenCalledWith(PACKS_KEY, expect.any(String));
+    } finally {
+      setItem.mockRestore();
+    }
+
+    expect(localStorage.getItem(PACKS_KEY)).toBe("{not json");
   });
 
   it("installs a manifest plus its audio and persists both", async () => {

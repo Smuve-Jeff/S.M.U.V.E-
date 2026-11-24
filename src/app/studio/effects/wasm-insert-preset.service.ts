@@ -143,19 +143,20 @@ function isPreset(value: unknown): value is WasmInsertPreset {
   );
 }
 
-function readUserPresets(): WasmInsertPreset[] {
-  if (typeof localStorage === "undefined") return [];
+/** Stored user presets, or null when the record cannot be read. */
+function readUserPresets(): WasmInsertPreset[] | null {
+  if (typeof localStorage === "undefined") return null;
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return [];
     const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [];
+    if (!Array.isArray(parsed)) return null;
     return parsed
       .filter(isPreset)
       .filter((preset) => !preset.factory)
       .map((preset) => ({ ...preset, params: numericParams(preset.params) }));
   } catch {
-    return [];
+    return null;
   }
 }
 
@@ -166,7 +167,9 @@ function readUserPresets(): WasmInsertPreset[] {
  */
 @Injectable({ providedIn: "root" })
 export class WasmInsertPresetService {
-  readonly presets = signal<WasmInsertPreset[]>(readUserPresets());
+  private readonly storedPresets = readUserPresets();
+  private readonly presetsReadable = this.storedPresets !== null;
+  readonly presets = signal<WasmInsertPreset[]>(this.storedPresets ?? []);
 
   presetsFor(pluginId: string | undefined | null): WasmInsertPreset[] {
     if (!pluginId) return [];
@@ -214,6 +217,10 @@ export class WasmInsertPresetService {
 
   private write(next: WasmInsertPreset[]): void {
     this.presets.set(next);
+    if (!this.presetsReadable) {
+      // An unreadable preset list is not an empty one; never replace it.
+      return;
+    }
     if (typeof localStorage === "undefined") return;
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
