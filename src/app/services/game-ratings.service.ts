@@ -1,5 +1,7 @@
 import { Injectable, signal, computed } from '@angular/core';
 
+import { reportUnreadableStore } from './storage-notice';
+
 /**
  * Game Ratings Service — post-play ratings + win/loss tracking.
  *
@@ -236,6 +238,7 @@ export class GameRatingsService {
       // Keep the stored ratings for a later readable visit rather than
       // replacing them with the empty view this load produced.
       this.storeReadable = false;
+      reportUnreadableStore('Your game ratings');
     }
   }
 

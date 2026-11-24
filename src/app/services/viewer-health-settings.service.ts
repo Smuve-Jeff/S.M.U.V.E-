@@ -1,6 +1,7 @@
 import { Injectable, OnDestroy, computed, signal } from "@angular/core";
 import { isValidViewerHealth } from "./viewer-health";
 import type { ViewerHealthThresholds } from "./viewer-health";
+import { reportUnreadableStore } from "./storage-notice";
 
 export const VIEWER_HEALTH_STORAGE_KEY = "smuve.cinema.viewer-health.v1";
 export const VIEWER_HEALTH_UNDO_STORAGE_KEY =
@@ -180,15 +181,20 @@ function sanitizeOverrides(value: unknown): ViewerHealthOverrides | null {
   return overrides;
 }
 
+function declareUnreadableOverrides(): null {
+  reportUnreadableStore("Your viewer-health overrides");
+  return null;
+}
+
 /** Stored overrides, or null when the record cannot be read. */
 function loadOverrides(): ViewerHealthOverrides | null {
   if (typeof localStorage === "undefined") return null;
   try {
     const raw = localStorage.getItem(VIEWER_HEALTH_STORAGE_KEY);
     if (!raw) return {};
-    return sanitizeOverrides(JSON.parse(raw));
+    return sanitizeOverrides(JSON.parse(raw)) ?? declareUnreadableOverrides();
   } catch {
-    return null;
+    return declareUnreadableOverrides();
   }
 }
 

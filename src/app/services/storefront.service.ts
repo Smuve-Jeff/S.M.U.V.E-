@@ -1,5 +1,6 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { NotificationService } from './notification.service';
+import { reportUnreadableStore } from './storage-notice';
 import { NativePlayBillingClient, PlayBillingClient } from './play-billing.client';
 import {
   CartLine,
@@ -58,6 +59,7 @@ function readOwnership(): PersistedOwnership | null {
   } catch {
     /* storage unavailable or unreadable */
   }
+  reportUnreadableStore('Your store purchases');
   return null;
 }
 
@@ -72,6 +74,7 @@ function readCart(): CartLine[] | null {
   } catch {
     /* ignore */
   }
+  reportUnreadableStore('Your cart');
   return null;
 }
 

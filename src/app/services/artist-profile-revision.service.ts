@@ -1,5 +1,6 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { UserProfileService, UserProfile } from './user-profile.service';
+import { reportUnreadableStore } from './storage-notice';
 
 /** One profile signal that changed between S.M.U.V.E.'s reads. */
 export interface ProfileRevisionChange {
@@ -391,7 +392,10 @@ export class ArtistProfileRevisionService {
       const raw = localStorage.getItem(this.sourceKey(artistId));
       if (!raw) return [];
       const parsed = JSON.parse(raw);
-      if (!Array.isArray(parsed)) return null;
+      if (!Array.isArray(parsed)) {
+        reportUnreadableStore('Your profile revision sources');
+        return null;
+      }
       return parsed
         .filter(
           (source): source is ProfileRevisionSource =>
@@ -408,6 +412,7 @@ export class ArtistProfileRevisionService {
           at: source.at,
         }));
     } catch {
+      reportUnreadableStore('Your profile revision sources');
       return null;
     }
   }

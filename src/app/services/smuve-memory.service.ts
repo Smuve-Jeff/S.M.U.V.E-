@@ -1,6 +1,7 @@
 import { Injectable, computed, effect, inject, signal } from '@angular/core';
 import { UserProfileService } from './user-profile.service';
 import { UserStoreService } from './user-store.service';
+import { reportUnreadableStore } from './storage-notice';
 import type { SmuveSurfaceId } from './smuve-career-director.service';
 
 /**
@@ -412,7 +413,7 @@ export class SmuveMemoryService {
       const raw = window.localStorage.getItem(this.storageKey(owner));
       if (!raw) return [];
       const parsed = JSON.parse(raw) as unknown;
-      if (!Array.isArray(parsed)) return null;
+      if (!Array.isArray(parsed)) return this.declareUnreadableMemory();
       return parsed
         .filter(
           (entry): entry is SmuveMemoryEntry =>
@@ -423,8 +424,13 @@ export class SmuveMemoryService {
         )
         .slice(0, MAX_ENTRIES);
     } catch {
-      return null;
+      return this.declareUnreadableMemory();
     }
+  }
+
+  private declareUnreadableMemory(): null {
+    reportUnreadableStore('The S.M.U.V.E. case file');
+    return null;
   }
 
   private persist(): void {

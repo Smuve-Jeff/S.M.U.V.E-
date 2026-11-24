@@ -119,9 +119,15 @@ export class StudioTelemetryService {
 
   private activeSessionId = signal<string | null>(null);
   private activeSessionStartedAt = signal<number | null>(null);
-  private events = signal<StudioTelemetryEvent[]>(this.loadEvents());
+  // Read once so writes can tell "nothing stored" from "cannot read it".
+  private readonly storedEvents = this.loadEvents();
+  private readonly eventsReadable = this.storedEvents !== null;
+  private readonly storedDismissed = this.loadDismissed();
+  private readonly dismissedReadable = this.storedDismissed !== null;
+
+  private events = signal<StudioTelemetryEvent[]>(this.storedEvents ?? []);
   private dismissedCoachIds = signal<Set<StudioCoachActionId>>(
-    this.loadDismissed(),
+    this.storedDismissed ?? new Set(),
   );
 
   /** Active studio session id (null when no session is open). */
@@ -566,12 +572,13 @@ export class StudioTelemetryService {
     });
   }
 
-  private loadEvents(): StudioTelemetryEvent[] {
+  /** Stored events, or null when the record cannot be read. */
+  private loadEvents(): StudioTelemetryEvent[] | null {
     try {
       const raw = localStorage.getItem(this.STORAGE_KEY);
       if (!raw) return [];
       const parsed = JSON.parse(raw);
-      if (!Array.isArray(parsed)) return [];
+      if (!Array.isArray(parsed)) return null;
       return parsed.filter(
         (e: any) =>
           e &&
@@ -580,11 +587,12 @@ export class StudioTelemetryService {
           typeof e.ts === "number",
       );
     } catch {
-      return [];
+      return null;
     }
   }
 
   private saveEvents(events: StudioTelemetryEvent[]): void {
+    if (!this.eventsReadable) return;
     try {
       localStorage.setItem(this.STORAGE_KEY, JSON.stringify(events));
     } catch {
@@ -592,23 +600,25 @@ export class StudioTelemetryService {
     }
   }
 
-  private loadDismissed(): Set<StudioCoachActionId> {
+  /** Stored dismissals, or null when the record cannot be read. */
+  private loadDismissed(): Set<StudioCoachActionId> | null {
     try {
       const raw = localStorage.getItem(this.DISMISS_KEY);
       if (!raw) return new Set();
       const parsed = JSON.parse(raw);
-      if (!Array.isArray(parsed)) return new Set();
+      if (!Array.isArray(parsed)) return null;
       return new Set(
         parsed.filter(
           (id: unknown): id is StudioCoachActionId => typeof id === "string",
         ),
       );
     } catch {
-      return new Set();
+      return null;
     }
   }
 
   private saveDismissed(ids: Set<StudioCoachActionId>): void {
+    if (!this.dismissedReadable) return;
     try {
       localStorage.setItem(this.DISMISS_KEY, JSON.stringify([...ids]));
     } catch {

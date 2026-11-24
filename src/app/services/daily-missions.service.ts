@@ -1,6 +1,7 @@
 import { Injectable, inject, signal, computed } from '@angular/core';
 import { NotificationService } from './notification.service';
 import { HapticService } from './haptic.service';
+import { reportUnreadableStore } from './storage-notice';
 
 /**
  * Daily Missions Service — S.M.U.V.E. Tha Spot engagement loop.
@@ -315,6 +316,7 @@ export class DailyMissionsService {
       // An unreadable state must not look like "no state yet": today's
       // mission list would then be written over the stored one.
       this.stateReadable = false;
+      reportUnreadableStore("Today's missions");
       return null;
     }
   }
@@ -330,6 +332,7 @@ export class DailyMissionsService {
         : { streak: 0, bestStreak: 0, lastCompletedDate: null };
     } catch {
       this.streakReadable = false;
+      reportUnreadableStore('Your mission streak');
       return { streak: 0, bestStreak: 0, lastCompletedDate: null };
     }
   }

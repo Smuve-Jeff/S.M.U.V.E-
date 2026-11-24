@@ -1,6 +1,7 @@
 import { Injectable, inject, signal } from "@angular/core";
 import { LocalStorageService } from "../services/local-storage.service";
 import { LoggingService } from "../services/logging.service";
+import { reportUnreadableStore } from "../services/storage-notice";
 import {
   SAMPLE_PACK_MAX_FILE_BYTES,
   SAMPLE_PACK_MAX_TOTAL_BYTES,
@@ -71,7 +72,10 @@ export class SamplePackService {
       const raw = localStorage.getItem(PACKS_KEY);
       if (!raw) return [];
       const parsed = JSON.parse(raw);
-      if (!Array.isArray(parsed)) return null;
+      if (!Array.isArray(parsed)) {
+        reportUnreadableStore("Your installed sample packs");
+        return null;
+      }
       return parsed.filter(
         (entry): entry is InstalledSamplePack =>
           !!entry &&
@@ -81,6 +85,7 @@ export class SamplePackService {
           Array.isArray((entry as { blobIds?: unknown }).blobIds),
               );
     } catch {
+      reportUnreadableStore("Your installed sample packs");
       return null;
     }
   }

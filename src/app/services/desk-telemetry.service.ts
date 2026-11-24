@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import type { FinetuneRole } from './artist-profile-finetune.service';
+import { reportUnreadableStore } from './storage-notice';
 
 export type DeskTelemetryEvent = 'opened' | 'answered' | 'fallback';
 
@@ -16,7 +17,10 @@ const STORAGE_KEY = 'smuve.desk.telemetry.v1';
  */
 @Injectable({ providedIn: 'root' })
 export class DeskTelemetryService {
-  private counts: Partial<Record<FinetuneRole, DeskCounters>> = this.read();
+  private readonly storedCounts = this.read();
+  private readonly countsReadable = this.storedCounts !== null;
+  private counts: Partial<Record<FinetuneRole, DeskCounters>> =
+    this.storedCounts ?? {};
 
   record(role: FinetuneRole, event: DeskTelemetryEvent): void {
     const current = this.counts[role] ?? {
@@ -46,20 +50,21 @@ export class DeskTelemetryService {
     }
   }
 
-  private read(): Partial<Record<FinetuneRole, DeskCounters>> {
+  private read(): Partial<Record<FinetuneRole, DeskCounters>> | null {
     try {
       const raw = sessionStorage.getItem(STORAGE_KEY);
       if (!raw) return {};
       const parsed = JSON.parse(raw) as unknown;
       return parsed && typeof parsed === 'object'
         ? (parsed as Partial<Record<FinetuneRole, DeskCounters>>)
-        : {};
+        : null;
     } catch {
-      return {};
+      return null;
     }
   }
 
   private write(): void {
+    if (!this.countsReadable) return;
     try {
       sessionStorage.setItem(STORAGE_KEY, JSON.stringify(this.counts));
     } catch {

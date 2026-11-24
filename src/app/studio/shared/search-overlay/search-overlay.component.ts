@@ -2,6 +2,8 @@ import { Component, output, signal, OnInit } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 
+import { reportUnreadableStore } from "../../../services/storage-notice";
+
 export interface SearchResult {
   id: string;
   title: string;
@@ -27,6 +29,8 @@ export class SearchOverlayComponent implements OnInit {
   select = output<SearchResult>();
 
   private readonly RECENT_SEARCHES_KEY = "smuve_recent_searches";
+  /** False when the stored recents could not be read; then never rewrite them. */
+  private recentsReadable = true;
 
   ngOnInit() {
     this.loadRecentSearches();
@@ -91,6 +95,7 @@ export class SearchOverlayComponent implements OnInit {
 
   clearRecentSearches() {
     this.recentSearches.set([]);
+    if (!this.recentsReadable) return;
     try {
       if (typeof localStorage !== "undefined") {
         localStorage.removeItem(this.RECENT_SEARCHES_KEY);
@@ -103,7 +108,11 @@ export class SearchOverlayComponent implements OnInit {
       if (typeof localStorage === "undefined") return;
       const stored = localStorage.getItem(this.RECENT_SEARCHES_KEY);
       if (stored) this.recentSearches.set(JSON.parse(stored));
-    } catch { /* blocked or corrupt storage */ }
+    } catch {
+      // An unreadable list is not an empty one: keep it and say so.
+      this.recentsReadable = false;
+      reportUnreadableStore("Your recent searches");
+    }
   }
 
   private addToRecentSearches(search: string) {
@@ -113,6 +122,7 @@ export class SearchOverlayComponent implements OnInit {
       5,
     );
     this.recentSearches.set(updated);
+    if (!this.recentsReadable) return;
 
     try {
       if (typeof localStorage !== "undefined") {

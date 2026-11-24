@@ -1,5 +1,7 @@
 import { Injectable, signal } from '@angular/core';
 
+import { onStorageNotice } from './storage-notice';
+
 export interface Notification {
   id: number;
   message: string;
@@ -13,6 +15,12 @@ export interface Notification {
 export class NotificationService {
   notifications = signal<Notification[]>([]);
   private nextId = 0;
+
+  constructor() {
+    // A store that could not be read is still being protected from overwrites,
+    // but the artist must know this session's changes are not being saved.
+    onStorageNotice((message) => this.show(message, 'warning', 8000));
+  }
 
   show(
     message: string,

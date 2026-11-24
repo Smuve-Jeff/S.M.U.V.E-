@@ -206,6 +206,29 @@ describe("StudioTelemetryService", () => {
     expect(fresh.weeklyDashboard().eventVolume).toEqual({});
   });
 
+  it("keeps corrupt telemetry and dismissals instead of overwriting them", () => {
+    localStorage.setItem(STORAGE_KEY, "{not-json");
+    localStorage.setItem(DISMISS_KEY, "{not-json");
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({ providers: [StudioTelemetryService] });
+    const fresh = TestBed.inject(StudioTelemetryService);
+    const setItem = jest.spyOn(Storage.prototype, "setItem");
+
+    try {
+      // The session still records its own events and dismissals...
+      fresh.beginSession();
+      fresh.dismissCoachAction("promote_project" as never, false);
+      // ...but neither unreadable record is replaced by that view.
+      expect(setItem).not.toHaveBeenCalledWith(STORAGE_KEY, expect.any(String));
+      expect(setItem).not.toHaveBeenCalledWith(DISMISS_KEY, expect.any(String));
+    } finally {
+      setItem.mockRestore();
+    }
+
+    expect(localStorage.getItem(STORAGE_KEY)).toBe("{not-json");
+    expect(localStorage.getItem(DISMISS_KEY)).toBe("{not-json");
+  });
+
   function readStored(): StudioTelemetryEvent[] {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return [];

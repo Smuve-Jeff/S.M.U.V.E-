@@ -7,6 +7,7 @@ import {
   ReleaseType,
 } from '../types/release.types';
 import { LoggingService } from './logging.service';
+import { reportUnreadableStore } from './storage-notice';
 import {
   findCatalogWork,
   normalizeReleaseTitle,
@@ -562,6 +563,7 @@ export class ReleasePipelineService {
       // The stored history is unreadable: keep it for a later visit instead of
       // treating this failed read as an empty, safe-to-overwrite history.
       this.reconciliationHistoryReadable = false;
+      reportUnreadableStore('Your planned-date history');
       return [];
     }
   }

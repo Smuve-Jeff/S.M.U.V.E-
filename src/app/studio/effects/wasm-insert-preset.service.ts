@@ -1,5 +1,7 @@
 import { Injectable, signal } from "@angular/core";
 
+import { reportUnreadableStore } from "../../services/storage-notice";
+
 /** A named snapshot of one WASM insert's parameter surface. */
 export interface WasmInsertPreset {
   id: string;
@@ -143,6 +145,11 @@ function isPreset(value: unknown): value is WasmInsertPreset {
   );
 }
 
+function declareUnreadablePresets(): null {
+  reportUnreadableStore("Your saved plugin presets");
+  return null;
+}
+
 /** Stored user presets, or null when the record cannot be read. */
 function readUserPresets(): WasmInsertPreset[] | null {
   if (typeof localStorage === "undefined") return null;
@@ -150,13 +157,13 @@ function readUserPresets(): WasmInsertPreset[] | null {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return [];
     const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return null;
+    if (!Array.isArray(parsed)) return declareUnreadablePresets();
     return parsed
       .filter(isPreset)
       .filter((preset) => !preset.factory)
       .map((preset) => ({ ...preset, params: numericParams(preset.params) }));
   } catch {
-    return null;
+    return declareUnreadablePresets();
   }
 }
 

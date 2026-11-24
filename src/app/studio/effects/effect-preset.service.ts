@@ -1,5 +1,7 @@
 import { Injectable, signal } from "@angular/core";
 
+import { reportUnreadableStore } from "../../services/storage-notice";
+
 /** A named snapshot of one macro insert's parameter surface. */
 export interface EffectPreset {
   id: string;
@@ -12,6 +14,11 @@ export interface EffectPreset {
 
 const STORAGE_KEY = "smuve_fx_insert_presets_v1";
 
+function declareUnreadablePresets(): null {
+  reportUnreadableStore("Your saved insert presets");
+  return null;
+}
+
 /** Stored presets, or null when the record cannot be read. */
 function readPresets(): EffectPreset[] | null {
   if (typeof localStorage === "undefined") return null;
@@ -19,10 +26,10 @@ function readPresets(): EffectPreset[] | null {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return [];
     const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return null;
+    if (!Array.isArray(parsed)) return declareUnreadablePresets();
     return parsed.filter(isPreset);
   } catch {
-    return null;
+    return declareUnreadablePresets();
   }
 }
 

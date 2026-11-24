@@ -31,4 +31,25 @@ describe('DeskTelemetryService', () => {
     const next = new DeskTelemetryService();
     expect(next.snapshot().ceo?.opened).toBe(1);
   });
+
+  it('keeps corrupt counters instead of overwriting them with this session', () => {
+    sessionStorage.setItem('smuve.desk.telemetry.v1', '{not json');
+    const fresh = new DeskTelemetryService();
+    const setItem = jest.spyOn(Storage.prototype, 'setItem');
+
+    try {
+      // The session still counts its own opens...
+      fresh.record('ar', 'opened');
+      expect(fresh.snapshot().ar?.opened).toBe(1);
+      // ...but the unreadable counters are not replaced by that view.
+      expect(setItem).not.toHaveBeenCalledWith(
+        'smuve.desk.telemetry.v1',
+        expect.any(String),
+      );
+    } finally {
+      setItem.mockRestore();
+    }
+
+    expect(sessionStorage.getItem('smuve.desk.telemetry.v1')).toBe('{not json');
+  });
 });

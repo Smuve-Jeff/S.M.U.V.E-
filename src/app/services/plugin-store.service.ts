@@ -1,5 +1,6 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { WasmLoaderService } from '../studio/wasm/wasm-loader.service';
+import { reportUnreadableStore } from './storage-notice';
 import { WasmDspModule, DspKernelFn } from '../studio/wasm/wasm-dsp-interface';
 import {
   wasmDynamicsModule,
@@ -104,6 +105,7 @@ function readArray(key: string): string[] | null {
   } catch {
     // storage unavailable or unreadable
   }
+  reportUnreadableStore('Your enabled plugins');
   return null;
 }
 
@@ -120,6 +122,7 @@ function readParams(
   } catch {
     // storage unavailable or unreadable
   }
+  reportUnreadableStore('Your plugin settings');
   return null;
 }
 
@@ -137,6 +140,7 @@ function readCommunity(): CommunityPluginPayload[] | null {
   } catch {
     // storage unavailable or unreadable
   }
+  reportUnreadableStore('Your imported plugins');
   return null;
 }
 
