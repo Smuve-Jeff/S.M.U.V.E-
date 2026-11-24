@@ -35,7 +35,7 @@ describe('DatabaseService profile ownership', () => {
     registerEndpointHandler: jest.fn(),
     deadLetteredEndpoints: signal<string[]>([]),
     listDeadLetters: jest.fn(async () => [] as any[]),
-    clearDeadLetter: jest.fn(async () => true),
+    clearDeadLetter: jest.fn(async (_id: string) => true),
     replayDeadLetter: jest.fn(async () => true),
   };
 
@@ -200,6 +200,39 @@ describe('DatabaseService profile ownership', () => {
     await expect(retried).resolves.toBe(true);
 
     expect(service.cloudSyncPending()).toBe(false);
+    expect(service.cloudSyncError()).toBeNull();
+  });
+
+  it('clears the dead-lettered entry and message after a confirmed write', async () => {
+    const dead = [
+      { id: 'dead-profile', endpoint: PROFILE_SYNC_ENDPOINT },
+      { id: 'dead-other', endpoint: 'smuve://other-sync' },
+    ];
+    offlineSync.deadLetteredEndpoints.set([
+      PROFILE_SYNC_ENDPOINT,
+      'smuve://other-sync',
+    ]);
+    offlineSync.listDeadLetters.mockResolvedValueOnce(dead);
+    // The real service refreshes its endpoint list whenever a dead letter is
+    // discarded, so mirror that or the message could never clear here.
+    offlineSync.clearDeadLetter.mockImplementationOnce(async (id: string) => {
+      offlineSync.deadLetteredEndpoints.set(
+        dead.filter((item) => item.id !== id).map((item) => item.endpoint)
+      );
+      return true;
+    });
+    expect(service.cloudSyncError()).toContain('Reconnect');
+
+    const pending = service.saveUserProfile(profile({ id: 'user-a' }), 'user-a');
+    http
+      .expectOne(service.apiUrl + '/profile')
+      .flush({ ok: true }, { status: 200, statusText: 'OK' });
+    await expect(pending).resolves.toBe(true);
+
+    // Only this endpoint's dead letter is discarded; other endpoints stay.
+    expect(offlineSync.clearDeadLetter).toHaveBeenCalledTimes(1);
+    expect(offlineSync.clearDeadLetter).toHaveBeenCalledWith('dead-profile');
+    expect(service.cloudSyncDeadLettered()).toBe(false);
     expect(service.cloudSyncError()).toBeNull();
   });
 
