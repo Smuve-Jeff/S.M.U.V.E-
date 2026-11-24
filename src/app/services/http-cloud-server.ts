@@ -176,10 +176,16 @@ export class HttpCloudServer implements CloudServerClient {
     if (typeof fetch !== 'function') {
       throw this.error('Cloud sync requires a network-capable browser.');
     }
-    const token =
-      typeof localStorage !== 'undefined'
-        ? localStorage.getItem(TOKEN_KEY)
-        : null;
+    let token: string | null = null;
+    try {
+      token =
+        typeof localStorage !== 'undefined'
+          ? localStorage.getItem(TOKEN_KEY)
+          : null;
+    } catch {
+      // Treat an unreadable store as signed out so the request fails cleanly.
+      token = null;
+    }
     if (!token) {
       throw this.error('Sign in to sync projects to the cloud.', 401);
     }

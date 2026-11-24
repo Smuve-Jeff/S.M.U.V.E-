@@ -132,10 +132,14 @@ export class CloudSyncService {
   // ─── Registration / hydration ──────────────────────────────────────
 
   private loadOrMintDeviceId(): string {
-    if (typeof localStorage === 'undefined') {
-      return this.mintDeviceId();
+    let existing: string | null = null;
+    try {
+      if (typeof localStorage !== 'undefined') {
+        existing = localStorage.getItem(DEVICE_KEY);
+      }
+    } catch {
+      existing = null;
     }
-    const existing = localStorage.getItem(DEVICE_KEY);
     if (existing) {
       try {
         const parsed = JSON.parse(existing) as CloudDevice;
@@ -152,13 +156,17 @@ export class CloudSyncService {
       lastActive: Date.now(),
       platform: PLATFORM,
     };
-    localStorage.setItem(DEVICE_KEY, JSON.stringify(device));
+    try {
+      localStorage.setItem(DEVICE_KEY, JSON.stringify(device));
+    } catch {
+      // The minted id still identifies this session when storage is blocked.
+    }
     return id;
   }
 
   private loadOrMintDeviceName(): string {
-    if (typeof localStorage === 'undefined') return this.suggestedDeviceName();
     try {
+      if (typeof localStorage === 'undefined') return this.suggestedDeviceName();
       const raw = localStorage.getItem(DEVICE_KEY);
       if (raw) {
         const parsed = JSON.parse(raw) as CloudDevice;
@@ -190,20 +198,24 @@ export class CloudSyncService {
     const trimmed = name.trim().slice(0, 64);
     if (!trimmed) return;
     this.deviceName.set(trimmed);
-    if (typeof localStorage !== 'undefined') {
-      const stored = localStorage.getItem(DEVICE_KEY);
-      const parsed = stored
-        ? (JSON.parse(stored) as CloudDevice)
-        : {
-            id: this.deviceId(),
-            name: trimmed,
-            registeredAt: Date.now(),
-            lastActive: Date.now(),
-            platform: PLATFORM,
-          };
-      parsed.name = trimmed;
-      parsed.lastActive = Date.now();
-      localStorage.setItem(DEVICE_KEY, JSON.stringify(parsed));
+    try {
+      if (typeof localStorage !== 'undefined') {
+        const stored = localStorage.getItem(DEVICE_KEY);
+        const parsed = stored
+          ? (JSON.parse(stored) as CloudDevice)
+          : {
+              id: this.deviceId(),
+              name: trimmed,
+              registeredAt: Date.now(),
+              lastActive: Date.now(),
+              platform: PLATFORM,
+            };
+        parsed.name = trimmed;
+        parsed.lastActive = Date.now();
+        localStorage.setItem(DEVICE_KEY, JSON.stringify(parsed));
+      }
+    } catch {
+      // The in-memory name is enough when device storage is unavailable.
     }
   }
 

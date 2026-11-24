@@ -235,12 +235,14 @@ export class OfflineSyncService {
   }
 
   private getAuthHeader(): Record<string, string> {
-    if (typeof window === 'undefined') {
+    try {
+      if (typeof window === 'undefined') return {};
+      const token = localStorage.getItem('smuve_jwt_token');
+      return token ? { Authorization: `Bearer ${token}` } : {};
+    } catch {
+      // A blocked store means an unauthenticated sync attempt, not a crash.
       return {};
     }
-
-    const token = localStorage.getItem('smuve_jwt_token');
-    return token ? { Authorization: `Bearer ${token}` } : {};
   }
 
   private async executeSync(item: SyncQueueItem): Promise<void> {

@@ -242,6 +242,24 @@ describe('AppComponent', () => {
     };
   };
 
+  it('boots the shell when storage reads are blocked', async () => {
+    const getItem = jest
+      .spyOn(Storage.prototype, 'getItem')
+      .mockImplementation(() => {
+        throw new Error('storage blocked');
+      });
+
+    let fixture: Awaited<ReturnType<typeof createComponent>> | null = null;
+    try {
+      fixture = await createComponent();
+    } finally {
+      getItem.mockRestore();
+    }
+
+    expect(fixture).toBeTruthy();
+    fixture!.fixture.destroy();
+  });
+
   it('should create the app', async () => {
     const { component } = await createComponent();
     expect(component).toBeTruthy();

@@ -88,6 +88,23 @@ export class DatabaseService {
       : 'smuve_user_profile_backup';
   }
 
+  private readProfileBackup(key: string): string | null {
+    try {
+      if (typeof localStorage === 'undefined') return null;
+      return localStorage.getItem(key);
+    } catch {
+      return null;
+    }
+  }
+
+  private removeProfileBackup(key: string): void {
+    try {
+      if (typeof localStorage !== 'undefined') localStorage.removeItem(key);
+    } catch {
+      // A blocked store keeps a stale copy; it is never trusted while blocked.
+    }
+  }
+
   /**
    * Persists a profile under `userId`'s keys (local backup + cloud).
    *
@@ -181,10 +198,9 @@ export class DatabaseService {
 
   /** The latest device copy, used so a retry never posts a stale profile. */
   readLocalProfileBackup(userId: string): UserProfile | null {
-    if (typeof localStorage === 'undefined') return null;
+    const raw = this.readProfileBackup(this.getProfileBackupKey(userId));
+    if (!raw) return null;
     try {
-      const raw = localStorage.getItem(this.getProfileBackupKey(userId));
-      if (!raw) return null;
       return JSON.parse(raw) as UserProfile;
     } catch {
       return null;
@@ -250,11 +266,10 @@ export class DatabaseService {
    * the next save writes a fresh local copy when local backup is enabled.
    */
   removeLocalProfileBackup(userId: string): void {
-    if (typeof localStorage === 'undefined') return;
-    localStorage.removeItem(this.getProfileBackupKey(userId));
+    this.removeProfileBackup(this.getProfileBackupKey(userId));
     if (userId === 'current') {
       // Older builds also wrote the generic fallback key.
-      localStorage.removeItem(this.getProfileBackupKey());
+      this.removeProfileBackup(this.getProfileBackupKey());
     }
   }
 
@@ -277,8 +292,8 @@ export class DatabaseService {
             } catch (error) {
               this.logger.warn('Could not refresh local profile backup.', error);
             }
-          } else if (typeof localStorage !== 'undefined') {
-            localStorage.removeItem(this.getProfileBackupKey(userId));
+          } else {
+            this.removeProfileBackup(this.getProfileBackupKey(userId));
           }
           return profile;
         }
@@ -290,15 +305,16 @@ export class DatabaseService {
       }
     }
 
-    if (typeof localStorage === 'undefined') return null;
+    // An unreadable store means no local backup, never a failed boot.
+    const userBackup = this.readProfileBackup(this.getProfileBackupKey(userId));
     // When the cloud profile records backup-off, discard a stale local copy and
     // never silently revive it offline.
-    if (localStorage.getItem(this.getProfileBackupKey(userId))) {
+    if (userBackup) {
       try {
-        const localProfile = JSON.parse(localStorage.getItem(this.getProfileBackupKey(userId)) || 'null');
+        const localProfile = JSON.parse(userBackup);
         if (localProfile?.settings?.security?.keepLocalProfileBackup === false) return null;
       } catch {
-        localStorage.removeItem(this.getProfileBackupKey(userId));
+        this.removeProfileBackup(this.getProfileBackupKey(userId));
       }
     }
     // Backwards compatibility: older builds saved under the generic
@@ -307,9 +323,8 @@ export class DatabaseService {
     // keys predate account-scoped storage and can contain another signed-in
     // person's profile on a shared browser.
     const backup = userId === 'current'
-      ? localStorage.getItem(this.getProfileBackupKey(userId)) ||
-        localStorage.getItem(this.getProfileBackupKey())
-      : localStorage.getItem(this.getProfileBackupKey(userId));
+      ? userBackup || this.readProfileBackup(this.getProfileBackupKey())
+      : userBackup;
     if (!backup) return null;
     try {
       const parsed = JSON.parse(backup);

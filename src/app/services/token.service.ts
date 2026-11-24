@@ -18,14 +18,21 @@ export class TokenService {
   isApiToken = this._isApiToken.asReadonly();
 
   constructor() {
-    if (typeof localStorage !== 'undefined') {
-      const token = localStorage.getItem(TOKEN_STORAGE_KEY);
-      const source = this.readStoredSource(token);
-      this._jwtToken.set(token);
-      this._tokenSource.set(source);
-      // Unknown legacy storage is intentionally not trusted as an API token.
-      this._isApiToken.set(source === 'api');
+    let token: string | null = null;
+    try {
+      if (typeof localStorage !== 'undefined') {
+        token = localStorage.getItem(TOKEN_STORAGE_KEY);
+      }
+    } catch {
+      // A blocked store must not break application boot; the session simply
+      // starts signed out until the artist signs in again.
+      token = null;
     }
+    const source = this.readStoredSource(token);
+    this._jwtToken.set(token);
+    this._tokenSource.set(source);
+    // Unknown legacy storage is intentionally not trusted as an API token.
+    this._isApiToken.set(source === 'api');
   }
 
   setToken(token: string | null, source: Exclude<TokenSource, null> = 'api') {
@@ -34,21 +41,31 @@ export class TokenService {
     this._tokenSource.set(nextSource);
     this._isApiToken.set(nextSource === 'api');
 
-    if (typeof localStorage !== 'undefined') {
-      if (token) {
-        localStorage.setItem(TOKEN_STORAGE_KEY, token);
-        localStorage.setItem(TOKEN_SOURCE_STORAGE_KEY, source);
-      } else {
-        localStorage.removeItem(TOKEN_STORAGE_KEY);
-        localStorage.removeItem(TOKEN_SOURCE_STORAGE_KEY);
+    try {
+      if (typeof localStorage !== 'undefined') {
+        if (token) {
+          localStorage.setItem(TOKEN_STORAGE_KEY, token);
+          localStorage.setItem(TOKEN_SOURCE_STORAGE_KEY, source);
+        } else {
+          localStorage.removeItem(TOKEN_STORAGE_KEY);
+          localStorage.removeItem(TOKEN_SOURCE_STORAGE_KEY);
+        }
       }
+    } catch {
+      // The in-memory token still works for this session when storage is blocked.
     }
   }
 
   private readStoredSource(token: string | null): TokenSource {
-    if (!token || typeof localStorage === 'undefined') return null;
+    if (!token) return null;
 
-    const stored = localStorage.getItem(TOKEN_SOURCE_STORAGE_KEY);
+    let stored: string | null = null;
+    try {
+      if (typeof localStorage === 'undefined') return null;
+      stored = localStorage.getItem(TOKEN_SOURCE_STORAGE_KEY);
+    } catch {
+      return null;
+    }
     if (stored === 'api' || stored === 'legacy') return stored;
 
     // Migrate tokens created before provenance was persisted. The active API

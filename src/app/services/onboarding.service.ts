@@ -239,10 +239,13 @@ export class OnboardingService {
   }
 
   private readDismissedState(): boolean {
-    if (typeof window === 'undefined') {
+    try {
+      if (typeof window === 'undefined') return false;
+      return localStorage.getItem('smuve_onboarding_dismissed') === 'true';
+    } catch {
+      // An unreadable store shows the tour rather than breaking the shell.
       return false;
     }
-    return localStorage.getItem('smuve_onboarding_dismissed') === 'true';
   }
 
   // ░░░ Sprint C3 — First Beat Tour ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
