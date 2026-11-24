@@ -684,6 +684,31 @@ describe('ChatbotComponent', () => {
     blocked!.destroy();
   });
 
+  it('restores a legacy desk when the migration write is blocked', () => {
+    const users = TestBed.inject(UserStoreService);
+    users.user.set(null);
+    sessionStorage.setItem('smuve.master.desk.v1', 'coach');
+    const setItem = jest
+      .spyOn(Storage.prototype, 'setItem')
+      .mockImplementation(() => {
+        throw new Error('storage blocked');
+      });
+
+    let blocked: ComponentFixture<ChatbotComponent> | null = null;
+    expect(() => {
+      blocked = TestBed.createComponent(ChatbotComponent);
+      blocked.componentInstance.ngOnInit();
+      blocked.detectChanges();
+    }).not.toThrow();
+
+    setItem.mockRestore();
+    // The desk still opens for this session and the legacy copy is kept for a
+    // later, writable visit instead of being dropped.
+    expect(blocked!.componentInstance.activeDeskLabel()).toBe('Coach');
+    expect(sessionStorage.getItem('smuve.master.desk.v1')).toBe('coach');
+    blocked!.destroy();
+  });
+
   it('restores the guest desk on sign-out instead of the account desk', async () => {
     const users = TestBed.inject(UserStoreService);
     users.user.set(null);

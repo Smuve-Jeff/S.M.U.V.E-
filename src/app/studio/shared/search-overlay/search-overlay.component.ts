@@ -114,8 +114,12 @@ export class SearchOverlayComponent implements OnInit {
     );
     this.recentSearches.set(updated);
 
-    if (typeof localStorage !== "undefined") {
-      localStorage.setItem(this.RECENT_SEARCHES_KEY, JSON.stringify(updated));
+    try {
+      if (typeof localStorage !== "undefined") {
+        localStorage.setItem(this.RECENT_SEARCHES_KEY, JSON.stringify(updated));
+      }
+    } catch {
+      /* blocked storage: the picker still shows this session's recents */
     }
   }
 }

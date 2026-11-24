@@ -77,4 +77,26 @@ describe("CoWriteService.saveProject", () => {
     expect(service.lastSaveError()).toBeNull();
     expect(service.savedProjects()).toHaveLength(1);
   });
+
+  it("drops a deleted project from the list when the store refuses the write", () => {
+    const saved = service.saveProject("Take 1");
+    expect(saved).not.toBeNull();
+    const setItem = jest
+      .spyOn(Storage.prototype, "setItem")
+      .mockImplementation(() => {
+        throw new Error("QuotaExceededError");
+      });
+
+    let removed = false;
+    try {
+      expect(() => {
+        removed = service.deleteProject(saved!.id);
+      }).not.toThrow();
+    } finally {
+      setItem.mockRestore();
+    }
+
+    expect(removed).toBe(true);
+    expect(service.savedProjects()).toHaveLength(0);
+  });
 });

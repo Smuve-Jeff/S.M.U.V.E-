@@ -57,4 +57,23 @@ describe('OnboardingService with blocked storage', () => {
     expect(() => service.reset()).not.toThrow();
     expect((service as any).dismissed()).toBe(false);
   });
+
+  it('starts and ends the first beat tour in memory when writes are blocked', () => {
+    jest.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new Error('storage blocked');
+    });
+    jest.spyOn(Storage.prototype, 'removeItem').mockImplementation(() => {
+      throw new Error('storage blocked');
+    });
+    const service = createService();
+
+    expect(() => service.startTour()).not.toThrow();
+    expect(service.currentTour()?.id).toBe('first-beat');
+
+    expect(() => service.exitTour()).not.toThrow();
+    expect(service.currentTour()).toBeNull();
+
+    expect(() => service.completeTour()).not.toThrow();
+    expect(service.currentTour()).toBeNull();
+  });
 });

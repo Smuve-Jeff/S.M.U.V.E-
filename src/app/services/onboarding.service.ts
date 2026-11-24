@@ -294,8 +294,12 @@ export class OnboardingService {
   });
 
   startTour(): void {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(TOUR_STORAGE_KEY, '1');
+    try {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(TOUR_STORAGE_KEY, '1');
+      }
+    } catch {
+      // The tour still runs for this session when storage is blocked.
     }
     this.currentTour.set({
       id: 'first-beat',
@@ -311,15 +315,23 @@ export class OnboardingService {
       this.markStepComplete(step.id);
     }
     this.currentTour.set(null);
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem(TOUR_STORAGE_KEY);
+    try {
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem(TOUR_STORAGE_KEY);
+      }
+    } catch {
+      // Closing the tour never depends on the write.
     }
   }
 
   exitTour(): void {
     this.currentTour.set(null);
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem(TOUR_STORAGE_KEY);
+    try {
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem(TOUR_STORAGE_KEY);
+      }
+    } catch {
+      // Closing the tour never depends on the write.
     }
   }
 

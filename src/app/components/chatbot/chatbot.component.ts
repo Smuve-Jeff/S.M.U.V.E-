@@ -1320,14 +1320,20 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
     const definition = artistRoleForAlias(parsed.alias);
     if (!definition) return null;
 
-    sessionStorage.setItem(
-      key,
-      JSON.stringify({ alias: definition.aliases[0], turns: parsed.turns })
-    );
-    sessionStorage.removeItem(DESK_STORAGE_KEY);
-    // Migrated into the guest bucket only because the owner was not known
-    // yet; if an account resolves next, the desk moves with it.
-    this.legacyDeskMigrated = this.owner === null;
+    try {
+      sessionStorage.setItem(
+        key,
+        JSON.stringify({ alias: definition.aliases[0], turns: parsed.turns })
+      );
+      sessionStorage.removeItem(DESK_STORAGE_KEY);
+      // Migrated into the guest bucket only because the owner was not known
+      // yet; if an account resolves next, the desk moves with it.
+      this.legacyDeskMigrated = this.owner === null;
+    } catch {
+      // A blocked store keeps the legacy copy for a later, writable visit;
+      // the desk itself is still restored for this session.
+      this.legacyDeskMigrated = false;
+    }
     return { alias: definition.aliases[0], turns: parsed.turns };
   }
 

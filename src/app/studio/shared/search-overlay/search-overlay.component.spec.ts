@@ -22,4 +22,32 @@ describe('SearchOverlayComponent with blocked storage', () => {
     expect(() => fixture.componentInstance.clearRecentSearches()).not.toThrow();
     fixture.destroy();
   });
+
+  it('keeps a picked result in this session’s recents when the write is blocked', () => {
+    const fixture = TestBed.createComponent(SearchOverlayComponent);
+    fixture.detectChanges();
+    const setItem = jest
+      .spyOn(Storage.prototype, 'setItem')
+      .mockImplementation(() => {
+        throw new Error('storage blocked');
+      });
+
+    try {
+      expect(() =>
+        fixture.componentInstance.onSelectResult({
+          id: '1',
+          title: 'Deep Bass Synth',
+          type: 'preset',
+          icon: 'settings_input_component',
+        })
+      ).not.toThrow();
+    } finally {
+      setItem.mockRestore();
+    }
+
+    expect(fixture.componentInstance.recentSearches()).toEqual([
+      'Deep Bass Synth',
+    ]);
+    fixture.destroy();
+  });
 });

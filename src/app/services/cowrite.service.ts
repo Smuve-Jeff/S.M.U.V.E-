@@ -1073,7 +1073,12 @@ export class CoWriteService {
     const projects = this.loadProjects();
     const filtered = projects.filter((p) => p.id !== projectId);
     if (filtered.length === projects.length) return false;
-    localStorage.setItem(this.STORAGE_KEY, JSON.stringify(filtered));
+    try {
+      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(filtered));
+    } catch {
+      // The project still leaves the list for this session when the store is
+      // blocked; the next save reports the failure in lastSaveError.
+    }
     this.projectsSignal.set(filtered);
     return true;
   }

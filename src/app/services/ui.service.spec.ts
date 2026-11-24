@@ -151,3 +151,39 @@ describe('UIService assistant drawer state', () => {
     expect(service.pendingChatPrompt()?.length).toBe(2800);
   });
 });
+
+describe('UIService with blocked storage', () => {
+  let service: UIService;
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({
+      providers: [
+        { provide: Router, useValue: { navigateByUrl: jest.fn() } },
+        {
+          provide: UserProfileService,
+          useValue: { profile: () => null, updateProfile: jest.fn() },
+        },
+      ],
+    });
+    service = TestBed.inject(UIService);
+  });
+
+  it('tracks recent and pinned workspaces in memory when writes are blocked', () => {
+    const setItem = jest
+      .spyOn(Storage.prototype, 'setItem')
+      .mockImplementation(() => {
+        throw new Error('storage blocked');
+      });
+    const mode = service.getViewModes().find((view) => view !== 'login')!;
+
+    try {
+      expect(() => service.recordRecentView(mode)).not.toThrow();
+      expect(() => service.togglePinnedView(mode)).not.toThrow();
+    } finally {
+      setItem.mockRestore();
+    }
+
+    expect(service.recentViewModes()).toContain(mode);
+    expect(service.pinnedViewModes()).toContain(mode);
+  });
+});
