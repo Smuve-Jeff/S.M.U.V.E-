@@ -520,6 +520,36 @@ describe('ChatbotComponent', () => {
     restoredFixture.destroy();
   });
 
+  it('closes a guest desk when an account appears and restores the account desk', async () => {
+    const users = TestBed.inject(UserStoreService);
+    users.user.set(null);
+    fixture.detectChanges();
+    TestBed.flushEffects();
+
+    // Account A has its own saved desk from a previous session.
+    sessionStorage.setItem(
+      'smuve.master.desk.v1:artist-a',
+      JSON.stringify({ alias: 'ar', turns: [] })
+    );
+
+    await (component as any).routeMasterIntent('/coach');
+    expect(component.activeDeskLabel()).toBe('Coach');
+    expect(sessionStorage.getItem('smuve.master.desk.v1:guest')).toContain(
+      '"alias":"coach"'
+    );
+
+    users.user.set({ id: 'artist-a' } as any);
+    fixture.detectChanges();
+    TestBed.flushEffects();
+
+    // The guest desk did not carry in; A's own saved desk was restored, and
+    // the guest's state remains in its own bucket.
+    expect(component.activeDeskLabel()).toBe('A&R');
+    expect(sessionStorage.getItem('smuve.master.desk.v1:guest')).toContain(
+      '"alias":"coach"'
+    );
+  });
+
   it('scopes the saved desk to the account and never lets another inherit it', async () => {
     const users = TestBed.inject(UserStoreService);
     users.user.set({ id: 'artist-a' } as any);

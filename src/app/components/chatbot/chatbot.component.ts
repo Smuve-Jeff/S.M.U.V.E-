@@ -696,17 +696,17 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
     effect(() => {
       const nextOwner = this.injector.get(UserStoreService).user()?.id || this.profile()?.id || null;
       if (nextOwner === this.owner) return;
-      // A restored desk is loaded before the first owner read; only a real
-      // account change may close it.
-      const hadOwner = this.owner !== null;
+      // Signing in from a guest session is also an owner change: the guest
+      // desk must not carry into the account. Close against the old scope
+      // (guest or the previous account) before the id changes, keeping its
+      // saved state, then load only the incoming account's own desk.
+      const hadDesk = this.activeDesk() !== null;
       this.cancelReply();
-      // Close against the old account before the id changes, so account B
-      // never inherits account A's desk or deletes B's own saved state.
-      if (hadOwner) this.closeDesk(false);
+      if (hadDesk) this.closeDesk(false);
       this.owner = nextOwner;
       this.messages.set([]);
       this.announcedRooms.clear();
-      if (hadOwner) this.restoreDesk();
+      this.restoreDesk();
       if (!this.restoreMessages()) this.setWelcomeGreeting();
     });
 
