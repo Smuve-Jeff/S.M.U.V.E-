@@ -325,6 +325,8 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
     string,
     { question: string; answer: string; label?: string }[]
   >();
+  /** True when the open desk was just migrated from the old unscoped key. */
+  private legacyDeskMigrated = false;
   userInput = '';
   isTyping = signal(false);
   /** False until the welcome (or restored transcript) is in place. */
@@ -701,7 +703,33 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
       // (guest or the previous account) before the id changes, keeping its
       // saved state, then load only the incoming account's own desk.
       const hadDesk = this.activeDesk() !== null;
+      const guestKey = this.deskStorageKey();
+      const accountKey = this.deskStorageKeyFor(nextOwner);
+      // A legacy desk migrated moments ago into the guest bucket belongs to
+      // the account that has just resolved, not to the guest. Move it there
+      // and keep it open instead of closing and losing it. An account that
+      // already has its own saved desk keeps that one.
+      const promoteLegacy =
+        hadDesk &&
+        this.owner === null &&
+        nextOwner !== null &&
+        this.legacyDeskMigrated &&
+        !sessionStorage.getItem(accountKey);
       this.cancelReply();
+      if (promoteLegacy) {
+        this.owner = nextOwner;
+        this.persistDesk();
+        try {
+          sessionStorage.removeItem(guestKey);
+        } catch {
+          // The account copy is what matters; a blocked guest key is stale.
+        }
+        this.legacyDeskMigrated = false;
+        this.messages.set([]);
+        this.announcedRooms.clear();
+        if (!this.restoreMessages()) this.setWelcomeGreeting();
+        return;
+      }
       if (hadDesk) this.closeDesk(false);
       this.owner = nextOwner;
       this.messages.set([]);
@@ -1197,7 +1225,11 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
 
   /** Saved desks are scoped to the signed-in account (or a guest bucket). */
   private deskStorageKey(): string {
-    return `${DESK_STORAGE_KEY}:${encodeURIComponent(this.owner ?? 'guest')}`;
+    return this.deskStorageKeyFor(this.owner);
+  }
+
+  private deskStorageKeyFor(owner: string | null): string {
+    return `${DESK_STORAGE_KEY}:${encodeURIComponent(owner ?? 'guest')}`;
   }
 
   private persistDesk(): void {
@@ -1230,6 +1262,7 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
     const desk = this.activeDesk();
     if (desk) this.deskTurns.delete(desk.role);
     this.activeDesk.set(null);
+    this.legacyDeskMigrated = false;
     if (!forget) return;
     try {
       sessionStorage.removeItem(this.deskStorageKey());
@@ -1284,6 +1317,9 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
       JSON.stringify({ alias: definition.aliases[0], turns: parsed.turns })
     );
     sessionStorage.removeItem(DESK_STORAGE_KEY);
+    // Migrated into the guest bucket only because the owner was not known
+    // yet; if an account resolves next, the desk moves with it.
+    this.legacyDeskMigrated = this.owner === null;
     return { alias: definition.aliases[0], turns: parsed.turns };
   }
 

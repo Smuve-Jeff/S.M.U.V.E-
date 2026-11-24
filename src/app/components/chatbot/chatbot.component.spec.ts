@@ -543,6 +543,40 @@ describe('ChatbotComponent', () => {
     restoredFixture.destroy();
   });
 
+  it('moves a legacy guest migration into the account when it resolves', () => {
+    const users = TestBed.inject(UserStoreService);
+    users.user.set(null);
+    fixture.detectChanges();
+    TestBed.flushEffects();
+
+    sessionStorage.setItem('smuve.master.desk.v1', 'coach');
+
+    const restoredFixture = TestBed.createComponent(ChatbotComponent);
+    const restored = restoredFixture.componentInstance;
+    restored.ngOnInit();
+    restoredFixture.detectChanges();
+
+    // Migrated provisionally into the guest bucket because no owner was known.
+    expect(restored.activeDeskLabel()).toBe('Coach');
+    expect(sessionStorage.getItem('smuve.master.desk.v1:guest')).toContain(
+      '"alias":"coach"'
+    );
+
+    users.user.set({ id: 'artist-a' } as any);
+    restoredFixture.detectChanges();
+    TestBed.flushEffects();
+
+    // When the account resolves shortly after, the desk moves with it rather
+    // than staying guest-owned or being lost.
+    expect(restored.activeDeskLabel()).toBe('Coach');
+    expect(sessionStorage.getItem('smuve.master.desk.v1:artist-a')).toContain(
+      '"alias":"coach"'
+    );
+    expect(sessionStorage.getItem('smuve.master.desk.v1:guest')).toBeNull();
+
+    restoredFixture.destroy();
+  });
+
   it('restores the guest desk on sign-out instead of the account desk', async () => {
     const users = TestBed.inject(UserStoreService);
     users.user.set(null);
