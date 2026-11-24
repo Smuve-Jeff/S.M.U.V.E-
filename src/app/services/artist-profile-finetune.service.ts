@@ -307,7 +307,9 @@ export class ArtistProfileFinetuneService {
   private sensitiveDetailsHidden(
     profile: UserProfile | null | undefined
   ): boolean {
-    return profile?.settings?.security?.hideSensitiveProfileDetails === true;
+    // Same default as the model prompt: details are hidden unless the artist
+    // explicitly chose to share them.
+    return profile?.settings?.security?.hideSensitiveProfileDetails !== false;
   }
 
   private redactedDirective(
@@ -318,7 +320,7 @@ export class ArtistProfileFinetuneService {
       role,
       profileState: state,
       directive:
-        'Use general guidance only for this role. The artist chose to hide sensitive profile details, so do not quote biography, constraints, audience, rights or gear back to them.',
+        `Profile state: ${state}. Use general guidance only for this role. The artist chose to hide sensitive profile details, so do not quote biography, constraints, audience, rights or gear back to them.`,
       tips: ['Ask before using any artist-specific profile detail.'],
       guardrails: [
         'Sensitive profile-derived details are hidden by privacy setting.',

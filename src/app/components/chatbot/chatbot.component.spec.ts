@@ -429,7 +429,26 @@ describe('ChatbotComponent', () => {
     expect(sessionStorage.getItem('smuve.master.desk.v1')).toBeNull();
   });
 
-  it('files desk turns in the case file under the expert', async () => {
+  it('files a desk question in the case file under the expert', async () => {
+    const memory = TestBed.inject(SmuveMemoryService);
+    const capture = jest.spyOn(memory, 'captureTurn');
+    aiServiceMock.getAIResponse = jest.fn().mockResolvedValue('Phase first.');
+
+    component.userInput = '/ar what do I fix first?';
+    await component.sendMessage();
+
+    expect(component.messages().at(-1)?.text).toContain('Phase first.');
+    expect((component as any).caseFile).toBe(memory);
+    expect(capture).toHaveBeenCalledWith(
+      expect.any(String),
+      'A&R Desk',
+      expect.stringContaining('/ar'),
+      expect.stringContaining('Phase first.')
+    );
+    capture.mockRestore();
+  });
+
+  it('does not file a bare desk command in the case file', async () => {
     const memory = TestBed.inject(SmuveMemoryService);
     const capture = jest.spyOn(memory, 'captureTurn');
 
@@ -437,14 +456,45 @@ describe('ChatbotComponent', () => {
     await component.sendMessage();
 
     expect(component.messages().at(-1)?.text).toContain('A&R DESK');
-    expect((component as any).caseFile).toBe(memory);
-    expect(capture).toHaveBeenCalledWith(
-      expect.any(String),
-      'A&R Desk',
-      expect.stringContaining('/ar'),
-      expect.stringContaining('A&R DESK')
-    );
+    expect(capture).not.toHaveBeenCalled();
     capture.mockRestore();
+  });
+
+  it('carries the previous exchange into the receiving desk', async () => {
+    aiServiceMock.getAIResponse = jest
+      .fn()
+      .mockResolvedValueOnce('Phase first.')
+      .mockResolvedValue('Check translation next.');
+
+    component.userInput = '/ar why is my low end muddy?';
+    await component.sendMessage();
+
+    await component.runChatAction({
+      id: 'desk-switch',
+      label: 'Take this to the Marketing',
+      data: 'marketing',
+    });
+
+    component.userInput = 'what should the campaign say?';
+    await component.sendMessage();
+
+    const prompt = aiServiceMock.getAIResponse.mock.calls[1][0] as string;
+    expect(prompt).toContain('why is my low end muddy?');
+    expect(prompt).toContain('Phase first.');
+    expect(prompt).toContain('A&R:');
+    expect(component.activeDeskLabel()).toBe('Marketing');
+  });
+
+  it('keeps a desk restored from the session after the owner read', () => {
+    sessionStorage.setItem('smuve.master.desk.v1', 'coach');
+    const restoredFixture = TestBed.createComponent(ChatbotComponent);
+    const restored = restoredFixture.componentInstance;
+
+    restored.ngOnInit();
+    restoredFixture.detectChanges();
+
+    expect(restored.activeDeskLabel()).toBe('Coach');
+    restoredFixture.destroy();
   });
 
   it('counts desk opens in category-level telemetry', async () => {

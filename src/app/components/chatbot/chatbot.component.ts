@@ -161,6 +161,8 @@ interface MasterIntent {
   actions: ChatAction[];
   /** Set when a role desk produced this turn. */
   desk?: string;
+  /** False for a bare desk opening; the case file stores exchanges, not commands. */
+  filed?: boolean;
 }
 
 /** Closing line when the interview ladder runs out of questions. */
@@ -321,7 +323,7 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
   /** Per-desk conversation memory; `/exit` clears the desk it closes. */
   private readonly deskTurns = new Map<
     string,
-    { question: string; answer: string }[]
+    { question: string; answer: string; label?: string }[]
   >();
   userInput = '';
   isTyping = signal(false);
@@ -694,11 +696,14 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
     effect(() => {
       const nextOwner = this.injector.get(UserStoreService).user()?.id || this.profile()?.id || null;
       if (nextOwner === this.owner) return;
+      // A restored desk is loaded before the first owner read; only a real
+      // account change may close it.
+      const hadOwner = this.owner !== null;
       this.cancelReply();
       this.owner = nextOwner;
       this.messages.set([]);
       this.announcedRooms.clear();
-      this.closeDesk();
+      if (hadOwner) this.closeDesk();
       if (!this.restoreMessages()) this.setWelcomeGreeting();
     });
 
@@ -916,7 +921,9 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
       // Only conversation is filed. Command acknowledgements and knowledge
       // modules are not verdicts, and filing them would make the case file
       // look like a log instead of a manager's memory.
-      if (!intent || intent.desk) this.recordCaseTurn(text, content, intent?.desk);
+      if (!intent || (intent.desk && intent.filed !== false)) {
+        this.recordCaseTurn(text, content, intent?.desk);
+      }
       this.syncInterviewCard();
       if (generation !== this.replyGeneration || this.destroyed) return;
 
@@ -1223,10 +1230,11 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
   private rememberDeskTurn(
     role: string,
     question: string,
-    answer: string
+    answer: string,
+    label?: string
   ): void {
     const turns = this.deskTurns.get(role) ?? [];
-    turns.push({ question, answer });
+    turns.push({ question, answer, label });
     this.deskTurns.set(role, turns.slice(-DESK_TURN_MAX));
   }
 
@@ -1242,7 +1250,7 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
       .slice(-4)
       .map(
         (turn) =>
-          `Artist: ${turn.question}\n${definition.label}: ${turn.answer}`
+          `Artist: ${turn.question}\n${turn.label ?? definition.label}: ${turn.answer}`
       )
       .join('\n\n');
   }
@@ -1334,6 +1342,7 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
         content: `${label.toUpperCase()} DESK\n${playbook}\n\nAsk a follow-up: /${alias} <question>\n/exit leaves this desk.`,
         actions,
         desk: label,
+        filed: false,
       };
     }
 
@@ -2692,8 +2701,22 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
           result = 'That desk is unavailable right now.';
           break;
         }
+        // The receiving expert needs the exchange that caused the handoff,
+        // not just the new persona, or the first follow-up repeats context.
+        const previous = this.activeDesk();
+        const carried = previous
+          ? (this.deskTurns.get(previous.role) ?? []).at(-1)
+          : undefined;
         const intent = await this.routeMasterIntent(`/${next.aliases[0]}`);
         if (intent) {
+          if (carried) {
+            this.rememberDeskTurn(
+              next.role,
+              carried.question,
+              carried.answer,
+              carried.label ?? previous?.label
+            );
+          }
           await this.streamResponse(
             intent.content,
             'system',

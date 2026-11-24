@@ -386,7 +386,15 @@ describe('ArtistProfileFinetuneService', () => {
   });
 
   it('compiles a calibrated profile into role-specific adaptation', () => {
-    profileSignal.set({ ...strongProfile, settings: { security: { shareProfileAnswersWithAi: true } } } as any);
+    profileSignal.set({
+      ...strongProfile,
+      settings: {
+        security: {
+          shareProfileAnswersWithAi: true,
+          hideSensitiveProfileDetails: false,
+        },
+      },
+    } as any);
     const knowledge = service.knowledge();
 
     expect(knowledge.state).toBe('calibrated');
@@ -583,6 +591,22 @@ describe('ArtistProfileFinetuneService', () => {
     expect(service.promptBlock()).toContain('kitchen light and train platforms');
   });
 
+  it('hides sensitive details by default, matching the model prompt', () => {
+    profileSignal.set({
+      ...strongProfile,
+      settings: { security: { shareProfileAnswersWithAi: true } },
+    } as any);
+
+    const directive = service.directiveFor('songwriter');
+    expect(directive.directive).toContain('hide sensitive profile details');
+    expect(directive.directive).not.toContain('kitchen light and train platforms');
+    expect(directive.tips.join(' ')).not.toContain('Reaper');
+
+    const preview = service.directiveForProfile('producer', profileSignal());
+    expect(preview.directive).toContain('hide sensitive profile details');
+    expect(preview.directive).not.toContain('keep the room tone');
+  });
+
   it('withholds sensitive details from every role directive when the artist hides them', () => {
     profileSignal.set({
       ...strongProfile,
@@ -630,7 +654,12 @@ describe('ArtistProfileFinetuneService', () => {
   it('withholds the held genre from every role desk', () => {
     profileSignal.set({
       primaryGenre: 'Hip Hop',
-      settings: { security: { shareProfileAnswersWithAi: true } },
+      settings: {
+        security: {
+          shareProfileAnswersWithAi: true,
+          hideSensitiveProfileDetails: false,
+        },
+      },
     } as UserProfile);
 
     for (const role of ARTIST_ROLE_IDS) {
@@ -645,7 +674,15 @@ describe('ArtistProfileFinetuneService', () => {
   });
 
   it('keeps every role inside the artist guardrails and away from imitation', () => {
-    profileSignal.set({ ...strongProfile, settings: { security: { shareProfileAnswersWithAi: true } } } as any);
+    profileSignal.set({
+      ...strongProfile,
+      settings: {
+        security: {
+          shareProfileAnswersWithAi: true,
+          hideSensitiveProfileDetails: false,
+        },
+      },
+    } as any);
     const legal = service.directiveFor('legal');
     const voice = service.voiceSpec();
 
@@ -721,7 +758,16 @@ describe('ArtistProfileFinetuneService', () => {
     });
 
     it('routes a beginner toward the plan instead of dashboards or analytics', () => {
-      profileSignal.set({ artistName: 'First Take', primaryGenre: 'Hip Hop', settings: { security: { shareProfileAnswersWithAi: true } } } as any);
+      profileSignal.set({
+        artistName: 'First Take',
+        primaryGenre: 'Hip Hop',
+        settings: {
+          security: {
+            shareProfileAnswersWithAi: true,
+            hideSensitiveProfileDetails: false,
+          },
+        },
+      } as any);
 
       const promotion = service.directiveFor('promotion');
       expect(promotion.tips.join(' ')).toContain(
