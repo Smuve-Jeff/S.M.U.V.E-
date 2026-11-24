@@ -5,7 +5,10 @@ import {
   HttpTestingController,
 } from '@angular/common/http/testing';
 import { AiService } from './ai.service';
-import { GROWTH_WITHHELD } from './growth-brief.util';
+import {
+  GROWTH_TRUNCATED_NOTE,
+  GROWTH_WITHHELD,
+} from './growth-brief.util';
 import { STRATEGIC_DECREES } from './ai-knowledge.data';
 import {
   MarketingService,
@@ -202,18 +205,23 @@ describe('AiService growth brief', () => {
     expect(end).toBeGreaterThan(start);
     const region = prompt.slice(start, end).trim();
 
-    // The slice dropped data (it outgrew the budget), kept the rules, and ended
-    // on a complete platform row rather than half of one.
+    // The slice dropped data (it outgrew the budget), kept the rules, and told
+    // the model that the record continues past what it can see.
     expect(region.length).toBeLessThan(brief.length);
     expect(region).toContain('BINDING GROWTH RULES');
+    expect(region.endsWith(GROWTH_TRUNCATED_NOTE)).toBe(true);
+
+    const body = region
+      .slice(0, region.length - GROWTH_TRUNCATED_NOTE.length)
+      .trim();
     const wholeLines = brief.split('\n');
     // Every line that survived is a whole line of the brief, and the last one
     // is a complete platform row rather than the front half of one.
-    region
+    body
       .split('\n')
       .filter((line) => line.trim())
       .forEach((line) => expect(wholeLines).toContain(line));
-    const lastLine = region.split('\n').pop() ?? '';
+    const lastLine = body.split('\n').pop() ?? '';
     expect(lastLine).toMatch(/^- Platform \d+: .+\)\.$/);
     expect(wholeLines).toContain(lastLine);
   });

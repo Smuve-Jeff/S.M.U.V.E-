@@ -51,20 +51,35 @@ export function growthGapLabel(months: readonly string[]): string {
 }
 
 /**
+ * Appended when the prompt budget forces recorded lines out of the block.
+ *
+ * Without it the surviving lines read as the whole record: a model that sees
+ * two platforms and no note about the rest answers "your growth is three
+ * platforms" with full confidence. The note costs one line and makes the cut
+ * itself part of the evidence.
+ */
+export const GROWTH_TRUNCATED_NOTE =
+  '[GROWTH RECORD CUT SHORT — more recorded platforms or months exist than fit in this block. Say so when the answer depends on them; never treat the lines above as the whole record.]';
+
+/**
  * Trims a brief to the prompt budget without splitting a line.
  *
  * A hard character cut lands inside a platform row, and the model then reads a
  * figure with no month attached to it — the exact shape of a fabricated number.
- * Cutting at the last newline keeps every surviving line whole. A limit too
- * narrow for a single line still returns the first line, because the first
- * line carries the rules that bind whatever follows.
+ * Cutting at the last newline keeps every surviving line whole, and the
+ * truncation note rides along inside the same budget so a cut block announces
+ * itself. A limit too narrow for the note returns nothing at all: half a record
+ * with no warning is worse than no record.
  */
 export function trimGrowthBrief(text: string, limit: number): string {
   if (limit <= 0) return '';
   if (text.length <= limit) return text;
-  const cut = text.slice(0, limit);
+  const note = `\n${GROWTH_TRUNCATED_NOTE}`;
+  if (limit <= note.length) return '';
+  const cut = text.slice(0, limit - note.length);
   const lastBreak = cut.lastIndexOf('\n');
-  return lastBreak > 0 ? cut.slice(0, lastBreak).trimEnd() : cut;
+  const body = (lastBreak > 0 ? cut.slice(0, lastBreak) : cut).trimEnd();
+  return body ? `${body}${note}` : GROWTH_TRUNCATED_NOTE;
 }
 
 const signed = (value: number): string =>

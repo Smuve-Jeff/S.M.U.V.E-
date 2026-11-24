@@ -630,7 +630,9 @@ Remember: sharpen the artist's decisions, sign the work with a GOD's signature, 
     const available = Math.max(0, prefixBudget - directives.length - 64);
     // Line-boundary trim: a mid-line cut leaves a figure without its month,
     // which is exactly how an invented number gets read as a recorded one.
-    const keptGrowth = trimGrowthBrief(growth, Math.min(1200, available));
+    // 1,400 holds the header, the rules and a handful of platform rows without
+    // a note; anything longer is trimmed with its own cut-short marker.
+    const keptGrowth = trimGrowthBrief(growth, Math.min(1400, available));
     const afterGrowth = Math.max(0, available - keptGrowth.length);
     const keptArtist = artist.slice(0, Math.min(2000, afterGrowth));
     const afterArtist = Math.max(0, afterGrowth - keptArtist.length);

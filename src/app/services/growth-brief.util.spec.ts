@@ -1,4 +1,5 @@
 import {
+  GROWTH_TRUNCATED_NOTE,
   GROWTH_WITHHELD,
   buildGrowthBrief,
   growthGapLabel,
@@ -203,20 +204,33 @@ describe('growth brief for the model prompt', () => {
     const trimmed = trimGrowthBrief(brief, 1200);
 
     expect(trimmed.length).toBeLessThanOrEqual(1200);
+    expect(trimmed).toContain('BINDING GROWTH RULES');
+    // The cut announces itself, so the model cannot read what survived as the
+    // whole record.
+    expect(trimmed.endsWith(GROWTH_TRUNCATED_NOTE)).toBe(true);
+    const body = trimmed
+      .slice(0, trimmed.length - GROWTH_TRUNCATED_NOTE.length)
+      .trimEnd();
     // Nothing falls off the front, and the cut lands exactly on a newline: the
     // model can never receive half a platform row with a figure and no month.
-    expect(brief.startsWith(trimmed)).toBe(true);
-    expect(brief[trimmed.length]).toBe('\n');
+    expect(brief.startsWith(body)).toBe(true);
+    expect(brief[body.length]).toBe('\n');
     const whole = brief.split('\n');
-    trimmed.split('\n').forEach((line) => expect(whole).toContain(line));
-    expect(trimmed).toContain('BINDING GROWTH RULES');
+    body.split('\n').forEach((line) => expect(whole).toContain(line));
   });
 
-  it('leaves a brief that fits untouched, and hard-cuts a single unbroken line', () => {
+  it('leaves a brief that fits untouched, without a truncation note', () => {
     const brief = buildGrowthBrief(growth());
     expect(trimGrowthBrief(brief, 5000)).toBe(brief);
-    expect(trimGrowthBrief('x'.repeat(50), 10)).toBe('x'.repeat(10));
+    expect(trimGrowthBrief(brief, 5000)).not.toContain(GROWTH_TRUNCATED_NOTE);
     expect(trimGrowthBrief(brief, 0)).toBe('');
+  });
+
+  it('would rather drop the block than cut it without warning', () => {
+    // A limit too small for even the note returns nothing: a silently partial
+    // record is worse than no record at all.
+    expect(trimGrowthBrief('x'.repeat(50), 10)).toBe('');
+    expect(trimGrowthBrief(GROWTH_TRUNCATED_NOTE, 10)).toBe('');
   });
 
   it('carries the withheld notice for artists who do not share figures', () => {
