@@ -3,7 +3,13 @@ import { UserProfile, UserProfileService } from './user-profile.service';
 import { ArtistProfileFinetuneService, ArtistProfileKnowledge } from './artist-profile-finetune.service';
 import { initialProfile } from './user-profile.service';
 import { buildMusicalDnaContext } from '../types/musical-dna.types';
-import { GenreResolution, resolveGenre } from './genre-catalog.util';
+import {
+  GenreResolution,
+  hybridProductionNotes,
+  hybridTempoRange,
+  resolveGenre,
+  secondaryStructures,
+} from './genre-catalog.util';
 
 export interface GenreAdaptationProfile {
   id: string;
@@ -43,7 +49,23 @@ export interface GenreAdaptationProfile {
     proAffiliation: string;
     splitSheetRequirement: string;
   };
+  /** Present only when the artist names two families, e.g. "Country Trap". */
+  hybrid?: {
+    label: string;
+    secondaryLabels: string[];
+    tempoRange: [number, number];
+    structures: string[];
+    productionNotes: string[];
+  };
 }
+
+/** Curated profiles that add business/live detail on top of a catalog family. */
+const CURATED_FAMILY_IDS: Record<string, string> = {
+  'hip-hop': 'hip-hop',
+  electronic: 'electronic-edm',
+  folk: 'singer-songwriter',
+  'rnb-soul': 'rnb-soul',
+};
 
 export interface ArtistAdaptationState {
   profile: UserProfile;
@@ -295,26 +317,20 @@ export class ArtistAdaptiveEngineService {
 
   private detectGenreProfile(profile: UserProfile | null | undefined, knowledge: ArtistProfileKnowledge): GenreAdaptationProfile {
     const genreQuery = (profile?.primaryGenre || '').trim().toLowerCase();
+    // The catalog does the fuzzy work now. The old substring probe ran before
+    // it, so "Country Trap" was claimed by Hip Hop on the word "trap" and the
+    // hybrid never reached the profile; it also matched every artist on an
+    // empty query because `includes('')` is true.
+    const resolved = resolveGenre(profile?.primaryGenre);
     const curated =
+      (resolved
+        ? GENRE_PROFILES.find(
+            (g) => g.id === CURATED_FAMILY_IDS[resolved.family.id]
+          )
+        : undefined) ??
       GENRE_PROFILES.find((g) =>
         g.primaryGenres.some((pg) => pg.toLowerCase() === genreQuery)
-      ) ??
-      // The substring probe used to run on an empty query, where
-      // `pg.includes('')` is true and every artist without a genre was
-      // silently profiled as Hip Hop. It also only had four families, so
-      // Country, Blues, Rock, Gospel, Latin and Jazz fell through to the
-      // "artist-defined" shrug even though the producer still needed a tempo,
-      // a structure and a mix priority.
-      (genreQuery.length >= 3
-        ? GENRE_PROFILES.find((g) =>
-            g.primaryGenres.some(
-              (pg) =>
-                genreQuery.includes(pg.toLowerCase()) ||
-                pg.toLowerCase().includes(genreQuery)
-            )
-          )
-        : undefined);
-    const resolved = resolveGenre(profile?.primaryGenre);
+      );
     const base: GenreAdaptationProfile = curated ??
       (resolved ? this.catalogGenreProfile(resolved, profile) : {
       id: 'artist-defined', label: profile?.primaryGenre || 'Artist-defined', primaryGenres: [],
@@ -326,11 +342,44 @@ export class ArtistAdaptiveEngineService {
       });
     // Explicit answers override suggestions, including hybrid/unlisted genres.
     const range = knowledge.sonic.tempoZone.match(/(\d{2,3})\s*[-–]\s*(\d{2,3})/);
-    const bpm: [number, number] = range && Number(range[1]) >= 40 && Number(range[2]) <= 240 && Number(range[2]) >= Number(range[1]) ? [Number(range[1]), Number(range[2])] : base.productionDefaults.typicalBpmRange;
+    // A hybrid keeps the primary family in front but has to carry the second
+    // half somewhere real: its tempo pulls the working zone, its form is offered
+    // next to the primary one, and its mix priority is named in the directive.
+    const hybrid = resolved?.hybrid
+      ? {
+          label: resolved.label,
+          secondaryLabels: resolved.secondary.map((family) => family.label),
+          tempoRange: hybridTempoRange(resolved),
+          structures: secondaryStructures(resolved).map(
+            (structure) => `${structure.name} (${structure.totalBars} bars)`
+          ),
+          productionNotes: hybridProductionNotes(resolved),
+        }
+      : undefined;
+    const declaredBpm: [number, number] | null =
+      range &&
+      Number(range[1]) >= 40 &&
+      Number(range[2]) <= 240 &&
+      Number(range[2]) >= Number(range[1])
+        ? [Number(range[1]), Number(range[2])]
+        : null;
+    const bpm: [number, number] =
+      declaredBpm ?? hybrid?.tempoRange ?? base.productionDefaults.typicalBpmRange;
+    const mixPriorities = knowledge.craft.mixingPriorities.length
+      ? knowledge.craft.mixingPriorities
+      : base.productionDefaults.mixPriorities;
+    const primaryStructures = knowledge.sonic.arrangement
+      ? [knowledge.sonic.arrangement]
+      : resolved
+        ? resolved.family.structures.map(
+            (structure) => `${structure.name} (${structure.totalBars} bars)`
+          )
+        : base.songwritingRules.typicalStructures;
     return {
       ...base, label: profile?.primaryGenre || base.label,
-      productionDefaults: { ...base.productionDefaults, recommendedDaw: profile?.daw?.length ? profile.daw : base.productionDefaults.recommendedDaw, typicalBpmRange: bpm, mixPriorities: knowledge.craft.mixingPriorities.length ? knowledge.craft.mixingPriorities : base.productionDefaults.mixPriorities, recordingFocus: knowledge.craft.recordingPriorities.length ? knowledge.craft.recordingPriorities : base.productionDefaults.recordingFocus, sonicSignatures: knowledge.sonic.signatureSound ? [knowledge.sonic.signatureSound] : base.productionDefaults.sonicSignatures },
-      songwritingRules: { ...base.songwritingRules, typicalStructures: knowledge.sonic.arrangement ? [knowledge.sonic.arrangement] : resolved ? resolved.family.structures.map((structure) => `${structure.name} (${structure.totalBars} bars)`) : base.songwritingRules.typicalStructures, harmonyApproaches: knowledge.sonic.harmony ? [knowledge.sonic.harmony] : base.songwritingRules.harmonyApproaches, vocalDeliveryStyles: knowledge.sonic.delivery ? [knowledge.sonic.delivery] : base.songwritingRules.vocalDeliveryStyles, lyricalThemePatterns: knowledge.craft.lyricalThemes.length ? knowledge.craft.lyricalThemes : base.songwritingRules.lyricalThemePatterns },
+      hybrid,
+      productionDefaults: { ...base.productionDefaults, recommendedDaw: profile?.daw?.length ? profile.daw : base.productionDefaults.recommendedDaw, typicalBpmRange: bpm, mixPriorities: hybrid ? [...mixPriorities, ...hybrid.productionNotes] : mixPriorities, recordingFocus: knowledge.craft.recordingPriorities.length ? knowledge.craft.recordingPriorities : base.productionDefaults.recordingFocus, sonicSignatures: knowledge.sonic.signatureSound ? [knowledge.sonic.signatureSound] : base.productionDefaults.sonicSignatures },
+      songwritingRules: { ...base.songwritingRules, typicalStructures: hybrid ? [...primaryStructures, ...hybrid.structures] : primaryStructures, harmonyApproaches: knowledge.sonic.harmony ? [knowledge.sonic.harmony] : base.songwritingRules.harmonyApproaches, vocalDeliveryStyles: knowledge.sonic.delivery ? [knowledge.sonic.delivery] : base.songwritingRules.vocalDeliveryStyles, lyricalThemePatterns: knowledge.craft.lyricalThemes.length ? knowledge.craft.lyricalThemes : base.songwritingRules.lyricalThemePatterns, arrangementPatterns: hybrid ? [...base.songwritingRules.arrangementPatterns, `Blend: ${hybrid.productionNotes.join('; ')}`] : base.songwritingRules.arrangementPatterns },
       businessPlaybook: { ...base.businessPlaybook, typicalVelocity: knowledge.business.velocity || base.businessPlaybook.typicalVelocity, incomeStreamPriority: knowledge.business.streams.length ? knowledge.business.streams : base.businessPlaybook.incomeStreamPriority, targetAudience: knowledge.audience.profile || base.businessPlaybook.targetAudience, marketPosition: knowledge.audience.marketPosition || base.businessPlaybook.marketPosition },
     };
   }
@@ -411,6 +460,10 @@ export class ArtistAdaptiveEngineService {
       `PRODUCTION FOR ${genre.label.toUpperCase()}`,
       `Working DAW: ${daw}`,
       `Tempo zone: ${bpm}`,
+      genre.hybrid
+        ? `Hybrid read: ${genre.hybrid.secondaryLabels.join(' + ')} — ${genre.hybrid.productionNotes.join('; ')}`
+        : '',
+      genre.hybrid ? `Alternate form: ${genre.hybrid.structures.join(', ')}` : '',
       `Mix priorities: ${genre.productionDefaults.mixPriorities.join(' > ')}`,
       `Recording focus: ${genre.productionDefaults.recordingFocus.join(', ')}`,
       `Sonic rule: ${sonicRule}`,

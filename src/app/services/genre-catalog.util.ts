@@ -781,6 +781,51 @@ export function resolveGenre(input?: string | null): GenreResolution | null {
   };
 }
 
+/**
+ * Tempo for a hybrid: mostly the primary family's zone, pulled toward the
+ * second half. "Country Trap" keeps a country tempo range but narrows it
+ * toward the 84–100 trap pocket instead of ignoring either side.
+ */
+export function hybridTempoRange(
+  resolution: GenreResolution
+): [number, number] {
+  const [low, high] = resolution.family.bpmRange;
+  if (!resolution.secondary.length) return [low, high];
+  const ranges = resolution.secondary.map((family) => family.bpmRange);
+  const average = (index: 0 | 1) =>
+    ranges.reduce((total, range) => total + range[index], 0) / ranges.length;
+  return [
+    Math.round(low * 0.65 + average(0) * 0.35),
+    Math.round(high * 0.65 + average(1) * 0.35),
+  ];
+}
+
+/** Starting energy for a hybrid, weighted the same way as its tempo. */
+export function hybridEnergy(resolution: GenreResolution): number {
+  if (!resolution.secondary.length) return resolution.family.energy;
+  const average =
+    resolution.secondary.reduce((total, family) => total + family.energy, 0) /
+    resolution.secondary.length;
+  return Math.round((resolution.family.energy * 0.65 + average * 0.35) * 100) / 100;
+}
+
+/** The second half's form, so a hybrid offers both structures, not just one. */
+export function secondaryStructures(
+  resolution: GenreResolution
+): GenreSongStructure[] {
+  return resolution.secondary.map((family) => family.structures[0]);
+}
+
+/** Named production notes that make the second half audible in the plan. */
+export function hybridProductionNotes(
+  resolution: GenreResolution
+): string[] {
+  return resolution.secondary.map(
+    (family) =>
+      `${family.label} half: lead with ${family.mixPriorities[0].toLowerCase()}; keep ${family.sonicSignatures[0].toLowerCase()}`
+  );
+}
+
 /** The family's primary song structure, or null for an unknown genre. */
 export function structureForGenre(
   input?: string | null
@@ -788,14 +833,16 @@ export function structureForGenre(
   return resolveGenre(input)?.family.structures[0] ?? null;
 }
 
-/** Working BPM range for a genre, or null when it cannot be resolved. */
+/** Working BPM range for a genre (hybrid-aware), or null when unknown. */
 export function bpmRangeForGenre(
   input?: string | null
 ): [number, number] | null {
-  return resolveGenre(input)?.family.bpmRange ?? null;
+  const resolution = resolveGenre(input);
+  return resolution ? hybridTempoRange(resolution) : null;
 }
 
-/** Starting energy for a produced idea, or null for an unknown genre. */
+/** Starting energy for a produced idea (hybrid-aware), or null when unknown. */
 export function energyForGenre(input?: string | null): number | null {
-  return resolveGenre(input)?.family.energy ?? null;
+  const resolution = resolveGenre(input);
+  return resolution ? hybridEnergy(resolution) : null;
 }

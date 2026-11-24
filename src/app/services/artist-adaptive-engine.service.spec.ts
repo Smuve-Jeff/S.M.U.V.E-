@@ -157,6 +157,24 @@ describe('Profile-adaptive music manager', () => {
     );
   });
 
+  it('carries the second half of a hybrid into the directive', () => {
+    profile.update((p) => ({ ...p, primaryGenre: 'Country Trap' }));
+
+    const state = service.adaptationState();
+
+    expect(state.genreProfile.id).toBe('country');
+    expect(state.genreProfile.hybrid?.secondaryLabels).toEqual(['Hip Hop']);
+    expect(
+      state.genreProfile.songwritingRules.typicalStructures.join(' | ')
+    ).toContain('Hook-First Rap');
+    expect(
+      state.genreProfile.songwritingRules.arrangementPatterns.join(' | ')
+    ).toContain('Blend:');
+    expect(state.productionDirective).toContain('Hybrid read: Hip Hop');
+    expect(state.productionDirective).toContain('Hip Hop half');
+    expect(state.productionDirective).toContain('Alternate form: Hook-First Rap');
+  });
+
   it('never profiles a missing genre as Hip Hop', () => {
     // The old substring probe ran on an empty query, where `includes('')` is
     // true, so an artist with no genre was silently given the Hip Hop playbook.

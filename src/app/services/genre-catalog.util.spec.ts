@@ -2,7 +2,9 @@ import {
   GENRE_FAMILIES,
   bpmRangeForGenre,
   energyForGenre,
+  hybridProductionNotes,
   resolveGenre,
+  secondaryStructures,
   structureForGenre,
 } from './genre-catalog.util';
 
@@ -123,6 +125,19 @@ describe('genre catalog', () => {
         true
       );
       expect(jazz?.totalBars).toBe(144);
+    });
+
+    it('carries a hybrid’s second half into tempo, energy, form and notes', () => {
+      // Country [76,118] and Hip Hop [84,100], weighted 65/35.
+      expect(bpmRangeForGenre('Country Trap')).toEqual([79, 112]);
+      expect(energyForGenre('Country Trap')).toBe(0.64);
+
+      const resolution = resolveGenre('Country Trap');
+      if (!resolution) throw new Error('Country Trap should resolve');
+      expect(secondaryStructures(resolution).map((form) => form.name)).toEqual([
+        'Hook-First Rap',
+      ]);
+      expect(hybridProductionNotes(resolution)[0]).toContain('Hip Hop half');
     });
 
     it('reports tempo and energy only for a genre it knows', () => {
