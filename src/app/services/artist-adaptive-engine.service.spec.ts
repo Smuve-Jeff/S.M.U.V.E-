@@ -11,6 +11,13 @@ import { UserProfileService, initialProfile, UserProfile } from './user-profile.
 describe('Profile-adaptive music manager', () => {
   let service: ArtistAdaptiveEngineService;
   let profile: ReturnType<typeof signal<UserProfile>>;
+
+  /** What the artist interview or uplink leaves behind once it is accepted. */
+  const commit = (p: UserProfile): UserProfile => ({
+    ...p,
+    artistName: 'Test Artist',
+    profileSetupCompleted: true,
+  });
   beforeEach(() => {
     profile = signal({
       ...JSON.parse(JSON.stringify(initialProfile)),
@@ -51,7 +58,7 @@ describe('Profile-adaptive music manager', () => {
   });
 
   it('lets declared priorities and boundaries override a known genre template', () => {
-    profile.update((p) => ({ ...p, primaryGenre: 'Hip Hop', daw: ['Existing Setup'], musicalJourney: { ...p.musicalJourney, preferredBpmRange: '60-80', signatureSound: 'Bowed strings and silence', musicBlueprint: { ...p.musicalJourney.musicBlueprint, mixingPriorities: ['Natural dynamics'], sonicNonNegotiables: 'No quantization', arrangementApproach: 'Through-composed' } } }));
+    profile.update((p) => ({ ...commit(p), primaryGenre: 'Hip Hop', daw: ['Existing Setup'], musicalJourney: { ...p.musicalJourney, preferredBpmRange: '60-80', signatureSound: 'Bowed strings and silence', musicBlueprint: { ...p.musicalJourney.musicBlueprint, mixingPriorities: ['Natural dynamics'], sonicNonNegotiables: 'No quantization', arrangementApproach: 'Through-composed' } } }));
     const state = service.adaptationState();
     expect(state.genreProfile.productionDefaults.mixPriorities).toEqual(['Natural dynamics']);
     expect(state.genreProfile.productionDefaults.typicalBpmRange).toEqual([60, 80]);
@@ -131,7 +138,7 @@ describe('Profile-adaptive music manager', () => {
   });
 
   it('gives Country and Blues real production defaults instead of artist-defined', () => {
-    profile.update((p) => ({ ...p, primaryGenre: 'Country' }));
+    profile.update((p) => ({ ...commit(p), primaryGenre: 'Country' }));
     let state = service.adaptationState();
     expect(state.genreProfile.id).toBe('country');
     expect(state.genreProfile.label).toBe('Country');
@@ -139,8 +146,9 @@ describe('Profile-adaptive music manager', () => {
       'Country Verse'
     );
     expect(state.genreProfile.productionDefaults.mixPriorities.length).toBeGreaterThan(0);
+    expect(state.genreAdviceHeld).toBe(false);
 
-    profile.update((p) => ({ ...p, primaryGenre: 'Blues' }));
+    profile.update((p) => ({ ...commit(p), primaryGenre: 'Blues' }));
     state = service.adaptationState();
     expect(state.genreProfile.id).toBe('blues');
     expect(state.genreProfile.songwritingRules.typicalStructures[0]).toContain(
@@ -149,7 +157,7 @@ describe('Profile-adaptive music manager', () => {
   });
 
   it('resolves Rap through the shared catalog and keeps the artist’s label', () => {
-    profile.update((p) => ({ ...p, primaryGenre: 'Rap' }));
+    profile.update((p) => ({ ...commit(p), primaryGenre: 'Rap' }));
 
     const state = service.adaptationState();
 
@@ -161,7 +169,7 @@ describe('Profile-adaptive music manager', () => {
   });
 
   it('carries the second half of a hybrid into the directive', () => {
-    profile.update((p) => ({ ...p, primaryGenre: 'Country Trap' }));
+    profile.update((p) => ({ ...commit(p), primaryGenre: 'Country Trap' }));
 
     const state = service.adaptationState();
 
@@ -185,7 +193,7 @@ describe('Profile-adaptive music manager', () => {
   ])(
     'keeps the curated %s profile ahead of the catalog',
     (genre, curatedId) => {
-      profile.update((p) => ({ ...p, primaryGenre: genre }));
+      profile.update((p) => ({ ...commit(p), primaryGenre: genre }));
 
       const state = service.adaptationState();
       const curated = GENRE_PROFILES.find((entry) => entry.id === curatedId);
@@ -209,9 +217,11 @@ describe('Profile-adaptive music manager', () => {
   );
 
   it('holds genre recommendations until the profile is committed', () => {
-    // A fresh profile still carries the default genre and placeholder name, so
-    // there is no accepted interview to attach a tempo or form to.
+    // A fresh profile still carries the untouched default genre, so there is no
+    // accepted interview to attach a tempo or form to.
     const state = service.adaptationState();
+
+    expect(state.genreAdviceHeld).toBe(true);
 
     expect(state.genreProfile.id).toBe('artist-defined');
     expect(state.genreProfile.label).toBe('Artist-defined');
@@ -220,6 +230,21 @@ describe('Profile-adaptive music manager', () => {
     ]);
     expect(state.productionDirective).toContain('ARTIST-DEFINED');
     expect(state.productionDirective).not.toContain('Hip Hop');
+  });
+
+  it('still holds default Hip Hop advice for a named but uncommitted profile', () => {
+    // The gap: typing a name is not committing the interview. The default genre
+    // is still untouched, so Hip Hop must not become the plan.
+    profile.update((p) => ({ ...p, artistName: 'Named Artist' }));
+
+    const state = service.adaptationState();
+
+    expect(state.genreAdviceHeld).toBe(true);
+    expect(state.genreProfile.id).toBe('artist-defined');
+    expect(state.productionDirective).not.toContain('Hip Hop');
+    expect(
+      state.warningsAndProtections.join(' ')
+    ).toContain('held until the artist interview');
   });
 
   it('never profiles a missing genre as Hip Hop', () => {

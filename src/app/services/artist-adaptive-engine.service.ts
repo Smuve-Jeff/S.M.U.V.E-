@@ -59,16 +59,19 @@ export interface GenreAdaptationProfile {
 }
 
 /**
- * True while the profile still carries only the placeholder identity and the
- * default genre — the state a profile is in before the artist interview or
- * uplink has been committed and accepted. Genre-specific advice is held then.
+ * True while the interview or uplink has not been committed and the genre is
+ * still the untouched default — the state a profile is in before the artist has
+ * answered anything. Genre-specific advice is held then.
+ *
+ * The committed flag alone decides it: an artist who typed a name but never
+ * finished the interview still has no accepted genre answer, so the default
+ * "Hip Hop" must not become their tempo, form and mix plan.
  */
 export function isGenreAdviceHeld(
   profile: UserProfile | null | undefined
 ): boolean {
   return (
     profile?.profileSetupCompleted !== true &&
-    (!profile?.artistName || profile.artistName === 'New Artist') &&
     (profile?.primaryGenre || '').trim().toLowerCase() ===
       initialProfile.primaryGenre.toLowerCase()
   );
@@ -339,11 +342,10 @@ export class ArtistAdaptiveEngineService {
 
   private detectGenreProfile(profile: UserProfile | null | undefined, knowledge: ArtistProfileKnowledge): GenreAdaptationProfile {
     const declaredGenre = (profile?.primaryGenre || '').trim();
-    // A brand-new profile ships with the placeholder name and the default
-    // genre. Neither is an answer the artist gave, so an uncommitted profile
-    // must not be handed a Hip Hop tempo, form and mix plan before the
-    // interview or uplink is accepted. The same untouched rule already governs
-    // the profile read-back.
+    // A brand-new profile ships with the default genre, and the genre only
+    // becomes an answer once the interview or uplink is committed. Until then
+    // the profile must not be handed a Hip Hop tempo, form and mix plan, even
+    // if the artist has typed a name.
     const untouched = isGenreAdviceHeld(profile);
     const genreInput = untouched ? '' : declaredGenre;
     const genreQuery = genreInput.toLowerCase();
