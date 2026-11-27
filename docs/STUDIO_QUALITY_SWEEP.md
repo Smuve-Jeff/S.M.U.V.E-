@@ -2478,3 +2478,80 @@ same evaluate body, at both widths:
 
 The spec itself still needs a pass in an environment with browser libraries —
 that is the one check this pass could not perform. `npm run build`: 0 errors.
+
+## 42. Thirty-sixth pass — the strip test runs here, and it bites
+
+### 42.1 Browser libraries, unpacked into the workspace
+
+`npx playwright install-deps chromium` cannot run in this container (`sudo: The
+"no new privileges" flag is set`), so the shared objects Chromium links against
+are unpacked under `artifacts/qa/sysroot` with `apt-get download` + `dpkg-deb
+-x` — a user-level install that needs no root and touches no system path:
+
+```bash
+Q=artifacts/qa; mkdir -p $Q/lists $Q/debs $Q/sysroot
+apt-get -o Dir::State::lists=$PWD/$Q/lists update
+(cd $Q/debs && apt-get -o Dir::State::lists=$PWD/../../$Q/lists download \
+  libglib2.0-0t64 libx11-6 libxcomposite1 libxdamage1 libxext6 libxfixes3 \
+  libxrandr2 libasound2t64 libatk1.0-0t64 libatk-bridge2.0-0t64 libatspi2.0-0t64 \
+  libdbus-1-3 libgbm1 libnspr4 libnss3 libxcb1 libxkbcommon0 libxau6 libxdmcp6 \
+  libxi6 libxrender1 libdrm2 fonts-dejavu-core fontconfig-config)
+for d in $Q/debs/*.deb; do dpkg-deb -x "$d" $Q/sysroot; done
+```
+
+Linking is only half of it: with the libraries in place Chromium still aborts at
+startup in Skia, `FATAL ... SkFontMgr_FontConfigInterface.cpp:163 Not
+implemented`, because the container has no font configuration at all. The
+unpacked `fonts-dejavu-core` fixes that once `FONTCONFIG_PATH` points at a
+`fonts.conf` that lists the unpacked truetype directory. The full run:
+
+```bash
+Q=$PWD/artifacts/qa
+LD_LIBRARY_PATH=$Q/sysroot/usr/lib/x86_64-linux-gnu \
+FONTCONFIG_PATH=$Q/fontsdir \
+PLAYWRIGHT_BASE_URL=http://127.0.0.1:4200 \
+npx playwright test tests/e2e/studio-pane-budget.spec.ts \
+  -g "the status strip holds one row" --reporter=list
+```
+
+Do not set `XDG_CACHE_HOME` alongside this: it moves Playwright's browser lookup
+path and the browser stops resolving.
+
+### 42.2 The two new tests pass — 2 passed
+
+| Width | Strip | Pills | Bands resolving to the pill | Label |
+| --- | --- | --- | --- | --- |
+| 328×640 | 23 | 3 × 20px | 12 / 12 each | `Unsaved changes` |
+| 360×640 | 23 | 3 × 20px | 12 / 12 each | `Unsaved changes` |
+
+### 42.3 Proof that the test bites
+
+The band scan is the assertion that carries the pass, so it was checked against a
+known-broken build rather than trusted. Replacing the three overlay rules with
+`inset: 0` — a plain 20px chip, no full-height target — and letting `ng serve`
+rebuild:
+
+| Build | 328×640 | 360×640 |
+| --- | --- | --- |
+| overlays removed (`inset: 0`) | **fail** — `missedRows [0, 22]` | **fail** — `missedRows [0, 22]` |
+| overlays restored | pass | pass |
+
+`[0, 22]` is the two edge bands: the first and last 2px of the strip, which only
+a 44px overlay reaches, because the 20px box is centred in the 23px row. That is
+precisely why the scan starts at `offset = 0` instead of `1` — at `1` the chip
+alone resolves every band and the test passed on the broken build.
+
+### 42.4 Two assertions that had to be honest instead
+
+* **Glyph-level truncation is not asserted.** Whether `Unsaved changes` renders
+  whole depends on which of the app's webfonts the machine has; this sandbox
+  falls back to DejaVu and truncates it, while the shipped shell does not. The
+  label assertion is now: present, non-empty, wider than 20px, and ending inside
+  the strip.
+* **44px is still not met, and the test does not claim it.** It asserts what the
+  geometry can deliver — the strip's full 23px over each pill's width — and
+  nothing about 44.
+
+A rebuild of the CSS takes the dev server ~15s; a test run started before that
+window silently exercises the previous stylesheet, so wait for the rebuild log
+before re-running.

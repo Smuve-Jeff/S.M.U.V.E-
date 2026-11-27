@@ -386,10 +386,12 @@ for (const viewport of [PHONE_TINY, PHONE_SMALL]) {
         const rect = pill.getBoundingClientRect();
         const centreX = rect.left + rect.width / 2;
         /* Every 2px band of the strip inside this pill's column must resolve to
-           the pill: that is what makes a 20px chip tappable in a 22px row, and
-           it must stop at the top bar rather than stealing its taps. */
+           the pill — edge bands included, which only the pill's overlay reaches
+           because its 20px box is centred in a 23px row. That is what makes the
+           chip tappable, and it must stop at the top bar rather than stealing
+           its taps. */
         const rows = [];
-        for (let offset = 1; offset < box.height; offset += 2) {
+        for (let offset = 0; offset < box.height; offset += 2) {
           const hit = document.elementFromPoint(centreX, box.top + offset);
           rows.push({
             offset,
@@ -409,8 +411,18 @@ for (const viewport of [PHONE_TINY, PHONE_SMALL]) {
         height: Math.round(box.height),
         overflow: host.scrollWidth - host.clientWidth,
         pageOverflow: document.documentElement.scrollWidth - innerWidth,
-        labelClipped: label ? label.scrollWidth > label.clientWidth + 1 : false,
-        labelText: label?.innerText.trim() ?? "",
+        /* Glyph-level truncation is deliberately not asserted: it depends on
+           which of the app's webfonts a machine has, so it measures the test
+           host rather than the shell. The label only has to survive as a
+           visible box inside the strip here. */
+        label: label
+          ? {
+              text: label.innerText.trim(),
+              width: Math.round(label.getBoundingClientRect().width),
+              insideStrip:
+                label.getBoundingClientRect().right <= box.right + 1,
+            }
+          : null,
         pills,
       };
     }, STATUS_PILLS);
@@ -421,7 +433,10 @@ for (const viewport of [PHONE_TINY, PHONE_SMALL]) {
     expect(strip.height, "the strip is not one row").toBeLessThanOrEqual(25);
     expect(strip.overflow, "the strip scrolls sideways").toBeLessThanOrEqual(1);
     expect(strip.pageOverflow, "the page scrolls sideways").toBeLessThanOrEqual(1);
-    expect(strip.labelClipped, `"${strip.labelText}" is truncated`).toBe(false);
+    expect(strip.label, "the strip lost its label").not.toBeNull();
+    expect(strip.label!.text.length, "the label is empty").toBeGreaterThan(0);
+    expect(strip.label!.width, "the label collapsed").toBeGreaterThan(20);
+    expect(strip.label!.insideStrip, "the label leaves the strip").toBe(true);
 
     expect(strip.pills).toHaveLength(STATUS_PILLS.length);
     for (const pill of strip.pills) {
