@@ -145,8 +145,18 @@ import { BeginnerPathService } from "./beginner-path.service";
          ~190px of, so the step keeps its number and title here too. The full
          instruction is still one tap away on the wizard. */
       @media (max-width: 480px) and (max-height: 700px) {
+        /* A 29px row is not a thumb target. The strip is a button, so it goes to
+           the 44px floor; its own 4px top padding is dropped and the canvas
+           below gives back its scroll-end clearance, so the surface keeps the
+           height it was given in the previous pass. */
+        :host {
+          padding: 0 8px;
+        }
+
         .beginner-step-hint {
           flex-wrap: nowrap;
+          align-items: center;
+          min-height: 44px;
           padding: 4px 10px;
           gap: 2px 8px;
         }

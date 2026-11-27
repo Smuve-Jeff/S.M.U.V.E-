@@ -866,6 +866,13 @@ body .comp-shell .playlist-container .playlist-header .mini-btn {
   body .comp-shell .comp-chrome-rail {
     padding-bottom: 0;
   }
+
+  /* The guided-step strip is a button and now meets the 44px floor (see the
+     beginner hint's compact block). Its own padding paid for 4px of that; this
+     pays the other 8px, so the surface keeps the canvas §32 returned to it. */
+  body .comp-shell.comp-shell .studio-primary-canvas {
+    padding-bottom: 0;
+  }
 }
 
 /* ----------------------------------------------------------------------------

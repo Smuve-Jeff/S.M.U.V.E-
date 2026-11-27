@@ -2207,3 +2207,55 @@ a pointer-driven toolbar, and the request was the phone layout.
 
 **Still under the floor in the recorder, out of scope here:** the guided-step
 strip (29px tall, 342px wide) and the `MONITOR` / `NOISE GATE` toggles (40px).
+Fixed in §35.
+
+## 35. Twenty-ninth pass — the last sub-44px controls in the recorder
+
+### 35.1 `MONITOR` and `NOISE GATE`
+
+Both are `.arv-control-btn`, and the class already declared `min-height: 40px`
+— but each button also carried an inline `min-height: 40px`, which outranks any
+stylesheet rule and would have silently defeated a phone floor. The duplicate
+is gone and the class joins the phone block (`max-width: 768px`,
+`pointer: coarse`), so one rule raises every control button on a phone and the
+desktop toolbar keeps its 40px density.
+
+### 35.2 The guided-step strip, without paying canvas for it
+
+The compact row was a 29px-tall button. It is now a real 44px row, and the 15px
+comes from the strip's own 4px top padding plus the canvas's 8px scroll-end
+clearance (which §33.2 had already reduced to a formality) — the surface keeps
+the height §32 gave it. Net cost to the surface: **3px**.
+
+Measured at 360×640: strip 44 (was 33 total), canvas 383, view 337. The status
+strip rendered 47px in this session rather than 22 because the
+`NOT PROTECTED BACK UP` pill (shown until a project is backed up) wraps at
+360px — at the §33 state the same change reads 365 → 362, confirming the 3px.
+
+### 35.3 Measured
+
+| Control | 360×640 | 390×844 | 1440×900 (authored desktop density) |
+| --- | --- | --- | --- |
+| Guided-step strip | 342×**44** | 372×67 (already ≥44) | 900×37 |
+| `CLIP` | 46×**44** | 46×**44** | 46×28 |
+| `Reset` | 49×**44** | 49×**44** | 45×17 |
+| `MEASURE` | 47×**44** | 50×**44** | 69×36 |
+| `MONITOR` | 143×**44** | 158×**44** | 105×40 |
+| `NOISE GATE` | 157×**44** | 172×**44** | 118×40 |
+| Interactive controls under 44px in the surface | **none** | **none** | six (by design) |
+| Page / canvas overflow-x | 0 / 0 | 0 / 0 | 0 / 0 |
+| Canvas bottom = dock top | 528 = 528 | 704 = 704 | n/a |
+
+### 35.4 Evidence
+
+| Check | Result |
+| --- | --- |
+| `npm run build` | **0 errors** |
+| `jest beginner-wizard + audio-recorder-view` | **85 tests / 7 suites passed** |
+| Browser, 360×640 | no control under 44px, overflow 0, dock flush |
+| Browser, 390×844 | no control under 44px, overflow 0, dock flush |
+| Browser, 1440×900 | desktop density unchanged (37 / 28 / 17 / 36 / 40 / 40) |
+
+**Seen while measuring, not changed:** the `NOT PROTECTED BACK UP` status pill
+wraps the status strip to 47px at 360px wide, which costs the surface 25px
+until the project is backed up.

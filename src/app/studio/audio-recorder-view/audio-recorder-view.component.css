@@ -2008,7 +2008,11 @@
 @media (max-width: 768px), (pointer: coarse) {
   .arv-trim-reset,
   .arv-clip-led,
-  .arv-monitor-mute {
+  .arv-monitor-mute,
+  /* The monitor and noise-gate toggles were 40px: their inline
+     `min-height: 40px` also duplicated this class's own value, so the floor is
+     declared once here instead of per-button in the template. */
+  .arv-control-btn {
     min-height: 44px;
   }
 
