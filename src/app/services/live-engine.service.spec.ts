@@ -530,6 +530,87 @@ describe('LiveEngineService live performance controls', () => {
     expect(repeats.every((event) => (event.durationMs ?? 0) > 0)).toBe(true);
   });
 
+  it('anchors Note Repeat ticks to the audio clock instead of timer drift', async () => {
+    jest.useFakeTimers();
+    const clock = { seconds: 0 };
+    const nowMock = Tone.now as unknown as jest.Mock;
+    nowMock.mockImplementation(() => clock.seconds);
+    try {
+      await service.setInstrument('analog-warmth');
+      const node = (service as any).currentInstrumentNode;
+      service.setArpeggiatorRate('8n'); // 250 ms at 120 BPM
+      service.setArpeggiatorEnabled(true);
+      service.triggerNoteStart(60, 0.7);
+
+      expect(node.triggerAttackRelease.mock.calls[0][2]).toBeCloseTo(0, 5);
+
+      // The callback arrives 120 ms late. The note it owed still lands on the
+      // 250 ms grid, and the following target is 500 ms, not 370 ms.
+      clock.seconds = 0.12;
+      jest.advanceTimersByTime(250);
+      expect(node.triggerAttackRelease.mock.calls[1][2]).toBeCloseTo(0.25, 5);
+
+      clock.seconds = 0.5;
+      jest.advanceTimersByTime(380);
+      expect(node.triggerAttackRelease.mock.calls[2][2]).toBeCloseTo(0.5, 5);
+      expect((service as any).arpNextTime).toBeCloseTo(0.75, 5);
+      service.triggerNoteEnd(60);
+    } finally {
+      nowMock.mockReturnValue(0);
+      jest.useRealTimers();
+    }
+  });
+
+  it('humanizes repeat velocity deterministically and accents each cycle', async () => {
+    jest.useFakeTimers();
+    try {
+      await service.setInstrument('analog-warmth');
+      service.setArpeggiatorRate('8n');
+      service.setArpeggiatorHumanize(1);
+      service.setArpeggiatorEnabled(true);
+      service.smartChords.set(true);
+
+      const capture = () => {
+        const events: any[] = [];
+        const subscription = service.noteEvents$.subscribe((event) =>
+          events.push(event),
+        );
+        service.triggerNoteStart(60, 0.8);
+        jest.advanceTimersByTime(700); // ticks at 0, 250 and 500 ms
+        service.triggerNoteEnd(60);
+        subscription.unsubscribe();
+        return events
+          .filter(
+            (event) => event.type === 'on' && event.source === 'repeat',
+          )
+          .map((event) => event.velocity);
+      };
+
+      const first = capture();
+      expect(first).toHaveLength(3); // one held chord tone per tick
+      expect(new Set(first).size).toBe(3);
+      expect(first[0]).toBeGreaterThan(first[1]); // cycle downbeat is accented
+      expect(first.every((velocity) => velocity >= 0.5 && velocity <= 1)).toBe(
+        true,
+      );
+
+      // The sequence is seeded xorshift, not Math.random: the same performance
+      // stores the same velocities every time.
+      expect(capture()).toEqual(first);
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('clamps the Note Repeat feel amount', () => {
+    service.setArpeggiatorHumanize(2);
+    expect(service.arpeggiatorHumanize()).toBe(1);
+    service.setArpeggiatorHumanize(-1);
+    expect(service.arpeggiatorHumanize()).toBe(0);
+    service.setArpeggiatorHumanize(Number.NaN);
+    expect(service.arpeggiatorHumanize()).toBe(0);
+  });
+
   it('keeps repeating after release while Note Repeat is latched', async () => {
     jest.useFakeTimers();
     try {

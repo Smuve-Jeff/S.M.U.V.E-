@@ -34,6 +34,8 @@ describe("PerformerComponent", () => {
       activeInstrument: signal("grand-piano-v2"),
       smartChords: signal(false),
       arpeggiatorEnabled: signal(false),
+      arpeggiatorHumanize: signal(0),
+      setArpeggiatorHumanize: jest.fn(),
       scaleLock: signal(false),
       scaleMode: signal("major"),
       scaleRoot: signal(0),

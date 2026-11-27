@@ -1975,3 +1975,78 @@ the keyboard.
   audio clock, and has no velocity humanization.
 - **The onboarding card still overlays the surface on a phone**, and the
   classic shell can leave the Piano Roll ~190 px tall at 360×640.
+
+## 31. Twenty-fifth pass — the repeat that keeps the grid, and a feel control
+
+### 31.1 The timer was the clock
+
+Note Repeat scheduled one tick at a time from a `setTimeout` whose delay was the
+nominal interval, and triggered each note at `Tone.now()` when the callback
+happened to run. Any main-thread work (a canvas frame, an autosave, a re-render)
+delayed the callback, and every following tick inherited that lateness: a
+latched pattern that is supposed to sit on the grid drifted away from it, worse
+the longer the key was held. §30.6 recorded this as "repeat still samples tempo
+per tick rather than scheduling against the audio clock".
+
+The engine now keeps two targets per tick: `arpNextTime` on the audio clock
+(where the note must land) and `arpNextAtMs` on the monotonic clock (when the
+timer should wake). A tick schedules its note at `arpNextTime` and advances that
+target by the interval, so the note times are an exact grid independent of
+callback jitter; the wake-up delay is computed from `arpNextAtMs`, so a late
+callback shortens the next wait instead of moving the groove. A target more than
+one interval stale — a backgrounded tab, a long GC pause — resyncs to now rather
+than firing a burst of catch-up notes. Swing is applied to the gap that lands on
+the *next* step, so the first gap after a downbeat is long and the second short,
+which is what the rack's SWING knob and the §30 browser readout already promised.
+
+### 31.2 A repeat at one velocity is a machine gun
+
+Every retrigger sounded at the held key's velocity, so a latched pattern was
+rhythmically alive (swing) but dynamically flat. `setArpeggiatorHumanize(0..1)`
+now accents the first tone of each pattern cycle and varies the rest by up to
+±20%; velocity is clamped to 0.05–1, and the noise is a fixed xorshift sequence
+rather than `Math.random()`, so the same performance stores the same velocities
+and the behaviour is testable. The Performer rack gains a **FEEL** knob beside
+SWING. It ships at 0, like Scale Lock, because humanization changes the take a
+recorder stores; it is opt-in.
+
+Because `publishNote` receives the humanized value, the take recorded through
+`noteEvents$` carries the velocities the artist heard, not the key's original
+one.
+
+### 31.3 The feel travels with the set
+
+`LivePerformanceState` gains an optional `arpHumanize`; `captureLivePerformance`
+reads the engine (so a save made after the knob moved stores it) and
+`restorePerformanceState` applies it with the rest of the rig. Bundles written
+before the field keep their current feel instead of resetting to 0.
+
+### 31.4 Evidence
+
+| Check | Result |
+| --- | --- |
+| `npm run build` (template/AOT gate, after the final edit) | **0 errors, 0 warnings**; 46.7 s; `performer-component` 186.00 kB, `piano-roll-component` 142.79 kB lazy |
+| Affected suites, one run | **132 tests / 3 suites passed** — live-engine, performer, project-workspace |
+| Grid under a late timer | Note times 0 → 0.25 → 0.50 s at 120 BPM `8n` while the callbacks fire at 0, 0.12 and 0.50 s; `arpNextTime` ends at 0.75 |
+| Humanized take | three chord-tone ticks produce three different velocities with the cycle downbeat louder than the next tone; a second identical run reproduces the sequence exactly |
+| Feel clamp | 2 → 1, −1 → 0, `NaN` leaves the value unchanged |
+| Persistence mocks | the project-workspace rig mocks now expose `arpeggiatorHumanize`, so a save no longer throws inside `captureLivePerformance` |
+
+The jsdom canvas/WebGL "not implemented" console noise in the performer suite is
+pre-existing and unrelated (the suite passes).
+
+### 31.5 Still open
+
+- **Chord clips are still baked notes.** Changing a stamped chord's quality
+  rewrites pitches; non-destructive chord objects remain a data-model change.
+- **No offline-audio render.** The note-event tests prove *what* is played and
+  *when*, not the rendered spectrum; a `Tone.Offline` fixture is still the way to
+  catch a silent or mis-filtered voice in CI.
+- **Nothing was auditioned by ear.** The sandbox has no audio device; the grid
+  and velocity behaviour are verified by graph-level unit assertions.
+- **Tempo is read at each tick**, not scheduled across a tempo map; a live tempo
+  change takes effect at the next interval (the note grid itself no longer
+  drifts).
+- **The phone layout defects from §29.6 are unchanged**: the onboarding card can
+  still overlay the surface, and the classic shell can leave the Piano Roll
+  ~190 px tall at 360×640.

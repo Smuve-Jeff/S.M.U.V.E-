@@ -50,6 +50,8 @@ export interface LivePerformanceState {
   arpPattern: LiveArpPattern;
   arpLatch: boolean;
   arpSwing: number;
+  /** Optional: sets saved before Note Repeat had velocity humanization. */
+  arpHumanize?: number;
   octave: number;
   chordType: string;
 }
@@ -182,9 +184,19 @@ export class LiveEngineService {
   arpeggiatorLatch = signal(false);
   /** 0 = straight, 0..0.75 delays every second repeat. */
   arpeggiatorSwing = signal(0);
+  /**
+   * 0 = every repeat at the held velocity. Up to 1 adds a downbeat accent and
+   * ±20% step-to-step variance so a latched pattern is not machine-gun. Off by
+   * default like Scale Lock: it changes the take a recorder stores.
+   */
+  arpeggiatorHumanize = signal(0);
   /** Recursive timeout so swing can vary each interval. */
   private arpTimer: ReturnType<typeof setTimeout> | null = null;
   private arpStep = 0;
+  /** Audio-clock target of the next repeat tick, in seconds (0 = idle). */
+  private arpNextTime = 0;
+  /** Monotonic clock target for the same tick, used only to wake the timer. */
+  private arpNextAtMs = 0;
   /** Notes currently arpeggiated, in press order. */
   private heldNotes: string[] = [];
   private heldVelocity = 0.8;
@@ -1004,6 +1016,9 @@ export class LiveEngineService {
     if (typeof state.arpSwing === 'number') {
       this.setArpeggiatorSwing(state.arpSwing);
     }
+    if (typeof state.arpHumanize === 'number') {
+      this.setArpeggiatorHumanize(state.arpHumanize);
+    }
     if (typeof state.arpEnabled === 'boolean') {
       this.setArpeggiatorEnabled(state.arpEnabled);
     }
@@ -1044,6 +1059,12 @@ export class LiveEngineService {
     this.arpeggiatorSwing.set(Math.max(0, Math.min(0.75, amount)));
   }
 
+  /** 0 = flat velocities; 1 = full downbeat accent and ±20% variance. */
+  setArpeggiatorHumanize(amount: number): void {
+    if (!Number.isFinite(amount)) return;
+    this.arpeggiatorHumanize.set(Math.max(0, Math.min(1, amount)));
+  }
+
   private tempoBpm(): number {
     const source: any = this.audioEngine.tempo;
     const raw = typeof source === 'function' ? source() : source?.value;
@@ -1068,8 +1089,17 @@ export class LiveEngineService {
   private startArpeggiator(): void {
     if (this.arpTimer !== null) return;
     this.arpStep = 0;
+    this.arpNextTime = Tone.now();
+    this.arpNextAtMs = this.monotonicNow();
     this.arpTick();
     if (this.heldNotes.length) this.queueArpTick();
+  }
+
+  private monotonicNow(): number {
+    return typeof performance !== 'undefined' &&
+      typeof performance.now === 'function'
+      ? performance.now()
+      : Date.now();
   }
 
   /**
@@ -1078,10 +1108,10 @@ export class LiveEngineService {
    */
   private queueArpTick(): void {
     if (this.arpTimer !== null || !this.heldNotes.length) return;
-    const swing = this.arpeggiatorSwing();
-    const factor =
-      this.arpStep % 2 === 0 ? 1 - swing / 2 : 1 + swing / 2;
-    const delay = Math.max(20, this.arpIntervalMs() * factor);
+    // The wait is derived from the target, not from elapsed timer time. A
+    // callback that arrives late then fires the note it owed instead of pushing
+    // every following note further behind.
+    const delay = Math.max(0, this.arpNextAtMs - this.monotonicNow());
     this.arpTimer = setTimeout(() => {
       this.arpTimer = null;
       this.arpTick();
@@ -1107,6 +1137,8 @@ export class LiveEngineService {
     }
     this.heldNotes = [];
     this.arpStep = 0;
+    this.arpNextTime = 0;
+    this.arpNextAtMs = 0;
   }
 
   private arpTick(): void {
@@ -1137,22 +1169,75 @@ export class LiveEngineService {
       default:
         index = step % count;
     }
-    this.playOneShot(this.heldNotes[index], this.heldVelocity);
+    const nowAudio = Tone.now();
+    const nowMs = this.monotonicNow();
+    const interval = this.arpIntervalMs() / 1000;
+    // A backgrounded tab (or a blocked main thread) can leave the target more
+    // than one interval behind; resync rather than firing a burst of catch-up
+    // notes. Within one interval the original grid target is kept, so a late
+    // callback does not shift the groove.
+    if (!(this.arpNextAtMs > 0) || this.arpNextAtMs < nowMs - interval * 1000) {
+      this.arpNextTime = nowAudio;
+      this.arpNextAtMs = nowMs;
+    }
+    this.playOneShot(
+      this.heldNotes[index],
+      this.arpVelocity(step, count),
+      Math.max(this.arpNextTime, nowAudio),
+    );
+    const swing = this.arpeggiatorSwing();
+    // Swing delays the off-beat: the gap that lands on the next step is long
+    // when that step is off the beat, short when it is back on it.
+    const factor =
+      (step + 1) % 2 === 0 ? 1 - swing / 2 : 1 + swing / 2;
+    this.arpNextTime += interval * factor;
+    this.arpNextAtMs += interval * factor * 1000;
     this.arpStep = (step + 1) % 100000;
   }
 
+  /**
+   * Repeat velocity for one step. Humanize accents the first tone of every
+   * pattern cycle and varies the rest by up to ±20%. The noise is a fixed
+   * xorshift sequence, so a take is reproducible and this stays testable.
+   */
+  private arpVelocity(step: number, count: number): number {
+    const base = Math.max(0.05, Math.min(1, this.heldVelocity || 0.8));
+    const amount = this.arpeggiatorHumanize();
+    if (amount <= 0) return base;
+    const noise = this.arpNoise(step);
+    const accent = step % Math.max(1, count) === 0 ? 0.12 : 0;
+    const factor = 1 + amount * ((noise - 0.5) * 0.4 + accent);
+    return Math.max(0.05, Math.min(1, base * factor));
+  }
+
+  /** Deterministic 0..1 noise for one repeat step (xorshift32). */
+  private arpNoise(step: number): number {
+    let x = (0x5f3759df ^ Math.imul(step + 1, 0x9e3779b1)) >>> 0;
+    x ^= x << 13;
+    x >>>= 0;
+    x ^= x >>> 17;
+    x ^= x << 5;
+    x >>>= 0;
+    return x / 0xffffffff;
+  }
+
   /** One repeated note, short enough that consecutive ticks do not overlap. */
-  private playOneShot(note: string, velocity: number): void {
+  private playOneShot(
+    note: string,
+    velocity: number,
+    scheduledTime?: number,
+  ): void {
     const node: any = this.currentInstrumentNode;
     if (!node) return;
+    const when = Math.max(scheduledTime ?? Tone.now(), Tone.now());
     const duration = Math.max(0.05, (this.arpIntervalMs() / 1000) * 0.9);
     try {
       if (typeof node.triggerAttackRelease === 'function') {
-        node.triggerAttackRelease(note, duration, Tone.now(), velocity);
+        node.triggerAttackRelease(note, duration, when, velocity);
         this.publishNote('on', note, velocity, 'repeat', 0, duration * 1000);
         return;
       }
-      node.triggerAttack(note, Tone.now(), velocity);
+      node.triggerAttack(note, when, velocity);
       setTimeout(() => {
         try {
           node.triggerRelease(note, Tone.now());
