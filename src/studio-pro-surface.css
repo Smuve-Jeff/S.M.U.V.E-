@@ -780,3 +780,81 @@ body .comp-shell .playlist-container .playlist-header .mini-btn {
     display: none;
   }
 }
+
+/* ----------------------------------------------------------------------------
+   8. SHORT PORTRAIT PHONES (360x640 and friends) — give the tool view a canvas
+   ----------------------------------------------------------------------------
+   The 844px phone above has room for a 72px dock and a 68px tab bar; a 640px
+   phone does not. Measured at 360x640 on `/studio?view=piano-roll` before this
+   block: status 22 + topbar 50 + rail 54 + transport dock 72 + tab bar 68 =
+   266px of chrome (41.6%), plus the 76px assistant reserve inside the canvas
+   and the 33px guided-step strip, which left the roll **265px** to edit in.
+
+   Nothing here is decoration, so nothing is removed: the dock, the tab bar and
+   the assistant reserve are the same three things, just sized for a 640px
+   screen. The dock's own row is 52px (44px transport buttons) and the tab bar's
+   tabs are 44px, so both fit in 56px. The layout viewport, not the window, is
+   what matters here — this tier keys off `max-height: 700px` so an 844px phone
+   and every desktop width are untouched.
+   ---------------------------------------------------------------------------- */
+@media (max-width: 480px) and (max-height: 700px) and (orientation: portrait) {
+  /* The component stylesheet sets these vars and the dock/nav heights on
+     `.comp-shell[_ngcontent-…]`, and an attribute selector outranks one class:
+     the shell class is doubled here to outrank the scoped rule without
+     `!important`, the same technique section 5a uses for the MORE trigger. */
+  body .comp-shell.comp-shell {
+    /* One number for all three so the fixed dock, the nav, the FAB offset and
+       the piano roll's velocity drawer cannot drift apart. */
+    --transport-dock-height: 56px;
+    --mobile-nav-height: 56px;
+    --studio-mobile-dock-height: 56px;
+  }
+
+  /* The transport dock is `position: fixed` above the tab bar, and `.comp-main`
+     reserves exactly its footprint. */
+  body .comp-shell.comp-shell .comp-main {
+    padding-bottom: var(--transport-dock-height);
+  }
+
+  body .comp-shell.comp-shell .comp-topbar-center {
+    min-height: var(--transport-dock-height);
+    padding-top: 2px;
+    padding-bottom: 2px;
+  }
+
+  /* Tabs stay 44px targets; the 68px bar was 52px tabs plus two 8px bands.
+     `height` as well as `min-height`: studio-shell-refinement.css pins the bar
+     to 68px in this width tier, and a fixed height outranks content sizing. */
+  body .comp-shell.comp-shell .comp-bottombar {
+    height: calc(var(--mobile-nav-height) + env(safe-area-inset-bottom, 0px));
+    min-height: calc(
+      var(--mobile-nav-height) + env(safe-area-inset-bottom, 0px)
+    );
+    padding: 3px 4px max(4px, env(safe-area-inset-bottom, 4px));
+  }
+
+  body .comp-shell.comp-shell .comp-bottombar .comp-tab {
+    min-height: 44px;
+    padding: 2px;
+    gap: 2px;
+  }
+
+  body .comp-shell.comp-shell
+    .comp-bottombar
+    .comp-tab
+    .material-symbols-outlined {
+    font-size: 20px;
+  }
+
+  /* The assistant FAB is a 44px chip; 56px is its footprint plus the clearance
+     it needs, where the 76px reserve was sized for a dock it no longer sits on. */
+  body .comp-shell .studio-primary-canvas {
+    padding-bottom: 56px;
+  }
+
+  /* The rail's 6px bottom band was the seam under the tools row; the canvas
+     below it already starts flush. */
+  body .comp-shell .comp-chrome-rail {
+    padding-bottom: 0;
+  }
+}

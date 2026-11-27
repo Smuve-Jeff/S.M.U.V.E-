@@ -2044,6 +2044,69 @@ overflow, and the row reads `STEP 1 OF 6 · Pick a Beat · ↩ Steps`. Taller ph
 - **No offline-audio render** (see 30.6).
 - **Repeat is still wall-clock, not audio-clock scheduled** — the target stops
   drift but does not sample-align hits.
-- **The Piano Roll is still only ~204 px at 360×640.** The guided-step strip no
-  longer doubles as a second header (31.4), but the classic shell's own chrome
-  above the canvas is the remaining cost; trimming it is a shell-layout change.
+- **The Piano Roll is still only ~317 px at 360×640** (see §32). The short-phone
+  tier reclaimed 52 px; what is left is status strip 22 + topbar 50 + rail 48 +
+  guided step 33 + assistant reserve 56 + dock 65 + tab bar 56.
+
+## 32. Twenty-sixth pass — a 640px phone gets a canvas
+
+### 32.1 Where the height went
+
+`/studio?view=piano-roll` at 360×640 kept **265 px** of editing canvas. Every
+band around it was sized for an 844px phone: a 72px transport dock, a 68px tab
+bar and a 76px assistant reserve inside the canvas. At 640px those three are
+the difference between seeing six key rows and seeing two.
+
+Nothing was removed — the dock, the tabs and the reserve are still all there,
+just sized for the screen. The new tier is
+`(max-width: 480px) and (max-height: 700px) and (orientation: portrait)` in
+`src/studio-pro-surface.css`, and it moves one number
+(`--transport-dock-height`, `--mobile-nav-height`,
+`--studio-mobile-dock-height` = 56px) so the fixed dock, the nav, the FAB offset
+and the piano roll's velocity drawer cannot drift apart.
+
+One trap worth recording: `--mobile-nav-height` and the shell's dock vars are
+set in `studio.component.css` on `.comp-shell[_ngcontent-…]`, and an attribute
+selector outranks a single class, so `body .comp-shell { … }` silently lost.
+The tier doubles the shell class (`body .comp-shell.comp-shell`) instead of
+reaching for `!important`, matching section 5a. The tab bar also needed
+`height`, not just `min-height`: `studio-shell-refinement.css` pins it to 68px
+at this width and a fixed height outranks content sizing.
+
+### 32.2 Measured, before → after (CDP device metrics, guest session)
+
+| Band | 360×640 before | 360×640 after |
+| --- | --- | --- |
+| Project status strip | 22 | 22 |
+| Top bar | 50 | 50 |
+| Chrome rail (tools + session band) | 54 | 48 |
+| Canvas | 374 | 408 |
+| — guided-step strip | 33 | 33 |
+| — assistant reserve (canvas padding) | 76 | 56 |
+| — **Piano Roll view** | **265** | **317** |
+| Transport dock (fixed) | 72 | 65 |
+| Tab bar | 68 | 56 |
+
+The roll went from 41.4% to **49.5%** of the screen. Its dock still sits exactly
+on the tab bar (no seam, no overlap), no page overflow, transport buttons are
+still 44px, tab targets 44–48px, tab labels unclipped at 10px.
+
+### 32.3 What did not move
+
+| Viewport | Before | After |
+| --- | --- | --- |
+| 390×844 (status/topbar/rail/canvas/hint/view/dock/nav) | 22/50/54/578/71/429/72/68 | **identical** |
+| 1440×900 (status/topbar/canvas/hint/view/dock) | 28/56/580/43/535/58 | **identical** |
+
+The tier keys off `max-height: 700px`, so an 844px phone and every desktop
+width never match it.
+
+### 32.4 Evidence
+
+| Check | Result |
+| --- | --- |
+| `npm run build` | **0 errors** (build re-run after the final CSS) |
+| Browser, 360×640 | canvas 408, view 317, dock 65 above nav 56, page overflow 0 |
+| Browser, 390×844 | byte-identical band heights to the pre-change baseline |
+| Browser, 1440×900 | unchanged (canvas 580, view 535) |
+| Playwright e2e pane budget | **not run** — no Playwright browsers installed in this sandbox; the assertions it makes at 360×640 (44px transport controls, ≥44px tabs, 10px unclipped labels, rail ≤62px) were re-measured live instead and all hold |
