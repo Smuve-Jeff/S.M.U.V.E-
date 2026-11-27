@@ -271,6 +271,9 @@ describe('EnhancedArtistQuestionnaireEngine', () => {
     const p = profileWith({
       artistName: 'Nova Vale',
       primaryGenre: 'Hip Hop',
+      // Hip Hop is the initial placeholder genre. It is only an accepted
+      // artist answer once the interview is committed.
+      profileSetupCompleted: true,
       'musicalJourney.signatureSound': 'warped tape 808s',
       'musicalJourney.musicBlueprint.vocalDelivery': 'Raw and conversational',
       'musicalJourney.musicBlueprint.lyricalThemes': ['Ambition and survival'],

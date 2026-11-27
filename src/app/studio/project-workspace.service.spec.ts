@@ -427,6 +427,16 @@ describe("ProjectWorkspaceService", () => {
     expect(engine.timeSignature()).toEqual({ beats: 4, unit: 4 });
   });
 
+  it("clears a cloud size refusal when another project is restored", () => {
+    service.cloudSyncRefusal.set(
+      "Saved on this device, but this version is too large to sync.",
+    );
+
+    service.restoreFromSnapshot(makeBundle());
+
+    expect(service.cloudSyncRefusal()).toBe("");
+  });
+
   it("saves a tempo or meter edit shortly after it lands", () => {
     jest.useFakeTimers();
     const save = jest.spyOn(service, "autoSave").mockResolvedValue(undefined);
