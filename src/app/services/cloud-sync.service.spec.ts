@@ -22,8 +22,22 @@ class StubStorage {
   async getItem(_namespace: string, key: string) {
     return this.store.get(`${_namespace}:${key}`) ?? null;
   }
-  async saveItem(namespace: string, key: string, value: unknown) {
-    this.store.set(`${namespace}:${key}`, value);
+  async saveItem(namespace: string, itemOrKey: unknown, value?: unknown) {
+    // Mirror the real LocalStorageService.saveItem(store, record): the
+    // record carries its own id, so persist it under that key. Without this
+    // the persisted timeline would be unreadable through getItem, the same
+    // path the service hydrates from on boot.
+    if (
+      value === undefined &&
+      itemOrKey !== null &&
+      typeof itemOrKey === 'object' &&
+      'id' in (itemOrKey as Record<string, unknown>)
+    ) {
+      const record = itemOrKey as { id: string };
+      this.store.set(`${namespace}:${record.id}`, record);
+    } else {
+      this.store.set(`${namespace}:${itemOrKey as string}`, value);
+    }
   }
   async deleteItem(_namespace: string, _key: string) {
     return;
@@ -392,7 +406,12 @@ describe('CloudSyncService unified queue + size guard', () => {
 
   function queuedPayloads(): Array<{
     endpoint: string;
-    payload: { projectId: string; manifest: { version: number }; payload: unknown };
+    payload: {
+      projectId: string;
+      manifest: { version: number };
+      payload: unknown;
+      uploadId?: string;
+    };
   }> {
     return offline.queueOperation.mock.calls.map((call) => ({
       endpoint: call[1] as string,
@@ -400,6 +419,7 @@ describe('CloudSyncService unified queue + size guard', () => {
         projectId: string;
         manifest: { version: number };
         payload: unknown;
+        uploadId?: string;
       },
     }));
   }
@@ -421,6 +441,87 @@ describe('CloudSyncService unified queue + size guard', () => {
     const queued = queuedPayloads();
     expect(queued).toHaveLength(1);
     expect(queued[0].payload.manifest.version).toBe(2);
+  });
+
+  it('carries each caller upload id from its queued envelope through replay into the persisted timeline', async () => {
+    const seen: Array<{ projectId: string; uploadId?: string }> = [];
+    sut.pushSucceeded$.subscribe(({ projectId, uploadId }) =>
+      seen.push({ projectId, uploadId }),
+    );
+
+    await sut.queuePush('px', 'Set', { metadata: { id: 'px' } }, 'upload_first');
+    await sut.queuePush(
+      'px',
+      'Set',
+      { metadata: { id: 'px' } },
+      'upload_second',
+    );
+    await sut.queuePush('px', 'Set', { metadata: { id: 'px' } });
+
+    // The identity rides inside the stored envelope, so the replay that
+    // confirms it can only echo its own upload — the queue carries no
+    // separate side channel.
+    const queued = queuedPayloads();
+    expect(queued.map((entry) => entry.payload.uploadId)).toEqual([
+      'upload_first',
+      'upload_second',
+      undefined,
+    ]);
+
+    // Replays finish out of order; each confirmation must echo its own
+    // envelope's upload id rather than the latest write.
+    const handler = offline.registerEndpointHandler.mock.calls[0][1] as (item: {
+      payload: unknown;
+    }) => Promise<void>;
+    await handler({ payload: queued[1].payload });
+    await handler({ payload: queued[0].payload });
+    await handler({ payload: queued[2].payload });
+
+    expect(seen).toEqual([
+      { projectId: 'px', uploadId: 'upload_second' },
+      { projectId: 'px', uploadId: 'upload_first' },
+      { projectId: 'px', uploadId: undefined },
+    ]);
+    const confirmed = [
+      { status: 'success', uploadId: undefined },
+      { status: 'success', uploadId: 'upload_first' },
+      { status: 'success', uploadId: 'upload_second' },
+    ];
+    const compact = (entries: Array<{ status: string; uploadId?: string }>) =>
+      entries.map(({ status, uploadId }) => ({ status, uploadId }));
+    expect(compact(sut.timeline().slice(0, 3))).toEqual(confirmed);
+
+    // The same rows survive persistence: a boot reads the identities the
+    // live subscriber saw, through the service's own storage path.
+    const storage = TestBed.inject(LocalStorageService) as unknown as {
+      getItem(namespace: string, key: string): Promise<unknown>;
+    };
+    const persisted = (await storage.getItem(
+      'offline_local_cache',
+      'smuve_cloud_timeline',
+    )) as { value: Array<{ status: string; uploadId?: string }> } | null;
+    expect(compact(persisted?.value?.slice(0, 3) ?? [])).toEqual(confirmed);
+
+    // A fresh instance — the boot path — hydrates those identities back
+    // into the timeline the workspace reconciles against.
+    const durableStorage = TestBed.inject(
+      LocalStorageService,
+    ) as unknown as StubStorage;
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({
+      providers: [
+        CloudSyncService,
+        MockCloudServer,
+        { provide: CLOUD_SERVER, useExisting: MockCloudServer },
+        { provide: OfflineSyncService, useClass: StubOfflineSync },
+        { provide: LocalStorageService, useValue: durableStorage },
+      ],
+    });
+    const rebooted = TestBed.inject(CloudSyncService);
+    // hydrate() is fire-and-forget in the constructor; awaiting it here
+    // settles the same read without sleeping on a timer.
+    await (rebooted as unknown as { hydrate(): Promise<void> }).hydrate();
+    expect(compact(rebooted.timeline().slice(0, 3))).toEqual(confirmed);
   });
 
   it('flags large pushes and clears the notice on a small one', async () => {
