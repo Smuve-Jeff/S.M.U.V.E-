@@ -26,6 +26,16 @@ describe("SessionViewComponent", () => {
   const sceneFollowRules = signal<Record<string, any>>({});
   const selectedTrackId = signal<string | null>(null);
   const tempo = signal(120);
+  /** Meter the mocked engine reports; 4/4 unless a test overrides it. */
+  const meter = signal({ beats: 4, unit: 4 });
+  const visualStep = signal(0);
+  const stepsPerBarAt = (_step: number) =>
+    Math.max(1, Math.round(meter().beats)) *
+    Math.max(1, Math.round(16 / Math.max(1, Math.round(meter().unit))));
+  const barAtStep = (step: number) =>
+    Math.floor(Math.max(0, step) / stepsPerBarAt(step));
+  const stepAtBar = (bar: number) =>
+    Math.max(0, Math.round(bar)) * stepsPerBarAt(0);
 
   const tracks = signal<any[]>([
     {
@@ -274,6 +284,8 @@ describe("SessionViewComponent", () => {
     sceneFollowBars.set(4);
     sceneFollowRules.set({});
     tempo.set(120);
+    meter.set({ beats: 4, unit: 4 });
+    visualStep.set(0);
     tracks.set([
       {
         id: "t1",
@@ -338,7 +350,13 @@ describe("SessionViewComponent", () => {
             isPlaying,
             isRecording,
             togglePlay,
-            engine: { tempo, visualStep: () => 0 },
+            engine: {
+              tempo,
+              visualStep,
+              stepsPerBarAt,
+              barAtStep,
+              stepAtBar,
+            },
           },
         },
         { provide: MusicManagerService, useValue: mockMusicManager },
@@ -425,6 +443,32 @@ describe("SessionViewComponent", () => {
       jest.advanceTimersByTime(2000);
       expect(launchClipPattern).toHaveBeenCalledWith("t1", "slot-b");
       expect(component.isCellQueued(clip)).toBe(false);
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it("queues the next bar by the project meter, not a fixed 4/4 bar", () => {
+    jest.useFakeTimers();
+    try {
+      isPlaying.set(true);
+      // 3/4: a bar is 12 steps (1.5 s at 120 BPM), not 16 (2 s).
+      meter.set({ beats: 3, unit: 4 });
+      visualStep.set(6); // half-way through the first bar
+      component.setLaunchQuantize("1bar");
+      const clip = component
+        .clips()
+        .find((candidate) => candidate.slotId === "slot-b")!;
+
+      component.triggerClip(clip);
+      expect(component.isCellQueued(clip)).toBe(true);
+
+      // 4/4 would wait 10 steps (1.25 s); 3/4 waits 6 (0.75 s).
+      jest.advanceTimersByTime(800);
+      expect(launchClipPattern).toHaveBeenCalledWith("t1", "slot-b");
+
+      jest.advanceTimersByTime(1000);
+      expect(launchClipPattern).toHaveBeenCalledTimes(1);
     } finally {
       jest.useRealTimers();
     }

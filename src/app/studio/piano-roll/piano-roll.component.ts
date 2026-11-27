@@ -2315,23 +2315,40 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
     const selected = track.notes.filter((n) => ids.includes(n.id));
     if (selected.length === 0) return;
 
+    // "One bar" is meter-dependent: 12 steps in 3/4 or 6/8, 16 in 4/4.
+    const anchorStep = Math.min(...selected.map((n) => n.step));
+    const barSteps = this.stepsPerBarAt(anchorStep);
     const lastEnd = Math.max(
       ...selected.map((n) => n.step + Math.max(0.125, n.length)),
     );
-    const needed = Math.ceil((lastEnd + STEPS_PER_BAR) / STEPS_PER_BAR) * STEPS_PER_BAR;
+    const needed = Math.ceil((lastEnd + barSteps) / barSteps) * barSteps;
     if (needed > this.gridSteps()) {
       this.gridSteps.update((steps) => Math.min(256, Math.max(steps, needed)));
     }
 
-    const copies = this.musicManager.duplicateNotes(
-      track.id,
-      ids,
-      STEPS_PER_BAR,
-    );
+    const copies = this.musicManager.duplicateNotes(track.id, ids, barSteps);
     if (copies.length === 0) return;
     this.selectedNoteIds.set(new Set(copies));
     this.haptic.medium();
     this.markDirty();
+  }
+
+  /**
+   * Steps in the bar that contains `step`.
+   *
+   * The editor's grid is 16th-note steps, but a bar is only 16 steps in 4/4:
+   * 3/4 and 6/8 are 12, 2/2 is 32. Reading the engine's meter keeps "one bar
+   * later" on the same beat the metronome accents.
+   */
+  private stepsPerBarAt(step: number): number {
+    const engine = this.audioEngine as {
+      stepsPerBarAt?: (step: number) => number;
+    };
+    const steps =
+      typeof engine.stepsPerBarAt === "function"
+        ? engine.stepsPerBarAt(step)
+        : NaN;
+    return Number.isFinite(steps) && steps > 0 ? steps : STEPS_PER_BAR;
   }
 
   legatoSelection(): void {

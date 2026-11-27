@@ -125,6 +125,7 @@ describe("PianoRollComponent", () => {
   const mockAudioEngine = {
     tempo: signal(120),
     visualStep: signal(0),
+    stepsPerBarAt: jest.fn((_step: number) => 16),
     metronomeEnabled: signal(false),
     resume: jest.fn(),
     toggleMetronome: jest.fn(() => {
@@ -278,6 +279,7 @@ describe("PianoRollComponent", () => {
     component.ccLaneLearnTarget.set(null);
     mockMusicManager.currentStep.set(0);
     mockMidiImport.importFileToTrack.mockClear();
+    mockAudioEngine.stepsPerBarAt.mockReturnValue(16);
   });
 
   it("offers a chord-type picker once the chord stamp is active", () => {
@@ -617,6 +619,38 @@ describe("PianoRollComponent", () => {
       "1",
       ["n1", "n2"],
       16,
+    );
+    expect(component.selectedNoteIds()).toEqual(
+      new Set(["copy-n1", "copy-n2"]),
+    );
+  });
+
+  it("duplicates one meter-aware bar later in 3/4", () => {
+    mockMusicManager.tracks.update((tracks) => [
+      {
+        ...tracks[0],
+        notes: [
+          { id: "n1", midi: 60, step: 2, length: 1, velocity: 0.8 },
+          { id: "n2", midi: 64, step: 6, length: 1, velocity: 0.8 },
+        ],
+      },
+    ]);
+    mockMusicManager.duplicateNotes.mockClear();
+    mockMusicManager.duplicateNotes.mockReturnValueOnce([
+      "copy-n1",
+      "copy-n2",
+    ]);
+    // A 3/4 bar is 12 sixteenth steps, not 16.
+    mockAudioEngine.stepsPerBarAt.mockReturnValue(12);
+    component.selectedNoteIds.set(new Set(["n1", "n2"]));
+
+    component.duplicateSelectionToNextBar();
+
+    expect(mockAudioEngine.stepsPerBarAt).toHaveBeenCalledWith(2);
+    expect(mockMusicManager.duplicateNotes).toHaveBeenCalledWith(
+      "1",
+      ["n1", "n2"],
+      12,
     );
     expect(component.selectedNoteIds()).toEqual(
       new Set(["copy-n1", "copy-n2"]),

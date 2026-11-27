@@ -649,18 +649,60 @@ export class SessionViewComponent implements OnDestroy {
   }
 
   // ── Helpers ─────────────────────────────────────────────────────────
+
+  /**
+   * Steps in the bar that contains `step`.
+   *
+   * The grid edits in 16th-note steps, but a bar is only 16 steps in 4/4:
+   * 3/4 and 6/8 are 12, 2/2 is 32. Launch quantization has to agree with the
+   * metronome's own accents, so the bar length comes from the engine's meter
+   * (including meter-map markers) instead of a fixed 16.
+   */
+  private stepsPerBarAt(step: number): number {
+    const engine = this.audioSession.engine as {
+      stepsPerBarAt?: (step: number) => number;
+    };
+    const steps =
+      typeof engine.stepsPerBarAt === "function"
+        ? engine.stepsPerBarAt(step)
+        : NaN;
+    return Number.isFinite(steps) && steps > 0 ? steps : 16;
+  }
+
+  /** Bar index containing an absolute song step (meter-map aware). */
+  private barAtStep(step: number): number {
+    const engine = this.audioSession.engine as {
+      barAtStep?: (step: number) => number;
+    };
+    const bar = typeof engine.barAtStep === "function" ? engine.barAtStep(step) : NaN;
+    if (Number.isFinite(bar) && bar >= 0) return bar;
+    return Math.floor(Math.max(0, step) / this.stepsPerBarAt(step));
+  }
+
+  /** First step of a bar (meter-map aware). */
+  private stepAtBar(bar: number): number {
+    const engine = this.audioSession.engine as {
+      stepAtBar?: (bar: number) => number;
+    };
+    const step = typeof engine.stepAtBar === "function" ? engine.stepAtBar(bar) : NaN;
+    if (Number.isFinite(step) && step >= 0) return step;
+    return Math.max(0, Math.round(bar)) * this.stepsPerBarAt(0);
+  }
+
   private nextBarDelay(bars: number): number {
     if (bars <= 0 || !this.audioSession.isPlaying()) {
       return 0;
     }
     const tempo = this.audioSession.engine.tempo() || 120;
-    const secondsPerBar = (60 / tempo) * 4;
     const step = this.audioSession.engine.visualStep?.() ?? 0;
-    const stepsPerBar = 16;
-    const stepsIntoBar = step % stepsPerBar;
-    const totalSteps = bars * stepsPerBar;
-    const stepsToNext = (totalSteps - stepsIntoBar) % totalSteps || totalSteps;
-    return Math.max(0.05, (stepsToNext / stepsPerBar) * secondsPerBar);
+    // Land on the bar that starts `bars` whole bars after the one under the
+    // playhead. A 3/4 launch used to wait for a 4/4 bar, which put it a beat
+    // past the downbeat the metronome accents.
+    const quantum = Math.max(1, Math.round(bars));
+    const targetStep = this.stepAtBar(this.barAtStep(step) + quantum);
+    const stepsToNext = Math.max(1, targetStep - step);
+    // Every sequencer step is a 16th note at any meter: 60 / tempo / 4.
+    return Math.max(0.05, (stepsToNext * 60) / tempo / 4);
   }
 
   private clearQuantizeTimer(): void {
