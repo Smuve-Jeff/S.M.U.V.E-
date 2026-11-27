@@ -2,7 +2,7 @@ import { Injectable, computed, inject, signal } from "@angular/core";
 import { AudioEngineService } from "../services/audio-engine.service";
 import { saveJson } from '../services/guarded-storage';
 
-/** A tempo change pinned to an absolute song step (16 steps = one 4/4 bar). */
+/** A tempo change pinned to an absolute song step (16 sixteenths in a 4/4 bar). */
 export interface TempoMarker {
   /** Stable id for the marker list UI. */
   id: string;
@@ -82,9 +82,18 @@ export class TempoMapService {
     return bpm;
   }
 
-  /** Bar label for a marker, 1-based like the arrangement ruler. */
+  /**
+   * Bar label for a marker, 1-based like the arrangement ruler. Follows the
+   * meter map: a marker after a mid-song 4/4 → 3/4 change sits on the bar the
+   * ruler shows, not on a fixed 16-step grid.
+   */
   barOf(marker: TempoMarker): number {
-    return Math.floor(marker.step / STEPS_PER_BAR) + 1;
+    const barAt = (this.engine as Partial<AudioEngineService>).barAtStep;
+    const index =
+      typeof barAt === "function"
+        ? barAt.call(this.engine, marker.step)
+        : Math.floor(marker.step / STEPS_PER_BAR);
+    return index + 1;
   }
 
   /**

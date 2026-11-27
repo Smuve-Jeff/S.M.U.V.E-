@@ -8,15 +8,46 @@ describe('AutomationCurveEditorComponent', () => {
   let component: AutomationCurveEditorComponent;
   let automation: AutomationService;
 
+  // 4/4 by default; tests can splice in a mid-song meter change.
+  let meterChanges: { step: number; span: number }[] = [{ step: 0, span: 16 }];
+  const spanAt = (step: number) => {
+    let span = 16;
+    for (const change of meterChanges) if (change.step <= step) span = change.span;
+    return span;
+  };
+  const barAtStep = (step: number) => {
+    let bar = 0;
+    let start = 0;
+    while (start + spanAt(start) <= step) {
+      start += spanAt(start);
+      bar++;
+    }
+    return bar;
+  };
+  const stepAtBar = (bar: number) => {
+    let start = 0;
+    for (let index = 0; index < bar; index++) start += spanAt(start);
+    return start;
+  };
+  const barPositionAtStep = (step: number) => {
+    const bar = barAtStep(step);
+    const start = stepAtBar(bar);
+    const next = stepAtBar(bar + 1);
+    return bar + (step - start) / Math.max(1, next - start);
+  };
+  const engineMock = {
+    applyProductionParameter: jest.fn(),
+    barPositionAtStep,
+    stepAtBar,
+  };
+
   beforeEach(async () => {
+    meterChanges = [{ step: 0, span: 16 }];
     await TestBed.configureTestingModule({
       imports: [AutomationCurveEditorComponent],
       providers: [
         AutomationService,
-        {
-          provide: AudioEngineService,
-          useValue: { applyProductionParameter: jest.fn() },
-        },
+        { provide: AudioEngineService, useValue: engineMock },
       ],
     }).compileComponents();
 
@@ -188,6 +219,18 @@ describe('AutomationCurveEditorComponent', () => {
     expect(view.points[0].x).toBeCloseTo(0, 3);
     expect(view.points[1].x).toBeCloseTo(100, 3); // step 16 = 1 bar
     expect(view.points[0].y).toBeGreaterThan(view.points[1].y); // higher value rises
+  });
+
+  it('maps steps through a mid-song meter change', () => {
+    meterChanges = [
+      { step: 0, span: 16 },
+      { step: 32, span: 12 },
+    ];
+    // Bar 4 starts at step 44, so step 46 sits 2/12 into it.
+    expect(component.timeToX(46)).toBeCloseTo((3 + 2 / 12) * 100, 6);
+    expect(component.xToTime(component.timeToX(46))).toBeCloseTo(46, 6);
+    // Four bars of this map end at step 56, not 64.
+    expect(component.xToTime(400)).toBeCloseTo(56, 6);
   });
 
   it('round-trips geometry helpers for log-scaled filters', () => {

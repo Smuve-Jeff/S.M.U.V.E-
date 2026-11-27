@@ -10,6 +10,35 @@ describe("ScoreViewComponent", () => {
   let updateNote: jest.Mock;
   let removeNotes: jest.Mock;
 
+  // 4/4 by default; tests can splice in a mid-song meter change.
+  let meterChanges: { step: number; span: number }[] = [{ step: 0, span: 16 }];
+  const spanAt = (step: number) => {
+    let span = 16;
+    for (const change of meterChanges) if (change.step <= step) span = change.span;
+    return span;
+  };
+  const barAtStep = (step: number) => {
+    let bar = 0;
+    let start = 0;
+    while (start + spanAt(start) <= step) {
+      start += spanAt(start);
+      bar++;
+    }
+    return bar;
+  };
+  const stepAtBar = (bar: number) => {
+    let start = 0;
+    for (let index = 0; index < bar; index++) start += spanAt(start);
+    return start;
+  };
+  const engineMock = {
+    tempo: () => 128,
+    barAtStep,
+    stepAtBar,
+    barCountForStep: (step: number) => barAtStep(step) + 1,
+    stepsPerNotatedBeatAt: () => 4,
+  };
+
   function createTracks() {
     return [
       {
@@ -32,6 +61,7 @@ describe("ScoreViewComponent", () => {
   }
 
   beforeEach(() => {
+    meterChanges = [{ step: 0, span: 16 }];
     tracks = signal(createTracks());
     updateNote = jest.fn();
     removeNotes = jest.fn();
@@ -45,7 +75,7 @@ describe("ScoreViewComponent", () => {
             updateNote,
             removeNotes,
             projectName: "Night Drive",
-            engine: { tempo: () => 128 },
+            engine: engineMock,
           },
         },
       ],
@@ -323,5 +353,35 @@ describe("ScoreViewComponent", () => {
       component.exportMusicXml();
       expect(createObjectURL).not.toHaveBeenCalled();
     });
+  });
+
+  it("measures bars and labels notes through a mid-song meter change", () => {
+    meterChanges = [
+      { step: 0, span: 16 },
+      { step: 32, span: 12 },
+    ];
+    tracks.set([
+      {
+        id: "band-1",
+        name: "Band",
+        type: "instrument",
+        notes: [
+          { id: "n-a", midi: 60, step: 46, length: 4, velocity: 0.8 },
+          { id: "n-b", midi: 62, step: 58, length: 4, velocity: 0.8 },
+        ],
+      },
+    ]);
+    fixture.detectChanges();
+
+    const notes = component.staves()[0].notes;
+    const at46 = notes.find((note) => note.id === "n-a")!;
+
+    // Bars: 0–16, 16–32, 32–44, 44–56, 56–68 — five bars, not ceil(62/16).
+    expect(component.bars()).toBe(5);
+    // Step 46 belongs to bar 4 (starts at 44); a fixed grid says bar 3.
+    expect(at46.bar).toBe(4);
+    expect(at46.beat).toBe(1);
+    expect(component.barLeft(4)).toBeCloseTo(44 * 5.5 + 120, 5);
+    expect(component.scoreWidth()).toBeCloseTo(68 * 5.5 + 120, 5);
   });
 });

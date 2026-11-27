@@ -10,6 +10,7 @@ import {
   MusicManagerService,
   TrackNote,
 } from "../../services/music-manager.service";
+import { AudioEngineService } from "../../services/audio-engine.service";
 import {
   buildMusicXml,
   musicXmlFileName,
@@ -102,10 +103,36 @@ const clamp = (value: number, min: number, max: number) =>
 export class ScoreViewComponent {
   readonly musicManager = inject(MusicManagerService);
   readonly Math = Math;
-  readonly beatsPerBar = 4;
-  readonly stepsPerBeat = 4;
-  readonly bars = computed(() => {
-    const furthestStep = this.musicManager.tracks().reduce(
+
+  /** Meter-aware bar boundaries: the score ruler follows the song's map. */
+  private get engine(): Partial<AudioEngineService> | undefined {
+    return (this.musicManager as unknown as { engine?: Partial<AudioEngineService> })
+      .engine;
+  }
+
+  private barIndexAt(step: number): number {
+    const index = this.engine?.barAtStep?.(step);
+    return typeof index === "number" && Number.isFinite(index)
+      ? Math.max(0, Math.round(index))
+      : Math.floor(Math.max(0, step) / 16);
+  }
+
+  private barStartStep(barIndex: number): number {
+    const step = this.engine?.stepAtBar?.(barIndex);
+    return typeof step === "number" && Number.isFinite(step)
+      ? Math.max(0, Math.round(step))
+      : barIndex * 16;
+  }
+
+  private beatStepsAt(step: number): number {
+    const steps = this.engine?.stepsPerNotatedBeatAt?.(step);
+    return typeof steps === "number" && Number.isFinite(steps) && steps > 0
+      ? Math.round(steps)
+      : 4;
+  }
+
+  private readonly furthestStep = computed(() =>
+    this.musicManager.tracks().reduce(
       (furthest, track) =>
         Math.max(
           furthest,
@@ -115,9 +142,38 @@ export class ScoreViewComponent {
           ),
         ),
       0,
-    );
-    return Math.max(4, Math.ceil(furthestStep / 16));
+    ),
+  );
+
+  private readonly barSpans = computed(() => {
+    const furthest = this.furthestStep();
+    const spans: { start: number; steps: number; beatSteps: number }[] = [];
+    let start = 0;
+    while (start < furthest || spans.length === 0) {
+      const bar = this.barIndexAt(start);
+      const next = Math.max(start + 1, this.barStartStep(bar + 1));
+      spans.push({
+        start,
+        steps: next - start,
+        beatSteps: this.beatStepsAt(start),
+      });
+      start = next;
+      if (spans.length > 4096) break;
+    }
+    return spans;
   });
+
+  readonly bars = computed(() => Math.max(4, this.barSpans().length));
+
+  /** Pixel width of the staff/ruler, using each bar's real length. */
+  readonly scoreWidth = computed(
+    () => this.barStartStep(this.bars()) * STEP_WIDTH + 120,
+  );
+
+  /** Left offset of a 1-based bar line, meter-aware. */
+  barLeft(bar: number): number {
+    return this.barStartStep(bar - 1) * STEP_WIDTH + 120;
+  }
 
   readonly staves = computed<ScoreStaff[]>(() =>
     this.musicManager
@@ -157,16 +213,18 @@ export class ScoreViewComponent {
       list.push(note);
       byBar.set(note.bar, list);
     }
-    const BEATS = [0, 4, 8, 12];
     for (const [bar, barNotes] of byBar) {
       if (barNotes.length === 0) continue;
-      const occupied = new Set(barNotes.map((n) => Math.floor(n.step) % 16));
-      for (const beat of BEATS) {
+      const start = this.barStartStep(bar - 1);
+      const beatSteps = this.beatStepsAt(start);
+      const length = Math.max(beatSteps, this.barStartStep(bar) - start);
+      const occupied = new Set(barNotes.map((n) => Math.floor(n.step) - start));
+      for (let beat = 0; beat < length; beat += beatSteps) {
         if (!occupied.has(beat)) {
           rests.push({
             id: `rest_${bar}_${beat}`,
             bar,
-            left: ((bar - 1) * 16 + beat) * STEP_WIDTH,
+            left: (start + beat) * STEP_WIDTH,
             staffTop: 50,
           });
         }
@@ -203,9 +261,21 @@ export class ScoreViewComponent {
     return "sixteenth";
   }
 
+  /** 1-based bar and beat for a step, following the meter map. */
+  private barBeatAt(step: number): { bar: number; beat: number } {
+    const index = this.barIndexAt(step);
+    const start = this.barStartStep(index);
+    const beatSteps = this.beatStepsAt(step);
+    return {
+      bar: index + 1,
+      beat: Math.floor((Math.floor(step) - start) / beatSteps) + 1,
+    };
+  }
+
   private toScoreNote(note: TrackNote): ScoreNote {
     const midi = Math.max(0, Math.min(127, Math.round(note.midi)));
     const pitchClass = midi % 12;
+    const position = this.barBeatAt(note.step);
     return {
       id: note.id,
       midi,
@@ -214,8 +284,8 @@ export class ScoreViewComponent {
       octave: this.octave(midi),
       duration: this.durationLabel(note.length),
       step: note.step,
-      bar: Math.floor(note.step / 16) + 1,
-      beat: (Math.floor(note.step) % 16) / 4 + 1,
+      bar: position.bar,
+      beat: position.beat,
       left: Math.max(0, note.step) * STEP_WIDTH,
       // The staff is a visual pitch guide; middle C sits in the center.
       staffTop: 50 - (midi - 60) * STAFF_TOP_BY_SEMITONE,
@@ -266,8 +336,7 @@ export class ScoreViewComponent {
   readonly selectedPosition = computed(() => {
     const note = this.selectedNote()?.note;
     if (!note) return "";
-    const bar = Math.floor(note.step / 16) + 1;
-    const beat = (Math.floor(note.step) % 16) / 4 + 1;
+    const { bar, beat } = this.barBeatAt(note.step);
     return `${bar}.${beat}`;
   });
 

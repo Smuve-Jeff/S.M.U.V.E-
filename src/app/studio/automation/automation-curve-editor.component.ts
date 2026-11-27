@@ -15,6 +15,7 @@ import {
   AutomationService,
 } from '../automation.service';
 import { FX_TYPE_TO_PLUGIN_ID } from '../../services/music-manager.service';
+import { AudioEngineService } from '../../services/audio-engine.service';
 import { FX_PARAM_SPECS } from '../effects/fx-param-specs';
 import {
   AutomationRange,
@@ -345,6 +346,8 @@ export class AutomationCurveEditorComponent implements OnDestroy {
   @Output() openBezierEditor = new EventEmitter<string>();
 
   private readonly automation = inject(AutomationService);
+  /** Optional so unit tests without the engine still fall back to a 4/4 grid. */
+  private readonly audio = inject(AudioEngineService, { optional: true });
 
   readonly laneHeight = AUTOMATION_LANE_HEIGHT;
   /**
@@ -492,13 +495,43 @@ export class AutomationCurveEditorComponent implements OnDestroy {
 
   // ── Geometry helpers ─────────────────────────────────────────────
 
-  /** 16 steps per bar, matching the arrangement grid. */
+  /** Fractional bar position for a step, following the song's meter map. */
+  private barPositionAt(step: number): number {
+    const position = this.audio?.barPositionAtStep?.(step);
+    return typeof position === "number" && Number.isFinite(position)
+      ? Math.max(0, position)
+      : Math.max(0, step) / 16;
+  }
+
+  /** Inverse of {@link barPositionAt}: a fractional bar back to a step. */
+  private stepAtBarPosition(position: number): number {
+    const clamped = Math.max(0, position);
+    const bar = Math.floor(clamped);
+    const start = this.audio?.stepAtBar?.(bar);
+    const next = this.audio?.stepAtBar?.(bar + 1);
+    if (
+      typeof start !== "number" ||
+      typeof next !== "number" ||
+      !Number.isFinite(start) ||
+      !Number.isFinite(next)
+    ) {
+      return clamped * 16;
+    }
+    const steps = Math.max(1, next - start);
+    return start + (clamped - bar) * steps;
+  }
+
+  /** Last step of the lane, so samples and clamping stop on the real bar end. */
+  private totalSteps(): number {
+    return this.stepAtBarPosition(this.totalBars());
+  }
+
   timeToX(time: number): number {
-    return (time / 16) * this.barWidth();
+    return this.barPositionAt(time) * this.barWidth();
   }
 
   xToTime(x: number): number {
-    return (x / this.barWidth()) * 16;
+    return this.stepAtBarPosition(x / this.barWidth());
   }
 
   valueToY(value: number, range: AutomationRange): number {
@@ -704,10 +737,11 @@ export class AutomationCurveEditorComponent implements OnDestroy {
       lane.target.max,
     );
     const totalBars = this.totalBars();
+    const totalSteps = this.totalSteps();
     const samples = Math.max(2, Math.round(totalBars * SAMPLES_PER_BAR));
     let path = '';
     for (let i = 0; i <= samples; i++) {
-      const time = (i / samples) * totalBars * 16;
+      const time = (i / samples) * totalSteps;
       const value = this.automation.getValueAtTime(lane.id, time);
       if (value === null) {
         path = '';
@@ -727,7 +761,7 @@ export class AutomationCurveEditorComponent implements OnDestroy {
 
   private clampTime(time: number): number {
     if (!Number.isFinite(time)) return 0;
-    return Math.max(0, Math.min(this.totalBars() * 16, time));
+    return Math.max(0, Math.min(this.totalSteps(), time));
   }
 }
 

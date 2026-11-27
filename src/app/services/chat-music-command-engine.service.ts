@@ -1795,12 +1795,14 @@ export class ChatMusicCommandEngineService {
         while (root - previousRoot < -6) root += 12;
       }
       previousRoot = root;
+      const step = this.audio.stepAtBar?.(bar) ?? bar * 16;
+      const length = Math.max(1, (this.audio.stepsPerBarAt?.(step) ?? 16) - 1);
       chord.intervals.forEach((interval, i) => {
         this.music.addNoteToTrack(trackId, {
           id: `${stamp}_${bar}_${i}`,
           midi: root + interval,
-          step: bar * 16,
-          length: 15,
+          step,
+          length,
           velocity: 0.55 + (i === 0 ? 0.2 : 0),
         });
       });

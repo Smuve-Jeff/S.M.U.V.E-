@@ -6,6 +6,7 @@ import {
   TakeManagerService,
 } from "../../services/take-manager.service";
 import { MusicManagerService } from "../../services/music-manager.service";
+import { AudioEngineService } from "../../services/audio-engine.service";
 import { SnackbarService } from "../../services/snackbar.service";
 import { HapticService } from "../../services/haptic.service";
 
@@ -66,8 +67,28 @@ export class TakeLaneComponent {
       (max, n) => Math.max(max, n.step + (n.length ?? 1)),
       0,
     );
-    return Math.max(4, Math.ceil(furthest / 16));
+    return Math.max(4, this.barCountAtStep(furthest));
   });
+
+  /** Meter-aware bar helpers — the lane's bars follow the song's meter map. */
+  private get engine(): Partial<AudioEngineService> | undefined {
+    return (this.musicManager as unknown as { engine?: Partial<AudioEngineService> })
+      .engine;
+  }
+
+  private barCountAtStep(step: number): number {
+    const count = this.engine?.barCountForStep?.(step);
+    return typeof count === "number" && Number.isFinite(count)
+      ? Math.max(1, Math.round(count))
+      : Math.ceil(step / 16);
+  }
+
+  private stepAtBar(bar: number): number {
+    const step = this.engine?.stepAtBar?.(bar);
+    return typeof step === "number" && Number.isFinite(step)
+      ? Math.max(0, Math.round(step))
+      : bar * 16;
+  }
 
   /** Bar numbers available for section assignment (1-based). */
   sectionBarColumns = computed(() =>
@@ -144,7 +165,7 @@ export class TakeLaneComponent {
 
   /** The section covering a bar, or undefined. */
   sectionForBar(bar: number): CompSection | undefined {
-    const start = (bar - 1) * 16;
+    const start = this.stepAtBar(bar - 1);
     return this.sections().find(
       (s) => s.startStep <= start && s.endStep > start,
     );
@@ -171,9 +192,9 @@ export class TakeLaneComponent {
         return;
       }
     }
-    const start = (bar - 1) * 16;
-    const end = bar * 16;
-    this.takeManager.setSection(this.trackId(), start, end, takeId);
+    const start = this.stepAtBar(bar - 1);
+    const end = this.stepAtBar(bar);
+    this.takeManager.setSection(this.trackId(), start, Math.max(start + 1, end), takeId);
     this.haptic.medium();
     this.snack.success(`Bar ${bar} → ${this.labelFor(takeId)}`);
   }

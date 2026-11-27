@@ -496,7 +496,10 @@ export class MusicManagerService {
         end = Math.max(end, (clip.start ?? 0) + Math.max(0.001, clip.length ?? 4));
       }
       for (const note of track.notes ?? []) {
-        end = Math.max(end, ((note.step ?? 0) + (note.length ?? 0)) / 16);
+        end = Math.max(
+          end,
+          this.barsForEndStep((note.step ?? 0) + (note.length ?? 0)),
+        );
       }
     }
     return Math.ceil(end);
@@ -515,7 +518,9 @@ export class MusicManagerService {
       this.activeLoopBars(),
       this.arrangementEndBar() + 1
     );
-    this.engine.setSongLengthSteps(bars * 16);
+    this.engine.setSongLengthSteps(
+      this.engine.stepsForBars?.(0, bars) ?? bars * 16,
+    );
   });
   activeLoopBars = signal(64);
   structure = signal<SongSection[]>([

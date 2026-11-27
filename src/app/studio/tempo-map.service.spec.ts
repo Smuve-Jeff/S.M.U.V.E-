@@ -8,6 +8,7 @@ describe("TempoMapService", () => {
   let engine: {
     tempo: ReturnType<typeof signal<number>>;
     setTempoMap: jest.Mock;
+    barAtStep?: (step: number) => number;
   };
 
   beforeEach(() => {
@@ -62,6 +63,26 @@ describe("TempoMapService", () => {
 
     expect(service.markers().map((marker) => marker.step)).toEqual([0, 16, 32]);
     expect(service.barOf(middle)).toBe(2);
+  });
+
+  it("labels a marker through a mid-song meter change", () => {
+    // 4/4 for two bars, then 3/4 from step 32: bar 4 starts at step 44.
+    engine.barAtStep = (step: number) => {
+      let bar = 0;
+      let start = 0;
+      while (start < step) {
+        const next = start + (start >= 32 ? 12 : 16);
+        if (next > step) break;
+        start = next;
+        bar++;
+      }
+      return bar;
+    };
+
+    const marker = service.addMarker(46, 120)!;
+
+    // A fixed 16-step bar would say bar 3; the ruler says bar 4.
+    expect(service.barOf(marker)).toBe(4);
   });
 
   it("retunes an existing marker instead of stacking a duplicate step", () => {

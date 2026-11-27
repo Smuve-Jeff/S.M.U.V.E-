@@ -134,12 +134,12 @@
     class="score-scroll studio-module-scroll"
     *ngIf="staves().length > 0; else emptyScore"
   >
-    <div class="score-ruler" [style.width.px]="bars() * 16 * 5.5 + 120">
+    <div class="score-ruler" [style.width.px]="scoreWidth()">
       <span class="score-ruler-label">BARS</span>
       <span
         *ngFor="let bar of barColumns()"
         class="score-bar-label"
-        [style.left.px]="(bar - 1) * 16 * 5.5 + 120"
+        [style.left.px]="barLeft(bar)"
       >
         {{ bar }}
       </span>
@@ -163,7 +163,7 @@
       <div class="score-staff-viewport">
         <div
           class="score-staff-canvas"
-          [style.width.px]="bars() * 16 * 5.5 + 120"
+          [style.width.px]="scoreWidth()"
           (click)="clearSelection()"
         >
           <div class="score-clef" aria-hidden="true">𝄞</div>
@@ -173,7 +173,7 @@
           <div
             *ngFor="let bar of barColumns()"
             class="score-measure-line"
-            [style.left.px]="(bar - 1) * 16 * 5.5 + 120"
+            [style.left.px]="barLeft(bar)"
             aria-hidden="true"
           ></div>
           <button

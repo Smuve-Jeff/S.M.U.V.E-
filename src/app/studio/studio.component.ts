@@ -1589,9 +1589,15 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
       : "studio-perf";
   });
 
-  currentBar = computed(
-    () => Math.floor(this.audioEngine.visualStep() / 16) + 1,
-  );
+  currentBar = computed(() => {
+    const step = this.audioEngine.visualStep();
+    const barAt = (this.audioEngine as Partial<AudioEngineService>).barAtStep;
+    const index =
+      typeof barAt === "function"
+        ? barAt.call(this.audioEngine, step)
+        : Math.floor(step / 16);
+    return index + 1;
+  });
 
   /**
    * Mobile bottom nav — 4 workflow anchors + central CREATE pill + More.
@@ -4846,13 +4852,19 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
 
     const intervals = INTERVALS[qualifier] || [0, 4, 7]; // default triad
     const baseNote = 48 + root; // C3 base
-    const stepStart = position * 16;
+    const stepStart =
+      this.audioEngine.stepAtBar?.(position) ?? position * 16;
+    const barSteps =
+      this.audioEngine.stepsPerBarAt?.(stepStart) ?? 16;
 
     return intervals.map((interval, i) => ({
       note: baseNote + interval,
       velocity: 80 + (i === 0 ? 20 : 0), // root note slightly louder
       startStep: stepStart,
-      durationSteps: i === intervals.length - 1 ? 16 : 14, // let ring
+      durationSteps:
+        i === intervals.length - 1
+          ? barSteps
+          : Math.max(1, barSteps - 2), // let ring
     }));
   }
 

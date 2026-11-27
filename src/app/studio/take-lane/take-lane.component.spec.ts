@@ -18,7 +18,36 @@ describe("TakeLaneComponent (Sprint A3 Phase 3)", () => {
     error: jest.fn(),
   };
   const mockHaptic = { light: jest.fn(), medium: jest.fn(), impact: jest.fn() };
+
+  // 4/4 by default; tests can splice in a mid-song meter change.
+  let meterChanges: { step: number; span: number }[] = [{ step: 0, span: 16 }];
+  const spanAt = (step: number) => {
+    let span = 16;
+    for (const change of meterChanges) if (change.step <= step) span = change.span;
+    return span;
+  };
+  const barAtStep = (step: number) => {
+    let bar = 0;
+    let start = 0;
+    while (start + spanAt(start) <= step) {
+      start += spanAt(start);
+      bar++;
+    }
+    return bar;
+  };
+  const stepAtBar = (bar: number) => {
+    let start = 0;
+    for (let index = 0; index < bar; index++) start += spanAt(start);
+    return start;
+  };
+  const mockEngine = {
+    barAtStep,
+    stepAtBar,
+    barCountForStep: (step: number) => barAtStep(step) + 1,
+  };
+
   const mockMusicManager = {
+    engine: mockEngine,
     tracks: signal([
       {
         id: "trk1",
@@ -34,6 +63,7 @@ describe("TakeLaneComponent (Sprint A3 Phase 3)", () => {
   };
 
   beforeEach(async () => {
+    meterChanges = [{ step: 0, span: 16 }];
     mockMusicManager.replaceTrackNotes.mockClear();
     mockSnack.success.mockClear();
     mockSnack.info.mockClear();
@@ -233,5 +263,34 @@ describe("TakeLaneComponent (Sprint A3 Phase 3)", () => {
     component.clearSections();
     expect(takeManager.sections("trk1")().length).toBe(0);
     expect(component.pickedTakeId()).toBeNull();
+  });
+
+  it("maps comp bars through a mid-song meter change", () => {
+    meterChanges = [
+      { step: 0, span: 16 },
+      { step: 32, span: 12 },
+    ];
+    mockMusicManager.tracks.set([
+      {
+        id: "trk1",
+        name: "Lead",
+        notes: [{ id: "n1", midi: 60, step: 58, length: 4, velocity: 100 }],
+      },
+    ]);
+    fixture.detectChanges();
+
+    // Bar 5 starts at step 56, so four 4/4 bars would be one short.
+    expect(component.sectionBars()).toBe(5);
+
+    const a = takeManager.addTake("trk1", "Take A");
+    component.toggleSectionMode();
+    component.onChipTap(a.id);
+    component.assignBar(4);
+
+    const sections = takeManager.sections("trk1")();
+    expect(sections[0].startStep).toBe(44);
+    expect(sections[0].endStep).toBe(56);
+    expect(component.sectionForBar(4)?.takeId).toBe(a.id);
+    expect(component.sectionForBar(3)).toBeUndefined();
   });
 });

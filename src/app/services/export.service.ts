@@ -267,8 +267,10 @@ export class ExportService {
       sampleRate: loopBuffer.sampleRate,
       startStep,
       endStep,
-      startBar: Math.floor(startStep / 16) + 1,
-      endBar: Math.ceil(endStep / 16),
+      startBar: (this.engine.barAtStep?.(startStep) ?? Math.floor(startStep / 16)) + 1,
+      endBar:
+        (this.engine.barAtStep?.(Math.max(startStep, endStep - 1)) ??
+          Math.floor(endStep / 16)) + 1,
       startSeconds,
       endSeconds,
       durationSec: loopBuffer.duration,
