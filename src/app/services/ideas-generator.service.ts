@@ -99,6 +99,11 @@ export class IdeasGeneratorService {
     existingNotes?: Array<{ midi: number; step: number }>;
     artistDNA?: { style?: string; velocity?: string };
     barCount?: number;
+    /** Meter helpers, so chords land on the bars the arrangement shows. */
+    meter?: {
+      stepAtBar?(bar: number): number;
+      stepsPerBarAt?(step: number): number;
+    };
   }): { notes: IdeaNote[]; progression: string[] } {
     const key = params.key || 'C';
     const scale = params.scale || 'minor';
@@ -113,7 +118,16 @@ export class IdeasGeneratorService {
     progression.forEach((roman, barIdx) => {
       const offset = IdeasGeneratorService.ROMAN_OFFSETS_MAJOR[roman] ?? 0;
       const rootMidi = 48 + keyOffset + offset; // C3 + key + chord offset
-      const step = barIdx * 16;
+      const step = params.meter?.stepAtBar?.(barIdx) ?? barIdx * 16;
+      const barSteps = Math.max(
+        1,
+        params.meter?.stepsPerBarAt?.(step) ?? 16,
+      );
+      // Voicings are authored against a 16-step bar; stretch onto this one.
+      const at = (offsetSteps: number) =>
+        step + Math.min(barSteps - 1, Math.round((offsetSteps / 16) * barSteps));
+      const length = (steps: number) =>
+        Math.max(1, Math.round((steps / 16) * barSteps));
 
       // Build chord voicing (root + third + fifth + optional seventh)
       const isSeventh = roman.includes('7') || roman.includes('maj7');
@@ -126,7 +140,7 @@ export class IdeasGeneratorService {
       notes.push({
         midi: rootMidi - 12,
         step,
-        length: 16,
+        length: barSteps,
         velocity: 0.85,
       });
 
@@ -134,8 +148,8 @@ export class IdeasGeneratorService {
       intervals.forEach((iv, idx) => {
         notes.push({
           midi: rootMidi + iv,
-          step: step + idx * 2,
-          length: 4 + idx * 2,
+          step: at(idx * 2),
+          length: length(4 + idx * 2),
           velocity: 0.65 + idx * 0.08,
         });
       });
@@ -144,8 +158,8 @@ export class IdeasGeneratorService {
       if (barIdx % 2 === 0) {
         notes.push({
           midi: rootMidi + intervals[0] + 12,
-          step: step + 8,
-          length: 2,
+          step: at(8),
+          length: length(2),
           velocity: 0.45,
         });
       }

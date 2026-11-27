@@ -191,4 +191,29 @@ describe('IdeasGeneratorService', () => {
       }
     }
   });
+
+  it('places predictive chords through a mid-song meter change', () => {
+    const starts = [0, 16, 32, 44, 56];
+    const stepAtBar = (bar: number) =>
+      starts[Math.min(starts.length - 1, Math.max(0, Math.floor(bar)))];
+    const { notes } = service.generatePredictiveNotes({
+      key: 'C',
+      scale: 'major',
+      genre: 'pop',
+      barCount: 4,
+      meter: {
+        stepAtBar,
+        stepsPerBarAt: (step: number) => (step >= 32 ? 12 : 16),
+      },
+    });
+
+    // One chord per bar: 0, 16, then the 3/4 bars at 32 and 44.
+    const roots = notes
+      .filter((note) => note.velocity === 0.85)
+      .map((note) => note.step);
+    expect(roots).toEqual([0, 16, 32, 44]);
+    expect(Math.max(...notes.map((note) => note.step + note.length))).toBeLessThanOrEqual(
+      56,
+    );
+  });
 });

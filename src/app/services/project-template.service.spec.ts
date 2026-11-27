@@ -247,6 +247,46 @@ describe("ProjectTemplateService", () => {
     expect(patterned?.tracks[1].clips).toBeUndefined();
   });
 
+  it("sizes a captured pattern clip through a mid-song meter change", () => {
+    const engine = musicManager.engine as any;
+    const starts = [0, 16, 32, 44, 56, 68];
+    const barAtStep = (step: number) => {
+      let bar = 0;
+      while (bar + 1 < starts.length && starts[bar + 1] <= step) bar++;
+      return bar;
+    };
+    engine.barCountForStep = (step: number) =>
+      step > 0 ? barAtStep(step - 1) + 1 : 1;
+    const originalTracks = musicManager.tracks;
+    musicManager.tracks = jest.fn(() => [
+      {
+        id: "1",
+        name: "Lead",
+        instrumentId: "analog-warmth",
+        type: "midi",
+        notes: [{ id: "n1", midi: 60, step: 44, length: 14, velocity: 0.8 }],
+        clips: [],
+      },
+    ]);
+
+    try {
+      const template = service.saveCurrentAsTemplate("Meter sketch", true);
+      expect(template).not.toBeNull();
+      jest.clearAllMocks();
+
+      service.applyTemplate(template!.id);
+
+      // The note ends at 58, inside the fifth bar of this map (56–68).
+      expect(addClipToTrack).toHaveBeenCalledWith(
+        "track-Lead",
+        expect.objectContaining({ name: "Lead · 5 bars", length: 5 }),
+      );
+    } finally {
+      musicManager.tracks = originalTracks;
+      delete engine.barCountForStep;
+    }
+  });
+
   it("applies a captured pattern at its original clip positions", () => {
     const template = service.saveCurrentAsTemplate("Pattern Sketch", true);
     expect(template).not.toBeNull();

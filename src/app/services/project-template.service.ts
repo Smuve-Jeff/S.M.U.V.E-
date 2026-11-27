@@ -1041,7 +1041,11 @@ export class ProjectTemplateService {
           0,
         );
         const length = t.clips
-          ? Math.max(1, Math.ceil(lastNoteStep / 16))
+          ? Math.max(
+              1,
+              this.musicManager.engine.barCountForStep?.(lastNoteStep) ??
+                Math.ceil(lastNoteStep / 16),
+            )
           : 4;
         this.musicManager.addClipToTrack(trackId, {
           name: `${t.name} · ${length} bars`,

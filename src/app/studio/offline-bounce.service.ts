@@ -118,7 +118,7 @@ export class OfflineBounceService {
       const exporter = this.injector.get(ExportService);
       const renderedBuffer = await exporter.renderProjectOffline({
         sampleRate,
-        durationBars: durationBars ?? totalSteps / 16,
+        durationBars: durationBars ?? this.barCountForStep(totalSteps),
         tailSeconds,
         onProgress: (percent) => {
           this.updateProgress(
@@ -300,22 +300,38 @@ export class OfflineBounceService {
     }
   }
 
+  /** Start step of a bar under the meter map (fallback: 16-step bars). */
+  private stepAtBar(bar: number): number {
+    const step = this.engine.stepAtBar?.(bar);
+    return typeof step === "number" && Number.isFinite(step)
+      ? Math.max(0, Math.round(step))
+      : Math.round(bar * 16);
+  }
+
+  /** Bars covering an exclusive end step under the meter map. */
+  private barCountForStep(step: number): number {
+    const count = this.engine.barCountForStep?.(step);
+    return typeof count === "number" && Number.isFinite(count)
+      ? Math.max(1, Math.round(count))
+      : Math.max(1, Math.ceil(step / 16));
+  }
+
   private computeTotalSteps(
     durationBars?: number,
     onlyTrackId?: string,
   ): number {
-    if (durationBars !== undefined) return durationBars * 16;
+    if (durationBars !== undefined) return this.stepAtBar(durationBars);
 
     // Auto-detect from arrangement (or a single track for per-track bounce):
     // find the last note/clip end
-    let maxStep = 64; // minimum 4 bars
+    let maxStep = this.stepAtBar(4); // minimum 4 bars
     const tracks = onlyTrackId
       ? this.musicManager.tracks().filter((t) => t.id === onlyTrackId)
       : this.musicManager.tracks();
     for (const track of tracks) {
       for (const clip of track.clips) {
         const end = (clip.start || 0) + (clip.length || 4);
-        const endSteps = Math.ceil(end * 16);
+        const endSteps = this.stepAtBar(end);
         if (endSteps > maxStep) maxStep = endSteps;
       }
       for (const note of track.notes) {
@@ -324,8 +340,8 @@ export class OfflineBounceService {
         if (end > maxStep) maxStep = end;
       }
     }
-    // Round up to nearest bar + extra bar for tails
-    return Math.ceil(maxStep / 16) * 16 + 16;
+    // Round up to the next bar + one extra bar for tails.
+    return this.stepAtBar(this.barCountForStep(maxStep) + 1);
   }
 
   /** Notated bar length at a tempo; the meter lives on the engine. */

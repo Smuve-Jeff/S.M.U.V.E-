@@ -72,6 +72,33 @@ describe("OfflineBounceService", () => {
 
 
 
+  it("sizes a bounce through a mid-song meter change", () => {
+    const starts = [0, 16, 32, 44, 56, 68, 80];
+    const stepAtBar = (bar: number) =>
+      starts[Math.min(starts.length - 1, Math.max(0, Math.floor(bar)))];
+    const barAtStep = (step: number) => {
+      let bar = 0;
+      while (bar + 1 < starts.length && starts[bar + 1] <= step) bar++;
+      return bar;
+    };
+    mockAudioEngine.stepAtBar = stepAtBar;
+    mockAudioEngine.barCountForStep = (step: number) =>
+      step > 0 ? barAtStep(step - 1) + 1 : 1;
+    mockMusicManager.tracks = () => [
+      {
+        id: "keys",
+        type: "midi",
+        clips: [],
+        notes: [{ step: 44, length: 6 }],
+      },
+    ];
+
+    // Content ends at step 50 in bar 4; one tail bar ends at step 68.
+    expect((service as any).computeTotalSteps()).toBe(68);
+    // Three requested bars are 16 + 16 + 12 steps, not 48.
+    expect((service as any).computeTotalSteps(3)).toBe(44);
+  });
+
   it("does not extend a bounce for hidden notes beyond the drum cycle", () => {
     mockMusicManager.tracks = () => [{ id: 'drums', type: 'drum', drumPatternLength: 5, clips: [], notes: [{ step: 100, length: 1 }] }];
     mockMusicManager.drumPatternSpan = () => 5;

@@ -2447,6 +2447,7 @@ export class SmartCreationSheetComponent implements OnDestroy {
       scale: mood.key.toLowerCase().includes("minor") ? "minor" : "major",
       genre: mood.id,
       barCount: 4,
+      meter: this.audioEngine,
     });
 
     if (notes.length > 0) {
