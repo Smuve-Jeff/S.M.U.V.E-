@@ -2082,20 +2082,22 @@ at this width and a fixed height outranks content sizing.
 | Chrome rail (tools + session band) | 54 | 48 |
 | Canvas | 374 | 408 |
 | — guided-step strip | 33 | 33 |
-| — assistant reserve (canvas padding) | 76 | 56 |
-| — **Piano Roll view** | **265** | **317** |
-| Transport dock (fixed) | 72 | 65 |
+| — assistant reserve (canvas padding) | 76 | 8 (§33.2) |
+| — **Piano Roll view** | **265** | **365** |
+| Transport dock (fixed) | 72 | 56 (§33.1) |
 | Tab bar | 68 | 56 |
 
-The roll went from 41.4% to **49.5%** of the screen. Its dock still sits exactly
-on the tab bar (no seam, no overlap), no page overflow, transport buttons are
-still 44px, tab targets 44–48px, tab labels unclipped at 10px.
+The roll went from 41.4% to **57%** of the screen once §33 closed the two
+follow-ups this pass opened (the dock rendering taller than the space reserved
+for it, and a reserve for an assistant chip that phones never render). Its dock
+sits exactly on the tab bar, no page overflow, transport buttons still 44px, tab
+targets 44–48px, tab labels unclipped at 10px.
 
 ### 32.3 What did not move
 
 | Viewport | Before | After |
 | --- | --- | --- |
-| 390×844 (status/topbar/rail/canvas/hint/view/dock/nav) | 22/50/54/578/71/429/72/68 | **identical** |
+| 390×844 (status/topbar/rail/canvas/hint/view/dock/nav) | 22/50/54/578/71/429/72/68 | 22/50/54/578/71/**497**/72/68 — the tier skips this height, the reserve fix in §33.2 adds 68px of canvas |
 | 1440×900 (status/topbar/canvas/hint/view/dock) | 28/56/580/43/535/58 | **identical** |
 
 The tier keys off `max-height: 700px`, so an 844px phone and every desktop
@@ -2106,7 +2108,59 @@ width never match it.
 | Check | Result |
 | --- | --- |
 | `npm run build` | **0 errors** (build re-run after the final CSS) |
-| Browser, 360×640 | canvas 408, view 317, dock 65 above nav 56, page overflow 0 |
-| Browser, 390×844 | byte-identical band heights to the pre-change baseline |
-| Browser, 1440×900 | unchanged (canvas 580, view 535) |
+| Browser, 360×640 | canvas 408, view 365, dock 56 flush on nav 56, page overflow 0 |
+| Browser, 390×844 | bands identical to the pre-change baseline; canvas 578 with view 497 |
+| Browser, 1440×900 | unchanged (canvas 580, view 535, FAB still rendered) |
 | Playwright e2e pane budget | **not run** — no Playwright browsers installed in this sandbox; the assertions it makes at 360×640 (44px transport controls, ≥44px tabs, 10px unclipped labels, rail ≤62px) were re-measured live instead and all hold |
+
+## 33. Twenty-seventh pass — the reserve has to match the render
+
+### 33.1 The dock was 9px taller than the space reserved for it
+
+The short-phone tier set `--transport-dock-height: 56px`, and the fixed dock
+rendered **65px**: it had `min-height`, so the transport inside decided the
+height, and `.ctb-shell` adds 4px above and below its 52px row. `.comp-main`
+reserves exactly the variable, so the bottom 9px of every surface — the last
+row of a mixer strip, the last line of a card — sat behind the dock.
+
+The dock now states its height (`height`/`max-height` from the variable, 2px of
+its own padding each side) and `.ctb-shell` drops the two 4px bands, so the row
+is 52px inside 56px of dock. Measured at 360×640: dock **56**, variable **56**,
+`.comp-main` padding-bottom **56**, `canvas.bottom == dock.top` (528), transport
+buttons still 44px and `.ctb-shell` content 52px inside 52px of client box —
+no internal clipping. Height is stated rather than implied, so the two cannot
+disagree again without the dock visibly overflowing.
+
+### 33.2 A reserve for a chip that phones never render
+
+Section 5e reserves 76px at the end of the canvas so the floating assistant
+cannot park on a primary CTA. `.comp-fab` is `display: none` under
+`(max-width: 932px), (pointer: coarse)`, so on every phone the reserve bought
+clearance for nothing: at 360×640 it was an empty band between the surface and
+the dock (and the visible cause of the beginner wizard's preset cards reading as
+cut). The reserve now follows the chip — **8px** of scroll-end clearance where
+the chip is hidden, the **76px** where it is shown. Desktop at 1440×900 still
+renders the chip (`display: grid`) and still has its own padding (0, unchanged).
+
+### 33.3 Four surfaces at 360×640
+
+Checked with CDP device metrics at a true 360×640 layout viewport, guest
+session, after the build below:
+
+| Surface | Page overflow | Canvas overflow-x | Canvas bottom vs dock top | CTA cut by dock | FAB over a CTA |
+| --- | --- | --- | --- | --- | --- |
+| Arrangement (pro) | 0 | 0 | 528 = 528 | none | n/a — FAB `display: none` |
+| Beginner wizard | 0 | 0 | 528 = 528 | none | n/a |
+| Recorder (`audio-recorder`) | 0 | 0 | 528 = 528 | none | n/a |
+| Mixer | 0 | 0 | 528 = 528 | none | n/a |
+
+The only text wider than its box is the arrangement's track chips
+(`VELVET RHODES` 84px in 67px, `text-overflow: ellipsis`) — deliberate, and the
+full name is on the tooltip. The assistant has no floating button on a phone at
+all; its trigger is the sparkle in the chrome rail, which sits in the top bar
+above the canvas and cannot cover a surface CTA. The wizard's four preset cards
+now render whole (`artifacts/qa/short360-beginner-wizard.png`).
+
+**Not fixed, seen while checking:** the recorder's `CLIP` (28px), `Reset` (17px)
+and `MEASURE` (36px) controls are below the 44px touch floor. They predate this
+pass and are a component-level fix, not shell chrome.

@@ -816,10 +816,24 @@ body .comp-shell .playlist-container .playlist-header .mini-btn {
     padding-bottom: var(--transport-dock-height);
   }
 
+  /* The dock's height is stated, not implied. With `min-height` alone the
+     transport inside decided it: `.ctb-shell` added 4px above and below its
+     52px row, so the fixed dock rendered 65px against the 56px `.comp-main`
+     reserves — 9px of a view's last row sat *behind* it. Dropping those two
+     bands and pinning the dock to the variable keeps the reserve and the
+     render equal by construction, and the row cannot grow vertically anyway
+     (it scrolls sideways). */
   body .comp-shell.comp-shell .comp-topbar-center {
-    min-height: var(--transport-dock-height);
+    height: var(--transport-dock-height);
+    min-height: 0;
+    max-height: var(--transport-dock-height);
     padding-top: 2px;
     padding-bottom: 2px;
+    overflow: hidden;
+  }
+
+  body .comp-shell.comp-shell .comp-topbar-center .ctb-shell {
+    padding-block: 0;
   }
 
   /* Tabs stay 44px targets; the 68px bar was 52px tabs plus two 8px bands.
@@ -846,15 +860,28 @@ body .comp-shell .playlist-container .playlist-header .mini-btn {
     font-size: 20px;
   }
 
-  /* The assistant FAB is a 44px chip; 56px is its footprint plus the clearance
-     it needs, where the 76px reserve was sized for a dock it no longer sits on. */
-  body .comp-shell .studio-primary-canvas {
-    padding-bottom: 56px;
-  }
 
   /* The rail's 6px bottom band was the seam under the tools row; the canvas
      below it already starts flush. */
   body .comp-shell .comp-chrome-rail {
     padding-bottom: 0;
+  }
+}
+
+/* ----------------------------------------------------------------------------
+   9. THE CANVAS RESERVE FOLLOWS THE ASSISTANT CHIP
+   ----------------------------------------------------------------------------
+   Section 5e reserves 76px at the end of the canvas so the floating assistant
+   can never park on a primary CTA. The chip itself is `display: none` on every
+   phone and touch screen (studio.component.css, `@media (max-width: 932px),
+   (pointer: coarse)`), so on those surfaces the reserve was buying clearance
+   for an element that is not rendered: at 360x640 it showed up as an empty
+   band between the surface and the transport dock, and it was the 56px still
+   sitting above the dock after the short-phone tier. The reserve now matches
+   the chip — 8px of scroll-end clearance where the chip is hidden, the 76px
+   where it is shown. */
+@media (max-width: 932px), (pointer: coarse) {
+  body .comp-shell .studio-primary-canvas {
+    padding-bottom: 8px;
   }
 }
