@@ -16,6 +16,7 @@ import { Subject } from "rxjs";
 import { QuantizationService } from "../quantization.service";
 import { MidiImportService } from "../midi-import.service";
 import { StudioFocusService } from "../shared/studio-focus.service";
+import { LIVE_CHORD_TYPES } from "../../services/live-rig.util";
 
 @Component({
   selector: "app-channel-rack",
@@ -289,14 +290,10 @@ describe("PianoRollComponent", () => {
       ".pr-chord-select",
     ) as HTMLSelectElement;
     expect(select).toBeTruthy();
+    // The picker is built from the rig's allowlist, so a chord type the manager
+    // would restore can never be missing from the stamps.
     expect(Array.from(select.options).map((option) => option.value)).toEqual([
-      "major",
-      "minor",
-      "min7",
-      "maj7",
-      "dom7",
-      "sus4",
-      "dim",
+      ...LIVE_CHORD_TYPES,
     ]);
 
     select.value = "maj7";
@@ -315,6 +312,19 @@ describe("PianoRollComponent", () => {
 
     expect(component.selectedChordType()).toBe("maj7");
     expect(component.getChordIntervals()).toEqual([0, 4, 7, 11]);
+  });
+
+  it("refuses to stamp a chord type the live rig does not allow", () => {
+    // A value only the stamp sits outside the allowlist for would be saved and
+    // then normalized back to 'minor' on restore; reject it at the source.
+    mockMusicManager.livePerformance.set({ octave: 0, chordType: "minor" });
+    fixture.detectChanges();
+    mockMusicManager.setLivePerformance.mockClear();
+
+    component.setChordType("power");
+
+    expect(component.selectedChordType()).toBe("minor");
+    expect(mockMusicManager.setLivePerformance).not.toHaveBeenCalled();
   });
 
   it("records a tempo preset or nudge as one undoable step", () => {

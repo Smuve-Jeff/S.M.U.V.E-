@@ -41,11 +41,6 @@ function toFiniteNumber(value: unknown, fallback: number): number {
   return Number.isFinite(n) ? n : fallback;
 }
 
-/** The nudge buttons only reach ±2, so a restored rig must land inside them. */
-function clampOctave(value: number): number {
-  return Math.min(2, Math.max(-2, value));
-}
-
 @Component({
   selector: "app-performer",
   standalone: true,
@@ -121,20 +116,15 @@ export class PerformerComponent implements OnDestroy, OnInit {
   constructor() {
     this.availableInstruments.set(this.instrumentsService.getPresets());
     // Octave is performer state with no engine home; adopt the saved value.
-    this.octave.set(
-      clampOctave(this.musicManager.livePerformance().octave ?? 0),
-    );
+    // The manager clamps it on the way in, so every surface sees the same range
+    // the nudge buttons reach even when this one is not on screen.
+    this.octave.set(this.musicManager.livePerformance().octave ?? 0);
     // A project load replaces the saved rig while this surface stays mounted, so
     // follow it instead of keeping the previous set's transposition on screen.
     effect(() => {
       const restored = this.musicManager.livePerformance().octave;
-      if (typeof restored !== "number" || !Number.isFinite(restored)) return;
-      const clamped = clampOctave(restored);
-      this.octave.set(clamped);
-      // Normalize the saved rig too, so a hand-edited bundle cannot keep an
-      // unreachable octave that the next save would write straight back.
-      if (clamped !== restored) {
-        this.musicManager.setLivePerformance({ octave: clamped });
+      if (typeof restored === "number" && Number.isFinite(restored)) {
+        this.octave.set(restored);
       }
     });
     // Audio waits for a gesture, but the rack's CUT/RES/ATK/REL should already

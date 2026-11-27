@@ -30,6 +30,7 @@ import {
 import { TakeManagerService } from './take-manager.service';
 import { AutomationService } from '../studio/automation.service';
 import type { LivePerformanceState } from './live-engine.service';
+import { isLiveArpRate, isLiveChordType } from './live-rig.util';
 import { OfflineBounceService } from '../studio/offline-bounce.service';
 import { AudioImportService } from '../studio/audio-import.service';
 import { buildFrozenTrack, restoreFrozenTrack } from '../studio/track-freeze.util';
@@ -546,7 +547,28 @@ export class MusicManagerService {
   });
 
   setLivePerformance(state: Partial<LivePerformanceState>): void {
-    this.livePerformance.update((current) => ({ ...current, ...state }));
+    this.livePerformance.update((current) =>
+      MusicManagerService.normalizeLivePerformance({ ...current, ...state }),
+    );
+  }
+
+  /**
+   * The rig arrives from a file as often as from a control, so every value is
+   * treated as untrusted here: an octave outside the nudge range is clamped,
+   * and a chord stamp or repeat rate no control can produce falls back to the
+   * shipped default instead of being stored and saved straight back.
+   */
+  private static normalizeLivePerformance(
+    next: LivePerformanceState,
+  ): LivePerformanceState {
+    const octave = Number.isFinite(next.octave)
+      ? Math.min(2, Math.max(-2, next.octave))
+      : 0;
+    const chordType = isLiveChordType(next.chordType)
+      ? next.chordType
+      : 'minor';
+    const arpRate = isLiveArpRate(next.arpRate) ? next.arpRate : '8n';
+    return { ...next, octave, chordType, arpRate };
   }
 
   // ── Live scene launching (pattern grid performance) ─────────────────

@@ -463,6 +463,17 @@ describe('LiveEngineService live performance controls', () => {
     expect(service.arpeggiatorPattern()).toBe('down');
   });
 
+  it('restores a repeat rate no control can produce to the shipped default', () => {
+    service.setArpeggiatorRate('16n');
+
+    // The scheduler only has intervals for the four offered rates; a restored
+    // rate must not reach it, and the rest of the rig still restores.
+    service.restorePerformanceState({ arpRate: 'banana', arpPattern: 'down' });
+
+    expect(service.arpeggiatorRate()).toBe('8n');
+    expect(service.arpeggiatorPattern()).toBe('down');
+  });
+
   it('routes CC7 volume and CC10 pan to the live output', async () => {
     await service.setInstrument('analog-warmth');
 

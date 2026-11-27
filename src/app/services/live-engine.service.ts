@@ -5,6 +5,7 @@ import { LoggingService } from './logging.service';
 import { InstrumentsService, InstrumentPreset, sampleZoneRoot } from './instruments.service';
 import { AudioEngineService } from './audio-engine.service';
 import { HardwareService } from './hardware.service';
+import { isLiveArpRate } from './live-rig.util';
 
 export type LiveInstrumentType = string;
 export type LiveScaleMode =
@@ -1025,7 +1026,9 @@ export class LiveEngineService {
   }
 
   setArpeggiatorRate(rate: string): void {
-    this.arpeggiatorRate.set(rate);
+    // Only rates `arpIntervalMs` has an interval for are schedulable; anything
+    // else would leave the clock with no delay to time the next repeat.
+    this.arpeggiatorRate.set(isLiveArpRate(rate) ? rate : '8n');
     if (this.arpTimer !== null) {
       clearTimeout(this.arpTimer);
       this.arpTimer = null;

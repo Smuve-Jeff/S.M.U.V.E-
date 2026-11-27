@@ -237,31 +237,16 @@ describe("PerformerComponent", () => {
     expect(component.octave()).toBe(1);
   });
 
-  it("keeps a restored octave inside the range the nudge buttons reach", () => {
+  it("seeds the octave from the rig the manager hands it", () => {
     const manager = TestBed.inject(MusicManagerService) as any;
-
-    manager.livePerformance.set({ octave: 7, chordType: "minor" });
-    fixture.detectChanges();
-    expect(component.octave()).toBe(2);
-    // The stored rig is normalized too, so the next save cannot write 7 back.
-    expect(manager.setLivePerformance).toHaveBeenCalledWith({ octave: 2 });
-
-    manager.setLivePerformance.mockClear();
-    manager.livePerformance.set({ octave: -9, chordType: "minor" });
-    fixture.detectChanges();
-    expect(component.octave()).toBe(-2);
-    expect(manager.setLivePerformance).toHaveBeenCalledWith({ octave: -2 });
-  });
-
-  it("clamps the octave seeded on mount as well", () => {
-    const manager = TestBed.inject(MusicManagerService) as any;
-    manager.livePerformance.set({ octave: 6, chordType: "minor" });
+    // The manager owns the ±2 clamp now, so a rig it publishes is already in
+    // range; this surface must show exactly that value on mount.
+    manager.livePerformance.set({ octave: -2, chordType: "minor" });
 
     const restored = TestBed.createComponent(PerformerComponent);
     restored.detectChanges();
     try {
-      expect(restored.componentInstance.octave()).toBe(2);
-      expect(manager.setLivePerformance).toHaveBeenCalledWith({ octave: 2 });
+      expect(restored.componentInstance.octave()).toBe(-2);
     } finally {
       restored.destroy();
     }

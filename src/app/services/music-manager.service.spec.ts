@@ -78,6 +78,36 @@ describe('MusicManagerService clip glue workflows', () => {
     ]);
   });
 
+  it('clamps a restored octave to the range the nudge buttons reach', () => {
+    // The Performer is deferred and only exists on one Studio view, so the rig
+    // itself has to hold a reachable octave whatever surface opened the set.
+    service.setLivePerformance({ octave: 7 });
+    expect(service.livePerformance().octave).toBe(2);
+
+    service.setLivePerformance({ octave: -9 });
+    expect(service.livePerformance().octave).toBe(-2);
+
+    service.setLivePerformance({ octave: Number.NaN });
+    expect(service.livePerformance().octave).toBe(0);
+  });
+
+  it('restores only rig values a control can produce', () => {
+    // A hand-edited bundle can name a repeat rate and a chord stamp that no
+    // dropdown offers; storing them would hand the next save unreachable state.
+    service.setLivePerformance({ chordType: 'aug9', arpRate: '32n' } as any);
+    expect(service.livePerformance().chordType).toBe('minor');
+    expect(service.livePerformance().arpRate).toBe('8n');
+
+    // Real picks still land, so the guard is not a blanket reset.
+    service.setLivePerformance({ chordType: 'maj7', arpRate: '16n' });
+    expect(service.livePerformance().chordType).toBe('maj7');
+    expect(service.livePerformance().arpRate).toBe('16n');
+
+    // A partial update leaves the rest of the rig alone.
+    service.setLivePerformance({ chordType: 'dim' });
+    expect(service.livePerformance().arpRate).toBe('16n');
+  });
+
   it('turns every starter drum lane into playable kick, snare and hat notes', () => {
     const recipes = new IdeasGeneratorService().recipes;
     for (const recipe of recipes) {
