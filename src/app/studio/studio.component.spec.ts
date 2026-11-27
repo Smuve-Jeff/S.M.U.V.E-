@@ -121,6 +121,10 @@ describe("StudioComponent", () => {
     storageDurability: signal('unknown'),
     persistenceError: signal(''),
     cloudSyncRefusal: signal(''),
+    currentSyncStatus: signal<any>(null),
+    syncStatusFor: jest.fn(() => null),
+    leaseConflict: signal<any>(null),
+    takeOverProjectLease: jest.fn(() => true),
     audioIntegrity: signal(null),
     canRepairAudio: signal(false),
     inspectCurrentAudioIntegrity: jest.fn().mockReturnValue({ ok: true }),
@@ -303,6 +307,8 @@ describe("StudioComponent", () => {
     mockProjectWorkspace.restoreLatestProjectState.mockResolvedValue(false);
     mockProjectWorkspace.isDirty.set(false);
     mockProjectWorkspace.metadata.set(null);
+    mockProjectWorkspace.currentSyncStatus.set(null);
+    mockProjectWorkspace.leaseConflict.set(null);
     mockProjectWorkspace.autoSaveEnabled.set(true);
     mockProjectWorkspace.listLocalProjects.mockResolvedValue([]);
     mockProjectWorkspace.loadProject.mockResolvedValue(null);
@@ -1208,6 +1214,19 @@ describe("StudioComponent", () => {
       "projectWorkspace.persistenceError() || projectWorkspace.cloudSyncRefusal()",
     );
     expect(template).toContain("Export backup");
+  });
+
+  it("renders durable cloud status and the cross-window read-only guard", () => {
+    const template = fs.readFileSync(
+      path.join(process.cwd(), "src/app/studio/studio.component.html"),
+      "utf-8",
+    );
+
+    expect(template).toContain("projectWorkspace.currentSyncStatus()");
+    expect(template).toContain("syncStateLabel(sync.state)");
+    expect(template).toContain("Audio takes");
+    expect(template).toContain("projectWorkspace.leaseConflict()");
+    expect(template).toContain("Edit in this window");
   });
 
   it("streams comp-take audition instead of decoding the whole take", async () => {

@@ -142,16 +142,85 @@ const SHARED_GUIDE_MAX_BYTES = 6 * 1024 * 1024;
  */
 export const MAX_CLOUD_BUNDLE_BYTES = 512 * 1024 * 1024;
 
+/** Durable cloud state shown per set, independent of the current session. */
+export type ProjectSyncState =
+  | "local-only"
+  | "queued"
+  | "synced"
+  | "conflict"
+  | "too-large";
+
+export interface ProjectCloudSizeBreakdown {
+  totalBytes: number;
+  audioBytes: number;
+  guideBytes: number;
+  projectBytes: number;
+}
+
+export interface ProjectSyncStatus {
+  /** IndexedDB key; always the stable project id. */
+  id: string;
+  projectId: string;
+  state: ProjectSyncState;
+  reason: string;
+  updatedAt: number;
+  /** Last time a cloud version was confirmed, even after newer local edits. */
+  lastSyncedAt?: number;
+  /**
+   * Identity of the upload this `queued` state is waiting on. Confirmation is
+   * matched against it, so a slower older push cannot mark a newer queued
+   * save as synced just because it finished later.
+   */
+  uploadId?: string;
+  cloudBytes: number;
+  breakdown: ProjectCloudSizeBreakdown;
+}
+
+export interface ProjectLeaseConflict {
+  projectId: string;
+  ownerId: string;
+  ownerLabel: string;
+  acquiredAt: number;
+  expiresAt: number;
+  message: string;
+}
+
+/** A small record, deliberately separate from the multi-megabyte set. */
+export const PROJECT_SYNC_STATUS_STORE = "project_sync_status";
+/** localStorage key prefix; the owner id is unique per browser tab. */
+export const PROJECT_LEASE_KEY_PREFIX = "smuve_studio_project_lease:";
+const PROJECT_TAB_ID_KEY = "smuve_studio_tab_id";
+const PROJECT_LEASE_TTL_MS = 15_000;
+const PROJECT_LEASE_HEARTBEAT_MS = 5_000;
+
+interface ProjectLeaseRecord {
+  projectId: string;
+  ownerId: string;
+  ownerLabel: string;
+  acquiredAt: number;
+  expiresAt: number;
+}
+
+const EMPTY_SIZE_BREAKDOWN: ProjectCloudSizeBreakdown = {
+  totalBytes: 0,
+  audioBytes: 0,
+  guideBytes: 0,
+  projectBytes: 0,
+};
+
 class CloudBundleTooLargeError extends Error {
-  constructor(estimatedBytes: number) {
+  readonly size: ProjectCloudSizeBreakdown;
+
+  constructor(size: ProjectCloudSizeBreakdown) {
     const limitMb = Math.round(MAX_CLOUD_BUNDLE_BYTES / (1024 * 1024));
-    const estimatedMb = (estimatedBytes / (1024 * 1024)).toFixed(1);
+    const estimatedMb = (size.totalBytes / (1024 * 1024)).toFixed(1);
     super(
       `Saved on this device, but this version is too large to sync ` +
         `(about ${estimatedMb} MB; the cloud limit is ${limitMb} MB). ` +
         `Remove unused takes or export a backup.`,
     );
     this.name = "CloudBundleTooLargeError";
+    this.size = size;
   }
 }
 
@@ -486,6 +555,20 @@ export class ProjectWorkspaceService {
    * artist knows the work is safe and what to do next.
    */
   readonly cloudSyncRefusal = signal('');
+  /**
+   * Cloud state persisted for every set on this device. This is what keeps a
+   * local-only save from looking cloud-safe after a reload or route change.
+   */
+  readonly syncStatuses = signal<Record<string, ProjectSyncStatus>>({});
+  readonly currentSyncStatus = computed<ProjectSyncStatus | null>(() => {
+    const projectId = this.metadata()?.id;
+    return projectId ? (this.syncStatuses()[projectId] ?? null) : null;
+  });
+  /**
+   * Set while another Studio tab owns this project. All project writes refuse
+   * until the lease expires or the artist explicitly takes over here.
+   */
+  readonly leaseConflict = signal<ProjectLeaseConflict | null>(null);
   /** Timestamp of the most recent restored local bundle. */
   lastRecoveredAt = signal<number | null>(null);
   /** Source of the most recent restored local bundle. */
@@ -555,9 +638,16 @@ export class ProjectWorkspaceService {
   private autoSaveTimer: ReturnType<typeof setInterval> | null = null;
   private lastObservedSignature = "";
   private lastSavedSignature = "";
+  /** Unique per browser tab; a reload of this tab keeps the same owner. */
+  private readonly leaseOwnerId = this.readOrCreateTabId();
+  private activeLeaseProjectId: string | null = null;
+  private leaseHeartbeatTimer: ReturnType<typeof setInterval> | null = null;
 
   constructor() {
     this.initializeMetadata();
+    void this.loadSyncStatuses();
+    this.acquireProjectLease(this.metadata()?.id);
+    this.watchCloudSyncOutcomes();
     this.lastObservedSignature = this.captureStateSignature();
     this.lastSavedSignature = this.lastObservedSignature;
     this.watchWorkspaceChanges();
@@ -613,6 +703,7 @@ export class ProjectWorkspaceService {
     });
     this.destroyRef.onDestroy(() => {
       this.stopAutoSave();
+      this.releaseProjectLease();
       this.sessionSafety.registerSaveHandler(null);
       this.sessionSafety.registerExportHandler(null);
       this.sessionSafety.hasUnsavedChanges.set(false);
@@ -628,6 +719,484 @@ export class ProjectWorkspaceService {
           this.startFreshProject({ name: 'Unsaved session' });
         }
       });
+  }
+
+  // ── Durable cloud state and cross-tab project lease ─────
+
+  /** Read every persisted set status once, then keep the map current. */
+  private async loadSyncStatuses(): Promise<void> {
+    if (this.isGuestSession) return;
+    try {
+      const rows = await this.storage.getAllItems(PROJECT_SYNC_STATUS_STORE);
+      const loaded: Record<string, ProjectSyncStatus> = {};
+      for (const row of rows ?? []) {
+        const projectId = String(row?.projectId ?? row?.id ?? "").trim();
+        if (!projectId) continue;
+        loaded[projectId] = {
+          id: projectId,
+          projectId,
+          state: this.normalizeSyncState(row?.state),
+          reason: String(row?.reason ?? ""),
+          updatedAt: Number(row?.updatedAt) || 0,
+          lastSyncedAt: Number(row?.lastSyncedAt) || undefined,
+          uploadId:
+            typeof row?.uploadId === "string" && row.uploadId
+              ? row.uploadId
+              : undefined,
+          cloudBytes: Math.max(0, Number(row?.cloudBytes) || 0),
+          breakdown: this.normalizeSizeBreakdown(row?.breakdown),
+        };
+      }
+      // A save can land while IndexedDB is still opening. Never let the
+      // initial read put stale state back over a newer in-memory record.
+      this.syncStatuses.update((current) => {
+        const merged = { ...loaded };
+        for (const [projectId, status] of Object.entries(current)) {
+          if (!merged[projectId] || status.updatedAt >= merged[projectId].updatedAt) {
+            merged[projectId] = status;
+          }
+        }
+        return merged;
+      });
+      this.applyPersistedSyncWarning();
+      this.reconcileQueuedFromCloudHistory(
+        this.cloudSync.timeline?.() ?? [],
+      );
+    } catch (error) {
+      this.logger.warn("ProjectWorkspace: Could not load cloud status", error);
+    }
+  }
+
+  /**
+   * A queued badge is only stale while no cloud confirmation exists. The sync
+   * timeline is persisted by CloudSyncService, so this also repairs a replay
+   * that finished before this service subscribed (or before the page loaded).
+   */
+  private reconcileQueuedFromCloudHistory(
+    history: ReadonlyArray<{
+      projectId?: string;
+      direction?: string;
+      status?: string;
+      at?: number;
+      uploadId?: string;
+    }>,
+  ): void {
+    // One confirmation belongs to one upload. Time alone cannot tell two
+    // saves apart: an older push that finishes late is newer than the queued
+    // status it must not clear, so entries carrying an upload id are matched
+    // by that id. Entries from before identities existed fall back to time.
+    const confirmedUploads = new Map<string, number>();
+    const legacyConfirmedAt = new Map<string, number>();
+    for (const entry of history) {
+      if (entry?.direction !== "push" || entry.status !== "success") continue;
+      const projectId = String(entry.projectId ?? "");
+      const at = Number(entry.at) || 0;
+      if (!projectId || !at) continue;
+      const uploadId = String(entry.uploadId ?? "");
+      if (uploadId) {
+        const key = this.uploadKey(projectId, uploadId);
+        confirmedUploads.set(key, Math.max(confirmedUploads.get(key) ?? 0, at));
+      } else {
+        legacyConfirmedAt.set(
+          projectId,
+          Math.max(legacyConfirmedAt.get(projectId) ?? 0, at),
+        );
+      }
+    }
+    for (const [projectId, status] of Object.entries(this.syncStatuses())) {
+      if (status.state !== "queued") continue;
+      const uploadId = status.uploadId ?? "";
+      let at: number;
+      if (uploadId) {
+        at = confirmedUploads.get(this.uploadKey(projectId, uploadId)) ?? 0;
+        if (!at) continue;
+      } else {
+        at = legacyConfirmedAt.get(projectId) ?? 0;
+        if (!at || at < status.updatedAt) continue;
+      }
+      void this.recordSyncStatus(
+        projectId,
+        "synced",
+        "Cloud version confirmed.",
+        undefined,
+        at,
+      );
+    }
+  }
+
+  /** Composite key so an upload id only matches inside its own set. */
+  private uploadKey(projectId: string, uploadId: string): string {
+    return `${projectId}\u0000${uploadId}`;
+  }
+
+  /** Connect queued updates to the moment the cloud actually accepts them. */
+  private watchCloudSyncOutcomes(): void {
+    this.cloudSync.pushSucceeded$?.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(({ projectId, at, uploadId }) => {
+      // Only the queued version can become "synced". If a newer local save
+      // replaced it while the upload was in flight, this project is local-only
+      // again; marking it synced would claim the latest edit is in the cloud.
+      const status = this.syncStatuses()[projectId];
+      if (status?.state !== "queued") return;
+      // ...and only the exact upload the badge is waiting on may confirm it.
+      // An older queued push that finishes late carries a different id even
+      // though its timestamp is newer than the newer save.
+      if (status.uploadId) {
+        if (status.uploadId !== uploadId) return;
+      } else if (uploadId || at < status.updatedAt) {
+        // A status queued before identities existed has no id to compare; an
+        // untagged push may confirm it only if it is not older than the save.
+        return;
+      }
+      void this.recordSyncStatus(
+        projectId,
+        "synced",
+        "Cloud version confirmed.",
+        undefined,
+        at,
+      );
+    });
+
+    effect(() => {
+      const history = this.cloudSync.timeline?.();
+      if (history) this.reconcileQueuedFromCloudHistory(history);
+    });
+
+    effect(() => {
+      const conflicts = this.cloudSync.conflictMap?.();
+      if (!conflicts) return;
+      for (const [projectId, conflict] of Object.entries(conflicts)) {
+        const existing = this.syncStatuses()[projectId];
+        if (existing?.state === "conflict") continue;
+        void this.recordSyncStatus(
+          projectId,
+          "conflict",
+          `Cloud version v${conflict.remoteVersion} is newer than this device's copy.`,
+        );
+      }
+    });
+  }
+
+  /** The durable record for one set, including when it is not open now. */
+  syncStatusFor(projectId: string): ProjectSyncStatus | null {
+    return this.syncStatuses()[projectId] ?? null;
+  }
+
+  /**
+   * Autosaves and recovery snapshots are still local-only, but they must not
+   * erase a cloud conflict or an oversized-set warning the artist has not
+   * resolved yet. Those states describe the set, not just the last save.
+   */
+  private async recordLocalSaveStatus(
+    projectId: string,
+    reason: string,
+    size: ProjectCloudSizeBreakdown,
+  ): Promise<void> {
+    const previous = this.syncStatuses()[projectId];
+    if (previous?.state === "conflict") {
+      await this.recordSyncStatus(projectId, "conflict", previous.reason, size);
+      return;
+    }
+    if (
+      previous?.state === "too-large" &&
+      size.totalBytes > MAX_CLOUD_BUNDLE_BYTES
+    ) {
+      await this.recordSyncStatus(
+        projectId,
+        "too-large",
+        new CloudBundleTooLargeError(size).message,
+        size,
+      );
+      return;
+    }
+    await this.recordSyncStatus(projectId, "local-only", reason, size);
+  }
+
+  /** Fresh identity for one queued upload, unique per save attempt. */
+  private newUploadId(): string {
+    return (
+      globalThis.crypto?.randomUUID?.() ??
+      `upload_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`
+    );
+  }
+
+  /** A local save is not a cloud save; record that distinction durably. */
+  private async recordSyncStatus(
+    projectId: string,
+    state: ProjectSyncState,
+    reason: string,
+    size?: ProjectCloudSizeBreakdown,
+    lastSyncedAt?: number,
+    uploadId?: string,
+  ): Promise<void> {
+    if (!projectId || this.isGuestSession) return;
+    const previous = this.syncStatuses()[projectId];
+    const now = Date.now();
+    const next: ProjectSyncStatus = {
+      id: projectId,
+      projectId,
+      state,
+      reason,
+      updatedAt: now,
+      lastSyncedAt: state === "synced" ? (lastSyncedAt ?? now) : previous?.lastSyncedAt,
+      // Only a queued state is waiting on an upload; every other state is
+      // final for this save, so its pending identity is dropped.
+      uploadId: state === "queued" ? (uploadId ?? previous?.uploadId) : undefined,
+      cloudBytes: size?.totalBytes ?? previous?.cloudBytes ?? 0,
+      breakdown: size ?? previous?.breakdown ?? { ...EMPTY_SIZE_BREAKDOWN },
+    };
+    this.syncStatuses.update((map) => ({ ...map, [projectId]: next }));
+    if (this.metadata()?.id === projectId) {
+      if (state === "too-large") {
+        this.cloudSyncRefusal.set(reason);
+      } else if (previous?.state === "too-large") {
+        // A fresh local save now fits, or another state superseded the old
+        // refusal; do not leave a stale "too large" warning behind.
+        this.cloudSyncRefusal.set("");
+      }
+    }
+    try {
+      await this.storage.saveItem(PROJECT_SYNC_STATUS_STORE, next);
+    } catch (error) {
+      this.logger.warn("ProjectWorkspace: Cloud status write failed", error);
+    }
+  }
+
+  /** Restore the warning after a reload, not only during the save that made it. */
+  private applyPersistedSyncWarning(): void {
+    const status = this.currentSyncStatus();
+    if (status?.state === "too-large") this.cloudSyncRefusal.set(status.reason);
+  }
+
+  private async deleteSyncStatus(projectId: string): Promise<void> {
+    this.syncStatuses.update((map) => {
+      if (!map[projectId]) return map;
+      const next = { ...map };
+      delete next[projectId];
+      return next;
+    });
+    if (this.activeLeaseProjectId === projectId) this.releaseProjectLease();
+    try {
+      await this.storage.deleteItems(PROJECT_SYNC_STATUS_STORE, [projectId]);
+    } catch (error) {
+      this.logger.warn("ProjectWorkspace: Cloud status delete failed", error);
+    }
+  }
+
+  private normalizeSyncState(value: unknown): ProjectSyncState {
+    return value === "queued" || value === "synced" || value === "conflict" || value === "too-large"
+      ? value
+      : "local-only";
+  }
+
+  private normalizeSizeBreakdown(value: unknown): ProjectCloudSizeBreakdown {
+    const raw = (value ?? {}) as Partial<ProjectCloudSizeBreakdown>;
+    return {
+      totalBytes: Math.max(0, Number(raw.totalBytes) || 0),
+      audioBytes: Math.max(0, Number(raw.audioBytes) || 0),
+      guideBytes: Math.max(0, Number(raw.guideBytes) || 0),
+      projectBytes: Math.max(0, Number(raw.projectBytes) || 0),
+    };
+  }
+
+  // ── Project lease ───────────────────────────────────────
+
+  private readOrCreateTabId(): string {
+    try {
+      const existing = sessionStorage.getItem(PROJECT_TAB_ID_KEY);
+      if (existing) return existing;
+      const id =
+        globalThis.crypto?.randomUUID?.() ??
+        `tab_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+      sessionStorage.setItem(PROJECT_TAB_ID_KEY, id);
+      return id;
+    } catch {
+      return `tab_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+    }
+  }
+
+  private projectLeaseStorage(): Storage | null {
+    if (typeof window === "undefined") return null;
+    try {
+      return window.localStorage;
+    } catch {
+      return null;
+    }
+  }
+
+  private projectLeaseKey(projectId: string): string {
+    return `${PROJECT_LEASE_KEY_PREFIX}${projectId}`;
+  }
+
+  private readProjectLease(projectId: string): ProjectLeaseRecord | null {
+    const storage = this.projectLeaseStorage();
+    if (!storage) return null;
+    try {
+      const raw = storage.getItem(this.projectLeaseKey(projectId));
+      if (!raw) return null;
+      const parsed = JSON.parse(raw) as Partial<ProjectLeaseRecord>;
+      if (
+        !parsed ||
+        parsed.projectId !== projectId ||
+        typeof parsed.ownerId !== "string" ||
+        typeof parsed.ownerLabel !== "string" ||
+        !Number.isFinite(parsed.expiresAt)
+      ) {
+        return null;
+      }
+      return {
+        projectId,
+        ownerId: parsed.ownerId,
+        ownerLabel: parsed.ownerLabel,
+        acquiredAt: Number(parsed.acquiredAt) || 0,
+        expiresAt: Number(parsed.expiresAt) || 0,
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  private leaseConflictFor(lease: ProjectLeaseRecord): ProjectLeaseConflict {
+    return {
+      projectId: lease.projectId,
+      ownerId: lease.ownerId,
+      ownerLabel: lease.ownerLabel,
+      acquiredAt: lease.acquiredAt,
+      expiresAt: lease.expiresAt,
+      message:
+        `This set is open in another Studio window (${lease.ownerLabel}). ` +
+        `This window is read-only until you take over editing here.`,
+    };
+  }
+
+  /** Claim the open set for this tab. Returns false when another tab owns it. */
+  private acquireProjectLease(projectId: string | undefined, force = false): boolean {
+    if (!projectId) return false;
+    const storage = this.projectLeaseStorage();
+    if (!storage) return true;
+    if (this.activeLeaseProjectId && this.activeLeaseProjectId !== projectId) {
+      this.releaseProjectLease();
+    }
+    this.activeLeaseProjectId = projectId;
+    const now = Date.now();
+    const existing = this.readProjectLease(projectId);
+    if (existing && existing.ownerId !== this.leaseOwnerId && existing.expiresAt > now && !force) {
+      this.leaseConflict.set(this.leaseConflictFor(existing));
+      this.startLeaseHeartbeat(projectId);
+      return false;
+    }
+    const ownerLabel =
+      typeof navigator !== "undefined" && navigator.platform
+        ? navigator.platform
+        : "Studio";
+    const lease: ProjectLeaseRecord = {
+      projectId,
+      ownerId: this.leaseOwnerId,
+      ownerLabel: `${ownerLabel} · ${this.leaseOwnerId.slice(-4)}`,
+      acquiredAt: force || !existing || existing.ownerId !== this.leaseOwnerId ? now : existing.acquiredAt,
+      expiresAt: now + PROJECT_LEASE_TTL_MS,
+    };
+    try {
+      storage.setItem(this.projectLeaseKey(projectId), JSON.stringify(lease));
+    } catch {
+      // A storage write failure is already a persistence failure; do not
+      // invent a second-tab conflict when the browser cannot hold any state.
+      return true;
+    }
+    const confirmed = this.readProjectLease(projectId);
+    if (!confirmed || confirmed.ownerId !== this.leaseOwnerId) {
+      if (confirmed) this.leaseConflict.set(this.leaseConflictFor(confirmed));
+      this.startLeaseHeartbeat(projectId);
+      return false;
+    }
+    this.leaseConflict.set(null);
+    this.startLeaseHeartbeat(projectId);
+    return true;
+  }
+
+  /** A save must refuse if another tab has taken the set since it opened. */
+  private ensureProjectLease(): boolean {
+    const projectId = this.metadata()?.id;
+    if (!projectId) return true;
+    const existing = this.readProjectLease(projectId);
+    if (existing && existing.ownerId !== this.leaseOwnerId && existing.expiresAt > Date.now()) {
+      this.leaseConflict.set(this.leaseConflictFor(existing));
+      return false;
+    }
+    if (!existing || existing.ownerId !== this.leaseOwnerId) {
+      return this.acquireProjectLease(projectId);
+    }
+    this.leaseConflict.set(null);
+    return true;
+  }
+
+  /** Explicit recovery when the other window is closed or the artist chooses. */
+  takeOverProjectLease(): boolean {
+    const projectId = this.metadata()?.id;
+    return projectId ? this.acquireProjectLease(projectId, true) : false;
+  }
+
+  private startLeaseHeartbeat(projectId: string): void {
+    if (
+      this.activeLeaseProjectId === projectId &&
+      this.leaseHeartbeatTimer !== null
+    ) {
+      return;
+    }
+    this.stopLeaseHeartbeat();
+    this.activeLeaseProjectId = projectId;
+    this.leaseHeartbeatTimer = setInterval(() => {
+      this.refreshProjectLease(projectId);
+    }, PROJECT_LEASE_HEARTBEAT_MS);
+  }
+
+  private refreshProjectLease(projectId: string): void {
+    if (this.activeLeaseProjectId !== projectId) return;
+    const existing = this.readProjectLease(projectId);
+    const now = Date.now();
+    if (!existing || existing.ownerId === this.leaseOwnerId || existing.expiresAt <= now) {
+      if (!existing || existing.ownerId !== this.leaseOwnerId) {
+        this.acquireProjectLease(projectId);
+        return;
+      }
+      const storage = this.projectLeaseStorage();
+      if (storage) {
+        try {
+          storage.setItem(
+            this.projectLeaseKey(projectId),
+            JSON.stringify({ ...existing, expiresAt: now + PROJECT_LEASE_TTL_MS }),
+          );
+        } catch {
+          return;
+        }
+      }
+      this.leaseConflict.set(null);
+      return;
+    }
+    this.leaseConflict.set(this.leaseConflictFor(existing));
+  }
+
+  private stopLeaseHeartbeat(): void {
+    if (this.leaseHeartbeatTimer !== null) {
+      clearInterval(this.leaseHeartbeatTimer);
+      this.leaseHeartbeatTimer = null;
+    }
+  }
+
+  private releaseProjectLease(): void {
+    const projectId = this.activeLeaseProjectId;
+    this.stopLeaseHeartbeat();
+    this.activeLeaseProjectId = null;
+    this.leaseConflict.set(null);
+    if (!projectId) return;
+    const storage = this.projectLeaseStorage();
+    const existing = this.readProjectLease(projectId);
+    if (storage && existing?.ownerId === this.leaseOwnerId) {
+      try {
+        storage.removeItem(this.projectLeaseKey(projectId));
+      } catch {
+        // A failed cleanup leaves a short TTL, not a permanent lock.
+      }
+    }
   }
 
   // ── Project Metadata ───────────────────────────────────
@@ -680,6 +1249,7 @@ export class ProjectWorkspaceService {
 
   startFreshProject(seed: Partial<ProjectMetadata> = {}): ProjectMetadata {
     const meta = this.createNewMetadata(seed);
+    this.acquireProjectLease(meta.id);
     this.lastSavedSignature = "";
     this.lastAutoSave.set(0);
     this.lastPersistedAt.set(0);
@@ -797,6 +1367,10 @@ export class ProjectWorkspaceService {
       this.logger.info('ProjectWorkspace: Auto-save skipped for guest session');
       return false;
     }
+    if (!this.ensureProjectLease()) {
+      this.logger.warn('ProjectWorkspace: Auto-save refused; another tab owns this set');
+      return false;
+    }
     try {
       const snapshot = this.createStoredSnapshot();
       const integrity = inspectProjectAudioIntegrity(snapshot);
@@ -820,6 +1394,11 @@ export class ProjectWorkspaceService {
       this.lastAutoSave.set(stored.savedAt);
       this.markPersistenceClean(snapshot, "autosave", stored.savedAt);
       this.versionCount.update((v) => v + 1);
+      await this.recordLocalSaveStatus(
+        snapshot.metadata.id,
+        "Autosaved on this device. Press Save to create a cloud version.",
+        this.measureCloudBundle(snapshot),
+      );
       this.logger.info(
         "ProjectWorkspace: Auto-saved " + snapshot.metadata.name,
       );
@@ -838,6 +1417,12 @@ export class ProjectWorkspaceService {
     if (this.isGuestSession) {
       throw new Error(
         'Guest sessions are not saved. Create an account to keep this project.',
+      );
+    }
+    if (!this.ensureProjectLease()) {
+      throw new Error(
+        this.leaseConflict()?.message ??
+          'This set is open in another Studio window. This window is read-only.',
       );
     }
     this.isSaving.set(true);
@@ -937,9 +1522,23 @@ export class ProjectWorkspaceService {
       this.audioIntegrity.set(integrity);
       if (!integrity.ok) {
         this.cloudSyncQueued.set(false);
-        this.logger.warn(
-          "ProjectWorkspace: Cloud sync skipped; audio is incomplete",
-          describeAudioIntegrityFailure(integrity, "cloud"),
+        const reason = describeAudioIntegrityFailure(integrity, "cloud");
+        await this.recordSyncStatus(
+          bundle.metadata.id,
+          "local-only",
+          `${reason} This copy is saved on this device only.`,
+          this.measureCloudBundle(bundle),
+        );
+        this.logger.warn("ProjectWorkspace: Cloud sync skipped; audio is incomplete", reason);
+        return;
+      }
+      if (!this.auth.currentUser()?.id) {
+        this.cloudSyncQueued.set(false);
+        await this.recordSyncStatus(
+          bundle.metadata.id,
+          "local-only",
+          "Saved on this device. Sign in to create a cloud version.",
+          this.measureCloudBundle(bundle),
         );
         return;
       }
@@ -947,17 +1546,36 @@ export class ProjectWorkspaceService {
       // here duplicated the whole PCM capture on every manual save; the queued
       // converter below base64-encodes the channels without building another
       // project graph.
-      await this.queueCloudSync(bundle);
+      const size = await this.queueCloudSync(bundle);
+      if (!size) {
+        await this.recordSyncStatus(
+          bundle.metadata.id,
+          "local-only",
+          "Saved on this device. Sign in to create a cloud version.",
+          this.measureCloudBundle(bundle),
+        );
+      }
     } catch (error) {
       this.cloudSyncQueued.set(false);
       if (error instanceof CloudBundleTooLargeError) {
         this.cloudSyncRefusal.set(error.message);
+        await this.recordSyncStatus(
+          bundle.metadata.id,
+          "too-large",
+          error.message,
+          error.size,
+        );
         this.logger.warn(
           'ProjectWorkspace: Cloud sync refused; version exceeds the size cap',
           error.message,
         );
         return;
       }
+      await this.recordSyncStatus(
+        bundle.metadata.id,
+        "local-only",
+        "Saved on this device. Cloud sync could not be queued.",
+      );
       this.logger.warn('ProjectWorkspace: Saved locally; cloud queue unavailable', error);
     }
   }
@@ -1100,6 +1718,10 @@ export class ProjectWorkspaceService {
    * (which detaches the workspace if the deleted set was open).
    */
   async deleteLocalProject(projectId: string): Promise<boolean> {
+    if (this.metadata()?.id === projectId && !this.ensureProjectLease()) {
+      this.logger.warn('ProjectWorkspace: Delete refused; another tab owns this set');
+      return false;
+    }
     try {
       await this.projectService.refresh();
       void this.backingTrack
@@ -1111,7 +1733,10 @@ export class ProjectWorkspaceService {
           ),
         );
       const removed = await this.projectService.remove(`project_${projectId}`);
-      if (removed) return true;
+      if (removed) {
+        await this.deleteSyncStatus(projectId);
+        return true;
+      }
       // Fallback: a set that only has autosave/recovery records is not in
       // ProjectService's project list, so remove it directly.
       const ids = (await this.readStoredProjects())
@@ -1119,6 +1744,7 @@ export class ProjectWorkspaceService {
         .map((item) => item.id);
       if (ids.length === 0) return false;
       await this.storage.deleteItems("projects", ids);
+      await this.deleteSyncStatus(projectId);
       // No `projectDeleted$` fires for records ProjectService never listed, so
       // detach the workspace here to keep autosave from recreating the set.
       if (this.metadata()?.id === projectId) {
@@ -1219,6 +1845,14 @@ export class ProjectWorkspaceService {
         return true;
       }
       await this.requirePersistence();
+      const importLease = this.readProjectLease(bundle.metadata.id);
+      if (
+        importLease &&
+        importLease.ownerId !== this.leaseOwnerId &&
+        importLease.expiresAt > Date.now()
+      ) {
+        throw new Error(this.leaseConflictFor(importLease).message);
+      }
       // The archive's guide track is media, not project JSON: keep it out of
       // the stored record and let restoreFromSnapshot adopt it.
       const stored = this.toStoredBundle(
@@ -1718,34 +2352,57 @@ export class ProjectWorkspaceService {
    * base64 strings on the wire, never typed arrays that JSON would turn
    * into index-keyed objects; the local binary record is untouched.
    */
-  private async queueCloudSync(bundle: ProjectBundle): Promise<void> {
+  private async queueCloudSync(
+    bundle: ProjectBundle,
+  ): Promise<ProjectCloudSizeBreakdown | null> {
     const userId = this.auth.currentUser()?.id;
     if (!userId) {
       this.cloudSyncQueued.set(false);
-      return;
+      return null;
     }
 
     // Refuse before `toCloudSafeBundle` allocates the base64 strings. The
     // estimate uses the already-built binary channels and the non-audio JSON
     // shape, so an oversized set never pays the conversion cost.
-    this.assertCloudBundleFits(bundle);
+    const size = this.measureCloudBundle(bundle);
+    if (size.totalBytes > MAX_CLOUD_BUNDLE_BYTES) {
+      throw new CloudBundleTooLargeError(size);
+    }
 
+    // Name this exact upload so its confirmation can be matched to it. Two
+    // queued saves of the same set are otherwise indistinguishable, and the
+    // older upload finishing last would clear the newer save's badge.
+    const uploadId = this.newUploadId();
+    // Record the queued state before the queue starts. A fast replay can
+    // confirm the push while we are still returning from queuePush(); writing
+    // "queued" afterwards would overwrite that confirmed "synced" state.
+    await this.recordSyncStatus(
+      bundle.metadata.id,
+      "queued",
+      "Saved on this device. Waiting to upload this cloud version.",
+      size,
+      undefined,
+      uploadId,
+    );
     const syncId = await this.cloudSync.queuePush(
       bundle.metadata.id,
       bundle.metadata.name,
       this.withSharedGuide(this.toCloudSafeBundle(bundle)),
+      uploadId,
     );
     this.lastQueuedSyncId.set(syncId);
     this.cloudSyncQueued.set(true);
+    return size;
   }
 
   /**
    * Estimate the outbound JSON size from the binary bundle without building
-   * the base64 strings. Audio dominates a project snapshot; the rest of the
-   * bundle is measured structurally by the cloud service.
+   * the base64 strings, and split it into the parts an artist can act on.
+   * Audio dominates a project snapshot; the rest of the bundle is measured
+   * structurally by the cloud service.
    */
-  private estimateCloudBundleBytes(bundle: ProjectBundle): number {
-    let encodedAudioBytes = 0;
+  private measureCloudBundle(bundle: ProjectBundle): ProjectCloudSizeBreakdown {
+    let audioBytes = 0;
     for (const asset of bundle.audioAssets ?? []) {
       const channels = Array.isArray(asset.channels) ? asset.channels : [];
       const channelCount = Math.max(
@@ -1756,27 +2413,32 @@ export class ProjectWorkspaceService {
       let hasBinaryChannel = false;
       for (const channel of channels) {
         if (typeof channel === "string") {
-          encodedAudioBytes += channel.length + 2;
+          audioBytes += channel.length + 2;
         } else if (channel instanceof Float32Array) {
           hasBinaryChannel = true;
           frameCount = Math.max(frameCount, channel.length);
         } else if (Array.isArray(channel)) {
           // Legacy JSON snapshots keep numeric arrays instead of base64. They
           // are far larger per sample, so budget them as JSON numbers.
-          encodedAudioBytes +=
-            Math.max(frameCount, channel.length) * 12 + 2;
+          audioBytes += Math.max(frameCount, channel.length) * 12 + 2;
         }
       }
       if (hasBinaryChannel) {
         const rawBytes = frameCount * 4 * channelCount;
-        encodedAudioBytes +=
+        audioBytes +=
           Math.ceil(rawBytes / 3) * 4 +
           channels.length * (FLOAT32_CHANNEL_PREFIX.length + 2);
       }
     }
 
     let guideBytes = 0;
-    if (!bundle.guideTrack) {
+    if (bundle.guideTrack) {
+      const guide = bundle.guideTrack;
+      guideBytes = Math.max(
+        guide.dataBase64?.length ?? 0,
+        Math.ceil(Math.max(0, Number(guide.byteSize) || 0) / 3) * 4,
+      ) + 1024;
+    } else {
       try {
         const file = this.backingTrack?.archiveFile();
         if (
@@ -1790,19 +2452,17 @@ export class ProjectWorkspaceService {
       }
     }
 
-    return (
-      this.cloudSync.payloadBytes({ ...bundle, audioAssets: [] }) +
-      encodedAudioBytes +
-      guideBytes +
-      1024
-    );
-  }
-
-  private assertCloudBundleFits(bundle: ProjectBundle): void {
-    const estimatedBytes = this.estimateCloudBundleBytes(bundle);
-    if (estimatedBytes > MAX_CLOUD_BUNDLE_BYTES) {
-      throw new CloudBundleTooLargeError(estimatedBytes);
-    }
+    const projectBytes = this.cloudSync.payloadBytes({
+      ...bundle,
+      audioAssets: [],
+      guideTrack: undefined,
+    });
+    return {
+      totalBytes: projectBytes + audioBytes + guideBytes + 1024,
+      audioBytes,
+      guideBytes,
+      projectBytes,
+    };
   }
 
   /**
@@ -1961,6 +2621,8 @@ export class ProjectWorkspaceService {
       ...bundle.metadata,
       lastOpenedAt: Date.now(),
     });
+    this.acquireProjectLease(bundle.metadata.id);
+    this.applyPersistedSyncWarning();
     if (bundle.tracks) {
       this.musicManager.tracks.set(bundle.tracks as any);
       this.isDirty.set(false);
@@ -2330,6 +2992,10 @@ export class ProjectWorkspaceService {
     // its state in the last save, so there is nothing to recover.
     if (!this.isDirty()) return;
 
+    if (!this.ensureProjectLease()) {
+      this.logger.warn('ProjectWorkspace: Recovery snapshot refused; another tab owns this set');
+      return;
+    }
     try {
       const snapshot = this.createStoredSnapshot();
       const integrity = inspectProjectAudioIntegrity(snapshot);
@@ -2350,6 +3016,11 @@ export class ProjectWorkspaceService {
         payload: bundle.metadata.id,
         savedAt: bundle.savedAt,
       });
+      await this.recordLocalSaveStatus(
+        bundle.metadata.id,
+        "Recovered changes are on this device only. Save to create a cloud version.",
+        this.measureCloudBundle(bundle),
+      );
     } catch (e) {
       this.logger.warn("ProjectWorkspace: Recovery snapshot failed", e);
     }

@@ -44,6 +44,114 @@
 
 .studio-project-status-dirty { color: #b45309; }
 
+/* Durable cloud state: distinct from the local dirty/saved indicator. */
+.studio-sync-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 4px;
+  padding: 1px 8px;
+  border: 1px solid rgba(14, 124, 123, 0.35);
+  border-radius: 999px;
+  background: rgba(14, 124, 123, 0.08);
+  color: var(--teal-700, #0f766e);
+  font: inherit;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.studio-sync-status .material-symbols-outlined { font-size: 13px; }
+.studio-sync-size { opacity: 0.7; font-weight: 700; }
+.studio-sync-status-warning {
+  border-color: rgba(180, 83, 9, 0.45);
+  background: rgba(180, 83, 9, 0.12);
+  color: #8a4b08;
+}
+.studio-sync-status:hover,
+.studio-sync-status:focus-visible {
+  border-color: var(--teal-500, #0e7c7b);
+  background: rgba(14, 124, 123, 0.16);
+}
+.studio-sync-status:focus-visible {
+  outline: 2px solid var(--teal-500, #0e7c7b);
+  outline-offset: 2px;
+}
+
+.studio-sync-details {
+  position: absolute;
+  top: calc(var(--studio-status-height, 28px) + 4px);
+  left: 12px;
+  z-index: 9002;
+  width: min(430px, calc(100% - 24px));
+  padding: 12px 14px;
+  border: 1px solid var(--espresso-line, #cbd5e1);
+  border-radius: 14px;
+  background: var(--espresso-paper, #f8faf8);
+  color: var(--espresso-text, #17202a);
+  box-shadow: 0 14px 34px rgba(23, 32, 42, 0.2);
+  font-size: 11px;
+  line-height: 1.45;
+}
+.studio-sync-details-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.studio-sync-details-head strong { font-size: 12px; }
+.studio-sync-details-head span { color: var(--espresso-muted, #64748b); }
+.studio-sync-details-head button {
+  margin-left: auto;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+.studio-sync-breakdown {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  margin-top: 10px;
+}
+.studio-sync-breakdown span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 7px;
+  border-radius: 8px;
+  background: rgba(14, 124, 123, 0.07);
+  color: var(--espresso-muted, #64748b);
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.studio-sync-breakdown b { color: var(--espresso-text, #17202a); font-size: 11px; }
+.studio-sync-details p { margin: 9px 0 0; color: var(--espresso-muted, #64748b); }
+:host-context(.dark-mode) .studio-sync-status {
+  border-color: rgba(94, 234, 212, 0.35);
+  background: rgba(94, 234, 212, 0.1);
+  color: #a7f3d0;
+}
+:host-context(.dark-mode) .studio-sync-status-warning {
+  border-color: rgba(252, 211, 77, 0.45);
+  background: rgba(252, 211, 77, 0.12);
+  color: #fcd34d;
+}
+:host-context(.dark-mode) .studio-sync-details {
+  border-color: rgba(255, 255, 255, 0.16);
+  background: #111d24;
+  color: #e5f4ef;
+}
+:host-context(.dark-mode) .studio-sync-breakdown span {
+  background: rgba(94, 234, 212, 0.08);
+  color: #9bb8b0;
+}
+:host-context(.dark-mode) .studio-sync-breakdown b { color: #e5f4ef; }
+
 /*
    Durable-storage state. Shown only when the browser refused to promise that
    saved sets survive storage pressure, so "Saved locally" never implies

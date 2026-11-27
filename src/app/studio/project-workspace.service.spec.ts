@@ -11,6 +11,8 @@ import { CloudSyncService } from "../services/cloud-sync.service";
 import { PROJECT_BACKING_TRACK } from "./project-backing-track.token";
 import { ProjectService } from "../services/project.service";
 import {
+  PROJECT_LEASE_KEY_PREFIX,
+  PROJECT_SYNC_STATUS_STORE,
   ProjectBundle,
   ProjectWorkspaceService,
 } from "./project-workspace.service";
@@ -40,6 +42,12 @@ describe("ProjectWorkspaceService", () => {
   let saveItem: jest.Mock;
   let queueOperation: jest.Mock;
   let cloudQueuePush: jest.Mock;
+  let cloudPushSucceeded: Subject<{
+    projectId: string;
+    at: number;
+    uploadId?: string;
+  }>;
+  let cloudTimeline: ReturnType<typeof signal<any[]>>;
   let backingArchiveFile: jest.Mock;
   let tempoSet: jest.Mock;
   let monitorMono: ReturnType<typeof signal<boolean>>;
@@ -159,6 +167,12 @@ describe("ProjectWorkspaceService", () => {
     saveItem = jest.fn().mockResolvedValue(undefined);
     queueOperation = jest.fn().mockResolvedValue("sync_test_1");
     cloudQueuePush = jest.fn().mockResolvedValue("sync_test_1");
+    cloudPushSucceeded = new Subject<{
+      projectId: string;
+      at: number;
+      uploadId?: string;
+    }>();
+    cloudTimeline = signal<any[]>([]);
     backingArchiveFile = jest.fn().mockReturnValue(null);
     tempoSet = jest.fn();
     monitorMono = signal(false);
@@ -353,6 +367,8 @@ describe("ProjectWorkspaceService", () => {
           provide: CloudSyncService,
           useValue: {
             queuePush: (...args: unknown[]) => cloudQueuePush(...args),
+            pushSucceeded$: cloudPushSucceeded,
+            timeline: cloudTimeline,
             payloadBytes: (payload: unknown) =>
               JSON.stringify(payload ?? null).length,
           },
@@ -377,7 +393,12 @@ describe("ProjectWorkspaceService", () => {
     service = TestBed.inject(ProjectWorkspaceService);
   });
 
-  afterEach(() => service.stopAutoSave());
+  afterEach(() => {
+    service.stopAutoSave();
+    Object.keys(localStorage)
+      .filter((key) => key.startsWith(PROJECT_LEASE_KEY_PREFIX))
+      .forEach((key) => localStorage.removeItem(key));
+  });
 
   it("creates a complete local snapshot and applies genre tempo", () => {
     service.updateMetadata({ name: "Night Drive" });
@@ -1235,6 +1256,10 @@ describe("ProjectWorkspaceService", () => {
       expect(service.cloudSyncRefusal()).toContain('Saved on this device');
       expect(service.cloudSyncRefusal()).toContain('too large to sync');
       expect(service.cloudSyncRefusal()).toContain('512 MB');
+      const status = service.syncStatusFor('proj_huge');
+      expect(status?.state).toBe('too-large');
+      expect(status?.breakdown.audioBytes).toBeGreaterThan(512 * 1024 * 1024);
+      expect(status?.breakdown.totalBytes).toBeGreaterThan(512 * 1024 * 1024);
     } finally {
       convert.mockRestore();
       encode.mockRestore();
@@ -1633,6 +1658,150 @@ describe("ProjectWorkspaceService", () => {
     expect(service.lastPersistedAt()).toBeGreaterThan(0);
   });
 
+  it("persists a local-only sync status with an actionable size breakdown", async () => {
+    const bundle = await service.manualSave();
+
+    expect(service.currentSyncStatus()).toEqual(
+      expect.objectContaining({
+        projectId: bundle.metadata.id,
+        state: 'local-only',
+      }),
+    );
+    expect(service.currentSyncStatus()?.breakdown.totalBytes).toBeGreaterThan(0);
+    expect(saveItem).toHaveBeenCalledWith(
+      PROJECT_SYNC_STATUS_STORE,
+      expect.objectContaining({
+        id: bundle.metadata.id,
+        state: 'local-only',
+        breakdown: expect.objectContaining({
+          audioBytes: expect.any(Number),
+          guideBytes: expect.any(Number),
+          projectBytes: expect.any(Number),
+        }),
+      }),
+    );
+  });
+
+  it("keeps a cloud conflict visible through an autosave", async () => {
+    const projectId = service.metadata()!.id;
+    const size = {
+      totalBytes: 2048,
+      audioBytes: 1024,
+      guideBytes: 0,
+      projectBytes: 1024,
+    };
+    await (service as any).recordSyncStatus(
+      projectId,
+      'conflict',
+      'Cloud version v4 is newer than this device’s copy.',
+      size,
+    );
+
+    await expect(service.autoSave()).resolves.toBe(true);
+
+    expect(service.syncStatusFor(projectId)).toEqual(
+      expect.objectContaining({
+        state: 'conflict',
+        reason: expect.stringContaining('Cloud version v4'),
+      }),
+    );
+  });
+
+  it("keeps an oversized set marked too-large through an autosave", async () => {
+    const projectId = service.metadata()!.id;
+    const size = {
+      totalBytes: 620 * 1024 * 1024,
+      audioBytes: 610 * 1024 * 1024,
+      guideBytes: 0,
+      projectBytes: 10 * 1024 * 1024,
+    };
+    await (service as any).recordSyncStatus(
+      projectId,
+      'too-large',
+      'Saved on this device, but this version is too large to sync.',
+      size,
+    );
+    const measure = jest
+      .spyOn(service as any, 'measureCloudBundle')
+      .mockReturnValue(size);
+
+    try {
+      await expect(service.autoSave()).resolves.toBe(true);
+    } finally {
+      measure.mockRestore();
+    }
+
+    expect(service.syncStatusFor(projectId)).toEqual(
+      expect.objectContaining({
+        state: 'too-large',
+        cloudBytes: size.totalBytes,
+        breakdown: size,
+      }),
+    );
+    expect(service.cloudSyncRefusal()).toContain('too large to sync');
+  });
+
+  it("refuses to import over a set leased by another Studio window", async () => {
+    const bundle = makeBundle();
+    localStorage.setItem(
+      `${PROJECT_LEASE_KEY_PREFIX}${bundle.metadata.id}`,
+      JSON.stringify({
+        projectId: bundle.metadata.id,
+        ownerId: 'other-window',
+        ownerLabel: 'Other window',
+        acquiredAt: Date.now(),
+        expiresAt: Date.now() + 60_000,
+      }),
+    );
+
+    await expect(service.importProjectBundle(bundle)).resolves.toBe(false);
+
+    expect(saveItem).not.toHaveBeenCalled();
+    expect(service.persistenceError()).toContain('another Studio window');
+  });
+
+  it("refuses to save over a lease held by another Studio window", async () => {
+    const projectId = service.metadata()!.id;
+    const key = `${PROJECT_LEASE_KEY_PREFIX}${projectId}`;
+    localStorage.setItem(
+      key,
+      JSON.stringify({
+        projectId,
+        ownerId: 'other-window',
+        ownerLabel: 'Other window',
+        acquiredAt: Date.now(),
+        expiresAt: Date.now() + 60_000,
+      }),
+    );
+
+    await expect(service.manualSave()).rejects.toThrow(/another Studio window/i);
+
+    expect(saveItem).not.toHaveBeenCalled();
+    expect(service.leaseConflict()?.ownerLabel).toBe('Other window');
+    localStorage.removeItem(key);
+  });
+
+  it("lets the artist explicitly take over a set leased by another window", async () => {
+    const projectId = service.metadata()!.id;
+    const key = `${PROJECT_LEASE_KEY_PREFIX}${projectId}`;
+    localStorage.setItem(
+      key,
+      JSON.stringify({
+        projectId,
+        ownerId: 'other-window',
+        ownerLabel: 'Other window',
+        acquiredAt: Date.now(),
+        expiresAt: Date.now() + 60_000,
+      }),
+    );
+
+    expect(service.takeOverProjectLease()).toBe(true);
+    await expect(service.manualSave()).resolves.toBeTruthy();
+
+    expect(service.leaseConflict()).toBeNull();
+    localStorage.removeItem(key);
+  });
+
   it("marks arrangement changes dirty even without metadata edits", async () => {
     expect(service.isDirty()).toBe(false);
 
@@ -1659,6 +1828,8 @@ describe("ProjectWorkspaceService", () => {
           provide: CloudSyncService,
           useValue: {
             queuePush: (...args: unknown[]) => cloudQueuePush(...args),
+            pushSucceeded$: cloudPushSucceeded,
+            timeline: cloudTimeline,
             payloadBytes: (payload: unknown) =>
               JSON.stringify(payload ?? null).length,
           },
@@ -1747,6 +1918,8 @@ describe("ProjectWorkspaceService", () => {
           provide: CloudSyncService,
           useValue: {
             queuePush: (...args: unknown[]) => cloudQueuePush(...args),
+            pushSucceeded$: cloudPushSucceeded,
+            timeline: cloudTimeline,
             payloadBytes: (payload: unknown) =>
               JSON.stringify(payload ?? null).length,
           },
@@ -1774,14 +1947,243 @@ describe("ProjectWorkspaceService", () => {
     await expect(service.importProjectBundle(bundle)).resolves.toBe(true);
 
     expect(tracks()).toEqual(bundle.tracks);
+    const queuedUploadId = cloudQueuePush.mock.calls[0][3] as string;
     expect(cloudQueuePush).toHaveBeenCalledWith(
       bundle.metadata.id,
       bundle.metadata.name,
       expect.objectContaining({
         metadata: expect.objectContaining({ id: bundle.metadata.id }),
       }),
+      expect.any(String),
     );
     expect(service.cloudSyncQueued()).toBe(true);
+    expect(service.syncStatusFor(bundle.metadata.id)).toEqual(
+      expect.objectContaining({ state: 'queued', uploadId: queuedUploadId }),
+    );
+
+    cloudPushSucceeded.next({
+      projectId: bundle.metadata.id,
+      at: 777,
+      uploadId: queuedUploadId,
+    });
+
+    expect(service.syncStatusFor(bundle.metadata.id)?.state).toBe('synced');
+    expect(service.syncStatusFor(bundle.metadata.id)?.lastSyncedAt).toBe(777);
+  });
+
+  it('keeps a newer queued save queued when an older upload confirms later', async () => {
+    authUser.set({ id: 'artist-1' });
+    cloudQueuePush.mockClear();
+    const bundle = {
+      ...makeBundle(),
+      metadata: { ...metadata, id: 'proj_two_queues', name: 'Two Queued Saves' },
+    };
+
+    await (service as any).queueCloudSync(bundle);
+    const firstUploadId = cloudQueuePush.mock.calls[0][3] as string;
+    await (service as any).queueCloudSync(bundle);
+    const secondUploadId = cloudQueuePush.mock.calls[1][3] as string;
+
+    expect(firstUploadId).toEqual(expect.any(String));
+    expect(secondUploadId).toEqual(expect.any(String));
+    expect(secondUploadId).not.toBe(firstUploadId);
+    expect(service.syncStatusFor('proj_two_queues')).toEqual(
+      expect.objectContaining({ state: 'queued', uploadId: secondUploadId }),
+    );
+
+    // The older upload finishes after the second save was queued, so its
+    // timestamp is newer than the newer queued status. Only an identity match
+    // may clear that badge.
+    cloudPushSucceeded.next({
+      projectId: 'proj_two_queues',
+      at: Date.now() + 1_000,
+      uploadId: firstUploadId,
+    });
+
+    expect(service.syncStatusFor('proj_two_queues')?.state).toBe('queued');
+    expect(service.syncStatusFor('proj_two_queues')?.uploadId).toBe(secondUploadId);
+
+    cloudPushSucceeded.next({
+      projectId: 'proj_two_queues',
+      at: Date.now() + 2_000,
+      uploadId: secondUploadId,
+    });
+
+    expect(service.syncStatusFor('proj_two_queues')).toEqual(
+      expect.objectContaining({ state: 'synced', uploadId: undefined }),
+    );
+  });
+
+  it("restores a persisted too-large warning after a reload", async () => {
+    const bundle = makeBundle();
+    getAllItems.mockResolvedValue([
+      {
+        id: bundle.metadata.id,
+        projectId: bundle.metadata.id,
+        state: 'too-large',
+        reason:
+          'Saved on this device, but this version is too large to sync (about 620 MB; the cloud limit is 512 MB).',
+        updatedAt: Date.now(),
+        cloudBytes: 620 * 1024 * 1024,
+        breakdown: {
+          totalBytes: 620 * 1024 * 1024,
+          audioBytes: 610 * 1024 * 1024,
+          guideBytes: 0,
+          projectBytes: 10 * 1024 * 1024,
+        },
+      },
+    ]);
+
+    await (service as any).loadSyncStatuses();
+    service.restoreFromSnapshot(bundle);
+
+    expect(service.currentSyncStatus()?.state).toBe('too-large');
+    expect(service.cloudSyncRefusal()).toContain('too large to sync');
+    expect(service.currentSyncStatus()?.breakdown.audioBytes).toBe(
+      610 * 1024 * 1024,
+    );
+  });
+
+  it("clears a stale queued badge when a boot replay already reached the cloud", async () => {
+    const projectId = 'proj_boot_replay';
+    getAllItems.mockResolvedValue([
+      {
+        id: projectId,
+        projectId,
+        state: 'queued',
+        reason: 'Waiting to upload.',
+        updatedAt: 100,
+        cloudBytes: 4096,
+        breakdown: {
+          totalBytes: 4096,
+          audioBytes: 3072,
+          guideBytes: 0,
+          projectBytes: 1024,
+        },
+      },
+    ]);
+    cloudTimeline.set([
+      {
+        id: 'timeline-boot',
+        projectId,
+        projectTitle: 'Boot replay',
+        direction: 'push',
+        status: 'success',
+        at: 200,
+      },
+    ]);
+
+    await (service as any).loadSyncStatuses();
+
+    expect(service.syncStatusFor(projectId)).toEqual(
+      expect.objectContaining({
+        state: 'synced',
+        lastSyncedAt: 200,
+      }),
+    );
+  });
+
+  it("keeps a newer queued upload when a boot replay confirms an older one", async () => {
+    const projectId = 'proj_boot_two_uploads';
+    const baseStatus = {
+      id: projectId,
+      projectId,
+      state: 'queued',
+      reason: 'Waiting to upload.',
+      updatedAt: 100,
+      uploadId: 'upload_new',
+      cloudBytes: 4096,
+      breakdown: {
+        totalBytes: 4096,
+        audioBytes: 3072,
+        guideBytes: 0,
+        projectBytes: 1024,
+      },
+    };
+    getAllItems.mockResolvedValue([baseStatus]);
+    // The older upload's confirmation is persisted later than the newer save
+    // was queued, so time cannot tell the two apart.
+    cloudTimeline.set([
+      {
+        id: 'timeline-old-upload',
+        projectId,
+        projectTitle: 'Older upload',
+        direction: 'push',
+        status: 'success',
+        at: 200,
+        uploadId: 'upload_old',
+      },
+    ]);
+
+    await (service as any).loadSyncStatuses();
+
+    expect(service.syncStatusFor(projectId)).toEqual(
+      expect.objectContaining({ state: 'queued', uploadId: 'upload_new' }),
+    );
+    expect(service.syncStatusFor(projectId)?.lastSyncedAt).toBeUndefined();
+
+    // The newer upload's own confirmation is what clears the badge.
+    cloudTimeline.set([
+      {
+        id: 'timeline-old-upload',
+        projectId,
+        projectTitle: 'Older upload',
+        direction: 'push',
+        status: 'success',
+        at: 200,
+        uploadId: 'upload_old',
+      },
+      {
+        id: 'timeline-new-upload',
+        projectId,
+        projectTitle: 'Newer upload',
+        direction: 'push',
+        status: 'success',
+        at: 300,
+        uploadId: 'upload_new',
+      },
+    ]);
+
+    await (service as any).loadSyncStatuses();
+
+    expect(service.syncStatusFor(projectId)).toEqual(
+      expect.objectContaining({ state: 'synced', lastSyncedAt: 300 }),
+    );
+  });
+
+  it("keeps a queued badge when the cloud success predates that local save", async () => {
+    const projectId = 'proj_boot_pending';
+    getAllItems.mockResolvedValue([
+      {
+        id: projectId,
+        projectId,
+        state: 'queued',
+        reason: 'Waiting to upload.',
+        updatedAt: 300,
+        cloudBytes: 4096,
+        breakdown: {
+          totalBytes: 4096,
+          audioBytes: 3072,
+          guideBytes: 0,
+          projectBytes: 1024,
+        },
+      },
+    ]);
+    cloudTimeline.set([
+      {
+        id: 'timeline-older',
+        projectId,
+        projectTitle: 'Older cloud copy',
+        direction: 'push',
+        status: 'success',
+        at: 200,
+      },
+    ]);
+
+    await (service as any).loadSyncStatuses();
+
+    expect(service.syncStatusFor(projectId)?.state).toBe('queued');
+    expect(service.syncStatusFor(projectId)?.lastSyncedAt).toBeUndefined();
   });
 
   it("restores the freshest local bundle and tracks the recovery source", async () => {

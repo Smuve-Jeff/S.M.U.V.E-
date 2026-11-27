@@ -121,6 +121,81 @@
   .dj-booth .automix-button {
     min-height: 44px;
   }
+  /* The booth's chrome is a control too: LOAD/REC/SAVE, the deck status
+     chips, the response keys and the deck sliders all get the same 44px
+     finger floor the pads use. Height only — the console stays within the
+     deck column, so the rows wrap instead of overflowing. */
+  .dj-booth .chrome-button,
+  .dj-booth .mini-status,
+  .dj-booth .response-key,
+  .dj-booth input[type="range"] {
+    min-height: 44px;
+  }
+  /* The keys also need the full square: a 40px-wide LOAD/REC was still a
+     sub-44 target. The header row wraps instead of widening the deck. */
+  .dj-booth .chrome-button {
+    min-width: 44px;
+  }
+  /* Last touch gaps: TAP TEMPO, the loop chips and the LPF/HPF keys. The
+     filter pair used to be capped at 32px wide because two 44px keys did not
+     fit beside the rotary on a narrow deck — the pair now wraps under it
+     instead, so the floor never widens the chassis. */
+  .dj-booth .tap-button,
+  .dj-booth .loop-chip,
+  .dj-booth .filter-switch button {
+    min-height: 44px;
+  }
+  /* Range inputs are thumb-dragged, so width matters too: the deck pitch
+     sliders collapse to 19px at landscape widths. The pitch slider owns a
+     1fr track and the faders/crossfader are already wider than 44. */
+  .dj-booth input[type="range"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  .dj-booth.mobile-mode .loop-chip,
+  .dj-booth.mobile-mode .filter-switch button {
+    min-width: 44px;
+  }
+  /* Remaining booth chrome: the pitch nudges, the rotary knobs and the
+     BRAKE/SPINBACK/TRANSFORM keys. The nudges live in an auto-1fr grid and
+     the scratch keys are full-row, so the floor only ever costs height. */
+  .dj-booth .pitch-nudge,
+  .dj-booth .btn-chrome,
+  .dj-booth .vknob {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  /* The last sub-44 controls: the performance-mode tabs (BEAT ROLL / CUE /
+     SAMPLER) and the master preset stepper. Both rows wrap, so the floor
+     only ever costs height, never width. */
+  .dj-booth .performance-tabs button,
+  .dj-booth .master-presets button {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  /* The FX mode keys (AUTO WAH / ECHO / …) share the pads' floor; their row
+     already wraps, so the floor only ever costs height. */
+  .dj-booth .fx-mode-list button {
+    min-height: 44px;
+  }
+  .dj-booth .performance-tabs {
+    flex-wrap: wrap;
+  }
+  /* The ≤430px block keeps the nudges at 34px with a mobile-mode-qualified
+     selector, which would outrank the rule above; repeat it here so the
+     floor holds at phone widths too. */
+  .dj-booth.mobile-mode .pitch-nudge {
+    width: 44px;
+    min-width: 44px;
+    min-height: 44px;
+  }
+  .dj-booth.mobile-mode .loop-presets,
+  .dj-booth.mobile-mode .filter-switch {
+    flex-wrap: wrap;
+  }
+  .dj-booth.mobile-mode .filter-switch {
+    justify-content: center;
+  }
   .dj-booth .performance-pad:active {
     transform: scale(0.9);
   }

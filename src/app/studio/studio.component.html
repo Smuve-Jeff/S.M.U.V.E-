@@ -15,18 +15,30 @@
   <input type="file" #fileInput style="display: none;" accept=".smuve" (change)="loadProjectFile($event)">
 
   <div
-    *ngIf="projectWorkspace.persistenceError() || projectWorkspace.cloudSyncRefusal()"
+    *ngIf="projectWorkspace.persistenceError() || projectWorkspace.cloudSyncRefusal() || projectWorkspace.leaseConflict()"
     class="studio-save-warning"
     role="alert"
   >
     <span class="material-symbols-outlined" aria-hidden="true">warning</span>
-    <span>{{ projectWorkspace.persistenceError() || projectWorkspace.cloudSyncRefusal() }}</span>
+    <span *ngIf="projectWorkspace.leaseConflict() as lease; else saveWarningMessage">
+      {{ lease.message }}
+    </span>
+    <ng-template #saveWarningMessage>
+      <span>{{ projectWorkspace.persistenceError() || projectWorkspace.cloudSyncRefusal() }}</span>
+    </ng-template>
     <button
       *ngIf="projectWorkspace.canRepairAudio()"
       type="button"
       (click)="openAudioRepair()"
     >
       Repair audio
+    </button>
+    <button
+      *ngIf="projectWorkspace.leaseConflict()"
+      type="button"
+      (click)="takeOverProjectLease()"
+    >
+      Edit in this window
     </button>
     <button
       *ngIf="projectWorkspace.persistenceError()"
@@ -47,6 +59,19 @@
   <div class="studio-project-status" role="status" aria-live="polite" [class.studio-project-status-dirty]="projectWorkspace.isDirty()">
     <span class="material-symbols-outlined" aria-hidden="true">{{ projectWorkspace.isDirty() ? 'edit' : 'check_circle' }}</span>
     <span>{{ projectWorkspace.isSaving() ? 'Saving…' : projectWorkspace.isDirty() ? 'Unsaved changes' : projectWorkspace.lastPersistedAt() > 0 ? 'Saved locally' : 'New session' }}</span>
+    <button
+      type="button"
+      class="studio-sync-status"
+      *ngIf="projectWorkspace.currentSyncStatus() as sync"
+      [class.studio-sync-status-warning]="sync.state === 'too-large' || sync.state === 'conflict'"
+      (click)="toggleSyncDetails()"
+      [attr.aria-expanded]="showSyncDetails()"
+      [attr.title]="sync.reason"
+    >
+      <span class="material-symbols-outlined" aria-hidden="true">{{ syncStateIcon(sync.state) }}</span>
+      <span>{{ syncStateLabel(sync.state) }}</span>
+      <span class="studio-sync-size">{{ formatSetBytes(sync.cloudBytes) }}</span>
+    </button>
     <button
       type="button"
       class="studio-monitor-status"
@@ -70,6 +95,21 @@
       <span>Not protected</span>
       <span class="studio-durability-action" aria-hidden="true">Back up</span>
     </button>
+  </div>
+
+  <div class="studio-sync-details" *ngIf="showSyncDetails() && projectWorkspace.currentSyncStatus() as sync">
+    <div class="studio-sync-details-head">
+      <strong>{{ syncStateLabel(sync.state) }}</strong>
+      <span>{{ formatSetBytes(sync.cloudBytes) }} cloud estimate</span>
+      <button type="button" (click)="toggleSyncDetails()" aria-label="Close cloud size details">×</button>
+    </div>
+    <div class="studio-sync-breakdown">
+      <span>Audio takes <b>{{ formatSetBytes(sync.breakdown.audioBytes) }}</b></span>
+      <span>Guide track <b>{{ formatSetBytes(sync.breakdown.guideBytes) }}</b></span>
+      <span>Project &amp; mix <b>{{ formatSetBytes(sync.breakdown.projectBytes) }}</b></span>
+    </div>
+    <p>{{ sync.reason }}</p>
+    <p *ngIf="sync.lastSyncedAt">Last cloud save {{ formatSetSavedAt(sync.lastSyncedAt) }}</p>
   </div>
 
   <!-- Stage 2.0 ambient aurora field (pure decoration).
@@ -3744,6 +3784,10 @@
             musicManager.tracks().length === 1 ? '' : 's'
           }}
         </div>
+        <div class="comp-sets-current-sync" *ngIf="projectWorkspace.currentSyncStatus() as sync">
+          <span class="comp-sets-sync-pill">{{ syncStateLabel(sync.state) }}</span>
+          <span>{{ formatSetBytes(sync.cloudBytes) }} cloud · audio {{ formatSetBytes(sync.breakdown.audioBytes) }} · guide {{ formatSetBytes(sync.breakdown.guideBytes) }} · project {{ formatSetBytes(sync.breakdown.projectBytes) }}</span>
+        </div>
         <div class="comp-sets-current-actions">
           <button
             type="button"
@@ -3846,7 +3890,8 @@
               <span class="comp-sets-stamp"
                 >{{ setSourceLabel(set) }}
                 {{ formatSetSavedAt(set.savedAt) }} · v{{ set.version }} ·
-                {{ setSizeLabel(set) }}</span
+                {{ setSizeLabel(set) }} ·
+                <span class="comp-sets-sync-pill">{{ setSyncState(set) }}</span></span
               >
             </span>
           </button>

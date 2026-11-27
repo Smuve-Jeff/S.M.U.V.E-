@@ -4759,6 +4759,39 @@ button.comp-meta-state-pill:focus-visible {
   text-transform: uppercase;
   opacity: 0.85;
 }
+
+/* Durable cloud state is deliberately visible in the shelf, not just the
+   open-session strip: a local autosave is not a cloud backup. */
+.comp-sets-current-sync {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+  color: var(--espresso-muted);
+  font-size: 10px;
+  line-height: 1.4;
+}
+.comp-sets-sync-pill {
+  display: inline-block;
+  flex: 0 0 auto;
+  padding: 2px 6px;
+  border: 1px solid rgba(14, 124, 123, 0.3);
+  border-radius: 999px;
+  background: rgba(14, 124, 123, 0.1);
+  color: var(--teal-700);
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  line-height: 1.2;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.comp-sets-stamp .comp-sets-sync-pill {
+  margin-left: 2px;
+  padding: 1px 5px;
+  vertical-align: 1px;
+}
 .comp-sets-delete {
   flex: 0 0 auto;
   width: 44px;

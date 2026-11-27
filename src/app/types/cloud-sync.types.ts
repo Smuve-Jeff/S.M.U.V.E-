@@ -101,4 +101,10 @@ export interface SyncTimelineEntry {
   status: SyncStatus;
   at: number;
   note?: string;
+  /**
+   * Identity of the queued upload this success belongs to (when the caller
+   * supplied one). A durable "queued" badge compares this, not the clock,
+   * so a slow older push cannot confirm a newer save.
+   */
+  uploadId?: string;
 }

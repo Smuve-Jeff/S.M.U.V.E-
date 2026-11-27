@@ -1,4 +1,5 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
+import { Subject } from 'rxjs';
 import { OfflineSyncService } from './offline-sync.service';
 import { LocalStorageService } from './local-storage.service';
 import { LoggingService } from './logging.service';
@@ -146,6 +147,18 @@ export class CloudSyncService {
 
   /** Most recent ~50 sync timeline entries. */
   readonly timeline = signal<SyncTimelineEntry[]>([]);
+
+  /**
+   * A project version is now confirmed in the cloud. The Studio listens so a
+   * durable "queued" badge can become "in cloud" after an offline replay,
+   * not just when the save first happened.
+   */
+  readonly pushSucceeded$ = new Subject<{
+    projectId: string;
+    at: number;
+    /** Echo of the identity the caller queued, so a badge can match it. */
+    uploadId?: string;
+  }>();
   private unregisterOfflinePushHandler: (() => void) | null = null;
 
   /**
@@ -301,7 +314,8 @@ export class CloudSyncService {
   async queuePush(
     projectId: string,
     title: string,
-    payload: unknown
+    payload: unknown,
+    uploadId?: string
   ): Promise<string> {
     const existingManifest = this.localManifests()[projectId];
     const manifest: ProjectManifest = {
@@ -316,7 +330,7 @@ export class CloudSyncService {
     const syncId = await this.offlineSync.queueOperation(
       'UPDATE',
       OFFLINE_PUSH_ENDPOINT,
-      { projectId, manifest, payload }
+      { projectId, manifest, payload, ...(uploadId ? { uploadId } : {}) }
     );
     this.pushStatus.set('queued');
     this.appendTimeline({
@@ -339,7 +353,8 @@ export class CloudSyncService {
   async push(
     projectId: string,
     title: string,
-    payload: unknown
+    payload: unknown,
+    uploadId?: string
   ): Promise<SyncStatus> {
     const bytes = this.payloadBytes(payload);
     this.largePushNotice.set(
@@ -358,7 +373,7 @@ export class CloudSyncService {
     };
 
     if (!this.isCloudReachable()) {
-      await this.queuePush(projectId, title, payload);
+      await this.queuePush(projectId, title, payload, uploadId);
       return 'queued';
     }
 
@@ -384,6 +399,7 @@ export class CloudSyncService {
         return 'conflict';
       }
       await this.persistManifest(projectId, manifest);
+      this.pushSucceeded$.next({ projectId, at: Date.now(), uploadId });
       this.lastSyncedAt.set(Date.now());
       this.pushStatus.set('success');
       this.appendTimeline({
@@ -393,6 +409,7 @@ export class CloudSyncService {
         direction: 'push',
         status: 'success',
         at: Date.now(),
+        uploadId,
       });
       if (result.snapshot) this.rememberSnapshot(result.snapshot);
       await this.refresh();
@@ -406,7 +423,7 @@ export class CloudSyncService {
       await this.offlineSync.queueOperation(
         'UPDATE',
         OFFLINE_PUSH_ENDPOINT,
-        { projectId, manifest, payload }
+        { projectId, manifest, payload, ...(uploadId ? { uploadId } : {}) }
       );
       this.pushStatus.set('queued');
       this.appendTimeline({
@@ -548,7 +565,12 @@ export class CloudSyncService {
   }
 
   private async replayOfflinePush(item: {
-    payload: { projectId: string; manifest: ProjectManifest; payload: unknown };
+    payload: {
+      projectId: string;
+      manifest: ProjectManifest;
+      payload: unknown;
+      uploadId?: string;
+    };
   }): Promise<void> {
     const envelope = item.payload;
     if (
@@ -582,6 +604,11 @@ export class CloudSyncService {
     }
 
     await this.persistManifest(envelope.projectId, envelope.manifest);
+    this.pushSucceeded$.next({
+      projectId: envelope.projectId,
+      at: Date.now(),
+      uploadId: envelope.uploadId,
+    });
     this.lastSyncedAt.set(Date.now());
     this.pushStatus.set('success');
     const replayedBytes = this.payloadBytes(envelope.payload);
@@ -597,6 +624,7 @@ export class CloudSyncService {
       direction: 'push',
       status: 'success',
       at: Date.now(),
+      uploadId: envelope.uploadId,
       note:
         replayedBytes >= LARGE_PUSH_BYTES
           ? 'Large queued upload replayed after network recovery'

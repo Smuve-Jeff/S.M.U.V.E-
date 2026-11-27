@@ -106,6 +106,7 @@ import {
   type LocalStorageUsage,
   type DeviceStorageQuota,
   type ProjectBundle,
+  type ProjectSyncState,
 } from "./project-workspace.service";
 import {
   isProjectArchive,
@@ -782,6 +783,8 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   showSetsBrowser = signal(false);
   /** Bottom-sheet repair flow for clips whose take is missing. */
   showAudioRepair = signal(false);
+  /** Expanded cloud-size explanation for the current set. */
+  showSyncDetails = signal(false);
   localSets = signal<LocalProjectSummary[]>([]);
   setsBusy = signal(false);
   setsError = signal('');
@@ -4367,6 +4370,60 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
       );
     } finally {
       this.setsBusy.set(false);
+    }
+  }
+
+  /** Make the durable sync state readable without leaking service enums. */
+  syncStateLabel(state: ProjectSyncState | null | undefined): string {
+    switch (state) {
+      case "queued":
+        return "Queued";
+      case "synced":
+        return "In cloud";
+      case "conflict":
+        return "Cloud conflict";
+      case "too-large":
+        return "Too large to sync";
+      default:
+        return "Local only";
+    }
+  }
+
+  syncStateIcon(state: ProjectSyncState | null | undefined): string {
+    switch (state) {
+      case "queued":
+        return "cloud_upload";
+      case "synced":
+        return "cloud_done";
+      case "conflict":
+        return "cloud_off";
+      case "too-large":
+        return "warning";
+      default:
+        return "smartphone";
+    }
+  }
+
+  setSyncState(set: LocalProjectSummary): string {
+    return this.syncStateLabel(
+      this.projectWorkspace.syncStatusFor(set.projectId)?.state,
+    );
+  }
+
+  toggleSyncDetails(): void {
+    this.showSyncDetails.update((open) => !open);
+  }
+
+  /** Explicitly reclaim a project that another Studio window is holding. */
+  takeOverProjectLease(): void {
+    if (this.projectWorkspace.takeOverProjectLease()) {
+      this.snackbarService.success(
+        "This window now owns the set. Other windows are read-only.",
+      );
+    } else {
+      this.snackbarService.error(
+        "This set could not be taken over. Close the other Studio window and try again.",
+      );
     }
   }
 

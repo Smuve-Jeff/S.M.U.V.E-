@@ -36,7 +36,7 @@ export type StorageDurability =
 })
 export class LocalStorageService {
   private dbName = 'SMUVE_OFFLINE_DB';
-  private dbVersion = 10;
+  private dbVersion = 11;
   private db: IDBDatabase | null = null;
   /** Why persistence is unavailable, when it is. Null while everything works. */
   private unavailableReason: Exclude<PersistenceState, 'ready'> | null = null;
@@ -147,6 +147,13 @@ export class LocalStorageService {
       }
       if (!db.objectStoreNames.contains('offline_local_cache')) {
         db.createObjectStore('offline_local_cache', { keyPath: 'id' });
+      }
+      // Durable per-set cloud state. It sits apart from the project record so
+      // the Sets browser can show "local only" / "queued" / "too large"
+      // without reading a multi-megabyte audio bundle just to decorate a row.
+      // Added in v11 — earlier DBs get it on upgrade.
+      if (!db.objectStoreNames.contains('project_sync_status')) {
+        db.createObjectStore('project_sync_status', { keyPath: 'id' });
       }
     };
 
