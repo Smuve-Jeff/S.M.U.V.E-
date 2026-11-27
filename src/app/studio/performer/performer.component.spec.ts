@@ -237,6 +237,36 @@ describe("PerformerComponent", () => {
     expect(component.octave()).toBe(1);
   });
 
+  it("keeps a restored octave inside the range the nudge buttons reach", () => {
+    const manager = TestBed.inject(MusicManagerService) as any;
+
+    manager.livePerformance.set({ octave: 7, chordType: "minor" });
+    fixture.detectChanges();
+    expect(component.octave()).toBe(2);
+    // The stored rig is normalized too, so the next save cannot write 7 back.
+    expect(manager.setLivePerformance).toHaveBeenCalledWith({ octave: 2 });
+
+    manager.setLivePerformance.mockClear();
+    manager.livePerformance.set({ octave: -9, chordType: "minor" });
+    fixture.detectChanges();
+    expect(component.octave()).toBe(-2);
+    expect(manager.setLivePerformance).toHaveBeenCalledWith({ octave: -2 });
+  });
+
+  it("clamps the octave seeded on mount as well", () => {
+    const manager = TestBed.inject(MusicManagerService) as any;
+    manager.livePerformance.set({ octave: 6, chordType: "minor" });
+
+    const restored = TestBed.createComponent(PerformerComponent);
+    restored.detectChanges();
+    try {
+      expect(restored.componentInstance.octave()).toBe(2);
+      expect(manager.setLivePerformance).toHaveBeenCalledWith({ octave: 2 });
+    } finally {
+      restored.destroy();
+    }
+  });
+
   it("records every chord tone the engine publishes, not just the key press", () => {
     const engine = TestBed.inject(LiveEngineService) as any;
     const manager = TestBed.inject(MusicManagerService) as any;
