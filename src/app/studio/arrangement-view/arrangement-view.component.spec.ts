@@ -100,6 +100,43 @@ describe("ArrangementViewComponent", () => {
   };
 
   const seekToStep = jest.fn((step: number) => Math.min(63, Math.max(0, step)));
+
+  // The engine's meter-map helpers, mirrored here so the component's bar
+  // maths can be exercised across a mid-song meter change.
+  const engineStepsFor = (signature: { beats: number; unit: number }) =>
+    Math.max(1, Math.round(signature.beats)) *
+    Math.max(1, Math.round(16 / Math.max(1, Math.round(signature.unit))));
+  const engineMeterAt = (step: number) => {
+    const matches = meterMarkers().filter((marker) => marker.step <= step);
+    return matches[matches.length - 1] ?? { beats: 4, unit: 4 };
+  };
+  const engineStepsPerBarAt = (step: number) => engineStepsFor(engineMeterAt(step));
+  const engineStepAtBar = (bar: number) => {
+    let step = 0;
+    const whole = Math.max(0, Math.floor(bar));
+    for (let index = 0; index < whole; index++) {
+      step += engineStepsPerBarAt(step);
+    }
+    return Math.round(step + (bar > whole ? engineStepsPerBarAt(step) * (bar - whole) : 0));
+  };
+  const engineBarAtStep = (step: number) => {
+    let bar = 0;
+    let start = 0;
+    while (start + engineStepsPerBarAt(start) <= step) {
+      start += engineStepsPerBarAt(start);
+      bar++;
+    }
+    return bar;
+  };
+  const engineBarPositionAtStep = (step: number) => {
+    if (!(step > 0)) return 0;
+    const bar = engineBarAtStep(step);
+    const start = engineStepAtBar(bar);
+    const next = engineStepAtBar(bar + 1);
+    return bar + (step - start) / Math.max(1, next - start);
+  };
+  const engineBarCountForStep = (step: number) =>
+    step > 0 ? engineBarAtStep(step - 1) + 1 : 1;
   const mockMusicManager = {
     tracks: signal([
       { id: "1", name: "Lead", clips: [], mute: false, solo: false },
@@ -191,6 +228,12 @@ describe("ArrangementViewComponent", () => {
               tempo: signal(124),
               timeSignature: signal({ beats: 4, unit: 4 }),
               seekToStep,
+              stepsPerBar: () => engineStepsPerBarAt(0),
+              stepsPerBarAt: engineStepsPerBarAt,
+              stepAtBar: engineStepAtBar,
+              barAtStep: engineBarAtStep,
+              barPositionAtStep: engineBarPositionAtStep,
+              barCountForStep: engineBarCountForStep,
             },
           },
         },
@@ -1316,6 +1359,51 @@ describe("ArrangementViewComponent", () => {
 
     expect(mockMusicManager.pasteClips).toHaveBeenCalledWith("1", 2);
     expect(Array.from(component.selectedClipIds())).toEqual(["clip_pasted"]);
+  });
+
+  it("follows a mid-song meter change for the playhead, paste bar and song end", () => {
+    meterMarkers.set([
+      { id: "meter-1", step: 0, beats: 4, unit: 4 },
+      { id: "meter-2", step: 32, beats: 3, unit: 4 },
+    ]);
+    const clip = {
+      id: "clip-1",
+      name: "Lead",
+      start: 0,
+      length: 4,
+      type: "midi",
+    };
+    mockMusicManager.tracks.set([
+      {
+        id: "1",
+        name: "Lead",
+        mute: false,
+        solo: false,
+        clips: [clip],
+        notes: [{ id: "n1", midi: 60, step: 42, length: 4 }],
+      },
+    ]);
+    // Step 42 is 10 steps into the 3/4 bar that starts at step 32.
+    mockMusicManager.currentStep.set(42);
+
+    expect(component.currentBar()).toBe(2);
+    expect(component.playheadPos()).toBeCloseTo(
+      (2 + 10 / 12) * component.barWidth(),
+    );
+    // A fixed 16-step bar would round step 42 to bar 3 and end the song at 3.
+    expect(component.songEndBar()).toBe(4);
+
+    component.selectedClipIds.set(new Set(["clip-1"]));
+    component.splitAtPlayhead();
+    expect(mockMusicManager.splitClip).toHaveBeenCalledWith(
+      "1",
+      "clip-1",
+      2 + 10 / 12,
+    );
+
+    mockMusicManager.hasClipClipboard.mockReturnValue(true);
+    component.pasteClips();
+    expect(mockMusicManager.pasteClips).toHaveBeenCalledWith("1", 2);
   });
 
   it("duplicates the selected clips from the keyboard", () => {

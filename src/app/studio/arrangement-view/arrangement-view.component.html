@@ -639,7 +639,7 @@
             (keydown)="onTempoDragKey($event, marker)"
             (click)="seekToTempoMarker(marker.step)"
             [attr.aria-label]="
-              'Tempo ' + marker.bpm + ' BPM at bar ' + tempoMap.barOf(marker) +
+              'Tempo ' + marker.bpm + ' BPM at bar ' + barLabelForStep(marker.step) +
               '. Drag to retime or press to seek.'
             "
             title="Drag to retime; tap to seek"
@@ -655,7 +655,7 @@
             [value]="marker.bpm"
             (change)="setTempoMarkerBpm(marker, $event)"
             (pointerdown)="$event.stopPropagation()"
-            [attr.aria-label]="'Tempo at bar ' + tempoMap.barOf(marker) + ' in BPM'"
+            [attr.aria-label]="'Tempo at bar ' + barLabelForStep(marker.step) + ' in BPM'"
           />
           <span class="arrangement-tempo-unit" aria-hidden="true">BPM</span>
           <button
@@ -681,7 +681,7 @@
             type="button"
             class="arrangement-tempo-remove"
             (click)="removeTempoMarker(marker.id, $event)"
-            [attr.aria-label]="'Remove tempo marker at bar ' + tempoMap.barOf(marker)"
+            [attr.aria-label]="'Remove tempo marker at bar ' + barLabelForStep(marker.step)"
           >
             ×
           </button>

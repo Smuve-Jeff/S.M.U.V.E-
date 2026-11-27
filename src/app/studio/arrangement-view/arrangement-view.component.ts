@@ -57,11 +57,7 @@ import { StudioBottomSheetComponent } from "../shared/studio-bottom-sheet/studio
 import { AutomationCurveEditorComponent } from "../automation/automation-curve-editor.component";
 import { VcaBusService } from "../vca-bus.service";
 import { AutomationService } from "../automation.service";
-import {
-  STEPS_PER_BAR,
-  TempoMapService,
-  type TempoMarker,
-} from "../tempo-map.service";
+import { TempoMapService, type TempoMarker } from "../tempo-map.service";
 import {
   MeterMapService,
   METER_OPTIONS,
@@ -399,6 +395,11 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
     return Math.max(1, this.engine?.barCountForStep?.(step) ?? Math.ceil(step / 16));
   }
 
+  /** 1-based bar number for a step, following the meter map. */
+  barLabelForStep(step: number): number {
+    return this.barAtStep(step) + 1;
+  }
+
   // Sprint A4: Song-Mode UI surface.
   // Defensive optional-chaining so tests that stub `musicManager` without
   // an `engine` field don't crash (defaulting to a sane 'song'/'64'-bar view).
@@ -658,9 +659,7 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
 
     if (world.y < rulerH) {
       // Clicked on ruler area — seek playhead
-      const seekBar = Math.max(0, barX);
-      const seekStep = Math.round(seekBar * 16);
-      this.seekToStep(seekStep);
+      this.seekToStep(this.stepAtBar(Math.max(0, barX)));
       return;
     }
 
@@ -998,7 +997,7 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
   }
 
   addMarker(name: string) {
-    const time = this.musicManager.currentStep() / 16;
+    const time = this.barPositionAtStep(this.musicManager.currentStep());
     const before = this.markerService.snapshot();
     this.markerService.add(name, time);
     this.commitArrangementEdit(
@@ -1297,7 +1296,7 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
   pasteClips(): void {
     const trackId = this.musicManager.selectedTrackId();
     if (!trackId || !this.musicManager.hasClipClipboard()) return;
-    const atBar = Math.max(0, Math.round(this.musicManager.currentStep() / 16));
+    const atBar = Math.max(0, this.barAtStep(this.musicManager.currentStep()));
     const pasted = this.musicManager.pasteClips(trackId, atBar);
     if (pasted.length === 0) return;
     // Leave the paste selected, like the piano roll does, so it can be dragged
@@ -1507,7 +1506,7 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
   }
 
   splitAtPlayhead() {
-    const bar = this.musicManager.currentStep() / 16;
+    const bar = this.barPositionAtStep(this.musicManager.currentStep());
     this.selectedClipIds().forEach((id) => {
       const found = this.findClipOwner(id);
       if (found) this.musicManager.splitClip(found.track.id, id, bar);
@@ -1782,11 +1781,8 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
 
   /** Pin the current tempo at the playhead's bar from the arrangement lane. */
   addTempoHere(): void {
-    const bar = Math.floor(this.musicManager.currentStep() / STEPS_PER_BAR);
-    this.addTempoMarkerAt(
-      bar * STEPS_PER_BAR,
-      this.musicManager.engine.tempo(),
-    );
+    const bar = this.barAtStep(this.musicManager.currentStep());
+    this.addTempoMarkerAt(this.stepAtBar(bar), this.musicManager.engine.tempo());
   }
 
   private addTempoMarkerAt(step: number, bpm: number): void {
@@ -1805,7 +1801,7 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
     );
     this.haptic.light();
     this.snackbar.show(
-      `⏱ Tempo ${marker.bpm} BPM pinned at bar ${this.tempoMap.barOf(marker)}`,
+      `⏱ Tempo ${marker.bpm} BPM pinned at bar ${this.barLabelForStep(marker.step)}`,
     );
   }
 
@@ -1816,14 +1812,16 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
     const lane = event.currentTarget as HTMLElement | null;
     const rect = lane?.getBoundingClientRect();
     if (!rect?.width) return;
-    const totalSteps = Math.max(1, this.totalBars()) * STEPS_PER_BAR;
+    const totalSteps = Math.max(1, this.stepAtBar(this.totalBars()));
     const step = this.snapTempoStep(
       ((event.clientX - rect.left) / rect.width) * totalSteps,
     );
     const existing = this.tempoMap.markers().find((marker) => marker.step === step);
     if (existing) {
       this.seekToTempoMarker(existing.step);
-      this.snackbar.info(`Tempo already pinned at bar ${this.tempoMap.barOf(existing)}`);
+      this.snackbar.info(
+        `Tempo already pinned at bar ${this.barLabelForStep(existing.step)}`,
+      );
       return;
     }
     this.addTempoMarkerAt(step, this.tempoMap.bpmAtStep(step));
@@ -1855,7 +1853,7 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
     const drag = this.activeTempoDrag;
     if (!drag || drag.pointerId !== event.pointerId) return;
     event.preventDefault();
-    const totalSteps = Math.max(1, this.totalBars()) * STEPS_PER_BAR;
+    const totalSteps = Math.max(1, this.stepAtBar(this.totalBars()));
     const step = this.snapTempoStep(
       drag.initialStep +
         ((event.clientX - drag.startClientX) / drag.laneWidth) * totalSteps,
@@ -1880,7 +1878,7 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
       if (marker) {
         this.haptic.light();
         this.snackbar.show(
-          `⏱ Tempo ${marker.bpm} BPM moved to bar ${this.tempoMap.barOf(marker)}`,
+          `⏱ Tempo ${marker.bpm} BPM moved to bar ${this.barLabelForStep(marker.step)}`,
         );
       }
       this.suppressTempoSeek = true;
@@ -1904,7 +1902,7 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
       .find((candidate) => candidate.id === marker.id);
     if (moved) {
       this.snackbar.info(
-        `Tempo ${moved.bpm} BPM at bar ${this.tempoMap.barOf(moved)}`,
+        `Tempo ${moved.bpm} BPM at bar ${this.barLabelForStep(moved.step)}`,
       );
     }
   }
@@ -1937,7 +1935,7 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
   private snapTempoStep(step: number): number {
     const maxStep = Math.max(
       0,
-      Math.max(1, this.totalBars()) * STEPS_PER_BAR - 4,
+      Math.max(1, this.stepAtBar(this.totalBars())) - 4,
     );
     return Math.max(0, Math.min(maxStep, Math.round(step / 4) * 4));
   }
@@ -1964,7 +1962,9 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
       (state) => this.tempoMap.restore(state),
     );
     this.haptic.light();
-    this.snackbar.info(`Tempo ${bpm} BPM at bar ${this.tempoMap.barOf(marker)}`);
+    this.snackbar.info(
+      `Tempo ${bpm} BPM at bar ${this.barLabelForStep(marker.step)}`,
+    );
   }
 
   removeTempoMarker(id: string, event: Event): void {
@@ -2009,8 +2009,8 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
 
   /** Marker position as a percentage of the arrangement's visible bars. */
   tempoMarkerLeft(step: number): number {
-    const bars = Math.max(1, this.totalBars());
-    return Math.max(0, Math.min(100, (step / (STEPS_PER_BAR * bars)) * 100));
+    const totalSteps = Math.max(1, this.stepAtBar(this.totalBars()));
+    return Math.max(0, Math.min(100, (step / totalSteps) * 100));
   }
 
   /** Vertical position of a tempo point, using the lane's current BPM range. */
@@ -2030,7 +2030,7 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
 
   /** SVG path for the tempo envelope; ramps become diagonals, steps verticals. */
   tempoLanePath(): string {
-    const totalSteps = Math.max(1, this.totalBars()) * STEPS_PER_BAR;
+    const totalSteps = Math.max(1, this.stepAtBar(this.totalBars()));
     const x = (step: number) =>
       Math.max(0, Math.min(100, (step / totalSteps) * 100)).toFixed(3);
     const y = (bpm: number) => this.tempoMarkerTop(bpm).toFixed(3);
