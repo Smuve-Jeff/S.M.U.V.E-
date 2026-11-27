@@ -24,7 +24,7 @@ import { ProjectService } from "../../services/project.service";
 import { HapticService } from "../../services/haptic.service";
 import { HistoryService } from "../../services/history.service";
 import { recordTempoChange } from "../../services/tempo-history";
-import { STEPS_PER_BAR, TempoMapService } from "../tempo-map.service";
+import { TempoMapService } from "../tempo-map.service";
 import { MidiClockSyncService } from "../midi-clock-sync.service";
 import {
   CLICK_OUTPUTS,
@@ -175,13 +175,50 @@ export class TransportBarComponent {
    */
   positionReadout = computed(() => {
     const step = Math.max(0, Math.floor(this.audioEngine.visualStep()));
-    const beatSteps = this.audioEngine.stepsPerNotatedBeat?.() ?? 4;
-    const barSteps = this.audioEngine.stepsPerBar?.() ?? 16;
-    const bar = Math.floor(step / barSteps) + 1;
-    const beat = Math.floor((step % barSteps) / beatSteps) + 1;
-    const sixteenth = (step % beatSteps) + 1;
+    // The meter map decides where each bar starts, so the bar index cannot be
+    // `step / stepsPerBar` once the song has changed meter.
+    const barIndex = this.barIndexAt(step);
+    const barStart = this.barStartStep(barIndex);
+    const beatSteps = this.beatStepsAt(step);
+    const intoBar = Math.max(0, step - barStart);
+    const bar = barIndex + 1;
+    const beat = Math.floor(intoBar / beatSteps) + 1;
+    const sixteenth = (intoBar % beatSteps) + 1;
     return { bar, beat, sixteenth };
   });
+
+  /** Steps in the bar that contains `step`, from the engine's meter map. */
+  private barStepsAt(step: number): number {
+    const steps = this.audioEngine.stepsPerBarAt?.(step);
+    if (Number.isFinite(steps) && (steps as number) > 0) return steps as number;
+    return this.audioEngine.stepsPerBar?.() ?? 16;
+  }
+
+  /** Zero-based bar containing `step` (meter-map aware). */
+  private barIndexAt(step: number): number {
+    const bar = this.audioEngine.barAtStep?.(step);
+    if (Number.isFinite(bar) && (bar as number) >= 0) return bar as number;
+    return Math.floor(Math.max(0, step) / this.barStepsAt(step));
+  }
+
+  /** First step of a bar (meter-map aware). */
+  private barStartStep(bar: number): number {
+    const step = this.audioEngine.stepAtBar?.(bar);
+    if (Number.isFinite(step) && (step as number) >= 0) return step as number;
+    return Math.max(0, Math.round(bar)) * (this.audioEngine.stepsPerBar?.() ?? 16);
+  }
+
+  /** Steps in one notated beat at `step` (4 in 4/4, 2 in 6/8, 8 in 2/2). */
+  private beatStepsAt(step: number): number {
+    const steps = this.audioEngine.stepsPerNotatedBeatAt?.(step);
+    if (Number.isFinite(steps) && (steps as number) > 0) return steps as number;
+    return this.audioEngine.stepsPerNotatedBeat?.() ?? 4;
+  }
+
+  /** 1-based bar number for a step, following the meter map. */
+  barLabelForStep(step: number): number {
+    return this.barIndexAt(step) + 1;
+  }
 
   /** Meter chip — the label and the accent grid share the engine's value. */
   get timeSignature(): string {
@@ -313,7 +350,7 @@ export class TransportBarComponent {
   addTempoMarkerAtPlayhead(): void {
     const bar = this.positionReadout().bar;
     const marker = this.tempoMap.addMarker(
-      (bar - 1) * STEPS_PER_BAR,
+      this.barStartStep(bar - 1),
       this.audioEngine.tempo(),
     );
     if (!marker) {
@@ -321,7 +358,9 @@ export class TransportBarComponent {
       return;
     }
     this.haptic.light();
-    this.snack.info(`Tempo change at bar ${this.tempoMap.barOf(marker)}: ${marker.bpm} BPM`);
+    this.snack.info(
+      `Tempo change at bar ${this.barLabelForStep(marker.step)}: ${marker.bpm} BPM`,
+    );
   }
 
   trackTempoMarker = (_index: number, marker: { id: string }) => marker.id;
@@ -831,7 +870,17 @@ export class TransportBarComponent {
     const s = this.loopStartStep();
     const e = this.loopEndStep();
     if (s === null || e === null) return "—";
-    return `${s} → ${e}`;
+    // Raw step numbers assumed a 16-step bar. Read the boundaries in the
+    // project's meter instead: bar:beat across a mid-song change.
+    return `${this.loopPositionLabel(s)} → ${this.loopPositionLabel(e)}`;
+  }
+
+  /** Bar:beat label for a loop boundary, following the meter map. */
+  loopPositionLabel(step: number): string {
+    const barStart = this.barStartStep(this.barIndexAt(step));
+    const beatSteps = this.beatStepsAt(step);
+    const beat = Math.floor(Math.max(0, step - barStart) / beatSteps) + 1;
+    return `${this.barLabelForStep(step)}:${beat}`;
   }
 
   // ── Pro: dB readout (computed from master level linear) ──

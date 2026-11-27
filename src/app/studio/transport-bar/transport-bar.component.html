@@ -346,7 +346,7 @@
         class="ctb-map-row"
         *ngFor="let marker of tempoMap.markers(); trackBy: trackTempoMarker"
       >
-        <span class="ctb-map-bar">BAR {{ tempoMap.barOf(marker) }}</span>
+        <span class="ctb-map-bar">BAR {{ barLabelForStep(marker.step) }}</span>
         <input
           class="ctb-map-bpm"
           type="number"
@@ -355,14 +355,14 @@
           step="1"
           [ngModel]="marker.bpm"
           (ngModelChange)="setMarkerBpm(marker.id, $event)"
-          [attr.aria-label]="'Tempo from bar ' + tempoMap.barOf(marker)"
+          [attr.aria-label]="'Tempo from bar ' + barLabelForStep(marker.step)"
         />
         <span class="ctb-map-unit">BPM</span>
         <button
           type="button"
           class="ctb-map-remove"
           (click)="removeTempoMarker(marker.id)"
-          [attr.aria-label]="'Remove tempo change at bar ' + tempoMap.barOf(marker)"
+          [attr.aria-label]="'Remove tempo change at bar ' + barLabelForStep(marker.step)"
         >
           <span class="material-symbols-outlined">delete</span>
         </button>
@@ -690,8 +690,8 @@
       title="Drop loop START marker at playhead"
       [attr.aria-label]="
         loopStartStep() === null
-          ? 'Drop loop START marker at playhead (step 0)'
-          : 'Loop START set at step ' + loopStartStep() + ' · click to move it'
+          ? 'Drop loop START marker at playhead'
+          : 'Loop START at ' + loopPositionLabel(loopStartStep() ?? 0) + ' · click to move it'
       "
     >
       <span class="material-symbols-outlined">first_page</span>
@@ -705,8 +705,8 @@
       title="Drop loop END marker at playhead"
       [attr.aria-label]="
         loopEndStep() === null
-          ? 'Drop loop END marker at playhead (step 0)'
-          : 'Loop END set at step ' + loopEndStep() + ' · click to move it'
+          ? 'Drop loop END marker at playhead'
+          : 'Loop END at ' + loopPositionLabel(loopEndStep() ?? 0) + ' · click to move it'
       "
     >
       <span class="material-symbols-outlined">last_page</span>

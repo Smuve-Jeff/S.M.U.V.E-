@@ -24,6 +24,46 @@ describe("TransportBarComponent", () => {
 
   const playbackState = signal<"stopped" | "playing" | "recording">("stopped");
   const meter = signal({ beats: 4, unit: 4 });
+  /** Meter changes, mirroring the engine's meter map. */
+  const meterMap = signal<Array<{ step: number; beats: number; unit: number }>>(
+    [],
+  );
+  const engineMeterAt = (step: number) => {
+    let found = meter();
+    for (const marker of meterMap()) {
+      if (marker.step <= step) found = marker;
+      else break;
+    }
+    return found;
+  };
+  const engineStepsPerBarAt = (step: number) => {
+    const signature = engineMeterAt(step);
+    return (
+      Math.max(1, Math.round(signature.beats)) *
+      Math.max(1, Math.round(16 / Math.max(1, Math.round(signature.unit))))
+    );
+  };
+  const engineBeatStepsAt = (step: number) =>
+    Math.max(1, Math.round(16 / Math.max(1, Math.round(engineMeterAt(step).unit))));
+  const engineStepAtBar = (bar: number) => {
+    let step = 0;
+    const whole = Math.max(0, Math.floor(bar));
+    for (let index = 0; index < whole; index++) {
+      step += engineStepsPerBarAt(step);
+    }
+    return Math.round(
+      step + (bar > whole ? engineStepsPerBarAt(step) * (bar - whole) : 0),
+    );
+  };
+  const engineBarAtStep = (step: number) => {
+    let bar = 0;
+    let start = 0;
+    while (start + engineStepsPerBarAt(start) <= step) {
+      start += engineStepsPerBarAt(start);
+      bar++;
+    }
+    return bar;
+  };
   const mockAudioSession = {
     playbackState,
     isPlaying: computed(() => playbackState() === "playing"),
@@ -68,6 +108,10 @@ describe("TransportBarComponent", () => {
     timeSignature: meter,
     stepsPerBar: () => meter().beats * (16 / meter().unit),
     stepsPerNotatedBeat: () => 16 / meter().unit,
+    stepsPerBarAt: engineStepsPerBarAt,
+    stepsPerNotatedBeatAt: engineBeatStepsAt,
+    barAtStep: engineBarAtStep,
+    stepAtBar: engineStepAtBar,
     setTimeSignature: jest.fn((beats: number, unit: number) => {
       meter.set({ beats, unit });
       return { beats, unit };
@@ -217,6 +261,11 @@ describe("TransportBarComponent", () => {
     playbackState.set("stopped");
     mockAudioEngine.tempo.set(120);
     mockAudioEngine.visualStep.set(0);
+    mockAudioEngine.playbackLoopStart.set(null);
+    mockAudioEngine.playbackLoopEnd.set(null);
+    mockAudioEngine.playbackLoopEnabled.set(false);
+    meter.set({ beats: 4, unit: 4 });
+    meterMap.set([]);
     mockRecordingStatus.recordingLabel.set("");
     mockRecordingStatus.recordingDetail.set("");
     mockRecordingStatus.recordingCount.set(0);
@@ -608,6 +657,48 @@ describe("TransportBarComponent", () => {
         beat: 5,
         sixteenth: 2,
       });
+    });
+
+    it("reads bar and beat through a mid-song meter change", () => {
+      // Bars 1–2 are 4/4 and 3/4 starts at step 32. At step 42 the engine's
+      // live signature is already 3/4, but the bar index still has to count
+      // the two 4/4 bars before it.
+      meterMap.set([
+        { step: 0, beats: 4, unit: 4 },
+        { step: 32, beats: 3, unit: 4 },
+      ]);
+      meter.set({ beats: 3, unit: 4 });
+      mockAudioEngine.visualStep.set(42);
+      expect(component.positionReadout()).toEqual({
+        bar: 3,
+        beat: 3,
+        sixteenth: 3,
+      });
+    });
+
+    it("labels the loop region in bar:beat across a mid-song meter change", () => {
+      meterMap.set([
+        { step: 0, beats: 4, unit: 4 },
+        { step: 32, beats: 3, unit: 4 },
+      ]);
+      mockAudioEngine.playbackLoopStart.set(32);
+      mockAudioEngine.playbackLoopEnd.set(44);
+      expect(component.loopRegionLabel()).toBe("3:1 → 4:1");
+    });
+
+    it("pins a tempo change at the meter-aware bar start", () => {
+      meterMap.set([
+        { step: 0, beats: 4, unit: 4 },
+        { step: 32, beats: 3, unit: 4 },
+      ]);
+      meter.set({ beats: 3, unit: 4 });
+      mockAudioEngine.visualStep.set(46); // bar 4, which starts at step 44
+      const addMarker = jest.spyOn(component.tempoMap, "addMarker");
+
+      component.addTempoMarkerAtPlayhead();
+
+      // A fixed 16-step bar would have pinned it at step 48.
+      expect(addMarker).toHaveBeenCalledWith(44, 120);
     });
   });
 
