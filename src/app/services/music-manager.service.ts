@@ -29,6 +29,7 @@ import {
 } from '../studio/pattern-slots.util';
 import { TakeManagerService } from './take-manager.service';
 import { AutomationService } from '../studio/automation.service';
+import type { LivePerformanceState } from './live-engine.service';
 import { OfflineBounceService } from '../studio/offline-bounce.service';
 import { AudioImportService } from '../studio/audio-import.service';
 import { buildFrozenTrack, restoreFrozenTrack } from '../studio/track-freeze.util';
@@ -525,6 +526,28 @@ export class MusicManagerService {
   ]);
   chords = signal<GlobalChord[]>([]);
   performerScenes = signal<PerformerScene[]>([]);
+  /**
+   * The live rig that is not per-track. The engine is authoritative for chord
+   * mode, scale and repeat; this mirrors it for saves and holds the values the
+   * engine does not own (octave, chord-stamp type).
+   */
+  livePerformance = signal<LivePerformanceState>({
+    smartChords: false,
+    scaleLock: false,
+    scaleMode: 'major',
+    scaleRoot: 0,
+    arpEnabled: false,
+    arpRate: '8n',
+    arpPattern: 'up',
+    arpLatch: false,
+    arpSwing: 0,
+    octave: 0,
+    chordType: 'minor',
+  });
+
+  setLivePerformance(state: Partial<LivePerformanceState>): void {
+    this.livePerformance.update((current) => ({ ...current, ...state }));
+  }
 
   // ── Live scene launching (pattern grid performance) ─────────────────
   /** Column most recently launched from the pattern/scene grid. */

@@ -3,6 +3,10 @@ import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import { AuthService } from "../services/auth.service";
 import { Project } from "../types";
 import { MusicManagerService, type SongSection } from "../services/music-manager.service";
+import {
+  LiveEngineService,
+  type LivePerformanceState,
+} from "../services/live-engine.service";
 import { TakeManagerService, type TakeStateBundle } from "../services/take-manager.service";
 import { HistoryService } from "../services/history.service";
 import { ProjectService } from "../services/project.service";
@@ -281,6 +285,8 @@ export interface ProjectBundle {
       string,
       { mode: "loop" | "advance"; bars?: number }
     >;
+    /** The live rig: chord mode, scale lock/root, note repeat, octave, stamp. */
+    performance?: LivePerformanceState;
   };
   notes: string;
   exportedAt: number;
@@ -463,6 +469,8 @@ export class ProjectWorkspaceService {
     return this.auth.isGuest?.() === true;
   }
   private readonly musicManager = inject(MusicManagerService);
+  /** The engine owns the live rig's real state; saves read it directly. */
+  private readonly liveEngine = inject(LiveEngineService);
   private readonly projectService = inject(ProjectService);
   private readonly storage = inject(LocalStorageService);
   private readonly sessionSafety = inject(SessionSafetyService);
@@ -2585,11 +2593,43 @@ export class ProjectWorkspaceService {
         sceneFollowRules: {
           ...this.musicManager.sceneFollowRules(),
         },
+        performance: this.captureLivePerformance(),
       },
       notes: this.projectNotes(),
       director: this.directorStateProvider?.(),
       exportedAt: Date.now(),
     };
+  }
+
+  /**
+   * The live rig is engine state, not a copy: reading it here means a save made
+   * after a transport-bar change still stores what the engine will actually do.
+   */
+  private captureLivePerformance(): LivePerformanceState {
+    const stored = this.musicManager.livePerformance();
+    return {
+      smartChords: this.liveEngine.smartChords(),
+      scaleLock: this.liveEngine.scaleLock(),
+      scaleMode: this.liveEngine.scaleMode(),
+      scaleRoot: this.liveEngine.scaleRoot(),
+      arpEnabled: this.liveEngine.arpeggiatorEnabled(),
+      arpRate: this.liveEngine.arpeggiatorRate(),
+      arpPattern: this.liveEngine.arpeggiatorPattern(),
+      arpLatch: this.liveEngine.arpeggiatorLatch(),
+      arpSwing: this.liveEngine.arpeggiatorSwing(),
+      octave: stored.octave,
+      chordType: stored.chordType,
+    };
+  }
+
+  private applyLivePerformanceState(
+    state?: LivePerformanceState | null,
+  ): void {
+    // Bundles written before this block existed keep their current rig rather
+    // than resetting it to defaults on open.
+    if (!state) return;
+    this.musicManager.setLivePerformance(state);
+    this.liveEngine.restorePerformanceState(state);
   }
 
   restoreFromSnapshot(bundle: ProjectBundle) {
@@ -2641,6 +2681,7 @@ export class ProjectWorkspaceService {
       this.songLengthStepsFor(structure),
     );
     this.applyPerformanceState(bundle);
+    this.applyLivePerformanceState(bundle.session?.performance);
     this.applyMasterState(this.masterStateFromBundle(bundle));
     // Old bundles have no Session state; default to immediate launch rather
     // than leaking the previously open set's boundary into this one.

@@ -922,6 +922,18 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
   private lastHandledTimestamp = 0;
 
   constructor() {
+    // The chord stamp is part of the live rig saved with the set, so a reopened
+    // piano roll stamps the chord the artist last chose.
+    const storedChord = this.musicManager.livePerformance().chordType;
+    if (this.chordTypes.some((entry) => entry.value === storedChord)) {
+      this.selectedChordType.set(storedChord as any);
+    }
+    effect(() => {
+      this.musicManager.setLivePerformance({
+        chordType: this.selectedChordType(),
+      });
+    });
+
     effect(() => {
       const req = this.musicManager.crossLinkRequest?.();
       if (!req || !req.noteRange) return;

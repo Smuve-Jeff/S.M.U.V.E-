@@ -16,7 +16,10 @@ import {
   MusicManagerService,
   PerformerScene,
 } from "../../services/music-manager.service";
-import { LiveEngineService } from "../../services/live-engine.service";
+import {
+  LiveEngineService,
+  SCALE_ROOTS,
+} from "../../services/live-engine.service";
 import { HapticService } from "../../services/haptic.service";
 import {
   InstrumentsService,
@@ -67,7 +70,9 @@ export class PerformerComponent implements OnDestroy, OnInit {
   /** Phone-only: rack knobs, live meters and the take waveform. */
   phoneToolsOpen = signal(false);
   scenes = this.musicManager.performerScenes;
-  smartChords = signal(false);
+  readonly scaleRoots = SCALE_ROOTS;
+  /** The engine owns chord mode, so a project restore updates this in place. */
+  smartChords = computed(() => this.liveEngine.smartChords());
   /** Note-on velocity in MIDI units (0–127). Standard default is 100.
    * Button-pressed velocity is normalized to 0–1 when handed to the live engine. */
   velocity = signal(100);
@@ -110,9 +115,25 @@ export class PerformerComponent implements OnDestroy, OnInit {
 
   constructor() {
     this.availableInstruments.set(this.instrumentsService.getPresets());
+    // Octave is performer state with no engine home; adopt the saved value.
+    this.octave.set(this.musicManager.livePerformance().octave ?? 0);
     // Audio waits for a gesture, but the rack's CUT/RES/ATK/REL should already
     // name the selected patch on load instead of showing engine defaults.
     this.liveEngine.previewPatchReadout(this.activeInstrumentId());
+
+    // Record what the engine actually played, not the key that was pressed:
+    // Smart Chords and Note Repeat generate their notes inside the engine, so
+    // subscribing here captures every chord tone and every repeat.
+    this.midiSubs.add(
+      this.liveEngine.noteEvents$.subscribe((event) => {
+        if (event.type !== "on") return;
+        if (this.audioSession.isRecording()) {
+          this.musicManager.recordLiveNote(event.midi, event.velocity);
+        }
+        this.perfRecording.recordMidi(event.midi, event.velocity);
+      }),
+    );
+
     this.startVisualizer();
 
     // The keyboard/pads used to play through their own Tone destination, which
@@ -141,10 +162,6 @@ export class PerformerComponent implements OnDestroy, OnInit {
         const vel = ev.velocity;
         this.liveEngine.initialize().then(() => {
           this.liveEngine.triggerNoteStart(midiNote + this.octave() * 12, vel);
-          if (this.audioSession.isRecording()) {
-            this.musicManager.recordLiveNote(midiNote, vel);
-          }
-          this.perfRecording.recordMidi(midiNote, vel);
           this.activeKeys.update((keys) => {
             const next = new Set(keys);
             next.add(midiNote);
@@ -364,11 +381,13 @@ export class PerformerComponent implements OnDestroy, OnInit {
     this.fxMacros.setXY(x, y);
   }
   toggleSmartChords() {
-    this.smartChords.update((value) => !value);
-    this.liveEngine.smartChords.set(this.smartChords());
+    this.liveEngine.smartChords.set(!this.liveEngine.smartChords());
   }
   nudgeOctave(delta: number) {
-    this.octave.update((value) => Math.min(2, Math.max(-2, value + delta)));
+    const next = Math.min(2, Math.max(-2, this.octave() + delta));
+    this.octave.set(next);
+    // Saved with the set so a reopened live rig keeps its transposition.
+    this.musicManager.setLivePerformance({ octave: next });
   }
 
   /**
@@ -418,12 +437,8 @@ export class PerformerComponent implements OnDestroy, OnInit {
     this.liveEngine.triggerNoteStart(actualMidi, velocity01);
     this.haptic.light();
 
-    if (this.audioSession.isRecording()) {
-      this.musicManager.recordLiveNote(actualMidi, velocity01);
-    }
-
-    // Tag MIDI to current take if we're capturing.
-    this.perfRecording.recordMidi(actualMidi, velocity01);
+    // `noteEvents$` owns recording: it fires once per sounded note, so chords
+    // and repeats are captured without this handler second-guessing the engine.
 
     this.activeKeys.update((keys) => {
       const next = new Set(keys);

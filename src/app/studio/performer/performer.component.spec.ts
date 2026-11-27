@@ -36,6 +36,8 @@ describe("PerformerComponent", () => {
       arpeggiatorEnabled: signal(false),
       scaleLock: signal(false),
       scaleMode: signal("major"),
+      scaleRoot: signal(0),
+      setScaleRoot: jest.fn(),
       cutoff: signal(20000),
       resonance: signal(1),
       attack: signal(0.01),
@@ -43,9 +45,11 @@ describe("PerformerComponent", () => {
       setArpeggiatorEnabled: jest.fn(),
       setScaleLock: jest.fn(),
       initialize: jest.fn().mockResolvedValue(true),
+      resumeContext: jest.fn(),
       setInstrument: jest.fn().mockResolvedValue(true),
       triggerNoteStart: jest.fn(),
       triggerNoteEnd: jest.fn(),
+      noteEvents$: new Subject<any>(),
       setPitchBend: jest.fn(),
       setModulation: jest.fn(),
       setModWheel: jest.fn(),
@@ -79,6 +83,8 @@ describe("PerformerComponent", () => {
               },
             },
             performerScenes: signal([]),
+            livePerformance: signal({ octave: 0, chordType: "minor" }),
+            setLivePerformance: jest.fn(),
             activeSceneId: signal(null),
             launchScene: jest.fn(),
             ensureTrack: jest.fn(),
@@ -218,6 +224,68 @@ describe("PerformerComponent", () => {
 
   it("should create", () => {
     expect(component).toBeTruthy();
+  });
+
+  it("records every chord tone the engine publishes, not just the key press", () => {
+    const engine = TestBed.inject(LiveEngineService) as any;
+    const manager = TestBed.inject(MusicManagerService) as any;
+    const session = TestBed.inject(AudioSessionService) as any;
+    const takes = TestBed.inject(PerformanceRecordingService) as any;
+    session.isRecording.set(true);
+
+    for (const [midi, note, source] of [
+      [60, "C4", "key"],
+      [64, "E4", "chord"],
+      [67, "G4", "chord"],
+    ] as const) {
+      engine.noteEvents$.next({
+        type: "on",
+        midi,
+        note,
+        velocity: 0.8,
+        channel: 0,
+        atMs: 0,
+        source,
+      });
+    }
+
+    expect(manager.recordLiveNote.mock.calls.map((call: any[]) => call[0])).toEqual([
+      60, 64, 67,
+    ]);
+    expect(takes.recordMidi.mock.calls.map((call: any[]) => call[0])).toEqual([
+      60, 64, 67,
+    ]);
+  });
+
+  it("records every note repeat the engine publishes", () => {
+    const engine = TestBed.inject(LiveEngineService) as any;
+    const takes = TestBed.inject(PerformanceRecordingService) as any;
+
+    for (let i = 0; i < 3; i += 1) {
+      engine.noteEvents$.next({
+        type: "on",
+        midi: 60,
+        note: "C4",
+        velocity: 0.7,
+        channel: 0,
+        atMs: i * 250,
+        source: "repeat",
+        durationMs: 225,
+      });
+    }
+
+    expect(takes.recordMidi).toHaveBeenCalledTimes(3);
+  });
+
+  it("leaves recording to the engine's note stream when a key is pressed", async () => {
+    const manager = TestBed.inject(MusicManagerService) as any;
+    const session = TestBed.inject(AudioSessionService) as any;
+    session.isRecording.set(true);
+
+    await component.onKeyDown(60);
+
+    // A mocked engine sounds nothing, so the performer must not invent a note.
+    expect(manager.recordLiveNote).not.toHaveBeenCalled();
   });
 
   it("should set instrument", async () => {

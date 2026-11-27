@@ -4031,6 +4031,13 @@ disclosure. Record arm, monitor and phantom stay visible. */
    the touch floor. A percentage max-width does not resolve inside the rack's
    shrink-to-fit flex row, which is why this states the viewport width. */
 @media (max-width: 768px) {
+  /* The opened rack used to grow past the surface and hide the keys entirely.
+     Cap it to a scrollable sheet so the keyboard stays playable underneath. */
+  .performer-shell.perf-tools-open .performer-rack {
+    max-height: 46vh;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
   .rack-modes {
     flex-wrap: wrap;
     row-gap: 6px;
@@ -4046,9 +4053,14 @@ disclosure. Record arm, monitor and phantom stay visible. */
 }
 
 @media (max-width: 768px), (pointer: coarse) {
-  .rack-modes .rack-select {
+  .performer-rack .rack-select {
     min-height: 44px;
   }
+}
+
+.rack-repeat {
+  gap: 4px;
+  padding: 4px 8px;
 }
 
 /* On a desktop there is height to spare but not width: the single rack row is

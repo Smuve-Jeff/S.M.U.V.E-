@@ -60,6 +60,8 @@ describe("PianoRollComponent", () => {
     selectedTrackId: signal("1"),
     currentStep: signal(0),
     crossLinkRequest: signal(null),
+    livePerformance: signal({ octave: 0, chordType: "minor" }),
+    setLivePerformance: jest.fn(),
     updateNote: jest.fn(
       (trackId: string, noteId: string, patch: Record<string, unknown>) => {
         mockTracks.update((list) =>

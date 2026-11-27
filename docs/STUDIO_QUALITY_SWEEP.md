@@ -1908,3 +1908,70 @@ Verification after the fixes: `npm run build` **0 errors** (48.6 s), and the
 `live-engine`, `performer` and `piano-roll` suites **108 tests / 3 suites passed**
 (the pre-existing jsdom canvas noise is unchanged). Audio was still not
 auditioned by ear.
+
+## 30. Twenty-fourth pass — the notes the engine actually plays
+
+### 30.1 Recording heard the key, not the performance
+
+Smart Chords, Scale Lock and Note Repeat generate their notes inside
+`LiveEngineService`. The performer, MIDI input and pad handlers each called
+`recordLiveNote(actualMidi)` for the key that was pressed, so a take made with
+Smart Chords on stored one note where the artist heard a chord, and a repeat
+pattern stored only its first hit.
+
+The engine now publishes every note it sounds on `noteEvents$`
+(`LiveNoteEvent {type, midi, note, velocity, channel, atMs, source,
+durationMs}`). Pitch is resolved once, after Scale Lock and chord generation.
+The performer subscribes and feeds both `MusicManager.recordLiveNote` and
+`PerformanceRecordingService.recordMidi` from that stream; the direct
+key-press recording calls are gone, so a take cannot disagree with the sound.
+
+### 30.2 Scale Lock only knew C
+
+`snapToScale` built candidates from C, and the picker offered four modes, so a
+guitarist in G minor got C minor. Scale Lock now has a root (0–11) plus the
+seven church modes and harmonic minor; `generateSmartChord` stacks scale
+thirds from the root's degree, so a chord carries the quality its mode implies
+and is voiced within an octave. Ties resolve downward consistently.
+
+### 30.3 The live rig travels with the set
+
+`session.performance` now stores chord mode, Scale Lock and root, repeat rate /
+pattern / latch / swing, octave and the piano-roll chord type. Saves read the
+engine's live state directly (a transport-bar change is saved even if the
+performer never touched it); restores apply it to manager and engine together.
+Bundles without the block keep the current rig rather than resetting it.
+
+### 30.4 Note Repeat grew up
+
+Latch keeps the pattern running hands-free until repeat is switched off. Swing
+delays every second interval, driven by a recursive timeout instead of a fixed
+`setInterval` (the next delay depends on the step). Rate (1/4, 1/8, 1/8T, 1/16),
+pattern (up/down/up-down/random) and a swing knob are on the Performer surface;
+the phone rack is capped to a scrollable sheet so revealing it no longer hides
+the keyboard.
+
+### 30.5 Evidence
+
+| Check | Result |
+| --- | --- |
+| `npm run build` | **0 errors**, 47.1 s |
+| Affected suites | **199 tests / 4 suites passed** — live-engine, performer, piano-roll, project-workspace |
+| Chord take (engine) | Smart Chords on C4 publishes `C4/E4/G4` (midi 60/64/67) with sources key/chord/chord, and releases every voice |
+| Arp take (engine) | `8n` publishes 3 retriggers in 750 ms, all source `repeat`, each with a duration |
+| Latch + swing | latched pattern keeps ticking after release and stops when repeat is off; 50% swing spaces ticks 312.5/187.5 ms at 120 BPM |
+| Browser, 390 / 1440 | 12 scale roots, 10 modes, 4 rates, latch button; root select and latch visible at 1440, 0 page overflow |
+| Browser, live capture | In G minor with Smart Chords, a C4 press recorded `60, 63, 67` to both the take service and the track; Repeat emitted `C4/D#4/G4` repeat events |
+| Browser, phone rack | Opened rack is capped (272 px on a 591 px viewport), scrolls internally, keys stay present |
+
+### 30.6 Still open
+
+- **Chord clips are still baked notes.** Changing a stamped chord's quality
+  rewrites pitches; non-destructive chord objects are a data-model change.
+- **No offline-audio render.** The new note-event tests prove *what* is played
+  and *when*, not the rendered spectrum; a `Tone.Offline` fixture is still the
+  way to catch a silent or mis-filtered voice in CI.
+- **Repeat still samples tempo per tick** rather than scheduling against the
+  audio clock, and has no velocity humanization.
+- **The onboarding card still overlays the surface on a phone**, and the
+  classic shell can leave the Piano Roll ~190 px tall at 360×640.

@@ -6,6 +6,7 @@ import { AuthService } from "../services/auth.service";
 import { LocalStorageService } from "../services/local-storage.service";
 import { LoggingService } from "../services/logging.service";
 import { MusicManagerService } from "../services/music-manager.service";
+import { LiveEngineService } from "../services/live-engine.service";
 import { OfflineSyncService } from "../services/offline-sync.service";
 import { CloudSyncService } from "../services/cloud-sync.service";
 import { PROJECT_BACKING_TRACK } from "./project-backing-track.token";
@@ -194,6 +195,21 @@ describe("ProjectWorkspaceService", () => {
     TestBed.configureTestingModule({
       providers: [
         ProjectWorkspaceService,
+        {
+          provide: LiveEngineService,
+          useValue: {
+            smartChords: signal(false),
+            scaleLock: signal(false),
+            scaleMode: signal("major"),
+            scaleRoot: signal(0),
+            arpeggiatorEnabled: signal(false),
+            arpeggiatorRate: signal("8n"),
+            arpeggiatorPattern: signal("up"),
+            arpeggiatorLatch: signal(false),
+            arpeggiatorSwing: signal(0),
+            restorePerformanceState: jest.fn(),
+          },
+        },
         { provide: AutomationService, useValue: { lanes: signal([]), macros: signal([]), modulationSources: signal([]) } },
         {
           provide: AuthService,
@@ -228,6 +244,8 @@ describe("ProjectWorkspaceService", () => {
               return sceneFollowRules();
             },
             clearSceneFollowRules: () => sceneFollowRules.set({}),
+            livePerformance: signal({ octave: 0, chordType: "minor" }),
+            setLivePerformance: jest.fn(),
             structure: signal([]),
             selectedTrackId: signal(null),
             activeLoopBars: signal(64),
@@ -1822,6 +1840,21 @@ describe("ProjectWorkspaceService", () => {
     TestBed.configureTestingModule({
       providers: [
         ProjectWorkspaceService,
+        {
+          provide: LiveEngineService,
+          useValue: {
+            smartChords: signal(false),
+            scaleLock: signal(false),
+            scaleMode: signal("major"),
+            scaleRoot: signal(0),
+            arpeggiatorEnabled: signal(false),
+            arpeggiatorRate: signal("8n"),
+            arpeggiatorPattern: signal("up"),
+            arpeggiatorLatch: signal(false),
+            arpeggiatorSwing: signal(0),
+            restorePerformanceState: jest.fn(),
+          },
+        },
         { provide: AutomationService, useValue: { lanes: signal([]), macros: signal([]), modulationSources: signal([]) } },
         { provide: AuthService, useValue: { currentUser: signal(user) } },
         {
@@ -1870,6 +1903,8 @@ describe("ProjectWorkspaceService", () => {
               return sceneFollowRules();
             },
             clearSceneFollowRules: () => sceneFollowRules.set({}),
+            livePerformance: signal({ octave: 0, chordType: "minor" }),
+            setLivePerformance: jest.fn(),
             structure: signal([]),
             selectedTrackId: signal(null),
             activeLoopBars: signal(64),

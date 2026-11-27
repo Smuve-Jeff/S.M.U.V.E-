@@ -559,16 +559,74 @@
         <label class="rack-label">Scale</label>
         <select
           class="rack-select rack-select-sm"
+          [ngModel]="liveEngine.scaleRoot()"
+          (ngModelChange)="liveEngine.setScaleRoot($event)"
+          aria-label="Scale root"
+        >
+          <option *ngFor="let root of scaleRoots" [ngValue]="root.pc">
+            {{ root.label }}
+          </option>
+        </select>
+        <select
+          class="rack-select rack-select-sm"
           [ngModel]="liveEngine.scaleMode()"
           (ngModelChange)="liveEngine.setScale($event)"
           aria-label="Scale mode"
         >
           <option value="major">Major</option>
           <option value="minor">Minor</option>
+          <option value="dorian">Dorian</option>
+          <option value="phrygian">Phrygian</option>
+          <option value="lydian">Lydian</option>
+          <option value="mixolydian">Mixolydian</option>
+          <option value="locrian">Locrian</option>
+          <option value="harmonicMinor">Harmonic Min</option>
           <option value="blues">Blues</option>
           <option value="pentatonic">Penta</option>
         </select>
       </div>
+    </div>
+
+    <div class="rack-cell rack-repeat">
+      <span class="rack-label">Repeat</span>
+      <select
+        class="rack-select rack-select-sm"
+        [ngModel]="liveEngine.arpeggiatorRate()"
+        (ngModelChange)="liveEngine.setArpeggiatorRate($event)"
+        aria-label="Note repeat rate"
+      >
+        <option value="4n">1/4</option>
+        <option value="8n">1/8</option>
+        <option value="8t">1/8T</option>
+        <option value="16n">1/16</option>
+      </select>
+      <select
+        class="rack-select rack-select-sm"
+        [ngModel]="liveEngine.arpeggiatorPattern()"
+        (ngModelChange)="liveEngine.setArpeggiatorPattern($event)"
+        aria-label="Note repeat pattern"
+      >
+        <option value="up">Up</option>
+        <option value="down">Down</option>
+        <option value="upDown">Up/Down</option>
+        <option value="random">Random</option>
+      </select>
+      <button
+        type="button"
+        class="rack-toggle studio-secondary-button performer-rack-toggle"
+        [class.is-active]="liveEngine.arpeggiatorLatch()"
+        [attr.aria-pressed]="liveEngine.arpeggiatorLatch()"
+        (click)="liveEngine.setArpeggiatorLatch(!liveEngine.arpeggiatorLatch())"
+      >
+        Latch
+      </button>
+      <app-knob
+        label="SWING"
+        [min]="0"
+        [max]="75"
+        [value]="liveEngine.arpeggiatorSwing() * 100"
+        (valueChange)="liveEngine.setArpeggiatorSwing($event / 100)"
+      ></app-knob>
     </div>
   </section>
 

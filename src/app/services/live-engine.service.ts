@@ -1,4 +1,5 @@
 import { Injectable, signal, inject } from '@angular/core';
+import { Subject } from 'rxjs';
 import * as Tone from 'tone';
 import { LoggingService } from './logging.service';
 import { InstrumentsService, InstrumentPreset, sampleZoneRoot } from './instruments.service';
@@ -6,15 +7,91 @@ import { AudioEngineService } from './audio-engine.service';
 import { HardwareService } from './hardware.service';
 
 export type LiveInstrumentType = string;
-export type LiveScaleMode = 'major' | 'minor' | 'blues' | 'pentatonic';
+export type LiveScaleMode =
+  | 'major'
+  | 'minor'
+  | 'dorian'
+  | 'phrygian'
+  | 'lydian'
+  | 'mixolydian'
+  | 'locrian'
+  | 'harmonicMinor'
+  | 'blues'
+  | 'pentatonic';
 
 /** Semitone offsets for each scale the Performer's Scale Lock offers. */
 export const LIVE_SCALE_INTERVALS: Record<LiveScaleMode, number[]> = {
   major: [0, 2, 4, 5, 7, 9, 11],
   minor: [0, 2, 3, 5, 7, 8, 10],
+  dorian: [0, 2, 3, 5, 7, 9, 10],
+  phrygian: [0, 1, 3, 5, 7, 8, 10],
+  lydian: [0, 2, 4, 6, 7, 9, 11],
+  mixolydian: [0, 2, 4, 5, 7, 9, 10],
+  locrian: [0, 1, 3, 5, 6, 8, 10],
+  harmonicMinor: [0, 2, 3, 5, 7, 8, 11],
   blues: [0, 3, 5, 6, 7, 10],
   pentatonic: [0, 2, 4, 7, 9],
 };
+
+/** Root pitch classes Scale Lock can transpose to, in display order. */
+export type LiveArpPattern = 'up' | 'down' | 'upDown' | 'random';
+
+/**
+ * The singer's live rig, stored with the set: chord mode, the scale lock and
+ * its root, note repeat, octave and the chord-stamp type.
+ */
+export interface LivePerformanceState {
+  smartChords: boolean;
+  scaleLock: boolean;
+  scaleMode: LiveScaleMode;
+  scaleRoot: number;
+  arpEnabled: boolean;
+  arpRate: string;
+  arpPattern: LiveArpPattern;
+  arpLatch: boolean;
+  arpSwing: number;
+  octave: number;
+  chordType: string;
+}
+
+export const SCALE_ROOTS: { pc: number; label: string }[] = [
+  { pc: 0, label: 'C' },
+  { pc: 1, label: 'C#' },
+  { pc: 2, label: 'D' },
+  { pc: 3, label: 'D#' },
+  { pc: 4, label: 'E' },
+  { pc: 5, label: 'F' },
+  { pc: 6, label: 'F#' },
+  { pc: 7, label: 'G' },
+  { pc: 8, label: 'G#' },
+  { pc: 9, label: 'A' },
+  { pc: 10, label: 'A#' },
+  { pc: 11, label: 'B' },
+];
+
+/** Where a sounded note came from: the key, its Smart Chord, or Note Repeat. */
+export type LiveNoteSource = 'key' | 'chord' | 'repeat';
+
+/**
+ * A note the engine actually sounded. Smart Chords and Note Repeat generate
+ * notes *inside* the engine, so a recorder that only watches key presses hears
+ * one note where the artist heard a chord or a pattern. Everything that records
+ * live playing subscribes to `noteEvents$` instead.
+ */
+export interface LiveNoteEvent {
+  type: 'on' | 'off';
+  /** MIDI number of the sounded pitch, after Scale Lock and chord generation. */
+  midi: number;
+  /** Tone note name of the sounded pitch (`C4`, `D#3`). */
+  note: string;
+  velocity: number;
+  channel: number;
+  /** Monotonic capture time, on the same clock as `performance.now()`. */
+  atMs: number;
+  source: LiveNoteSource;
+  /** Set for one-shot repeats, whose duration is known when they start. */
+  durationMs?: number;
+}
 
 interface MpeVoice {
   key: string;
@@ -91,6 +168,8 @@ export class LiveEngineService {
   scaleLock = signal(false);
   currentScale = signal<number[]>([0, 2, 4, 5, 7, 9, 11]); // C Major
   scaleMode = signal<LiveScaleMode>('major');
+  /** Root pitch class the scale is built on (0 = C). */
+  scaleRoot = signal(0);
   smartChords = signal(false);
   /** Last channel/polyphonic pressure, normalized 0..1. */
   aftertouch = signal(0);
@@ -98,14 +177,26 @@ export class LiveEngineService {
   // Arpeggiator State
   arpeggiatorEnabled = signal(false);
   arpeggiatorRate = signal('8n');
-  arpeggiatorPattern = signal<'up' | 'down' | 'upDown' | 'random'>('up');
-  private arpTimer: ReturnType<typeof setInterval> | null = null;
+  arpeggiatorPattern = signal<LiveArpPattern>('up');
+  /** Keep repeating after the key lifts until repeat is switched off. */
+  arpeggiatorLatch = signal(false);
+  /** 0 = straight, 0..0.75 delays every second repeat. */
+  arpeggiatorSwing = signal(0);
+  /** Recursive timeout so swing can vary each interval. */
+  private arpTimer: ReturnType<typeof setTimeout> | null = null;
   private arpStep = 0;
   /** Notes currently arpeggiated, in press order. */
   private heldNotes: string[] = [];
   private heldVelocity = 0.8;
   /** Chord tones triggered for a held key, so its release ends every voice. */
   private chordNotes = new Map<number, string[]>();
+
+  /**
+   * Every note this engine sounds, including Smart Chord tones and each Note
+   * Repeat retrigger. Recorders consume this stream so a take stores what the
+   * artist heard rather than the one key they pressed.
+   */
+  readonly noteEvents$ = new Subject<LiveNoteEvent>();
 
   async initialize() {
     if (this.isInitialized()) return;
@@ -310,10 +401,47 @@ export class LiveEngineService {
    */
   generateSmartChord(rootNote: string): string[] {
     const root = Tone.Frequency(rootNote).toMidi();
-    const minor = this.scaleMode() === 'minor' || this.scaleMode() === 'blues';
-    const chord = (minor ? [0, 3, 7] : [0, 4, 7]).map((interval) =>
-      this.midiToNote(root + interval),
+    const intervals = this.currentScale();
+    const pc = ((root % 12) + 12) % 12;
+    const rootPc = this.scaleRoot();
+    const degree = intervals.findIndex(
+      (interval) => (rootPc + interval) % 12 === pc,
     );
+
+    // A chromatic root has no scale degree to stack thirds on; fall back to the
+    // mode family so the chord still agrees with the key's flavour.
+    if (!intervals.length || degree < 0) {
+      const minorFamily: LiveScaleMode[] = [
+        'minor',
+        'dorian',
+        'phrygian',
+        'locrian',
+        'harmonicMinor',
+        'blues',
+      ];
+      const shape = minorFamily.includes(this.scaleMode())
+        ? [0, 3, 7]
+        : [0, 4, 7];
+      return shape.map((interval) => this.midiToNote(root + interval));
+    }
+
+    // Stack scale thirds (degree +2 and +4) rather than always using major or
+    // minor, so dorian, lydian and the rest produce the chord they imply. Each
+    // tone is voiced just above the previous one, never an octave away.
+    const chordPcs = [degree, degree + 2, degree + 4].map(
+      (targetDegree) =>
+        (rootPc + intervals[targetDegree % intervals.length]) % 12,
+    );
+    let previousPc = pc;
+    let offset = 0;
+    const chord = chordPcs.map((targetPc, index) => {
+      if (index > 0) {
+        const step = (targetPc - previousPc + 12) % 12;
+        offset += step === 0 ? 12 : step;
+      }
+      previousPc = targetPc;
+      return this.midiToNote(root + offset);
+    });
     return chord;
   }
 
@@ -324,13 +452,16 @@ export class LiveEngineService {
     if (!intervals.length || !Number.isFinite(midi)) return midi;
     const pitchClass = ((midi % 12) + 12) % 12;
     const octaveRoot = midi - pitchClass;
+    const rootPc = this.scaleRoot();
     let best = midi;
     let bestDistance = Infinity;
     for (let octave = -1; octave <= 1; octave += 1) {
       for (const interval of intervals) {
-        const candidate = octaveRoot + octave * 12 + interval;
+        const candidate = octaveRoot + octave * 12 + ((rootPc + interval) % 12);
         const distance = Math.abs(candidate - midi);
-        if (distance < bestDistance) {
+        // Ties resolve downward regardless of which degree was visited first,
+        // which keeps the documented snap behavior stable across roots.
+        if (distance < bestDistance || (distance === bestDistance && candidate < best)) {
           bestDistance = distance;
           best = candidate;
         }
@@ -497,6 +628,7 @@ export class LiveEngineService {
     // (and the MPE master channel), so keyboard and non-MPE MIDI are unchanged.
     if (channel > 0) {
       this.startMpeVoice(midi, velocity, channel);
+      this.publishNote('on', this.midiToNote(midi), velocity, 'key', channel);
       return;
     }
 
@@ -518,15 +650,24 @@ export class LiveEngineService {
     }
 
     const time = Tone.now();
-    notes.forEach((note) =>
-      this.currentInstrumentNode!.triggerAttack(note, time, velocity),
-    );
+    notes.forEach((note, index) => {
+      this.currentInstrumentNode!.triggerAttack(note, time, velocity);
+      this.publishNote(
+        'on',
+        note,
+        velocity,
+        index === 0 ? 'key' : 'chord',
+      );
+    });
   }
 
   triggerNoteEnd(midi: number, channel = 0) {
     // A repeated note stops when the key lifts, regardless of the pedal: the
     // held list is what the arpeggiator walks, and an absent key must leave it.
     if (channel === 0 && this.arpeggiatorEnabled()) {
+      // Latch keeps the pattern running hands-free; the chord stays until the
+      // player presses a new one or switches repeat off.
+      if (this.arpeggiatorLatch()) return;
       const notes = this.chordNotes.get(midi) ?? [this.midiToNote(midi)];
       this.chordNotes.delete(midi);
       this.heldNotes = this.heldNotes.filter((note) => !notes.includes(note));
@@ -547,15 +688,66 @@ export class LiveEngineService {
       if (!voice) return;
       this.mpeVoices.delete(key);
       this.releaseMpeVoice(voice);
+      this.publishNote('off', this.midiToNote(midi), 0, 'key', channel);
       return;
     }
     if (!this.currentInstrumentNode) return;
     const notes = this.chordNotes.get(midi) ?? [this.midiToNote(midi)];
     this.chordNotes.delete(midi);
     const time = Tone.now();
-    notes.forEach((note) =>
-      this.currentInstrumentNode!.triggerRelease(note, time),
-    );
+    notes.forEach((note) => {
+      this.currentInstrumentNode!.triggerRelease(note, time);
+      this.publishNote(
+        'off',
+        note,
+        0,
+        notes.length > 1 && note !== notes[0] ? 'chord' : 'key',
+      );
+    });
+  }
+
+  /**
+   * Announce a sounded note to every recorder. Pitch is resolved here, once,
+   * so consumers never have to re-run Scale Lock or chord generation.
+   */
+  private publishNote(
+    type: 'on' | 'off',
+    note: string,
+    velocity: number,
+    source: LiveNoteSource,
+    channel = 0,
+    durationMs?: number,
+  ): void {
+    this.noteEvents$.next({
+      type,
+      midi: this.noteToMidi(note),
+      note,
+      velocity,
+      channel,
+      atMs:
+        typeof performance !== 'undefined' && typeof performance.now === 'function'
+          ? performance.now()
+          : Date.now(),
+      source,
+      durationMs,
+    });
+  }
+
+  /** Tone note name to MIDI number (`C4` = 60), independent of Tone's clock. */
+  private noteToMidi(note: string): number {
+    const match = /^([A-Ga-g])([#b]?)(-?\d+)$/.exec(note.trim());
+    if (!match) return 60;
+    const base: Record<string, number> = {
+      C: 0,
+      D: 2,
+      E: 4,
+      F: 5,
+      G: 7,
+      A: 9,
+      B: 11,
+    };
+    const accidental = match[2] === '#' ? 1 : match[2] === 'b' ? -1 : 0;
+    return base[match[1].toUpperCase()] + accidental + (Number(match[3]) + 1) * 12;
   }
 
   private noteKey(midi: number, channel: number): string {
@@ -766,12 +958,55 @@ export class LiveEngineService {
   }
 
   setScale(mode: any) {
-    const modes: LiveScaleMode[] = ['major', 'minor', 'blues', 'pentatonic'];
+    const modes = Object.keys(LIVE_SCALE_INTERVALS) as LiveScaleMode[];
     const next: LiveScaleMode = modes.includes(mode) ? mode : 'major';
     this.scaleMode.set(next);
     // `currentScale` is the note set Scale Lock snaps to; it used to be a
     // constant, so changing the dropdown relabelled the control and nothing else.
     this.currentScale.set(LIVE_SCALE_INTERVALS[next]);
+  }
+
+  /** Transpose Scale Lock to a new root without changing the mode. */
+  setScaleRoot(rootPc: number) {
+    if (!Number.isFinite(rootPc)) return;
+    this.scaleRoot.set(((Math.round(rootPc) % 12) + 12) % 12);
+  }
+
+  setArpeggiatorPattern(pattern: any): void {
+    const patterns: LiveArpPattern[] = ['up', 'down', 'upDown', 'random'];
+    this.arpeggiatorPattern.set(
+      patterns.includes(pattern) ? pattern : 'up',
+    );
+  }
+
+  /** Apply a set's stored live rig in one step (project restore). */
+  restorePerformanceState(
+    state: Partial<LivePerformanceState> | null | undefined,
+  ): void {
+    if (!state) return;
+    if (typeof state.smartChords === 'boolean') {
+      this.smartChords.set(state.smartChords);
+    }
+    if (state.scaleMode) this.setScale(state.scaleMode);
+    if (typeof state.scaleRoot === 'number') {
+      this.setScaleRoot(state.scaleRoot);
+    }
+    if (typeof state.scaleLock === 'boolean') {
+      this.setScaleLock(state.scaleLock);
+    }
+    if (typeof state.arpRate === 'string') {
+      this.setArpeggiatorRate(state.arpRate);
+    }
+    if (state.arpPattern) this.setArpeggiatorPattern(state.arpPattern);
+    if (typeof state.arpLatch === 'boolean') {
+      this.setArpeggiatorLatch(state.arpLatch);
+    }
+    if (typeof state.arpSwing === 'number') {
+      this.setArpeggiatorSwing(state.arpSwing);
+    }
+    if (typeof state.arpEnabled === 'boolean') {
+      this.setArpeggiatorEnabled(state.arpEnabled);
+    }
   }
 
   /** Scale Lock snaps incoming notes to the selected scale when enabled. */
@@ -792,10 +1027,21 @@ export class LiveEngineService {
   setArpeggiatorRate(rate: string): void {
     this.arpeggiatorRate.set(rate);
     if (this.arpTimer !== null) {
-      clearInterval(this.arpTimer);
+      clearTimeout(this.arpTimer);
+      this.arpTimer = null;
       this.arpStep = 0;
-      this.arpTimer = setInterval(() => this.arpTick(), this.arpIntervalMs());
+      this.queueArpTick();
     }
+  }
+
+  setArpeggiatorLatch(enabled: boolean): void {
+    this.arpeggiatorLatch.set(!!enabled);
+  }
+
+  /** 0 = straight; up to 0.75 keeps the next interval above 20 ms. */
+  setArpeggiatorSwing(amount: number): void {
+    if (!Number.isFinite(amount)) return;
+    this.arpeggiatorSwing.set(Math.max(0, Math.min(0.75, amount)));
   }
 
   private tempoBpm(): number {
@@ -823,15 +1069,29 @@ export class LiveEngineService {
     if (this.arpTimer !== null) return;
     this.arpStep = 0;
     this.arpTick();
-    this.arpTimer = setInterval(
-      () => this.arpTick(),
-      Math.max(20, this.arpIntervalMs()),
-    );
+    if (this.heldNotes.length) this.queueArpTick();
+  }
+
+  /**
+   * Schedule one tick at a time: the next delay depends on the step, so a
+   * swung pair is long-short instead of a fixed interval that cannot groove.
+   */
+  private queueArpTick(): void {
+    if (this.arpTimer !== null || !this.heldNotes.length) return;
+    const swing = this.arpeggiatorSwing();
+    const factor =
+      this.arpStep % 2 === 0 ? 1 - swing / 2 : 1 + swing / 2;
+    const delay = Math.max(20, this.arpIntervalMs() * factor);
+    this.arpTimer = setTimeout(() => {
+      this.arpTimer = null;
+      this.arpTick();
+      if (this.arpTimer === null) this.queueArpTick();
+    }, delay);
   }
 
   private stopArpeggiator(): void {
     if (this.arpTimer !== null) {
-      clearInterval(this.arpTimer);
+      clearTimeout(this.arpTimer);
       this.arpTimer = null;
     }
     const node = this.currentInstrumentNode;
@@ -889,6 +1149,7 @@ export class LiveEngineService {
     try {
       if (typeof node.triggerAttackRelease === 'function') {
         node.triggerAttackRelease(note, duration, Tone.now(), velocity);
+        this.publishNote('on', note, velocity, 'repeat', 0, duration * 1000);
         return;
       }
       node.triggerAttack(note, Tone.now(), velocity);

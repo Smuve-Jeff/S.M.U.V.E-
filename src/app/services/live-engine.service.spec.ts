@@ -426,6 +426,43 @@ describe('LiveEngineService live performance controls', () => {
     );
   });
 
+  it('transposes Scale Lock and its chord shapes to any root and mode', () => {
+    service.setScale('dorian');
+    expect(service.currentScale()).toEqual([0, 2, 3, 5, 7, 9, 10]);
+
+    service.setScale('minor');
+    service.setScaleRoot(7); // G minor
+    expect(service.scaleRoot()).toBe(7);
+    // E4 sits exactly between Eb4 and F4 in G minor; ties resolve downward.
+    expect(service.snapToScale(64)).toBe(63);
+    expect(service.snapToScale(66)).toBe(65); // F#4 -> F4
+
+    // C is the fourth degree of G minor: C, Eb, G — voiced within an octave.
+    expect(service.generateSmartChord('C4')).toEqual(['C4', 'D#4', 'G4']);
+
+    service.setScaleRoot(12);
+    expect(service.scaleRoot()).toBe(0);
+  });
+
+  it('restores a saved live rig in one step', () => {
+    service.restorePerformanceState({
+      smartChords: true,
+      scaleLock: true,
+      scaleMode: 'dorian',
+      scaleRoot: 5,
+      arpEnabled: false,
+      arpRate: '16n',
+      arpPattern: 'down',
+    });
+
+    expect(service.smartChords()).toBe(true);
+    expect(service.scaleLock()).toBe(true);
+    expect(service.scaleMode()).toBe('dorian');
+    expect(service.scaleRoot()).toBe(5);
+    expect(service.arpeggiatorRate()).toBe('16n');
+    expect(service.arpeggiatorPattern()).toBe('down');
+  });
+
   it('routes CC7 volume and CC10 pan to the live output', async () => {
     await service.setInstrument('analog-warmth');
 
@@ -439,6 +476,103 @@ describe('LiveEngineService live performance controls', () => {
     (service as any).handleMidiCC(10, 127);
     expect(service.instrumentPan()).toBe(1);
     expect((service as any).panNode.pan.rampTo).toHaveBeenCalledWith(1, 0.03);
+  });
+
+  it('publishes every chord tone so a take captures the whole chord', async () => {
+    await service.setInstrument('analog-warmth');
+    const events: any[] = [];
+    const sub = service.noteEvents$.subscribe((event) => events.push(event));
+
+    try {
+      service.smartChords.set(true);
+      service.triggerNoteStart(60, 0.9);
+      service.triggerNoteEnd(60);
+    } finally {
+      sub.unsubscribe();
+    }
+
+    const onsets = events.filter((event) => event.type === 'on');
+    expect(onsets.map((event) => event.note)).toEqual(['C4', 'E4', 'G4']);
+    expect(onsets.map((event) => event.midi)).toEqual([60, 64, 67]);
+    expect(onsets.map((event) => event.source)).toEqual(['key', 'chord', 'chord']);
+    expect(onsets.every((event) => event.velocity === 0.9)).toBe(true);
+
+    // The chord's release ends every voice it started, with the same pitches.
+    const releases = events.filter((event) => event.type === 'off');
+    expect(releases.map((event) => event.note)).toEqual(['C4', 'E4', 'G4']);
+  });
+
+  it('publishes every note repeat retrigger as its own note', async () => {
+    jest.useFakeTimers();
+    const events: any[] = [];
+    let sub: { unsubscribe: () => void } | null = null;
+    try {
+      await service.setInstrument('analog-warmth');
+      sub = service.noteEvents$.subscribe((event) => events.push(event));
+      service.smartChords.set(true);
+      service.setArpeggiatorRate('8n'); // 120 BPM -> 250 ms
+      service.setArpeggiatorEnabled(true);
+
+      service.triggerNoteStart(60, 0.7);
+      jest.advanceTimersByTime(500);
+      service.triggerNoteEnd(60);
+      jest.advanceTimersByTime(1000);
+    } finally {
+      sub?.unsubscribe();
+      jest.useRealTimers();
+    }
+
+    const repeats = events.filter((event) => event.type === 'on');
+    expect(repeats.length).toBe(3);
+    expect(repeats.every((event) => event.source === 'repeat')).toBe(true);
+    expect(repeats.map((event) => event.note)).toEqual(['C4', 'E4', 'G4']);
+    expect(repeats.every((event) => event.velocity === 0.7)).toBe(true);
+    expect(repeats.every((event) => (event.durationMs ?? 0) > 0)).toBe(true);
+  });
+
+  it('keeps repeating after release while Note Repeat is latched', async () => {
+    jest.useFakeTimers();
+    try {
+      await service.setInstrument('analog-warmth');
+      const node = (service as any).currentInstrumentNode;
+      service.setArpeggiatorRate('8n');
+      service.setArpeggiatorLatch(true);
+      service.setArpeggiatorEnabled(true);
+
+      service.triggerNoteStart(60, 0.7);
+      service.triggerNoteEnd(60);
+      jest.advanceTimersByTime(500);
+      expect(node.triggerAttackRelease).toHaveBeenCalledTimes(3);
+
+      service.setArpeggiatorEnabled(false);
+      jest.advanceTimersByTime(500);
+      expect(node.triggerAttackRelease).toHaveBeenCalledTimes(3);
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('swings alternate Note Repeat intervals', async () => {
+    jest.useFakeTimers();
+    try {
+      await service.setInstrument('analog-warmth');
+      const node = (service as any).currentInstrumentNode;
+      service.setArpeggiatorRate('8n'); // 250 ms at 120 BPM
+      service.setArpeggiatorSwing(0.5);
+      service.setArpeggiatorEnabled(true);
+      service.triggerNoteStart(60, 0.7);
+
+      // First gap 312.5 ms (long), second 187.5 ms (short).
+      jest.advanceTimersByTime(300);
+      expect(node.triggerAttackRelease).toHaveBeenCalledTimes(1);
+      jest.advanceTimersByTime(20);
+      expect(node.triggerAttackRelease).toHaveBeenCalledTimes(2);
+      jest.advanceTimersByTime(200);
+      expect(node.triggerAttackRelease).toHaveBeenCalledTimes(3);
+      service.triggerNoteEnd(60);
+    } finally {
+      jest.useRealTimers();
+    }
   });
 
   it('retriggers held notes while note repeat is on and stops on release', async () => {
