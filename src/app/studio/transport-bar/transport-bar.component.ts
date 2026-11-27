@@ -41,6 +41,7 @@ import { GamepadService } from "../../services/gamepad.service";
 import { HardwareConnectionsComponent } from "../hardware-connections/hardware-connections.component";
 import { StudioMidiLearnService } from "../studio-midi-learn.service";
 import { LiveEngineService } from "../../services/live-engine.service";
+import { LIVE_ARP_RATES, type LiveArpRate } from "../../services/live-rig.util";
 import { TimingDiagnosticsComponent } from "../timing/timing-diagnostics.component";
 
 @Component({
@@ -251,12 +252,21 @@ export class TransportBarComponent {
         (rate) => rate.value === this.noteRepeatRate(),
       )?.label ?? "1/8",
   );
-  private static readonly REPEAT_RATES = [
-    { value: "4n", label: "1/4" },
-    { value: "8n", label: "1/8" },
-    { value: "8t", label: "1/8T" },
-    { value: "16n", label: "1/16" },
-  ];
+  /**
+   * Labels for the rig's repeat rates. The values themselves come from the
+   * shared allowlist, so the transport can never offer a rate the engine would
+   * reject, and a new rate fails to compile here until it is labelled.
+   */
+  private static readonly REPEAT_RATE_LABELS: Record<LiveArpRate, string> = {
+    "4n": "1/4",
+    "8n": "1/8",
+    "8t": "1/8T",
+    "16n": "1/16",
+  };
+  private static readonly REPEAT_RATES = LIVE_ARP_RATES.map((value) => ({
+    value,
+    label: TransportBarComponent.REPEAT_RATE_LABELS[value],
+  }));
   readonly noteRepeatRates = TransportBarComponent.REPEAT_RATES;
 
   toggleNoteRepeat(): void {

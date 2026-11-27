@@ -3146,6 +3146,12 @@ export class ProjectWorkspaceService {
       sessionFollowEnabled,
       sessionFollowBars,
       sessionSceneFollowRules,
+      // The live rig is session state the artist edits without touching a
+      // track: transposing the keys or changing the chord stamp has to count
+      // as unsaved work, or autosave stores the set and the status strip calls
+      // it clean while the new rig is nowhere on disk. Reading it live (as a
+      // save does) also keeps a bundle without the block opening clean.
+      livePerformance: this.captureLivePerformance(),
       // The master gain rides in the project state as well, straight off the
       // same float32 AudioParam; normalise it there too.
       projectState: {

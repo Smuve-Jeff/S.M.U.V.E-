@@ -56,6 +56,7 @@ describe("ProjectWorkspaceService", () => {
   let sceneFollowEnabled: ReturnType<typeof signal<boolean>>;
   let sceneFollowBars: ReturnType<typeof signal<number>>;
   let sceneFollowRules: ReturnType<typeof signal<Record<string, any>>>;
+  let livePerformance: ReturnType<typeof signal<any>>;
   let getItem: jest.Mock;
   let getAllItems: jest.Mock;
   let deleteItems: jest.Mock;
@@ -181,6 +182,7 @@ describe("ProjectWorkspaceService", () => {
     sceneFollowEnabled = signal(false);
     sceneFollowBars = signal(4);
     sceneFollowRules = signal<Record<string, any>>({});
+    livePerformance = signal({ octave: 0, chordType: "minor" });
     getItem = jest.fn().mockResolvedValue(null);
     getAllItems = jest.fn().mockResolvedValue([]);
     deleteItems = jest.fn().mockResolvedValue(undefined);
@@ -244,7 +246,7 @@ describe("ProjectWorkspaceService", () => {
               return sceneFollowRules();
             },
             clearSceneFollowRules: () => sceneFollowRules.set({}),
-            livePerformance: signal({ octave: 0, chordType: "minor" }),
+            livePerformance,
             setLivePerformance: jest.fn(),
             structure: signal([]),
             selectedTrackId: signal(null),
@@ -1832,6 +1834,18 @@ describe("ProjectWorkspaceService", () => {
     expect(service.isDirty()).toBe(true);
   });
 
+  it("marks a rig-only change dirty so autosave stores it", async () => {
+    expect(service.isDirty()).toBe(false);
+
+    // Transposing the keys or changing the stamp touches no track. Before the
+    // rig joined the signature, this change left the set "clean" and the next
+    // autosave kept the old rig.
+    livePerformance.set({ octave: -2, chordType: "maj7" });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(service.isDirty()).toBe(true);
+  });
+
   it("imports a bundle, restores tracks, and queues authenticated cloud sync", async () => {
     const user = { id: "artist-1" };
     // Recreate with the authenticated provider so the service receives it at construction.
@@ -1903,7 +1917,7 @@ describe("ProjectWorkspaceService", () => {
               return sceneFollowRules();
             },
             clearSceneFollowRules: () => sceneFollowRules.set({}),
-            livePerformance: signal({ octave: 0, chordType: "minor" }),
+            livePerformance,
             setLivePerformance: jest.fn(),
             structure: signal([]),
             selectedTrackId: signal(null),
