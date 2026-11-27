@@ -14,7 +14,15 @@ import { seedAuthenticatedSession } from "./helpers";
 
 const PHONE = { width: 390, height: 844 };
 const PHONE_SMALL = { width: 360, height: 640 };
+const PHONE_TINY = { width: 328, height: 640 };
 const DESKTOP = { width: 1440, height: 900 };
+
+/** The three status pills that share the 22px strip. */
+const STATUS_PILLS = [
+  ".studio-durability-status",
+  ".studio-sync-status",
+  ".studio-monitor-status",
+] as const;
 
 test.beforeEach(async ({ page }) => {
   await seedAuthenticatedSession(page);
@@ -289,6 +297,148 @@ test("the floating assistant never parks on a primary action", async ({ page }) 
 
   expect(overlap).toEqual([]);
 });
+
+for (const viewport of [PHONE_TINY, PHONE_SMALL]) {
+  test(`the status strip holds one row with every pill at ${viewport.width}px`, async ({
+    page,
+  }) => {
+    await page.setViewportSize(viewport);
+    await openStudio(page, "audio-recorder");
+
+    /* The sync and mono pills are driven through real state (the same signals
+       the template binds to). The durability pill needs a browser that refuses
+       to promise persistent storage; when the test browser does promise it,
+       the pill's own markup is mounted instead so the strip's worst case is
+       still covered. */
+    await page.evaluate(async () => {
+      const studio = (window as any).ng.getComponent(
+        document.querySelector("app-studio"),
+      );
+      const workspace = studio.projectWorkspace;
+      const id = workspace.metadata()?.id ?? "pane-budget-strip";
+      workspace.syncStatuses.set({
+        ...workspace.syncStatuses(),
+        [id]: {
+          id,
+          projectId: id,
+          state: "synced",
+          reason: "Pane budget probe",
+          updatedAt: 0,
+          cloudBytes: 4_400_000,
+          breakdown: { audioBytes: 0, guideBytes: 0, projectBytes: 0 },
+        },
+      });
+      studio.monitorMono.set(true);
+
+    });
+
+    /* Mount whichever pill the environment did not produce. A brand-new
+       workspace has no cloud status yet, and a browser that grants persistent
+       storage never shows the durability warning — but the strip's worst case
+       is all three at once, and that is the case this test locks in. The
+       markup is the template's own, classes and all. */
+    await page.evaluate(() => {
+      const strip = document.querySelector(".studio-project-status");
+      if (!strip) throw new Error("the status strip is not in the shell");
+      const mount = (className: string, html: string) => {
+        if (strip.querySelector(`.${className}`)) return;
+        const pill = document.createElement("button");
+        pill.type = "button";
+        pill.className = className;
+        pill.innerHTML = html;
+        strip.appendChild(pill);
+      };
+      mount(
+        "studio-durability-status",
+        '<span class="material-symbols-outlined" aria-hidden="true">shield</span>' +
+          '<span>Not protected</span>' +
+          '<span class="studio-durability-action" aria-hidden="true">Back up</span>',
+      );
+      mount(
+        "studio-sync-status",
+        '<span class="material-symbols-outlined" aria-hidden="true">cloud_done</span>' +
+          "<span>Saved</span>" +
+          '<span class="studio-sync-size">4.2 MB</span>',
+      );
+      mount(
+        "studio-monitor-status",
+        '<span class="material-symbols-outlined" aria-hidden="true">hearing</span>' +
+          '<span class="studio-monitor-label">MONO</span>',
+      );
+    });
+
+    // Signals drive change detection; give Angular a frame before measuring.
+    await expect(page.locator(".studio-sync-status")).toBeVisible();
+    await expect(page.locator(".studio-monitor-status")).toBeVisible();
+    await expect(page.locator(".studio-durability-status")).toBeVisible();
+
+    const strip = await page.evaluate((pillSelectors) => {
+      const host = document.querySelector(".studio-project-status")!;
+      const box = host.getBoundingClientRect();
+      const label = [...host.children].find(
+        (child) =>
+          child.tagName === "SPAN" &&
+          !child.classList.contains("material-symbols-outlined"),
+      ) as HTMLElement | undefined;
+
+      const pills = pillSelectors.map((selector) => {
+        const pill = host.querySelector(selector)!;
+        const rect = pill.getBoundingClientRect();
+        const centreX = rect.left + rect.width / 2;
+        /* Every 2px band of the strip inside this pill's column must resolve to
+           the pill: that is what makes a 20px chip tappable in a 22px row, and
+           it must stop at the top bar rather than stealing its taps. */
+        const rows = [];
+        for (let offset = 1; offset < box.height; offset += 2) {
+          const hit = document.elementFromPoint(centreX, box.top + offset);
+          rows.push({
+            offset,
+            self: !!hit && hit.closest(selector) !== null,
+          });
+        }
+        return {
+          selector,
+          height: Math.round(rect.height),
+          withinStrip: rect.top >= box.top - 1 && rect.bottom <= box.bottom + 1,
+          hitRows: rows.length,
+          missedRows: rows.filter((row) => !row.self).map((row) => row.offset),
+        };
+      });
+
+      return {
+        height: Math.round(box.height),
+        overflow: host.scrollWidth - host.clientWidth,
+        pageOverflow: document.documentElement.scrollWidth - innerWidth,
+        labelClipped: label ? label.scrollWidth > label.clientWidth + 1 : false,
+        labelText: label?.innerText.trim() ?? "",
+        pills,
+      };
+    }, STATUS_PILLS);
+
+    // One row: the 22px strip plus its 1px hairlines, not the 36–47px it
+    // rendered when a pill's 44px button box or a wrapped label set the height.
+    expect(strip.height, "the strip is not one row").toBeGreaterThanOrEqual(20);
+    expect(strip.height, "the strip is not one row").toBeLessThanOrEqual(25);
+    expect(strip.overflow, "the strip scrolls sideways").toBeLessThanOrEqual(1);
+    expect(strip.pageOverflow, "the page scrolls sideways").toBeLessThanOrEqual(1);
+    expect(strip.labelClipped, `"${strip.labelText}" is truncated`).toBe(false);
+
+    expect(strip.pills).toHaveLength(STATUS_PILLS.length);
+    for (const pill of strip.pills) {
+      expect(pill.withinStrip, `${pill.selector} leaves the strip`).toBe(true);
+      expect(pill.height, `${pill.selector} is taller than the strip`).toBeLessThanOrEqual(
+        strip.height,
+      );
+      expect(pill.hitRows, `${pill.selector} has no hit rows`).toBeGreaterThan(
+        Math.floor((strip.height - 1) / 2) - 2,
+      );
+      expect(
+        pill.missedRows,
+        `${pill.selector} is not the hit target at y=${pill.missedRows.join(",")}`,
+      ).toEqual([]);
+    }
+  });
+}
 
 test("no studio view scrolls the page sideways", async ({ page }) => {
   for (const viewport of [PHONE, DESKTOP]) {

@@ -2443,3 +2443,38 @@ reader doesn't treat the 44px floor as met by these three chips.
 | `npm run build` | **0 errors** |
 | Browser, 328 and 360 | strip stays 23, all three pills resolve to `pill` from y=0 to y=22 |
 | Browser, 1440×900 | unchanged — the overlay is inside the phone media query |
+
+## 41. Thirty-fifth pass — the strip is locked by a regression test
+
+`tests/e2e/studio-pane-budget.spec.ts` now has "the status strip holds one row
+with every pill at 328px / 360px". It mounts all three pills (real signals for
+sync and mono, the durability pill's own markup when the test browser promises
+persistent storage), then asserts:
+
+* strip height between 20 and 25px — one row, not the 36–47px the pills caused
+  before §36–§38;
+* no horizontal overflow in the strip or on the page;
+* the saved-state label is not truncated at either width;
+* every pill sits inside the strip, is no taller than it, and **wins
+  `elementFromPoint` on every 2px band of the strip inside its column** — the
+  property that turns a 20px chip into a full-height target, and the one that
+  breaks if the top bar starts painting over the strip or a pill grows its box.
+
+### 41.1 What could and couldn't be run here
+
+`npx tsc --noEmit` on the spec and `npx playwright test --list` both pass (13
+tests, the two new ones listed). Executing them is blocked in this sandbox: the
+Chromium download lands, but it cannot link — `libglib-2.0.so.0` is missing and
+`npx playwright install-deps` needs root, which the container forbids
+(`sudo: The "no new privileges" flag is set`).
+
+So the assertions were replayed against the live app in the Cloud browser, the
+same evaluate body, at both widths:
+
+| Width | Strip | Pills | Bands resolving to the pill | Label | Failures |
+| --- | --- | --- | --- | --- | --- |
+| 328×640 | 23 | 3 × 20px | 11 / 11 each | `Unsaved changes` | none |
+| 360×640 | 23 | 3 × 20px | 11 / 11 each | `Unsaved changes` | none |
+
+The spec itself still needs a pass in an environment with browser libraries —
+that is the one check this pass could not perform. `npm run build`: 0 errors.
