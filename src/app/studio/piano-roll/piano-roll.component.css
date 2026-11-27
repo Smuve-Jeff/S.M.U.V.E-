@@ -2702,40 +2702,25 @@ it. Desktop is untouched — `.pr-velocity-drawer` is `display: contents` there.
 
   .pr-header {
     flex-wrap: nowrap;
-    align-items: center;
     padding-block: 4px;
-    /* With the Tools rail open the header carries the whole snap, quantize,
-       tempo and key/scale stack. Uncapped it is taller than the surface, and
-       because it is sticky the grid below it can never be reached. Cap it and
-       let the rail scroll inside the header. */
-    max-height: 60%;
-    overflow-y: auto;
-    overscroll-behavior: contain;
-    scrollbar-width: none;
-  }
-
-  .pr-header::-webkit-scrollbar {
-    display: none;
   }
 
   /* The Tools sheet is a temporary stack of panels, not the editing chrome.
-     While it is open its panels and header scroll with the surface (the
-     key/scale bar normally pins below the header), so the artist can reach the
-     grid underneath instead of facing two sticky bands taller than the phone. */
+     Unpin the header while it is open: the panels make it taller than the
+     surface, and a sticky stack leaves the grid permanently behind it. The
+     key/scale bar normally pins under the header, so it unpins too. */
   .pr-shell.pr-tools-open .pr-header {
     position: static;
-    max-height: none;
-    overflow: visible;
   }
 
-  .pr-shell.pr-tools-open .pr-key-scale-bar,
-  .pr-shell.pr-tools-open .pr-selection-status {
+  .pr-shell.pr-tools-open .pr-key-scale-bar {
     position: static;
   }
 
+  /* The title group shrinks so the tool rail gets the row; a 132px track pill
+     used to leave the rail barely half visible. */
   .pr-header-left {
     flex: 0 1 auto;
-    min-width: 0;
   }
 
   /* Edit tools are a rail, not a second header row: the five tools plus zoom
@@ -2743,7 +2728,6 @@ it. Desktop is untouched — `.pr-velocity-drawer` is `display: contents` there.
   .pr-header-tools {
     flex: 1 1 auto;
     min-width: 0;
-    flex-wrap: nowrap;
     overflow-x: auto;
     overflow-y: hidden;
     scrollbar-width: none;
@@ -2767,7 +2751,6 @@ it. Desktop is untouched — `.pr-velocity-drawer` is `display: contents` there.
      measured header keeps the whole visible surface editable and lets the
      bands below scroll. The floor keeps a surface even with Tools open. */
   .pr-canvas-row {
-    flex: 0 0 auto;
     height: calc(100% - var(--pr-header-h, 58px));
     min-height: 180px;
   }
