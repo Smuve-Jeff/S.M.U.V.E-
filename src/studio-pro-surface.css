@@ -495,6 +495,18 @@ body .comp-shell .comp-chrome-rail {
   body .comp-shell .studio-primary-canvas {
     padding-bottom: 76px;
   }
+
+  /* The Piano Roll is a full-height editor rather than a stacked page, and the
+     assistant FAB is not rendered on phones. The dock-sized reserve came out of
+     the one surface that needs every pixel: at 360x640 it left the roll with
+     190px. Keep a token scroll-end gap here; every other view keeps the
+     footprint reservation. */
+  body
+    .comp-shell
+    main[data-studio-workspace="piano-roll"]
+    .studio-primary-canvas {
+    padding-bottom: 8px;
+  }
 }
 
 /* Short landscape phones: the assistant FAB is a 44px button pinned to the

@@ -140,9 +140,11 @@ import { BeginnerPathService } from "./beginner-path.service";
         }
       }
 
-      /* Landscape phones: the canvas is ~200px tall, so the step keeps its
-         number and title only — one compact row instead of a second header. */
-      @media (max-height: 500px) {
+      /* Landscape phones (and portrait phones under 700px tall): the canvas is
+         ~200px tall, so the step keeps its number and title only — one compact
+         row instead of a second header. On a 360x640 phone the full card took
+         71px of the Piano Roll's 263px surface. */
+      @media (max-height: 500px), (max-width: 480px) and (max-height: 700px) {
         :host {
           padding: 2px 8px 0;
         }

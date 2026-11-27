@@ -2050,3 +2050,84 @@ pre-existing and unrelated (the suite passes).
 - **The phone layout defects from §29.6 are unchanged**: the onboarding card can
   still overlay the surface, and the classic shell can leave the Piano Roll
   ~190 px tall at 360×640.
+
+## 32. Twenty-sixth pass — the phone canvas the Piano Roll actually gets
+
+### 32.1 Three stacked losses
+
+§29.6 recorded that the classic shell left the Piano Roll about 190px tall at
+360x640. Measured in the Cloud browser at that viewport, the loss had three
+independent causes:
+
+| Element | Height |
+| --- | --- |
+| Studio canvas | 338.8 px |
+| Beginner step strip (full card) | 71.7 px |
+| `app-piano-roll` surface | **190.3 px** |
+| `.pr-header` | 163.4 px (44 px title row + 96.6 px wrapped tools row) |
+| `.pr-canvas-row` | 384 px (a fixed `60vh`, taller than the surface) |
+| Note grid visible inside the surface | ~26 px |
+
+1. **The header wrapped to two rows.** At 360px the title row and the editing
+   tools could not share a line, so the header alone was taller than the whole
+   surface was going to be.
+2. **The row was a viewport fraction, not the remaining height.** `60vh` is
+   384px on this phone, so the grid began 163px down and ran 384px past a host
+   that only had 190px.
+3. **The shell spent 76px on a control that is not there**, and the onboarding
+   strip rendered its full two-line card. The 76px canvas reserve exists for the
+   floating assistant; `.comp-fab` is `display: none` on phones, so on this
+   surface it only shortened the editor. The step strip measured 71px of the
+   remaining 262px.
+
+### 32.2 Repairs
+
+- **One header row, scrolling tool rail.** `.pr-header` no longer wraps at
+  ≤768px; `.pr-header-tools` is a horizontal scroller (38–44px targets), and
+  the track pill caps at 96px so title and tools share the row.
+- **The row fills the surface.** `:host`/`.pr-shell` take `height: 100%`, and
+  `.pr-canvas-row` is `calc(100% - var(--pr-header-h))` with a 180px floor
+  instead of `60vh`. The automation and velocity bands stay below the grid and
+  scroll with the surface.
+- **The assistant reserve is scoped.** For
+  `main[data-studio-workspace="piano-roll"]` only, the phone canvas keeps an 8px
+  scroll-end gap instead of 76px. Other views keep the full reserve, and the
+  rule does not exist above 768px.
+- **The Tools sheet is scrollable, not a trap.** With Tools open the secondary
+  panels stack inside the header; the header is capped at 60% and scrolls
+  internally, and while the sheet is open the header and key/scale bar stop
+  pinning, so the grid can be reached by scrolling. Previously the sticky stack
+  was taller than the phone and the grid could never be seen.
+- **The step strip compacts on short portrait phones.** The existing one-line
+  form (number + title, description hidden) now also applies at
+  `(max-width: 480px) and (max-height: 700px)`, not only landscape under 500px.
+
+### 32.3 Evidence (Cloud browser, authenticated session)
+
+| Viewport | Surface before / after | Grid visible inside surface before / after |
+| --- | --- | --- |
+| 360x640 | 190.3 / **303.6 px** | ~26 / **243.2 px** |
+| 390x844 | 394.3 / **462.3 px** | 230.1 / **401.9 px** |
+| 1440x900 | 522.7 / 522.7 px | 213.1 / 213.1 px (identical) |
+
+- Header at 360x640: **163.4 → 58.4 px**, `flex-wrap: nowrap`; the tool rail
+  reports `scrollWidth 381 > clientWidth 212`, so Erase and Chord remain
+  reachable by panning.
+- Tools open at 360x640: surface still 303.6px; header capped at 181.2px and
+  scrolls internally; scrolling the surface reveals **179.2 px** of grid
+  (previously 0 and unreachable behind the sticky stack).
+- Page-level horizontal overflow: **0 px** at all three widths.
+- `npm run build`: **exit 0**, 48.4 s, no errors or warnings.
+- `jest` on `piano-roll.component.spec.ts` + `beginner-step-hint.component.spec.ts`:
+  **74 tests / 2 suites passed**.
+
+### 32.4 Still open
+
+- **The desktop grid still shows ~213px at a time** inside a 1717px row; that is
+  the intentional full-page editor (scroll inside the grid), unchanged by this
+  pass.
+- **The automation band is 107px tall at phone width** and now lives entirely
+  below the editable area rather than taking a share of it; a future pass could
+  collapse it behind the Tools sheet.
+- **No screenshot comparison was captured**; the numbers above are live
+  `getBoundingClientRect` measurements from the authenticated preview.
