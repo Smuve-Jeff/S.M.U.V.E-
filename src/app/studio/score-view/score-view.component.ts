@@ -397,6 +397,10 @@ export class ScoreViewComponent {
     return buildMusicXml(parts, {
       title: this.musicManager.projectName,
       bpm: this.musicManager.engine.tempo(),
+      stepsPerBar: this.musicManager.engine.stepsPerBar?.() ?? 16,
+      // The chart follows the transport's meter, including mid-song changes,
+      // instead of writing every bar as a 4/4 measure.
+      meterMap: this.musicManager.engine.getMeterMap?.() ?? [],
     });
   }
 

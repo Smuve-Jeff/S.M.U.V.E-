@@ -26,16 +26,41 @@ describe("SessionViewComponent", () => {
   const sceneFollowRules = signal<Record<string, any>>({});
   const selectedTrackId = signal<string | null>(null);
   const tempo = signal(120);
-  /** Meter the mocked engine reports; 4/4 unless a test overrides it. */
+  /** Base meter the mocked engine reports; 4/4 unless a test overrides it. */
   const meter = signal({ beats: 4, unit: 4 });
+  /** Meter changes, mirroring the engine's meter map. */
+  const meterMap = signal<Array<{ step: number; beats: number; unit: number }>>(
+    [],
+  );
   const visualStep = signal(0);
-  const stepsPerBarAt = (_step: number) =>
-    Math.max(1, Math.round(meter().beats)) *
-    Math.max(1, Math.round(16 / Math.max(1, Math.round(meter().unit))));
-  const barAtStep = (step: number) =>
-    Math.floor(Math.max(0, step) / stepsPerBarAt(step));
-  const stepAtBar = (bar: number) =>
-    Math.max(0, Math.round(bar)) * stepsPerBarAt(0);
+  const stepsFor = (signature: { beats: number; unit: number }) =>
+    Math.max(1, Math.round(signature.beats)) *
+    Math.max(1, Math.round(16 / Math.max(1, Math.round(signature.unit))));
+  const meterAtStep = (step: number) => {
+    let found = meter();
+    for (const marker of meterMap()) {
+      if (marker.step <= step) found = marker;
+      else break;
+    }
+    return found;
+  };
+  const stepsPerBarAt = (step: number) => stepsFor(meterAtStep(step));
+  const stepAtBar = (bar: number) => {
+    let step = 0;
+    for (let index = 0; index < Math.max(0, Math.round(bar)); index++) {
+      step += stepsPerBarAt(step);
+    }
+    return step;
+  };
+  const barAtStep = (step: number) => {
+    let bar = 0;
+    let start = 0;
+    while (start + stepsPerBarAt(start) <= step) {
+      start += stepsPerBarAt(start);
+      bar++;
+    }
+    return bar;
+  };
 
   const tracks = signal<any[]>([
     {
@@ -285,6 +310,7 @@ describe("SessionViewComponent", () => {
     sceneFollowRules.set({});
     tempo.set(120);
     meter.set({ beats: 4, unit: 4 });
+    meterMap.set([]);
     visualStep.set(0);
     tracks.set([
       {
@@ -468,6 +494,36 @@ describe("SessionViewComponent", () => {
       expect(launchClipPattern).toHaveBeenCalledWith("t1", "slot-b");
 
       jest.advanceTimersByTime(1000);
+      expect(launchClipPattern).toHaveBeenCalledTimes(1);
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it("queues across a mid-song meter change from the meter map", () => {
+    jest.useFakeTimers();
+    try {
+      isPlaying.set(true);
+      // Two 4/4 bars, then 3/4 from step 32; step 36 is inside bar 3.
+      meterMap.set([
+        { step: 0, beats: 4, unit: 4 },
+        { step: 32, beats: 3, unit: 4 },
+      ]);
+      visualStep.set(36);
+      component.setLaunchQuantize("1bar");
+      const clip = component
+        .clips()
+        .find((candidate) => candidate.slotId === "slot-b")!;
+
+      component.triggerClip(clip);
+      expect(component.isCellQueued(clip)).toBe(true);
+
+      // The next bar starts at step 44: 8 steps = 1.0 s. A fixed 16-step
+      // reading would have waited for step 48 (1.5 s).
+      jest.advanceTimersByTime(1000);
+      expect(launchClipPattern).toHaveBeenCalledWith("t1", "slot-b");
+
+      jest.advanceTimersByTime(700);
       expect(launchClipPattern).toHaveBeenCalledTimes(1);
     } finally {
       jest.useRealTimers();

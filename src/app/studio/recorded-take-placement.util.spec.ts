@@ -37,6 +37,23 @@ describe("takePlacementFor", () => {
     ).toBe(0.25);
   });
 
+  it("places a take across a mid-song meter change from the engine's bar map", () => {
+    // Two 4/4 bars at steps 0 and 16, then 3/4 from step 32 (12-step bars).
+    const barPositionAtStep = (step: number) => {
+      if (step < 16) return step / 16;
+      if (step < 32) return 1 + (step - 16) / 16;
+      if (step < 44) return 2 + (step - 32) / 12;
+      return 3 + (step - 44) / 16;
+    };
+    const placement = takePlacementFor({
+      startStep: 32,
+      durationSeconds: 1.5, // one 3/4 bar at 120 BPM, not a 2 s 4/4 bar
+      tempo: 120,
+      barPositionAtStep,
+    });
+    expect(placement).toEqual({ startBar: 2, lengthBars: 1 });
+  });
+
   it("falls back to 120 BPM and clamps impossible positions", () => {
     const placement = takePlacementFor({
       startStep: -8,

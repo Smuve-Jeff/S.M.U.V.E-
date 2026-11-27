@@ -35,6 +35,59 @@ describe("score MusicXML export", () => {
     ).toBe(3);
   });
 
+  it("counts 3/4 bars from the meter instead of 16-step bars", () => {
+    // 28 steps is 2 4/4 bars but 3 bars of 12 steps.
+    expect(
+      musicXmlBarCount(
+        [{ name: "Piano", notes: [{ midi: 60, step: 24, length: 4 }] }],
+        16,
+        [{ step: 0, beats: 3, unit: 4 }],
+      ),
+    ).toBe(3);
+  });
+
+  it("follows a mid-song meter change when counting bars", () => {
+    const parts = [
+      { name: "Piano", notes: [{ midi: 60, step: 42, length: 6 }] },
+    ];
+    // Two 4/4 bars, then 3/4 from step 32: the material ends in bar 4, where
+    // a uniform 16-step count would report 3.
+    expect(
+      musicXmlBarCount(parts, 16, [
+        { step: 0, beats: 4, unit: 4 },
+        { step: 32, beats: 3, unit: 4 },
+      ]),
+    ).toBe(4);
+    expect(musicXmlBarCount(parts)).toBe(3);
+  });
+
+  it("writes a mid-song meter change on the bar where it starts", () => {
+    const xml = buildMusicXml(
+      [
+        {
+          name: "Piano",
+          notes: [
+            { midi: 60, step: 0, length: 4 },
+            { midi: 62, step: 36, length: 4 },
+          ],
+        },
+      ],
+      {
+        meterMap: [
+          { step: 0, beats: 4, unit: 4 },
+          { step: 32, beats: 3, unit: 4 },
+        ],
+      },
+    );
+    expect(xml.match(/<measure /g)).toHaveLength(3);
+    const third = xml.split('<measure number="3">')[1] ?? "";
+    expect(third).toContain(
+      "<time><beats>3</beats><beat-type>4</beat-type></time>",
+    );
+    // Bar 1 opens the score; bar 3 carries the change. Bars 1 and 2 share 4/4.
+    expect(xml.match(/<time>/g)).toHaveLength(2);
+  });
+
   it("fills gaps with rests so every measure is a full 4/4 bar", () => {
     const measure = buildMeasureXml(
       [{ midi: 60, step: 4, length: 4 }],

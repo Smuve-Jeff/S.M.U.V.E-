@@ -1447,6 +1447,8 @@ export class StudioAiDirectorService {
     const xml = buildMusicXml(parts, {
       title: this.music.projectName,
       bpm: this.engine.tempo(),
+      stepsPerBar: this.engine.stepsPerBar?.() ?? 16,
+      meterMap: this.engine.getMeterMap?.() ?? [],
     });
     const blob = new Blob([xml], { type: 'application/vnd.recordare.musicxml+xml' });
     const filename = musicXmlFileName(this.music.projectName);

@@ -17,13 +17,21 @@ export interface TakePlacement {
 }
 
 export function takePlacementFor(options: {
-  /** Step where capture actually began (16 steps per 4/4 bar). */
+  /** Step where capture actually began (16th-note steps). */
   startStep: number;
   /** Captured audio duration in seconds. */
   durationSeconds: number;
   /** Tempo the pass was played at. */
   tempo: number;
+  /** Uniform bar length; used only when `barPositionAtStep` is absent. */
   stepsPerBar?: number;
+  /**
+   * Meter-aware fractional bar position for a step. The engine supplies
+   * `AudioEngineService.barPositionAtStep`, which walks the meter map, so a
+   * take that crosses a 4/4 → 3/4 change lands on the right arrangement bar
+   * instead of assuming every bar is 16 steps.
+   */
+  barPositionAtStep?: (step: number) => number;
 }): TakePlacement {
   const stepsPerBar =
     Number.isFinite(options.stepsPerBar) && (options.stepsPerBar as number) > 0
@@ -31,11 +39,24 @@ export function takePlacementFor(options: {
       : 16;
   const tempo =
     Number.isFinite(options.tempo) && options.tempo > 0 ? options.tempo : 120;
-  const secondsPerBar = (60 / tempo) * 4;
-  const rawBars =
-    Math.max(0, options.durationSeconds || 0) / secondsPerBar;
+  // A sequencer step is a 16th note at every meter, so a step lasts the same
+  // number of seconds everywhere; only what counts as a bar changes.
+  const secondsPerStep = 60 / tempo / 4;
+  const positionAt = (step: number): number => {
+    const safeStep = Math.max(0, Number.isFinite(step) ? step : 0);
+    if (typeof options.barPositionAtStep === "function") {
+      const position = options.barPositionAtStep(safeStep);
+      if (Number.isFinite(position)) return Math.max(0, position);
+    }
+    return safeStep / stepsPerBar;
+  };
+  const startStep = Math.max(0, options.startStep || 0);
+  const startBar = positionAt(startStep);
+  const endStep =
+    startStep + Math.max(0, options.durationSeconds || 0) / secondsPerStep;
+  const rawBars = Math.max(0, positionAt(endStep) - startBar);
   return {
-    startBar: Math.max(0, options.startStep || 0) / stepsPerBar,
+    startBar,
     lengthBars: Math.max(0.25, Math.ceil(rawBars * 4) / 4),
   };
 }

@@ -25,11 +25,24 @@ export interface MusicXmlPart {
   notes: MusicXmlNote[];
 }
 
+/** One meter marker from the transport's meter map. */
+export interface MusicXmlMeterPoint {
+  /** Step where this meter starts. */
+  step: number;
+  beats: number;
+  unit: number;
+}
+
 export interface MusicXmlOptions {
   title?: string;
   bpm?: number;
-  /** Steps per bar. The Studio writes in 4/4, so this is 16. */
+  /**
+   * Steps per bar for a score with no meter map. Used only when `meterMap` is
+   * absent; 16 is a 4/4 bar.
+   */
   stepsPerBar?: number;
+  /** Meter changes from the transport; bar lines and counts follow them. */
+  meterMap?: MusicXmlMeterPoint[];
   /** Steps per quarter note; 4 matches the 16th-note grid. */
   divisions?: number;
 }
@@ -69,18 +82,78 @@ export function pitchParts(midi: number): {
   return { step, alter, octave: Math.floor(clamped / 12) - 1 };
 }
 
-/** Number of bars needed for the material, with a one-bar floor. */
-export function musicXmlBarCount(
-  parts: MusicXmlPart[],
-  stepsPerBar = 16,
-): number {
+/** Exclusive end step of the furthest note across every part. */
+function furthestStep(parts: MusicXmlPart[]): number {
   let furthest = 0;
   for (const part of parts) {
     for (const note of part.notes) {
       furthest = Math.max(furthest, note.step + Math.max(1, note.length));
     }
   }
-  return Math.max(1, Math.ceil(furthest / stepsPerBar));
+  return furthest;
+}
+
+/** 16th-note steps in one bar of a meter (4/4 = 16, 3/4 = 12, 6/8 = 12). */
+function stepsForMeter(meter: { beats: number; unit: number }): number {
+  return (
+    Math.max(1, Math.round(meter.beats)) *
+    Math.max(1, Math.round(16 / Math.max(1, Math.round(meter.unit))))
+  );
+}
+
+/** Meter in force at a step; 4/4 before the first marker. */
+function meterAtStep(
+  meterMap: MusicXmlMeterPoint[],
+  step: number,
+): { beats: number; unit: number } {
+  let found = { beats: 4, unit: 4 };
+  for (const marker of meterMap) {
+    if (marker.step <= step) found = marker;
+    else break;
+  }
+  return { beats: found.beats, unit: found.unit };
+}
+
+/**
+ * Bar boundaries up to `furthest`, following the meter map the way the
+ * transport does: a bar is its meter's step count, and a meter marker always
+ * starts a new bar even when it lands mid-bar.
+ */
+function meterBarSpans(
+  meterMap: MusicXmlMeterPoint[],
+  furthest: number,
+): { start: number; steps: number; beats: number; unit: number }[] {
+  const spans: { start: number; steps: number; beats: number; unit: number }[] =
+    [];
+  let start = 0;
+  while (start < furthest || spans.length === 0) {
+    const meter = meterAtStep(meterMap, start);
+    const natural = start + stepsForMeter(meter);
+    const next = meterMap.find((marker) => marker.step > start);
+    const end = next && next.step < natural ? next.step : natural;
+    spans.push({
+      start,
+      steps: Math.max(1, end - start),
+      beats: meter.beats,
+      unit: meter.unit,
+    });
+    start = end;
+    if (spans.length > 4096) break;
+  }
+  return spans;
+}
+
+/** Number of bars needed for the material, with a one-bar floor. */
+export function musicXmlBarCount(
+  parts: MusicXmlPart[],
+  stepsPerBar = 16,
+  meterMap: MusicXmlMeterPoint[] = [],
+): number {
+  const furthest = furthestStep(parts);
+  if (meterMap.length === 0) {
+    return Math.max(1, Math.ceil(furthest / Math.max(1, stepsPerBar)));
+  }
+  return meterBarSpans(meterMap, furthest).length;
 }
 
 interface MeasureEvent {
@@ -165,8 +238,8 @@ export function buildMeasureXml(
   barIndex: number,
   stepsPerBar: number,
   attributes = "",
+  barStart = barIndex * stepsPerBar,
 ): string {
-  const barStart = barIndex * stepsPerBar;
   const barEnd = barStart + stepsPerBar;
 
   const ongoing = notes
@@ -234,7 +307,7 @@ export function buildMeasureXml(
 
   return [
     `<measure number="${barIndex + 1}">`,
-    barIndex === 0 ? attributes : "",
+    attributes,
     ...body,
     "</measure>",
   ].join("");
@@ -245,20 +318,28 @@ export function buildMusicXml(
   parts: MusicXmlPart[],
   options: MusicXmlOptions = {},
 ): string {
-  const stepsPerBar = options.stepsPerBar ?? 16;
+  const stepsPerBar = Math.max(1, options.stepsPerBar ?? 16);
   const divisions = options.divisions ?? 4;
   const title = options.title?.trim() || "Untitled Score";
   const bpm = Math.round(options.bpm ?? 120);
-  const bars = musicXmlBarCount(parts, stepsPerBar);
+  const meterMap = options.meterMap ?? [];
+  const furthest = furthestStep(parts);
+  // With a meter map, every bar is measured by the meter in force where it
+  // starts; without one the score stays a uniform (default 4/4) grid.
+  const spans = meterMap.length
+    ? meterBarSpans(meterMap, furthest)
+    : Array.from(
+        { length: Math.max(1, Math.ceil(furthest / stepsPerBar)) },
+        (_, bar) => ({
+          start: bar * stepsPerBar,
+          steps: stepsPerBar,
+          beats: 4,
+          unit: 4,
+        }),
+      );
 
-  const attributes = [
-    "<attributes>",
-    `<divisions>${divisions}</divisions>`,
-    "<key><fifths>0</fifths></key>",
-    "<time><beats>4</beats><beat-type>4</beat-type></time>",
-    "<clef><sign>G</sign><line>2</line></clef>",
-    "</attributes>",
-    "<direction placement=\"above\">",
+  const direction = [
+    '<direction placement="above">',
     "<direction-type>",
     "<metronome><beat-unit>quarter</beat-unit>",
     `<per-minute>${bpm}</per-minute></metronome>`,
@@ -266,11 +347,43 @@ export function buildMusicXml(
     "</direction>",
   ].join("");
 
+  /** Divisions/key/clef and the tempo direction open the score; a meter
+   * change writes only a new `<time>` on the bar where it starts. */
+  const attributesFor = (bar: number): string => {
+    const span = spans[bar];
+    const previous = spans[bar - 1];
+    const first = bar === 0;
+    const timeChanged =
+      first ||
+      !previous ||
+      previous.beats !== span.beats ||
+      previous.unit !== span.unit;
+    const body = [
+      first ? `<divisions>${divisions}</divisions>` : "",
+      first ? "<key><fifths>0</fifths></key>" : "",
+      timeChanged
+        ? `<time><beats>${span.beats}</beats><beat-type>${span.unit}</beat-type></time>`
+        : "",
+      first ? "<clef><sign>G</sign><line>2</line></clef>" : "",
+    ].join("");
+    return `${body ? `<attributes>${body}</attributes>` : ""}${
+      first ? direction : ""
+    }`;
+  };
+
   const scoreParts = parts.map((part, index) => {
     const partId = `P${index + 1}`;
-    const measures = Array.from({ length: bars }, (_, bar) =>
-      buildMeasureXml(part.notes, bar, stepsPerBar, attributes),
-    ).join("");
+    const measures = spans
+      .map((span, bar) =>
+        buildMeasureXml(
+          part.notes,
+          bar,
+          span.steps,
+          attributesFor(bar),
+          span.start,
+        ),
+      )
+      .join("");
     return { partId, name: part.name || `Part ${index + 1}`, measures };
   });
 

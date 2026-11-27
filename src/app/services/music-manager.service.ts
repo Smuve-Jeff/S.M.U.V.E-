@@ -4217,6 +4217,12 @@ export class MusicManagerService {
       startStep: opts.startStep,
       durationSeconds: placeBuffer?.duration ?? 0,
       tempo: opts.tempo ?? this.engine.tempo(),
+      // The engine maps a step to a fractional bar through the meter map, so
+      // a take that crosses a meter change is placed on the right bar.
+      barPositionAtStep:
+        typeof this.engine.barPositionAtStep === 'function'
+          ? (step: number) => this.engine.barPositionAtStep(step)
+          : undefined,
     });
     const clipId = `clip_rec_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
     const clip: StudioClip = {
@@ -5037,9 +5043,15 @@ export class MusicManagerService {
     timing?: StepTiming,
   ) {
     this.advanceSceneFollow(step);
-    const STEPS_PER_BAR = 16;
-    const stepInBar = step % STEPS_PER_BAR;
-    const isOffbeat = stepInBar % 2 !== 0;
+    // Swing delays the second half of each notated beat. The engine owns the
+    // meter (4 steps per beat in 4/4, 2 in 6/8, 8 in 2/2), so no fixed
+    // 16-step bar is assumed here.
+    const stepsPerBeat = Math.max(
+      1,
+      this.engine.stepsPerNotatedBeatAt?.(step) ?? 4,
+    );
+    const stepInBeat = step % stepsPerBeat;
+    const isOffbeat = stepInBeat % 2 !== 0;
     const drumTrack = this.tracks().find(
       (t) => t.id === MusicManagerService.DRUM_TRACK_ID
     );
