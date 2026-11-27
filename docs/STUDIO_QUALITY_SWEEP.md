@@ -2161,6 +2161,49 @@ all; its trigger is the sparkle in the chrome rail, which sits in the top bar
 above the canvas and cannot cover a surface CTA. The wizard's four preset cards
 now render whole (`artifacts/qa/short360-beginner-wizard.png`).
 
-**Not fixed, seen while checking:** the recorder's `CLIP` (28px), `Reset` (17px)
-and `MEASURE` (36px) controls are below the 44px touch floor. They predate this
-pass and are a component-level fix, not shell chrome.
+**Seen while checking, fixed in §34:** the recorder's `CLIP` (28px), `Reset`
+(17px) and `MEASURE` (36px) controls were below the 44px touch floor.
+
+## 34. Twenty-eighth pass — the recorder's recovery controls fit a thumb
+
+### 34.1 Why the floor was missing
+
+The recorder already asked for a 44px floor (`CLIP`, `Reset`, `MUTE NOW`, and
+`MEASURE`), but only under `@media (pointer: coarse)`. That query is the wrong
+sole condition: a hybrid laptop in tablet mode, a narrow desktop window, and any
+engine that does not surface the media feature all render the phone layout while
+reporting a fine pointer — and, as it turned out, the device-emulation pass this
+sweep uses reports fine too, which is how the 17px `Reset` survived a previous
+"touch floor" fix. The floor is now keyed on width **as well as** pointer:
+`@media (max-width: 768px), (pointer: coarse)`.
+
+`Reset` and `MEASURE` also gained `min-width: 44px` and real horizontal padding,
+because a 44px-tall, 45px-wide button with 8px of padding still reads as a
+hairline target.
+
+### 34.2 Measured (guest session, CDP device metrics)
+
+| Control | 360×640 | 390×844 | 328×640 | 1440×900 (desktop, unchanged) |
+| --- | --- | --- | --- | --- |
+| `CLIP` | 46×**44** | 46×**44** | 46×**44** | 46×28 |
+| `Reset` | 49×**44** | 49×**44** | 49×**44** | 45×17 |
+| `MEASURE` | 47×**44** | 50×**44** | 45×**44** | 69×36 |
+| Page overflow | 0 | 0 | 0 | 0 |
+| Canvas overflow-x | 0 | 0 | 0 | 0 |
+| Canvas bottom = dock top | 528 = 528 | 704 = 704 | 528 = 528 | n/a |
+
+Desktop keeps its authored density on purpose: these are 28/17/36px controls in
+a pointer-driven toolbar, and the request was the phone layout.
+
+### 34.3 Evidence
+
+| Check | Result |
+| --- | --- |
+| `npm run build` | **0 errors** |
+| Browser, 360×640 | all three controls 44px, no page or canvas overflow, dock flush |
+| Browser, 390×844 | all three controls 44px, bands unchanged |
+| Browser, 328×640 | all three controls 44px |
+| Browser, 1440×900 | unchanged (28/17/36) |
+
+**Still under the floor in the recorder, out of scope here:** the guided-step
+strip (29px tall, 342px wide) and the `MONITOR` / `NOISE GATE` toggles (40px).
