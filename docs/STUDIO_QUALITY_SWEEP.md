@@ -2368,6 +2368,34 @@ status, so the sync pill was verified with DOM-injected markup identical to the
 template's. The mono pill was verified end-to-end (clicked in the mixer, read
 back on the recorder).
 
-**Trade-off:** at 328px with all three pills showing, the saved-state label
-ellipsizes to `Unsaved …` (29px). Nothing clips or wraps, but if that reads as
-too little, the sync pill's byte count is the cheapest thing to drop.
+**Trade-off queued at the time:** at 328px with all three pills showing, the
+saved-state label ellipsized to `Unsaved …` (29px). Fixed in §39.
+
+## 39. Thirty-third pass — the strip holds its words at 328px
+
+The sync pill's byte count (`4.2 MB`) is the first thing to go when the row is
+tight: the state is "Saved", the number is a detail that the sync-details panel
+behind the same pill shows in full. Hiding it on phones frees 38px, and at
+360px that is enough for `Unsaved changes` to render whole (96px, not clipped).
+
+328px still came up ~31px short with every pill showing. The mono pill gives
+the rest: below 341px it keeps its ear icon and drops the word (the template now
+wraps that word in `.studio-monitor-label`). The state stays colour-coded and
+announced — the button's title and aria-label carry the sentence — and 360px
+and wider keep the word.
+
+| Width | Strip | Label | Sync byte count | Mono word | Page overflow |
+| --- | --- | --- | --- | --- | --- |
+| 328×640 | **23** | `Unsaved changes`, 96px, **not clipped** | hidden | icon only (31px) | 0 |
+| 360×640 | **23** | `Unsaved changes`, 96px, **not clipped** | hidden | `MONO` (66px) | 0 |
+| 390×844 | 23 | `Unsaved changes`, not clipped | hidden | `MONO` | 0 |
+| 1440×900 | 41 (unchanged) | not clipped | shown (38px) | `MONO` | 0 |
+
+Canvas unchanged: 407 (360), 407 (328), 577 (390), 567 (desktop).
+
+| Check | Result |
+| --- | --- |
+| `npm run build` | **0 errors** |
+| `jest studio.component` | **140 tests passed** (after wrapping the mono label in a span) |
+| Browser, all three pills at 328 and 360 | strip 23, label renders its words, no overflow |
+| Browser, 1440×900 | unchanged |

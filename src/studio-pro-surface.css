@@ -923,6 +923,14 @@ body .comp-shell .playlist-container .playlist-header .mini-btn {
     white-space: nowrap;
   }
 
+  /* The sync pill's byte count is the first thing to go when the row is tight:
+     "Saved" is the state, "4.2 MB" is a detail that also lives in the sync
+details panel behind the same pill. Dropping it gives the saved-state label
+     its words back when all three pills are showing. */
+  body .comp-shell .studio-project-status .studio-sync-status .studio-sync-size {
+    display: none;
+  }
+
   /* With two or three pills in the row the saved-state label is the item left
      without width, and a wrapping label is what actually made the strip 36px
      wide-phone-with-everything (the pills themselves were already 20px). One
@@ -938,6 +946,17 @@ body .comp-shell .playlist-container .playlist-header .mini-btn {
     .studio-project-status
     .studio-durability-status
     > span:not(.material-symbols-outlined):not(.studio-durability-action) {
+    display: none;
+  }
+}
+
+/* Narrow phones (328, 360) with every pill showing: the byte count is already
+gone and the saved-state label is still ~31px short of its words. The mono pill
+gives up the last of the room by keeping its ear icon and dropping the word —
+the state stays colour-coded and announced, and the tooltip and aria-label
+carry the sentence. 341px and wider (360 included) keep the word. */
+@media (max-width: 340px) {
+  body .comp-shell .studio-project-status .studio-monitor-label {
     display: none;
   }
 }
