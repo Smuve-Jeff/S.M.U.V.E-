@@ -13,6 +13,27 @@
   overflow-y: auto; overflow-x: hidden;
 }
 
+/* Guided mode on a phone docks the Guided Start pill under the canvas in the
+   same column, so the canvas row is short. `min-height: 100%` let this root
+   grow to its content and paint under the pill there — covering the first
+   row's M button by ~9px. Bound it to the row and scroll inside it, with no
+   scrollbar (one would take 10px from the 149px track column). Scoped to this
+   layout: it is the one with a definite canvas height. Desktop resolves the
+   host to zero height (a separate, pre-existing bug), so a percentage height
+   there has nothing to resolve against and the rule would be meaningless. */
+@media (max-width: 932px) {
+  :host(.gate-active) .playlist-container {
+    height: 100%;
+    min-height: 0;
+    scrollbar-width: none;
+  }
+
+  :host(.gate-active) .playlist-container::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+  }
+}
+
 /* ── Header bar ───────────────────────────────────────────── */
 .playlist-header {
   display: flex;
@@ -298,7 +319,11 @@
    children of the old row container they became narrow side columns and
    stole width from the canvas. */
 .arrangement-lanes {
-  flex: 1 1 auto;
+  /* Never shrink below the rows it holds (`flex-shrink: 0`), grow into spare
+     height when there is some. Shrinking used to clip the last row and push
+     vertical scrolling onto the two inner surfaces, which could then scroll
+     apart; with this the shared `.playlist-content` owns vertical scrolling. */
+  flex: 1 0 auto;
   display: flex;
   min-width: 0;
   /* A timeline row needs room to be usable; without a floor it shrinks to 0px
@@ -313,7 +338,17 @@
   flex-shrink: 0;
   background: var(--ivory-paper);
   border-right: 1px solid var(--espresso-line);
-  overflow-y: auto;
+  /* The lane grid carries a 1px glass border, so without the same top edge the
+     header column's content box starts one pixel higher and its rows sit 1px
+     above their lanes. Transparent keeps the wood-panel edge unchanged. */
+  border-top: 1px solid transparent;
+  /* The WebGL timeline draws its bar ruler before lane 1. Reserving the same
+     band here keeps header row 1 level with its lane; it is part of this
+     column, so scrolling can never separate the two. */
+  padding-top: var(--arr-ruler-height, 32px);
+  /* Vertical scrolling belongs to `.playlist-content`, which moves this column
+     and the lane grid together. A scroller here could drift from the grid. */
+  overflow-y: hidden;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
 }
@@ -484,7 +519,10 @@
 /* ── Grid viewport (WebGL canvas host) ──────────────────── */
 .grid-viewport {
   flex: 1 1 auto;
-  overflow: auto;
+  /* Horizontal scrolling only: the canvas is sized to the rows, and vertical
+     movement is shared with the header column in `.playlist-content`. */
+  overflow-x: auto;
+  overflow-y: hidden;
   background: var(--ivory-bg);
   position: relative;
   -webkit-overflow-scrolling: touch;
@@ -495,6 +533,24 @@
   position: absolute;
   top: 0;
   left: 0;
+}
+
+/* Guided mode on a landscape phone leaves the canvas row only a few dozen
+   pixels above the docked return pill. There the 32px ruler band is taller
+   than the useful part of the first lane, and reserving it in the header
+   column would push the first row's M/S controls below the clipped canvas.
+   Drop the band in both surfaces instead: the gutter collapses and the canvas
+   is raised by the same amount, so lane 1 starts at the row's top edge and
+   stays level with header row 1. Hit testing still resolves correctly because
+   it works from the canvas's own bounding rect. */
+@media (max-width: 932px) and (orientation: landscape) and (max-height: 480px) {
+  :host(.gate-active) .track-headers {
+    padding-top: 0;
+  }
+
+  :host(.gate-active) .gl-canvas {
+    top: calc(-1 * var(--arr-ruler-height, 32px));
+  }
 }
 
 /* ── Removed DOM clip/playhead/ruler styles — rendered by WebGL ── */
@@ -2030,6 +2086,16 @@
 @media (max-width: 932px) {
   .track-headers {
     width: 150px;
+    /* Four 32px controls plus gaps and padding need 148 of these 149px. A thin
+       scrollbar takes 10 of them, so the phone column keeps its bar out of
+       layout (the element already carries `no-scrollbar`). Desktop keeps its
+       thin scroll cue — there the column is wide enough to afford it. */
+    scrollbar-width: none;
+  }
+
+  .track-headers::-webkit-scrollbar {
+    width: 0;
+    height: 0;
   }
 
   .track-top {
@@ -2057,5 +2123,58 @@
 @media (max-width: 932px) and (orientation: landscape) {
   :host(.gate-active) .arrangement-mode-status {
     display: none;
+  }
+}
+
+/* Fold control on a group header. Only rendered once the group holds tracks,
+   so a freshly created group does not offer a caret that folds nothing. */
+.track-group-toggle {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 20px;
+  height: 20px;
+  margin-right: 4px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  opacity: 0.65;
+  cursor: pointer;
+}
+
+.track-group-toggle:hover,
+.track-group-toggle:focus-visible {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* A 20px caret is well under the 44px tap target the rest of the Studio holds
+   to, but the track header has no room for a 44px visual. Same fix as the
+   rack's row actions: keep the glyph, spread the target with an ::after.
+
+   Vertically the target is the name row itself, not a guessed spread: the
+   button stretches to its row's content box (~29.5px at 390x844, inside a
+   33.47px row), so the target can never cross into the M/S/copy/delete row —
+   whose 44px buttons overflow upward past their container and are the real
+   edge to stay clear of. Horizontally the ::after spreads left to the padding
+   edge (-8px, x=1) and right to just short of the name (+16px, ending at x=45
+   where the name starts at x=49). A 44px tall target is not possible in this
+   header: the name row is 33.47px, so it would cover the M button. The
+   measured result is 44x~29, above WCAG 2.2's 24px floor, and
+   arrangement-phone-check.cjs asserts the width, the height, all four edges,
+   the name, the grid and the first control button at both phone sizes. */
+@media (max-width: 768px), (max-width: 932px) and (orientation: landscape) {
+  .track-group-toggle {
+    align-self: stretch;
+    height: auto;
+  }
+
+  .track-group-toggle::after {
+    content: '';
+    position: absolute;
+    inset: 0 -16px 0 -8px;
   }
 }

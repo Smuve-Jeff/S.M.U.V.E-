@@ -1650,5 +1650,228 @@ describe("ArrangementViewComponent", () => {
     expect(component.stemSaved()).toEqual([saved]);
   });
 
+  /**
+   * The real MusicManagerService selects the track addTrack() returns. A mock
+   * that skips that side effect "passes" adoption while the app parents the
+   * new group to itself, so every group test installs the side effect too.
+   */
+  const addTrackSelecting = (id: string) => {
+    mockMusicManager.addTrack.mockImplementationOnce(() => {
+      mockMusicManager.tracks.update((tracks) => [
+        ...tracks,
+        { id, name: "New Group", clips: [], type: "bus" } as any,
+      ]);
+      mockMusicManager.selectedTrackId.set(id);
+      return id;
+    });
+  };
 
+  it("gives a new group the selected track, directly above it", () => {
+    mockMusicManager.tracks.set([
+      { id: "1", name: "Lead", clips: [], mute: false, solo: false },
+      { id: "2", name: "Pad", clips: [], mute: false, solo: false },
+    ] as any);
+    mockMusicManager.selectedTrackId.set("2");
+    addTrackSelecting("group-1");
+
+    component.createGroup();
+
+    expect(mockMusicManager.addTrack).toHaveBeenCalledWith(
+      "New Group",
+      "none",
+      "bus",
+    );
+    expect(mockMusicManager.tracks().map((t) => t.id)).toEqual([
+      "1",
+      "group-1",
+      "2",
+    ]);
+    expect(mockMusicManager.tracks().find((t) => t.id === "2")?.parentId).toBe(
+      "group-1",
+    );
+    // Captured before addTrack(): the group never becomes its own parent.
+    expect(
+      mockMusicManager.tracks().find((t) => t.id === "group-1")?.parentId,
+    ).toBeUndefined();
+    expect(component.groupIds().has("group-1")).toBe(true);
+  });
+
+  it("leaves a track that already belongs to a group where it is", () => {
+    mockMusicManager.tracks.set([
+      { id: "1", name: "Lead", clips: [], parentId: "group-1" },
+    ] as any);
+    mockMusicManager.selectedTrackId.set("1");
+    addTrackSelecting("group-2");
+
+    component.createGroup();
+
+    expect(mockMusicManager.tracks().find((t) => t.id === "1")?.parentId).toBe(
+      "group-1",
+    );
+    expect(
+      mockMusicManager.tracks().find((t) => t.id === "group-2")?.parentId,
+    ).toBeUndefined();
+  });
+
+  it("does nothing when the track budget refuses to create the group", () => {
+    mockMusicManager.addTrack.mockReturnValueOnce(null);
+    const before = mockMusicManager.tracks();
+
+    component.createGroup();
+
+    expect(mockMusicManager.tracks()).toBe(before);
+  });
+
+  it("toggles a group closed and open without rewriting its children", () => {
+    mockMusicManager.tracks.set([
+      { id: "group-1", name: "New Group", clips: [], collapsed: false },
+      {
+        id: "child",
+        name: "Lead",
+        clips: [],
+        parentId: "group-1",
+        collapsed: false,
+      },
+    ] as any);
+    const click = { stopPropagation: jest.fn() } as any;
+
+    component.toggleGroup("group-1", click);
+    expect(
+      mockMusicManager.tracks().find((t) => t.id === "group-1")?.collapsed,
+    ).toBe(true);
+    // The child keeps its own state: only the group's flag decides visibility.
+    expect(
+      mockMusicManager.tracks().find((t) => t.id === "child")?.collapsed,
+    ).toBe(false);
+    // The caret sits inside the row's click target, so it must not also select.
+    expect(click.stopPropagation).toHaveBeenCalled();
+
+    component.toggleGroup("group-1");
+    expect(
+      mockMusicManager.tracks().find((t) => t.id === "group-1")?.collapsed,
+    ).toBe(false);
+  });
+
+  it("folds grandchildren when an outer group closes", () => {
+    mockMusicManager.tracks.set([
+      { id: "outer", name: "Outer", clips: [], collapsed: true },
+      { id: "inner", name: "Inner", clips: [], parentId: "outer" },
+      { id: "leaf", name: "Leaf", clips: [], parentId: "inner" },
+      { id: "outside", name: "Outside", clips: [] },
+    ] as any);
+
+    // The leaf's direct parent is open; only the chain above it is folded.
+    expect(component.visibleTracks().map((t) => t.id)).toEqual([
+      "outer",
+      "outside",
+    ]);
+  });
+
+  it("folds only a nested group's own members when that group closes", () => {
+    mockMusicManager.tracks.set([
+      { id: "outer", name: "Outer", clips: [], collapsed: false },
+      {
+        id: "inner",
+        name: "Inner",
+        clips: [],
+        parentId: "outer",
+        collapsed: true,
+      },
+      { id: "leaf", name: "Leaf", clips: [], parentId: "inner" },
+    ] as any);
+
+    expect(component.visibleTracks().map((t) => t.id)).toEqual([
+      "outer",
+      "inner",
+    ]);
+  });
+
+  it("draws a self-parented or cyclic project without hiding the row or looping", () => {
+    mockMusicManager.tracks.set([
+      {
+        id: "self",
+        name: "Self",
+        clips: [],
+        parentId: "self",
+        collapsed: true,
+      },
+      { id: "a", name: "A", clips: [], parentId: "b", collapsed: true },
+      { id: "b", name: "B", clips: [], parentId: "a" },
+    ] as any);
+
+    // A self-parented row would otherwise hide itself on the first fold; a
+    // cycle that reaches a visited row ends the walk instead of hanging.
+    expect(component.visibleTracks().map((t) => t.id)).toEqual(["self", "a"]);
+    // Depth is cycle-safe too: a corrupted row is never indented by its own id.
+    expect(component.trackDepths().get("self")).toBe(0);
+    expect(component.trackDepths().get("a")).toBe(1);
+  });
+
+  it("renders the collapse caret only for groups that hold tracks", () => {
+    mockMusicManager.tracks.set([
+      { id: "group-1", name: "New Group", clips: [], collapsed: false },
+      { id: "child", name: "Lead", clips: [], parentId: "group-1" },
+      { id: "solo", name: "Vox", clips: [] },
+    ] as any);
+    fixture.detectChanges();
+
+    const carets: NodeListOf<HTMLElement> =
+      fixture.nativeElement.querySelectorAll(".track-group-toggle");
+    expect(carets).toHaveLength(1);
+    expect(carets[0].getAttribute("aria-expanded")).toBe("true");
+  });
+
+  it("drops a collapsed group's tracks from the timeline and brings them back", () => {
+    mockMusicManager.tracks.set([
+      { id: "group-1", name: "New Group", clips: [], collapsed: false },
+      { id: "child", name: "Lead", clips: [], parentId: "group-1" },
+      { id: "solo", name: "Vox", clips: [] },
+    ] as any);
+    fixture.detectChanges();
+    const headers = () =>
+      fixture.nativeElement.querySelectorAll(".track-header");
+    expect(headers()).toHaveLength(3);
+
+    component.toggleGroup("group-1");
+    fixture.detectChanges();
+    expect(headers()).toHaveLength(2);
+    expect(fixture.nativeElement.textContent).not.toContain("LEAD");
+
+    component.toggleGroup("group-1");
+    fixture.detectChanges();
+    expect(headers()).toHaveLength(3);
+  });
+
+  it("indents each nested row by its depth without narrowing the controls row", () => {
+    mockMusicManager.tracks.set([
+      { id: "outer", name: "Outer", clips: [] },
+      { id: "inner", name: "Inner", clips: [], parentId: "outer" },
+      { id: "leaf", name: "Leaf", clips: [], parentId: "inner" },
+      { id: "deep", name: "Deep", clips: [], parentId: "leaf" },
+    ] as any);
+    fixture.detectChanges();
+
+    const headers: HTMLElement[] = Array.from(
+      fixture.nativeElement.querySelectorAll(".track-header"),
+    );
+    const nameRow = (row: HTMLElement) =>
+      row.querySelector(".track-top") as HTMLElement;
+    const controlsRow = (row: HTMLElement) =>
+      row.querySelector(".track-controls") as HTMLElement | null;
+    const indentOf = (row: HTMLElement) =>
+      parseFloat(nameRow(row).style.marginLeft || "0");
+
+    expect(headers.map((row) => row.getAttribute("data-depth"))).toEqual([
+      "0",
+      "1",
+      "2",
+      "2",
+    ]);
+    expect(headers.map(indentOf)).toEqual([0, 10, 20, 20]);
+    // Only the name line moves: the M/S/copy/delete row keeps the full column
+    // width, so its four 32px targets and the caret's 44px box are untouched.
+    expect(
+      headers.map((row) => parseFloat(controlsRow(row)?.style.marginLeft || "0")),
+    ).toEqual([0, 0, 0, 0]);
+  });
 });

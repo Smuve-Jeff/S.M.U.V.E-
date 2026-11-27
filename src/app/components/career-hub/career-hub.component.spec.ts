@@ -8,6 +8,7 @@ import { CareerHubComponent } from './career-hub.component';
 import { API_KEY_TOKEN, AiService } from '../../services/ai.service';
 import { UIService } from '../../services/ui.service';
 import { UserProfileService } from '../../services/user-profile.service';
+import { InteractionDialogService } from '../../services/interaction-dialog.service';
 import { initialProfile, ProfileAuditLog, UserProfile } from '../../types/profile.types';
 
 describe('CareerHubComponent', () => {
@@ -16,6 +17,7 @@ describe('CareerHubComponent', () => {
   let profileSig: ReturnType<typeof signal<UserProfile>>;
   let updateProfile: jest.Mock;
   let recordAudit: jest.Mock;
+  let dialog: { confirm: jest.Mock };
 
   const text = () => (fixture.nativeElement as HTMLElement).textContent ?? '';
   const patchProfile = (patch: Partial<UserProfile>) =>
@@ -29,6 +31,7 @@ describe('CareerHubComponent', () => {
       profileSig.update((profile) => ({ ...profile, ...patch }));
       return true;
     });
+    dialog = { confirm: jest.fn().mockResolvedValue(true) };
     recordAudit = jest.fn(async (log: ProfileAuditLog) => {
       profileSig.update((profile) => ({
         ...profile,
@@ -61,6 +64,7 @@ describe('CareerHubComponent', () => {
           provide: API_KEY_TOKEN,
           useValue: 'TEST_KEY',
         },
+        { provide: InteractionDialogService, useValue: dialog },
       ],
     }).compileComponents();
 
@@ -357,14 +361,20 @@ describe('CareerHubComponent', () => {
       });
       fixture.detectChanges();
 
-      const confirmSpy = jest.spyOn(window, 'confirm').mockReturnValue(false);
+      dialog.confirm.mockResolvedValueOnce(false);
       await component.recallPitch(component.pitches()[0]);
+      expect(dialog.confirm).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: expect.stringContaining('Alpha'),
+          confirmLabel: 'Remove record',
+          tone: 'danger',
+        })
+      );
       expect(component.pitches()).toHaveLength(1);
 
-      confirmSpy.mockReturnValue(true);
+      dialog.confirm.mockResolvedValueOnce(true);
       await component.recallPitch(component.pitches()[0]);
       expect(component.pitches()).toEqual([]);
-      confirmSpy.mockRestore();
     });
   });
 
@@ -408,6 +418,36 @@ describe('CareerHubComponent', () => {
       expect(component.venues()).toEqual([]);
       expect(component.newVenueName()).toBe('The Circuit');
       expect(component.venueError()).toContain('could not be saved');
+    });
+
+    it('stops tracking a venue only after the in-app dialog confirms', async () => {
+      patchProfile({
+        careerVenues: [
+          {
+            id: 'v1',
+            name: 'The Circuit',
+            location: 'Los Angeles',
+            capacity: 500,
+            bookingStatus: 'Available',
+          },
+        ],
+      });
+      fixture.detectChanges();
+
+      dialog.confirm.mockResolvedValueOnce(false);
+      await component.removeVenue(component.venues()[0]);
+      expect(component.venues()).toHaveLength(1);
+      expect(component.venueError()).toBe('');
+
+      dialog.confirm.mockResolvedValueOnce(true);
+      await component.removeVenue(component.venues()[0]);
+      expect(component.venues()).toEqual([]);
+      expect(dialog.confirm).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          title: 'Stop tracking “The Circuit”?',
+          cancelLabel: 'Keep venue',
+        })
+      );
     });
   });
 

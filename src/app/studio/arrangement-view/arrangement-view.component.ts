@@ -167,6 +167,18 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
     crossfadeFade?: number;
   } | null = null;
 
+  /**
+   * One-finger vertical pan over the lane grid. The grid itself cannot scroll
+   * vertically (that would drift from the header column), so a finger pan is
+   * forwarded to `.playlist-content`, the one owner of vertical movement.
+   */
+  private gridPan: {
+    startX: number;
+    startY: number;
+    startTop: number;
+    vertical: boolean;
+  } | null = null;
+
   /** Horizontal drag state for a tempo point in the timeline lane. */
   private activeTempoDrag: {
     pointerId: number;
@@ -317,6 +329,7 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
   rulerHeight = 32;
 
   @ViewChild("gridViewport") gridViewport!: ElementRef<HTMLDivElement>;
+  @ViewChild("playlistContent") playlistContent!: ElementRef<HTMLDivElement>;
   @ViewChild("glCanvas") glCanvas!: ElementRef<HTMLCanvasElement>;
 
   /** Timeline floor: the classic 4-bar x 16 view, no longer a ceiling. */
@@ -487,17 +500,13 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
     };
 
     // Build timeline tracks from MusicManager tracks
-    const visibleTracks = this.tracks().filter(
-      (t) =>
-        !t.parentId ||
-        !this.tracks().find((p) => p.id === t.parentId)?.collapsed,
-    );
+    const lanes = this.visibleTracks();
 
     const tlTracks: TimelineTrack[] = [];
     const tlClips: TimelineClip[] = [];
     let y = this.rulerHeight;
 
-    for (const track of visibleTracks) {
+    for (const track of lanes) {
       const th = this.laneHeight();
       tlTracks.push({
         id: track.id,
@@ -644,15 +653,11 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
     }
 
     // Determine which track lane was clicked
-    const visibleTracks = this.tracks().filter(
-      (t) =>
-        !t.parentId ||
-        !this.tracks().find((p) => p.id === t.parentId)?.collapsed,
-    );
+    const lanes = this.visibleTracks();
     let y = rulerH;
     let hitTrack: TrackModel | null = null;
 
-    for (const track of visibleTracks) {
+    for (const track of lanes) {
       const th = this.laneHeight();
       if (world.y >= y && world.y < y + th) {
         hitTrack = track;
@@ -679,7 +684,16 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
 
   /** Handle scroll wheel for zoom */
   onGridWheel(e: WheelEvent): void {
-    if (!e.ctrlKey && !e.metaKey) return; // Only zoom with Ctrl+wheel
+    if (!e.ctrlKey && !e.metaKey) {
+      // The grid cannot scroll vertically (that would drift from the header
+      // column), so hand a plain wheel to the shared scroller both live in.
+      const content = this.playlistContent?.nativeElement;
+      if (content && e.deltaY) {
+        content.scrollTop += e.deltaY;
+        e.preventDefault();
+      }
+      return;
+    }
     e.preventDefault();
     // Zoom via barWidth adjustment
     const delta = e.deltaY > 0 ? -20 : 20;
@@ -999,9 +1013,99 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
   }
 
   createGroup() {
-    if (this.musicManager.addTrack("New Group", "none", "bus")) {
-      this.markDirty();
+    // addTrack() selects the track it returns, so the artist's selection has
+    // to be captured first — reading it afterwards adopts the new group into
+    // itself, which makes the group hide and become unreachable when folded.
+    const selectedId = this.musicManager.selectedTrackId();
+    const groupId = this.musicManager.addTrack("New Group", "none", "bus");
+    if (!groupId) return;
+    // A group with no members has nothing to fold, so "+ GROUP" adopts the
+    // track the artist is working on instead of leaving an empty bus row that
+    // can never be collapsed. The group row goes directly above its member,
+    // because addTrack appends the new group to the end of the list.
+    this.musicManager.tracks.update((tracks) => {
+      const group = tracks.find((t) => t.id === groupId);
+      const child = tracks.find((t) => t.id === selectedId);
+      if (!group || !child || child.id === groupId || child.parentId) {
+        return tracks;
+      }
+      const withoutGroup = tracks.filter((t) => t.id !== groupId);
+      const index = withoutGroup.findIndex((t) => t.id === child.id);
+      const adopted = withoutGroup.map((t) =>
+        t.id === child.id ? { ...t, parentId: groupId } : t,
+      );
+      return [...adopted.slice(0, index), group, ...adopted.slice(index)];
+    });
+    this.markDirty();
+  }
+
+  /**
+   * Ancestor ids of a row, nearest first. The walk stops as soon as it meets an
+   * id it has already seen, so a self-parented row or a longer cycle from an
+   * older project ends instead of looping. This is the single cycle guard that
+   * both nesting computeds below rely on.
+   */
+  private ancestorIds(
+    track: TrackModel,
+    byId: Map<string, TrackModel>,
+  ): string[] {
+    const chain: string[] = [];
+    const visited = new Set([track.id]);
+    let parentId = track.parentId;
+    while (parentId && !visited.has(parentId)) {
+      chain.push(parentId);
+      visited.add(parentId);
+      parentId = byId.get(parentId)?.parentId;
     }
+    return chain;
+  }
+
+  /**
+   * Tracks the timeline draws: a collapsed group hides its members and
+   * everything nested below them, so a row leaves when any ancestor along its
+   * chain is collapsed — not only its direct parent.
+   */
+  readonly visibleTracks = computed(() => {
+    const tracks = this.tracks();
+    const byId = new Map(tracks.map((t) => [t.id, t]));
+    const collapsed = new Set(
+      tracks.filter((t) => t.collapsed).map((t) => t.id),
+    );
+    return tracks.filter(
+      (t) => !this.ancestorIds(t, byId).some((id) => collapsed.has(id)),
+    );
+  });
+
+  /** Ids of the groups holding at least one track — the only rows with a caret. */
+  readonly groupIds = computed(
+    () =>
+      new Set(
+        this.tracks()
+          .map((t) => t.parentId)
+          .filter((id): id is string => !!id),
+      ),
+  );
+
+  /**
+   * How far each row sits inside the group that holds it, in nesting levels.
+   * Capped at two: the header is only as wide as four 32px controls, so a
+   * deeper indent would squeeze the track name out of the 149px column. A
+   * self-parented row yields no ancestors under the guard, so it reads as
+   * depth 0 and is not indented by its own id.
+   */
+  readonly trackDepths = computed(() => {
+    const tracks = this.tracks();
+    const byId = new Map(tracks.map((t) => [t.id, t]));
+    const depths = new Map<string, number>();
+    for (const track of tracks) {
+      depths.set(track.id, Math.min(this.ancestorIds(track, byId).length, 2));
+    }
+    return depths;
+  });
+
+  /** Left inset for a row's name line: 10px per level, capped at 20px. */
+  trackIndent(trackId: string): number {
+    return (this.trackDepths().get(trackId) ?? 0) * 10;
   }
 
   selectTrack(id: string) {
@@ -1079,6 +1183,21 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
   private pinchZoomRef = 1;
 
   onGridTouchStart(event: TouchEvent) {
+    if (event.touches.length === 1) {
+      const touch = event.touches[0];
+      const content = this.playlistContent?.nativeElement;
+      this.gridPan = content
+        ? {
+            startX: touch.clientX,
+            startY: touch.clientY,
+            startTop: content.scrollTop,
+            vertical: false,
+          }
+        : null;
+      return;
+    }
+
+    this.gridPan = null;
     if (event.touches.length === 2) {
       this.pinchZoomRef = this.enhancedGestures.zoomLevel();
       this.enhancedGestures.handlePinch(event);
@@ -1086,6 +1205,27 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
   }
 
   onGridTouchMove(event: TouchEvent) {
+    if (event.touches.length === 1) {
+      const pan = this.gridPan;
+      const touch = event.touches[0];
+      const content = this.playlistContent?.nativeElement;
+      if (!pan || !content) return;
+
+      const dy = pan.startY - touch.clientY;
+      const dx = touch.clientX - pan.startX;
+      // Commit to the dominant axis once, so a clip drag that starts with a
+      // little vertical jitter is not turned into a scroll mid-gesture.
+      if (!pan.vertical && Math.abs(dy) > 6 && Math.abs(dy) > Math.abs(dx)) {
+        pan.vertical = true;
+        this.activeClipGesture = null;
+      }
+      if (!pan.vertical) return;
+
+      content.scrollTop = pan.startTop + dy;
+      event.preventDefault();
+      return;
+    }
+
     if (event.touches.length === 2) {
       event.preventDefault();
       this.enhancedGestures.handlePinch(event);
@@ -1108,9 +1248,11 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
   /**
    * Releasing the fingers must clear the pinch reference span, otherwise the
    * next two-finger gesture is measured against the previous one's distance and
-   * jumps on its first frame.
+   * jumps on its first frame. The one-finger pan must also forget its origin,
+   * or the next drag continues from the old touch position.
    */
   onGridTouchEnd() {
+    this.gridPan = null;
     this.enhancedGestures.resetPinch();
     this.pinchZoomRef = this.enhancedGestures.zoomLevel();
   }
@@ -2402,14 +2544,20 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
     this.automation.setWriteSmoothing(percent / 100);
   }
 
-  toggleGroup(trackId: string) {
-    this.musicManager.tracks.update((ts) =>
-      ts.map((t) => {
-        if (t.id === trackId || t.parentId === trackId) {
-          return { ...t, collapsed: !t.collapsed };
-        }
-        return t;
-      }),
+  /**
+   * Fold or unfold a group. Only the group's own flag changes: the template
+   * hides children from their parent's `collapsed`, so rewriting each child's
+   * flag would clobber the state a child group needs for its own subtree. The
+   * caret sits inside the header's click target, so the event is swallowed to
+   * keep the toggle from also selecting the row.
+   */
+  toggleGroup(trackId: string, event?: Event): void {
+    event?.stopPropagation();
+    const group = this.tracks().find((t) => t.id === trackId);
+    if (!group) return;
+    const collapsed = !group.collapsed;
+    this.musicManager.tracks.update((tracks) =>
+      tracks.map((t) => (t.id === trackId ? { ...t, collapsed } : t)),
     );
     this.markDirty();
   }
@@ -2712,6 +2860,26 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
 
   canvasHeight() {
     return this.tracks().length * this.laneHeight() + this.rulerHeight;
+  }
+
+  /**
+   * Height the shared lane row must expose. The grid can only show as much as
+   * the canvas it holds, and expanded take lanes make the header column
+   * taller than that canvas; keeping this row at the larger of the two means
+   * `.playlist-content` can scroll all of it without either column being
+   * clipped or scrolling on its own.
+   */
+  lanesMinHeight(): number {
+    const headerRows = this.tracks().reduce((total, track) => {
+      const takes = this.musicManager.takesExpanded()[track.id]
+        ? this.takeLaneRows(track) * (this.laneHeight() * 0.6)
+        : 0;
+      return total + this.laneHeight() + takes;
+    }, 0);
+    // The header column reserves the canvas's ruler band above row 1, so its
+    // full content is that band plus the rows — otherwise an expanded take lane
+    // at the bottom would be clipped by exactly the ruler height.
+    return Math.max(220, this.canvasHeight(), this.rulerHeight + headerRows);
   }
 
   gridWidth() {

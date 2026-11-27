@@ -8,6 +8,7 @@ import {
   ApiProductService,
 } from '../../services/api-product.service';
 import { AuthService } from '../../services/auth.service';
+import { InteractionDialogService } from '../../services/interaction-dialog.service';
 
 @Component({
   selector: 'app-products',
@@ -19,6 +20,7 @@ import { AuthService } from '../../services/auth.service';
 export class ProductsComponent implements OnInit {
   private productsApi = inject(ApiProductService);
   private authService = inject(AuthService);
+  private dialog = inject(InteractionDialogService);
 
   products = signal<ApiProduct[]>([]);
   isLoading = signal(true);
@@ -90,9 +92,14 @@ export class ProductsComponent implements OnInit {
   }
 
   async deleteProduct(product: ApiProduct) {
-    if (!window.confirm(`PURGE ${product.name.toUpperCase()} FROM THE VAULT?`)) {
-      return;
-    }
+    const confirmed = await this.dialog.confirm({
+      title: `PURGE ${product.name.toUpperCase()} FROM THE VAULT?`,
+      message: 'The listing is removed for good. Its orders and history are kept.',
+      confirmLabel: 'Purge item',
+      cancelLabel: 'Keep item',
+      tone: 'danger',
+    });
+    if (!confirmed) return;
     try {
       await this.productsApi.deleteProduct(product.id);
       this.products.update((list) => list.filter((p) => p.id !== product.id));

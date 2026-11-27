@@ -12,6 +12,7 @@ import {
   VenueBookingStatus,
 } from '../../types/career.types';
 import { ProfessionalFinancials, UserProfile } from '../../types/profile.types';
+import { InteractionDialogService } from '../../services/interaction-dialog.service';
 
 interface ActivityEntry {
   id: string;
@@ -88,6 +89,7 @@ export class CareerHubComponent {
   private userProfileService = inject(UserProfileService);
   private aiAuditService = inject(AiAuditService);
   private businessPipelineService = inject(BusinessPipelineService);
+  private dialog = inject(InteractionDialogService);
 
   profile = this.userProfileService.profile;
 
@@ -421,14 +423,14 @@ export class CareerHubComponent {
   }
 
   async recallPitch(pitch: CareerPitch) {
-    if (
-      typeof window !== 'undefined' &&
-      !window.confirm(
-        `Remove the pitch record for “${pitch.labelName}”? This does not retract a pitch you already sent.`
-      )
-    ) {
-      return;
-    }
+    const confirmed = await this.dialog.confirm({
+      title: `Remove the pitch record for “${pitch.labelName}”?`,
+      message: 'This does not retract a pitch you already sent.',
+      confirmLabel: 'Remove record',
+      cancelLabel: 'Keep record',
+      tone: 'danger',
+    });
+    if (!confirmed) return;
     await this.persistPitches(
       this.pitches().filter((entry) => entry.id !== pitch.id)
     );
@@ -498,12 +500,13 @@ export class CareerHubComponent {
   }
 
   async removeVenue(venue: CareerVenue) {
-    if (
-      typeof window !== 'undefined' &&
-      !window.confirm(`Stop tracking “${venue.name}”?`)
-    ) {
-      return;
-    }
+    const confirmed = await this.dialog.confirm({
+      title: `Stop tracking “${venue.name}”?`,
+      message: 'The venue leaves your career circuit. You can track it again later.',
+      confirmLabel: 'Stop tracking',
+      cancelLabel: 'Keep venue',
+    });
+    if (!confirmed) return;
     const saved = await this.saveProfile({
       careerVenues: this.venues().filter((entry) => entry.id !== venue.id),
     });

@@ -1,6 +1,7 @@
 <div
   class="playlist-container studio-workspace-surface arrangement-surface glass-v42 shadow-v42-xl"
   data-studio-module="arrangement"
+  [style.--arr-ruler-height]="rulerHeight + 'px'"
   [class.tool-blade]="activeTool() === 'blade'"
   [class.tool-glue]="activeTool() === 'glue'"
 >
@@ -390,7 +391,7 @@
     </span>
   </div>
 
-  <div class="playlist-content no-scrollbar">
+  <div class="playlist-content no-scrollbar" #playlistContent>
     <!-- Empty-arrangement CTA: guides a fresh session into AI Produce or a
          beat-first start so the canvas is never a dead end. -->
     <div
@@ -427,17 +428,15 @@
       </div>
     </div>
 
-    <div class="arrangement-lanes">
+    <div
+      class="arrangement-lanes"
+      [style.min-height.px]="lanesMinHeight()"
+    >
     <div class="track-headers no-scrollbar wood-panel">
       <div
-        *ngFor="
-          let track of tracks().filter(
-            (t) =>
-              !t.parentId ||
-              !tracks().find((p) => p.id === t.parentId)?.collapsed
-          )
-        "
+        *ngFor="let track of visibleTracks()"
         class="track-header tactile-v42 glass-v42"
+        [attr.data-depth]="trackDepths().get(track.id) ?? 0"
         [class.rec-capture]="isTrackReceivingTake(track.id)"
         [style.height.px]="
           laneHeight() +
@@ -448,7 +447,27 @@
         [class.selected]="isTrackSelected(track.id)"
         (click)="selectTrack(track.id)"
       >
-        <div class="track-top flex items-center p-2">
+        <div
+          class="track-top flex items-center p-2"
+          [style.margin-left.px]="trackIndent(track.id)"
+        >
+          <button
+            *ngIf="groupIds().has(track.id)"
+            type="button"
+            class="track-group-toggle"
+            [attr.aria-expanded]="!track.collapsed"
+            [attr.aria-label]="
+              (track.collapsed ? 'Expand ' : 'Collapse ') +
+              track.name +
+              ' group'
+            "
+            [title]="track.collapsed ? 'Expand group' : 'Collapse group'"
+            (click)="toggleGroup(track.id, $event)"
+          >
+            <span class="material-symbols-outlined text-[12px]" aria-hidden="true">
+              {{ track.collapsed ? 'chevron_right' : 'expand_more' }}
+            </span>
+          </button>
           <div
             class="track-color-strip w-1 h-8 rounded mr-2"
             [style.background-color]="track.color || '#af25f4'"
@@ -539,6 +558,7 @@
         class="gl-canvas"
         [style.width.px]="gridWidth()"
         [style.height.px]="canvasHeight()"
+        [attr.data-ruler-height]="rulerHeight"
       ></canvas>
     </div>
     </div>

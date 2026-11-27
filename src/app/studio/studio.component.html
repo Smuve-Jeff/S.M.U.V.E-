@@ -1198,19 +1198,25 @@
               Full arrangement · beginner tips stay on in every other view
             </span>
           </div>
-          <div class="comp-arrangement-main">
-            <app-arrangement-view
-              [class.gate-active]="isBeginnerMode()"
-              (requestViewChange)="onWizardNavigate($event)"
-              (openBezierEditor)="toggleBezierEditor($event)"
-            ></app-arrangement-view>
+          <!-- The timeline and its channel strip are one row. Wrapping them
+               keeps the strip a row dock when gate mode stacks the pill above
+               this body: without the wrapper the strip became a column item
+               and took the whole height, collapsing the timeline to 0px. -->
+          <div class="comp-arrangement-body">
+            <div class="comp-arrangement-main">
+              <app-arrangement-view
+                [class.gate-active]="isBeginnerMode()"
+                (requestViewChange)="onWizardNavigate($event)"
+                (openBezierEditor)="toggleBezierEditor($event)"
+              ></app-arrangement-view>
+            </div>
+            <app-inspector
+              *ngIf="showInspector()"
+              [collapsed]="inspectorCollapsed()"
+              (toggleCollapsed)="toggleInspector()"
+              (openEffectsRack)="openEffectsRack($event)"
+            ></app-inspector>
           </div>
-          <app-inspector
-            *ngIf="showInspector()"
-            [collapsed]="inspectorCollapsed()"
-            (toggleCollapsed)="toggleInspector()"
-            (openEffectsRack)="openEffectsRack($event)"
-          ></app-inspector>
         </div>
       </ng-container>
       <div class="comp-view" *ngSwitchCase="'quick-session'">

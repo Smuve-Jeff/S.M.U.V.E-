@@ -36,12 +36,15 @@ master strip and inspector rather than on a populated console.
 | `dj-carousel-check.cjs` | On a portrait phone the console is three full-width panes that scroll horizontally (deck A, central mixer, deck B) with no page-level scroll; landscape and desktop keep the grid. |
 | `overhang-check.cjs` | On a landscape and a portrait phone, no control inside the deck overhangs the deck by more than 4px. |
 | `beginner-strip-check.cjs` | Beginner Mode's step strip stays under 96px on a 360x640 portrait phone with its instruction visible, and collapses to a single row under 40px at 568x320, leaving the tool at least four times the strip's height. Measured in the Studio on 2026-11-02: 66.5px and 24.0px, with 139px of tool below the strip in landscape. |
-| `arrangement-phone-check.cjs` | On 844x390 and 390x844, the Arrangement header has a visible thin horizontal scrollbar and can reach its final control, all four track-header buttons are 32x44px and stay inside the column, and the Beginner gate is compact, hides its secondary copy, and does not intercept those controls. |
+| `arrangement-phone-check.cjs` | On 844x390 and 390x844, the Arrangement header has a visible thin horizontal scrollbar and can reach its final control, all four track-header buttons are 32x44px and stay inside the column, the group-collapse caret's 20px glyph spreads to a measured 44x32 target (the header's name row is only 33.47px, so 44px tall would cover the M button) whose four edges all hit the caret and whose right edge reaches neither the track name nor the timeline grid and whose bottom edge stops at the controls row, and the Beginner gate is compact, hides its secondary copy, and does not intercept those controls. Vertical movement has one owner: neither the header column nor the lane grid carries a vertical scroll, a plain wheel over the grid moves the shared `.playlist-content`, and scrolling that content shifts both surfaces by the same amount. Header rows are level with their lane bands at rest: the header column reserves the canvas's 32px ruler gutter, and the compact guided landscape layout drops the band from both surfaces so the gutter cannot push the first row's controls out of view. A real one-finger drag over the grid (driven through CDP touch events) also scrolls the shared content, with neither inner surface scrolling alone. |
 | `transport-phone-check.cjs` | On 844x390, 390x844 and 360x800, the loop and Click toggles and the BPM are fully inside the primary strip; the toggles are 44x44 and hit-test to themselves; the Click toggle shows its label; More opens a Click panel with volume, OFF/1B/2B count-in and a test click; the Drum Machine click toggle is 44x44 and tappable when present. |
 
 ## Deliberate tolerances
 
 - 2px of horizontal slack on page scroll, to absorb sub-pixel rounding.
+- Up to 16px of grid scroll height for its horizontal scrollbar band (classic
+  scrollbars): the lane grid never scrolls vertically, the band is all that may
+  remain below its canvas.
 - 4px of deck overhang, which is a knob's shadow rather than a control.
 - `layout-verify3.cjs` skips controls inside a horizontal scroller; without it
   the carousel's off-stage panes read as clipped.

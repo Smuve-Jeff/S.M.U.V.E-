@@ -5,6 +5,7 @@ import { API_KEY_TOKEN, AiService } from '../../services/ai.service';
 import { MarketingService } from '../../services/marketing.service';
 import { UserProfileService } from '../../services/user-profile.service';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { InteractionDialogService } from '../../services/interaction-dialog.service';
 import { signal } from '@angular/core';
 
 describe('StrategyHubComponent', () => {
@@ -174,8 +175,12 @@ describe('StrategyHubComponent', () => {
     acquireUpgrade: jest.fn().mockResolvedValue(undefined),
   };
 
+  const mockDialog = { confirm: jest.fn().mockResolvedValue(true) };
+
   beforeEach(async () => {
     jest.clearAllMocks();
+    mockDialog.confirm.mockReset();
+    mockDialog.confirm.mockResolvedValue(true);
     mockMarketingService.campaigns.set([]);
     mockMarketingService.createCampaign.mockResolvedValue(undefined);
     mockMarketingService.deleteCampaign.mockResolvedValue(undefined);
@@ -193,6 +198,7 @@ describe('StrategyHubComponent', () => {
         { provide: MarketingService, useValue: mockMarketingService },
         { provide: UserProfileService, useValue: mockProfileService },
         { provide: API_KEY_TOKEN, useValue: 'TEST_KEY' },
+        { provide: InteractionDialogService, useValue: mockDialog },
       ],
     }).compileComponents();
 
@@ -579,15 +585,21 @@ describe('StrategyHubComponent', () => {
       },
     };
     mockMarketingService.campaigns.set([campaign]);
-    const confirm = jest.spyOn(window, 'confirm').mockReturnValue(false);
+    mockDialog.confirm.mockResolvedValueOnce(false);
 
     await component.deleteCampaign('camp-123');
     expect(mockMarketingService.deleteCampaign).not.toHaveBeenCalled();
+    expect(mockDialog.confirm).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: 'Delete campaign “Test campaign”?',
+        confirmLabel: 'Delete campaign',
+        tone: 'danger',
+      })
+    );
 
-    confirm.mockReturnValue(true);
+    mockDialog.confirm.mockResolvedValueOnce(true);
     await component.deleteCampaign('camp-123');
     expect(mockMarketingService.deleteCampaign).toHaveBeenCalledWith('camp-123');
-    confirm.mockRestore();
   });
 
   it('renders real linked social and streaming metrics on the Social tab', () => {

@@ -5446,6 +5446,15 @@ button.comp-meta-state-pill:focus-visible {
   flex-direction: row;
 }
 
+/* Timeline and channel strip as one row, so gate mode can stack the return
+   pill above them without turning the strip into a full-height column item. */
+.comp-arrangement-body {
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+}
+
 .comp-arrangement-main {
   display: flex;
   flex: 1 1 auto;
@@ -5461,7 +5470,7 @@ button.comp-meta-state-pill:focus-visible {
 
 /* The strip is a fixed-width dock, never a growing column: `.comp-view > *`
    above would otherwise hand it an equal share of the timeline. */
-.comp-arrangement-stage > app-inspector {
+.comp-arrangement-body > app-inspector {
   flex: 0 0 auto;
   align-self: stretch;
   min-width: 0;
@@ -5471,7 +5480,7 @@ button.comp-meta-state-pill:focus-visible {
    horizontal room more than the strip does). The track's own controls stay
    reachable in the Mixer, one drawer tap away. */
 @media (max-width: 1023px) {
-  .comp-arrangement-stage > app-inspector {
+  .comp-arrangement-body > app-inspector {
     display: none;
   }
 }
@@ -5499,7 +5508,9 @@ button.comp-meta-state-pill:focus-visible {
 
 /* The return pill used to float over the timeline. It is part of the canvas
    chrome, not an overlay: keeping it in flow means it can never cover track
-   headers, tempo automation or the transport. */
+   headers, tempo automation or the transport. It docks below the timeline,
+   and the arrangement's root is bounded to its canvas row (see
+   arrangement-view.component.css), so nothing can paint under the pill. */
 .comp-gate-return {
   position: static;
   order: 2;

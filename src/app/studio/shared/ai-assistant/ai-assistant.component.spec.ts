@@ -15,6 +15,7 @@ import { AiCopilotService } from "../../ai-copilot.service";
 import { NeuralMixerService } from "../../../services/neural-mixer.service";
 import { HapticService } from "../../../services/haptic.service";
 import { SnackbarService } from "../../../services/snackbar.service";
+import { InteractionDialogService } from "../../../services/interaction-dialog.service";
 import { StudioAiDirectorService } from "../../studio-ai-director.service";
 import { StudioOrchestrationService } from "../../../services/studio-orchestration.service";
 import { SmuveMemoryService } from "../../../services/smuve-memory.service";
@@ -35,6 +36,7 @@ describe("AiAssistantComponent voice communication", () => {
   let ai: any;
   let director: any;
   let snack: any;
+  let dialogs: any;
   let caseFile: any;
   let relationship: any;
 
@@ -117,6 +119,10 @@ describe("AiAssistantComponent voice communication", () => {
           useValue: (snack = { success: jest.fn(), error: jest.fn() }),
         },
         {
+          provide: InteractionDialogService,
+          useValue: (dialogs = { confirm: jest.fn().mockResolvedValue(true) }),
+        },
+        {
           provide: SmuveMemoryService,
           useValue: (caseFile = {
             promptBlock: jest.fn(() => "CASE FILE — verdict in this room."),
@@ -175,6 +181,7 @@ describe("AiAssistantComponent voice communication", () => {
             ]),
             restoreCheckpoint: jest.fn().mockResolvedValue("Restored checkpoint Before drums."),
             exportCheckpointBundle: jest.fn(() => "Exported checkpoint Before drums."),
+            deleteSelectedTrack: jest.fn(() => "Deleted track Bass."),
             exportProjectBundle: jest.fn(() => "Exported project bundle."),
             importProjectBundle: jest.fn().mockResolvedValue("Imported project bundle."),
             canUndoDirectorAction: jest.fn(() => false),
@@ -386,15 +393,79 @@ describe("AiAssistantComponent voice communication", () => {
   });
 
   it("shows Director checkpoints and restores the selected one", async () => {
-    (window as any).confirm = jest.fn(() => true);
     const fixture = TestBed.createComponent(AiAssistantComponent);
     const component = fixture.componentInstance;
     expect(component.directorCheckpoints()).toHaveLength(1);
     expect(component.directorCheckpoints()[0].label).toBe("Before drums");
 
     await component.restoreCheckpointById("cp-2", "Before drums");
+    expect(dialogs.confirm).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: 'Restore checkpoint "Before drums"?',
+        confirmLabel: "Restore",
+      }),
+    );
     expect(director.restoreCheckpoint).toHaveBeenCalledWith("cp-2");
     expect(component.directorStatus()).toContain("Restored checkpoint");
+  });
+
+  it("asks for a checkpoint restore in-app and never through the native dialog", async () => {
+    // A native confirm() freezes the Android WebView, so reaching it at all is
+    // the defect this covers — the spy throws if any path calls it.
+    const nativeConfirm = jest.spyOn(window, "confirm").mockImplementation(() => {
+      throw new Error("native confirm() froze the WebView");
+    });
+    try {
+      const fixture = TestBed.createComponent(AiAssistantComponent);
+      const component = fixture.componentInstance;
+
+      await component.restoreCheckpointDirectorAction();
+
+      expect(director.restoreCheckpoint).toHaveBeenCalled();
+      expect(nativeConfirm).not.toHaveBeenCalled();
+    } finally {
+      nativeConfirm.mockRestore();
+    }
+  });
+
+  it("keeps the selected track when the artist declines the delete dialog", async () => {
+    const fixture = TestBed.createComponent(AiAssistantComponent);
+    const component = fixture.componentInstance;
+    (
+      TestBed.inject(MusicManagerService) as unknown as {
+        selectedTrack: jest.Mock;
+      }
+    ).selectedTrack.mockReturnValue({ id: "t1", name: "Bass" });
+    dialogs.confirm.mockResolvedValueOnce(false);
+
+    await component.deleteSelectedDirectorTrack();
+
+    expect(dialogs.confirm).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: 'Delete "Bass"?',
+        confirmLabel: "Delete track",
+        cancelLabel: "Keep track",
+        tone: "danger",
+        message: expect.stringContaining("Undo"),
+      }),
+    );
+    expect(director.deleteSelectedTrack).not.toHaveBeenCalled();
+  });
+
+  it("deletes the selected track once the in-app dialog confirms", async () => {
+    const fixture = TestBed.createComponent(AiAssistantComponent);
+    const component = fixture.componentInstance;
+    (
+      TestBed.inject(MusicManagerService) as unknown as {
+        selectedTrack: jest.Mock;
+      }
+    ).selectedTrack.mockReturnValue({ id: "t1", name: "Bass" });
+    dialogs.confirm.mockResolvedValueOnce(true);
+
+    await component.deleteSelectedDirectorTrack();
+
+    expect(director.deleteSelectedTrack).toHaveBeenCalled();
+    expect(component.directorStatus()).toContain("Deleted track Bass");
   });
 
   it("exports a selected checkpoint bundle and the open project bundle", () => {

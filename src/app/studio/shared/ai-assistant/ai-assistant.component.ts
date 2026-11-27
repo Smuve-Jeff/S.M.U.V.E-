@@ -24,6 +24,7 @@ import { AudioEngineService } from "../../../services/audio-engine.service";
 import { NeuralMixerService } from "../../../services/neural-mixer.service";
 import { HapticService } from "../../../services/haptic.service";
 import { SnackbarService } from "../../../services/snackbar.service";
+import { InteractionDialogService } from "../../../services/interaction-dialog.service";
 import { ProjectWorkspaceService } from "../../project-workspace.service";
 import { UserProfileService } from "../../../services/user-profile.service";
 import { ArtistProfileFinetuneService } from "../../../services/artist-profile-finetune.service";
@@ -125,6 +126,7 @@ export class AiAssistantComponent implements OnInit, AfterViewInit, OnDestroy {
   private neural = inject(NeuralMixerService);
   private haptic = inject(HapticService);
   private snack = inject(SnackbarService);
+  private dialogs = inject(InteractionDialogService);
   private workspace = inject(ProjectWorkspaceService);
   private userProfile = inject(UserProfileService);
   private artistFinetune = inject(ArtistProfileFinetuneService);
@@ -622,8 +624,14 @@ export class AiAssistantComponent implements OnInit, AfterViewInit, OnDestroy {
 
   async restoreCheckpointDirectorAction(): Promise<void> {
     if (this.directorBusy()) return;
-    if (!window.confirm("Restore the latest checkpoint? Current work is preserved as an undoable edit."))
-      return;
+    const confirmed = await this.dialogs.confirm({
+      title: "Restore the latest checkpoint?",
+      message:
+        "Your current work is preserved as an undoable edit, so nothing is lost.",
+      confirmLabel: "Restore",
+      cancelLabel: "Keep current",
+    });
+    if (!confirmed) return;
     this.directorBusy.set(true);
     this.directorStatus.set("Restoring checkpoint...");
     try {
@@ -644,8 +652,14 @@ export class AiAssistantComponent implements OnInit, AfterViewInit, OnDestroy {
 
   async restoreCheckpointById(checkpointId: string, label: string): Promise<void> {
     if (this.directorBusy()) return;
-    if (!window.confirm(`Restore checkpoint "${label}"? Current work is preserved as an undoable edit.`))
-      return;
+    const confirmed = await this.dialogs.confirm({
+      title: `Restore checkpoint "${label}"?`,
+      message:
+        "Your current work is preserved as an undoable edit, so nothing is lost.",
+      confirmLabel: "Restore",
+      cancelLabel: "Keep current",
+    });
+    if (!confirmed) return;
     this.directorBusy.set(true);
     this.directorStatus.set(`Restoring checkpoint ${label}...`);
     try {
@@ -726,11 +740,18 @@ export class AiAssistantComponent implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
-  deleteSelectedDirectorTrack(): void {
+  async deleteSelectedDirectorTrack(): Promise<void> {
     if (this.directorBusy()) return;
     const track = this.musicManager.selectedTrack();
     if (!track) return;
-    if (!window.confirm(`Delete "${track.name}"? Undo restores it.`)) return;
+    const confirmed = await this.dialogs.confirm({
+      title: `Delete "${track.name}"?`,
+      message: "The track and its clips are removed. Undo restores it.",
+      confirmLabel: "Delete track",
+      cancelLabel: "Keep track",
+      tone: "danger",
+    });
+    if (!confirmed) return;
     try {
       const message = this.director.deleteSelectedTrack();
       this.bumpDirectorRevision();

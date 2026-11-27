@@ -345,6 +345,7 @@ describe("ProjectWorkspaceService", () => {
           useValue: {
             saveLocal: jest.fn().mockResolvedValue(undefined),
             queueOperation,
+            registerEndpointHandler: jest.fn().mockReturnValue(jest.fn()),
           },
         },
         {
@@ -1675,7 +1676,11 @@ describe("ProjectWorkspaceService", () => {
         },
         {
           provide: OfflineSyncService,
-          useValue: { saveLocal: jest.fn(), queueOperation },
+          useValue: {
+            saveLocal: jest.fn(),
+            queueOperation,
+            registerEndpointHandler: jest.fn().mockReturnValue(jest.fn()),
+          },
         },
         {
           provide: CloudSyncService,

@@ -11,6 +11,7 @@ import {
 import type { AudienceTrend } from '../../services/marketing.service';
 import { AiService } from '../../services/ai.service';
 import { UIService } from '../../services/ui.service';
+import { InteractionDialogService } from '../../services/interaction-dialog.service';
 import {
   ManualAudienceMetric,
   MarketingCampaign,
@@ -75,6 +76,7 @@ export class StrategyHubComponent implements OnInit {
   private marketingService = inject(MarketingService);
   private uiService = inject(UIService);
   private router = inject(Router);
+  private dialog = inject(InteractionDialogService);
   public aiService = inject(AiService);
 
   profile = this.profileService.profile;
@@ -567,8 +569,15 @@ export class StrategyHubComponent implements OnInit {
 
   async deleteCampaign(id: string): Promise<void> {
     const campaign = this.campaigns().find((entry) => entry.id === id);
-    if (!campaign || typeof window === 'undefined') return;
-    if (!window.confirm(`Delete campaign “${campaign.name}”? This cannot be undone.`)) return;
+    if (!campaign) return;
+    const confirmed = await this.dialog.confirm({
+      title: `Delete campaign “${campaign.name}”?`,
+      message: 'This cannot be undone.',
+      confirmLabel: 'Delete campaign',
+      cancelLabel: 'Keep campaign',
+      tone: 'danger',
+    });
+    if (!confirmed) return;
     this.campaignError.set('');
     try {
       const saved = await this.marketingService.deleteCampaign(id);
