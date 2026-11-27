@@ -2617,6 +2617,7 @@ export class ProjectWorkspaceService {
       arpPattern: this.liveEngine.arpeggiatorPattern(),
       arpLatch: this.liveEngine.arpeggiatorLatch(),
       arpSwing: this.liveEngine.arpeggiatorSwing(),
+      arpHumanize: this.liveEngine.arpeggiatorHumanize(),
       octave: stored.octave,
       chordType: stored.chordType,
     };

@@ -1975,3 +1975,61 @@ the keyboard.
   audio clock, and has no velocity humanization.
 - **The onboarding card still overlays the surface on a phone**, and the
   classic shell can leave the Piano Roll ~190 px tall at 360×640.
+
+## 31. Twenty-fifth pass — Note Repeat stops sounding like a machine
+
+### 31.1 What changed
+
+- **Velocity humanization (opt-in).** `LiveEngineService.arpeggiatorHumanize`
+  (0–0.5, default 0) varies each repeat hit by ±humanize around a downbeat
+  accent (downbeats full, off-beats −8%), clamped to 0.05–1. At 0 the engine
+  returns the held velocity bit-for-bit, so old takes and specs are unchanged.
+  A `HUMAN` knob sits next to `SWING` on the Performer repeat rig.
+- **Drift-proof repeat clock.** The recursive timeout now measures each delay
+  against a wall-clock target (`arpNextAtMs`) instead of a fresh interval, so
+  a long take cannot drift; a tab that slept retargets instead of bursting.
+  Swing timing is unchanged (50% swing still spaces ticks 312.5/187.5 ms).
+- **The rig travels with the set.** `session.performance.arpHumanize` is saved
+  from the engine and restored with it; bundles written before this block keep
+  their current rig. `MusicManager.livePerformance` defaults it to 0.
+
+### 31.2 The HUMAN knob vs the rack
+
+The second knob outgrew the rack: on a phone `.rack-repeat` was 481 px inside a
+364 px-wide rack, so SWING/HUMAN sat behind the rack's hidden horizontal scroll
+(the Scale cell's old defect). The phone rack now wraps, the Repeat and Modes
+cells take the rack's own content width (`flex: 0 0 100%`, not the `100vw -
+26px` calc that overshot the padded rack and clipped LATCH), the instrument
+picker/tag shrink and wrap, and the rack is capped at `46vh` so it never eats
+the keyboard. Measured with the guest session on the preview, closed rack:
+
+| Viewport | Page overflow | Hidden rack scroll | LATCH | HUMAN | Rack height |
+| --- | --- | --- | --- | --- | --- |
+| 1440×900 | 0 px | 0 px | fits | fits | 328 px |
+| 1024×800 | 0 px | 0 px | fits | fits | 488 px |
+| 390×844 | 0 px | 0 px | fits | fits | 269 px |
+| 360×640 | 0 px | 0 px | fits | fits | 291 px |
+| 328×640 | 0 px | 0 px | fits | fits | ≤46vh |
+
+The keyboard keeps ≥150 px at every phone size. The `HUMAN` slider was also
+driven for real: ArrowRight moved `arpeggiatorHumanize` 0 → 0.01 and Home
+returned it to 0.
+
+### 31.3 Evidence
+
+| Check | Result |
+| --- | --- |
+| `npm run build` | **0 errors** |
+| Affected suites | **202 tests / 4 suites passed** — live-engine (38), performer, project-workspace, piano-roll (164) |
+| Humanize off | 3 repeats in 500 ms at `8n`, every velocity exactly 0.7 |
+| Humanize 0.2 (`Math.random` 0.75) | 4 repeats in 750 ms; step 0 ≈ 0.77, step 1 ≈ 0.708 with the off-beat accent; all clamped 0.05–1 |
+| Clamp + persist | 2 → 0.5, −1 → 0, NaN ignored; `restorePerformanceState({arpHumanize: 0.3})` lands at 0.3 |
+| Browser (guest, 5 widths) | see 31.2 — no page overflow, no hidden rack scroll, all five Repeat controls reachable |
+
+### 31.4 Still open
+
+- **Chord clips are still baked notes** (see 30.6).
+- **No offline-audio render** (see 30.6).
+- **Repeat is still wall-clock, not audio-clock scheduled** — the target stops
+  drift but does not sample-align hits.
+- **Onboarding overlay + short Piano Roll on small phones** (see 30.6).

@@ -575,6 +575,70 @@ describe('LiveEngineService live performance controls', () => {
     }
   });
 
+  it('leaves repeat velocity untouched while humanize is off', async () => {
+    jest.useFakeTimers();
+    const events: any[] = [];
+    let sub: { unsubscribe: () => void } | null = null;
+    try {
+      await service.setInstrument('analog-warmth');
+      sub = service.noteEvents$.subscribe((event) => events.push(event));
+      service.setArpeggiatorRate('8n');
+      service.setArpeggiatorHumanize(0);
+      service.setArpeggiatorEnabled(true);
+      service.triggerNoteStart(60, 0.7);
+      jest.advanceTimersByTime(500);
+      service.triggerNoteEnd(60);
+    } finally {
+      sub?.unsubscribe();
+      jest.useRealTimers();
+    }
+    const repeats = events.filter((event) => event.type === 'on');
+    expect(repeats.length).toBe(3);
+    expect(repeats.every((event) => event.velocity === 0.7)).toBe(true);
+  });
+
+  it('varies repeat velocity with an accent when humanize is on', async () => {
+    jest.useFakeTimers();
+    const randomSpy = jest.spyOn(Math, 'random').mockReturnValue(0.75);
+    const events: any[] = [];
+    let sub: { unsubscribe: () => void } | null = null;
+    try {
+      await service.setInstrument('analog-warmth');
+      sub = service.noteEvents$.subscribe((event) => events.push(event));
+      service.setArpeggiatorRate('8n');
+      service.setArpeggiatorHumanize(0.2); // ±20%
+      service.setArpeggiatorEnabled(true);
+      service.triggerNoteStart(60, 0.7);
+      jest.advanceTimersByTime(750);
+      service.triggerNoteEnd(60);
+    } finally {
+      sub?.unsubscribe();
+      randomSpy.mockRestore();
+      jest.useRealTimers();
+    }
+    const repeats = events.filter((event) => event.type === 'on');
+    expect(repeats.length).toBe(4);
+    // Math.random() 0.75 -> factor 1 + 0.5 * 0.2 = 1.1; step 0 accented.
+    expect(repeats[0].velocity).toBeCloseTo(0.77, 5);
+    // Off-beats carry the 0.92 accent before the same human variation.
+    expect(repeats[1].velocity).toBeCloseTo(0.7 * 0.92 * 1.1, 5);
+    expect(
+      repeats.every((event) => event.velocity >= 0.05 && event.velocity <= 1),
+    ).toBe(true);
+  });
+
+  it('clamps humanize to 0..0.5 and persists it with the live rig', () => {
+    service.setArpeggiatorHumanize(2);
+    expect(service.arpeggiatorHumanize()).toBe(0.5);
+    service.setArpeggiatorHumanize(-1);
+    expect(service.arpeggiatorHumanize()).toBe(0);
+    service.setArpeggiatorHumanize(NaN);
+    expect(service.arpeggiatorHumanize()).toBe(0);
+    service.setArpeggiatorHumanize(0.2);
+    service.restorePerformanceState({ arpHumanize: 0.3 } as any);
+    expect(service.arpeggiatorHumanize()).toBeCloseTo(0.3, 5);
+  });
+
   it('retriggers held notes while note repeat is on and stops on release', async () => {
     jest.useFakeTimers();
     try {

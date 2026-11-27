@@ -541,6 +541,7 @@ export class MusicManagerService {
     arpPattern: 'up',
     arpLatch: false,
     arpSwing: 0,
+    arpHumanize: 0,
     octave: 0,
     chordType: 'minor',
   });

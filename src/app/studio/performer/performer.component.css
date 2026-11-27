@@ -3939,9 +3939,11 @@ disclosure. Record arm, monitor and phantom stay visible. */
     display: inline-flex;
   }
 
-  /* Rack: instrument picker only. */
+  /* Rack: instrument picker, then the Repeat cell on its own row. Wrapping
+     (rather than one nowrap row behind a hidden scrollbar) is what keeps
+     SWING/HUMAN/LATCH on screen without panning. */
   .perf-rack {
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
     gap: 6px;
     padding: 6px 10px;
   }
@@ -4041,7 +4043,11 @@ disclosure. Record arm, monitor and phantom stay visible. */
   .rack-modes {
     flex-wrap: wrap;
     row-gap: 6px;
-    width: calc(100vw - 26px);
+    /* The rack's own content box, not 100vw: the viewport calc overshot the
+       padded rack and left a hidden horizontal scroll behind the Scale cell. */
+    flex: 0 0 100%;
+    width: 100%;
+    min-width: 0;
   }
   .rack-modes .rack-scale-pick {
     flex: 1 1 100%;
@@ -4061,6 +4067,60 @@ disclosure. Record arm, monitor and phantom stay visible. */
 .rack-repeat {
   gap: 4px;
   padding: 4px 8px;
+}
+
+/* The Repeat cell outgrew the rack when SWING and HUMAN were added, so on a
+   phone the two knobs sat behind the rack's hidden horizontal scroll — the
+   same defect the Scale cell had. Give the cell the viewport width, let it
+   wrap when the controls genuinely cannot shrink, and let the two selects/
+   latch give ground first so a 390px phone still keeps them on one row. */
+@media (max-width: 768px) {
+  .rack-repeat {
+    /* Take the rack's own content width rather than a viewport calc: the rack
+       sits inside padded chrome, and 100vw overshot it by ~10px, which clipped
+       LATCH on the right edge. A 100% basis with shrink disabled fills exactly
+       the rack's content box, and the instrument cell yields to it. */
+    flex: 0 0 100%;
+    width: 100%;
+    min-width: 0;
+    flex-wrap: wrap;
+    row-gap: 6px;
+  }
+  .rack-repeat .rack-select {
+    flex: 1 1 72px;
+    min-width: 0;
+  }
+  .rack-repeat .performer-rack-toggle,
+  .rack-repeat app-knob {
+    flex: 0 0 auto;
+  }
+
+  /* The instrument picker sizes to its longest preset name (~206px), which
+     pushed the active-track tag past the rack's right edge and left a hidden
+     horizontal scroll on top of the Repeat cell's own overflow. Let this row
+     wrap and let the picker/tag shrink inside it. */
+  .performer-rack .rack-instrument {
+    flex-wrap: wrap;
+    row-gap: 6px;
+  }
+  .performer-rack .rack-instrument .rack-select {
+    flex: 1 1 auto;
+    min-width: 0;
+    max-width: 100%;
+  }
+  /* The active track is already named in the header chip, so the tag is a
+     second copy that costs a whole row on a phone. */
+  .performer-rack .rack-instrument .rack-track-tag {
+    display: none;
+  }
+
+  /* Whatever the cells need, the rack never takes more than 46% of the
+     screen: it scrolls internally so the keyboard stays reachable. */
+  .performer-rack {
+    max-height: 46vh;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
 }
 
 /* On a desktop there is height to spare but not width: the single rack row is

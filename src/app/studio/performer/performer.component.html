@@ -627,6 +627,13 @@
         [value]="liveEngine.arpeggiatorSwing() * 100"
         (valueChange)="liveEngine.setArpeggiatorSwing($event / 100)"
       ></app-knob>
+      <app-knob
+        label="HUMAN"
+        [min]="0"
+        [max]="50"
+        [value]="liveEngine.arpeggiatorHumanize() * 100"
+        (valueChange)="liveEngine.setArpeggiatorHumanize($event / 100)"
+      ></app-knob>
     </div>
   </section>
 

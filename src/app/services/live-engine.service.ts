@@ -50,6 +50,8 @@ export interface LivePerformanceState {
   arpPattern: LiveArpPattern;
   arpLatch: boolean;
   arpSwing: number;
+  /** 0 = machine-tight; up to 0.5 adds ±50% velocity variation. */
+  arpHumanize?: number;
   octave: number;
   chordType: string;
 }
@@ -182,6 +184,10 @@ export class LiveEngineService {
   arpeggiatorLatch = signal(false);
   /** 0 = straight, 0..0.75 delays every second repeat. */
   arpeggiatorSwing = signal(0);
+  /** Note-repeat velocity humanization, 0..0.5 (0 = off, preserves takes). */
+  arpeggiatorHumanize = signal(0);
+  /** Wall-clock target of the next repeat tick; keeps long runs from drifting. */
+  private arpNextAtMs: number | null = null;
   /** Recursive timeout so swing can vary each interval. */
   private arpTimer: ReturnType<typeof setTimeout> | null = null;
   private arpStep = 0;
@@ -1004,6 +1010,9 @@ export class LiveEngineService {
     if (typeof state.arpSwing === 'number') {
       this.setArpeggiatorSwing(state.arpSwing);
     }
+    if (typeof state.arpHumanize === 'number') {
+      this.setArpeggiatorHumanize(state.arpHumanize);
+    }
     if (typeof state.arpEnabled === 'boolean') {
       this.setArpeggiatorEnabled(state.arpEnabled);
     }
@@ -1030,6 +1039,8 @@ export class LiveEngineService {
       clearTimeout(this.arpTimer);
       this.arpTimer = null;
       this.arpStep = 0;
+      this.arpNextAtMs = null;
+      // queueArpTick derives the target from the new rate + current swing.
       this.queueArpTick();
     }
   }
@@ -1042,6 +1053,13 @@ export class LiveEngineService {
   setArpeggiatorSwing(amount: number): void {
     if (!Number.isFinite(amount)) return;
     this.arpeggiatorSwing.set(Math.max(0, Math.min(0.75, amount)));
+    this.retargetRepeatClock();
+  }
+
+  /** 0 = machine-tight; up to 0.5 varies each repeat's velocity. */
+  setArpeggiatorHumanize(amount: number): void {
+    if (!Number.isFinite(amount)) return;
+    this.arpeggiatorHumanize.set(Math.max(0, Math.min(0.5, amount)));
   }
 
   private tempoBpm(): number {
@@ -1065,27 +1083,65 @@ export class LiveEngineService {
     }
   }
 
+  private repeatNowMs(): number {
+    return typeof performance !== 'undefined' &&
+      typeof performance.now === 'function'
+      ? performance.now()
+      : Date.now();
+  }
+
+  /** Point the repeat clock at one swung interval from now. */
+  private retargetRepeatClock(): void {
+    if (this.arpTimer === null || !this.heldNotes.length) {
+      this.arpNextAtMs = null;
+      return;
+    }
+    this.arpNextAtMs = this.repeatNowMs() + this.nextRepeatIntervalMs();
+  }
+
+  /** Swung interval for the upcoming step, before it plays. */
+  private nextRepeatIntervalMs(): number {
+    const swing = this.arpeggiatorSwing();
+    const factor =
+      this.arpStep % 2 === 0 ? 1 - swing / 2 : 1 + swing / 2;
+    return Math.max(20, this.arpIntervalMs() * factor);
+  }
+
   private startArpeggiator(): void {
     if (this.arpTimer !== null) return;
     this.arpStep = 0;
     this.arpTick();
-    if (this.heldNotes.length) this.queueArpTick();
+    if (this.heldNotes.length) {
+      this.arpNextAtMs =
+        this.repeatNowMs() + this.nextRepeatIntervalMs();
+      this.queueArpTick();
+    }
   }
 
   /**
    * Schedule one tick at a time: the next delay depends on the step, so a
    * swung pair is long-short instead of a fixed interval that cannot groove.
+   * The delay is measured against a wall-clock target so timer drift cannot
+   * accumulate over a long take; a tab that slept simply retargets.
    */
   private queueArpTick(): void {
     if (this.arpTimer !== null || !this.heldNotes.length) return;
-    const swing = this.arpeggiatorSwing();
-    const factor =
-      this.arpStep % 2 === 0 ? 1 - swing / 2 : 1 + swing / 2;
-    const delay = Math.max(20, this.arpIntervalMs() * factor);
+    const now = this.repeatNowMs();
+    let target = this.arpNextAtMs;
+    if (target === null || target - now > 10_000 || now - target > 2_000) {
+      target = now + this.nextRepeatIntervalMs();
+      this.arpNextAtMs = target;
+    }
+    const delay = Math.max(20, (this.arpNextAtMs as number) - now);
     this.arpTimer = setTimeout(() => {
       this.arpTimer = null;
       this.arpTick();
-      if (this.arpTimer === null) this.queueArpTick();
+      if (this.arpTimer === null && this.heldNotes.length) {
+        this.arpNextAtMs =
+          (this.arpNextAtMs ?? this.repeatNowMs()) +
+          this.nextRepeatIntervalMs();
+        this.queueArpTick();
+      }
     }, delay);
   }
 
@@ -1094,6 +1150,7 @@ export class LiveEngineService {
       clearTimeout(this.arpTimer);
       this.arpTimer = null;
     }
+    this.arpNextAtMs = null;
     const node = this.currentInstrumentNode;
     if (node) {
       const time = Tone.now();
@@ -1137,8 +1194,25 @@ export class LiveEngineService {
       default:
         index = step % count;
     }
-    this.playOneShot(this.heldNotes[index], this.heldVelocity);
+    this.playOneShot(
+      this.heldNotes[index],
+      this.humanizedRepeatVelocity(step, this.heldVelocity),
+    );
     this.arpStep = (step + 1) % 100000;
+  }
+
+  /**
+   * Repeat velocity with a downbeat accent and an opt-in human variation.
+   * `humanize` 0 keeps takes bit-for-bit reproducible; up to 0.5 varies each
+   * hit by ±humanize around an accent (downbeats full, off-beats −8%).
+   */
+  private humanizedRepeatVelocity(step: number, base: number): number {
+    const amount = this.arpeggiatorHumanize();
+    // Off keeps takes bit-for-bit reproducible (and existing specs green).
+    if (!(amount > 0)) return base;
+    const accent = step % 4 === 0 ? 1 : 0.92;
+    const varied = base * accent * (1 + (Math.random() * 2 - 1) * amount);
+    return Math.max(0.05, Math.min(1, varied));
   }
 
   /** One repeated note, short enough that consecutive ticks do not overlap. */
