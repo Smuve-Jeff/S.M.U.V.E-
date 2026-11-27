@@ -992,6 +992,7 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
 
   private canvasCtx: CanvasRenderingContext2D | null = null;
   private animFrame: number | null = null;
+  private readonly destroyRef = inject(DestroyRef);
   /** Throttles paint-failure logging so a persistent fault cannot flood it. */
   private lastPaintErrorAt = 0;
   /**
@@ -1555,7 +1556,34 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     this.syncCameraElement();
     this.syncNativePlayer();
     this.syncTimelineViewport();
+    this.observeTimelineResize();
     this.startCanvasLoop();
+  }
+
+  /**
+   * Re-measure the timeline window when its box changes size.
+   *
+   * `timelineViewport` was only recomputed on scroll and zoom, so a phone
+   * rotated to landscape (or a desktop window resized) kept ticking the ruler
+   * for the old width until the operator scrolled the lane.
+   */
+  private observeTimelineResize(): void {
+    const scroller = this.timelineScroller?.nativeElement;
+    if (!scroller) return;
+    if (typeof ResizeObserver !== 'undefined') {
+      const observer = new ResizeObserver(() =>
+        this.syncTimelineViewport(scroller)
+      );
+      observer.observe(scroller);
+      this.destroyRef.onDestroy(() => observer.disconnect());
+      return;
+    }
+    if (typeof window === 'undefined') return;
+    const onResize = () => this.syncTimelineViewport(scroller);
+    window.addEventListener('resize', onResize);
+    this.destroyRef.onDestroy(() =>
+      window.removeEventListener('resize', onResize)
+    );
   }
 
   /**

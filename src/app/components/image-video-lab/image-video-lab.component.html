@@ -1352,6 +1352,7 @@
           #timelineScroller
           class="timeline-scroller-touch flex-grow overflow-auto custom-scrollbar relative"
           (scroll)="onTimelineScroll($event)"
+          (contextmenu)="$event.preventDefault()"
           (pointerdown)="onTimelinePointerDown($event)"
           (pointermove)="onTimelinePointerMove($event)"
           (pointerup)="onTimelinePointerUp($event)"

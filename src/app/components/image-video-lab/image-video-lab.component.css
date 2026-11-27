@@ -2643,6 +2643,22 @@ canvas {
 }
 
 /*
+  The timeline owns touch drags. A long press on a clip poster was opening
+  Chrome's image menu (and cancelling the drag), and a press on a clip label
+  started a text selection whose highlight followed the finger and copied stray
+  words on release.
+*/
+.timeline-scroller-touch,
+.clip-block,
+.timeline-ruler,
+.track-label,
+.timeline-marker {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/*
   Clips are the primary drag target and a lane is only 40px tall, so the grab
   area is widened past the painted block instead of making the block chunky.
 */
