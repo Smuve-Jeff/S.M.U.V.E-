@@ -158,6 +158,25 @@
       Tool: {{ editMode() | titlecase }}
     </div>
 
+    <div
+      *ngIf="editMode() === 'chord'"
+      class="pr-snap pr-chord-pick"
+      role="group"
+      aria-label="Chord type"
+    >
+      <span class="pr-snap-label">Chord</span>
+      <select
+        class="pr-chord-select"
+        [ngModel]="selectedChordType()"
+        (ngModelChange)="selectedChordType.set($event)"
+        aria-label="Chord type to stamp"
+      >
+        <option *ngFor="let ct of chordTypes" [value]="ct.value">
+          {{ ct.label }}
+        </option>
+      </select>
+    </div>
+
     <div class="pr-snap" role="radiogroup" aria-label="Snap-to-grid resolution">
       <span class="pr-snap-label" id="pr-snap-label">Snap</span>
       <button

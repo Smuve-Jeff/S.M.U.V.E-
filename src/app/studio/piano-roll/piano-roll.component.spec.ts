@@ -278,6 +278,32 @@ describe("PianoRollComponent", () => {
     mockMidiImport.importFileToTrack.mockClear();
   });
 
+  it("offers a chord-type picker once the chord stamp is active", () => {
+    component.setEditMode("chord");
+    fixture.detectChanges();
+
+    const select = fixture.nativeElement.querySelector(
+      ".pr-chord-select",
+    ) as HTMLSelectElement;
+    expect(select).toBeTruthy();
+    expect(Array.from(select.options).map((option) => option.value)).toEqual([
+      "major",
+      "minor",
+      "min7",
+      "maj7",
+      "dom7",
+      "sus4",
+      "dim",
+    ]);
+
+    select.value = "maj7";
+    select.dispatchEvent(new Event("change"));
+    fixture.detectChanges();
+
+    expect(component.selectedChordType()).toBe("maj7");
+    expect(component.getChordIntervals()).toEqual([0, 4, 7, 11]);
+  });
+
   it("records a tempo preset or nudge as one undoable step", () => {
     mockAudioEngine.tempo.set(120);
     try {

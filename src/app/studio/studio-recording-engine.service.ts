@@ -35,6 +35,8 @@ export class StudioRecordingEngineService implements OnDestroy {
   isPaused = signal(false);
   recordingTime = signal(0);
   inputLevel = signal(0);
+  /** Pending animation frame for the live input meter, so teardown cancels it. */
+  private monitorRaf: number | null = null;
   recordedBlob = signal<Blob | null>(null);
   /**
    * Per-channel peak of the take in dBFS, measured during the streaming encode
@@ -488,20 +490,41 @@ export class StudioRecordingEngineService implements OnDestroy {
 
   private startLevelMonitoring() {
     if (!this.analyserNode) return;
+    // One loop per graph: a second start without a teardown would double the
+    // per-frame work and leave two frames racing on the same meter.
+    this.stopLevelMonitoring();
+    if (typeof requestAnimationFrame !== "function") return;
     const data = new Uint8Array(this.analyserNode.frequencyBinCount);
     const monitor = () => {
-      if (!this.isInitialized() || !this.analyserNode) return;
+      if (!this.isInitialized() || !this.analyserNode) {
+        this.monitorRaf = null;
+        return;
+      }
       this.analyserNode.getByteFrequencyData(data);
       let sum = 0;
       for (let i = 0; i < data.length; i++) sum += data[i];
       const level = Math.min(100, Math.round((sum / data.length) * 2));
       this.inputLevel.set(level);
-      requestAnimationFrame(monitor);
+      this.monitorRaf = requestAnimationFrame(monitor);
     };
     monitor();
   }
 
+  /**
+   * Stop the meter immediately and return it to zero. The frame guard alone
+   * stopped the loop on the next tick but left the last reading on screen, so
+   * a stopped take advertised a live input level indefinitely.
+   */
+  private stopLevelMonitoring() {
+    if (this.monitorRaf !== null && typeof cancelAnimationFrame === "function") {
+      cancelAnimationFrame(this.monitorRaf);
+    }
+    this.monitorRaf = null;
+    this.inputLevel.set(0);
+  }
+
   private cleanup() {
+    this.stopLevelMonitoring();
     this.workletNode?.disconnect();
     this.flushResolver = null;
     this.sourceNode?.disconnect();

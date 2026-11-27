@@ -148,6 +148,10 @@ export class HardwareConnectionsComponent {
         input.value = '';
       }
     };
+    reader.onerror = () => {
+      this.midiMapNotice.set('Could not read that MIDI map file');
+      input.value = '';
+    };
     reader.readAsText(file);
   }
 

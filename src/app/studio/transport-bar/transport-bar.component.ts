@@ -264,7 +264,7 @@ export class TransportBarComponent {
       this.snack.info("Note repeat needs the live instrument engine");
       return;
     }
-    this.liveEngine.arpeggiatorEnabled.update((enabled) => !enabled);
+    this.liveEngine.setArpeggiatorEnabled(!this.liveEngine.arpeggiatorEnabled());
     this.haptic.light();
     this.snack.info(
       this.liveEngine.arpeggiatorEnabled()
@@ -280,7 +280,7 @@ export class TransportBarComponent {
     );
     const next =
       this.noteRepeatRates[(index + 1) % this.noteRepeatRates.length];
-    this.liveEngine.arpeggiatorRate.set(next.value);
+    this.liveEngine.setArpeggiatorRate(next.value);
     this.haptic.light();
   }
 

@@ -364,9 +364,14 @@ describe("StudioRecordingEngineService", () => {
   it("should clean up on destroy", () => {
     // Set some internal state to verify cleanup
     (service as any).isInitialized.set(true);
+    service.inputLevel.set(72);
+    (service as any).monitorRaf = 12345;
     service.ngOnDestroy();
     expect(service.isInitialized()).toBe(false);
     expect(service.isRecording()).toBe(false);
+    // The meter must not keep a stale reading after the graph is torn down.
+    expect(service.inputLevel()).toBe(0);
+    expect((service as any).monitorRaf).toBeNull();
   });
 
   it("should return recorded blob when set", () => {

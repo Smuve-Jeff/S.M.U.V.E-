@@ -1792,3 +1792,119 @@ device-availability copy with fakes; `studio-recorder-capture` owns the capture
 itself with a real stream. The capture spec also asserts the channel readout
 starts at "N/A" and reports a count while the stream is live, which is the
 regression test for §28.2.
+
+---
+
+## 29. Twenty-third pass — the live-performance controls that never reached the sound
+
+This pass started from the Performer rack and followed every control on it into
+the engine. Four of the rack's five advertised "assist" features were decorative:
+they flipped a signal that no playback path ever read. The rack's four synthesis
+knobs had the companion defect from §10 — a hard-coded `[value]` that wrote to
+the graph and never read anything back.
+
+### 29.1 Phase A — the Live Engine
+
+| Defect | Evidence | Repair |
+| --- | --- | --- |
+| **SMART CHORDS did nothing.** `smartChords` was set by the toggle, and `generateSmartChord()` existed — with **zero callers**. Pressing a key played one note whatever the toggle said. | `grep generateSmartChord` returned only its declaration. | `triggerNoteStart` builds the chord from the held root, triggers every tone, and records the tones per key so `triggerNoteEnd` releases all of them. |
+| **Chord quality ignored the scale.** `generateSmartChord` bound `const _scale = this.currentScale()` and then returned `[0, 4, 7]` — always a major triad. | unused binding + fixed intervals | Quality follows the selected scale: major/pentatonic → `0-4-7`, minor/blues → `0-3-7`. |
+| **SCALE LOCK did nothing — and shipped ON.** `scaleLock` defaulted to `true` and was never read, so the toggle showed engaged while every chromatic note sounded. | declaration + template toggle only | `triggerNoteStart` snaps through `snapToScale()` (nearest degree, ties resolve downward). Default is now `false`, matching the toggle's real (previously silent) behaviour and every sibling scale-lock default in the app. |
+| **The Scale dropdown relabelled only the dropdown.** `setScale()` set `scaleMode` but never `currentScale`, which stayed C major forever. | code audit | `setScale()` validates the mode (unknown → the shipped default), stores it, and installs its semitone map. |
+| **NOTE REPEAT / ARP did nothing.** The transport toast promised "hold keys to retrigger" while `arpLoop`/`arpNotes` were never assigned and nothing read `arpeggiatorEnabled`. | `grep arpeggiatorEnabled` = declaration, toggle, read-out | A real arpeggiator: held chord tones are retriggered by one `setInterval` clocked from the project tempo and the chosen rate (`4n/8n/8t/16n`), walking `up` / `down` / `upDown` / `random`; key-up removes its tones and stops the clock when the last one lifts. |
+| **CUT / RES / ATK / REL were pictures.** Template bound `[value]="20000"`, `"1"`, `"0.01"`, `"0.5"`; moving one changed the sound, then the knob redrew at its default. | template audit | The engine owns `cutoff`, `resonance`, `attack`, `release` signals, seeds them from the loaded preset (`applyPatchValues`), clamps and stores every move, and the rack binds them. |
+| **Sampled instruments' ATK/REL were inert.** Envelope writes were gated on `preset.type === 'synth'`, so on the default Grand Piano the two knobs moved a stored value and no node. | code audit | Sampler patches now receive `set({ attack })` / `set({ release })`; synth patches keep the full envelope path. |
+| **MIDI CC7 and CC10 were dead.** `handleMidiCC` routed CC7 to `updateParameter('volume')`, which had no `volume` branch, and CC10 was an explicit `break`. A controller's channel fader and pan knob did nothing. | code audit | CC7 drives the live output trim, CC10 a new `Tone.Panner` inserted between the filter and the output stage; both have signals and are clamped. |
+
+### 29.2 Phase B — surfaces that failed silently or by keyboard
+
+- **Sampler imports failed in the console only.** A file that failed to decode produced `console.warn`, nothing on screen, and a picker that had already closed. Failures are now collected and reported once (up to three names) through the snackbar, and a sampler engine that cannot start says so instead of leaving the drop silent. Two related bugs fell out: `return` inside the per-file loop abandoned the remaining files' import (now `break`, with the engine's own error on screen), and drag-and-drop required `file.type.startsWith('audio/')`, which is **empty** for many valid files dragged from a file manager — extension is now accepted as a fallback.
+- **The MIDI-map import was mouse-only.** `<label role="button" tabindex="0">` wrapped a hidden file input with no key handler, so keyboard users could reach an import control that Enter and Space could not activate. It now forwards both keys to the input, and a `FileReader` failure reports "Could not read that MIDI map file" instead of leaving the notice blank.
+- **The take chip nested an interactive control in a button.** A `<span role="button" tabindex="0">` delete affordance lived inside the chip `<button>` (the exact anti-pattern §10 recorded). The chip is now a `div role="button"` with keyboard activation and a **real** `<button>` for delete, with the button reset restored in CSS so the chip looks unchanged.
+
+### 29.3 Phase C — the chord stamp stamped one chord
+
+The Piano Roll's Chord Stamp tool read `getChordIntervals()` from
+`selectedChordType`, and nothing ever rendered a control to change it: the tool
+always inserted a **minor triad**. A chord-type picker now appears in the
+secondary tool row while the stamp is active (Maj / Min / m7 / M7 / 7 / sus4 /
+dim), bound through `ngModel` to the same signal the stamp reads.
+
+### 29.4 Phase D — the input meter that stayed lit
+
+`StudioRecordingEngineService.startLevelMonitoring()` scheduled a self-perpetuating
+`requestAnimationFrame` loop. Its guard stopped the loop one frame after
+teardown, but nothing cancelled the pending frame and, more visibly, `cleanup()`
+never reset `inputLevel` — a stopped take advertised its last peak indefinitely.
+The frame id is now tracked, `stopLevelMonitoring()` cancels it and zeroes the
+meter, `startLevelMonitoring()` cannot stack a second loop, and teardown calls it
+first.
+
+### 29.5 Evidence
+
+| Check | Result |
+| --- | --- |
+| `npm run build` (template/AOT gate, after the final edit) | **0 errors, 0 warnings**; 46.4 s; `performer-component` 182.42 kB, `piano-roll-component` 142.47 kB lazy |
+| Affected suites, one run | **212 tests / 8 suites passed** — live-engine, performer, transport-bar, piano-roll, take-lane, hardware-connections, sampler, recording-engine |
+| New live-engine coverage | 8 tests: preset-seeded read-out, stored parameter moves, sampler ATK/REL, whole-chord trigger + release, scale-derived quality + unknown-mode fallback, scale-lock snapping on/off, CC7/CC10, note-repeat retrigger and stop |
+| New piano-roll coverage | chord picker renders all seven types and a `change` selects `maj7` → `[0, 4, 7, 11]` |
+| Updated recording-engine coverage | teardown zeroes `inputLevel` and clears the pending frame |
+
+The jsdom canvas/WebGL "not implemented" console noise in the piano-roll suite is
+pre-existing and unrelated (the suite passes).
+
+### 29.6 Known limitations
+
+- **Nothing was auditioned by ear.** The sandbox has no audio device; smart-chord
+  voicings, arp timing and the new pan stage are verified by graph-level unit
+  assertions, not by listening. The arp clock is driven from
+  `AudioEngineService.tempo`, so it follows tempo changes at the next tick rather
+  than mid-interval.
+- **Browser coverage is limited to the live-performance surfaces.** Pass 24
+  drove the Performer and Piano Roll at 1440×900, 1024×800, 390×844 and 360×640
+  in the Cloud browser; the mixer, sampler import and MIDI-mapping screens still
+  rely on jsdom coverage.
+- **Scale Lock and Note Repeat ship off.** They now do what they say, but turning
+  them on changes what a key press produces, so they remain opt-in; there is no
+  persisted preference for either yet.
+- **Note repeat is monophonic per tick** by design (one held tone per interval,
+  selected by the pattern); a chord is arpeggiated, not restruck as a block.
+- **CC7/CC10 affect the live instrument's own output**, not the project track
+  fader; the track's channel strip remains the authoritative mix control.
+
+### 29.7 Pass 24 — the live-performance surfaces in a real browser
+
+The Cloud browser (Chromium, authenticated preview) was driven with Playwright at
+1440×900, 1024×800, 390×844 and 360×640. Controls were operated through their
+real DOM handlers; engine state was read from the Angular component with
+`ng.getComponent(...)`.
+
+| Check | Result |
+| --- | --- |
+| Performer mount readout (1440 / 390) | `CUT 2000, RES 1, ATK 0.01, REL 1` **before any gesture** — the 29.1 seed now runs from the constructor (`previewPatchReadout`), not only on a patch change |
+| Performer toggles (desktop, real clicks) | Smart Chords, Scale Lock and Arp all report `aria-pressed="true"`; clicking Arp again returns the engine to `false` |
+| Smart Chords + Scale Lock via the keyboard | A key press with a minor lock produced `C3, D#3, G3` at both 1440 and 390 — the chord quality follows the lock |
+| Note Repeat (desktop, key held) | `8n` fired **3** retriggers in 750 ms and stayed at **3** after release |
+| Performer layout, 1440 | 0 page overflow; the rack no longer clips the Scale cell (`scrollWidth = clientWidth = 1174`) |
+| Performer layout, 390 / 360 | 0 page overflow; Rack & levels reveals CUT/RES/ATK/REL at 72×116, toggles are 44 px tall, and the Scale select is 73×44 fully inside both viewports |
+| Chord picker, 390 | 7 options; a `maj7` stamp inserted `108,112,115,119` (`0,4,7,11`); picker 67×44, no overflow |
+| Piano Roll tools, 360×640 | Picker present and hit-testable, but the classic shell gives the roll only 190 px here, so its lower edge starts below the surface fold and is reached by scrolling; no page overflow |
+
+The pass found and fixed three layout defects:
+
+1. **Pre-gesture preset readout.** The rack showed the raw default `CUT 20000`
+   for Grand Piano Elite until the first key press; the mount seed described in
+   29.1 only ran on a patch change. `previewPatchReadout()` is now called from
+   `PerformerComponent`'s constructor.
+2. **The Scale cell was clipped on desktop.** `.performer-rack` was `nowrap` with
+   a hidden scrollbar, so at 1440 the 1367 px row cut off Scale Lock and the
+   Scale select. The rack wraps to a second row at ≥1024 px.
+3. **Phone touch targets.** The chord picker was 28 px tall and the Performer's
+   Scale cell required horizontal panning. The picker is 44 px on phones, and the
+   modes cell gets a phone width with a 44 px select, so all five controls fit
+   without panning.
+
+Verification after the fixes: `npm run build` **0 errors** (48.6 s), and the
+`live-engine`, `performer` and `piano-roll` suites **108 tests / 3 suites passed**
+(the pre-existing jsdom canvas noise is unchanged). Audio was still not
+auditioned by ear.

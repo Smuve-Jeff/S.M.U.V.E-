@@ -501,28 +501,28 @@
         label="CUT"
         [min]="20"
         [max]="20000"
-        [value]="20000"
+        [value]="liveEngine.cutoff()"
         (valueChange)="liveEngine.updateParameter('cutoff', $event)"
       ></app-knob>
       <app-knob
         label="RES"
         [min]="0"
         [max]="20"
-        [value]="1"
+        [value]="liveEngine.resonance()"
         (valueChange)="liveEngine.updateParameter('resonance', $event)"
       ></app-knob>
       <app-knob
         label="ATK"
         [min]="0.001"
         [max]="2"
-        [value]="0.01"
+        [value]="liveEngine.attack()"
         (valueChange)="liveEngine.updateParameter('attack', $event)"
       ></app-knob>
       <app-knob
         label="REL"
         [min]="0.01"
         [max]="5"
-        [value]="0.5"
+        [value]="liveEngine.release()"
         (valueChange)="liveEngine.updateParameter('release', $event)"
       ></app-knob>
     </div>
@@ -542,7 +542,7 @@
         class="rack-toggle studio-secondary-button performer-rack-toggle"
         [class.is-active]="liveEngine.arpeggiatorEnabled()"
         [attr.aria-pressed]="liveEngine.arpeggiatorEnabled()"
-        (click)="liveEngine.arpeggiatorEnabled.update((v) => !v)"
+        (click)="liveEngine.setArpeggiatorEnabled(!liveEngine.arpeggiatorEnabled())"
       >
         Arp
       </button>
@@ -551,7 +551,7 @@
         class="rack-toggle studio-secondary-button performer-rack-toggle"
         [class.is-active]="liveEngine.scaleLock()"
         [attr.aria-pressed]="liveEngine.scaleLock()"
-        (click)="liveEngine.scaleLock.update((v) => !v)"
+        (click)="liveEngine.setScaleLock(!liveEngine.scaleLock())"
       >
         Scale <span>Lock</span>
       </button>

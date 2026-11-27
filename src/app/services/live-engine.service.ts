@@ -6,6 +6,15 @@ import { AudioEngineService } from './audio-engine.service';
 import { HardwareService } from './hardware.service';
 
 export type LiveInstrumentType = string;
+export type LiveScaleMode = 'major' | 'minor' | 'blues' | 'pentatonic';
+
+/** Semitone offsets for each scale the Performer's Scale Lock offers. */
+export const LIVE_SCALE_INTERVALS: Record<LiveScaleMode, number[]> = {
+  major: [0, 2, 4, 5, 7, 9, 11],
+  minor: [0, 2, 3, 5, 7, 8, 10],
+  blues: [0, 3, 5, 6, 7, 10],
+  pentatonic: [0, 2, 4, 7, 9],
+};
 
 interface MpeVoice {
   key: string;
@@ -41,6 +50,8 @@ export class LiveEngineService {
    * the master chain entirely.
    */
   private outputNode: Tone.Gain | null = null;
+  /** Master pan for the live instrument, between the filter and the output. */
+  private panNode: Tone.Panner | null = null;
   private outputTarget: AudioNode | null = null;
 
   activeInstrument = signal<LiveInstrumentType>('grand-piano');
@@ -62,10 +73,24 @@ export class LiveEngineService {
   /** Live glide between legato notes in seconds (0 = off). The 808 feel. */
   portamento = signal(0);
 
-  // AI Assisted Performance State
-  scaleLock = signal(true);
+  /**
+   * The live filter and envelope the Performer rack edits. These are the
+   * instrument's *actual* patch values, not UI defaults: `setInstrument`
+   * seeds them from the preset, so a knob never lies about the sound.
+   */
+  cutoff = signal(20000);
+  resonance = signal(1);
+  attack = signal(0.01);
+  release = signal(0.5);
+  /** Live output trim and pan (MIDI CC7 / CC10). */
+  instrumentVolume = signal(1);
+  instrumentPan = signal(0);
+
+  // AI Assisted Performance State. Scale Lock ships off: it changes which
+  // pitches a key produces, so it must be an opt-in the artist turns on.
+  scaleLock = signal(false);
   currentScale = signal<number[]>([0, 2, 4, 5, 7, 9, 11]); // C Major
-  scaleMode = signal<'major' | 'minor' | 'blues' | 'pentatonic'>('major');
+  scaleMode = signal<LiveScaleMode>('major');
   smartChords = signal(false);
   /** Last channel/polyphonic pressure, normalized 0..1. */
   aftertouch = signal(0);
@@ -74,8 +99,13 @@ export class LiveEngineService {
   arpeggiatorEnabled = signal(false);
   arpeggiatorRate = signal('8n');
   arpeggiatorPattern = signal<'up' | 'down' | 'upDown' | 'random'>('up');
-  private arpLoop: Tone.Loop | null = null;
-  private arpNotes: number[] = [];
+  private arpTimer: ReturnType<typeof setInterval> | null = null;
+  private arpStep = 0;
+  /** Notes currently arpeggiated, in press order. */
+  private heldNotes: string[] = [];
+  private heldVelocity = 0.8;
+  /** Chord tones triggered for a held key, so its release ends every voice. */
+  private chordNotes = new Map<number, string[]>();
 
   async initialize() {
     if (this.isInitialized()) return;
@@ -106,6 +136,7 @@ export class LiveEngineService {
     if (!this.currentInstrumentNode) {
       await this.setInstrument('grand-piano').catch(() => {
         // Fallback: create a basic Tone.Synth if the preset can't be loaded
+        this.applyPatchValues(2000, 1, 0.01, 0.5);
         this.currentInstrumentNode = new Tone.PolySynth(Tone.Synth, {
           oscillator: { type: 'sine' },
           envelope: { attack: 0.01, decay: 0.3, sustain: 0.6, release: 0.5 },
@@ -193,6 +224,7 @@ export class LiveEngineService {
         this.updateParameter('volume', normalized);
         break;
       case 10: // Pan
+        this.updateParameter('pan', normalized * 2 - 1);
         break;
       case 11: // Expression
         if (this.currentInstrumentNode instanceof Tone.PolySynth) {
@@ -271,13 +303,40 @@ export class LiveEngineService {
     return `${names[midi % 12]}${octave}`;
   }
 
+  /**
+   * The triad Smart Chords plays for a root. The quality follows the selected
+   * scale, so a minor key does not get a major third; the old implementation
+   * computed a major triad and never read the scale at all.
+   */
   generateSmartChord(rootNote: string): string[] {
-    const _scale = this.currentScale();
     const root = Tone.Frequency(rootNote).toMidi();
-    const chord = [root, root + 4, root + 7].map((midi) =>
-      this.midiToNote(midi)
+    const minor = this.scaleMode() === 'minor' || this.scaleMode() === 'blues';
+    const chord = (minor ? [0, 3, 7] : [0, 4, 7]).map((interval) =>
+      this.midiToNote(root + interval),
     );
     return chord;
+  }
+
+  /** Nearest pitch in the active scale. Ties resolve downward, so chromatically
+   * bent notes settle on the lower degree instead of flickering between two. */
+  snapToScale(midi: number): number {
+    const intervals = this.currentScale();
+    if (!intervals.length || !Number.isFinite(midi)) return midi;
+    const pitchClass = ((midi % 12) + 12) % 12;
+    const octaveRoot = midi - pitchClass;
+    let best = midi;
+    let bestDistance = Infinity;
+    for (let octave = -1; octave <= 1; octave += 1) {
+      for (const interval of intervals) {
+        const candidate = octaveRoot + octave * 12 + interval;
+        const distance = Math.abs(candidate - midi);
+        if (distance < bestDistance) {
+          bestDistance = distance;
+          best = candidate;
+        }
+      }
+    }
+    return best;
   }
 
   private connectToFilter(
@@ -285,8 +344,56 @@ export class LiveEngineService {
     cutoff: number,
   ) {
     this.filterNode = new Tone.Filter(cutoff, 'lowpass');
-    this.filterNode.connect(this.ensureOutputNode());
+    this.filterNode.frequency.value = cutoff;
+    this.filterNode.Q.value = this.resonance();
+    if (!this.panNode) {
+      this.panNode = new Tone.Panner(this.instrumentPan());
+    }
+    if (this.panNode) {
+      this.filterNode.connect(this.panNode);
+      this.panNode.connect(this.ensureOutputNode());
+    }
     node.connect(this.filterNode);
+  }
+
+  /**
+   * Seed the rack's read-out from a preset without building the audio graph.
+   * Audio cannot start before a user gesture, but the rack still has to name
+   * the patch the artist selected — otherwise it advertises a default cutoff
+   * until the first key press.
+   */
+  previewPatchReadout(presetId: string): void {
+    const preset = this.instrumentsService
+      .getPresets()
+      .find((p) => p.id === presetId);
+    if (!preset) return;
+    if (preset.type === 'synth' && preset.synth) {
+      this.applyPatchValues(
+        preset.synth.cutoff ?? 2000,
+        preset.synth.q ?? 1,
+        preset.synth.attack ?? 0.01,
+        preset.synth.release ?? 0.5,
+      );
+      return;
+    }
+    this.applyPatchValues(2000, 1, 0.01, 1);
+  }
+
+  /** Seed the rack's parameter read-out from the patch being loaded. */
+  private applyPatchValues(
+    cutoff: number,
+    resonance: number,
+    attack: number,
+    release: number,
+  ): void {
+    this.cutoff.set(Number.isFinite(cutoff) ? Math.max(20, Math.min(20000, cutoff)) : 20000);
+    this.resonance.set(Number.isFinite(resonance) ? Math.max(0, Math.min(20, resonance)) : 1);
+    this.attack.set(Number.isFinite(attack) ? Math.max(0.001, Math.min(2, attack)) : 0.01);
+    this.release.set(Number.isFinite(release) ? Math.max(0.01, Math.min(5, release)) : 0.5);
+    if (this.filterNode) {
+      this.filterNode.frequency.value = this.cutoff();
+      this.filterNode.Q.value = this.resonance();
+    }
   }
 
   /** The bus the live instrument feeds: a project channel, else the master. */
@@ -340,13 +447,22 @@ export class LiveEngineService {
     this.activeInstrument.set(presetId);
     this.activePreset = preset;
     this.disposeMpeVoices();
+    this.stopArpeggiator();
+    this.chordNotes.clear();
     this.sampleMap = null;
 
     if (this.currentInstrumentNode) this.currentInstrumentNode.dispose();
     if (this.filterNode) this.filterNode.dispose();
+    this.filterNode = null;
 
     if (preset.type === 'synth' && preset.synth) {
       const config = preset.synth;
+      this.applyPatchValues(
+        config.cutoff ?? 2000,
+        config.q ?? 1,
+        config.attack ?? 0.01,
+        config.release ?? 0.5,
+      );
       this.currentInstrumentNode = new Tone.PolySynth(Tone.Synth, {
         oscillator: { type: config.type as any },
         envelope: {
@@ -364,6 +480,7 @@ export class LiveEngineService {
         (z) => (sampleMap[this.midiToNote(sampleZoneRoot(z))] = z.url)
       );
       this.sampleMap = sampleMap;
+      this.applyPatchValues(2000, 1, 0.01, 1);
       this.currentInstrumentNode = new Tone.Sampler({
         urls: sampleMap,
         release: 1,
@@ -384,12 +501,38 @@ export class LiveEngineService {
     }
 
     if (!this.currentInstrumentNode) return;
-    const note = this.midiToNote(midi);
+    const noteMidi = this.scaleLock() ? this.snapToScale(midi) : midi;
+    const root = this.midiToNote(noteMidi);
+    const notes = this.smartChords() ? this.generateSmartChord(root) : [root];
+    this.chordNotes.set(midi, notes);
+    this.heldVelocity = velocity;
+
+    // Note repeat owns the retriggering: starting a sustained note as well
+    // would leave a drone underneath the pattern.
+    if (this.arpeggiatorEnabled()) {
+      notes.forEach((note) => {
+        if (!this.heldNotes.includes(note)) this.heldNotes.push(note);
+      });
+      this.startArpeggiator();
+      return;
+    }
+
     const time = Tone.now();
-    this.currentInstrumentNode.triggerAttack(note, time, velocity);
+    notes.forEach((note) =>
+      this.currentInstrumentNode!.triggerAttack(note, time, velocity),
+    );
   }
 
   triggerNoteEnd(midi: number, channel = 0) {
+    // A repeated note stops when the key lifts, regardless of the pedal: the
+    // held list is what the arpeggiator walks, and an absent key must leave it.
+    if (channel === 0 && this.arpeggiatorEnabled()) {
+      const notes = this.chordNotes.get(midi) ?? [this.midiToNote(midi)];
+      this.chordNotes.delete(midi);
+      this.heldNotes = this.heldNotes.filter((note) => !notes.includes(note));
+      if (this.heldNotes.length === 0) this.stopArpeggiator();
+      return;
+    }
     if (this.sustainActive) {
       this.sustainedNotes.set(this.noteKey(midi, channel), { midi, channel });
       return;
@@ -407,7 +550,12 @@ export class LiveEngineService {
       return;
     }
     if (!this.currentInstrumentNode) return;
-    this.currentInstrumentNode.triggerRelease(this.midiToNote(midi), Tone.now());
+    const notes = this.chordNotes.get(midi) ?? [this.midiToNote(midi)];
+    this.chordNotes.delete(midi);
+    const time = Tone.now();
+    notes.forEach((note) =>
+      this.currentInstrumentNode!.triggerRelease(note, time),
+    );
   }
 
   private noteKey(midi: number, channel: number): string {
@@ -553,32 +701,207 @@ export class LiveEngineService {
   }
 
   updateParameter(param: string, value: number) {
-    if (!this.currentInstrumentNode) return;
-    if (param === 'cutoff' && this.filterNode)
-      this.filterNode.frequency.value = value;
-    if (param === 'resonance' && this.filterNode)
-      this.filterNode.Q.value = value;
-    if (param === 'portamento') {
-      this.setPortamento(value);
-      return;
+    if (!Number.isFinite(value)) return;
+    switch (param) {
+      case 'cutoff': {
+        const cutoff = Math.max(20, Math.min(20000, value));
+        this.cutoff.set(cutoff);
+        this.filterNode?.frequency.rampTo(cutoff, 0.02);
+        return;
+      }
+      case 'resonance': {
+        const resonance = Math.max(0, Math.min(20, value));
+        this.resonance.set(resonance);
+        if (this.filterNode) this.filterNode.Q.value = resonance;
+        return;
+      }
+      case 'volume': {
+        // CC7 — the live instrument's own trim, not the project track fader.
+        const volume = Math.max(0, Math.min(1, value));
+        this.instrumentVolume.set(volume);
+        this.ensureOutputNode().gain.rampTo(volume, 0.03);
+        return;
+      }
+      case 'pan': {
+        const pan = Math.max(-1, Math.min(1, value));
+        this.instrumentPan.set(pan);
+        this.panNode?.pan.rampTo(pan, 0.03);
+        return;
+      }
+      case 'portamento':
+        this.setPortamento(value);
+        return;
+      case 'attack':
+        this.attack.set(Math.max(0.001, Math.min(2, value)));
+        break;
+      case 'release':
+        this.release.set(Math.max(0.01, Math.min(5, value)));
+        break;
+      case 'decay':
+      case 'sustain':
+        break;
+      default:
+        return;
     }
 
-    if (
-      param === 'attack' ||
-      param === 'release' ||
-      param === 'decay' ||
-      param === 'sustain'
-    ) {
-      if (this.currentInstrumentNode instanceof Tone.PolySynth) {
-        this.currentInstrumentNode.set({
-          envelope: { [param]: value },
-        });
+    const node: any = this.currentInstrumentNode;
+    if (!node) return;
+    try {
+      // Samplers expose attack/release directly (Tone.Sampler); synths take the
+      // whole envelope. Routing the sampler's own parameters keeps ATK/REL
+      // honest on sampled instruments instead of silently inert.
+      const samplerPatch =
+        this.activePreset?.type === 'sample' ||
+        this.activePreset?.type === 'hybrid';
+      if (samplerPatch) {
+        if (param === 'attack' || param === 'release') {
+          node.set({ [param]: value });
+        }
+      } else {
+        node.set({ envelope: { [param]: value } });
       }
+    } catch (err) {
+      this.logger.warn('LiveEngine: envelope update rejected', err);
     }
   }
 
   setScale(mode: any) {
-    this.scaleMode.set(mode);
+    const modes: LiveScaleMode[] = ['major', 'minor', 'blues', 'pentatonic'];
+    const next: LiveScaleMode = modes.includes(mode) ? mode : 'major';
+    this.scaleMode.set(next);
+    // `currentScale` is the note set Scale Lock snaps to; it used to be a
+    // constant, so changing the dropdown relabelled the control and nothing else.
+    this.currentScale.set(LIVE_SCALE_INTERVALS[next]);
+  }
+
+  /** Scale Lock snaps incoming notes to the selected scale when enabled. */
+  setScaleLock(enabled: boolean): void {
+    this.scaleLock.set(!!enabled);
+  }
+
+  /**
+   * Note repeat / arpeggiator. While on, a held key retriggers at the chosen
+   * rate and the pattern walks the held chord tones; turning it off releases
+   * whatever it was repeating.
+   */
+  setArpeggiatorEnabled(enabled: boolean): void {
+    this.arpeggiatorEnabled.set(!!enabled);
+    if (!enabled) this.stopArpeggiator();
+  }
+
+  setArpeggiatorRate(rate: string): void {
+    this.arpeggiatorRate.set(rate);
+    if (this.arpTimer !== null) {
+      clearInterval(this.arpTimer);
+      this.arpStep = 0;
+      this.arpTimer = setInterval(() => this.arpTick(), this.arpIntervalMs());
+    }
+  }
+
+  private tempoBpm(): number {
+    const source: any = this.audioEngine.tempo;
+    const raw = typeof source === 'function' ? source() : source?.value;
+    const bpm = Number(raw);
+    return Number.isFinite(bpm) && bpm > 0 ? bpm : 124;
+  }
+
+  private arpIntervalMs(): number {
+    const beat = 60000 / Math.max(20, Math.min(300, this.tempoBpm()));
+    switch (this.arpeggiatorRate()) {
+      case '4n':
+        return beat;
+      case '8t':
+        return beat / 3;
+      case '16n':
+        return beat / 4;
+      default:
+        return beat / 2;
+    }
+  }
+
+  private startArpeggiator(): void {
+    if (this.arpTimer !== null) return;
+    this.arpStep = 0;
+    this.arpTick();
+    this.arpTimer = setInterval(
+      () => this.arpTick(),
+      Math.max(20, this.arpIntervalMs()),
+    );
+  }
+
+  private stopArpeggiator(): void {
+    if (this.arpTimer !== null) {
+      clearInterval(this.arpTimer);
+      this.arpTimer = null;
+    }
+    const node = this.currentInstrumentNode;
+    if (node) {
+      const time = Tone.now();
+      this.heldNotes.forEach((note) => {
+        try {
+          node.triggerRelease(note, time);
+        } catch {
+          /* the note was already released */
+        }
+      });
+    }
+    this.heldNotes = [];
+    this.arpStep = 0;
+  }
+
+  private arpTick(): void {
+    if (!this.heldNotes.length || !this.currentInstrumentNode) {
+      this.stopArpeggiator();
+      return;
+    }
+    const count = this.heldNotes.length;
+    const step = this.arpStep;
+    let index: number;
+    switch (this.arpeggiatorPattern()) {
+      case 'down':
+        index = count - 1 - (step % count);
+        break;
+      case 'upDown': {
+        if (count <= 1) {
+          index = 0;
+        } else {
+          const cycle = count * 2 - 2;
+          const position = step % cycle;
+          index = position < count ? position : cycle - position;
+        }
+        break;
+      }
+      case 'random':
+        index = Math.floor(Math.random() * count);
+        break;
+      default:
+        index = step % count;
+    }
+    this.playOneShot(this.heldNotes[index], this.heldVelocity);
+    this.arpStep = (step + 1) % 100000;
+  }
+
+  /** One repeated note, short enough that consecutive ticks do not overlap. */
+  private playOneShot(note: string, velocity: number): void {
+    const node: any = this.currentInstrumentNode;
+    if (!node) return;
+    const duration = Math.max(0.05, (this.arpIntervalMs() / 1000) * 0.9);
+    try {
+      if (typeof node.triggerAttackRelease === 'function') {
+        node.triggerAttackRelease(note, duration, Tone.now(), velocity);
+        return;
+      }
+      node.triggerAttack(note, Tone.now(), velocity);
+      setTimeout(() => {
+        try {
+          node.triggerRelease(note, Tone.now());
+        } catch {
+          /* the note was already released */
+        }
+      }, duration * 1000);
+    } catch (err) {
+      this.logger.warn('LiveEngine: note repeat could not trigger', err);
+    }
   }
   setPitchBend(val: number, channel = 0) {
     const normalized = Number.isFinite(val)

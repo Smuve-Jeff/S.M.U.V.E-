@@ -138,7 +138,7 @@
 .take-chip-badge { display: inline-grid; min-width: 18px; height: 18px; flex: 0 0 auto; place-items: center; padding: 0 5px; border-radius: 5px; background: color-mix(in srgb, var(--take-teal) 10%, var(--take-paper)); color: var(--take-teal); font-family: var(--font-mono, ui-monospace, monospace); font-size: 9px; font-weight: 900; }
 .take-chip-badge { background: var(--take-amber); color: white; }
 .take-chip-region { min-width: 0; margin-left: auto; overflow: hidden; color: var(--take-muted); font-family: var(--font-mono, ui-monospace, monospace); font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
-.take-chip-del { display: grid; width: 30px; height: 30px; flex: 0 0 auto; place-items: center; border: 1px solid transparent; border-radius: 7px; color: var(--take-muted); cursor: pointer; transition: background 120ms ease, color 120ms ease; }
+.take-chip-del { display: grid; width: 30px; height: 30px; flex: 0 0 auto; place-items: center; padding: 0; border: 1px solid transparent; border-radius: 7px; background: transparent; color: var(--take-muted); font: inherit; cursor: pointer; transition: background 120ms ease, color 120ms ease; }
 .take-chip-del:hover,
 .take-chip-del:focus-visible { background: rgba(217, 119, 6, 0.13); color: var(--take-amber); }
 .take-chip-del .material-symbols-outlined { font-size: 14px; }

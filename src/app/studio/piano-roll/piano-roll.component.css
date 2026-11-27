@@ -384,6 +384,20 @@
   color: var(--ivory-deep);
 }
 
+/* The chord stamp's quality picker. Without it the tool always stamped its
+   default minor triad, whatever the artist wanted. */
+.pr-chord-select {
+  min-height: 28px;
+  padding: 2px 6px;
+  border: 1px solid var(--ivory-line);
+  border-radius: 7px;
+  background: var(--ivory-deep);
+  color: var(--espresso-ink);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 800;
+}
+
 .pr-ai-chip {
   display: inline-flex;
   align-items: center;
@@ -2654,5 +2668,14 @@ it. Desktop is untouched — `.pr-velocity-drawer` is `display: contents` there.
     min-width: 0;
     flex-wrap: wrap;
     justify-content: flex-start;
+  }
+}
+
+/* The chord-type picker is a real choice, not a caption: hold it at the app's
+   phone touch floor wherever the secondary toolbar is open. */
+@media (max-width: 768px), (pointer: coarse) {
+  .pr-chord-select {
+    min-height: 44px;
+    padding: 6px 10px;
   }
 }

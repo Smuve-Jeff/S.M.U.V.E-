@@ -168,6 +168,9 @@ export class SamplerComponent implements AfterViewInit, OnDestroy {
       this.refreshZones();
     } catch (e) {
       console.warn("Sampler init failed:", e);
+      this.snackbar.error(
+        "Sampler engine could not start — reload the Studio and try again",
+      );
     }
   }
 
@@ -264,11 +267,14 @@ export class SamplerComponent implements AfterViewInit, OnDestroy {
       if (files.length === 0) return;
 
       const ctx = this.audioEngine.ctx;
+      const failed: string[] = [];
       for (const file of files) {
         try {
           const buffer = await this.fileLoader.decodeToAudioBuffer(ctx, file);
           if (!this.sampler) await this.initializeSampler();
-          if (!this.sampler) return;
+          // Stop once the engine is known unavailable; the snackbar from
+          // initializeSampler already explains why.
+          if (!this.sampler) break;
 
           const pitch = this.findFreePitch();
           this.sampler.loadSample(pitch, buffer);
@@ -277,12 +283,27 @@ export class SamplerComponent implements AfterViewInit, OnDestroy {
           this.selectZone(pitch);
         } catch (e) {
           console.warn("Failed to import:", file.name, e);
+          failed.push(file.name);
         }
       }
       this.refreshZones();
+      this.reportImportFailures(failed);
     } finally {
       this.isImporting.set(false);
     }
+  }
+
+  /**
+   * A decode failure used to reach the console only: the picker closed, nothing
+   * appeared, and the artist had no way to tell a broken file from a slow one.
+   */
+  private reportImportFailures(failed: string[]): void {
+    if (failed.length === 0) return;
+    const names = failed.slice(0, 3).join(", ");
+    const extra = failed.length > 3 ? ` +${failed.length - 3} more` : "";
+    this.snackbar.error(
+      `Couldn't import ${names}${extra} — unsupported or unreadable audio`,
+    );
   }
 
   onDragOver(event: DragEvent): void {
@@ -310,24 +331,36 @@ export class SamplerComponent implements AfterViewInit, OnDestroy {
     this.isImporting.set(true);
     try {
       const ctx = this.audioEngine.ctx;
+      const failed: string[] = [];
       for (const file of files) {
-        if (!file.type.startsWith("audio/")) continue;
+        // Dragging from a file manager often reports an empty MIME type, so a
+        // valid .wav could be skipped before the decoder ever saw it.
+        if (!this.looksLikeAudio(file)) continue;
         try {
           const buffer = await this.fileLoader.decodeToAudioBuffer(ctx, file);
           if (!this.sampler) await this.initializeSampler();
-          if (!this.sampler) return;
+          // Stop once the engine is known unavailable; the snackbar from
+          // initializeSampler already explains why.
+          if (!this.sampler) break;
 
           const pitch = this.findFreePitch();
           this.sampler.loadSample(pitch, buffer);
           this.selectZone(pitch);
         } catch (e) {
           console.warn("Failed to drop import:", file.name, e);
+          failed.push(file.name);
         }
       }
       this.refreshZones();
+      this.reportImportFailures(failed);
     } finally {
       this.isImporting.set(false);
     }
+  }
+
+  private looksLikeAudio(file: File): boolean {
+    if (file.type.startsWith("audio/")) return true;
+    return /\.(mp3|wav|ogg|oga|flac|aif|aiff|m4a)$/i.test(file.name);
   }
 
   private findFreePitch(): number {

@@ -77,13 +77,16 @@
   </div>
 
   <div class="take-list" *ngIf="takes().length > 0; else emptyTake">
-    <button
+    <div
       *ngFor="let take of takes()"
-      type="button"
+      role="button"
+      tabindex="0"
       class="take-chip"
       [class.active]="take.id === activeTakeId()"
       [class.in-comp]="compMode() && compOrderOf(take.id) !== null"
       (click)="onChipTap(take.id)"
+      (keydown.enter)="onChipTap(take.id)"
+      (keydown.space)="$event.preventDefault(); onChipTap(take.id)"
       [attr.aria-pressed]="
         compMode()
           ? compOrderOf(take.id) !== null
@@ -110,18 +113,16 @@
       <span class="take-chip-region" *ngIf="formatRegion(take)">
         {{ formatRegion(take) }}
       </span>
-      <span
+      <button
+        type="button"
         class="take-chip-del"
-        role="button"
-        tabindex="0"
         (click)="deleteTake(take.id, $event)"
-        (keydown.enter)="deleteTake(take.id, $event)"
         [attr.aria-label]="'Delete ' + take.label"
         [attr.title]="'Delete ' + take.label"
       >
         <span class="material-symbols-outlined">close</span>
-      </span>
-    </button>
+      </button>
+    </div>
   </div>
   <ng-template #emptyTake>
     <div class="take-empty">

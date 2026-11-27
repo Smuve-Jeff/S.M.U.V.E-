@@ -110,6 +110,9 @@ export class PerformerComponent implements OnDestroy, OnInit {
 
   constructor() {
     this.availableInstruments.set(this.instrumentsService.getPresets());
+    // Audio waits for a gesture, but the rack's CUT/RES/ATK/REL should already
+    // name the selected patch on load instead of showing engine defaults.
+    this.liveEngine.previewPatchReadout(this.activeInstrumentId());
     this.startVisualizer();
 
     // The keyboard/pads used to play through their own Tone destination, which

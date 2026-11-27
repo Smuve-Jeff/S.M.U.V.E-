@@ -4024,3 +4024,40 @@ disclosure. Record arm, monitor and phantom stay visible. */
   color: #f87171;
   font-weight: 800;
 }
+
+/* The modes cell is one wide row inside a horizontally scrolling rack, so on a
+   phone the Scale picker's right half starts past the viewport. Give the cell
+   a definite phone width, let it wrap, and put the picker on its own line at
+   the touch floor. A percentage max-width does not resolve inside the rack's
+   shrink-to-fit flex row, which is why this states the viewport width. */
+@media (max-width: 768px) {
+  .rack-modes {
+    flex-wrap: wrap;
+    row-gap: 6px;
+    width: calc(100vw - 26px);
+  }
+  .rack-modes .rack-scale-pick {
+    flex: 1 1 100%;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 8px;
+  }
+}
+
+@media (max-width: 768px), (pointer: coarse) {
+  .rack-modes .rack-select {
+    min-height: 44px;
+  }
+}
+
+/* On a desktop there is height to spare but not width: the single rack row is
+   wider than the workspace, which left the Scale controls off-screen behind a
+   hidden scrollbar. Wrap onto a second row instead of hiding them. */
+@media (min-width: 1024px) {
+  .performer-rack {
+    flex-wrap: wrap;
+    row-gap: 10px;
+    overflow-y: visible;
+  }
+}
