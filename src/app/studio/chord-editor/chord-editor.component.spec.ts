@@ -3,6 +3,7 @@ import { ChordEditorComponent } from "./chord-editor.component";
 import { HapticService } from "../../services/haptic.service";
 import { SnackbarService } from "../../services/snackbar.service";
 import { MusicManagerService } from "../../services/music-manager.service";
+import { LIVE_CHORD_TYPES } from "../../services/live-rig.util";
 
 describe("ChordEditorComponent", () => {
   let component: ChordEditorComponent;
@@ -53,6 +54,20 @@ describe("ChordEditorComponent", () => {
   });
 
   const labels = () => component.progression().map((item) => item.label);
+
+  it("offers the live rig's whole chord vocabulary, augmented included", () => {
+    // The editor and the Piano Roll's stamps read one list, so the chord the
+    // editor builds is exactly the chord the rig saves and the roll stamps.
+    expect(component.chordTypes.map((type) => type.value)).toEqual([
+      ...LIVE_CHORD_TYPES,
+    ]);
+
+    component.selectedType.set("aug");
+    component.addChord();
+
+    expect(labels().at(-1)).toBe("Caug");
+    expect(component.progression().at(-1)?.intervals).toEqual([0, 4, 8]);
+  });
 
   it("moves a chord down one position from the keyboard", () => {
     const preventDefault = jest.fn();

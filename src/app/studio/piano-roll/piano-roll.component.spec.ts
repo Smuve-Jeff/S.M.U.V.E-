@@ -314,6 +314,19 @@ describe("PianoRollComponent", () => {
     expect(component.getChordIntervals()).toEqual([0, 4, 7, 11]);
   });
 
+  it("stamps the augmented chord the chord editor can build", () => {
+    // The editor's aug used to be unstampable: the rig allowlist stopped at dim.
+    mockMusicManager.setLivePerformance.mockClear();
+
+    component.setChordType("aug");
+
+    expect(component.selectedChordType()).toBe("aug");
+    expect(component.getChordIntervals()).toEqual([0, 4, 8]);
+    expect(mockMusicManager.setLivePerformance).toHaveBeenCalledWith({
+      chordType: "aug",
+    });
+  });
+
   it("refuses to stamp a chord type the live rig does not allow", () => {
     // A value only the stamp sits outside the allowlist for would be saved and
     // then normalized back to 'minor' on restore; reject it at the source.

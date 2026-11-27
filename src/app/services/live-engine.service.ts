@@ -5,20 +5,16 @@ import { LoggingService } from './logging.service';
 import { InstrumentsService, InstrumentPreset, sampleZoneRoot } from './instruments.service';
 import { AudioEngineService } from './audio-engine.service';
 import { HardwareService } from './hardware.service';
-import { isLiveArpRate } from './live-rig.util';
+import {
+  LIVE_SCALE_MODES,
+  isLiveArpPattern,
+  isLiveArpRate,
+  type LiveArpPattern,
+  type LiveScaleMode,
+} from './live-rig.util';
 
 export type LiveInstrumentType = string;
-export type LiveScaleMode =
-  | 'major'
-  | 'minor'
-  | 'dorian'
-  | 'phrygian'
-  | 'lydian'
-  | 'mixolydian'
-  | 'locrian'
-  | 'harmonicMinor'
-  | 'blues'
-  | 'pentatonic';
+export type { LiveArpPattern, LiveScaleMode } from './live-rig.util';
 
 /** Semitone offsets for each scale the Performer's Scale Lock offers. */
 export const LIVE_SCALE_INTERVALS: Record<LiveScaleMode, number[]> = {
@@ -33,9 +29,6 @@ export const LIVE_SCALE_INTERVALS: Record<LiveScaleMode, number[]> = {
   blues: [0, 3, 5, 6, 7, 10],
   pentatonic: [0, 2, 4, 7, 9],
 };
-
-/** Root pitch classes Scale Lock can transpose to, in display order. */
-export type LiveArpPattern = 'up' | 'down' | 'upDown' | 'random';
 
 /**
  * The singer's live rig, stored with the set: chord mode, the scale lock and
@@ -959,8 +952,7 @@ export class LiveEngineService {
   }
 
   setScale(mode: any) {
-    const modes = Object.keys(LIVE_SCALE_INTERVALS) as LiveScaleMode[];
-    const next: LiveScaleMode = modes.includes(mode) ? mode : 'major';
+    const next: LiveScaleMode = LIVE_SCALE_MODES.includes(mode) ? mode : 'major';
     this.scaleMode.set(next);
     // `currentScale` is the note set Scale Lock snaps to; it used to be a
     // constant, so changing the dropdown relabelled the control and nothing else.
@@ -974,10 +966,7 @@ export class LiveEngineService {
   }
 
   setArpeggiatorPattern(pattern: any): void {
-    const patterns: LiveArpPattern[] = ['up', 'down', 'upDown', 'random'];
-    this.arpeggiatorPattern.set(
-      patterns.includes(pattern) ? pattern : 'up',
-    );
+    this.arpeggiatorPattern.set(isLiveArpPattern(pattern) ? pattern : 'up');
   }
 
   /** Apply a set's stored live rig in one step (project restore). */

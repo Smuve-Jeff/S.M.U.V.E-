@@ -12,6 +12,8 @@ import { FormsModule } from "@angular/forms";
 import { HapticService } from "../../services/haptic.service";
 import { SnackbarService } from "../../services/snackbar.service";
 import { MusicManagerService } from "../../services/music-manager.service";
+import type { LiveChordType } from "../../services/live-rig.util";
+import { CHORD_CHOICES } from "../shared/chord-vocabulary";
 
 export interface ChordProgressionItem {
   /** Chord root as scale degree, e.g. 'I', 'ii', 'IV', 'V7' */
@@ -718,9 +720,7 @@ export class ChordEditorComponent implements OnDestroy {
   // ── State ──────────────────────────────────────────────
   selectedRoot = "C";
   selectedMode = "major";
-  selectedType = signal<
-    "maj" | "min" | "dom7" | "maj7" | "min7" | "sus4" | "dim" | "aug"
-  >("maj");
+  selectedType = signal<LiveChordType>("major");
   voicing = signal<"close" | "open" | "wide">("close");
 
   progression = signal<ChordProgressionItem[]>([]);
@@ -728,16 +728,11 @@ export class ChordEditorComponent implements OnDestroy {
   roots = ["C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B"];
   modes = ["major", "minor", "dorian", "mixolydian", "blues"];
 
-  chordTypes = [
-    { label: "Maj", value: "maj" as const, intervals: [0, 4, 7] },
-    { label: "Min", value: "min" as const, intervals: [0, 3, 7] },
-    { label: "7", value: "dom7" as const, intervals: [0, 4, 7, 10] },
-    { label: "M7", value: "maj7" as const, intervals: [0, 4, 7, 11] },
-    { label: "m7", value: "min7" as const, intervals: [0, 3, 7, 10] },
-    { label: "sus4", value: "sus4" as const, intervals: [0, 5, 7] },
-    { label: "dim", value: "dim" as const, intervals: [0, 3, 6] },
-    { label: "aug", value: "aug" as const, intervals: [0, 4, 8] },
-  ];
+  /**
+   * The same vocabulary the Piano Roll stamps, so a chord built here can always
+   * be saved in the live rig and stamped there.
+   */
+  chordTypes = CHORD_CHOICES;
 
   voicings = [
     { label: "Close", value: "close" as const },
@@ -901,7 +896,7 @@ export class ChordEditorComponent implements OnDestroy {
         const qual = match[2] || "";
         const rootMidi = this.rootToMidi(rootName);
         const type = this.chordTypes.find((t) => {
-          if (!qual) return t.value === "maj";
+          if (!qual) return t.value === "major";
           const q = qual.replace("m", "min").replace("dim", "dim");
           return t.label.toLowerCase() === q.toLowerCase() || t.value === q;
         });

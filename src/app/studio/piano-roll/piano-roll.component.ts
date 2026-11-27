@@ -20,7 +20,8 @@ import {
   TrackNote,
   VelocityCurve,
 } from "../../services/music-manager.service";
-import { LIVE_CHORD_TYPES, LiveChordType } from "../../services/live-rig.util";
+import type { LiveChordType } from "../../services/live-rig.util";
+import { CHORD_CHOICES } from "../shared/chord-vocabulary";
 import { TICKS_PER_STEP, quantizeMicroOffset, stepsToTicks } from "../timing/ppq";
 import { AudioSessionService } from "../audio-session.service";
 import { AudioEngineService } from "../../services/audio-engine.service";
@@ -59,25 +60,6 @@ const TOUCH_RESIZE_SLOP_PX = 20;
 export type PianoTool = "draw" | "select" | "erase" | "velocity" | "chord";
 
 const PIANO_ROLL_ROWS_KEY = "smuve_piano_roll_rows";
-
-/**
- * Label and stamped intervals for each chord type, keyed by the live rig's
- * allowlist. `Record<LiveChordType, ...>` turns adding or dropping a type
- * there into a compile error here, so the picker and the manager that restores
- * the rig cannot drift apart.
- */
-const CHORD_STAMPS: Record<
-  LiveChordType,
-  { label: string; intervals: number[] }
-> = {
-  major: { label: "Maj", intervals: [0, 4, 7] },
-  minor: { label: "Min", intervals: [0, 3, 7] },
-  min7: { label: "m7", intervals: [0, 3, 7, 10] },
-  maj7: { label: "M7", intervals: [0, 4, 7, 11] },
-  dom7: { label: "7", intervals: [0, 4, 7, 10] },
-  sus4: { label: "sus4", intervals: [0, 5, 7] },
-  dim: { label: "dim", intervals: [0, 3, 6] },
-};
 
 /** A dropped file that the MIDI importer should accept. */
 function isMidiFile(file: File): boolean {
@@ -146,12 +128,8 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
 
   // ── Chord Stamp Tool ──────────────────────────────────────
   selectedChordType = signal<LiveChordType>("minor");
-  /** The rig's allowlist in display order: one stamp per value it may store. */
-  readonly chordTypes = LIVE_CHORD_TYPES.map((value) => ({
-    label: CHORD_STAMPS[value].label,
-    value,
-    intervals: CHORD_STAMPS[value].intervals,
-  }));
+  /** The shared vocabulary: one stamp for every value the rig may store. */
+  readonly chordTypes = CHORD_CHOICES;
   /** Adopt a chord type that came from the saved live rig (project load). */
   private applyStoredChordType(chordType: string | undefined): void {
     const match = this.chordTypes.find((entry) => entry.value === chordType);

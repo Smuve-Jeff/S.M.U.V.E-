@@ -1402,6 +1402,56 @@ describe("ProjectWorkspaceService", () => {
     expect(blob.size).toBe(guideBytes.byteLength);
   });
 
+  it('rejects a bundle whose live rig names a value no control can produce', async () => {
+    const bundle = makeBundle() as any;
+    bundle.session = {
+      performance: {
+        smartChords: true,
+        scaleLock: false,
+        scaleMode: 'major',
+        scaleRoot: 0,
+        arpEnabled: false,
+        arpRate: '8n',
+        arpPattern: 'up',
+        arpLatch: false,
+        arpSwing: 0,
+        octave: 0,
+        chordType: 'power',
+      },
+    };
+    const before = tracks();
+
+    await expect(service.importProjectBundle(bundle)).resolves.toBe(false);
+
+    expect(tracks()).toBe(before);
+    expect(saveItem).not.toHaveBeenCalled();
+  });
+
+  it('imports a rig with the augmented chord the editor can build', async () => {
+    const bundle = makeBundle() as any;
+    bundle.session = {
+      performance: {
+        smartChords: false,
+        scaleLock: false,
+        scaleMode: 'dorian',
+        scaleRoot: 7,
+        arpEnabled: true,
+        arpRate: '16n',
+        arpPattern: 'upDown',
+        arpLatch: true,
+        arpSwing: 0.2,
+        octave: -1,
+        chordType: 'aug',
+      },
+    };
+
+    await expect(service.importProjectBundle(bundle)).resolves.toBe(true);
+
+    expect(
+      TestBed.inject(MusicManagerService).setLivePerformance,
+    ).toHaveBeenCalledWith(expect.objectContaining({ chordType: 'aug' }));
+  });
+
   it('rejects malformed imports before writing or replacing the active session', async () => {
     const before = tracks();
     await expect(service.importProjectBundle({ metadata: {}, tracks: [] } as any)).resolves.toBe(false);

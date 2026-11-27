@@ -20,8 +20,28 @@ export const LIVE_CHORD_TYPES = [
   'dom7',
   'sus4',
   'dim',
+  'aug',
 ] as const;
 export type LiveChordType = (typeof LIVE_CHORD_TYPES)[number];
+
+/** Scale modes Scale Lock offers; `LIVE_SCALE_INTERVALS` keys every one. */
+export const LIVE_SCALE_MODES = [
+  'major',
+  'minor',
+  'dorian',
+  'phrygian',
+  'lydian',
+  'mixolydian',
+  'locrian',
+  'harmonicMinor',
+  'blues',
+  'pentatonic',
+] as const;
+export type LiveScaleMode = (typeof LIVE_SCALE_MODES)[number];
+
+/** Orders Note Repeat can walk the held chord tones in. */
+export const LIVE_ARP_PATTERNS = ['up', 'down', 'upDown', 'random'] as const;
+export type LiveArpPattern = (typeof LIVE_ARP_PATTERNS)[number];
 
 export function isLiveArpRate(value: unknown): value is LiveArpRate {
   return (LIVE_ARP_RATES as readonly unknown[]).includes(value);
@@ -29,4 +49,12 @@ export function isLiveArpRate(value: unknown): value is LiveArpRate {
 
 export function isLiveChordType(value: unknown): value is LiveChordType {
   return (LIVE_CHORD_TYPES as readonly unknown[]).includes(value);
+}
+
+export function isLiveScaleMode(value: unknown): value is LiveScaleMode {
+  return (LIVE_SCALE_MODES as readonly unknown[]).includes(value);
+}
+
+export function isLiveArpPattern(value: unknown): value is LiveArpPattern {
+  return (LIVE_ARP_PATTERNS as readonly unknown[]).includes(value);
 }

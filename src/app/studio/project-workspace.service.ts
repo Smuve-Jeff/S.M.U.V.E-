@@ -36,6 +36,12 @@ import {
   type AudioIntegrityIssue,
   type ProjectAudioIntegrityReport,
 } from "./project-integrity.util";
+import {
+  isLiveArpPattern,
+  isLiveArpRate,
+  isLiveChordType,
+  isLiveScaleMode,
+} from "../services/live-rig.util";
 import { PROJECT_BACKING_TRACK } from "./project-backing-track.token";
 import {
   FLOAT32_CHANNEL_PREFIX,
@@ -3416,6 +3422,35 @@ export class ProjectWorkspaceService {
     }
   }
 
+  /**
+   * The live rig is applied straight onto the manager and the engine, so a
+   * malformed block would otherwise be silently defaulted instead of reported.
+   * Values the store deliberately normalizes — an octave outside the nudge
+   * range, say — still reach it; an import only has to get shape and vocabulary
+   * right, so a bundle naming a chord or rate no control offers is rejected
+   * rather than quietly rewritten.
+   */
+  private validateLivePerformance(performance: unknown): void {
+    if (!performance || typeof performance !== 'object' || Array.isArray(performance)) {
+      throw new Error('Invalid live performance state.');
+    }
+    const rig = performance as Record<string, unknown>;
+    const finite = (value: unknown) =>
+      typeof value === 'number' && Number.isFinite(value);
+    const valid =
+      ['smartChords', 'scaleLock', 'arpEnabled', 'arpLatch'].every(
+        (field) => rig[field] === undefined || typeof rig[field] === 'boolean',
+      ) &&
+      ['octave', 'scaleRoot', 'arpSwing'].every(
+        (field) => rig[field] === undefined || finite(rig[field]),
+      ) &&
+      (rig.scaleMode === undefined || isLiveScaleMode(rig.scaleMode)) &&
+      (rig.arpRate === undefined || isLiveArpRate(rig.arpRate)) &&
+      (rig.arpPattern === undefined || isLiveArpPattern(rig.arpPattern)) &&
+      (rig.chordType === undefined || isLiveChordType(rig.chordType));
+    if (!valid) throw new Error('Invalid live performance state.');
+  }
+
   private validateBundle(bundle: ProjectBundle): void {
     const meta = bundle?.metadata;
     if (!meta || typeof meta.id !== 'string' || !meta.id.trim() ||
@@ -3504,6 +3539,9 @@ export class ProjectWorkspaceService {
           !Array.isArray(master.pluginIds)) {
         throw new Error('Invalid master state.');
       }
+    }
+    if (bundle.session?.performance !== undefined) {
+      this.validateLivePerformance(bundle.session.performance);
     }
     let audioBytes = 0;
     for (const asset of bundle.audioAssets ?? []) {

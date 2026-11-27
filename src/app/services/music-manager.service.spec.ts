@@ -103,6 +103,10 @@ describe('MusicManagerService clip glue workflows', () => {
     expect(service.livePerformance().chordType).toBe('maj7');
     expect(service.livePerformance().arpRate).toBe('16n');
 
+    // The Chord Editor's augmented chord belongs to the vocabulary now.
+    service.setLivePerformance({ chordType: 'aug' });
+    expect(service.livePerformance().chordType).toBe('aug');
+
     // A partial update leaves the rest of the rig alone.
     service.setLivePerformance({ chordType: 'dim' });
     expect(service.livePerformance().arpRate).toBe('16n');
