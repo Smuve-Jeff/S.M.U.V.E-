@@ -2256,6 +2256,47 @@ strip rendered 47px in this session rather than 22 because the
 | Browser, 390×844 | no control under 44px, overflow 0, dock flush |
 | Browser, 1440×900 | desktop density unchanged (37 / 28 / 17 / 36 / 40 / 40) |
 
-**Seen while measuring, not changed:** the `NOT PROTECTED BACK UP` status pill
-wraps the status strip to 47px at 360px wide, which costs the surface 25px
-until the project is backed up.
+**Seen while measuring, fixed in §36:** the `NOT PROTECTED BACK UP` status pill
+doubled the status strip to 47px, costing the surface 25px until the project is
+backed up.
+
+## 36. Thirtieth pass — the durability pill stops paying rent
+
+### 36.1 It was not wrapping
+
+The pill looked like it had wrapped to two lines, but
+`CSS.getMatchedStylesForNode` on the live node showed the real cause: the pill
+is a `<button>`, and the shell's blanket phone rule (`button[_ngcontent]`,
+`@media (max-width: 768px)`) gives every button a `min-height: 44px`. The pill's
+box was 44px inside a 22px strip, so the strip grew to 47 — on every phone
+width, not just 360 (390 measured 47 too).
+
+On short phones the pill's box now sits at 20px and the label collapses to the
+action (`🛡 BACK UP`; "Not protected" stays in the tooltip and the aria-label).
+The floor is not lost: the pill's own `::after` already carries a 44px tap
+area — that pseudo-element exists for exactly this — so the target still
+resolves to the pill 8px above and below its visible box. It sits 1px from the
+top edge of the screen, so ~11px of that 44 falls outside the viewport: the
+effective on-screen target is ~33px, versus a 20px box before. A true 44 here
+would have to come back out of the strip's height.
+
+### 36.2 Measured
+
+| | 360×640 before | 360×640 after | 390×844 | 1440×900 |
+| --- | --- | --- | --- | --- |
+| Status strip | 47 | **23** | 47 (unchanged) | 41 (unchanged) |
+| Pill box | 171×44 | **80×20** | 171×44 | 171×32 |
+| Pill visible text | `NOT PROTECTED BACK UP` | **`BACK UP`** | full | full |
+| Canvas | 383 | **407** | 553 | 567 |
+| Recorder view | 337 | **361** | unchanged | unchanged |
+| Page overflow | 0 | 0 | 0 | 0 |
+
+### 36.3 Evidence
+
+| Check | Result |
+| --- | --- |
+| `npm run build` | **0 errors** |
+| Browser, 360×640 | strip 23, pill 20 with a live 44px `::after`, canvas +24, overflow 0 |
+| Hit test, 360×640 | `elementFromPoint` at the pill's centre ±8 resolves to the pill; +12 lands on the top-bar background, not a control |
+| Browser, 390×844 | byte-identical (strip 47, pill 171×44) — the tier skips this height |
+| Browser, 1440×900 | unchanged (strip 41, pill 171×32) |
