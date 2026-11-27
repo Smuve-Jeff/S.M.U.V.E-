@@ -43,6 +43,47 @@ const template = (overrides: Partial<ProjectTemplate> = {}): ProjectTemplate => 
 });
 
 describe('templateToAuditionScore', () => {
+  it('places notes and bar counts through a mid-song meter change', () => {
+    const starts = [0, 16, 32, 44, 56];
+    const meter = {
+      barAtStep: (step: number) => {
+        let bar = 0;
+        while (bar + 1 < starts.length && starts[bar + 1] <= step) bar++;
+        return bar;
+      },
+      stepAtBar: (bar: number) => starts[Math.min(starts.length - 1, Math.max(0, Math.floor(bar)))],
+      barCountForStep: (step: number) => {
+        let bar = 0;
+        while (bar + 1 < starts.length && starts[bar + 1] <= step) bar++;
+        return step > 0 ? bar + 1 : 1;
+      },
+    };
+
+    const score = templateToAuditionScore(
+      template({
+        tracks: [
+          {
+            name: 'Lead',
+            instrumentId: 'analog-warmth',
+            type: 'midi',
+            notes: [{ midi: 60, step: 46, length: 4, velocity: 0.8 }],
+          },
+        ],
+      }),
+      meter,
+    );
+
+    // Step 46 is bar 4 (44–56); a fixed grid calls it bar 3.
+    expect(score!.parts[0].notes[0]).toMatchObject({
+      bar: 3,
+      step: 2,
+      startStep: 46,
+    });
+    expect(score!.totalBars).toBe(4);
+    // Four bars of this map cover 56 steps (16 + 16 + 12 + 12).
+    expect(score!.durationSeconds).toBeCloseTo((56 / 4) * (60 / 120), 6);
+  });
+
   it('projects every playable channel into a four-bar preview score', () => {
     const score = templateToAuditionScore(template());
 
@@ -58,6 +99,7 @@ describe('templateToAuditionScore', () => {
     expect(score!.parts[0].notes[0]).toEqual({
       bar: 0,
       step: 0,
+      startStep: 0,
       midi: 33,
       length: 4,
       velocity: 0.9,

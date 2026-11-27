@@ -270,7 +270,7 @@ export class ExportService {
       startBar: (this.engine.barAtStep?.(startStep) ?? Math.floor(startStep / 16)) + 1,
       endBar:
         (this.engine.barAtStep?.(Math.max(startStep, endStep - 1)) ??
-          Math.floor(endStep / 16)) + 1,
+          Math.floor(Math.max(0, endStep - 1) / 16)) + 1,
       startSeconds,
       endSeconds,
       durationSec: loopBuffer.duration,
@@ -496,11 +496,14 @@ export class ExportService {
       });
     }
 
+    const signature = this.engine.timeSignature?.() ?? { beats: 4, unit: 4 };
+    const meter = this.engine.getMeterMap?.() ?? [];
     const blob = buildDawproject({
       name: 'S.M.U.V.E. Project',
       tempo,
-      numerator: 4,
-      denominator: 4,
+      numerator: signature.beats,
+      denominator: signature.unit,
+      meter,
       tracks,
       audio,
     });

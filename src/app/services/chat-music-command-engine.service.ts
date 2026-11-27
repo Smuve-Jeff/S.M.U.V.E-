@@ -1548,152 +1548,157 @@ export class ChatMusicCommandEngineService {
       hits.push({ midi, step, velocity });
 
     for (let bar = 0; bar < bars; bar++) {
-      const base = bar * 16;
+      const base = this.audio.stepAtBar?.(bar) ?? bar * 16;
+      const barSteps = Math.max(1, this.audio.stepsPerBarAt?.(base) ?? 16);
+      // Patterns are authored in 16th offsets; stretch them onto this bar.
+      const at = (offset: number) =>
+        base + Math.min(barSteps - 1, Math.round((offset / 16) * barSteps));
+
       if (sparse) {
         // Leave intentional space; the Studio's other tracks carry the harmony.
-        add(kickMidi, base, 0.4);
-        add(49, base + 12, 0.24);
-        add(hatMidi, base + 8, 0.2);
+        add(kickMidi, at(0), 0.4);
+        add(49, at(12), 0.24);
+        add(hatMidi, at(8), 0.2);
       } else if (/lofi|lo-fi|chillhop/.test(style)) {
-        add(kickMidi, base, 0.82);
-        add(kickMidi, base + 10, 0.58);
-        add(snareMidi, base + 4, 0.68);
-        add(snareMidi, base + 12, 0.62);
+        add(kickMidi, at(0), 0.82);
+        add(kickMidi, at(10), 0.58);
+        add(snareMidi, at(4), 0.68);
+        add(snareMidi, at(12), 0.62);
         for (let step = 0; step < 16; step += 2) {
-          add(hatMidi, base + step, step % 4 === 0 ? 0.34 : 0.22);
+          add(hatMidi, at(step), step % 4 === 0 ? 0.34 : 0.22);
         }
       } else if (/house|techno|trance|disco|electronic|uk garage/.test(style) || /four.on.the.floor|driving four/.test(feel)) {
-        for (let beat = 0; beat < 4; beat++) add(kickMidi, base + beat * 4, 0.95);
-        add(clapMidi, base + 4, 0.72);
-        add(clapMidi, base + 12, 0.72);
+        for (let beat = 0; beat < 4; beat++) add(kickMidi, at(beat * 4), 0.95);
+        add(clapMidi, at(4), 0.72);
+        add(clapMidi, at(12), 0.72);
         for (let step = 2; step < 16; step += 4) {
-          add(46, base + step, 0.48);
-          add(hatMidi, base + step, 0.34);
+          add(46, at(step), 0.48);
+          add(hatMidi, at(step), 0.34);
         }
       } else if (/drum and bass|breakbeat|dubstep|jungle/.test(style)) {
-        add(kickMidi, base, 0.98);
-        add(kickMidi, base + 10, 0.72);
-        add(snareMidi, base + 4, 0.92);
-        add(snareMidi, base + 12, 0.96);
+        add(kickMidi, at(0), 0.98);
+        add(kickMidi, at(10), 0.72);
+        add(snareMidi, at(4), 0.92);
+        add(snareMidi, at(12), 0.96);
         for (let step = 0; step < 16; step++) {
           if (step % 2 === 0 || step === 7 || step === 15) {
-            add(hatMidi, base + step, step % 4 === 0 ? 0.54 : 0.28);
+            add(hatMidi, at(step), step % 4 === 0 ? 0.54 : 0.28);
           }
         }
       } else if (/jazz|swing|blues/.test(style) || /swing|shuffle|triplet/.test(feel)) {
-        add(kickMidi, base, 0.72);
-        add(kickMidi, base + 8, 0.48);
-        add(snareMidi, base + 4, 0.34);
-        add(snareMidi, base + 12, 0.42);
+        add(kickMidi, at(0), 0.72);
+        add(kickMidi, at(8), 0.48);
+        add(snareMidi, at(4), 0.34);
+        add(snareMidi, at(12), 0.42);
         for (const step of [0, 3, 4, 7, 8, 11, 12, 15]) {
-          add(hatMidi, base + step, step % 4 === 0 ? 0.42 : 0.25);
+          add(hatMidi, at(step), step % 4 === 0 ? 0.42 : 0.25);
         }
-        for (const step of [2, 6, 10, 14]) add(51, base + step, 0.38);
+        for (const step of [2, 6, 10, 14]) add(51, at(step), 0.38);
       } else if (/\breggae\b|dancehall|ska/.test(style)) {
-        add(kickMidi, base, 0.82);
-        add(kickMidi, base + 10, 0.55);
-        add(37, base + 4, 0.58); // cross-stick on the backbeat
-        add(37, base + 12, 0.62);
-        for (const step of [2, 6, 10, 14]) add(hatMidi, base + step, 0.38);
-        for (const step of [3, 7, 11, 15]) add(54, base + step, 0.3);
+        add(kickMidi, at(0), 0.82);
+        add(kickMidi, at(10), 0.55);
+        add(37, at(4), 0.58); // cross-stick on the backbeat
+        add(37, at(12), 0.62);
+        for (const step of [2, 6, 10, 14]) add(hatMidi, at(step), 0.38);
+        for (const step of [3, 7, 11, 15]) add(54, at(step), 0.3);
       } else if (/afro|amapiano|gqom|highlife/.test(style)) {
-        for (const step of [0, 6, 10]) add(kickMidi, base + step, step === 0 ? 0.92 : 0.66);
-        add(snareMidi, base + 4, 0.76);
-        add(clapMidi, base + 12, 0.62);
-        for (let step = 0; step < 16; step += 2) add(hatMidi, base + step, step % 4 === 0 ? 0.38 : 0.26);
-        for (const step of [3, 7, 11, 15]) add(54, base + step, 0.34);
+        for (const step of [0, 6, 10]) add(kickMidi, at(step), step === 0 ? 0.92 : 0.66);
+        add(snareMidi, at(4), 0.76);
+        add(clapMidi, at(12), 0.62);
+        for (let step = 0; step < 16; step += 2) add(hatMidi, at(step), step % 4 === 0 ? 0.38 : 0.26);
+        for (const step of [3, 7, 11, 15]) add(54, at(step), 0.34);
         if (/amapiano/.test(style)) {
-          add(45, base + 7, 0.56); // log-drum-like low tom syncopation
-          add(45, base + 14, 0.42);
+          add(45, at(7), 0.56); // log-drum-like low tom syncopation
+          add(45, at(14), 0.42);
         }
       } else if (/reggaeton|latin|salsa|bachata|cumbia|soca|samba|bossa nova|flamenco|tango|bhangra|brazilian funk/.test(style)) {
-        for (const step of [0, 6, 10]) add(kickMidi, base + step, step === 0 ? 0.9 : 0.68);
-        add(snareMidi, base + 4, 0.78);
-        add(snareMidi, base + 12, 0.85);
-        for (const step of [2, 6, 10, 14]) add(54, base + step, 0.42);
-        for (const step of [0, 4, 8, 12]) add(hatMidi, base + step, 0.28);
+        for (const step of [0, 6, 10]) add(kickMidi, at(step), step === 0 ? 0.9 : 0.68);
+        add(snareMidi, at(4), 0.78);
+        add(snareMidi, at(12), 0.85);
+        for (const step of [2, 6, 10, 14]) add(54, at(step), 0.42);
+        for (const step of [0, 4, 8, 12]) add(hatMidi, at(step), 0.28);
       } else if (/rock|punk|metal|country|bluegrass|folk|acoustic|shoegaze/.test(style)) {
-        add(kickMidi, base, 0.94);
-        add(kickMidi, base + 8, 0.76);
-        add(kickMidi, base + 14, 0.46);
-        add(snareMidi, base + 4, 0.94);
-        add(snareMidi, base + 12, 0.9);
-        add(snareMidi, base + 10, 0.18);
+        add(kickMidi, at(0), 0.94);
+        add(kickMidi, at(8), 0.76);
+        add(kickMidi, at(14), 0.46);
+        add(snareMidi, at(4), 0.94);
+        add(snareMidi, at(12), 0.9);
+        add(snareMidi, at(10), 0.18);
         for (let step = 0; step < 16; step += 2) {
-          add(hatMidi, base + step, step % 4 === 0 ? 0.58 : 0.36);
+          add(hatMidi, at(step), step % 4 === 0 ? 0.58 : 0.36);
         }
       } else if (/pop/.test(style)) {
-        for (let beat = 0; beat < 4; beat++) add(kickMidi, base + beat * 4, 0.92);
-        add(snareMidi, base + 4, 0.9);
-        add(snareMidi, base + 12, 0.86);
-        add(clapMidi, base + 4, 0.24);
-        add(clapMidi, base + 12, 0.24);
+        for (let beat = 0; beat < 4; beat++) add(kickMidi, at(beat * 4), 0.92);
+        add(snareMidi, at(4), 0.9);
+        add(snareMidi, at(12), 0.86);
+        add(clapMidi, at(4), 0.24);
+        add(clapMidi, at(12), 0.24);
         for (let step = 0; step < 16; step += 2) {
-          add(hatMidi, base + step, step % 4 === 0 ? 0.58 : 0.4);
+          add(hatMidi, at(step), step % 4 === 0 ? 0.58 : 0.4);
         }
       } else if (/r&b|soul|gospel|funk|neo soul|new jack swing|worship/.test(style)) {
-        add(kickMidi, base, 0.94);
-        add(kickMidi, base + 7, 0.56);
-        add(kickMidi, base + 10, 0.72);
-        add(snareMidi, base + 4, 0.82);
-        add(snareMidi, base + 12, 0.88);
-        add(snareMidi, base + 15, 0.22);
+        add(kickMidi, at(0), 0.94);
+        add(kickMidi, at(7), 0.56);
+        add(kickMidi, at(10), 0.72);
+        add(snareMidi, at(4), 0.82);
+        add(snareMidi, at(12), 0.88);
+        add(snareMidi, at(15), 0.22);
         for (const step of [0, 2, 4, 6, 8, 10, 12, 14]) {
-          add(hatMidi, base + step, step % 4 === 0 ? 0.48 : 0.28);
+          add(hatMidi, at(step), step % 4 === 0 ? 0.48 : 0.28);
         }
       } else if (/jersey club|jersey drill/.test(style)) {
-        for (const step of [0, 3, 6, 8, 11, 14]) add(kickMidi, base + step, step % 8 === 0 ? 0.92 : 0.66);
-        add(snareMidi, base + 4, 0.84);
-        add(snareMidi, base + 12, 0.86);
-        for (const step of [2, 6, 10, 14]) add(46, base + step, 0.38);
-        for (const step of [0, 4, 8, 12]) add(hatMidi, base + step, 0.36);
+        for (const step of [0, 3, 6, 8, 11, 14]) add(kickMidi, at(step), step % 8 === 0 ? 0.92 : 0.66);
+        add(snareMidi, at(4), 0.84);
+        add(snareMidi, at(12), 0.86);
+        for (const step of [2, 6, 10, 14]) add(46, at(step), 0.38);
+        for (const step of [0, 4, 8, 12]) add(hatMidi, at(step), 0.36);
       } else if (/drill/.test(style)) {
-        add(kickMidi, base, 0.96);
-        add(kickMidi, base + 6, 0.62);
-        add(kickMidi, base + 11, 0.82);
-        add(snareMidi, base + 7, 0.9);
-        add(snareMidi, base + 15, 0.94);
+        add(kickMidi, at(0), 0.96);
+        add(kickMidi, at(6), 0.62);
+        add(kickMidi, at(11), 0.82);
+        add(snareMidi, at(7), 0.9);
+        add(snareMidi, at(15), 0.94);
         for (let step = 0; step < 16; step += 2) {
-          add(hatMidi, base + step, step % 4 === 0 ? 0.48 : 0.26);
+          add(hatMidi, at(step), step % 4 === 0 ? 0.48 : 0.26);
         }
-        add(hatMidi, base + 13, 0.34);
-        add(hatMidi, base + 14, 0.28);
+        add(hatMidi, at(13), 0.34);
+        add(hatMidi, at(14), 0.28);
       } else if (/trap|phonk|cloud rap|emo rap/.test(style)) {
-        add(kickMidi, base, 0.96);
-        add(kickMidi, base + 8, 0.72);
-        add(kickMidi, base + 12, 0.5);
-        add(snareMidi, base + 4, 0.9);
-        add(snareMidi, base + 12, 0.92);
+        add(kickMidi, at(0), 0.96);
+        add(kickMidi, at(8), 0.72);
+        add(kickMidi, at(12), 0.5);
+        add(snareMidi, at(4), 0.9);
+        add(snareMidi, at(12), 0.92);
         for (let step = 0; step < 16; step++) {
           if (step % 2 === 0 || step >= 13) {
-            add(hatMidi, base + step, step % 4 === 0 ? 0.5 : 0.26);
+            add(hatMidi, at(step), step % 4 === 0 ? 0.5 : 0.26);
           }
         }
       } else if (/hip hop|boom bap|rap|grime/.test(style)) {
-        add(kickMidi, base, 0.92);
-        add(kickMidi, base + 7, 0.6);
-        add(kickMidi, base + 10, 0.76);
-        add(snareMidi, base + 4, 0.88);
-        add(snareMidi, base + 12, 0.92);
+        add(kickMidi, at(0), 0.92);
+        add(kickMidi, at(7), 0.6);
+        add(kickMidi, at(10), 0.76);
+        add(snareMidi, at(4), 0.88);
+        add(snareMidi, at(12), 0.92);
         for (const step of [0, 2, 4, 6, 8, 10, 12, 14]) {
-          add(hatMidi, base + step, step % 4 === 0 ? 0.46 : 0.28);
+          add(hatMidi, at(step), step % 4 === 0 ? 0.46 : 0.28);
         }
 
       } else {
         // A flexible straight-time pocket for new or highly specific subgenres.
-        add(kickMidi, base, 0.92);
-        add(kickMidi, base + 8, 0.68);
-        add(snareMidi, base + 4, 0.82);
-        add(snareMidi, base + 12, 0.86);
+        add(kickMidi, at(0), 0.92);
+        add(kickMidi, at(8), 0.68);
+        add(snareMidi, at(4), 0.82);
+        add(snareMidi, at(12), 0.86);
         for (let step = 0; step < 16; step += 2) {
-          add(hatMidi, base + step, step % 4 === 0 ? 0.46 : 0.3);
+          add(hatMidi, at(step), step % 4 === 0 ? 0.46 : 0.3);
         }
       }
 
       // A genre-safe fill closes the second bar, so asking twice is not a
       // carbon copy of the previous beat.
       for (const fill of this.drumFill(variation, bar, sparse)) {
-        add(fill.midi, base + fill.step, fill.velocity);
+        add(fill.midi, at(fill.step), fill.velocity);
       }
     }
 

@@ -1165,7 +1165,7 @@ export class SmartCreationSheetComponent implements OnDestroy {
       sections.findIndex((section) => section.id === anchor.id),
     );
     const tail = sections.slice(startIndex);
-    const score = templateSectionsToAuditionScore(template, tail);
+    const score = templateSectionsToAuditionScore(template, tail, this.audioEngine);
     if (!score) {
       this.snackbar.info("These saved sections have no playable notes.");
       return;
@@ -1204,7 +1204,7 @@ export class SmartCreationSheetComponent implements OnDestroy {
   sectionBars(template: ProjectTemplate, section: TemplateSection): number {
     const cached = this.sectionBarsCache.get(section);
     if (cached?.template === template) return cached.bars;
-    const bars = templateSectionBars(template, section);
+    const bars = templateSectionBars(template, section, this.audioEngine);
     this.sectionBarsCache.set(section, { template, bars });
     return bars;
   }
@@ -1559,7 +1559,7 @@ export class SmartCreationSheetComponent implements OnDestroy {
     section: TemplateSection,
   ): AuditionMemoryEstimate | null {
     return this.previewMemoryFor(
-      templateSectionToAuditionScore(template, section),
+      templateSectionToAuditionScore(template, section, this.audioEngine),
     );
   }
 
@@ -1742,7 +1742,7 @@ export class SmartCreationSheetComponent implements OnDestroy {
     const sections = this.templateSections(template);
     if (!sections.length) return null;
     return this.previewMemoryFor(
-      templateSectionsToAuditionScore(template, sections),
+      templateSectionsToAuditionScore(template, sections, this.audioEngine),
     );
   }
 
@@ -1772,7 +1772,7 @@ export class SmartCreationSheetComponent implements OnDestroy {
     }
 
     const sections = this.templateSections(template);
-    const score = templateSectionsToAuditionScore(template, sections);
+    const score = templateSectionsToAuditionScore(template, sections, this.audioEngine);
     if (!score) {
       this.snackbar.info("These saved sections have no playable notes.");
       return;
@@ -1810,7 +1810,7 @@ export class SmartCreationSheetComponent implements OnDestroy {
       this.snackbar.info("This section no longer matches the template.");
       return;
     }
-    const score = templateSectionToAuditionScore(template, section);
+    const score = templateSectionToAuditionScore(template, section, this.audioEngine);
     if (!score) {
       this.snackbar.info(
         "This section has no playable notes at its set length.",
@@ -2019,7 +2019,7 @@ export class SmartCreationSheetComponent implements OnDestroy {
   templatePreviewMemory(
     template: ProjectTemplate,
   ): AuditionMemoryEstimate | null {
-    return this.previewMemoryFor(templateToAuditionScore(template));
+    return this.previewMemoryFor(templateToAuditionScore(template, this.audioEngine));
   }
 
   /** Stable id for the mix of the currently selected breakdown rows. */
@@ -2084,7 +2084,7 @@ export class SmartCreationSheetComponent implements OnDestroy {
     const selections = this.selectedPatternSelections(template);
     if (!selections.length) return null;
     return this.previewMemoryFor(
-      templatePatternsToAuditionScore(template, selections),
+      templatePatternsToAuditionScore(template, selections, this.audioEngine),
     );
   }
 
@@ -2142,6 +2142,7 @@ export class SmartCreationSheetComponent implements OnDestroy {
         detail.trackIndex,
         detail.slotId,
         versionId,
+        this.audioEngine,
       ),
     );
   }
@@ -2237,7 +2238,7 @@ export class SmartCreationSheetComponent implements OnDestroy {
     event?: Event,
   ): Promise<void> {
     event?.stopPropagation();
-    const score = templateToAuditionScore(template);
+    const score = templateToAuditionScore(template, this.audioEngine);
     if (!score) {
       this.snackbar.info("This template has no MIDI or drum pattern to audition.");
       return;
@@ -2261,6 +2262,7 @@ export class SmartCreationSheetComponent implements OnDestroy {
       detail.trackIndex,
       detail.slotId,
       versionId,
+        this.audioEngine,
     );
     if (!score) {
       this.snackbar.info(
@@ -2297,7 +2299,7 @@ export class SmartCreationSheetComponent implements OnDestroy {
       this.snackbar.info("Select at least one pattern row to mix.");
       return;
     }
-    const score = templatePatternsToAuditionScore(template, selections);
+    const score = templatePatternsToAuditionScore(template, selections, this.audioEngine);
     if (!score) {
       this.snackbar.info("The selected rows have no playable notes.");
       return;

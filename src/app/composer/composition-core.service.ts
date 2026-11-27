@@ -642,7 +642,7 @@ export class CompositionCoreService {
       notes.push({
         id: `${part.id}-n${index++}`,
         midi: note.midi,
-        step: Math.max(0, note.bar * 16 + note.step + stepOffset),
+        step: Math.max(0, (note.startStep ?? note.bar * 16 + note.step) + stepOffset),
         length: Math.max(1, note.length),
         velocity: clampUnit(note.velocity),
         isSlide: note.slide,
@@ -652,7 +652,7 @@ export class CompositionCoreService {
       notes.push({
         id: `${part.id}-h${index++}`,
         midi: drumMidiForLane(hit.lane as DrumLane),
-        step: Math.max(0, hit.bar * 16 + hit.step + stepOffset),
+        step: Math.max(0, (hit.startStep ?? hit.bar * 16 + hit.step) + stepOffset),
         length: 1,
         velocity: clampUnit(hit.velocity),
       });

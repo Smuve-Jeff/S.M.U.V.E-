@@ -168,10 +168,21 @@ describe('ChatMusicCommandEngineService', () => {
       sendToStudio,
     };
 
+    let stepsPerBar = 16;
     const audioMock = {
       tempo,
       playAudition,
       stopAudition,
+      stepAtBar: (bar: number) => bar * stepsPerBar,
+      stepsPerBarAt: () => stepsPerBar,
+      barAtStep: (step: number) => Math.floor(step / stepsPerBar),
+      barCountForStep: (step: number) =>
+        step > 0 ? Math.floor((step - 1) / stepsPerBar) + 1 : 1,
+      stepsForBars: (start: number, bars: number) => bars * stepsPerBar,
+    };
+    // Exposed so a test can play in a shorter meter.
+    (audioMock as any).setStepsPerBar = (value: number) => {
+      stepsPerBar = value;
     };
     const musicMock = {
       tracks,
@@ -921,6 +932,20 @@ describe('ChatMusicCommandEngineService', () => {
     expect(result.content).toContain('Artist profile committed');
     expect(result.actions).toEqual([]);
     expect(generateStep).not.toHaveBeenCalled();
+  });
+
+  it('fits generated drum patterns inside shorter bars', () => {
+    (service as any).audio.setStepsPerBar(12);
+
+    expect(service.tryExecute('play some drums')).not.toBeNull();
+
+    const drums = tracks().find((track) => track.type === 'drum')!;
+    expect(drums.notes.length).toBeGreaterThan(0);
+    // Two 3/4 bars are 24 steps; the old 16-step grid ran to 31.
+    expect(Math.max(...drums.notes.map((note) => note.step))).toBeLessThan(24);
+    expect(drums.notes.some((note) => note.step >= 12 && note.step < 24)).toBe(
+      true,
+    );
   });
 
 });

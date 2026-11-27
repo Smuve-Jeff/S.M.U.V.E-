@@ -1990,6 +1990,52 @@ describe('MusicManagerService live plugin insert wiring', () => {
     expect(service.tracks().map((t) => t.id)).toEqual(['track-1']);
   });
 
+  it('sizes the song through a mid-song meter change when a note ends on a bar line', () => {
+    const engine = (service as any).engine;
+    const starts = [0, 16, 32, 44, 56, 68];
+    const stepAtBar = (bar: number) => {
+      const whole = Math.max(0, Math.floor(bar));
+      const start = starts[Math.min(starts.length - 1, whole)];
+      const next = starts[Math.min(starts.length - 1, whole + 1)];
+      return Math.round(start + (next - start) * Math.max(0, bar - whole));
+    };
+    const barAtStep = (step: number) => {
+      let bar = 0;
+      while (bar + 1 < starts.length && starts[bar + 1] <= step) bar++;
+      return bar;
+    };
+    engine.stepAtBar = stepAtBar;
+    engine.barAtStep = barAtStep;
+    engine.barCountForStep = (step: number) =>
+      step > 0 ? barAtStep(step - 1) + 1 : 1;
+    engine.stepsForBars = (start: number, bars: number) =>
+      stepAtBar(start + bars) - stepAtBar(start);
+
+    try {
+      service.activeLoopBars.set(4);
+      service.structure.set([]);
+      const base = service.tracks()[0];
+      service.tracks.set([
+        {
+          ...base,
+          notes: [{ id: 'tail', midi: 60, step: 44, length: 12, velocity: 0.8 }],
+        } as any,
+      ]);
+
+      // The note exactly fills bar 4 (44–56), so the next bar is not occupied.
+      expect(service.arrangementEndBar()).toBe(4);
+
+      TestBed.flushEffects();
+      // Five bars: two 4/4 bars and three 3/4 bars (one as the tail).
+      expect(engine.setSongLengthSteps).toHaveBeenLastCalledWith(68);
+    } finally {
+      delete engine.stepAtBar;
+      delete engine.barAtStep;
+      delete engine.barCountForStep;
+      delete engine.stepsForBars;
+    }
+  });
+
   it('reports the last occupied bar so song length follows the arrangement', () => {
     service.addAudioTrack({
       id: 'track-far',

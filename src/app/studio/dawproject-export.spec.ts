@@ -64,6 +64,30 @@ function makeProject(overrides: Partial<DawprojectProject> = {}): DawprojectProj
 }
 
 describe("DAWproject export", () => {
+  it("converts bars and note offsets through a mid-song meter change", () => {
+    const base = makeProject().tracks[0];
+    const xml = buildDawprojectXml(
+      makeProject({
+        meter: [
+          { step: 0, beats: 4, unit: 4 },
+          { step: 32, beats: 3, unit: 4 },
+        ],
+        tracks: [
+          {
+            ...base,
+            notes: [{ step: 44, length: 4, midi: 60, velocity: 0.8 }],
+            clips: [{ name: "Hook", start: 2, length: 2 }],
+          },
+        ],
+      }),
+    );
+
+    // Bar 2 starts at beat 8; the 3/4 pair that follows lasts 6 beats.
+    expect(xml).toContain('time="8" duration="6" name="Hook"');
+    // Step 44 is 12 steps into the clip, i.e. beat 3 of the local clip.
+    expect(xml).toContain('time="3" duration="1" channel="0" key="60"');
+  });
+
   it("writes project, application and transport exactly as the schema orders them", () => {
     const xml = buildDawprojectXml(makeProject());
 

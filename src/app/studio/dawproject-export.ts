@@ -70,6 +70,8 @@ export interface DawprojectProject {
   tempo: number;
   numerator: number;
   denominator: number;
+  /** Time-signature changes from the studio's meter map, sorted by step. */
+  meter?: { step: number; beats: number; unit: number }[];
   tracks: DawprojectTrack[];
   audio: DawprojectAudio[];
   /** Shown as the application version in project.xml. */
@@ -97,8 +99,46 @@ const beats = (steps: number): string => {
   return (Math.round(value * 1e6) / 1e6).toString();
 };
 
-const barBeats = (bars: number): string => {
-  const value = (Number.isFinite(bars) ? bars : 0) * 4;
+type MeterChange = { step: number; beats: number; unit: number };
+
+const meterAt = (step: number, meter?: MeterChange[]): MeterChange | null => {
+  let found: MeterChange | null = null;
+  for (const marker of meter ?? []) {
+    if (marker.step <= step) found = marker;
+    else break;
+  }
+  return found;
+};
+
+const barStepsAt = (step: number, meter?: MeterChange[]): number => {
+  const marker = meterAt(step, meter);
+  const beats = marker?.beats ?? 4;
+  const unit = marker?.unit ?? 4;
+  return Math.max(1, beats * Math.max(1, Math.round(16 / unit)));
+};
+
+const nextBarStep = (step: number, meter?: MeterChange[]): number => {
+  const natural = step + barStepsAt(step, meter);
+  const next = (meter ?? []).find((marker) => marker.step > step);
+  return next ? Math.min(natural, next.step) : natural;
+};
+
+/** Start step of a bar under the meter map (fractional bars supported). */
+const stepAtBar = (bar: number, meter?: MeterChange[]): number => {
+  if (!(bar > 0)) return 0;
+  if (!meter?.length) return Math.round(bar * 16);
+  const whole = Math.floor(bar);
+  let step = 0;
+  for (let index = 0; index < whole; index++) step = nextBarStep(step, meter);
+  if (bar > whole) {
+    step += Math.round((nextBarStep(step, meter) - step) * (bar - whole));
+  }
+  return Math.round(step);
+};
+
+/** Quarter-note beat position of a bar, so a 3/4 bar is three beats long. */
+const barBeats = (bar: number, meter?: MeterChange[]): string => {
+  const value = meter?.length ? stepAtBar(bar, meter) / STEPS_PER_BEAT : bar * 4;
   return (Math.round(value * 1e6) / 1e6).toString();
 };
 
@@ -131,10 +171,14 @@ function clipXml(
   track: DawprojectTrack,
   tempo: number,
   audioPaths: Map<string, string>,
+  meter?: MeterChange[],
 ): string {
-  const attrs = `time="${barBeats(clip.start)}" duration="${barBeats(clip.length)}" name="${escapeXml(clip.name)}"`;
+  const startStep = stepAtBar(clip.start, meter);
+  const endStep = stepAtBar(clip.start + clip.length, meter);
+  const spanSteps = Math.max(1, endStep - startStep);
+  const attrs = `time="${barBeats(clip.start, meter)}" duration="${beats(spanSteps)}" name="${escapeXml(clip.name)}"`;
   if (clip.audioId) {
-    const seconds = (clip.length * 4 * 60) / Math.max(1, tempo);
+    const seconds = (spanSteps / STEPS_PER_BEAT * 60) / Math.max(1, tempo);
     return [
       `          <Clip ${attrs}>`,
       `            <Audio id="${xmlId("audio", clip.audioId)}" duration="${seconds.toFixed(6)}" channels="2" sampleRate="44100" timeUnit="seconds">`,
@@ -144,15 +188,16 @@ function clipXml(
     ].join("\n");
   }
 
-  const notes = (clip.notes ?? track.notes.filter((note) => {
-      const noteBar = note.step / 16;
-      return noteBar >= clip.start && noteBar < clip.start + clip.length;
-    }))
+  const notes = (clip.notes ?? track.notes.filter(
+      (note) => note.step >= startStep && note.step < endStep,
+    ))
     .map((note) => {
       // Timing offsets and ratchets can move a hit outside the source clip.
       // Preserve the clip window; place its exported event at the nearest edge.
-      const clipSteps = clip.length * 16;
-      const local = Math.max(0, Math.min(Math.max(0, clipSteps - 0.001), note.step - clip.start * 16));
+      const local = Math.max(
+        0,
+        Math.min(Math.max(0, spanSteps - 0.001), note.step - startStep),
+      );
       return `            <Note time="${beats(local)}" duration="${beats(Math.max(0.001, note.length))}" channel="0" key="${Math.max(0, Math.min(127, Math.round(note.midi)))}" vel="${Math.max(0, Math.min(1, note.velocity)).toFixed(3)}"/>`;
     });
 
@@ -206,7 +251,7 @@ export function buildDawprojectXml(project: DawprojectProject): string {
     );
     lines.push(`        <Clips>`);
     for (const clip of track.clips) {
-      lines.push(clipXml(clip, track, tempo, audioPaths));
+      lines.push(clipXml(clip, track, tempo, audioPaths, project.meter));
     }
     lines.push(`        </Clips>`);
     lines.push(`      </Lanes>`);

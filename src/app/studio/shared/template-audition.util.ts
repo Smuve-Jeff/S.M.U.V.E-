@@ -54,6 +54,16 @@ function activeNotes(track: ProjectTemplateTrack): TemplateNote[] {
   return slot?.notes ?? [];
 }
 
+/**
+ * Meter helpers from the studio engine. Every bar can be a different length,
+ * so template bars and note offsets resolve through this instead of step/16.
+ */
+export interface TemplateMeter {
+  barAtStep?(step: number): number;
+  stepAtBar?(bar: number): number;
+  barCountForStep?(step: number): number;
+}
+
 function playable(notes: TemplateNote[]): TemplateNote[] {
   return notes.filter(
     (note) => note.midi >= 0 && note.midi <= 127 && note.step >= 0,
@@ -64,17 +74,22 @@ function buildPart(
   track: ProjectTemplateTrack,
   notes: TemplateNote[],
   suffix: string,
+  meter?: TemplateMeter,
 ): { part: ComposerPart; maxStep: number } | null {
   const valid = playable(notes);
   if (!valid.length) return null;
   let maxStep = 0;
+  const place = (step: number) => {
+    const bar = meter?.barAtStep?.(step) ?? Math.floor(step / 16);
+    const start = meter?.stepAtBar?.(bar) ?? bar * 16;
+    return { bar, step: Math.max(0, step - start), startStep: step };
+  };
 
   if (track.type === 'drum') {
     const hits: DrumHit[] = valid.map((note) => {
       maxStep = Math.max(maxStep, note.step + Math.max(1, note.length));
       return {
-        bar: Math.floor(note.step / 16),
-        step: note.step % 16,
+        ...place(note.step),
         lane: DRUM_LANES[note.midi] ?? 'perc',
         velocity: note.velocity,
       };
@@ -98,8 +113,7 @@ function buildPart(
   const composerNotes: ComposerNote[] = valid.map((note) => {
     maxStep = Math.max(maxStep, note.step + Math.max(1, note.length));
     return {
-      bar: Math.floor(note.step / 16),
-      step: note.step % 16,
+      ...place(note.step),
       midi: note.midi,
       length: Math.max(0.0625, note.length),
       velocity: note.velocity,
@@ -127,14 +141,20 @@ function scoreFor(
   id: string,
   parts: ComposerPart[],
   maxStep: number,
+  meter?: TemplateMeter,
 ): AuditionScore {
   const bpm = Math.max(40, Math.min(240, template.bpm || 120));
-  const totalBars = Math.max(1, Math.ceil(maxStep / 16));
+  const totalBars = Math.max(
+    1,
+    meter?.barCountForStep?.(maxStep) ?? Math.ceil(maxStep / 16),
+  );
+  const totalSteps = meter?.stepAtBar?.(totalBars) ?? totalBars * 16;
   return {
     id,
     bpm,
     totalBars,
-    durationSeconds: totalBars * (60 / bpm) * 4,
+    // Four sixteenths are one beat in every meter; bars are not always four.
+    durationSeconds: (Math.max(1, totalSteps) / 4) * (60 / bpm),
     parts,
   };
 }
@@ -162,19 +182,26 @@ export const templatePatternPreviewId = (
  */
 export function templateToAuditionScore(
   template: ProjectTemplate,
+  meter?: TemplateMeter,
 ): AuditionScore | null {
   const parts: ComposerPart[] = [];
   let maxStep = 0;
 
   template.tracks.forEach((track) => {
-    const built = buildPart(track, activeNotes(track), track.name);
+    const built = buildPart(track, activeNotes(track), track.name, meter);
     if (!built) return;
     parts.push(built.part);
     maxStep = Math.max(maxStep, built.maxStep);
   });
 
   if (!parts.length) return null;
-  return scoreFor(template, templatePreviewId(template.id), parts, maxStep);
+  return scoreFor(
+    template,
+    templatePreviewId(template.id),
+    parts,
+    maxStep,
+    meter,
+  );
 }
 
 /**
@@ -186,6 +213,7 @@ export function templatePatternToAuditionScore(
   trackIndex: number,
   slotId?: string | null,
   versionId?: string,
+  meter?: TemplateMeter,
 ): AuditionScore | null {
   const track = template.tracks[trackIndex];
   if (!track) return null;
@@ -203,13 +231,19 @@ export function templatePatternToAuditionScore(
     notes = activeNotes(track);
   }
 
-  const built = buildPart(track, notes, `${trackIndex}-${slotId ?? 'live'}`);
+  const built = buildPart(
+    track,
+    notes,
+    `${trackIndex}-${slotId ?? 'live'}`,
+    meter,
+  );
   if (!built) return null;
   return scoreFor(
     template,
     templatePatternPreviewId(template.id, trackIndex, slotId, versionId),
     [built.part],
     built.maxStep,
+    meter,
   );
 }
 
@@ -257,6 +291,7 @@ export const templatePatternsPreviewId = (
 export function templatePatternsToAuditionScore(
   template: ProjectTemplate,
   selections: readonly TemplatePatternSelection[],
+  meter?: TemplateMeter,
 ): AuditionScore | null {
   if (!selections.length) return null;
 
@@ -297,6 +332,7 @@ export function templatePatternsToAuditionScore(
       track,
       notes,
       `${selection.trackIndex}-${selection.slotId ?? "live"}-mix`,
+      meter,
     );
     if (!built) continue;
     parts.push(built.part);
@@ -309,6 +345,7 @@ export function templatePatternsToAuditionScore(
     templatePatternsPreviewId(template.id, selections),
     parts,
     maxStep,
+    meter,
   );
 }
 
@@ -382,6 +419,7 @@ function resolveSectionRows(
 export function templateSectionBars(
   template: ProjectTemplate,
   section: TemplateSection,
+  meter?: TemplateMeter,
 ): number {
   if (typeof section.bars === 'number' && Number.isFinite(section.bars)) {
     return Math.max(1, Math.min(MAX_SECTION_BARS, Math.round(section.bars)));
@@ -393,35 +431,52 @@ export function templateSectionBars(
       maxStep = Math.max(maxStep, note.step + Math.max(1, note.length));
     }
   }
-  return Math.max(1, Math.ceil(maxStep / 16));
+  return Math.max(
+    1,
+    meter?.barCountForStep?.(maxStep) ?? Math.ceil(maxStep / 16),
+  );
 }
 
 /** Drop or shorten anything that would spill into the next section. */
-function trimPartToBars(part: ComposerPart, bars: number): ComposerPart {
-  const maxStep = Math.max(1, bars) * 16;
-  const position = (bar: number, step: number): number => bar * 16 + step;
+function trimPartToBars(
+  part: ComposerPart,
+  bars: number,
+  meter?: TemplateMeter,
+): ComposerPart {
+  const maxStep = meter?.stepAtBar?.(Math.max(0, bars)) ?? Math.max(1, bars) * 16;
+  const position = (note: { bar: number; step: number; startStep?: number }) =>
+    note.startStep ?? note.bar * 16 + note.step;
   return {
     ...part,
     notes: part.notes
-      .filter((note) => position(note.bar, note.step) < maxStep)
+      .filter((note) => position(note) < maxStep)
       .map((note) => ({
         ...note,
-        length: Math.min(
-          note.length,
-          maxStep - position(note.bar, note.step),
-        ),
+        length: Math.min(note.length, maxStep - position(note)),
       })),
-    hits: part.hits.filter((hit) => position(hit.bar, hit.step) < maxStep),
+    hits: part.hits.filter((hit) => position(hit) < maxStep),
   };
 }
 
 /** Shift every note and drum hit in a part by a whole number of bars. */
-function offsetPart(part: ComposerPart, bars: number): ComposerPart {
+function offsetPart(
+  part: ComposerPart,
+  bars: number,
+  meter?: TemplateMeter,
+): ComposerPart {
   if (!bars) return part;
+  const shift = meter?.stepAtBar?.(bars) ?? bars * 16;
+  const move = <T extends { bar: number; startStep?: number }>(note: T): T => ({
+    ...note,
+    bar: note.bar + bars,
+    ...(note.startStep === undefined
+      ? {}
+      : { startStep: note.startStep + shift }),
+  });
   return {
     ...part,
-    notes: part.notes.map((note) => ({ ...note, bar: note.bar + bars })),
-    hits: part.hits.map((hit) => ({ ...hit, bar: hit.bar + bars })),
+    notes: part.notes.map(move),
+    hits: part.hits.map(move),
   };
 }
 
@@ -447,8 +502,9 @@ export const templateSectionPreviewId = (
 export function templateSectionToAuditionScore(
   template: ProjectTemplate,
   section: TemplateSection,
+  meter?: TemplateMeter,
 ): AuditionScore | null {
-  const bars = templateSectionBars(template, section);
+  const bars = templateSectionBars(template, section, meter);
   const parts: ComposerPart[] = [];
 
   resolveSectionRows(template, section).forEach((row, index) => {
@@ -456,9 +512,10 @@ export function templateSectionToAuditionScore(
       row.track,
       row.notes,
       `section-${section.id}-${index}`,
+      meter,
     );
     if (!built) return;
-    const part = trimPartToBars(built.part, bars);
+    const part = trimPartToBars(built.part, bars, meter);
     if (part.notes.length || part.hits.length) parts.push(part);
   });
 
@@ -467,7 +524,8 @@ export function templateSectionToAuditionScore(
     template,
     templateSectionPreviewId(template, section),
     parts,
-    bars * 16,
+    meter?.stepAtBar?.(bars) ?? bars * 16,
+    meter,
   );
 }
 
@@ -485,6 +543,7 @@ export function templateSectionToAuditionScore(
 export function templateSectionsToAuditionScore(
   template: ProjectTemplate,
   sections: readonly TemplateSection[],
+  meter?: TemplateMeter,
 ): AuditionScore | null {
   if (!sections.length) return null;
 
@@ -492,7 +551,7 @@ export function templateSectionsToAuditionScore(
   let startBar = 0;
 
   sections.forEach((section, sectionIndex) => {
-    const sectionBars = templateSectionBars(template, section);
+    const sectionBars = templateSectionBars(template, section, meter);
     const sectionParts: ComposerPart[] = [];
 
     for (const row of resolveSectionRows(template, section)) {
@@ -500,13 +559,14 @@ export function templateSectionsToAuditionScore(
         row.track,
         row.notes,
         `sections-${sectionIndex}-${row.key.replace(":", "-")}`,
+        meter,
       );
       if (!built) continue;
-      sectionParts.push(trimPartToBars(built.part, sectionBars));
+      sectionParts.push(trimPartToBars(built.part, sectionBars, meter));
     }
 
     if (!sectionParts.length) return;
-    parts.push(...sectionParts.map((part) => offsetPart(part, startBar)));
+    parts.push(...sectionParts.map((part) => offsetPart(part, startBar, meter)));
     startBar += sectionBars;
   });
 
@@ -515,6 +575,7 @@ export function templateSectionsToAuditionScore(
     template,
     templateSectionsPreviewId(template.id, sections),
     parts,
-    startBar * 16,
+    meter?.stepAtBar?.(startBar) ?? startBar * 16,
+    meter,
   );
 }

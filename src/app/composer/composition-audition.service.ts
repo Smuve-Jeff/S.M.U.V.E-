@@ -594,7 +594,7 @@ export class CompositionAuditionService {
     toSeconds: number,
   ): void {
     for (const hit of part.hits) {
-      const time = (hit.bar * 16 + hit.step) * stepSeconds;
+      const time = (hit.startStep ?? hit.bar * 16 + hit.step) * stepSeconds;
       if (time < fromSeconds || time >= toSeconds) continue;
       this.drum(ctx, bus, hit.lane, time - fromSeconds, hit.velocity);
     }
@@ -610,7 +610,7 @@ export class CompositionAuditionService {
   ): void {
     const voice = this.voiceFor(part.role);
     for (const note of part.notes) {
-      const time = (note.bar * 16 + note.step) * stepSeconds;
+      const time = (note.startStep ?? note.bar * 16 + note.step) * stepSeconds;
       const duration = Math.max(0.05, note.length * stepSeconds * 0.94);
       const end = time + duration;
       const freq = 440 * Math.pow(2, (note.midi - 69) / 12);

@@ -127,6 +127,70 @@ describe('ExportService (Sprint A6)', () => {
     }
   });
 
+  it('labels an A/B loop ending on a bar line through a mid-song meter change', async () => {
+    const render = jest.spyOn(svc, 'renderProjectOffline').mockResolvedValueOnce(fakeBuffer);
+    jest.spyOn(svc, 'exportToFormat').mockResolvedValueOnce(new Blob(['loop']));
+    const download = jest.spyOn(svc, 'downloadBlob').mockImplementation(() => {});
+    const previousOfflineAudioContext = (globalThis as any).OfflineAudioContext;
+    (globalThis as any).OfflineAudioContext = jest.fn().mockImplementation((_channels, _length, _sampleRate) => ({
+      createBuffer: (channels: number, length: number, rate: number) => ({
+        numberOfChannels: channels,
+        length,
+        sampleRate: rate,
+        duration: length / rate,
+        getChannelData: () => new Float32Array(length),
+      }),
+    }));
+
+    const starts = [0, 16, 32, 44, 56];
+    const barAtStep = (step: number) => {
+      let bar = 0;
+      while (bar + 1 < starts.length && starts[bar + 1] <= step) bar++;
+      return bar;
+    };
+    const previous = {
+      start: mockEngine.playbackLoopStart,
+      end: mockEngine.playbackLoopEnd,
+      barAtStep: mockEngine.barAtStep,
+      count: mockEngine.barCountForStep,
+      stepAtBar: mockEngine.stepAtBar,
+    };
+    mockEngine.playbackLoopStart = () => 32;
+    mockEngine.playbackLoopEnd = () => 56;
+    mockEngine.barAtStep = barAtStep;
+    mockEngine.barCountForStep = (step: number) =>
+      step > 0 ? barAtStep(step - 1) + 1 : 1;
+    mockEngine.stepAtBar = (bar: number) =>
+      starts[Math.min(starts.length - 1, Math.max(0, Math.floor(bar)))];
+
+    try {
+      const result = await svc.exportLoopWav();
+
+      // The loop ends exactly on bar 5's line, so it covers bars 3–4 only.
+      expect(render).toHaveBeenCalledWith(
+        expect.objectContaining({ durationBars: 4, tailSeconds: 0 }),
+      );
+      expect(download).toHaveBeenCalledWith(
+        expect.any(Blob),
+        expect.stringMatching(/_Director_Loop_33-56_wav24_\d+\.wav$/),
+      );
+      expect(result.metadata).toMatchObject({
+        startStep: 32,
+        endStep: 56,
+        startBar: 3,
+        endBar: 4,
+      });
+    } finally {
+      mockEngine.playbackLoopStart = previous.start;
+      mockEngine.playbackLoopEnd = previous.end;
+      mockEngine.barAtStep = previous.barAtStep;
+      mockEngine.barCountForStep = previous.count;
+      mockEngine.stepAtBar = previous.stepAtBar;
+      if (previousOfflineAudioContext === undefined) delete (globalThis as any).OfflineAudioContext;
+      else (globalThis as any).OfflineAudioContext = previousOfflineAudioContext;
+    }
+  });
+
   it('exports the transport loop as MP3 with loop metadata in the result', async () => {
     jest.spyOn(svc, 'renderProjectOffline').mockResolvedValueOnce(fakeBuffer);
     const encode = jest.spyOn(svc, 'exportToFormat').mockResolvedValueOnce(new Blob(['loop'], { type: 'audio/mpeg' }));

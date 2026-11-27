@@ -286,6 +286,11 @@ export interface ComposerNote {
   bar: number;
   /** 16th-note step inside the bar (0–15). */
   step: number;
+  /**
+   * Absolute song step when the bar is not a 4/4 sixteen-step bar. Producers
+   * that know the meter set this; playback prefers it over `bar * 16 + step`.
+   */
+  startStep?: number;
   midi: number;
   /** Length in 16ths. */
   length: number;
@@ -296,6 +301,8 @@ export interface ComposerNote {
 export interface DrumHit {
   bar: number;
   step: number;
+  /** Absolute song step, set when the bar length came from the meter map. */
+  startStep?: number;
   lane: DrumLane;
   velocity: number;
 }
