@@ -20,6 +20,7 @@ describe("StudioTelemetryService", () => {
   });
 
   afterEach(() => {
+    service.flushTelemetry();
     localStorage.removeItem(STORAGE_KEY);
     localStorage.removeItem(DISMISS_KEY);
   });
@@ -230,6 +231,7 @@ describe("StudioTelemetryService", () => {
   });
 
   function readStored(): StudioTelemetryEvent[] {
+    service.flushTelemetry();
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return [];
     return JSON.parse(raw);

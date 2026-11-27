@@ -698,8 +698,14 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   private homeExitTimer: ReturnType<typeof setTimeout> | null = null;
   /** Timestamp of the first back press that armed the "press again" exit. */
   private exitArmedAt = 0;
+  /** Set before async teardown work so late listeners cannot re-attach. */
+  private destroyed = false;
   /** Native backButton listener handle (device only). */
   private backButtonHandle: { remove: () => void } | null = null;
+  private crossLinkAnnouncementTimer: ReturnType<typeof setTimeout> | null = null;
+  private readonly panelFocusTimers = new Set<ReturnType<typeof setTimeout>>();
+  /** Last time the pointer's position was sampled for collaboration. */
+  private lastCursorSampleAt = 0;
   public readonly orchestration = inject(StudioOrchestrationService);
 
   // ---- State ----
@@ -1990,25 +1996,9 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     // number of open overlays (see syncBackHistoryTrap). History-only side
     // effect — no signal writes, so no effect-loop hazard.
     effect(() => {
-      const openCount = [
-        this.showStudioGuide(),
-        this.showSmartCreationSheet(),
-        this.showShortcuts(),
-        this.showProjectMenu(),
-        this.showAiAssistant(),
-        this.showAiMixAssistant(),
-        this.showSmartRecordingPanel(),
-        this.showProjectMetadata(),
-        this.showStudioInsights(),
-        this.showActivityLog(),
-        this.showSetsBrowser(),
-        this.showComponentRecording(),
-        this.showImportPanel(),
-        this.showVocalComp(),
-        this.showBezierEditor(),
-        this.mobileDrawerOpen(),
-        this.showMobileToolsSheet(),
-      ].filter(Boolean).length;
+      const openCount = this.dismissibleSurfaces().filter(
+        (surface) => surface.open,
+      ).length;
       untracked(() => this.syncBackHistoryTrap(openCount));
     });
 
@@ -2155,7 +2145,13 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
         this.crossLinkAnnouncement.set(
           `Opened Piano Roll for ${req.label || trackName}. The related notes are highlighted.`,
         );
-        setTimeout(() => this.crossLinkAnnouncement.set(""), 4500);
+        if (this.crossLinkAnnouncementTimer) {
+          clearTimeout(this.crossLinkAnnouncementTimer);
+        }
+        this.crossLinkAnnouncementTimer = setTimeout(() => {
+          this.crossLinkAnnouncementTimer = null;
+          this.crossLinkAnnouncement.set("");
+        }, 4500);
       });
     });
   }
@@ -2302,11 +2298,18 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     return peer.state === "connected" || peer.state === "muted";
   }
 
-  /** Throttled-by-service mousemove handler — publishes normalized {x,y}. */
+  /** Sample the pointer at most ~12 Hz, and only during a live collab session. */
   @HostListener("mousemove", ["$event"])
   onStudioMouseMove(event: MouseEvent): void {
+    if (!this.collaboration.currentSession()) return;
+    const now = Date.now();
+    if (now - this.lastCursorSampleAt < 80) return;
+    this.lastCursorSampleAt = now;
     const host = (event.currentTarget as HTMLElement) ?? null;
     if (!host) return;
+    // Read layout only after the early exits: mousemove is frequent, and a
+    // forced getBoundingClientRect() here used to run before the service's
+    // own 80 ms throttle on every event.
     const rect = host.getBoundingClientRect();
     if (!rect.width || !rect.height) return;
     const x = (event.clientX - rect.left) / rect.width;
@@ -2326,6 +2329,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   ngOnDestroy() {
+    this.destroyed = true;
     this.atmosphere.stop();
     this.atmosphere.setStyleTarget(null);
     this.stopSpectrumAnalyzer();
@@ -2336,6 +2340,18 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     if (this.homeExitTimer) {
       clearTimeout(this.homeExitTimer);
       this.homeExitTimer = null;
+    }
+    this.clearVersionUndoTimer();
+    if (this.crossLinkAnnouncementTimer) {
+      clearTimeout(this.crossLinkAnnouncementTimer);
+      this.crossLinkAnnouncementTimer = null;
+    }
+    for (const timer of this.panelFocusTimers) clearTimeout(timer);
+    this.panelFocusTimers.clear();
+    // A route change is a real leave: clear presence and the heartbeat even
+    // when the artist did not press the collaboration toggle first.
+    if (this.collaboration.currentSession()) {
+      this.collaboration.leaveSession();
     }
     this.leavingStudioForHome = false;
     this.backTrapDepth = 0;
@@ -2365,25 +2381,64 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   //      double-press.
   // ═══════════════════════════════════════════════════════════
 
-  /** True when any dismissible surface is open. Mirrors dismissTopOverlay(). */
+  /**
+   * One ordered source of truth for every surface the back gesture/Escape can
+   * dismiss. The history depth, hasOpenOverlay() and dismissTopOverlay() all
+   * read this list, so a new panel cannot become dismissible in one place and
+   * invisible in another.
+   */
+  private dismissibleSurfaces(): Array<{
+    open: boolean;
+    close: () => void;
+  }> {
+    return [
+      { open: this.showStudioGuide(), close: () => this.closeStudioGuide() },
+      {
+        open: this.showSmartCreationSheet(),
+        close: () => this.showSmartCreationSheet.set(false),
+      },
+      { open: this.showShortcuts(), close: () => this.showShortcuts.set(false) },
+      { open: this.showProjectMenu(), close: () => this.showProjectMenu.set(false) },
+      { open: this.showAiAssistant(), close: () => this.showAiAssistant.set(false) },
+      { open: this.showAiMixAssistant(), close: () => this.toggleAiMixAssistant() },
+      {
+        open: this.showSmartRecordingPanel(),
+        close: () => this.toggleSmartRecordingPanel(),
+      },
+      {
+        open: this.showProjectMetadata(),
+        close: () => this.toggleProjectMetadata(),
+      },
+      {
+        open: this.showStudioInsights(),
+        close: () => this.toggleStudioInsights(),
+      },
+      { open: this.showActivityLog(), close: () => this.toggleActivityLog() },
+      { open: this.showSetsBrowser(), close: () => this.toggleSetsBrowser() },
+      {
+        open: this.showComponentRecording(),
+        close: () => this.showComponentRecording.set(false),
+      },
+      { open: this.showImportPanel(), close: () => this.toggleImportPanel() },
+      { open: this.showVocalComp(), close: () => this.toggleVocalComp() },
+      { open: this.showBezierEditor(), close: () => this.toggleBezierEditor() },
+      {
+        open: this.showMobileToolsSheet(),
+        close: () => this.toggleMobileToolsSheet(false),
+      },
+      {
+        open: this.mobileDrawerOpen(),
+        close: () => {
+          this.mobileDrawerOpen.set(false);
+          this.syncPanelFocus(".comp-drawer", false);
+        },
+      },
+    ];
+  }
+
+  /** True when any dismissible surface is open. */
   hasOpenOverlay(): boolean {
-    return !!(
-      this.showStudioGuide() ||
-      this.showSmartCreationSheet() ||
-      this.showShortcuts() ||
-      this.showProjectMenu() ||
-      this.showAiAssistant() ||
-      this.showAiMixAssistant() ||
-      this.showSmartRecordingPanel() ||
-      this.showProjectMetadata() ||
-      this.showStudioInsights() ||
-      this.showComponentRecording() ||
-      this.showImportPanel() ||
-      this.showVocalComp() ||
-      this.showBezierEditor() ||
-      this.mobileDrawerOpen() ||
-      this.showMobileToolsSheet()
-    );
+    return this.dismissibleSurfaces().some((surface) => surface.open);
   }
 
   /**
@@ -2456,12 +2511,12 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
    * build relies on history + the router) from ngOnInit.
    */
   private async registerNativeBackButton(): Promise<void> {
-    if (this.backButtonHandle) return;
+    if (this.backButtonHandle || this.destroyed) return;
     try {
       const { Capacitor } = await import("@capacitor/core");
-      if (!Capacitor.isNativePlatform()) return;
+      if (this.destroyed || !Capacitor.isNativePlatform()) return;
       const { App } = await import("@capacitor/app");
-      this.backButtonHandle = await App.addListener(
+      const handle = await App.addListener(
         "backButton",
         async ({ canGoBack }) => {
           if (this.dismissTopOverlay()) {
@@ -2491,6 +2546,11 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
           );
         },
       );
+      if (this.destroyed) {
+        handle.remove();
+        return;
+      }
+      this.backButtonHandle = handle;
     } catch (e) {
       // Web build, plugin absent, or a native bridge error — the history
       // trap and the Escape key still cover dismissal.
@@ -2680,80 +2740,15 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
 
   /**
    * Close the topmost open overlay, if any. Returns true when a surface was
-   * dismissed so the caller can stop the event. Order matches z-order:
-   * popovers/menus first, then right-slide panels, then the mobile drawer.
+   * dismissed so the caller can stop the event. The ordered registry matches
+   * z-order: popovers/menus first, then right-slide panels, then the mobile
+   * drawer.
    */
   dismissTopOverlay(): boolean {
-    if (this.showStudioGuide()) {
-      this.closeStudioGuide();
-      return true;
-    }
-    if (this.showSmartCreationSheet()) {
-      this.showSmartCreationSheet.set(false);
-      return true;
-    }
-    if (this.showShortcuts()) {
-      this.showShortcuts.set(false);
-      return true;
-    }
-    if (this.showProjectMenu()) {
-      this.showProjectMenu.set(false);
-      return true;
-    }
-    if (this.showAiAssistant()) {
-      this.showAiAssistant.set(false);
-      return true;
-    }
-    if (this.showAiMixAssistant()) {
-      this.toggleAiMixAssistant();
-      return true;
-    }
-    if (this.showSmartRecordingPanel()) {
-      this.toggleSmartRecordingPanel();
-      return true;
-    }
-    if (this.showProjectMetadata()) {
-      this.toggleProjectMetadata();
-      return true;
-    }
-    if (this.showStudioInsights()) {
-      this.toggleStudioInsights();
-      return true;
-    }
-    if (this.showActivityLog()) {
-      this.toggleActivityLog();
-      return true;
-    }
-    if (this.showSetsBrowser()) {
-      this.toggleSetsBrowser();
-      return true;
-    }
-    if (this.showComponentRecording()) {
-      this.showComponentRecording.set(false);
-      return true;
-    }
-    if (this.showImportPanel()) {
-      this.toggleImportPanel();
-      return true;
-    }
-    if (this.showVocalComp()) {
-      this.toggleVocalComp();
-      return true;
-    }
-    if (this.showBezierEditor()) {
-      this.toggleBezierEditor();
-      return true;
-    }
-    if (this.showMobileToolsSheet()) {
-      this.toggleMobileToolsSheet(false);
-      return true;
-    }
-    if (this.mobileDrawerOpen()) {
-      this.mobileDrawerOpen.set(false);
-      this.syncPanelFocus(".comp-drawer", false);
-      return true;
-    }
-    return false;
+    const surface = this.dismissibleSurfaces().find((entry) => entry.open);
+    if (!surface) return false;
+    surface.close();
+    return true;
   }
 
   /**
@@ -3131,12 +3126,14 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
       const active = document.activeElement;
       if (active instanceof HTMLElement)
         this.panelTriggers.set(selector, active);
-      setTimeout(() => {
+      const timer = setTimeout(() => {
+        this.panelFocusTimers.delete(timer);
         const panel = document.querySelector<HTMLElement>(selector);
         panel
           ?.querySelector<HTMLElement>("button, input, select, textarea")
           ?.focus();
       }, 0);
+      this.panelFocusTimers.add(timer);
       return;
     }
     const trigger = this.panelTriggers.get(selector);
@@ -3770,8 +3767,12 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
       let tempoBpm: number | undefined;
       let failed = 0;
       const warnings: string[] = [];
+      const archiveLimit = 512 * 1024 * 1024;
       for (const file of files) {
         try {
+          if (file.size > archiveLimit) {
+            throw new Error("DAWproject file exceeds the 512 MiB import limit.");
+          }
           const bytes = new Uint8Array(await file.arrayBuffer());
           const parsed = await importDawprojectArchive(bytes);
           const summary = await this.dawprojectImport.materialize(parsed);

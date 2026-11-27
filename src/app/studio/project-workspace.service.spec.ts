@@ -19,6 +19,7 @@ import { SidechainRoutingService } from "./sidechain-routing.service";
 import { TempoMapService } from "./tempo-map.service";
 import { MeterMapService } from "./meter-map.service";
 import { VcaBusService } from "./vca-bus.service";
+import * as audioChannelCodec from "./audio-channel-codec.util";
 
 const createFakeAudioBuffer = (
   channels: number[][],
@@ -350,7 +351,11 @@ describe("ProjectWorkspaceService", () => {
         },
         {
           provide: CloudSyncService,
-          useValue: { queuePush: (...args: unknown[]) => cloudQueuePush(...args) },
+          useValue: {
+            queuePush: (...args: unknown[]) => cloudQueuePush(...args),
+            payloadBytes: (payload: unknown) =>
+              JSON.stringify(payload ?? null).length,
+          },
         },
         {
           provide: PROJECT_BACKING_TRACK,
@@ -622,9 +627,8 @@ describe("ProjectWorkspaceService", () => {
     ]);
 
     const exportSnapshot = service.createSnapshot();
-    expect(Array.isArray(exportSnapshot.audioAssets?.[0]?.channels?.[0])).toBe(
-      true,
-    );
+    expect(typeof exportSnapshot.audioAssets?.[0]?.channels?.[0]).toBe("string");
+    expect(exportSnapshot.audioAssets?.[0]?.channels?.[0]).toMatch(/^f32b64:/);
 
     await service.manualSave();
 
@@ -1179,7 +1183,7 @@ describe("ProjectWorkspaceService", () => {
       },
     ];
 
-    await (service as any).tryQueueCloudSync(metadata, missing);
+    await (service as any).tryQueueCloudSync(missing);
 
     expect(queueOperation).not.toHaveBeenCalled();
     expect(TestBed.inject(LoggingService).warn).toHaveBeenCalledWith(
@@ -1189,7 +1193,45 @@ describe("ProjectWorkspaceService", () => {
     expect(service.audioIntegrity()?.ok).toBe(false);
   });
 
-  it('queues binary audio as plain arrays through the versioned contract', async () => {
+  it('refuses an oversized cloud version before base64 conversion', async () => {
+    authUser.set({ id: 'artist_1' });
+    cloudQueuePush.mockClear();
+    const huge = {
+      ...makeBundle(),
+      metadata: { ...metadata, id: 'proj_huge', name: 'Huge Set' },
+      audioAssets: [
+        {
+          id: 'take-huge',
+          sampleRate: 44100,
+          channelCount: 2,
+          // Deliberately larger than the 512 MiB cloud ceiling without
+          // allocating the samples: the guard must read the binary shape.
+          frameCount: 200_000_000,
+          duration: 1,
+          channels: [new Float32Array([0]), new Float32Array([0])],
+        },
+      ],
+    };
+    const convert = jest.spyOn(service as any, 'toCloudSafeBundle');
+    const encode = jest.spyOn(audioChannelCodec, 'encodeFloat32Channel');
+
+    try {
+      await (service as any).tryQueueCloudSync(huge);
+
+      expect(convert).not.toHaveBeenCalled();
+      expect(encode).not.toHaveBeenCalled();
+      expect(cloudQueuePush).not.toHaveBeenCalled();
+      expect(service.cloudSyncQueued()).toBe(false);
+      expect(service.cloudSyncRefusal()).toContain('Saved on this device');
+      expect(service.cloudSyncRefusal()).toContain('too large to sync');
+      expect(service.cloudSyncRefusal()).toContain('512 MB');
+    } finally {
+      convert.mockRestore();
+      encode.mockRestore();
+    }
+  });
+
+  it('queues binary audio as compact base64 channels through the versioned contract', async () => {
     authUser.set({ id: 'artist_1' });
     cloudQueuePush.mockClear();
     const binaryBundle = {
@@ -1214,13 +1256,18 @@ describe("ProjectWorkspaceService", () => {
     expect(projectId).toBe('proj_sync');
     expect(title).toBe('Sync Me');
     const channels = (payload as any).audioAssets[0].channels;
-    expect(Array.isArray(channels[0])).toBe(true);
-    // Float32 storage is approximate — the shape (plain array of samples)
-    // is what the sync contract needs, not bit-exact decimals.
-    expect(channels[0][0]).toBeCloseTo(0.1, 5);
-    expect(channels[0][1]).toBeCloseTo(-0.2, 5);
+    expect(typeof channels[0]).toBe('string');
+    expect(channels[0]).toMatch(/^f32b64:/);
     // The queued copy converts; the live binary bundle keeps its typed arrays.
     expect(binaryBundle.audioAssets[0].channels[0]).toBeInstanceOf(Float32Array);
+    // The compact channel restores to the same samples.
+    const jsonBundle = JSON.parse(JSON.stringify(payload));
+    stemAudioCache.clear();
+    service.restoreFromSnapshot(jsonBundle);
+    const restored = stemAudioCache.get('take-1');
+    expect(restored).toBeTruthy();
+    expect(restored.getChannelData(0)[0]).toBeCloseTo(0.1, 5);
+    expect(restored.getChannelData(0)[1]).toBeCloseTo(-0.2, 5);
   });
 
   it('folds the guide vocal into the outbound cloud bundle', async () => {
@@ -1600,7 +1647,11 @@ describe("ProjectWorkspaceService", () => {
         { provide: AuthService, useValue: { currentUser: signal(user) } },
         {
           provide: CloudSyncService,
-          useValue: { queuePush: (...args: unknown[]) => cloudQueuePush(...args) },
+          useValue: {
+            queuePush: (...args: unknown[]) => cloudQueuePush(...args),
+            payloadBytes: (payload: unknown) =>
+              JSON.stringify(payload ?? null).length,
+          },
         },
         {
           provide: PROJECT_BACKING_TRACK,
@@ -1684,7 +1735,11 @@ describe("ProjectWorkspaceService", () => {
         },
         {
           provide: CloudSyncService,
-          useValue: { queuePush: (...args: unknown[]) => cloudQueuePush(...args) },
+          useValue: {
+            queuePush: (...args: unknown[]) => cloudQueuePush(...args),
+            payloadBytes: (payload: unknown) =>
+              JSON.stringify(payload ?? null).length,
+          },
         },
         {
           provide: PROJECT_BACKING_TRACK,

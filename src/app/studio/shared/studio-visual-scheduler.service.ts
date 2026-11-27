@@ -1,4 +1,4 @@
-import { Injectable, OnDestroy, inject } from "@angular/core";
+import { Injectable, NgZone, OnDestroy, inject } from "@angular/core";
 import { UIService } from "../../services/ui.service";
 
 export interface StudioVisualTaskOptions {
@@ -26,6 +26,7 @@ type VisualTask = {
 export class StudioVisualSchedulerService implements OnDestroy {
   /** Optional so the scheduler remains usable in isolated visual tests. */
   private readonly ui = inject(UIService, { optional: true });
+  private readonly zone = inject(NgZone, { optional: true });
   private readonly tasks = new Map<number, VisualTask>();
   private nextId = 1;
   private frame: number | null = null;
@@ -78,11 +79,18 @@ export class StudioVisualSchedulerService implements OnDestroy {
     if (this.frame !== null || this.tasks.size === 0) return;
     const raf = globalThis.requestAnimationFrame;
     if (typeof raf !== "function") return;
-    this.frame = raf.call(globalThis, (timestamp: number) => {
-      this.frame = null;
-      this.runDueTasks(timestamp);
-      this.ensureLoop();
-    });
+    const schedule = () => {
+      this.frame = raf.call(globalThis, (timestamp: number) => {
+        this.frame = null;
+        this.runDueTasks(timestamp);
+        this.ensureLoop();
+      });
+    };
+    // Canvas/DOM fan-out must not make zone.js run application change
+    // detection at the visual frame rate. Signal writes still notify Angular
+    // through the signal scheduler, while pure drawing stays cheap.
+    if (this.zone) this.zone.runOutsideAngular(schedule);
+    else schedule();
   }
 
   private runDueTasks(timestamp: number): void {

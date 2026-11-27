@@ -1,6 +1,7 @@
 import {
   Component,
   ElementRef,
+  HostListener,
   ViewChild,
   effect,
   inject,
@@ -22,11 +23,14 @@ import { InteractionDialogService } from '../../services/interaction-dialog.serv
       (click)="dialog.cancel()"
     >
       <section
+        #dialogSection
+        tabindex="-1"
         class="w-full max-w-lg rounded-3xl border border-border bg-surface/95 shadow-v42-xl overflow-hidden"
         role="dialog"
         aria-modal="true"
         [attr.aria-labelledby]="'dialog-title-' + active.id"
         (click)="$event.stopPropagation()"
+        (keydown)="onDialogKeydown($event)"
       >
         <header class="px-6 py-5 border-b border-border">
           <div class="flex items-start justify-between gap-4">
@@ -126,6 +130,16 @@ export class InteractionDialogComponent {
   promptValue = '';
 
   @ViewChild('promptInput') private promptInput?: ElementRef<HTMLInputElement>;
+  @ViewChild('dialogSection') private dialogSection?: ElementRef<HTMLElement>;
+
+  /** The last dialog id this component prepared, so queued dialogs re-focus. */
+  private activeId: number | null = null;
+  private previousFocus: HTMLElement | null = null;
+  private readonly inerted: Array<{
+    element: HTMLElement;
+    hadInert: boolean;
+    ariaHidden: string | null;
+  }> = [];
 
   constructor() {
     effect(() => {
@@ -134,10 +148,106 @@ export class InteractionDialogComponent {
       this.promptValue =
         active?.type === 'prompt' ? active.initialValue || '' : '';
 
-      if (active?.type === 'prompt') {
-        setTimeout(() => this.promptInput?.nativeElement?.focus());
+      if (!active) {
+        this.finishDialogSurface();
+        return;
       }
+
+      if (this.activeId === null) {
+        this.previousFocus =
+          document.activeElement instanceof HTMLElement
+            ? document.activeElement
+            : null;
+        this.makeBackgroundInert();
+      }
+      this.activeId = active.id;
+
+      // The prompt input is the reason the dialog opened; for a confirmation
+      // the first safe action (Cancel/Close) is the useful keyboard landing
+      // point. Focus is always moved into the modal, never left behind it.
+      setTimeout(() => {
+        const root = this.dialogSection?.nativeElement;
+        if (!root) return;
+        const target =
+          active.type === 'prompt'
+            ? this.promptInput?.nativeElement
+            : root.querySelector<HTMLElement>('button:not([disabled]), input:not([disabled])');
+        target?.focus();
+      });
     });
+  }
+
+  /** Escape is handled at document level so it works before focus lands. */
+  @HostListener('document:keydown.escape', ['$event'])
+  onEscape(event: Event): void {
+    if (!this.dialog.activeDialog()) return;
+    event.preventDefault();
+    event.stopPropagation();
+    this.dialog.cancel();
+  }
+
+  /** Keep Tab and Shift+Tab cycling inside the modal. */
+  onDialogKeydown(event: KeyboardEvent): void {
+    if (event.key !== 'Tab') return;
+    const root = this.dialogSection?.nativeElement;
+    if (!root) return;
+    const focusable = Array.from(
+      root.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [href], [tabindex]:not([tabindex="-1"])',
+      ),
+    );
+    if (focusable.length === 0) {
+      event.preventDefault();
+      root.focus();
+      return;
+    }
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    const active = document.activeElement;
+    if (event.shiftKey && (active === first || !root.contains(active))) {
+      event.preventDefault();
+      last.focus();
+      return;
+    }
+    if (!event.shiftKey && (active === last || !root.contains(active))) {
+      event.preventDefault();
+      first.focus();
+    }
+  }
+
+  /** Mark every sibling of the dialog host inert while the modal is open. */
+  private makeBackgroundInert(): void {
+    if (typeof document === 'undefined') return;
+    const shell = document.querySelector<HTMLElement>('.app-shell');
+    if (!shell) return;
+    for (const child of Array.from(shell.children)) {
+      if (!(child instanceof HTMLElement)) continue;
+      if (child.tagName === 'APP-INTERACTION-DIALOG') continue;
+      this.inerted.push({
+        element: child,
+        hadInert: child.hasAttribute('inert'),
+        ariaHidden: child.getAttribute('aria-hidden'),
+      });
+      child.setAttribute('inert', '');
+      child.setAttribute('aria-hidden', 'true');
+    }
+  }
+
+  /** Restore the page and the focus that existed before the dialog opened. */
+  private finishDialogSurface(): void {
+    if (this.activeId === null) return;
+    this.activeId = null;
+    for (const entry of this.inerted.splice(0)) {
+      if (!entry.hadInert) entry.element.removeAttribute('inert');
+      if (entry.ariaHidden === null) {
+        entry.element.removeAttribute('aria-hidden');
+      } else {
+        entry.element.setAttribute('aria-hidden', entry.ariaHidden);
+      }
+    }
+    const restore = this.previousFocus;
+    this.previousFocus = null;
+    if (restore?.isConnected) restore.focus();
   }
 
   submit(): void {

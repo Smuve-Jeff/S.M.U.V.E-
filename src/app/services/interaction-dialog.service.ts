@@ -55,10 +55,16 @@ type ActiveDialog =
 export class InteractionDialogService {
   private nextId = 0;
   readonly activeDialog = signal<ActiveDialog | null>(null);
+  /**
+   * Requests that arrived while another dialog was open. The old signal-only
+   * implementation replaced activeDialog and left the earlier Promise forever
+   * pending; a second destructive action could therefore suspend the first.
+   */
+  private readonly pending: ActiveDialog[] = [];
 
   confirm(request: Omit<ConfirmDialogRequest, 'type'>): Promise<boolean> {
     return new Promise((resolve) => {
-      this.activeDialog.set({
+      this.enqueue({
         ...request,
         type: 'confirm',
         id: ++this.nextId,
@@ -76,7 +82,7 @@ export class InteractionDialogService {
     request: Omit<ConfirmDialogRequest, 'type'>,
   ): Promise<'confirm' | 'alternate' | 'cancel'> {
     return new Promise((resolve) => {
-      this.activeDialog.set({
+      this.enqueue({
         ...request,
         type: 'confirm',
         id: ++this.nextId,
@@ -94,7 +100,7 @@ export class InteractionDialogService {
 
   prompt(request: Omit<PromptDialogRequest, 'type'>): Promise<string | null> {
     return new Promise((resolve) => {
-      this.activeDialog.set({
+      this.enqueue({
         ...request,
         type: 'prompt',
         id: ++this.nextId,
@@ -105,7 +111,7 @@ export class InteractionDialogService {
 
   alert(request: Omit<AlertDialogRequest, 'type'>): Promise<void> {
     return new Promise((resolve) => {
-      this.activeDialog.set({
+      this.enqueue({
         ...request,
         type: 'alert',
         id: ++this.nextId,
@@ -114,13 +120,30 @@ export class InteractionDialogService {
     });
   }
 
-  settle(result?: boolean | string | null): void {
+  private enqueue(dialog: ActiveDialog): void {
+    this.pending.push(dialog);
+    if (!this.activeDialog()) this.activateNext();
+  }
+
+  private activateNext(): void {
+    this.activeDialog.set(this.pending.shift() ?? null);
+  }
+
+  /** Clear the active request and immediately surface the next queued one. */
+  private advance(): ActiveDialog | null {
     const dialog = this.activeDialog();
+    if (!dialog) return null;
+    this.activeDialog.set(null);
+    this.activateNext();
+    return dialog;
+  }
+
+  settle(result?: boolean | string | null): void {
+    const dialog = this.advance();
     if (!dialog) {
       return;
     }
 
-    this.activeDialog.set(null);
     if (dialog.type === 'confirm') {
       // `alternate` is its own outcome; everything else keeps the legacy
       // boolean mapping so existing confirm() callers are unchanged.
@@ -137,12 +160,11 @@ export class InteractionDialogService {
   }
 
   cancel(): void {
-    const dialog = this.activeDialog();
+    const dialog = this.advance();
     if (!dialog) {
       return;
     }
 
-    this.activeDialog.set(null);
     if (dialog.type === 'confirm') {
       dialog.resolve(false);
       return;

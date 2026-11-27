@@ -113,22 +113,11 @@ export class OfflineSyncService {
       userId: metadata.userId,
     };
 
-    // Local-first: persist to IndexedDB instantly so UI never stalls
-    if (this.localSaveEnabled()) {
-      await this.localStorage.saveItem(
-        'offline_local_cache',
-        {
-          id: item.id,
-          endpoint: item.endpoint,
-          payload: item.payload,
-          savedAt: Date.now(),
-        },
-        24 * 60 * 60 * 1000
-      ); // 24h TTL
-      this.lastLocalSaveAt.set(Date.now());
-    }
-
+    // The sync store is already the local-first durable copy. Writing the
+    // same payload into `offline_local_cache` as well doubled IndexedDB usage
+    // for every large project push without a reader ever consulting it.
     await this.localStorage.saveItem(this.SYNC_STORE, item);
+    if (this.localSaveEnabled()) this.lastLocalSaveAt.set(Date.now());
     await this.updatePendingCount();
 
     this.logger.info(`OfflineSync: Queued ${action} operation for ${endpoint}`);

@@ -5,6 +5,7 @@ import {
   readProjectFile,
 } from "./project-archive.util";
 import type { ProjectBundle } from "./project-workspace.service";
+import { encodeFloat32Channel } from "./audio-channel-codec.util";
 
 const makeBundle = (): ProjectBundle => ({
   metadata: {
@@ -67,6 +68,30 @@ describe("project archive", () => {
     expect(right[0]).toBeCloseTo(0.4, 5);
     expect(right[1]).toBeCloseTo(-0.5, 5);
     expect(right[2]).toBeCloseTo(0.6, 5);
+  });
+
+  it("exports compact base64 channels instead of writing silence", async () => {
+    const bundle = makeBundle();
+    bundle.audioAssets![0].channels = [
+      encodeFloat32Channel(new Float32Array([0.1, -0.2, 0.3])),
+      encodeFloat32Channel(new Float32Array([0.4, -0.5, 0.6])),
+    ];
+
+    const restored = readProjectArchive(
+      await buildProjectArchive(bundle).arrayBuffer(),
+    );
+    const left = restored.audioAssets![0].channels[0] as Float32Array;
+    const right = restored.audioAssets![0].channels[1] as Float32Array;
+    expect(Array.from(left)).toEqual([
+      expect.closeTo(0.1, 5),
+      expect.closeTo(-0.2, 5),
+      expect.closeTo(0.3, 5),
+    ]);
+    expect(Array.from(right)).toEqual([
+      expect.closeTo(0.4, 5),
+      expect.closeTo(-0.5, 5),
+      expect.closeTo(0.6, 5),
+    ]);
   });
 
   it("carries the uploaded guide track and returns it on import", async () => {

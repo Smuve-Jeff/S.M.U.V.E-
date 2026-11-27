@@ -28,4 +28,18 @@ describe('InteractionDialogService', () => {
 
     await expect(promise).resolves.toBe(false);
   });
+
+  it('queues overlapping requests instead of stranding the first', async () => {
+    const first = dialog.confirm({ title: 'first', message: 'm' });
+    const second = dialog.prompt({ title: 'second', message: 'm' });
+
+    expect(dialog.activeDialog()?.title).toBe('first');
+    dialog.settle(true);
+    await expect(first).resolves.toBe(true);
+
+    expect(dialog.activeDialog()?.title).toBe('second');
+    dialog.settle('typed answer');
+    await expect(second).resolves.toBe('typed answer');
+    expect(dialog.activeDialog()).toBeNull();
+  });
 });

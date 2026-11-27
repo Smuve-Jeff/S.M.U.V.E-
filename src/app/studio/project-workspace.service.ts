@@ -33,6 +33,11 @@ import {
   type ProjectAudioIntegrityReport,
 } from "./project-integrity.util";
 import { PROJECT_BACKING_TRACK } from "./project-backing-track.token";
+import {
+  FLOAT32_CHANNEL_PREFIX,
+  decodeFloat32Channel,
+  encodeFloat32Channel,
+} from "./audio-channel-codec.util";
 
 export interface ProjectMetadata {
   id: string;
@@ -127,6 +132,28 @@ export interface SharedGuideTrack {
 
 /** Guide uploads above this stay on-device; the song never waits on its guide. */
 const SHARED_GUIDE_MAX_BYTES = 6 * 1024 * 1024;
+
+/**
+ * Hard ceiling for one versioned cloud snapshot, checked from the binary
+ * bundle before any PCM is expanded into base64. The resumable upload path can
+ * carry large sets, but an unbounded queue payload can still exhaust a phone's
+ * memory while it is being encoded and stored. Kept in line with the existing
+ * 512 MiB project import/export ceiling.
+ */
+export const MAX_CLOUD_BUNDLE_BYTES = 512 * 1024 * 1024;
+
+class CloudBundleTooLargeError extends Error {
+  constructor(estimatedBytes: number) {
+    const limitMb = Math.round(MAX_CLOUD_BUNDLE_BYTES / (1024 * 1024));
+    const estimatedMb = (estimatedBytes / (1024 * 1024)).toFixed(1);
+    super(
+      `Saved on this device, but this version is too large to sync ` +
+        `(about ${estimatedMb} MB; the cloud limit is ${limitMb} MB). ` +
+        `Remove unused takes or export a backup.`,
+    );
+    this.name = "CloudBundleTooLargeError";
+  }
+}
 
 /** Chunked base64 so a multi-megabyte guide never blows the call stack. */
 function encodeBytesToBase64(bytes: Uint8Array): string {
@@ -238,7 +265,7 @@ interface StoredProjectBundle extends ProjectBundle {
 }
 
 type AudioAssetSerializationMode = "binary" | "json";
-type SerializedAudioChannel = Float32Array | number[];
+type SerializedAudioChannel = Float32Array | number[] | string;
 
 /**
  * Starting tempo and mood per genre, keyed by {@link normalizeGenre}.
@@ -453,6 +480,12 @@ export class ProjectWorkspaceService {
   lastQueuedSyncId = signal<string | null>(null);
   /** True while a local save has been queued for cloud sync. */
   cloudSyncQueued = signal(false);
+  /**
+   * Set when the local save succeeded but its cloud version was refused before
+   * encoding. The shell shows this beside the persistence warning so the
+   * artist knows the work is safe and what to do next.
+   */
+  readonly cloudSyncRefusal = signal('');
   /** Timestamp of the most recent restored local bundle. */
   lastRecoveredAt = signal<number | null>(null);
   /** Source of the most recent restored local bundle. */
@@ -653,6 +686,7 @@ export class ProjectWorkspaceService {
     this.versionCount.set(0);
     this.lastQueuedSyncId.set(null);
     this.cloudSyncQueued.set(false);
+    this.cloudSyncRefusal.set('');
     this.lastRecoveredAt.set(null);
     this.lastRecoveredSource.set(null);
     this.persistenceError.set('');
@@ -844,7 +878,7 @@ export class ProjectWorkspaceService {
       // up from ordinary saving instead of waiting for a cloud push. Failures
       // are swallowed — the save itself already succeeded.
       await this.saveLocalVersion(bundle);
-      await this.tryQueueCloudSync(bundle.metadata, bundle);
+      await this.tryQueueCloudSync(bundle);
       this.logger.info("ProjectWorkspace: Saved " + bundle.metadata.name);
       void this.relationship
         ?.observe({
@@ -894,10 +928,8 @@ export class ProjectWorkspaceService {
     if (status !== 'ready') throw new Error(`Project storage is ${status}. Export a backup before leaving.`);
   }
 
-  private async tryQueueCloudSync(
-    metadata: ProjectMetadata,
-    bundle: ProjectBundle = this.createStoredSnapshot(),
-  ): Promise<void> {
+  private async tryQueueCloudSync(bundle: ProjectBundle): Promise<void> {
+    this.cloudSyncRefusal.set('');
     try {
       // A cloud snapshot must never replace a complete one with a version
       // missing audio. The local save can still succeed and be repaired.
@@ -911,9 +943,21 @@ export class ProjectWorkspaceService {
         );
         return;
       }
-      await this.queueCurrentSnapshotCloudSync(metadata);
+      // Reuse the bundle the save already built. Taking a second JSON snapshot
+      // here duplicated the whole PCM capture on every manual save; the queued
+      // converter below base64-encodes the channels without building another
+      // project graph.
+      await this.queueCloudSync(bundle);
     } catch (error) {
       this.cloudSyncQueued.set(false);
+      if (error instanceof CloudBundleTooLargeError) {
+        this.cloudSyncRefusal.set(error.message);
+        this.logger.warn(
+          'ProjectWorkspace: Cloud sync refused; version exceeds the size cap',
+          error.message,
+        );
+        return;
+      }
       this.logger.warn('ProjectWorkspace: Saved locally; cloud queue unavailable', error);
     }
   }
@@ -1189,7 +1233,7 @@ export class ProjectWorkspaceService {
         savedAt: stored.savedAt,
       });
       this.restoreFromSnapshot(bundle);
-      await this.tryQueueCloudSync(bundle.metadata, bundle);
+      await this.tryQueueCloudSync(bundle);
       this.markPersistenceClean(bundle, "import", stored.savedAt);
       await this.pruneRedundantRecoveryRecords();
       this.persistenceError.set('');
@@ -1631,28 +1675,6 @@ export class ProjectWorkspaceService {
   }
 
   /**
-   * Binary audio must never ride the JSON sync queue as a typed array:
-   * Float32Array channels stringify to `{"0":…}` index objects, so a
-   * desktop save would store a project whose takes restore as silence
-   * on mobile. Arrays survive the round-trip; the local binary record
-   * is untouched (this converts a copy, not the stored bundle).
-   */
-  private toJsonSafeBundle(bundle: ProjectBundle): ProjectBundle {
-    return JSON.parse(
-      JSON.stringify(bundle, (_key, value) =>
-        ArrayBuffer.isView(value) && !(value instanceof DataView)
-          ? Array.from(value as unknown as ArrayLike<number>)
-          : value,
-      ),
-    );
-  }
-
-  /**
-   * Queue the restorable bundle for versioned cloud history — the only
-   * cloud contract this workspace writes. The offline queue replays it
-   * with a proper manifest whether the radio is up now or later.
-   */
-  /**
    * Take a cloud bundle's guide vocal onto this device: decode the shared
    * bytes into the vocal chain and store them with the set (memory-only
    * for guests, per the clearance promise).
@@ -1690,6 +1712,12 @@ export class ProjectWorkspaceService {
     );
   }
 
+  /**
+   * Queue the restorable bundle for versioned cloud history — the only
+   * cloud contract this workspace writes. Binary channels are compact
+   * base64 strings on the wire, never typed arrays that JSON would turn
+   * into index-keyed objects; the local binary record is untouched.
+   */
   private async queueCloudSync(bundle: ProjectBundle): Promise<void> {
     const userId = this.auth.currentUser()?.id;
     if (!userId) {
@@ -1697,13 +1725,109 @@ export class ProjectWorkspaceService {
       return;
     }
 
+    // Refuse before `toCloudSafeBundle` allocates the base64 strings. The
+    // estimate uses the already-built binary channels and the non-audio JSON
+    // shape, so an oversized set never pays the conversion cost.
+    this.assertCloudBundleFits(bundle);
+
     const syncId = await this.cloudSync.queuePush(
       bundle.metadata.id,
       bundle.metadata.name,
-      this.withSharedGuide(this.toJsonSafeBundle(bundle)),
+      this.withSharedGuide(this.toCloudSafeBundle(bundle)),
     );
     this.lastQueuedSyncId.set(syncId);
     this.cloudSyncQueued.set(true);
+  }
+
+  /**
+   * Estimate the outbound JSON size from the binary bundle without building
+   * the base64 strings. Audio dominates a project snapshot; the rest of the
+   * bundle is measured structurally by the cloud service.
+   */
+  private estimateCloudBundleBytes(bundle: ProjectBundle): number {
+    let encodedAudioBytes = 0;
+    for (const asset of bundle.audioAssets ?? []) {
+      const channels = Array.isArray(asset.channels) ? asset.channels : [];
+      const channelCount = Math.max(
+        1,
+        Number(asset.channelCount) || channels.length || 1,
+      );
+      let frameCount = Math.max(0, Number(asset.frameCount) || 0);
+      let hasBinaryChannel = false;
+      for (const channel of channels) {
+        if (typeof channel === "string") {
+          encodedAudioBytes += channel.length + 2;
+        } else if (channel instanceof Float32Array) {
+          hasBinaryChannel = true;
+          frameCount = Math.max(frameCount, channel.length);
+        } else if (Array.isArray(channel)) {
+          // Legacy JSON snapshots keep numeric arrays instead of base64. They
+          // are far larger per sample, so budget them as JSON numbers.
+          encodedAudioBytes +=
+            Math.max(frameCount, channel.length) * 12 + 2;
+        }
+      }
+      if (hasBinaryChannel) {
+        const rawBytes = frameCount * 4 * channelCount;
+        encodedAudioBytes +=
+          Math.ceil(rawBytes / 3) * 4 +
+          channels.length * (FLOAT32_CHANNEL_PREFIX.length + 2);
+      }
+    }
+
+    let guideBytes = 0;
+    if (!bundle.guideTrack) {
+      try {
+        const file = this.backingTrack?.archiveFile();
+        if (
+          file?.data?.byteLength &&
+          file.data.byteLength <= SHARED_GUIDE_MAX_BYTES
+        ) {
+          guideBytes = Math.ceil(file.data.byteLength / 3) * 4 + 1024;
+        }
+      } catch {
+        // A missing guide is not a reason to block the project snapshot.
+      }
+    }
+
+    return (
+      this.cloudSync.payloadBytes({ ...bundle, audioAssets: [] }) +
+      encodedAudioBytes +
+      guideBytes +
+      1024
+    );
+  }
+
+  private assertCloudBundleFits(bundle: ProjectBundle): void {
+    const estimatedBytes = this.estimateCloudBundleBytes(bundle);
+    if (estimatedBytes > MAX_CLOUD_BUNDLE_BYTES) {
+      throw new CloudBundleTooLargeError(estimatedBytes);
+    }
+  }
+
+  /**
+   * Normalise any binary bundle before it enters the JSON cloud queue. The
+   * public snapshot path already emits base64 channels, but keeping this
+   * guard means an internal caller cannot accidentally send a Float32Array
+   * that JSON turns into `{"0":…}` index objects.
+   */
+  private toCloudSafeBundle(bundle: ProjectBundle): ProjectBundle {
+    if (!bundle.audioAssets?.some((asset) =>
+      asset.channels?.some((channel) => channel instanceof Float32Array),
+    )) {
+      return bundle;
+    }
+    return {
+      ...bundle,
+      audioAssets: bundle.audioAssets.map((asset) => ({
+        ...asset,
+        channels: asset.channels.map((channel) =>
+          channel instanceof Float32Array
+            ? encodeFloat32Channel(channel)
+            : channel,
+        ),
+      })),
+    };
   }
 
   /**
@@ -1809,6 +1933,9 @@ export class ProjectWorkspaceService {
   }
 
   restoreFromSnapshot(bundle: ProjectBundle) {
+    // A size refusal belongs to the set that produced it; opening another set
+    // must not carry that warning into the new workspace.
+    this.cloudSyncRefusal.set('');
     this.validateBundle(bundle);
     const integrity = inspectProjectAudioIntegrity(bundle);
     this.audioIntegrity.set(integrity);
@@ -2471,16 +2598,6 @@ export class ProjectWorkspaceService {
     return "manual";
   }
 
-  private async queueCurrentSnapshotCloudSync(
-    metadata: ProjectMetadata,
-  ): Promise<void> {
-    if (!this.auth.currentUser()?.id) {
-      this.cloudSyncQueued.set(false);
-      return;
-    }
-    await this.queueCloudSync(this.createSnapshot(metadata));
-  }
-
   private captureSnapshotTracks(audioAssetMode: AudioAssetSerializationMode): {
     tracks: any[];
     audioAssets: SerializedAudioAsset[];
@@ -2680,8 +2797,13 @@ export class ProjectWorkspaceService {
       audioBytes += asset.frameCount * asset.channelCount * 4;
       if (audioBytes > 256 * 1024 * 1024) throw new Error('Project audio exceeds the 256 MiB import limit.');
       for (const channel of asset.channels) {
-        if (!(Array.isArray(channel) || channel instanceof Float32Array) || channel.length !== asset.frameCount ||
-            !channel.every((sample) => typeof sample === 'number' && Number.isFinite(sample))) {
+        const samples =
+          typeof channel === 'string'
+            ? decodeFloat32Channel(channel)
+            : channel;
+        if (!(Array.isArray(samples) || samples instanceof Float32Array) ||
+            samples.length !== asset.frameCount ||
+            !samples.every((sample) => typeof sample === 'number' && Number.isFinite(sample))) {
           throw new Error('Invalid project audio samples.');
         }
       }
@@ -2731,7 +2853,7 @@ export class ProjectWorkspaceService {
       channels: Array.from({ length: buffer.numberOfChannels }, (_, channel) =>
         audioAssetMode === "binary"
           ? buffer.getChannelData(channel).slice()
-          : Array.from(buffer.getChannelData(channel)),
+          : encodeFloat32Channel(buffer.getChannelData(channel)),
       ),
     };
   }
@@ -2749,6 +2871,15 @@ export class ProjectWorkspaceService {
     const buffer = ctx.createBuffer(channelCount, frameCount, sampleRate);
     for (let channel = 0; channel < channelCount; channel++) {
       const source = asset.channels?.[channel];
+      if (typeof source === "string") {
+        try {
+          buffer.copyToChannel(Float32Array.from(decodeFloat32Channel(source)), channel);
+        } catch {
+          // A malformed channel stays silent; validateBundle rejects it before
+          // this point on import/restore paths.
+        }
+        continue;
+      }
       if (!(Array.isArray(source) || source instanceof Float32Array)) continue;
       buffer.copyToChannel(Float32Array.from(source), channel);
     }

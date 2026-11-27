@@ -43,6 +43,16 @@ import { LoggingService } from "../services/logging.service";
 import { CloudSyncService } from "../services/cloud-sync.service";
 import { HistoryService } from "../services/history.service";
 import { guideLessonById } from "./studio-guide/studio-guide-deep-link";
+import { Capacitor } from "@capacitor/core";
+import { App } from "@capacitor/app";
+
+jest.mock("@capacitor/core", () => ({
+  Capacitor: { isNativePlatform: jest.fn(() => false) },
+  registerPlugin: jest.fn(),
+}));
+jest.mock("@capacitor/app", () => ({
+  App: { addListener: jest.fn(), exitApp: jest.fn() },
+}));
 
 describe("StudioComponent", () => {
   let component: StudioComponent;
@@ -110,6 +120,7 @@ describe("StudioComponent", () => {
     isSaving: signal(false),
     storageDurability: signal('unknown'),
     persistenceError: signal(''),
+    cloudSyncRefusal: signal(''),
     audioIntegrity: signal(null),
     canRepairAudio: signal(false),
     inspectCurrentAudioIntegrity: jest.fn().mockReturnValue({ ok: true }),
@@ -267,6 +278,7 @@ describe("StudioComponent", () => {
 
   beforeEach(async () => {
     jest.clearAllMocks();
+    jest.mocked(Capacitor.isNativePlatform).mockReturnValue(false);
     mockMusicManager.tracks.set([]);
     mockMusicManager.launchQuantize.set("none");
     mockMusicManager.scenePlaybackActive.set(false);
@@ -1155,6 +1167,49 @@ describe("StudioComponent", () => {
     expect(stopPreview).toHaveBeenCalledTimes(1);
   });
 
+  it("leaves the collaboration session when the Studio route is destroyed", () => {
+    mockCollaboration.currentSession.set({ sessionId: "session-test" });
+
+    component.ngOnDestroy();
+
+    expect(mockCollaboration.leaveSession).toHaveBeenCalledTimes(1);
+    mockCollaboration.currentSession.set(null);
+  });
+
+  it("removes a native back listener that resolves after route teardown", async () => {
+    jest.mocked(Capacitor.isNativePlatform).mockReturnValue(true);
+    const remove = jest.fn();
+    let release!: (handle: { remove: () => void }) => void;
+    const pendingHandle = new Promise<{ remove: () => void }>((resolve) => {
+      release = resolve;
+    });
+    jest.mocked(App.addListener).mockReturnValueOnce(pendingHandle as never);
+
+    const registration = (component as any).registerNativeBackButton();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(App.addListener).toHaveBeenCalledTimes(1);
+
+    component.ngOnDestroy();
+    release({ remove });
+    await registration;
+
+    expect(remove).toHaveBeenCalledTimes(1);
+    expect((component as any).backButtonHandle).toBeNull();
+    jest.mocked(Capacitor.isNativePlatform).mockReturnValue(false);
+  });
+
+  it("binds the cloud size refusal to the visible save warning", () => {
+    const template = fs.readFileSync(
+      path.join(process.cwd(), "src/app/studio/studio.component.html"),
+      "utf-8",
+    );
+
+    expect(template).toContain(
+      "projectWorkspace.persistenceError() || projectWorkspace.cloudSyncRefusal()",
+    );
+    expect(template).toContain("Export backup");
+  });
+
   it("streams comp-take audition instead of decoding the whole take", async () => {
     const play = jest.fn().mockResolvedValue(undefined);
     const pause = jest.fn();
@@ -1349,6 +1404,18 @@ describe("StudioComponent", () => {
     it("reports no open overlay when every surface is closed", () => {
       expect(component.hasOpenOverlay()).toBe(false);
       expect(component.dismissTopOverlay()).toBe(false);
+    });
+
+    it("closes the Activity Log and Sets Browser with the same Back contract", () => {
+      component.showActivityLog.set(true);
+      expect(component.hasOpenOverlay()).toBe(true);
+      expect(component.dismissTopOverlay()).toBe(true);
+      expect(component.showActivityLog()).toBe(false);
+
+      component.showSetsBrowser.set(true);
+      expect(component.hasOpenOverlay()).toBe(true);
+      expect(component.dismissTopOverlay()).toBe(true);
+      expect(component.showSetsBrowser()).toBe(false);
     });
 
     it("arms one history entry per open surface so back can unwind them", () => {

@@ -219,6 +219,20 @@ describe("ArrangementViewComponent", () => {
     expect(component).toBeTruthy();
   });
 
+  it("shows an actionable error instead of a blank grid when WebGL is unavailable", () => {
+    component.glError.set("Timeline rendering is unavailable on this device.");
+    fixture.detectChanges();
+
+    const fallback = fixture.nativeElement.querySelector(
+      ".gl-fallback",
+    ) as HTMLElement;
+    expect(fallback).toBeTruthy();
+    expect(fallback.getAttribute("role")).toBe("alert");
+    expect(fallback.textContent).toContain("Timeline rendering is unavailable");
+    expect(fallback.textContent).toContain("Retry rendering");
+    expect(fallback.textContent).toContain("Open Piano Roll");
+  });
+
   it("routes overview and ruler clicks to the transport and shows the clamped position", () => {
     const overview = { getBoundingClientRect: () => ({ left: 100, width: 200 }) };
     component.seekFromOverview({ currentTarget: overview, clientX: 300 } as any);

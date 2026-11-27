@@ -14,9 +14,13 @@
 >
   <input type="file" #fileInput style="display: none;" accept=".smuve" (change)="loadProjectFile($event)">
 
-  <div *ngIf="projectWorkspace.persistenceError()" class="studio-save-warning" role="alert">
+  <div
+    *ngIf="projectWorkspace.persistenceError() || projectWorkspace.cloudSyncRefusal()"
+    class="studio-save-warning"
+    role="alert"
+  >
     <span class="material-symbols-outlined" aria-hidden="true">warning</span>
-    <span>{{ projectWorkspace.persistenceError() }}</span>
+    <span>{{ projectWorkspace.persistenceError() || projectWorkspace.cloudSyncRefusal() }}</span>
     <button
       *ngIf="projectWorkspace.canRepairAudio()"
       type="button"
@@ -24,7 +28,14 @@
     >
       Repair audio
     </button>
-    <button type="button" (click)="saveProject()" [disabled]="projectWorkspace.isSaving()">Retry save</button>
+    <button
+      *ngIf="projectWorkspace.persistenceError()"
+      type="button"
+      (click)="saveProject()"
+      [disabled]="projectWorkspace.isSaving()"
+    >
+      Retry save
+    </button>
     <button type="button" (click)="exportProject()">Export backup</button>
   </div>
 

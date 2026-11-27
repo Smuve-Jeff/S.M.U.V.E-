@@ -1,5 +1,8 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { TestBed } from '@angular/core/testing';
+import { InteractionDialogComponent } from './interaction-dialog.component';
+import { InteractionDialogService } from '../../services/interaction-dialog.service';
 
 /**
  * The shared dialog is the final stop before unsaved work is replaced, so its
@@ -39,5 +42,72 @@ describe('InteractionDialogComponent touch targets', () => {
     for (const action of actions) {
       expect(action).toContain('min-h-11');
     }
+  });
+});
+
+describe('InteractionDialogComponent focus contract', () => {
+  beforeEach(() => {
+    jest.useFakeTimers();
+    TestBed.configureTestingModule({ imports: [InteractionDialogComponent] });
+  });
+
+  afterEach(() => {
+    jest.runOnlyPendingTimers();
+    jest.useRealTimers();
+    document.body.innerHTML = '';
+  });
+
+  it('moves focus inside, closes on Escape, and restores the trigger', async () => {
+    const trigger = document.createElement('button');
+    trigger.textContent = 'Open';
+    document.body.appendChild(trigger);
+    trigger.focus();
+
+    const fixture = TestBed.createComponent(InteractionDialogComponent);
+    fixture.detectChanges();
+    const dialog = TestBed.inject(InteractionDialogService);
+    const pending = dialog.confirm({ title: 'Delete?', message: 'Confirm' });
+    fixture.detectChanges();
+    jest.runOnlyPendingTimers();
+    fixture.detectChanges();
+
+    const section = fixture.nativeElement.querySelector(
+      '[role="dialog"]',
+    ) as HTMLElement;
+    expect(section).toBeTruthy();
+    expect(section.contains(document.activeElement)).toBe(true);
+
+    fixture.componentInstance.onEscape(new Event('keydown', { cancelable: true }));
+    await expect(pending).resolves.toBe(false);
+    fixture.detectChanges();
+    jest.runOnlyPendingTimers();
+    expect(document.activeElement).toBe(trigger);
+  });
+
+  it('loops Tab from the last control back to the first', () => {
+    const fixture = TestBed.createComponent(InteractionDialogComponent);
+    fixture.detectChanges();
+    const dialog = TestBed.inject(InteractionDialogService);
+    dialog.confirm({ title: 'Delete?', message: 'Confirm' });
+    fixture.detectChanges();
+    jest.runOnlyPendingTimers();
+    fixture.detectChanges();
+
+    const section = fixture.nativeElement.querySelector(
+      '[role="dialog"]',
+    ) as HTMLElement;
+    const buttons = Array.from(
+      section.querySelectorAll<HTMLButtonElement>('button'),
+    );
+    buttons[buttons.length - 1].focus();
+    const event = new KeyboardEvent('keydown', {
+      key: 'Tab',
+      cancelable: true,
+    });
+    fixture.componentInstance.onDialogKeydown(event);
+
+    expect(event.defaultPrevented).toBe(true);
+    expect(document.activeElement).toBe(buttons[0]);
+    dialog.cancel();
   });
 });

@@ -150,6 +150,8 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
   private timelineRenderer!: TimelineRenderer;
   private stopVisualTask: (() => void) | null = null;
   private isGlInitialized = false;
+  /** Human-readable setup failure; an empty string means WebGL is healthy. */
+  readonly glError = signal("");
   private activeClipGesture: {
     pointerId: number;
     clipId: string;
@@ -444,13 +446,23 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
       this.glRenderer.initialize(this.glCanvas.nativeElement);
       this.timelineRenderer = new TimelineRenderer(this.glRenderer);
       this.isGlInitialized = true;
+      this.glError.set("");
       this.markDirty();
     } catch (e) {
-      console.warn(
-        "WebGL init failed — arrangement view will fall back to DOM",
-        e,
+      this.isGlInitialized = false;
+      this.glError.set(
+        "The timeline renderer could not start. Hardware acceleration may be disabled or unavailable on this device.",
       );
+      this.logger.warn("Arrangement: WebGL initialisation failed", e);
     }
+  }
+
+  /** Retry after a transient GPU/context failure, without reloading Studio. */
+  retryWebGL(): void {
+    this.glRenderer?.destroy();
+    this.isGlInitialized = false;
+    this.glError.set("");
+    this.initWebGL();
   }
 
   // ── Shared render loop ───────────────────────────────────

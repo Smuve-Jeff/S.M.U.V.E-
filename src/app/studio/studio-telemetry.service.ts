@@ -1,4 +1,4 @@
-import { Injectable, computed, signal } from "@angular/core";
+import { Injectable, OnDestroy, computed, signal } from "@angular/core";
 import { saveJson, deleteSaved } from '../services/guarded-storage';
 
 export type StudioTelemetryEventName =
@@ -112,7 +112,7 @@ export interface StudioWeeklyDashboard {
 }
 
 @Injectable({ providedIn: "root" })
-export class StudioTelemetryService {
+export class StudioTelemetryService implements OnDestroy {
   private readonly STORAGE_KEY = "smuve_studio_telemetry_events_v1";
   private readonly DISMISS_KEY = "smuve_studio_coach_dismissed_v1";
   private readonly MAX_EVENTS = 4000;
@@ -120,6 +120,9 @@ export class StudioTelemetryService {
 
   private activeSessionId = signal<string | null>(null);
   private activeSessionStartedAt = signal<number | null>(null);
+  /** Latest event array waiting for the debounced localStorage write. */
+  private pendingEvents: StudioTelemetryEvent[] | null = null;
+  private saveTimer: ReturnType<typeof setTimeout> | null = null;
   // Read once so writes can tell "nothing stored" from "cannot read it".
   private readonly storedEvents = this.loadEvents();
   private readonly eventsReadable = this.storedEvents !== null;
@@ -130,6 +133,22 @@ export class StudioTelemetryService {
   private dismissedCoachIds = signal<Set<StudioCoachActionId>>(
     this.storedDismissed ?? new Set(),
   );
+
+  private readonly onPageHide = () => this.flushTelemetry();
+
+  constructor() {
+    if (typeof window !== "undefined") {
+      window.addEventListener("pagehide", this.onPageHide);
+    }
+  }
+
+  /** Angular calls this for root services when their injector is destroyed. */
+  ngOnDestroy(): void {
+    if (typeof window !== "undefined") {
+      window.removeEventListener("pagehide", this.onPageHide);
+    }
+    this.flushTelemetry();
+  }
 
   /** Active studio session id (null when no session is open). */
   readonly activeSession = computed(() => this.activeSessionId());
@@ -590,6 +609,23 @@ export class StudioTelemetryService {
 
   private saveEvents(events: StudioTelemetryEvent[]): void {
     if (!this.eventsReadable) return;
+    this.pendingEvents = events;
+    if (this.saveTimer) return;
+    // A user action can emit several events in one turn. Serialising the whole
+    // 4,000-event record once per event made each tap progressively more
+    // expensive; coalesce the burst and write once.
+    this.saveTimer = setTimeout(() => this.flushTelemetry(), 250);
+  }
+
+  /** Persist pending events immediately (tests, pagehide, service destroy). */
+  flushTelemetry(): void {
+    if (this.saveTimer) {
+      clearTimeout(this.saveTimer);
+      this.saveTimer = null;
+    }
+    const events = this.pendingEvents;
+    this.pendingEvents = null;
+    if (!events || !this.eventsReadable) return;
     saveJson(this.STORAGE_KEY, events, 'localStorage');
   }
 

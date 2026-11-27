@@ -1,4 +1,4 @@
-import { Injectable, signal } from "@angular/core";
+import { Injectable, NgZone, inject, signal } from "@angular/core";
 
 /**
  * One frame of the master spectrum reduced to what a lighting surface needs.
@@ -71,6 +71,7 @@ export const ATMOSPHERE_VARS = {
  */
 @Injectable({ providedIn: "root" })
 export class AtmosphericLightService {
+  private readonly zone = inject(NgZone, { optional: true });
   readonly level = signal(0);
   readonly low = signal(0);
   readonly mid = signal(0);
@@ -154,7 +155,11 @@ export class AtmosphericLightService {
       }
       this.rafId = requestAnimationFrame(loop);
     };
-    this.rafId = requestAnimationFrame(loop);
+    const start = () => {
+      this.rafId = requestAnimationFrame(loop);
+    };
+    if (this.zone) this.zone.runOutsideAngular(start);
+    else start();
   }
 
   /** Stop the loop and release the analyser. */

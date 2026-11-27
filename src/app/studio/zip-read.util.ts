@@ -18,7 +18,23 @@ export interface UnzippedEntry {
 /** Raw-deflate inflater. The default is the platform, which every WebView
  * we ship on implements; tests inject Node's zlib because jsdom does not
  * expose the platform stream. */
-export type InflateFn = (data: Uint8Array) => Promise<Uint8Array>;
+export type InflateFn = (
+  data: Uint8Array,
+  maxBytes?: number,
+) => Promise<Uint8Array>;
+
+/**
+ * Hard budgets for third-party ZIPs. A 32-bit declared size is not a promise:
+ * a tiny deflate stream can expand to more than a device has memory for, so the
+ * reader refuses oversized entries and totals before handing the result back.
+ */
+export const ZIP_MAX_ENTRY_BYTES = 256 * 1024 * 1024;
+export const ZIP_MAX_TOTAL_BYTES = 512 * 1024 * 1024;
+
+export interface UnzipLimits {
+  maxEntryBytes?: number;
+  maxTotalBytes?: number;
+}
 
 const EOCD_SIG = 0x06054b50;
 const CENTRAL_SIG = 0x02014b50;
@@ -28,7 +44,10 @@ const METHOD_DEFLATE = 8;
 /** 64 KiB EOCD search window: EOCD is 22 bytes + up to 64 KiB of comment. */
 const EOCD_SEARCH_WINDOW = 22 + 65535;
 
-async function platformInflate(data: Uint8Array): Promise<Uint8Array> {
+async function platformInflate(
+  data: Uint8Array,
+  maxBytes = ZIP_MAX_ENTRY_BYTES,
+): Promise<Uint8Array> {
   const Engine = (globalThis as Record<string, unknown>)[
     "DecompressionStream"
   ] as
@@ -48,8 +67,14 @@ async function platformInflate(data: Uint8Array): Promise<Uint8Array> {
   for (;;) {
     const { done, value } = await reader.read();
     if (done) break;
-    chunks.push(value);
     total += value.length;
+    if (total > maxBytes) {
+      await reader.cancel().catch(() => undefined);
+      throw new Error(
+        `A ZIP entry expands beyond the ${Math.round(maxBytes / (1024 * 1024))} MiB safety limit.`,
+      );
+    }
+    chunks.push(value);
   }
   const out = new Uint8Array(total);
   let pos = 0;
@@ -67,9 +92,12 @@ async function platformInflate(data: Uint8Array): Promise<Uint8Array> {
 export async function unzipArchive(
   input: Uint8Array | ArrayBuffer,
   inflate: InflateFn = platformInflate,
+  limits: UnzipLimits = {},
 ): Promise<UnzippedEntry[]> {
   const bytes =
     input instanceof Uint8Array ? input : new Uint8Array(input);
+  const maxEntryBytes = limits.maxEntryBytes ?? ZIP_MAX_ENTRY_BYTES;
+  const maxTotalBytes = limits.maxTotalBytes ?? ZIP_MAX_TOTAL_BYTES;
   if (bytes.length < 22) throw new Error("Not a ZIP archive.");
 
   // End-of-central-directory: scan backwards so a trailing comment is fine.
@@ -94,6 +122,7 @@ export async function unzipArchive(
 
   const decoder = new TextDecoder("utf-8");
   const entries: UnzippedEntry[] = [];
+  let totalBytes = 0;
   let pos = centralOffset;
   for (let n = 0; n < entryCount; n++) {
     if (view.getUint32(pos, true) !== CENTRAL_SIG) {
@@ -117,6 +146,11 @@ export async function unzipArchive(
         `"${name}" uses ZIP method ${method}; only stored and deflated entries are supported.`,
       );
     }
+    if (uncompressedSize > maxEntryBytes) {
+      throw new Error(
+        `"${name}" declares an expanded size above the ${Math.round(maxEntryBytes / (1024 * 1024))} MiB safety limit.`,
+      );
+    }
     if (localOffset + 30 > bytes.length) {
       throw new Error(`"${name}" points outside the archive.`);
     }
@@ -131,9 +165,22 @@ export async function unzipArchive(
       throw new Error(`"${name}" runs past the end of the archive.`);
     }
     const raw = bytes.slice(dataStart, dataEnd);
-    const data = method === METHOD_STORE ? raw : await inflate(raw);
+    if (method === METHOD_STORE && raw.length > maxEntryBytes) {
+      throw new Error(`"${name}" exceeds the ZIP entry size limit.`);
+    }
+    const data =
+      method === METHOD_STORE ? raw : await inflate(raw, maxEntryBytes);
+    if (data.length > maxEntryBytes) {
+      throw new Error(`"${name}" exceeds the ZIP entry size limit.`);
+    }
     if (data.length !== uncompressedSize && uncompressedSize !== 0) {
       throw new Error(`"${name}" failed its size check after inflation.`);
+    }
+    totalBytes += data.length;
+    if (totalBytes > maxTotalBytes) {
+      throw new Error(
+        `The archive expands beyond the ${Math.round(maxTotalBytes / (1024 * 1024))} MiB safety limit.`,
+      );
     }
     entries.push({ name, data });
   }

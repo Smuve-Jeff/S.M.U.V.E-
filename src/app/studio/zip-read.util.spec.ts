@@ -132,6 +132,38 @@ describe("zip-read.util", () => {
     expect(out[0].name).toBe("audio/bässe-kick.wav");
   });
 
+  it("refuses entries and archives that exceed the configured expansion budgets", async () => {
+    const entryLimited = buildTestZip([
+      { name: "big.bin", data: new Uint8Array(10), method: 0 },
+    ]);
+    await expect(
+      unzipArchive(entryLimited, nodeInflate, { maxEntryBytes: 4 }),
+    ).rejects.toThrow(/declares an expanded size/);
+
+    const declaredTooLarge = buildTestZip([
+      { name: "declared.bin", data: new Uint8Array([1]), method: 0 },
+    ]);
+    const eocd = declaredTooLarge.length - 22;
+    const centralOffset = new DataView(declaredTooLarge.buffer).getUint32(
+      eocd + 16,
+      true,
+    );
+    new DataView(declaredTooLarge.buffer).setUint32(
+      centralOffset + 24,
+      300 * 1024 * 1024,
+      true,
+    );
+    await expect(unzipArchive(declaredTooLarge)).rejects.toThrow(/declares an expanded size/);
+
+    const totalLimited = buildTestZip([
+      { name: "a.bin", data: new Uint8Array(4), method: 0 },
+      { name: "b.bin", data: new Uint8Array(4), method: 0 },
+    ]);
+    await expect(
+      unzipArchive(totalLimited, nodeInflate, { maxTotalBytes: 6 }),
+    ).rejects.toThrow(/archive expands beyond/);
+  });
+
   it("refuses garbage, unknown methods, and truncated data", async () => {
     await expect(unzipArchive(new Uint8Array(10))).rejects.toThrow(
       /Not a ZIP archive/,

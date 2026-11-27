@@ -560,6 +560,27 @@
         [style.height.px]="canvasHeight()"
         [attr.data-ruler-height]="rulerHeight"
       ></canvas>
+
+      <div class="gl-fallback" *ngIf="glError()" role="alert">
+        <strong>Timeline rendering is unavailable</strong>
+        <p>{{ glError() }}</p>
+        <p class="gl-fallback-hint">
+          Your tracks and clips are safe. Retry the renderer, or edit the notes
+          in Piano Roll instead.
+        </p>
+        <div class="gl-fallback-actions">
+          <button type="button" class="mini-btn" (click)="retryWebGL()">
+            Retry rendering
+          </button>
+          <button
+            type="button"
+            class="mini-btn"
+            (click)="requestViewChange.emit('piano-roll')"
+          >
+            Open Piano Roll
+          </button>
+        </div>
+      </div>
     </div>
     </div>
 

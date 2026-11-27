@@ -35,6 +35,51 @@ const PLATFORM =
     : 'web';
 
 /**
+ * Approximate the JSON body size without materialising it. The estimate is
+ * intentionally conservative for numbers and strings; its callers use it for
+ * a byte-count badge and the large-upload warning, not storage accounting.
+ */
+function estimateJsonBytes(value: unknown): number {
+  const seen = new WeakSet<object>();
+  const walk = (entry: unknown): number => {
+    if (entry === null || entry === undefined) return 4;
+    switch (typeof entry) {
+      case 'string':
+        return entry.length + 2;
+      case 'number':
+        return Number.isFinite(entry) ? 16 : 4;
+      case 'boolean':
+        return entry ? 4 : 5;
+      case 'bigint':
+        return String(entry).length;
+      case 'object': {
+        if (seen.has(entry)) return 0;
+        seen.add(entry);
+        if (Array.isArray(entry)) {
+          return 2 + entry.reduce((total, item, index) =>
+            total + walk(item) + (index > 0 ? 1 : 0), 0);
+        }
+        if (ArrayBuffer.isView(entry)) {
+          return 2 + entry.byteLength * 4;
+        }
+        const record = entry as Record<string, unknown>;
+        let total = 2;
+        let first = true;
+        for (const [key, item] of Object.entries(record)) {
+          if (item === undefined) continue;
+          total += (first ? 0 : 1) + key.length + 3 + walk(item);
+          first = false;
+        }
+        return total;
+      }
+      default:
+        return 4;
+    }
+  };
+  return walk(value);
+}
+
+/**
  * Sprint D1 — CloudSyncService.
  *
  * Signal-driven orchestrator on top of the authenticated cloud client + OfflineSync.
@@ -236,13 +281,15 @@ export class CloudSyncService {
 
   // ─── Sync primitives ───────────────────────────────────────────────
 
-  /** Measured JSON size of a push payload (0 when it cannot stringify). */
+  /**
+   * Approximate JSON size of a push payload. This deliberately avoids a full
+   * JSON.stringify: a cloud bundle now carries base64 PCM, and materialising
+   * another complete string just to update a manifest byte count is a large
+   * avoidable allocation on the save path. The estimate is used for display
+   * and the large-push threshold, not for storage accounting.
+   */
   payloadBytes(payload: unknown): number {
-    try {
-      return JSON.stringify(payload ?? null).length;
-    } catch {
-      return 0;
-    }
+    return estimateJsonBytes(payload);
   }
 
   /**

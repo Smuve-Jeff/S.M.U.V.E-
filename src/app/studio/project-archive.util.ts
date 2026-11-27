@@ -3,6 +3,7 @@ import type {
   SerializedAudioAsset,
 } from "./project-workspace.service";
 import { buildZip, crc32, type ZipEntry } from "./zip.util";
+import { decodeFloat32Channel } from "./audio-channel-codec.util";
 
 /**
  * Portable project container.
@@ -76,10 +77,23 @@ export function buildProjectArchive(
     const view = new DataView(bytes.buffer);
 
     for (let channel = 0; channel < channelCount; channel++) {
-      const source = channels[channel];
+      const stored = channels[channel];
+      let source: ArrayLike<number> | null = null;
+      if (stored instanceof Float32Array || Array.isArray(stored)) {
+        source = stored;
+      } else if (typeof stored === "string") {
+        // A cloud/JSON snapshot carries compact base64 channels. Decode it
+        // here rather than writing silence into a portable archive.
+        try {
+          source = decodeFloat32Channel(stored);
+        } catch {
+          source = null;
+        }
+      }
+      if (!source) continue;
       for (let frame = 0; frame < frameCount; frame++) {
         const sample =
-          source && frame < source.length && Number.isFinite(source[frame])
+          frame < source.length && Number.isFinite(source[frame])
             ? source[frame]
             : 0;
         view.setFloat32((channel * frameCount + frame) * 4, sample, true);
