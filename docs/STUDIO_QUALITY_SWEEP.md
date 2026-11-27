@@ -2026,10 +2026,24 @@ returned it to 0.
 | Clamp + persist | 2 → 0.5, −1 → 0, NaN ignored; `restorePerformanceState({arpHumanize: 0.3})` lands at 0.3 |
 | Browser (guest, 5 widths) | see 31.2 — no page overflow, no hidden rack scroll, all five Repeat controls reachable |
 
-### 31.4 Still open
+### 31.4 The guided-step strip on a short phone
+
+The Beginner Mode hint sits at the top of the canvas on every surface, and on a
+360×640 phone its two-line instruction block behaved like a second header over a
+canvas the Piano Roll already only gets ~200 px of. At `max-width: 480px and
+max-height: 700px` it is now one row — step number, title, and the ↩ Steps
+affordance; the instruction is still one tap away in the wizard. Measured in the
+browser at 360×640 on `/studio?view=piano-roll`: the strip is **33 px** instead
+of the **48 px** clamped block it replaces, the roll gets 204 px, no page
+overflow, and the row reads `STEP 1 OF 6 · Pick a Beat · ↩ Steps`. Taller phones
+(390×844) keep the two-line instruction.
+
+### 31.5 Still open
 
 - **Chord clips are still baked notes** (see 30.6).
 - **No offline-audio render** (see 30.6).
 - **Repeat is still wall-clock, not audio-clock scheduled** — the target stops
   drift but does not sample-align hits.
-- **Onboarding overlay + short Piano Roll on small phones** (see 30.6).
+- **The Piano Roll is still only ~204 px at 360×640.** The guided-step strip no
+  longer doubles as a second header (31.4), but the classic shell's own chrome
+  above the canvas is the remaining cost; trimming it is a shell-layout change.

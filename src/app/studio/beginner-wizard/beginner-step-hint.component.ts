@@ -140,6 +140,29 @@ import { BeginnerPathService } from "./beginner-path.service";
         }
       }
 
+      /* Short portrait phones (360×640 and similar): the strip's instruction
+         block cost ~40px of a canvas that the Piano Roll already only gets
+         ~190px of, so the step keeps its number and title here too. The full
+         instruction is still one tap away on the wizard. */
+      @media (max-width: 480px) and (max-height: 700px) {
+        .beginner-step-hint {
+          flex-wrap: nowrap;
+          padding: 4px 10px;
+          gap: 2px 8px;
+        }
+
+        .beginner-step-hint-do {
+          display: none;
+        }
+
+        .beginner-step-hint-title {
+          min-width: 0;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+      }
+
       /* Landscape phones: the canvas is ~200px tall, so the step keeps its
          number and title only — one compact row instead of a second header. */
       @media (max-height: 500px) {
