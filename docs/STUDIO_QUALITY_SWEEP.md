@@ -2399,3 +2399,47 @@ Canvas unchanged: 407 (360), 407 (328), 577 (390), 567 (desktop).
 | `jest studio.component` | **140 tests passed** (after wrapping the mono label in a span) |
 | Browser, all three pills at 328 and 360 | strip 23, label renders its words, no overflow |
 | Browser, 1440×900 | unchanged |
+
+## 40. Thirty-fourth pass — the sync and mono pills get the durability tap area
+
+### 40.1 The same overlay, and what it can actually buy
+
+All three pills are 20px boxes in a 23px strip, so none of them met the 44px
+floor after the strip was compacted. The sync and mono pills now carry the same
+`::after` overlay as the durability pill (`height: 44px`, centred, full pill
+width, `position: relative` on the button), keyed to the phone media query.
+
+What a 44px overlay can buy here is bounded by physics and by paint order. The
+strip is pinned to the top edge of the screen, so its upper half falls outside
+the viewport; and the top bar paints above the strip (`z-index: 30`/`55`), so the
+overlay's lower half belongs to the top bar — which is correct, since a status
+pill must not swallow taps meant for the hamburger or the AI button beneath it.
+
+Scanning `elementFromPoint` down the centre of each pill, 2px at a time:
+
+| y (px) | durability | sync | mono |
+| --- | --- | --- | --- |
+| 0–22 | **pill** | **pill** | **pill** |
+| 24–36 | top bar / its controls | top bar / its controls | top bar / its controls |
+
+Identical for all three, at 328, 360 and 390: the target is now the **whole
+strip height (23px) across the pill's full width**, up from the 20px box, and it
+stops exactly where the top bar starts. A true 44px target would require either
+a taller strip (the 24px §36/§37 gave back) or stealing the top bar's taps;
+neither is worth trading for this status strip. Recording it here so the next
+reader doesn't treat the 44px floor as met by these three chips.
+
+### 40.2 Measured
+
+| Width | Strip | Pills | Tap area | Canvas |
+| --- | --- | --- | --- | --- |
+| 328×640 | **23** | 20px boxes | 23px × pill width | 407 |
+| 360×640 | **23** | 20px boxes | 23px × pill width | 407 |
+| 390×844 | **23** | 20px boxes | 23px × pill width | 577 |
+| 1440×900 | 41 (unchanged) | 32 / 17 / 17 | desktop boxes only | 567 |
+
+| Check | Result |
+| --- | --- |
+| `npm run build` | **0 errors** |
+| Browser, 328 and 360 | strip stays 23, all three pills resolve to `pill` from y=0 to y=22 |
+| Browser, 1440×900 | unchanged — the overlay is inside the phone media query |

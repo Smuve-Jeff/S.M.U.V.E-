@@ -923,6 +923,26 @@ body .comp-shell .playlist-container .playlist-header .mini-btn {
     white-space: nowrap;
   }
 
+  /* Same tap area as the durability pill: its box is 20px in a 23px strip, so
+     the target comes from an `::after` overlay rather than from the layout.
+     The strip sits on the top edge of the screen, so part of that overlay falls
+     outside the viewport — see the note in §40. */
+  body .comp-shell .studio-project-status .studio-sync-status,
+  body .comp-shell .studio-project-status .studio-monitor-status {
+    position: relative;
+  }
+
+  body .comp-shell .studio-project-status .studio-sync-status::after,
+  body .comp-shell .studio-project-status .studio-monitor-status::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 0;
+    width: 100%;
+    height: 44px;
+    transform: translateY(-50%);
+  }
+
   /* The sync pill's byte count is the first thing to go when the row is tight:
      "Saved" is the state, "4.2 MB" is a detail that also lives in the sync
 details panel behind the same pill. Dropping it gives the saved-state label
