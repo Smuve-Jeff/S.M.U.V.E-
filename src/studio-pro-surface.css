@@ -873,28 +873,6 @@ body .comp-shell .playlist-container .playlist-header .mini-btn {
   body .comp-shell.comp-shell .studio-primary-canvas {
     padding-bottom: 0;
   }
-
-  /* The durability pill is a `<button>`, so the shell's blanket phone rule
-     (`button[_ngcontent] { min-height: 44px }` under `max-width: 768px`) gave
-     it a 44px box and doubled the status strip from 22px to 47px behind it.
-     Its own `::after` already carries a 44px tap target, which is exactly what
-     that pseudo-element exists for, so the box can sit at the strip's height
-     again. The label collapses to the action — the shield and "Back up" still
-     read as the warning, and the full sentence stays on the tooltip and the
-     aria-label. */
-  body .comp-shell .studio-project-status .studio-durability-status {
-    height: 20px;
-    min-height: 20px;
-    padding: 0 8px;
-    gap: 3px;
-  }
-
-  body .comp-shell
-    .studio-project-status
-    .studio-durability-status
-    > span:not(.material-symbols-outlined):not(.studio-durability-action) {
-    display: none;
-  }
 }
 
 /* ----------------------------------------------------------------------------
@@ -912,5 +890,35 @@ body .comp-shell .playlist-container .playlist-header .mini-btn {
 @media (max-width: 932px), (pointer: coarse) {
   body .comp-shell .studio-primary-canvas {
     padding-bottom: 8px;
+  }
+}
+
+/* ----------------------------------------------------------------------------
+   10. THE DURABILITY PILL KEEPS THE STRIP'S HEIGHT ON EVERY PHONE
+   ----------------------------------------------------------------------------
+   The pill is a `<button>`, so the shell's blanket phone rule
+   (`button[_ngcontent] { min-height: 44px }` under `max-width: 768px`) gave it
+   a 44px box inside a 22px strip and the strip rendered 47px — at every phone
+   width, not only the short ones. Its own `::after` already carries the 44px
+   tap target, which is what that pseudo-element exists for, so the box goes
+   back to the strip's height and the label collapses to the action; the full
+   sentence stays on the tooltip and the aria-label.
+
+   Keyed on the same `max-width: 768px` as the rule it corrects, so it covers
+   portrait and landscape phones alike, and every desktop width keeps the pill
+   the authored size. */
+@media (max-width: 768px) {
+  body .comp-shell .studio-project-status .studio-durability-status {
+    height: 20px;
+    min-height: 20px;
+    padding: 0 8px;
+    gap: 3px;
+  }
+
+  body .comp-shell
+    .studio-project-status
+    .studio-durability-status
+    > span:not(.material-symbols-outlined):not(.studio-durability-action) {
+    display: none;
   }
 }

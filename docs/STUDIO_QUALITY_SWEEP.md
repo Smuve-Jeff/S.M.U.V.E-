@@ -2298,5 +2298,30 @@ would have to come back out of the strip's height.
 | `npm run build` | **0 errors** |
 | Browser, 360×640 | strip 23, pill 20 with a live 44px `::after`, canvas +24, overflow 0 |
 | Hit test, 360×640 | `elementFromPoint` at the pill's centre ±8 resolves to the pill; +12 lands on the top-bar background, not a control |
-| Browser, 390×844 | byte-identical (strip 47, pill 171×44) — the tier skips this height |
+| Browser, 390×844 | byte-identical at the time (strip 47, pill 171×44) — the tier skipped this height; widened in §37 |
 | Browser, 1440×900 | unchanged (strip 41, pill 171×32) |
+
+## 37. Thirty-first pass — every phone, not just the short ones
+
+The 44px box came from a `max-width: 768px` rule, so scoping the fix to the
+short-phone tier left an 844px phone paying the same 24px. The collapse now sits
+in its own `@media (max-width: 768px)` block — the same condition as the rule it
+corrects — so it covers portrait and landscape phones alike, and desktop keeps
+the authored pill.
+
+| | 390×844 before | 390×844 after | 360×640 | 768×1024 | 1440×900 |
+| --- | --- | --- | --- | --- | --- |
+| Status strip | 47 | **23** | 23 | 23 | 41 (unchanged) |
+| Pill box | 171×44 | **80×20** | 80×20 | 80×20 | 171×32 |
+| Canvas | 553 | **577** | 407 | 757 | 567 |
+| Recorder view | 472 | **496** | 361 | 689 | 522 |
+| Page overflow | 0 | 0 | 0 | 0 | 0 |
+
+Hit test at 390×844: `elementFromPoint` at the pill's centre −8/0/+8 resolves to
+the pill; +12 resolves to the top-bar background, not a control.
+
+**Measurement trap worth recording:** the first re-measure after this change
+still reported a 47px strip at 390 because the browser had the previous
+`styles-*.css` cached and the page never fetched the new hash. Every number
+above comes from a reload with `Network.setCacheDisabled(true)`; a rebuild
+followed by a plain `page.goto` will happily measure the build before it.
