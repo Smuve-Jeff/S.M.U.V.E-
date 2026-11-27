@@ -334,6 +334,11 @@ export class FfmpegVideoExportService {
 
   private ffmpegPromise: Promise<{ ffmpeg: FfmpegLike; fetchFile: (input: Blob | string) => Promise<Uint8Array> }> | null = null;
 
+  /** Where the one installed progress handler forwards its ticks. */
+  private progressSink: ((progress: number) => void) | null = null;
+  /** Whether the cached core already carries that handler. */
+  private progressBound = false;
+
   /** Test seam: replace the dynamic import with a fake FFmpeg instance. */
   ffmpegLoader: FfmpegLoader | null = null;
 
@@ -382,13 +387,19 @@ export class FfmpegVideoExportService {
       })().catch((error) => {
         // Never cache a failed load: the next export retries the download.
         this.ffmpegPromise = null;
+        this.progressBound = false;
         throw error;
       });
     }
     const loaded = await this.ffmpegPromise;
-    if (onProgress) {
+    if (onProgress) this.progressSink = onProgress;
+    if (!this.progressBound) {
+      // One handler for the life of the cached core. Registering per export
+      // left every earlier sink attached, so a tick fired all of them and the
+      // components behind them stayed reachable.
+      this.progressBound = true;
       loaded.ffmpeg.on('progress', ({ progress }) => {
-        onProgress(Math.max(0, Math.min(1, progress)));
+        this.progressSink?.(Math.max(0, Math.min(1, progress)));
       });
     }
     return loaded;

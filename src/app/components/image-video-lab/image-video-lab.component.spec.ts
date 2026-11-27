@@ -4474,6 +4474,88 @@ describe('ImageVideoLabComponent', () => {
     });
   });
 
+  describe('timeline clip keyboard access', () => {
+    const html = readFileSync(
+      join(__dirname, 'image-video-lab.component.html'),
+      'utf8'
+    );
+
+    // Only the fields `selectClip` reads from its own lookup.
+    const clip = {
+      id: 'clip-kb',
+      name: 'Wide',
+      duration: 4,
+      trackId: 't1',
+    } as unknown as VideoClip;
+
+    it('renders each clip as a focusable control, not a bare box', () => {
+      // A pointer-only box left selection — the gate to every clip edit —
+      // unreachable from the keyboard.
+      const start = html.indexOf('class="clip-block');
+      const block = html.slice(start, start + 1400);
+
+      expect(start).toBeGreaterThan(-1);
+      expect(block).toContain('tabindex="0"');
+      expect(block).toContain('role="button"');
+      expect(block).toContain('(keydown)="onClipKeydown($event, clip)"');
+      expect(block).toContain(
+        '[attr.aria-pressed]="selectedClipId() === clip.id"'
+      );
+      expect(block).toContain('[attr.aria-label]');
+    });
+
+    it('selects the focused clip on Enter and on Space', async () => {
+      const { component, videoEngine } = await createComponent();
+      videoEngine.findClip.mockReturnValue(clip);
+
+      for (const key of ['Enter', ' ']) {
+        component.selectedClipId.set(null);
+        const event = new KeyboardEvent('keydown', {
+          key,
+          bubbles: true,
+          cancelable: true,
+        });
+
+        component.onClipKeydown(event, clip);
+
+        expect(component.selectedClipId()).toBe('clip-kb');
+        // Space and Enter are the activation keys; their default action (and
+        // the window transport map) must not also fire.
+        expect(event.defaultPrevented).toBe(true);
+      }
+      expect(component.aiFeedback()).toContain('CLIP SELECTED');
+    });
+
+    it('keeps Space on a focused clip away from the window transport', async () => {
+      const { component, videoEngine } = await createComponent();
+      videoEngine.findClip.mockReturnValue(clip);
+      const onWindow = jest.fn();
+      window.addEventListener('keydown', onWindow);
+      const box = document.createElement('div');
+      box.addEventListener('keydown', (event) =>
+        component.onClipKeydown(event as KeyboardEvent, clip)
+      );
+      document.body.appendChild(box);
+
+      try {
+        box.dispatchEvent(
+          new KeyboardEvent('keydown', {
+            key: ' ',
+            bubbles: true,
+            cancelable: true,
+          })
+        );
+      } finally {
+        box.remove();
+        window.removeEventListener('keydown', onWindow);
+      }
+
+      expect(component.selectedClipId()).toBe('clip-kb');
+      // The Lab's global map toggles playback on Space; picking a clip must win.
+      expect(onWindow).not.toHaveBeenCalled();
+    });
+  });
+
   describe('selected clip readout', () => {
     const selectClip = (
       videoEngine: { findClip: jest.Mock },
@@ -6182,6 +6264,26 @@ describe('ImageVideoLabComponent', () => {
 
       expect(revoke).toHaveBeenCalledWith('blob:test');
     });
+
+    it('drops a pending history commit when the module closes', async () => {
+      const { videoEngine, fixture } = await createComponent();
+      // Fake timers drive the 300ms history debounce directly; the neighbours
+      // in this suite already run on them.
+      jest.useFakeTimers();
+      // A debounced edit is queued, not committed: this is that window.
+      videoEngine.markers.set([
+        { id: 'm1', time: 2, label: 'One', kind: 'scene' },
+      ]);
+      TestBed.flushEffects();
+      videoEngine.snapshot.mockClear();
+
+      expect(() => fixture.destroy()).not.toThrow();
+      jest.advanceTimersByTime(400);
+
+      // The commit would otherwise snapshot a timeline whose services have
+      // already been torn down and push an undo step onto a closed document.
+      expect(videoEngine.snapshot).not.toHaveBeenCalled();
+    });
   });
 
   describe('mobile touch controls and gestures (Android pointer path)', () => {
@@ -7646,7 +7748,7 @@ describe('ImageVideoLabComponent', () => {
     });
 
     it('releases a pending preview when the Lab is left', async () => {
-      const { component, fixture } = await createComponent();
+      const { fixture } = await createComponent();
       const social = TestBed.inject(SocialNetworkingService);
       social.previewStarting.set(true);
       const stop = jest.spyOn(social, 'stopPreview');

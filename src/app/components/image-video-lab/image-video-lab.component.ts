@@ -2020,6 +2020,21 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     target?.setPointerCapture?.(event.pointerId);
   }
 
+  /**
+   * Keyboard route to the same selection the pointer makes.
+   *
+   * Clips are drawn boxes, so without this a keyboard user can reach the lane
+   * but never pick a clip — and selection is the gate to every clip edit.
+   * Space is stopped here or the window transport map would play the timeline
+   * instead of selecting the clip under focus.
+   */
+  onClipKeydown(event: KeyboardEvent, clip: VideoClip): void {
+    if (event.key !== 'Enter' && event.key !== ' ') return;
+    event.preventDefault();
+    event.stopPropagation();
+    this.selectClip(clip.id);
+  }
+
   onClipPointerMove(event: PointerEvent): void {
     const drag = this.clipDrag;
     if (!drag || drag.pointerId !== event.pointerId) return;
@@ -2218,7 +2233,7 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
       this.aiFeedback.set('SELECT A CLIP FIRST, THEN DELETE IT.');
       return;
     }
-    this.videoEngine.removeClip(id);
+    this.discardClip(id);
     this.selectedClipId.set(null);
     this.aiFeedback.set('CLIP REMOVED FROM THE TIMELINE.');
   }
@@ -2749,6 +2764,7 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
       // Opening a project replaces the entire timeline, so everything decoded
       // for the project being closed is now dead weight.
       this.evictUnusedMedia();
+      this.pruneClipRenderState();
       this.adoptStoredMedia(outcome.media);
       await this.restoreAudioBed(outcome.audioBed);
       // The reopened project may have a different mode, duration, or bar
@@ -2894,7 +2910,7 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     const existing = track?.clips ?? [];
     const footage = existing.filter((clip) => !this.isShotCard(clip));
     const staleCards = existing.filter((clip) => this.isShotCard(clip));
-    staleCards.forEach((clip) => this.videoEngine.removeClip(clip.id));
+    staleCards.forEach((clip) => this.discardClip(clip.id));
     // Cards follow the footage already on the lane, so a plan never lands on
     // top of a take the artist has shot and cut.
     const offset = footage.reduce(
@@ -2982,7 +2998,7 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
   removeSelectedCgiLayer(): void {
     const clip = this.selectedClip();
     if (!clip?.effects.cgiScene) return;
-    this.videoEngine.removeClip(clip.id);
+    this.discardClip(clip.id);
     this.selectedClipId.set(null);
     this.aiFeedback.set('CGI LAYER REMOVED FROM THE TIMELINE.');
   }
@@ -3015,7 +3031,7 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
       return;
     }
     const footage = clips.filter((clip) => !this.isShotCard(clip)).length;
-    cards.forEach((clip) => this.videoEngine.removeClip(clip.id));
+    cards.forEach((clip) => this.discardClip(clip.id));
     this.aiFeedback.set(
       `REMOVED ${cards.length} SHOT CARD(S) — ${footage} CLIP(S) OF FOOTAGE KEPT.`
     );
@@ -5948,6 +5964,49 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     }
   }
 
+  /**
+   * Drop the render state a clip leaves behind when it leaves the timeline.
+   *
+   * The interpolation frame and the stabilization state are keyed by clip and
+   * are pure derived data: a deleted clip can never be painted again (undo
+   * re-renders into a fresh entry), so keeping them pinned a full-size canvas
+   * and a thumbnail buffer per deleted clip for the rest of the session.
+   *
+   * Project media is deliberately not touched here: undo can bring the clip
+   * back, and its bytes have to still be there for SAVE afterwards.
+   */
+  private releaseClipRenderState(clipId: string): void {
+    const frame = this.prevFrame.get(clipId);
+    if (frame) {
+      // Zeroing the backing store frees the bitmap now instead of whenever the
+      // detached canvas is finally collected.
+      frame.canvas.width = 0;
+      frame.canvas.height = 0;
+      this.prevFrame.delete(clipId);
+    }
+    this.stabState.delete(clipId);
+  }
+
+  /** Drop render caches for clips that are no longer on the timeline. */
+  private pruneClipRenderState(): void {
+    const live = new Set<string>();
+    this.videoEngine
+      .tracks()
+      .forEach((track) => track.clips.forEach((clip) => live.add(clip.id)));
+    [...this.prevFrame.keys()].forEach((clipId) => {
+      if (!live.has(clipId)) this.releaseClipRenderState(clipId);
+    });
+    [...this.stabState.keys()].forEach((clipId) => {
+      if (!live.has(clipId)) this.stabState.delete(clipId);
+    });
+  }
+
+  /** Remove a clip from the timeline and release its per-clip render state. */
+  private discardClip(clipId: string): void {
+    this.releaseClipRenderState(clipId);
+    this.videoEngine.removeClip(clipId);
+  }
+
   private evictUnusedMedia(): void {
     const liveUrls = new Set(
       this.videoEngine
@@ -7162,7 +7221,7 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
         // but it can no longer silently decide the file's frame rate.
         frameLocked: true,
         durationSeconds: seconds,
-        onFrame: (delivered, total) => {
+        onFrame: (delivered, _total) => {
           renderedFrames = delivered;
           this.exportProgress.set(
             Math.min(99, frameProgressPercent(framePlan, delivered))
@@ -7917,6 +7976,14 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     if (!this.videoEngine.findClip(clipId)) {
       URL.revokeObjectURL(poster.url);
       return;
+    }
+
+    // A re-read of the same take replaces the entry; the replaced URL would
+    // otherwise stay pinned by the "revoke on destroy" set until the lab closes.
+    const previous = this.clipPosters().get(clipId);
+    if (previous && previous !== poster.url) {
+      this.ownedObjectUrls.delete(previous);
+      URL.revokeObjectURL(previous);
     }
 
     this.ownedObjectUrls.add(poster.url);
@@ -9054,7 +9121,7 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
         (clip) =>
           this.isShotCard(clip) && clip.name === this.shotCardName(shot)
       )
-      .forEach((clip) => this.videoEngine.removeClip(clip.id));
+      .forEach((clip) => this.discardClip(clip.id));
     const footage = existing.filter((clip) => !this.isShotCard(clip));
     const offset = footage.reduce(
       (end, clip) => Math.max(end, clip.startTime + clip.duration),
@@ -9248,6 +9315,12 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
       clearTimeout(this.flashBurstTimer);
       this.flashBurstTimer = null;
     }
+    // A queued history commit would otherwise run 300ms after the lab closed,
+    // snapshotting a timeline whose services have already been torn down.
+    if (this.historyCommitTimer !== null) {
+      clearTimeout(this.historyCommitTimer);
+      this.historyCommitTimer = null;
+    }
     this.mediaCache.forEach((media) => {
       if (media instanceof HTMLVideoElement) {
         if (!media.paused) this.pauseQuietly(media);
@@ -9267,7 +9340,8 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     if (!(await this.liveStream.resumeBroadcastHere())) {
       this.aiFeedback.set('NO ACTIVE BROADCAST TO RESUME.');
     }
-  }}
+  }
+}
 
 /** Lesson progress is local; a corrupt or absent record simply starts empty. */
 function loadLabLessonProgress(): ReadonlySet<string> {
