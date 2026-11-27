@@ -908,11 +908,30 @@ body .comp-shell .playlist-container .playlist-header .mini-btn {
    portrait and landscape phones alike, and every desktop width keeps the pill
    the authored size. */
 @media (max-width: 768px) {
-  body .comp-shell .studio-project-status .studio-durability-status {
+  /* Every pill in this strip is a `<button>`, so the blanket rule inflates the
+     strip behind whichever one is showing — the durability pill, the cloud
+     sync pill, the mono pill. They are all 17px chips by design and live in a
+     22px strip, so they all take the strip's height instead. */
+  body .comp-shell .studio-project-status .studio-durability-status,
+  body .comp-shell .studio-project-status .studio-sync-status,
+  body .comp-shell .studio-project-status .studio-monitor-status {
     height: 20px;
     min-height: 20px;
     padding: 0 8px;
     gap: 3px;
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+
+  /* With two or three pills in the row the saved-state label is the item left
+     without width, and a wrapping label is what actually made the strip 36px
+     wide-phone-with-everything (the pills themselves were already 20px). One
+     line, ellipsis, and the strip stays a strip. */
+  body .comp-shell .studio-project-status > span {
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   body .comp-shell

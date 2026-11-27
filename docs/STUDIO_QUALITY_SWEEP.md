@@ -2325,3 +2325,49 @@ still reported a 47px strip at 390 because the browser had the previous
 `styles-*.css` cached and the page never fetched the new hash. Every number
 above comes from a reload with `Network.setCacheDisabled(true)`; a rebuild
 followed by a plain `page.goto` will happily measure the build before it.
+
+## 38. Thirty-second pass — the strip's other two pills
+
+### 38.1 Three pills, one rule
+
+The durability pill was not the only `<button>` in the status strip: the cloud
+sync pill (`.studio-sync-status`) and the mono pill (`.studio-monitor-status`)
+are buttons too, so the shell's blanket phone rule inflated whichever one was
+showing. All three now take the strip's height (20px, `flex: 0 0 auto`,
+`white-space: nowrap`).
+
+That alone was not enough. With three pills in a 328px row the *label* was the
+item left without width, and a wrapping "Unsaved changes" span put the strip
+straight back to 36px. The label is now one line with an ellipsis, so the strip
+stays a strip.
+
+### 38.2 Measured
+
+| Strip state | 360×640 | 390×844 | 328×640 | 1440×900 |
+| --- | --- | --- | --- | --- |
+| Durability only (real state) | 23 | 23 | 23 | 41 |
+| + MONO (real: mixer's “Mono-sum monitoring”) | **23** | **23** | — | — |
+| + MONO and sync (sync markup injected) | **23** | **23** | **23** | 41 |
+| Page overflow | 0 | 0 | 0 | 0 |
+
+Pills measure 20px tall at every phone width (durability 80×20, sync 100×20,
+mono 66×20); desktop keeps the authored sizes (32 / 17 / 17). Canvas is
+unchanged at 407 (360), 577 (390) and 567 (desktop).
+
+### 38.3 Evidence
+
+| Check | Result |
+| --- | --- |
+| `npm run build` | **0 errors** |
+| Browser, MONO on via the mixer control | real `.studio-monitor-status` pill renders 66×20, strip 23 at 360 and 390 |
+| Browser, all three pills | strip 23 at 328, 360, 390; no horizontal overflow |
+| Browser, 1440×900 | unchanged (strip 41) |
+
+**Limits of the check:** the guest session never produced a real cloud sync
+status, so the sync pill was verified with DOM-injected markup identical to the
+template's. The mono pill was verified end-to-end (clicked in the mixer, read
+back on the recorder).
+
+**Trade-off:** at 328px with all three pills showing, the saved-state label
+ellipsizes to `Unsaved …` (29px). Nothing clips or wraps, but if that reads as
+too little, the sync pill's byte count is the cheapest thing to drop.
