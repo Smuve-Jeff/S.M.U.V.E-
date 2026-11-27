@@ -277,6 +277,7 @@ describe("PianoRollComponent", () => {
     component.ccRecordArmed.set(false);
     component.ccLaneLearnTarget.set(null);
     mockMusicManager.currentStep.set(0);
+    mockMusicManager.livePerformance.set({ octave: 0, chordType: "minor" });
     mockMidiImport.importFileToTrack.mockClear();
   });
 
@@ -300,6 +301,16 @@ describe("PianoRollComponent", () => {
 
     select.value = "maj7";
     select.dispatchEvent(new Event("change"));
+    fixture.detectChanges();
+
+    expect(component.selectedChordType()).toBe("maj7");
+    expect(component.getChordIntervals()).toEqual([0, 4, 7, 11]);
+  });
+
+  it("adopts the chord type a restored project brings in while it is open", () => {
+    // The roll stays mounted across a project load; the constructor seed alone
+    // would leave the picker on the previous set's chord.
+    mockMusicManager.livePerformance.set({ octave: 0, chordType: "maj7" });
     fixture.detectChanges();
 
     expect(component.selectedChordType()).toBe("maj7");

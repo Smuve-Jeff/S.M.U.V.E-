@@ -226,6 +226,17 @@ describe("PerformerComponent", () => {
     expect(component).toBeTruthy();
   });
 
+  it("adopts the octave a restored project brings in while it is open", () => {
+    const manager = TestBed.inject(MusicManagerService) as any;
+
+    // The component stays mounted across a project load, so the constructor
+    // seed alone would keep showing the previous set's transposition.
+    manager.livePerformance.set({ octave: 1, chordType: "minor" });
+    fixture.detectChanges();
+
+    expect(component.octave()).toBe(1);
+  });
+
   it("records every chord tone the engine publishes, not just the key press", () => {
     const engine = TestBed.inject(LiveEngineService) as any;
     const manager = TestBed.inject(MusicManagerService) as any;

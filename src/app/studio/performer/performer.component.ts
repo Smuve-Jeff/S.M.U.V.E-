@@ -117,6 +117,14 @@ export class PerformerComponent implements OnDestroy, OnInit {
     this.availableInstruments.set(this.instrumentsService.getPresets());
     // Octave is performer state with no engine home; adopt the saved value.
     this.octave.set(this.musicManager.livePerformance().octave ?? 0);
+    // A project load replaces the saved rig while this surface stays mounted, so
+    // follow it instead of keeping the previous set's transposition on screen.
+    effect(() => {
+      const restored = this.musicManager.livePerformance().octave;
+      if (typeof restored === "number" && Number.isFinite(restored)) {
+        this.octave.set(restored);
+      }
+    });
     // Audio waits for a gesture, but the rack's CUT/RES/ATK/REL should already
     // name the selected patch on load instead of showing engine defaults.
     this.liveEngine.previewPatchReadout(this.activeInstrumentId());

@@ -137,6 +137,20 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
     { label: "sus4", value: "sus4" as const, intervals: [0, 5, 7] },
     { label: "dim", value: "dim" as const, intervals: [0, 3, 6] },
   ];
+  /** Adopt a chord type that came from the saved live rig (project load). */
+  private applyStoredChordType(chordType: string | undefined): void {
+    const match = this.chordTypes.find((entry) => entry.value === chordType);
+    if (match) this.selectedChordType.set(match.value);
+  }
+
+  /** A pick is both the stamp and the saved value, so persist it immediately. */
+  setChordType(chordType: string): void {
+    const match = this.chordTypes.find((entry) => entry.value === chordType);
+    if (!match) return;
+    this.selectedChordType.set(match.value);
+    this.musicManager.setLivePerformance({ chordType: match.value });
+  }
+
   getChordIntervals(): number[] {
     return (
       this.chordTypes.find((c) => c.value === this.selectedChordType())
@@ -924,14 +938,12 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
   constructor() {
     // The chord stamp is part of the live rig saved with the set, so a reopened
     // piano roll stamps the chord the artist last chose.
-    const storedChord = this.musicManager.livePerformance().chordType;
-    if (this.chordTypes.some((entry) => entry.value === storedChord)) {
-      this.selectedChordType.set(storedChord as any);
-    }
+    this.applyStoredChordType(this.musicManager.livePerformance().chordType);
+    // A project load replaces the saved rig while this surface stays mounted, so
+    // follow the restored chord instead of leaving the picker stale. Picks are
+    // published by setChordType(), never by this effect, so a restore wins.
     effect(() => {
-      this.musicManager.setLivePerformance({
-        chordType: this.selectedChordType(),
-      });
+      this.applyStoredChordType(this.musicManager.livePerformance().chordType);
     });
 
     effect(() => {

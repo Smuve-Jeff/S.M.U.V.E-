@@ -168,7 +168,7 @@
       <select
         class="pr-chord-select"
         [ngModel]="selectedChordType()"
-        (ngModelChange)="selectedChordType.set($event)"
+        (ngModelChange)="setChordType($event)"
         aria-label="Chord type to stamp"
       >
         <option *ngFor="let ct of chordTypes" [value]="ct.value">
