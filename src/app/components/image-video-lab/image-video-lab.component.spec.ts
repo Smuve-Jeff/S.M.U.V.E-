@@ -4495,7 +4495,11 @@ describe('ImageVideoLabComponent', () => {
       const block = html.slice(start, start + 1400);
 
       expect(start).toBeGreaterThan(-1);
-      expect(block).toContain('tabindex="0"');
+      // Roving tabindex: one clip is the tab stop, the rest are arrow-reachable.
+      expect(block).toContain(
+        '[attr.tabindex]="clip.id === tabbableClipId() ? 0 : -1"'
+      );
+      expect(block).toContain('[attr.data-clip-id]="clip.id"');
       expect(block).toContain('role="button"');
       expect(block).toContain('(keydown)="onClipKeydown($event, clip)"');
       expect(block).toContain(
@@ -4524,6 +4528,51 @@ describe('ImageVideoLabComponent', () => {
         expect(event.defaultPrevented).toBe(true);
       }
       expect(component.aiFeedback()).toContain('CLIP SELECTED');
+    });
+
+    it('keeps one tab stop and walks it with the arrow keys', async () => {
+      const { component, videoEngine } = await createComponent();
+      const clips = [0, 4, 8].map((startTime, index) => ({
+        id: `clip-${index}`,
+        name: `Shot ${index}`,
+        startTime,
+      }));
+      // The mock's lane array is inferred from its empty seed, not from the
+      // service's VideoClip, so the write goes through the signal directly.
+      (
+        videoEngine.tracks as unknown as { set: (next: unknown) => void }
+      ).set([{ ...videoEngine.tracks()[0], clips }]);
+
+      // Thousands of pixels of clips must not mean hundreds of Tab stops.
+      expect(component.tabbableClipId()).toBe('clip-0');
+      component.selectedClipId.set(null);
+      component.selectClip('clip-2');
+      expect(component.tabbableClipId()).toBe('clip-2');
+
+      // `focusClip` finds the clip by its data attribute, so a stand-in proves
+      // the focus hand-off without mounting the full editor template.
+      const stub = document.createElement('div');
+      stub.tabIndex = -1;
+      stub.setAttribute('data-clip-id', 'clip-1');
+      document.body.appendChild(stub);
+
+      try {
+        component.onClipKeydown(
+          new KeyboardEvent('keydown', { key: 'ArrowRight', cancelable: true }),
+          { id: 'clip-0' } as VideoClip
+        );
+        expect(component.rovingClipId()).toBe('clip-1');
+        expect(document.activeElement).toBe(stub);
+        expect(component.tabbableClipId()).toBe('clip-1');
+
+        component.onClipKeydown(
+          new KeyboardEvent('keydown', { key: 'Home', cancelable: true }),
+          { id: 'clip-1' } as VideoClip
+        );
+        expect(component.rovingClipId()).toBe('clip-0');
+      } finally {
+        stub.remove();
+      }
     });
 
     it('keeps Space on a focused clip away from the window transport', async () => {

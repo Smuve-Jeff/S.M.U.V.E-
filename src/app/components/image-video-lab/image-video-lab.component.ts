@@ -1191,6 +1191,33 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     Math.max(600, this.videoEngine.duration() * this.pxPerSecond())
   );
 
+  /** Clip the Tab order lands on first; moved by the arrow keys. */
+  readonly rovingClipId = signal<string | null>(null);
+
+  /** Clips in the order the lanes draw them: lane by lane, left to right. */
+  private readonly keyboardClipOrder = computed<VideoClip[]>(() =>
+    this.videoEngine
+      .tracks()
+      .flatMap((track) =>
+        [...track.clips].sort((a, b) => a.startTime - b.startTime)
+      )
+  );
+
+  /**
+   * The single clip carrying `tabindex="0"`.
+   *
+   * A feature-length timeline holds hundreds of clips; making every one of them
+   * a tab stop buried the rest of the Lab behind the timeline. One clip stays
+   * tabbable and the arrow keys walk the rest, so Tab leaves the timeline
+   * instead of stepping through it.
+   */
+  readonly tabbableClipId = computed(() => {
+    const order = this.keyboardClipOrder();
+    const wanted = this.rovingClipId();
+    if (wanted && order.some((clip) => clip.id === wanted)) return wanted;
+    return order[0]?.id ?? null;
+  });
+
   /** Beat/bar lines for the visible window, thinned so the DOM stays light. */
   rulerTicks = computed<BeatTick[]>(() => {
     const { start, span } = this.timelineViewport();
@@ -2014,6 +2041,8 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
 
   selectClip(clipId: string): void {
     this.selectedClipId.set(clipId);
+    // Whatever was picked by pointer is the clip the keyboard continues from.
+    this.rovingClipId.set(clipId);
     const clip = this.videoEngine.findClip(clipId);
     if (clip) {
       this.aiFeedback.set(
@@ -2057,10 +2086,39 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
    * instead of selecting the clip under focus.
    */
   onClipKeydown(event: KeyboardEvent, clip: VideoClip): void {
-    if (event.key !== 'Enter' && event.key !== ' ') return;
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      event.stopPropagation();
+      this.selectClip(clip.id);
+      return;
+    }
+
+    const order = this.keyboardClipOrder();
+    const index = order.findIndex((entry) => entry.id === clip.id);
+    if (index < 0) return;
+    let next = index;
+    if (event.key === 'ArrowRight') next = Math.min(order.length - 1, index + 1);
+    else if (event.key === 'ArrowLeft') next = Math.max(0, index - 1);
+    else if (event.key === 'Home') next = 0;
+    else if (event.key === 'End') next = order.length - 1;
+    else return;
+
+    // Inside a focused clip the arrows walk the timeline; they must not also
+    // reach the window map and step the playhead.
     event.preventDefault();
     event.stopPropagation();
-    this.selectClip(clip.id);
+    if (next !== index) this.focusClip(order[next].id);
+  }
+
+  /** Move the timeline's single tab stop, and DOM focus with it. */
+  private focusClip(clipId: string): void {
+    this.rovingClipId.set(clipId);
+    if (typeof document === 'undefined') return;
+    // Focus works on the element before the new tabindex has rendered, so the
+    // tab stop and the focused clip never disagree.
+    [...document.querySelectorAll<HTMLElement>('[data-clip-id]')]
+      .find((node) => node.dataset['clipId'] === clipId)
+      ?.focus();
   }
 
   onClipPointerMove(event: PointerEvent): void {

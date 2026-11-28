@@ -1450,12 +1450,13 @@
                 @for (clip of track.clips; track clip.id) {
                   <div
                     class="clip-block absolute h-11 md:h-8 top-0.5 md:top-2 rounded-md border border-brand-primary/30 bg-brand-primary/10 flex items-center px-2 cursor-pointer hover:bg-brand-primary/20 transition-all z-10"
-                    tabindex="0"
+                    [attr.tabindex]="clip.id === tabbableClipId() ? 0 : -1"
+                    [attr.data-clip-id]="clip.id"
                     role="button"
                     [attr.aria-pressed]="selectedClipId() === clip.id"
                     [attr.aria-label]="
                       (isShotCard(clip) ? 'Storyboard card' : clip.name) +
-                      '. Press Enter to select this clip.'
+                      '. Press Enter to select. Arrow keys move between clips.'
                     "
                     (keydown)="onClipKeydown($event, clip)"
                     [class.clip-card]="isShotCard(clip)"
