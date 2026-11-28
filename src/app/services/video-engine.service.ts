@@ -156,6 +156,11 @@ export interface LowerThird {
 export interface ClipMovePatch {
   startTime?: number;
   trackId?: string;
+  /**
+   * `false` skips the beat grid. A one-frame nudge asked to snap lands back on
+   * the bar it started from, which reads as "the keyboard does nothing".
+   */
+  snap?: boolean;
 }
 
 export interface DeliveryPreset {
@@ -1371,11 +1376,16 @@ export class VideoEngineService {
     const requestedStart =
       patch.startTime === undefined ? clip.startTime : patch.startTime;
     const maxStart = Math.max(0, this.duration() - Math.max(MIN_ACTIVE_CLIP_DURATION, clip.duration));
+    const requested = Number.isFinite(requestedStart)
+      ? requestedStart
+      : clip.startTime;
     const startTime = Math.min(
       maxStart,
       patch.startTime === undefined
         ? clip.startTime
-        : this.snapTime(Number.isFinite(requestedStart) ? requestedStart : clip.startTime)
+        : patch.snap === false
+          ? this.clampToTimeline(requested)
+          : this.snapTime(requested)
     );
     const nextTrackId = targetTrack?.id ?? track.id;
 

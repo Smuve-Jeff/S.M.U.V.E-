@@ -4575,6 +4575,38 @@ describe('ImageVideoLabComponent', () => {
       }
     });
 
+    it('nudges the focused clip one frame with Shift and an arrow', async () => {
+      const { component, videoEngine } = await createComponent();
+      const moving = {
+        id: 'clip-kb',
+        name: 'Wide',
+        duration: 4,
+        startTime: 2,
+        trackId: 't1',
+      } as unknown as VideoClip;
+      videoEngine.findClip.mockReturnValue(moving);
+      videoEngine.moveClip.mockReturnValue(true);
+
+      const event = new KeyboardEvent('keydown', {
+        key: 'ArrowRight',
+        shiftKey: true,
+        bubbles: true,
+        cancelable: true,
+      });
+
+      component.onClipKeydown(event, moving);
+
+      // A shift-arrow outside a clip steps the playhead a whole second; inside
+      // one it must move the clip instead.
+      expect(event.defaultPrevented).toBe(true);
+      expect(videoEngine.moveClip).toHaveBeenCalledWith('clip-kb', {
+        startTime: 2 + 1 / 30,
+        snap: false,
+      });
+      expect(component.selectedClipId()).toBe('clip-kb');
+      expect(component.aiFeedback()).toContain('NUDGED');
+    });
+
     it('keeps Space on a focused clip away from the window transport', async () => {
       const { component, videoEngine } = await createComponent();
       videoEngine.findClip.mockReturnValue(clip);

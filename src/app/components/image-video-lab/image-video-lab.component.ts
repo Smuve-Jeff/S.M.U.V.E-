@@ -2093,6 +2093,24 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
       return;
     }
 
+    // Shift plus a horizontal arrow nudges the focused clip one frame. The
+    // drag is pointer-only, so this is the keyboard's move gesture; it is
+    // stopped here or the window map would instead jump the playhead a second.
+    if (
+      event.shiftKey &&
+      (event.key === 'ArrowLeft' || event.key === 'ArrowRight')
+    ) {
+      event.preventDefault();
+      event.stopPropagation();
+      // Select first so the clip readout and the timeline agree on what moved.
+      this.selectClip(clip.id);
+      this.nudgeClip(
+        clip.id,
+        event.key === 'ArrowLeft' ? -FRAME_STEP_SECONDS : FRAME_STEP_SECONDS
+      );
+      return;
+    }
+
     const order = this.keyboardClipOrder();
     const index = order.findIndex((entry) => entry.id === clip.id);
     if (index < 0) return;
@@ -2339,11 +2357,28 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
 
   nudgeSelectedClip(offsetSeconds: number): void {
     const clip = this.selectedClip();
+    if (clip) this.nudgeClip(clip.id, offsetSeconds);
+  }
+
+  /**
+   * Nudge one clip in time, frame by frame.
+   *
+   * Moves bypass the beat grid: with snapping armed, a frame-sized step lands
+   * straight back on the beat it started from, so the nudge would look broken
+   * exactly in the mode where it matters most.
+   */
+  nudgeClip(clipId: string, offsetSeconds: number): void {
+    const clip = this.videoEngine.findClip(clipId);
     if (!clip) return;
-    this.videoEngine.moveClip(clip.id, {
+    const moved = this.videoEngine.moveClip(clipId, {
       startTime: Math.max(0, clip.startTime + offsetSeconds),
+      snap: false,
     });
-    const updated = this.videoEngine.findClip(clip.id);
+    if (!moved) {
+      this.aiFeedback.set('THAT LANE IS LOCKED — CLIP STAYED PUT.');
+      return;
+    }
+    const updated = this.videoEngine.findClip(clipId);
     this.aiFeedback.set(
       `CLIP NUDGED TO ${this.formatSeconds(updated?.startTime ?? clip.startTime)}.`
     );

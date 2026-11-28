@@ -668,6 +668,24 @@ describe('VideoEngineService project snapshot', () => {
       expect(engine.tracks()[0].clips[0].startTime).toBe(0);
     });
 
+    it('keeps a frame nudge off the beat grid when snapping is armed', () => {
+      const engine = createEngine();
+      const id = engine.addClip(
+        't1',
+        clip({ url: 'data:image/jpeg;base64,AAAA', startTime: 2, duration: 4 })
+      );
+      engine.snapToBeat.set(true);
+
+      // Snapped, the nudge lands back on the bar it started from.
+      expect(engine.moveClip(id, { startTime: 2 + 1 / 30 })).toBe(true);
+      expect(engine.findClip(id)!.startTime).toBe(2);
+
+      expect(engine.moveClip(id, { startTime: 2 + 1 / 30, snap: false })).toBe(
+        true
+      );
+      expect(engine.findClip(id)!.startTime).toBeCloseTo(2 + 1 / 30, 6);
+    });
+
     it('refuses to ripple a locked lane', () => {
       const engine = createEngine();
       const id = engine.addClip(

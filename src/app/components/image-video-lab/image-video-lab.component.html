@@ -1456,7 +1456,7 @@
                     [attr.aria-pressed]="selectedClipId() === clip.id"
                     [attr.aria-label]="
                       (isShotCard(clip) ? 'Storyboard card' : clip.name) +
-                      '. Press Enter to select. Arrow keys move between clips.'
+                      '. Press Enter to select. Arrow keys move between clips, Shift and an arrow nudge one frame.'
                     "
                     (keydown)="onClipKeydown($event, clip)"
                     [class.clip-card]="isShotCard(clip)"
