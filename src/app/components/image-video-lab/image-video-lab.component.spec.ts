@@ -226,6 +226,7 @@ describe('ImageVideoLabComponent', () => {
       // clips through these, gated by the beat-snap signal.
       trackOfClip: jest.fn().mockReturnValue({ id: 't1', name: 'Visuals', locked: false }),
       moveClip: jest.fn(),
+      setClipTrim: jest.fn(() => true),
       snapToBeat: signal(false),
       snapTime: jest.fn((time: number) => time),
       // Marker surface for the ruler chips (tap = jump, double-tap = remove).
@@ -4492,7 +4493,8 @@ describe('ImageVideoLabComponent', () => {
       // A pointer-only box left selection — the gate to every clip edit —
       // unreachable from the keyboard.
       const start = html.indexOf('class="clip-block');
-      const block = html.slice(start, start + 1400);
+      // Long enough to cover the trim handles that follow the attribute list.
+      const block = html.slice(start, start + 6000);
 
       expect(start).toBeGreaterThan(-1);
       // Roving tabindex: one clip is the tab stop, the rest are arrow-reachable.
@@ -4506,6 +4508,17 @@ describe('ImageVideoLabComponent', () => {
         '[attr.aria-pressed]="selectedClipId() === clip.id"'
       );
       expect(block).toContain('[attr.aria-label]');
+      // Both edges carry a grab handle, wired to the trim pointer path.
+      expect(block).toContain('clip-trim-handle clip-trim-handle-start');
+      expect(block).toContain('clip-trim-handle clip-trim-handle-end');
+      expect(block).toContain(
+        "(pointerdown)=\"onTrimPointerDown($event, clip, 'start')\""
+      );
+      expect(block).toContain(
+        "(pointerdown)=\"onTrimPointerDown($event, clip, 'end')\""
+      );
+      // The handles must not join the Tab order the last pass just collapsed.
+      expect(block).toContain('aria-hidden="true"');
     });
 
     it('selects the focused clip on Enter and on Space', async () => {
@@ -4643,6 +4656,54 @@ describe('ImageVideoLabComponent', () => {
         trackId: 't3',
       });
       expect(component.aiFeedback()).toContain('VOICEOVER');
+    });
+
+    it('trims the focused clip edges with the bracket keys', async () => {
+      const { component, videoEngine } = await createComponent();
+      const target = createVideoClip({ startTime: 2, duration: 10 });
+      videoEngine.findClip.mockReturnValue(target);
+      videoEngine.setClipTrim.mockReturnValue(true);
+
+      const head = new KeyboardEvent('keydown', {
+        key: '[',
+        code: 'BracketLeft',
+        bubbles: true,
+        cancelable: true,
+      });
+      component.onClipKeydown(head, target);
+
+      expect(head.defaultPrevented).toBe(true);
+      expect(videoEngine.setClipTrim).toHaveBeenLastCalledWith(
+        'clip-v',
+        'start',
+        1 / 30
+      );
+      expect(component.selectedClipId()).toBe('clip-v');
+
+      const tail = new KeyboardEvent('keydown', {
+        key: ']',
+        code: 'BracketRight',
+        cancelable: true,
+      });
+      component.onClipKeydown(tail, target);
+      expect(videoEngine.setClipTrim).toHaveBeenLastCalledWith(
+        'clip-v',
+        'end',
+        1 / 30
+      );
+      expect(component.aiFeedback()).toContain('TAIL TRIM');
+
+      // Shift gives the footage back instead of taking more.
+      const giveBack = new KeyboardEvent('keydown', {
+        key: '{',
+        code: 'BracketLeft',
+        shiftKey: true,
+        cancelable: true,
+      });
+      videoEngine.setClipTrim.mockClear();
+      component.onClipKeydown(giveBack, target);
+      const offset = videoEngine.setClipTrim.mock.calls[0][2] as number;
+      expect(offset).toBeCloseTo(-1 / 30, 6);
     });
 
     it('keeps Space on a focused clip away from the window transport', async () => {
@@ -6603,6 +6664,42 @@ describe('ImageVideoLabComponent', () => {
         trackId: 't2',
       });
       expect(component.aiFeedback()).toContain('VOICEOVER');
+    });
+
+    it('trims a clip edge from its handle under a finger', async () => {
+      const { component, videoEngine } = await createComponent();
+      const clip = createVideoClip({ startTime: 0, duration: 10 });
+      videoEngine.findClip.mockReturnValue(clip);
+      videoEngine.setClipTrim.mockReturnValue(true);
+      const handle = {
+        setPointerCapture: jest.fn(),
+        releasePointerCapture: jest.fn(),
+      };
+
+      component.onTrimPointerDown(
+        touchPointer({ clientX: 100, currentTarget: handle }),
+        clip,
+        'start'
+      );
+      expect(handle.setPointerCapture).toHaveBeenCalledWith(1);
+      expect(component.selectedClipId()).toBe('clip-v');
+
+      // The handle owns the gesture: no clip move may be started under it.
+      expect(videoEngine.moveClip).not.toHaveBeenCalled();
+      component.onTrimPointerMove(touchPointer({ clientX: 250 }));
+      // 150px at the suite's 10px/s zoom is 15s of head trim.
+      expect(videoEngine.setClipTrim).toHaveBeenLastCalledWith(
+        'clip-v',
+        'start',
+        15
+      );
+
+      component.onTrimPointerUp(
+        touchPointer({ clientX: 250, currentTarget: handle })
+      );
+      expect(handle.releasePointerCapture).toHaveBeenCalledWith(1);
+      expect(videoEngine.moveClip).not.toHaveBeenCalled();
+      expect(component.aiFeedback()).toContain('HEAD TRIM');
     });
 
     it('does not move a clip until the finger exceeds the drag threshold', async () => {

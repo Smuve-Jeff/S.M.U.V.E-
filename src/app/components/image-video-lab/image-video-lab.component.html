@@ -1457,7 +1457,7 @@
                     [attr.aria-pressed]="selectedClipId() === clip.id"
                     [attr.aria-label]="
                       (isShotCard(clip) ? 'Storyboard card' : clip.name) +
-                      '. Press Enter to select. Arrow keys move between clips, Shift and an arrow nudge one frame, Alt and up/down change lanes.'
+                      '. Press Enter to select. Arrow keys move between clips, Shift and an arrow nudge one frame, Alt and up/down change lanes, bracket keys trim the edges.'
                     "
                     (keydown)="onClipKeydown($event, clip)"
                     [class.clip-card]="isShotCard(clip)"
@@ -1475,6 +1475,51 @@
                     (pointerup)="onClipPointerUp($event)"
                     (pointercancel)="onClipPointerUp($event)"
                   >
+                    @if ((clip.effects.trimStart || 0) > 0) {
+                      <span
+                        class="clip-trim-shade"
+                        aria-hidden="true"
+                        [style.width.px]="
+                          (clip.effects.trimStart || 0) * pxPerSecond()
+                        "
+                      ></span>
+                    }
+                    @if ((clip.effects.trimEnd || 0) > 0) {
+                      <span
+                        class="clip-trim-shade clip-trim-shade-end"
+                        aria-hidden="true"
+                        [style.width.px]="
+                          (clip.effects.trimEnd || 0) * pxPerSecond()
+                        "
+                      ></span>
+                    }
+                    <!--
+                      Trim handles, one per edge. They are pointer targets only:
+                      the clip keeps the single Tab stop and the bracket keys
+                      are the keyboard route, so this adds no focus stops.
+                    -->
+                    <span
+                      class="clip-trim-handle clip-trim-handle-start"
+                      aria-hidden="true"
+                      [style.left.px]="
+                        (clip.effects.trimStart || 0) * pxPerSecond()
+                      "
+                      (pointerdown)="onTrimPointerDown($event, clip, 'start')"
+                      (pointermove)="onTrimPointerMove($event)"
+                      (pointerup)="onTrimPointerUp($event)"
+                      (pointercancel)="onTrimPointerUp($event)"
+                    ></span>
+                    <span
+                      class="clip-trim-handle clip-trim-handle-end"
+                      aria-hidden="true"
+                      [style.right.px]="
+                        (clip.effects.trimEnd || 0) * pxPerSecond()
+                      "
+                      (pointerdown)="onTrimPointerDown($event, clip, 'end')"
+                      (pointermove)="onTrimPointerMove($event)"
+                      (pointerup)="onTrimPointerUp($event)"
+                      (pointercancel)="onTrimPointerUp($event)"
+                    ></span>
                     @if (clipPoster(clip.id); as poster) {
                       <img
                         class="clip-poster"

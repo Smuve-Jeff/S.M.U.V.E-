@@ -340,6 +340,16 @@ interface ClipDragState {
   moved: boolean;
 }
 
+/** Live pointer trim of one clip edge, driven by the handle at that edge. */
+interface ClipTrimDragState {
+  pointerId: number;
+  clipId: string;
+  edge: 'start' | 'end';
+  originX: number;
+  /** Trim already applied to that edge when the drag began, in seconds. */
+  originTrim: number;
+}
+
 /** Live two-finger pinch, anchored to the timeline time under the fingers. */
 interface PinchState {
   startDistance: number;
@@ -940,6 +950,8 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
   private readonly timelineViewport = signal({ start: 0, span: 60 });
   private playheadDrag: PlayheadDragState | null = null;
   private clipDrag: ClipDragState | null = null;
+  /** Active trim of a clip edge, driven by the head or tail handle. */
+  private trimDrag: ClipTrimDragState | null = null;
   /**
    * Pointer id whose drag just ended on the timeline surface. The browser
    * fires a synthetic `click` after every touch drag; without this, releasing
@@ -1910,6 +1922,7 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
 
     this.cancelPlayheadDrag(event.currentTarget as HTMLElement | null);
     this.cancelClipDrag(event.currentTarget as HTMLElement | null);
+    this.trimDrag = null;
 
     const distance = this.pinchDistance();
     if (distance < PINCH_START_DISTANCE_PX) return;
@@ -2113,6 +2126,26 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
       return;
     }
 
+    // Bracket keys trim the clip's edges: `[` the head, `]` the tail, and
+    // Shift gives footage back. They are the keyboard route to the handles.
+    const trimEdge: 'start' | 'end' | null =
+      event.code === 'BracketLeft'
+        ? 'start'
+        : event.code === 'BracketRight'
+          ? 'end'
+          : null;
+    if (trimEdge) {
+      event.preventDefault();
+      event.stopPropagation();
+      this.selectClip(clip.id);
+      this.trimClipEdge(
+        clip.id,
+        trimEdge,
+        (event.shiftKey ? -1 : 1) * FRAME_STEP_SECONDS
+      );
+      return;
+    }
+
     // Alt plus a vertical arrow walks the clip between lanes, which is the
     // keyboard route to the drop gesture above.
     if (
@@ -2144,6 +2177,18 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     event.preventDefault();
     event.stopPropagation();
     if (next !== index) this.focusClip(order[next].id);
+  }
+
+  /**
+   * Re-focus a clip once Angular has re-rendered it.
+   *
+   * A lane change re-creates the clip's element inside the other lane, which
+   * drops DOM focus on the floor: the next keypress lands on the document and
+   * the operator has to Tab back into the timeline mid-edit.
+   */
+  private focusClipSoon(clipId: string): void {
+    if (typeof setTimeout !== 'function') return;
+    setTimeout(() => this.focusClip(clipId), 0);
   }
 
   /** Move the timeline's single tab stop, and DOM focus with it. */
@@ -2194,7 +2239,11 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     const laneId = this.laneIdAtPoint(event.clientX, event.clientY);
     const currentLane = this.videoEngine.trackOfClip(drag.clipId);
     if (clip && laneId && currentLane && laneId !== currentLane.id) {
-      this.moveClipToLane(drag.clipId, laneId);
+      // Re-homing re-creates the clip in the other lane; keep the tab stop and
+      // DOM focus on the clip that was just dropped.
+      if (this.moveClipToLane(drag.clipId, laneId)) {
+        this.focusClipSoon(drag.clipId);
+      }
       return;
     }
     if (clip) {
@@ -2203,6 +2252,98 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
         `${clip.name.toUpperCase()} MOVED TO ${this.formatSeconds(clip.startTime)}${snapped}.`
       );
     }
+  }
+
+  /**
+   * Trim one edge of a clip by seconds of footage.
+   *
+   * The handle sits inside the clip block, so its press stops propagation —
+   * otherwise the clip body would start a move drag and the lane would seek.
+   * The clip keeps its timeline position and length; only how much source plays
+   * at that edge changes.
+   */
+  trimClipEdge(clipId: string, edge: 'start' | 'end', offsetSeconds: number): void {
+    const clip = this.videoEngine.findClip(clipId);
+    if (!clip) return;
+    const current = Math.max(
+      0,
+      (edge === 'start' ? clip.effects.trimStart : clip.effects.trimEnd) || 0
+    );
+    if (!this.videoEngine.setClipTrim(clipId, edge, current + offsetSeconds)) {
+      this.aiFeedback.set('THAT LANE IS LOCKED — CLIP STAYED PUT.');
+      return;
+    }
+    const updated = this.videoEngine.findClip(clipId);
+    if (updated) this.announceTrim(updated, edge);
+  }
+
+  onTrimPointerDown(
+    event: PointerEvent,
+    clip: VideoClip,
+    edge: 'start' | 'end'
+  ): void {
+    // The handle lives inside the clip block: the clip move drag and the lane
+    // seek must not also start under it.
+    event.stopPropagation();
+    if (!event.isPrimary || event.button > 0) return;
+    this.suppressedClickPointerId = null;
+    this.selectClip(clip.id);
+    const track = this.videoEngine.trackOfClip(clip.id);
+    if (track?.locked) {
+      this.aiFeedback.set(
+        `LANE LOCKED: ${track.name.toUpperCase()} WILL NOT TRIM.`
+      );
+      return;
+    }
+    this.trimDrag = {
+      pointerId: event.pointerId,
+      clipId: clip.id,
+      edge,
+      originX: event.clientX,
+      originTrim: Math.max(
+        0,
+        (edge === 'start' ? clip.effects.trimStart : clip.effects.trimEnd) || 0
+      ),
+    };
+    (event.currentTarget as HTMLElement | null)?.setPointerCapture?.(
+      event.pointerId
+    );
+  }
+
+  onTrimPointerMove(event: PointerEvent): void {
+    const drag = this.trimDrag;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    const deltaSeconds = (event.clientX - drag.originX) / this.pxPerSecond();
+    // Dragging the head right trims more of the opening; pulling the tail left
+    // does the same at the end. Negative travel gives the footage back.
+    const next =
+      drag.originTrim + (drag.edge === 'start' ? deltaSeconds : -deltaSeconds);
+    this.videoEngine.setClipTrim(drag.clipId, drag.edge, next);
+  }
+
+  onTrimPointerUp(event: PointerEvent): void {
+    const drag = this.trimDrag;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    (event.currentTarget as HTMLElement | null)?.releasePointerCapture?.(
+      event.pointerId
+    );
+    this.trimDrag = null;
+    // The synthetic click after this drag lands inside the clip, and the lane
+    // would seek to it.
+    this.suppressedClickPointerId = event.pointerId;
+    const clip = this.videoEngine.findClip(drag.clipId);
+    if (clip) this.announceTrim(clip, drag.edge);
+  }
+
+  /** Keyboard route to the same trim: one frame per press. */
+  private announceTrim(clip: VideoClip, edge: 'start' | 'end'): void {
+    const trimStart = Math.max(0, clip.effects.trimStart || 0);
+    const trimEnd = Math.max(0, clip.effects.trimEnd || 0);
+    const active = Math.max(0, clip.duration - trimStart - trimEnd);
+    this.aiFeedback.set(
+      `${edge === 'start' ? 'HEAD' : 'TAIL'} TRIM: ${trimStart.toFixed(2)}s HEAD, ` +
+        `${trimEnd.toFixed(2)}s TAIL — ${active.toFixed(2)}s PLAYING.`
+    );
   }
 
   /** Cut every unlocked clip under the playhead in two. */
@@ -2411,7 +2552,9 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     if (index < 0) return false;
     for (let i = index + direction; i >= 0 && i < tracks.length; i += direction) {
       if (tracks[i].locked) continue;
-      return this.moveClipToLane(clipId, tracks[i].id);
+      const moved = this.moveClipToLane(clipId, tracks[i].id);
+      if (moved) this.focusClipSoon(clipId);
+      return moved;
     }
     this.aiFeedback.set('NO OTHER UNLOCKED LANE THAT WAY.');
     return false;

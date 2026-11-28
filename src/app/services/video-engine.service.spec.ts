@@ -702,6 +702,45 @@ describe('VideoEngineService project snapshot', () => {
       expect(engine.findClip(id)!.startTime).toBeCloseTo(2 + 1 / 30, 6);
     });
 
+    it('trims a clip edge without moving or shortening its block', () => {
+      const engine = createEngine();
+      const id = engine.addClip(
+        't1',
+        clip({ url: 'data:image/jpeg;base64,AAAA', startTime: 2, duration: 10 })
+      );
+
+      expect(engine.setClipTrim(id, 'start', 1.5)).toBe(true);
+      expect(engine.findClip(id)!.effects.trimStart).toBe(1.5);
+      expect(engine.findClip(id)!.startTime).toBe(2);
+      expect(engine.findClip(id)!.duration).toBe(10);
+
+      expect(engine.setClipTrim(id, 'end', 2)).toBe(true);
+      expect(engine.findClip(id)!.effects.trimEnd).toBe(2);
+
+      // The playing span can never collapse below the minimum.
+      expect(engine.setClipTrim(id, 'start', 99)).toBe(true);
+      const clamped = engine.findClip(id)!;
+      expect(
+        clamped.duration - clamped.effects.trimStart - clamped.effects.trimEnd
+      ).toBeGreaterThanOrEqual(0.05 - 1e-6);
+    });
+
+    it('refuses to trim a clip on a locked lane', () => {
+      const engine = createEngine();
+      const id = engine.addClip(
+        't1',
+        clip({ url: 'data:image/jpeg;base64,AAAA', startTime: 0, duration: 4 })
+      );
+      engine.tracks.update((tracks) =>
+        tracks.map((track) =>
+          track.id === 't1' ? { ...track, locked: true } : track
+        )
+      );
+
+      expect(engine.setClipTrim(id, 'start', 1)).toBe(false);
+      expect(engine.findClip(id)!.effects.trimStart).toBe(0);
+    });
+
     it('refuses to ripple a locked lane', () => {
       const engine = createEngine();
       const id = engine.addClip(

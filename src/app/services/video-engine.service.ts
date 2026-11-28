@@ -1406,6 +1406,53 @@ export class VideoEngineService {
     return true;
   }
 
+  /**
+   * Set how much footage is trimmed away at a clip's head or tail.
+   *
+   * Trimming is content-side: the clip keeps its place and its length on the
+   * timeline, and `trimStart`/`trimEnd` decide how much of the source at each
+   * edge is skipped. A locked lane refuses the change, the value never goes
+   * negative, and the playing span never drops below MIN_ACTIVE_CLIP_DURATION.
+   */
+  setClipTrim(clipId: string, edge: 'start' | 'end', seconds: number): boolean {
+    const track = this.trackOfClip(clipId);
+    const clip = track?.clips.find((candidate) => candidate.id === clipId);
+    if (!track || !clip || track.locked) return false;
+
+    const trimStart = Math.max(0, clip.effects.trimStart || 0);
+    const trimEnd = Math.max(0, clip.effects.trimEnd || 0);
+    const floor = Math.max(0, clip.duration - MIN_ACTIVE_CLIP_DURATION);
+    const requested = Number.isFinite(seconds) ? Math.max(0, seconds) : 0;
+    const nextStart =
+      edge === 'start'
+        ? Math.min(requested, Math.max(0, floor - trimEnd))
+        : trimStart;
+    const nextEnd =
+      edge === 'end'
+        ? Math.min(requested, Math.max(0, floor - nextStart))
+        : trimEnd;
+    if (nextStart === trimStart && nextEnd === trimEnd) return true;
+
+    this.tracks.update((tracks) =>
+      tracks.map((candidate) => ({
+        ...candidate,
+        clips: candidate.clips.map((entry) =>
+          entry.id === clipId
+            ? {
+                ...entry,
+                effects: {
+                  ...entry.effects,
+                  trimStart: nextStart,
+                  trimEnd: nextEnd,
+                },
+              }
+            : entry
+        ),
+      }))
+    );
+    return true;
+  }
+
   /** Drop every clip on a lane — the reset half of a re-cut. */
   clearTrack(trackId: string): number {
     const track = this.tracks().find((candidate) => candidate.id === trackId);
