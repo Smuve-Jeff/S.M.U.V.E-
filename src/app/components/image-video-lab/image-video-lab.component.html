@@ -1432,6 +1432,7 @@
             @for (track of videoEngine.tracks(); track track.id) {
               <div
                 class="h-12 bg-background/50 rounded-lg border border-border relative"
+                [attr.data-track-id]="track.id"
               >
                 <!--
                   Lane label. `track-label` pins it to the left edge of the lane
@@ -1456,7 +1457,7 @@
                     [attr.aria-pressed]="selectedClipId() === clip.id"
                     [attr.aria-label]="
                       (isShotCard(clip) ? 'Storyboard card' : clip.name) +
-                      '. Press Enter to select. Arrow keys move between clips, Shift and an arrow nudge one frame.'
+                      '. Press Enter to select. Arrow keys move between clips, Shift and an arrow nudge one frame, Alt and up/down change lanes.'
                     "
                     (keydown)="onClipKeydown($event, clip)"
                     [class.clip-card]="isShotCard(clip)"

@@ -4607,6 +4607,44 @@ describe('ImageVideoLabComponent', () => {
       expect(component.aiFeedback()).toContain('NUDGED');
     });
 
+    it('steps the focused clip between lanes with Alt and a vertical arrow', async () => {
+      const { component, videoEngine } = await createComponent();
+      const moving = {
+        id: 'clip-kb',
+        name: 'Wide',
+        duration: 4,
+        startTime: 2,
+        trackId: 't1',
+      } as unknown as VideoClip;
+      videoEngine.findClip.mockReturnValue(moving);
+      videoEngine.moveClip.mockReturnValue(true);
+      videoEngine.trackOfClip.mockReturnValue({
+        id: 't1',
+        name: 'Visuals',
+        locked: false,
+      });
+      videoEngine.tracks.set([
+        { id: 't1', name: 'Visuals', locked: false, clips: [] },
+        { id: 't2', name: 'Overlays', locked: true, clips: [] },
+        { id: 't3', name: 'Voiceover', locked: false, clips: [] },
+      ] as never);
+
+      const event = new KeyboardEvent('keydown', {
+        key: 'ArrowDown',
+        altKey: true,
+        cancelable: true,
+      });
+
+      component.onClipKeydown(event, moving);
+
+      expect(event.defaultPrevented).toBe(true);
+      // The locked overlay lane is stepped over rather than blocking the move.
+      expect(videoEngine.moveClip).toHaveBeenCalledWith('clip-kb', {
+        trackId: 't3',
+      });
+      expect(component.aiFeedback()).toContain('VOICEOVER');
+    });
+
     it('keeps Space on a focused clip away from the window transport', async () => {
       const { component, videoEngine } = await createComponent();
       videoEngine.findClip.mockReturnValue(clip);
@@ -6515,6 +6553,56 @@ describe('ImageVideoLabComponent', () => {
 
       component.onClipPointerUp(touchPointer({ clientX: 250 }));
       expect(videoEngine.findClip).toHaveBeenCalledWith('clip-v');
+    });
+
+    it('drops a finger-dragged clip onto the lane underneath it', async () => {
+      const { component, videoEngine } = await createComponent();
+      const clip = createVideoClip({ startTime: 0 });
+      videoEngine.findClip.mockReturnValue(clip);
+      videoEngine.moveClip.mockReturnValue(true);
+      videoEngine.trackOfClip.mockReturnValue({
+        id: 't1',
+        name: 'Visuals',
+        locked: false,
+      });
+      videoEngine.tracks.set([
+        { id: 't1', name: 'Visuals', locked: false, clips: [] },
+        { id: 't2', name: 'Voiceover', locked: false, clips: [] },
+      ] as never);
+
+      const lane = document.createElement('div');
+      lane.setAttribute('data-track-id', 't2');
+      document.body.appendChild(lane);
+      const hitTest = document as unknown as {
+        elementFromPoint: (x: number, y: number) => Element | null;
+      };
+      const originalHitTest = hitTest.elementFromPoint;
+      hitTest.elementFromPoint = () => lane;
+
+      try {
+        component.onClipPointerDown(
+          touchPointer({
+            clientX: 100,
+            clientY: 200,
+            currentTarget: {
+              setPointerCapture: jest.fn(),
+              releasePointerCapture: jest.fn(),
+            },
+          }),
+          clip
+        );
+        // Mostly vertical: a finger dragging toward the lane below.
+        component.onClipPointerMove(touchPointer({ clientX: 102, clientY: 260 }));
+        component.onClipPointerUp(touchPointer({ clientX: 102, clientY: 260 }));
+      } finally {
+        hitTest.elementFromPoint = originalHitTest;
+        lane.remove();
+      }
+
+      expect(videoEngine.moveClip).toHaveBeenLastCalledWith('clip-v', {
+        trackId: 't2',
+      });
+      expect(component.aiFeedback()).toContain('VOICEOVER');
     });
 
     it('does not move a clip until the finger exceeds the drag threshold', async () => {

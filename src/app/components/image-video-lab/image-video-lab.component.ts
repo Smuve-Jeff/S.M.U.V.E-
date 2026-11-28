@@ -335,6 +335,7 @@ interface ClipDragState {
   pointerId: number;
   clipId: string;
   originX: number;
+  originY: number;
   originStartTime: number;
   moved: boolean;
 }
@@ -2071,6 +2072,7 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
       pointerId: event.pointerId,
       clipId: clip.id,
       originX: event.clientX,
+      originY: event.clientY,
       originStartTime: clip.startTime,
       moved: false,
     };
@@ -2111,6 +2113,22 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
       return;
     }
 
+    // Alt plus a vertical arrow walks the clip between lanes, which is the
+    // keyboard route to the drop gesture above.
+    if (
+      event.altKey &&
+      (event.key === 'ArrowUp' || event.key === 'ArrowDown')
+    ) {
+      event.preventDefault();
+      event.stopPropagation();
+      this.selectClip(clip.id);
+      this.moveClipToAdjacentLane(
+        clip.id,
+        event.key === 'ArrowUp' ? -1 : 1
+      );
+      return;
+    }
+
     const order = this.keyboardClipOrder();
     const index = order.findIndex((entry) => entry.id === clip.id);
     if (index < 0) return;
@@ -2143,7 +2161,14 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     const drag = this.clipDrag;
     if (!drag || drag.pointerId !== event.pointerId) return;
     const deltaX = event.clientX - drag.originX;
-    if (Math.abs(deltaX) > 3) drag.moved = true;
+    // Vertical travel counts too: a finger that only moves up or down is
+    // dragging the clip toward another lane, not jittering in place.
+    if (
+      Math.abs(deltaX) > 3 ||
+      Math.abs(event.clientY - drag.originY) > 3
+    ) {
+      drag.moved = true;
+    }
     if (!drag.moved) return;
     const deltaSeconds = deltaX / this.pxPerSecond();
     this.videoEngine.moveClip(drag.clipId, {
@@ -2162,6 +2187,16 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     if (drag.moved) this.suppressedClickPointerId = event.pointerId;
     if (!drag.moved) return;
     const clip = this.videoEngine.findClip(drag.clipId);
+    // A drag that ends over another lane drops the clip there. Lanes are drop
+    // targets because a drag could previously only slide a clip along its own
+    // lane, so moving a clip between lanes meant leaving the timeline for the
+    // toolbar select.
+    const laneId = this.laneIdAtPoint(event.clientX, event.clientY);
+    const currentLane = this.videoEngine.trackOfClip(drag.clipId);
+    if (clip && laneId && currentLane && laneId !== currentLane.id) {
+      this.moveClipToLane(drag.clipId, laneId);
+      return;
+    }
     if (clip) {
       const snapped = this.videoEngine.snapToBeat() ? ' (SNAPPED TO BEAT)' : '';
       this.aiFeedback.set(
@@ -2345,13 +2380,49 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
   /** Move the selected clip to another lane (overlays, voiceover, score…). */
   moveSelectedClipToLane(trackId: string): void {
     const id = this.selectedClipId();
-    if (!id) return;
-    const moved = this.videoEngine.moveClip(id, { trackId });
-    const track = this.trackOptions().find((candidate) => candidate.id === trackId);
+    if (id) this.moveClipToLane(id, trackId);
+  }
+
+  /** Move one clip onto a lane, naming the lane in the readout either way. */
+  private moveClipToLane(clipId: string, trackId: string): boolean {
+    const moved = this.videoEngine.moveClip(clipId, { trackId });
+    const track = this.videoEngine
+      .tracks()
+      .find((candidate) => candidate.id === trackId);
     this.aiFeedback.set(
       moved
         ? `CLIP MOVED TO THE ${(track?.name ?? trackId).toUpperCase()} LANE.`
         : 'THAT LANE IS LOCKED — CLIP STAYED PUT.'
+    );
+    return moved;
+  }
+
+  /**
+   * Move a clip one lane up (-1) or down (+1), stepping over locked lanes.
+   *
+   * The lane select in the clip toolbar is the only other route, and reaching
+   * it means tabbing out of the timeline mid-edit.
+   */
+  moveClipToAdjacentLane(clipId: string, direction: -1 | 1): boolean {
+    const tracks = this.videoEngine.tracks();
+    const current = this.videoEngine.trackOfClip(clipId);
+    if (!current) return false;
+    const index = tracks.findIndex((track) => track.id === current.id);
+    if (index < 0) return false;
+    for (let i = index + direction; i >= 0 && i < tracks.length; i += direction) {
+      if (tracks[i].locked) continue;
+      return this.moveClipToLane(clipId, tracks[i].id);
+    }
+    this.aiFeedback.set('NO OTHER UNLOCKED LANE THAT WAY.');
+    return false;
+  }
+
+  /** The lane under a client point: the drop target of a cross-lane drag. */
+  private laneIdAtPoint(clientX: number, clientY: number): string | null {
+    if (typeof document === 'undefined') return null;
+    const hit = document.elementFromPoint?.(clientX, clientY) as Element | null;
+    return (
+      hit?.closest<HTMLElement>('[data-track-id]')?.dataset['trackId'] ?? null
     );
   }
 

@@ -686,6 +686,22 @@ describe('VideoEngineService project snapshot', () => {
       expect(engine.findClip(id)!.startTime).toBeCloseTo(2 + 1 / 30, 6);
     });
 
+    it('leaves an off-grid start alone when a clip changes lane', () => {
+      const engine = createEngine();
+      const id = engine.addClip(
+        't1',
+        clip({ url: 'data:image/jpeg;base64,AAAA', startTime: 2 + 1 / 30, duration: 4 })
+      );
+      engine.snapToBeat.set(true);
+
+      expect(engine.moveClip(id, { trackId: 't2' })).toBe(true);
+
+      // Re-homing a clip is not an edit in time: the beat grid must not pull
+      // a frame-nudged clip back onto the bar on its way to another lane.
+      expect(engine.findClip(id)!.trackId).toBe('t2');
+      expect(engine.findClip(id)!.startTime).toBeCloseTo(2 + 1 / 30, 6);
+    });
+
     it('refuses to ripple a locked lane', () => {
       const engine = createEngine();
       const id = engine.addClip(
